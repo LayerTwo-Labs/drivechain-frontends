@@ -13,8 +13,7 @@ class AddressBookViewModel extends BaseViewModel {
 
   Direction direction = Direction.DIRECTION_SEND;
 
-  AddressBookViewModel(Direction? initialDirection) {
-    direction = initialDirection ?? Direction.DIRECTION_SEND;
+  AddressBookViewModel() {
     _provider.addListener(notifyListeners);
     labelController.addListener(notifyListeners);
     addressController.addListener(notifyListeners);
@@ -102,11 +101,8 @@ class AddressBookViewModel extends BaseViewModel {
 }
 
 class AddressBookTable extends StatefulWidget {
-  final Direction? initialDirection;
-
   const AddressBookTable({
     super.key,
-    this.initialDirection,
   });
 
   @override
@@ -114,85 +110,82 @@ class AddressBookTable extends StatefulWidget {
 }
 
 class _AddressBookTableState extends State<AddressBookTable> {
-  late final AddressBookViewModel _viewModel;
-
-  @override
-  void initState() {
-    super.initState();
-    _viewModel = AddressBookViewModel(widget.initialDirection);
-
-    if (widget.initialDirection == null) {
-    } else {}
-  }
-
-  @override
-  void dispose() {
-    _viewModel.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<AddressBookViewModel>.reactive(
-      viewModelBuilder: () => _viewModel,
+      viewModelBuilder: () => AddressBookViewModel(),
       builder: (context, model, child) {
-        if (widget.initialDirection == null) {
-          return SailPadding(
-            padding: EdgeInsets.only(
-              top: SailStyleValues.padding16,
-              left: SailStyleValues.padding16,
-              right: SailStyleValues.padding16,
-              bottom: SailStyleValues.padding64 * 2,
-            ),
-            child: SailCard(
-              withCloseButton: true,
-              color: context.sailTheme.colors.background,
-              child: InlineTabBar(
-                tabs: [
-                  TabItem(
-                    label: 'Send',
-                    icon: SailSVGAsset.iconSend,
-                    child: AddressBookContent(
-                      key: Key('send'),
-                      direction: Direction.DIRECTION_SEND,
-                      viewModel: model,
-                    ),
-                  ),
-                  TabItem(
-                    label: 'Receive',
-                    icon: SailSVGAsset.iconReceive,
-                    child: AddressBookContent(
-                      key: Key('receive'),
-                      direction: Direction.DIRECTION_RECEIVE,
-                      viewModel: model,
-                    ),
-                  ),
-                ],
-                initialIndex: 0,
-                onTabChanged: (index) => model.setDirection(
-                  index == 0 ? Direction.DIRECTION_SEND : Direction.DIRECTION_RECEIVE,
-                ),
-              ),
-            ),
-          );
-        }
-
-        return AddressBookContent(
-          direction: widget.initialDirection!,
+        final content = AddressBookContent(
           viewModel: model,
+        );
+
+        return SailPadding(
+          padding: EdgeInsets.only(
+            top: SailStyleValues.padding16,
+            left: SailStyleValues.padding16,
+            right: SailStyleValues.padding16,
+            bottom: SailStyleValues.padding64,
+          ),
+          child: SailCard(
+            withCloseButton: true,
+            color: context.sailTheme.colors.background,
+            child: InlineTabBar(
+              tabs: [
+                TabItem(
+                  label: 'Send',
+                  icon: SailSVGAsset.iconSend,
+                  child: content,
+                ),
+                TabItem(
+                  label: 'Receive',
+                  icon: SailSVGAsset.iconReceive,
+                  child: content,
+                ),
+              ],
+              initialIndex: model.direction == Direction.DIRECTION_SEND ? 0 : 1,
+              onTabChanged: (index) {
+                final newDirection = index == 0 ? Direction.DIRECTION_SEND : Direction.DIRECTION_RECEIVE;
+                model.setDirection(newDirection);
+              },
+            ),
+          ),
         );
       },
     );
   }
 }
 
+class SendTableView extends ViewModelWidget<AddressBookViewModel> {
+  const SendTableView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, AddressBookViewModel viewModel) {
+    return AddressBookContent(
+      viewModel: viewModel,
+    );
+  }
+}
+
+class ReceiveTableView extends ViewModelWidget<AddressBookViewModel> {
+  const ReceiveTableView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, AddressBookViewModel viewModel) {
+    return AddressBookContent(
+      viewModel: viewModel,
+    );
+  }
+}
+
 class AddressBookContent extends StatefulWidget {
-  final Direction direction;
   final AddressBookViewModel viewModel;
 
   const AddressBookContent({
     super.key,
-    required this.direction,
     required this.viewModel,
   });
 
@@ -205,15 +198,35 @@ class _AddressBookContentState extends State<AddressBookContent> {
   bool sortAscending = true;
 
   @override
+  void initState() {
+    super.initState();
+    widget.viewModel.addListener(_onViewModelChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.viewModel.removeListener(_onViewModelChanged);
+    super.dispose();
+  }
+
+  void _onViewModelChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final direction = widget.viewModel.direction;
+
     return SailCard(
-      key: Key('address-book-${widget.direction}'),
-      title: widget.direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
+      key: Key('address-book-$direction'),
+      title: direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
       subtitle: widget.viewModel.error('create') ??
           widget.viewModel.error('edit') ??
           widget.viewModel.error('delete') ??
           'Manage your addresses.',
-      widgetHeaderEnd: widget.direction == Direction.DIRECTION_SEND
+      widgetHeaderEnd: direction == Direction.DIRECTION_SEND
           ? Padding(
               padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
               child: SailRow(
@@ -228,64 +241,61 @@ class _AddressBookContentState extends State<AddressBookContent> {
             )
           : null,
       bottomPadding: false,
-      child: Column(
-        children: [
-          Expanded(
-            child: SailTable(
-              getRowId: (index) => widget.viewModel.entries[index].id.toString(),
-              headerBuilder: (context) => [
-                SailTableHeaderCell(
-                  name: 'Label',
-                  onSort: () => onSort('label'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Address',
-                  onSort: () => onSort('address'),
-                ),
-                const SailTableHeaderCell(name: 'Actions'),
-              ],
-              rowBuilder: (context, row, selected) {
-                final entry = widget.viewModel.entries[row];
-
-                return [
-                  SailTableCell(
-                    value: entry.label == '' ? '(no label)' : entry.label,
-                    monospace: true,
-                    italic: entry.label == '',
-                  ),
-                  SailTableCell(
-                    value: entry.address,
-                    monospace: true,
-                  ),
-                  SailTableCell(
-                    value: 'Actions',
-                    child: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailButton(
-                          label: 'Edit Label',
-                          onPressed: () async => _showEditDialog(context, entry),
-                        ),
-                        SailButton(
-                          label: 'Delete',
-                          onPressed: () async => _showDeleteConfirmation(context, entry),
-                        ),
-                      ],
-                    ),
-                  ),
-                ];
-              },
-              rowCount: widget.viewModel.entries.length,
-              drawGrid: true,
-              sortColumnIndex: ['label', 'address', 'actions'].indexOf(sortColumn),
-              sortAscending: sortAscending,
-              onSort: (columnIndex, ascending) {
-                onSort(['label', 'address', 'actions'][columnIndex]);
-              },
-            ),
+      child: SailTable(
+        getRowId: (index) => widget.viewModel.entries[index].id.toString(),
+        headerBuilder: (context) => [
+          SailTableHeaderCell(
+            name: 'Label',
+            onSort: () => onSort('label'),
           ),
-          const SizedBox(height: 16),
+          SailTableHeaderCell(
+            name: 'Address',
+            onSort: () => onSort('address'),
+          ),
+          const SailTableHeaderCell(name: 'Actions'),
         ],
+        rowBuilder: (context, row, selected) {
+          final entry = widget.viewModel.entries[row];
+
+          return [
+            SailTableCell(
+              value: entry.label == '' ? '(no label)' : entry.label,
+              monospace: true,
+              italic: entry.label == '',
+            ),
+            SailTableCell(
+              value: entry.address,
+              monospace: true,
+            ),
+            SailTableCell(
+              value: 'Actions',
+              child: SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailButton(
+                    label: 'Edit Label',
+                    variant: ButtonVariant.ghost,
+                    onPressed: () async => _showEditDialog(context, entry),
+                    insideTable: true,
+                  ),
+                  SailButton(
+                    label: 'Delete',
+                    variant: ButtonVariant.destructive,
+                    onPressed: () async => _showDeleteConfirmation(context, entry),
+                    insideTable: true,
+                  ),
+                ],
+              ),
+            ),
+          ];
+        },
+        rowCount: widget.viewModel.entries.length,
+        drawGrid: true,
+        sortColumnIndex: ['label', 'address', 'actions'].indexOf(sortColumn),
+        sortAscending: sortAscending,
+        onSort: (columnIndex, ascending) {
+          onSort(['label', 'address', 'actions'][columnIndex]);
+        },
       ),
     );
   }
@@ -316,50 +326,44 @@ class _AddressBookContentState extends State<AddressBookContent> {
   }
 
   void _showEditDialog(BuildContext context, AddressBookEntry entry) {
-    final dialogViewModel = AddressBookViewModel(widget.viewModel.direction);
-    dialogViewModel.prepareEdit(entry);
-
+    widget.viewModel.prepareEdit(entry);
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: ViewModelBuilder<AddressBookViewModel>.reactive(
-            viewModelBuilder: () => dialogViewModel,
-            disposeViewModel: true,
-            builder: (context, model, child) => SailCard(
-              title: 'Edit Label',
-              subtitle: '',
-              error: model.error('edit'),
-              child: SailColumn(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: SailStyleValues.padding16,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SailTextField(
-                    label: 'Label',
-                    controller: model.editLabelController,
-                    hintText: 'Enter a label to remember this address by',
-                    size: TextFieldSize.small,
-                  ),
-                  SailButton(
-                    label: 'Save',
-                    onPressed: () async {
-                      try {
-                        await model.updateLabel(entry.id);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          widget.viewModel.notifyListeners();
-                        }
-                      } catch (e) {
-                        // Error is handled by the model
+          child: SailCard(
+            title: 'Edit Label',
+            subtitle: '',
+            withCloseButton: true,
+            error: widget.viewModel.error('edit'),
+            child: SailColumn(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: SailStyleValues.padding16,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailTextField(
+                  label: 'Label',
+                  controller: widget.viewModel.editLabelController,
+                  hintText: 'Enter a new label',
+                  size: TextFieldSize.small,
+                ),
+                SailButton(
+                  label: 'Update',
+                  onPressed: () async {
+                    try {
+                      await widget.viewModel.updateLabel(entry.id);
+                      if (context.mounted) {
+                        Navigator.pop(context);
                       }
-                    },
-                    disabled: model.editLabelController.text.isEmpty,
-                  ),
-                ],
-              ),
+                    } catch (e) {
+                      // Error is handled by the model
+                    }
+                  },
+                  disabled: widget.viewModel.editLabelController.text.isEmpty,
+                ),
+              ],
             ),
           ),
         ),
@@ -368,49 +372,46 @@ class _AddressBookContentState extends State<AddressBookContent> {
   }
 
   void _showCreateDialog(BuildContext context) {
-    final dialogViewModel = AddressBookViewModel(widget.viewModel.direction);
-
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: ViewModelBuilder<AddressBookViewModel>.reactive(
-            viewModelBuilder: () => dialogViewModel,
-            disposeViewModel: true,
-            builder: (context, model, child) => SailCard(
-              title: widget.direction == Direction.DIRECTION_SEND ? 'New Sending Address' : 'New Receiving Address',
-              subtitle: '',
-              withCloseButton: true,
-              error: model.error('create'),
-              child: SailColumn(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: SailStyleValues.padding16,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SailTextField(
-                    label: 'Address',
-                    controller: model.addressController,
-                    hintText: 'Enter a Bitcoin address',
-                    size: TextFieldSize.small,
-                  ),
-                  SailTextField(
-                    label: 'Label',
-                    controller: model.labelController,
-                    hintText: 'Enter a label for this address',
-                    size: TextFieldSize.small,
-                  ),
-                  SailButton(
-                    label: 'Create',
-                    onPressed: () async {
-                      await model.createEntry();
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    disabled: model.labelController.text.isEmpty || model.addressController.text.isEmpty,
-                  ),
-                ],
-              ),
+          child: SailCard(
+            title: widget.viewModel.direction == Direction.DIRECTION_SEND
+                ? 'New Sending Address'
+                : 'New Receiving Address',
+            subtitle: '',
+            withCloseButton: true,
+            error: widget.viewModel.error('create'),
+            child: SailColumn(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: SailStyleValues.padding16,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailTextField(
+                  label: 'Address',
+                  controller: widget.viewModel.addressController,
+                  hintText: 'Enter a Bitcoin address',
+                  size: TextFieldSize.small,
+                ),
+                SailTextField(
+                  label: 'Label',
+                  controller: widget.viewModel.labelController,
+                  hintText: 'Enter a label for this address',
+                  size: TextFieldSize.small,
+                ),
+                SailButton(
+                  label: 'Create',
+                  onPressed: () async {
+                    await widget.viewModel.createEntry();
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  disabled:
+                      widget.viewModel.labelController.text.isEmpty || widget.viewModel.addressController.text.isEmpty,
+                ),
+              ],
             ),
           ),
         ),
@@ -419,52 +420,45 @@ class _AddressBookContentState extends State<AddressBookContent> {
   }
 
   void _showDeleteConfirmation(BuildContext context, AddressBookEntry entry) {
-    final dialogViewModel = AddressBookViewModel(widget.viewModel.direction);
-
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: ViewModelBuilder<AddressBookViewModel>.reactive(
-            viewModelBuilder: () => dialogViewModel,
-            disposeViewModel: true,
-            builder: (context, model, child) => SailCard(
-              title: 'Delete Address',
-              subtitle: '',
-              error: model.error('delete'),
-              child: SailColumn(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: SailStyleValues.padding16,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SailButton(
-                        label: 'Delete',
-                        onPressed: () async {
-                          try {
-                            await model.deleteEntry(entry.id);
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              widget.viewModel.notifyListeners();
-                            }
-                          } catch (e) {
-                            // Error is handled by the model
+          child: SailCard(
+            title: 'Delete Address',
+            subtitle: '',
+            error: widget.viewModel.error('delete'),
+            child: SailColumn(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: SailStyleValues.padding16,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailButton(
+                      label: 'Delete',
+                      onPressed: () async {
+                        try {
+                          await widget.viewModel.deleteEntry(entry.id);
+                          if (context.mounted) {
+                            Navigator.pop(context);
                           }
-                        },
-                      ),
-                      SailButton(
-                        label: 'Cancel',
-                        onPressed: () async => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                        } catch (e) {
+                          // Error is handled by the model
+                        }
+                      },
+                    ),
+                    SailButton(
+                      label: 'Cancel',
+                      onPressed: () async => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

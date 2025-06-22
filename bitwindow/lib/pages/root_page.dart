@@ -131,44 +131,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'Sending Addresses',
-                  onSelected: () {
-                    final theme = SailTheme.of(context);
-                    showDialog(
-                      context: context,
-                      barrierColor: theme.colors.background.withValues(alpha: 0.4),
-                      builder: (context) => const SailPadding(
-                        padding: EdgeInsets.all(SailStyleValues.padding64),
-                        child: AddressBookTable(initialDirection: Direction.DIRECTION_SEND),
-                      ),
-                    );
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Receiving Addresses',
-                  onSelected: () {
-                    final theme = SailTheme.of(context);
-                    showDialog(
-                      context: context,
-                      barrierColor: theme.colors.background.withValues(alpha: 0.4),
-                      builder: (context) => const SailPadding(
-                        padding: EdgeInsets.all(SailStyleValues.padding64),
-                        child: AddressBookTable(initialDirection: Direction.DIRECTION_RECEIVE),
-                      ),
-                    );
-                  },
-                ),
-                PlatformMenuItem(
                   label: 'Address Book',
                   onSelected: () {
                     final theme = SailTheme.of(context);
                     showDialog(
                       context: context,
                       barrierColor: theme.colors.background.withValues(alpha: 0.4),
-                      builder: (context) => const SailPadding(
-                        padding: EdgeInsets.all(SailStyleValues.padding64),
-                        child: AddressBookTable(),
-                      ),
+                      builder: (context) => AddressBookTable(),
                     );
                   },
                 ),
@@ -190,7 +159,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     tabsRouter?.setActiveIndex(1);
 
                     if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(0);
+                      WalletPage.tabKey.currentState!.setIndex(0, null);
                     }
                   },
                 ),
@@ -200,7 +169,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     final tabsRouter = _routerKey.currentState?.controller;
                     tabsRouter?.setActiveIndex(1);
                     if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(1);
+                      WalletPage.tabKey.currentState!.setIndex(1, null);
                     }
                   },
                 ),
@@ -210,7 +179,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     final tabsRouter = _routerKey.currentState?.controller;
                     tabsRouter?.setActiveIndex(1);
                     if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(2);
+                      WalletPage.tabKey.currentState!.setIndex(2, null);
                     }
                   },
                 ),
@@ -226,7 +195,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       final tabsRouter = _routerKey.currentState?.controller;
                       tabsRouter?.setActiveIndex(1);
                       if (WalletPage.tabKey.currentState != null) {
-                        WalletPage.tabKey.currentState!.setIndex(0);
+                        WalletPage.tabKey.currentState!.setIndex(0, null);
                       }
 
                       // Handle the URI in the wallet page

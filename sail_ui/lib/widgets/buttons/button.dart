@@ -24,6 +24,7 @@ class SailButton extends StatefulWidget {
   final double? iconHeight;
   final double? iconWidth;
   final bool small;
+  final bool insideTable;
 
   const SailButton({
     super.key,
@@ -38,6 +39,7 @@ class SailButton extends StatefulWidget {
     this.iconWidth,
     this.padding,
     this.small = false,
+    this.insideTable = false,
   })  : assert(
           variant != ButtonVariant.icon || (icon != null && label == null),
           'Icon must be set with no label for icon-variant',
@@ -91,14 +93,21 @@ class _SailButtonState extends State<SailButton> {
       hoverColor: style.hoverColor,
       child: Padding(
         padding: widget.padding ??
-            (widget.variant == ButtonVariant.icon
-                ? EdgeInsets.all(12)
-                : const EdgeInsets.only(
-                    top: 8,
-                    bottom: 8,
-                    left: 12,
-                    right: 12,
-                  )),
+            (widget.insideTable
+                ? EdgeInsets.only(
+                    top: 4,
+                    bottom: 4,
+                    left: 6,
+                    right: 6,
+                  )
+                : (widget.variant == ButtonVariant.icon
+                    ? EdgeInsets.all(12)
+                    : const EdgeInsets.only(
+                        top: 8,
+                        bottom: 8,
+                        left: 12,
+                        right: 12,
+                      ))),
         child: content,
       ),
     );
@@ -136,7 +145,7 @@ class _SailButtonState extends State<SailButton> {
           if (widget.endIcon != null && widget.label != null) const SizedBox(width: 8),
         ],
         if (widget.label != null)
-          widget.small
+          widget.small || widget.insideTable
               ? SailText.primary10(
                   _isLoading ? 'Please wait' : widget.label!,
                   color: foregroundColor,
