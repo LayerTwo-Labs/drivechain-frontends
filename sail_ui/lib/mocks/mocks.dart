@@ -884,7 +884,7 @@ class MockSyncProvider implements SyncProvider {
 
   @override
   BinaryProvider get binaryProvider => throw UnimplementedError();
-  
+
   @override
   void listenDownloads() {
     return;

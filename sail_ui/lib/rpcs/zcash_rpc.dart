@@ -87,7 +87,10 @@ abstract class ZCashRPC extends SidechainRPC {
   }
 
   @override
-  Future<void> initBinary(Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment) bootProcess) async {
+  Future<void> initBinary(
+    Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment)
+        bootProcess,
+  ) async {
     final args = await binaryArgs(conf);
 
     try {
