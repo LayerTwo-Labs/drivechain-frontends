@@ -41,13 +41,12 @@ class InlineTabBarState extends State<InlineTabBar> {
     }
   }
 
-  void setIndex(int index) {
+  void setIndex(int index, String? label) {
     if (index >= 0 && index < widget.tabs.length) {
-      if (widget.selectedIndex == null) {
-        setState(() {
-          _selectedIndex = index;
-        });
-      }
+      setState(() {
+        _selectedIndex = index;
+        _selectedSubItem = label;
+      });
       widget.onTabChanged?.call(index);
     } else {
       throw Exception('Index out of bounds: index=$index, tabs.length=${widget.tabs.length}');
@@ -103,13 +102,8 @@ class InlineTabBarState extends State<InlineTabBar> {
                             .map(
                               (item) => SailMenuItem(
                                 onSelected: () {
-                                  setState(() {
-                                    _selectedIndex = index;
-                                    _selectedSubItem = item.label;
-                                  });
-                                  if (item.onTap != null) {
-                                    item.onTap!();
-                                  }
+                                  setIndex(index, item.label);
+                                  item.onTap?.call();
                                   _menuControllers[tab.title]!.close();
                                 },
                                 child: SailText.primary13(item.label),
@@ -150,10 +144,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                   icon: tab.icon,
                   onIconTap: tab.onIconTap,
                   onTap: () {
-                    setState(() {
-                      _selectedIndex = index;
-                      _selectedSubItem = null;
-                    });
+                    setIndex(index, null);
                     if (tab.onTap != null) {
                       tab.onTap!();
                     }
