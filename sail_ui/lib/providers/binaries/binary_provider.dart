@@ -220,8 +220,9 @@ class BinaryProvider extends ChangeNotifier {
     List<String> args,
     Future<void> Function() cleanup,
     // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
-    {Map<String, String> environment = const {},}
-  ) async {
+    {
+    Map<String, String> environment = const {},
+  }) async {
     String? error;
 
     try {
