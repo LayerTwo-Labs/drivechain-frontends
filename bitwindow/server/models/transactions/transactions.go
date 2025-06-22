@@ -3,7 +3,10 @@ package transactions
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
+
+	"connectrpc.com/connect"
 )
 
 type TransactionNote struct {
@@ -44,10 +47,18 @@ func List(ctx context.Context, db *sql.DB) ([]TransactionNote, error) {
 }
 
 func SetNote(ctx context.Context, db *sql.DB, txid string, note string) error {
-	_, err := db.ExecContext(ctx, `
+	if txid == "" {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid cannot be empty"))
+	}
+
+	rows, err := db.ExecContext(ctx, `
 		INSERT INTO transaction_notes (txid, note) 
 		VALUES (?, ?)
 		ON CONFLICT(txid) DO UPDATE SET note = ?, set_at = CURRENT_TIMESTAMP`,
 		txid, note, note)
+
+	if rows, _ := rows.RowsAffected(); rows == 0 {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction note not found"))
+	}
 	return err
 }
