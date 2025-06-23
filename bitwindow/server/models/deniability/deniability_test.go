@@ -29,7 +29,7 @@ func TestDeniability(t *testing.T) {
 		require.NotNil(t, denial)
 
 		require.Equal(t, txid, denial.TipTXID)
-		require.Equal(t, vout, *denial.TipVout)
+		require.Equal(t, vout, denial.TipVout)
 		require.Equal(t, delayDuration, denial.DelayDuration)
 		require.Equal(t, numHops, denial.NumHops)
 	})
@@ -44,7 +44,7 @@ func TestDeniability(t *testing.T) {
 		require.NotNil(t, denial)
 
 		// Record an execution
-		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid", nil)
+		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid", 0)
 		require.NoError(t, err)
 
 		// Verify the execution was recorded
@@ -92,13 +92,13 @@ func TestDeniability(t *testing.T) {
 
 		// Verify the first denial
 		require.Equal(t, "txid1", denials[0].TipTXID)
-		require.Equal(t, int32(0), *denials[0].TipVout)
+		require.Equal(t, int32(0), denials[0].TipVout)
 		require.Equal(t, 1*time.Hour, denials[0].DelayDuration)
 		require.Equal(t, int32(3), denials[0].NumHops)
 
 		// Verify the second denial
 		require.Equal(t, "txid2", denials[1].TipTXID)
-		require.Equal(t, int32(1), *denials[1].TipVout)
+		require.Equal(t, int32(1), denials[1].TipVout)
 		require.Equal(t, 2*time.Hour, denials[1].DelayDuration)
 		require.Equal(t, int32(4), denials[1].NumHops)
 	})
@@ -154,7 +154,7 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, denial.CreatedAt.Add(delayDuration), *denial.NextExecution)
 
 		// Record an execution
-		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid", nil)
+		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid", uint32(0))
 		require.NoError(t, err)
 
 		denial, err = Get(ctx, db, denial.ID)
@@ -177,7 +177,7 @@ func TestDeniability(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 		require.Equal(t, "txid", denial.TipTXID)
-		require.Equal(t, int32(0), *denial.TipVout)
+		require.Equal(t, int32(0), denial.TipVout)
 		require.Equal(t, 1*time.Hour, denial.DelayDuration)
 		require.Equal(t, int32(3), denial.NumHops)
 
@@ -220,7 +220,7 @@ func TestDeniability(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 		require.Equal(t, "txid", denial.TipTXID)
-		require.Equal(t, int32(0), *denial.TipVout)
+		require.Equal(t, int32(0), denial.TipVout)
 		require.Equal(t, 1*time.Hour, denial.DelayDuration)
 		require.Equal(t, int32(3), denial.NumHops)
 

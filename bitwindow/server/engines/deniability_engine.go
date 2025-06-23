@@ -106,7 +106,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 	}
 
 	// if any denial tips are missing from the wallet, we must abort them before moving on
-	if err := e.handleAbortedDenials(ctx, utxos, denials); err != nil {
+	if err := e.cancelIfUTXOIsGone(ctx, utxos, denials); err != nil {
 		return nil, nil, fmt.Errorf("could not handle aborted denials: %w", err)
 	}
 
@@ -119,16 +119,12 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 	return utxos, denials, nil
 }
 
-func (e *DeniabilityEngine) handleAbortedDenials(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) error {
+func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) error {
 	logger := zerolog.Ctx(ctx)
 
 	for _, denial := range denials {
 		utxoExists := lo.ContainsBy(utxos, func(utxo *pb.ListUnspentOutputsResponse_Output) bool {
-			if denial.TipVout == nil {
-				return utxo.Txid.Hex.Value == denial.TipTXID
-			}
-
-			return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == *denial.TipVout
+			return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
 		})
 
 		if !utxoExists {
@@ -149,17 +145,12 @@ func (e *DeniabilityEngine) handleAbortedDenials(ctx context.Context, utxos []*p
 func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
 	var tipUTXOs []*pb.ListUnspentOutputsResponse_Output
 	for _, utxo := range utxos {
-		if denial.TipVout == nil {
-			// a change output, should not be executed
-			continue
-		}
-
-		if utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == *denial.TipVout {
+		if utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout {
 			tipUTXOs = append(tipUTXOs, utxo)
 		}
 	}
 	if len(tipUTXOs) == 0 {
-		return fmt.Errorf("no matching utxos found for tip %s:%d", denial.TipTXID, lo.FromPtr(denial.TipVout))
+		return fmt.Errorf("no matching utxos found for tip %s:%d", denial.TipTXID, denial.TipVout)
 	}
 
 	// Create a pool for parallel processing
@@ -241,22 +232,6 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		return fmt.Errorf("could not wait for tx to appear: %w", err)
 	}
 
-	// if the sent transaction has a change output, we want
-	// to track the txid as a whole. ALL outputs are considered
-	// part of the denial
-	if err := deniability.RecordExecution(ctx, e.db, denial.ID,
-		utxo.Txid.Hex.Value,
-		int32(utxo.Vout),
-		sendResp.Msg.Txid.Hex.Value,
-		nil,
-	); err != nil {
-		logger.Error().
-			Err(err).
-			Str("to_txid", sendResp.Msg.Txid.Hex.Value).
-			Msg("failed to record execution")
-		return fmt.Errorf("could not record execution: %w", err)
-	}
-
 	for _, newUTXO := range newUTXOs {
 		if newUTXO.Txid.Hex.Value != sendResp.Msg.Txid.Hex.Value {
 			panic("DEVELOPER ERROR: returned UTXO txid did not match sent txid")
@@ -266,7 +241,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 			utxo.Txid.Hex.Value,
 			int32(utxo.Vout),
 			sendResp.Msg.Txid.Hex.Value,
-			&newUTXO.Vout,
+			newUTXO.Vout,
 		); err != nil {
 			logger.Error().
 				Err(err).
