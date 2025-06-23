@@ -536,11 +536,16 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 
 func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
 	sort.Slice(denials, func(i, j int) bool {
-		return denials[i].UpdatedAt.After(denials[j].UpdatedAt)
+		return denials[i].UpdatedAt.Before(denials[j].UpdatedAt)
 	})
 
 	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
-		// look for both change and direct denials by just matching on txid
+		if d.TipTXID == utxo.Txid.Hex.Value && d.TipVout == int32(utxo.Vout) {
+			// check directly for tip first
+			return true
+		}
+
+		// then look through executions
 		return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
 			return e.ToTxID == utxo.Txid.Hex.Value
 		})
@@ -560,7 +565,8 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 	}
 
 	var nextExecutionTime *timestamppb.Timestamp
-	if d.NextExecution != nil {
+	isTip := d.TipTXID == utxo.Txid.Hex.Value && d.TipVout == int32(utxo.Vout)
+	if d.NextExecution != nil && isTip {
 		nextExecutionTime = timestamppb.New(*d.NextExecution)
 	}
 
@@ -581,11 +587,12 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 	}
 
 	// a utxo/denial match is change if the txid matches (has an execution), but the tip vout is not
-	isChange := executionIndex != -1 && d.TipVout != int32(utxo.Vout)
+	isChange := executionIndex != -1 && !isTip
+	hopsCompleted := uint32(executionIndex) + 1
 
 	return &bitwindowdv1.DenialInfo{
 		Id:                d.ID,
-		NumHops:           d.NumHops,
+		NumHops:           lo.If(isTip, d.NumHops).Else(int32(hopsCompleted)),
 		DelaySeconds:      int32(d.DelayDuration.Seconds()),
 		CreateTime:        timestamppb.New(d.CreatedAt),
 		CancelTime:        cancelTime,
