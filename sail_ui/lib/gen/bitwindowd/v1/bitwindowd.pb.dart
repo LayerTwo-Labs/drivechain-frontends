@@ -121,10 +121,10 @@ class DenialInfo extends $pb.GeneratedMessage {
     $0.Timestamp? createTime,
     $0.Timestamp? cancelTime,
     $core.String? cancelReason,
-    $0.Timestamp? nextExecution,
+    $0.Timestamp? nextExecutionTime,
     $core.Iterable<ExecutedDenial>? executions,
     $core.int? hopsCompleted,
-    $core.bool? isActive,
+    $core.bool? isChange,
   }) {
     final $result = create();
     if (id != null) {
@@ -145,8 +145,8 @@ class DenialInfo extends $pb.GeneratedMessage {
     if (cancelReason != null) {
       $result.cancelReason = cancelReason;
     }
-    if (nextExecution != null) {
-      $result.nextExecution = nextExecution;
+    if (nextExecutionTime != null) {
+      $result.nextExecutionTime = nextExecutionTime;
     }
     if (executions != null) {
       $result.executions.addAll(executions);
@@ -154,8 +154,8 @@ class DenialInfo extends $pb.GeneratedMessage {
     if (hopsCompleted != null) {
       $result.hopsCompleted = hopsCompleted;
     }
-    if (isActive != null) {
-      $result.isActive = isActive;
+    if (isChange != null) {
+      $result.isChange = isChange;
     }
     return $result;
   }
@@ -170,10 +170,10 @@ class DenialInfo extends $pb.GeneratedMessage {
     ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'cancelTime', subBuilder: $0.Timestamp.create)
     ..aOS(6, _omitFieldNames ? '' : 'cancelReason')
-    ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'nextExecution', subBuilder: $0.Timestamp.create)
+    ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'nextExecutionTime', subBuilder: $0.Timestamp.create)
     ..pc<ExecutedDenial>(8, _omitFieldNames ? '' : 'executions', $pb.PbFieldType.PM, subBuilder: ExecutedDenial.create)
     ..a<$core.int>(9, _omitFieldNames ? '' : 'hopsCompleted', $pb.PbFieldType.OU3)
-    ..aOB(10, _omitFieldNames ? '' : 'isActive')
+    ..aOB(10, _omitFieldNames ? '' : 'isChange')
     ..hasRequiredFields = false
   ;
 
@@ -257,15 +257,15 @@ class DenialInfo extends $pb.GeneratedMessage {
   void clearCancelReason() => clearField(6);
 
   @$pb.TagNumber(7)
-  $0.Timestamp get nextExecution => $_getN(6);
+  $0.Timestamp get nextExecutionTime => $_getN(6);
   @$pb.TagNumber(7)
-  set nextExecution($0.Timestamp v) { setField(7, v); }
+  set nextExecutionTime($0.Timestamp v) { setField(7, v); }
   @$pb.TagNumber(7)
-  $core.bool hasNextExecution() => $_has(6);
+  $core.bool hasNextExecutionTime() => $_has(6);
   @$pb.TagNumber(7)
-  void clearNextExecution() => clearField(7);
+  void clearNextExecutionTime() => clearField(7);
   @$pb.TagNumber(7)
-  $0.Timestamp ensureNextExecution() => $_ensure(6);
+  $0.Timestamp ensureNextExecutionTime() => $_ensure(6);
 
   @$pb.TagNumber(8)
   $core.List<ExecutedDenial> get executions => $_getList(7);
@@ -280,13 +280,13 @@ class DenialInfo extends $pb.GeneratedMessage {
   void clearHopsCompleted() => clearField(9);
 
   @$pb.TagNumber(10)
-  $core.bool get isActive => $_getBF(9);
+  $core.bool get isChange => $_getBF(9);
   @$pb.TagNumber(10)
-  set isActive($core.bool v) { $_setBool(9, v); }
+  set isChange($core.bool v) { $_setBool(9, v); }
   @$pb.TagNumber(10)
-  $core.bool hasIsActive() => $_has(9);
+  $core.bool hasIsChange() => $_has(9);
   @$pb.TagNumber(10)
-  void clearIsActive() => clearField(10);
+  void clearIsChange() => clearField(10);
 }
 
 class ExecutedDenial extends $pb.GeneratedMessage {

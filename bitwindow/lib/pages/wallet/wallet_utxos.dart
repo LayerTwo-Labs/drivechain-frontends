@@ -109,7 +109,7 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 
   bool isDenied(UnspentOutput utxo) {
-    return utxo.hasDenialInfo() && !utxo.denialInfo.hasNextExecution() && utxo.denialInfo.numHops > 1;
+    return utxo.hasDenialInfo() && !utxo.denialInfo.hasNextExecutionTime() && utxo.denialInfo.numHops > 1;
   }
 
   @override

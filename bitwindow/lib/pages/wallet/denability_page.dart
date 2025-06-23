@@ -105,22 +105,22 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
           if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
           if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
-          if (!a.denialInfo.hasNextExecution() && !b.denialInfo.hasNextExecution()) return 0;
-          if (!a.denialInfo.hasNextExecution()) return sortAscending ? 1 : -1;
-          if (!b.denialInfo.hasNextExecution()) return sortAscending ? -1 : 1;
+          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) return 0;
+          if (!a.denialInfo.hasNextExecutionTime()) return sortAscending ? 1 : -1;
+          if (!b.denialInfo.hasNextExecutionTime()) return sortAscending ? -1 : 1;
           return sortAscending
-              ? a.denialInfo.nextExecution.toDateTime().compareTo(b.denialInfo.nextExecution.toDateTime())
-              : b.denialInfo.nextExecution.toDateTime().compareTo(a.denialInfo.nextExecution.toDateTime());
+              ? a.denialInfo.nextExecutionTime.toDateTime().compareTo(b.denialInfo.nextExecutionTime.toDateTime())
+              : b.denialInfo.nextExecutionTime.toDateTime().compareTo(a.denialInfo.nextExecutionTime.toDateTime());
         case 'status':
           if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
           if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
           if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
           aValue = a.denialInfo.hasCancelTime()
               ? 'Cancelled'
-              : (a.denialInfo.nextExecution.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
+              : (a.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
           bValue = b.denialInfo.hasCancelTime()
               ? 'Cancelled'
-              : (b.denialInfo.nextExecution.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
+              : (b.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
           return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
         default:
           return 0;
@@ -203,17 +203,17 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   final completedHops = utxo.denialInfo.hopsCompleted;
                   final totalHops = utxo.denialInfo.numHops;
                   hops = '$completedHops/$totalHops';
-                  if (utxo.denialInfo.nextExecution.toDateTime().second == 0) {
+                  if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) {
                     hops = '$completedHops';
                   }
 
                   status = utxo.denialInfo.hasCancelTime()
                       ? 'Cancelled'
-                      : utxo.denialInfo.nextExecution.toDateTime().second == 0
+                      : utxo.denialInfo.nextExecutionTime.toDateTime().second == 0
                           ? 'Completed'
                           : 'Ongoing';
-                  nextExecution = utxo.denialInfo.hasNextExecution()
-                      ? utxo.denialInfo.nextExecution.toDateTime().toLocal().toString()
+                  nextExecution = utxo.denialInfo.hasNextExecutionTime()
+                      ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString()
                       : '-';
                   canCancel = status == 'Ongoing';
 
@@ -256,10 +256,12 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                         ? SailButton(
                             label: 'Cancel',
                             onPressed: () async => widget.onCancel(utxo.denialInfo.id),
+                            insideTable: true,
                           )
                         : SailButton(
                             label: 'Deny',
                             onPressed: () async => widget.onDeny(utxo.output),
+                            insideTable: true,
                           ),
                   ),
                 ];
@@ -322,10 +324,10 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                           DetailRow(label: 'Status', value: _getDeniabilityStatus(utxo)),
                           DetailRow(label: 'Completed Hops', value: '${utxo.denialInfo.executions.length}'),
                           DetailRow(label: 'Total Hops', value: '${utxo.denialInfo.numHops}'),
-                          if (utxo.denialInfo.hasNextExecution())
+                          if (utxo.denialInfo.hasNextExecutionTime())
                             DetailRow(
                               label: 'Next Execution',
-                              value: formatDate(utxo.denialInfo.nextExecution.toDateTime()),
+                              value: formatDate(utxo.denialInfo.nextExecutionTime.toDateTime()),
                             ),
                           if (utxo.denialInfo.hasCancelTime())
                             DetailRow(
@@ -378,7 +380,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     final completedHops = utxo.denialInfo.executions.length;
     final totalHops = utxo.denialInfo.numHops;
 
-    if (utxo.denialInfo.nextExecution.toDateTime().second == 0) return 'Completed';
+    if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) return 'Completed';
     return 'Ongoing ($completedHops/$totalHops hops)';
   }
 }

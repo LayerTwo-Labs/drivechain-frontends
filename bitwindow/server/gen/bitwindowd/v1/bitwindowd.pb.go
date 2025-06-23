@@ -151,7 +151,7 @@ type DenialInfo struct {
 	NextExecutionTime *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=next_execution_time,json=nextExecutionTime,proto3,oneof" json:"next_execution_time,omitempty"`
 	Executions        []*ExecutedDenial      `protobuf:"bytes,8,rep,name=executions,proto3" json:"executions,omitempty"`
 	HopsCompleted     uint32                 `protobuf:"varint,9,opt,name=hops_completed,json=hopsCompleted,proto3" json:"hops_completed,omitempty"`
-	IsActive          bool                   `protobuf:"varint,10,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	IsChange          bool                   `protobuf:"varint,10,opt,name=is_change,json=isChange,proto3" json:"is_change,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -249,9 +249,9 @@ func (x *DenialInfo) GetHopsCompleted() uint32 {
 	return 0
 }
 
-func (x *DenialInfo) GetIsActive() bool {
+func (x *DenialInfo) GetIsChange() bool {
 	if x != nil {
-		return x.IsActive
+		return x.IsChange
 	}
 	return false
 }
@@ -875,8 +875,8 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"executions\x18\b \x03(\v2\x1d.bitwindowd.v1.ExecutedDenialR\n" +
 	"executions\x12%\n" +
 	"\x0ehops_completed\x18\t \x01(\rR\rhopsCompleted\x12\x1b\n" +
-	"\tis_active\x18\n" +
-	" \x01(\bR\bisActiveB\x0e\n" +
+	"\tis_change\x18\n" +
+	" \x01(\bR\bisChangeB\x0e\n" +
 	"\f_cancel_timeB\x10\n" +
 	"\x0e_cancel_reasonB\x16\n" +
 	"\x14_next_execution_time\"\xcd\x01\n" +

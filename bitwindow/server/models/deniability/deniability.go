@@ -15,10 +15,11 @@ import (
 type Denial struct {
 	ID              int64
 	TipTXID         string
-	TipVout         *int32
+	TipVout         int32
 	DelayDuration   time.Duration
 	NumHops         int32
 	CreatedAt       time.Time
+	UpdatedAt       time.Time
 	CancelledAt     *time.Time
 	CancelReason    *string
 	NextExecution   *time.Time
@@ -63,7 +64,7 @@ func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDurat
 }
 
 // RecordExecution records a completed denial transaction
-func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID string, fromVout int32, toTxID string, toVout *uint32) error {
+func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID string, fromVout int32, toTxID string, toVout uint32) error {
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO executed_denials (
 			denial_id,
@@ -85,12 +86,13 @@ func selectDenialQuery() string {
 			d.delay_duration,
 			d.num_hops,
 			d.created_at,
+			d.updated_at,
 			d.cancelled_at,
 			d.cancelled_reason,
 			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
 			CASE
 				WHEN e.to_txid IS NULL THEN d.initial_vout
-				ELSE NULL
+				ELSE e.to_vout
 			END as tip_vout
 		FROM denials d
 		LEFT JOIN (
@@ -131,7 +133,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	if conf.excludeCancelled {
 		query += ` WHERE d.cancelled_at IS NULL`
 	}
-	query += ` ORDER BY d.created_at ASC`
+	query += ` ORDER BY d.updated_at ASC`
 
 	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
@@ -147,6 +149,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 			&denial.DelayDuration,
 			&denial.NumHops,
 			&denial.CreatedAt,
+			&denial.UpdatedAt,
 			&denial.CancelledAt,
 			&denial.CancelReason,
 			&denial.TipTXID,
@@ -291,6 +294,7 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 		&denial.DelayDuration,
 		&denial.NumHops,
 		&denial.CreatedAt,
+		&denial.UpdatedAt,
 		&denial.CancelledAt,
 		&denial.CancelReason,
 		&denial.TipTXID,
@@ -315,9 +319,9 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE denials
-		SET delay_duration = ?, num_hops = num_hops + ?, cancelled_at = NULL, cancelled_reason = NULL
+		SET delay_duration = ?, num_hops = num_hops + ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
 		WHERE id = ?
-	`, delay, numHops, id)
+	`, delay, numHops, time.Now(), id)
 	if err != nil {
 		return fmt.Errorf("could not update deniability: %w", err)
 	}
@@ -336,6 +340,7 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		&denial.DelayDuration,
 		&denial.NumHops,
 		&denial.CreatedAt,
+		&denial.UpdatedAt,
 		&denial.CancelledAt,
 		&denial.CancelReason,
 		&denial.TipTXID,

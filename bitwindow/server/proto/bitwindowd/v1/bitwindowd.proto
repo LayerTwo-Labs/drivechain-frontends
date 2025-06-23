@@ -40,7 +40,7 @@ message DenialInfo {
   optional google.protobuf.Timestamp next_execution_time = 7;
   repeated ExecutedDenial executions = 8;
   uint32 hops_completed = 9;
-  bool is_active = 10;
+  bool is_change = 10;
 }
 
 message ExecutedDenial {

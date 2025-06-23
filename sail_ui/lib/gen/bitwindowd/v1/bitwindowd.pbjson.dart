@@ -58,15 +58,15 @@ const DenialInfo$json = {
     {'1': 'create_time', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
     {'1': 'cancel_time', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'cancelTime', '17': true},
     {'1': 'cancel_reason', '3': 6, '4': 1, '5': 9, '9': 1, '10': 'cancelReason', '17': true},
-    {'1': 'next_execution', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 2, '10': 'nextExecution', '17': true},
+    {'1': 'next_execution_time', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 2, '10': 'nextExecutionTime', '17': true},
     {'1': 'executions', '3': 8, '4': 3, '5': 11, '6': '.bitwindowd.v1.ExecutedDenial', '10': 'executions'},
     {'1': 'hops_completed', '3': 9, '4': 1, '5': 13, '10': 'hopsCompleted'},
-    {'1': 'is_active', '3': 10, '4': 1, '5': 8, '10': 'isActive'},
+    {'1': 'is_change', '3': 10, '4': 1, '5': 8, '10': 'isChange'},
   ],
   '8': [
     {'1': '_cancel_time'},
     {'1': '_cancel_reason'},
-    {'1': '_next_execution'},
+    {'1': '_next_execution_time'},
   ],
 };
 
@@ -76,12 +76,12 @@ final $typed_data.Uint8List denialInfoDescriptor = $convert.base64Decode(
     'IjCg1kZWxheV9zZWNvbmRzGAMgASgFUgxkZWxheVNlY29uZHMSOwoLY3JlYXRlX3RpbWUYBCAB'
     'KAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgpjcmVhdGVUaW1lEkAKC2NhbmNlbF90aW'
     '1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgAUgpjYW5jZWxUaW1liAEBEigK'
-    'DWNhbmNlbF9yZWFzb24YBiABKAlIAVIMY2FuY2VsUmVhc29uiAEBEkYKDm5leHRfZXhlY3V0aW'
-    '9uGAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgCUg1uZXh0RXhlY3V0aW9uiAEB'
-    'Ej0KCmV4ZWN1dGlvbnMYCCADKAsyHS5iaXR3aW5kb3dkLnYxLkV4ZWN1dGVkRGVuaWFsUgpleG'
-    'VjdXRpb25zEiUKDmhvcHNfY29tcGxldGVkGAkgASgNUg1ob3BzQ29tcGxldGVkEhsKCWlzX2Fj'
-    'dGl2ZRgKIAEoCFIIaXNBY3RpdmVCDgoMX2NhbmNlbF90aW1lQhAKDl9jYW5jZWxfcmVhc29uQh'
-    'EKD19uZXh0X2V4ZWN1dGlvbg==');
+    'DWNhbmNlbF9yZWFzb24YBiABKAlIAVIMY2FuY2VsUmVhc29uiAEBEk8KE25leHRfZXhlY3V0aW'
+    '9uX3RpbWUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAJSEW5leHRFeGVjdXRp'
+    'b25UaW1liAEBEj0KCmV4ZWN1dGlvbnMYCCADKAsyHS5iaXR3aW5kb3dkLnYxLkV4ZWN1dGVkRG'
+    'VuaWFsUgpleGVjdXRpb25zEiUKDmhvcHNfY29tcGxldGVkGAkgASgNUg1ob3BzQ29tcGxldGVk'
+    'EhsKCWlzX2NoYW5nZRgKIAEoCFIIaXNDaGFuZ2VCDgoMX2NhbmNlbF90aW1lQhAKDl9jYW5jZW'
+    'xfcmVhc29uQhYKFF9uZXh0X2V4ZWN1dGlvbl90aW1l');
 
 @$core.Deprecated('Use executedDenialDescriptor instead')
 const ExecutedDenial$json = {

@@ -536,16 +536,11 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 
 func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
 	sort.Slice(denials, func(i, j int) bool {
-		return denials[i].CreatedAt.After(denials[j].CreatedAt)
+		return denials[i].UpdatedAt.After(denials[j].UpdatedAt)
 	})
 
 	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
-		if d.TipVout != nil {
-			return d.TipTXID == utxo.Txid.Hex.Value && *d.TipVout == int32(utxo.Vout)
-		}
-
-		// the denial does not have a tip vout, and is considered
-		// change. Still denied, just shouldn't be *re*denied
+		// look for both change and direct denials by just matching on txid
 		return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
 			return e.ToTxID == utxo.Txid.Hex.Value
 		})
@@ -569,11 +564,10 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 		nextExecutionTime = timestamppb.New(*d.NextExecution)
 	}
 
-	sortedExecutions := d.ExecutedDenials
-	sort.Slice(sortedExecutions, func(i, j int) bool {
-		return sortedExecutions[i].CreatedAt.Before(sortedExecutions[j].CreatedAt)
+	sort.Slice(d.ExecutedDenials, func(i, j int) bool {
+		return d.ExecutedDenials[i].CreatedAt.Before(d.ExecutedDenials[j].CreatedAt)
 	})
-	uniqueBeforeThisUTXO := lo.UniqBy(sortedExecutions, func(e deniability.ExecutedDenial) string {
+	uniqueBeforeThisUTXO := lo.UniqBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) string {
 		return e.ToTxID
 	})
 
@@ -585,6 +579,9 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 			break
 		}
 	}
+
+	// a utxo/denial match is change if the txid matches (has an execution), but the tip vout is not
+	isChange := executionIndex != -1 && d.TipVout != int32(utxo.Vout)
 
 	return &bitwindowdv1.DenialInfo{
 		Id:                d.ID,
@@ -606,7 +603,7 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 		}),
 		// hops completed == index of execution +1 (no execution == 0 hops completed)
 		HopsCompleted: uint32(executionIndex) + 1,
-		IsActive:      d.CancelledAt == nil && len(d.ExecutedDenials) < int(d.NumHops),
+		IsChange:      isChange,
 	}
 }
 
