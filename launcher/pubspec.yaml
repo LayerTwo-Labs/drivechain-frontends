@@ -25,7 +25,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   sail_ui:
     path: ../sail_ui
-  logger: ^2.5.0
+  logger: ^2.6.0
   google_fonts: ^6.2.1
   auto_route: ^10.1.0
   fixnum: ^1.1.1
