@@ -166,7 +166,9 @@ func (s *Server) CreateDenial(
 			Msg("CreateDenial: found existing denial, updating values")
 
 		// a denial for this utxo already exists. Let's piggy back on that by updating its values
-		if err := deniability.Update(ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops); err != nil {
+		if err := deniability.Update(
+			ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops, req.Msg.Txid, int32(req.Msg.Vout),
+		); err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("could not update denial")
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}

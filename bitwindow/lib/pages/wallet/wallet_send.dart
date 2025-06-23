@@ -298,7 +298,7 @@ class SendPageViewModel extends BaseViewModel {
   List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
   AddressBookEntry? selectedEntry;
   TextEditingController selectedUTXOs = TextEditingController();
-  TextEditingController feeController = TextEditingController(text: '1000');
+  TextEditingController feeController = TextEditingController(text: '10000');
   List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted(
         (a, b) {
           final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
@@ -369,7 +369,7 @@ class SendPageViewModel extends BaseViewModel {
       }
 
       // 2. Calculate available balance minus fee
-      final available = availableAmount - satoshiToBTC((int.tryParse(feeController.text) ?? 1000));
+      final available = availableAmount - satoshiToBTC((int.tryParse(feeController.text) ?? 10000));
 
       // 3. Set the remaining amount for the recipient at 'index'
       final remaining = available - sumOtherRecipients;
@@ -409,6 +409,13 @@ class SendPageViewModel extends BaseViewModel {
       return;
     }
 
+    final fee = int.tryParse(feeController.text);
+    if (fee == null) {
+      showSnackBar(context, 'Please enter a valid fee.');
+      setBusy(false);
+      return;
+    }
+
     try {
       // Build destinations map for all recipients, summing amounts for duplicate addresses
       final destinations = <String, int>{};
@@ -424,7 +431,7 @@ class SendPageViewModel extends BaseViewModel {
 
       final txid = await bitwindowd.wallet.sendTransaction(
         destinations,
-        fixedFeeSats: int.tryParse(feeController.text) ?? 1000,
+        fixedFeeSats: int.tryParse(feeController.text),
         requiredInputs: selectedUtxos,
       );
       await clearAll();
@@ -458,7 +465,7 @@ class SendPageViewModel extends BaseViewModel {
     initialRecipient.addListener(_onRecipientChanged);
     recipients.add(initialRecipient);
     selectedRecipientIndex = 0;
-    feeController.text = '1000';
+    feeController.text = '10000';
     selectedUtxos = [];
 
     notifyListeners();

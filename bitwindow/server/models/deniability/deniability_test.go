@@ -197,7 +197,7 @@ func TestDeniability(t *testing.T) {
 		require.NotNil(t, denial)
 
 		// Update the denial
-		err = Update(ctx, db, denial.ID, 2*time.Second, 1)
+		err = Update(ctx, db, denial.ID, 2*time.Second, 1, "txid", 0)
 		require.NoError(t, err)
 
 		// Verify the update

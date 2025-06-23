@@ -90,10 +90,7 @@ func selectDenialQuery() string {
 			d.cancelled_at,
 			d.cancelled_reason,
 			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
-			CASE
-				WHEN e.to_txid IS NULL THEN d.initial_vout
-				ELSE e.to_vout
-			END as tip_vout
+			COALESCE(e.to_vout, d.initial_vout) as tip_vout
 		FROM denials d
 		LEFT JOIN (
 			SELECT * FROM executed_denials ed
@@ -316,12 +313,12 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 }
 
 // Update updates the number of hops and delay duration for a given deniability plan
-func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32) error {
+func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, txid string, vout int32) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE denials
-		SET delay_duration = ?, num_hops = num_hops + ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
+		SET delay_duration = ?, num_hops = num_hops + ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
 		WHERE id = ?
-	`, delay, numHops, time.Now(), id)
+	`, delay, numHops, txid, vout, time.Now(), id)
 	if err != nil {
 		return fmt.Errorf("could not update deniability: %w", err)
 	}
