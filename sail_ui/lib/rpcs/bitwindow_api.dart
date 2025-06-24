@@ -414,10 +414,10 @@ class _BitwindowAPILive implements BitwindowAPI {
     );
   }
 
-    @override
+  @override
   Future<GetFireplaceStatsResponse> getFireplaceStats() async {
-      final response = await _client.getFireplaceStats(Empty());
-      return response;
+    final response = await _client.getFireplaceStats(Empty());
+    return response;
   }
 }
 

@@ -43,14 +43,14 @@ class PriceProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
-        
+
         // Extract USD price
         if (data.containsKey('USD') && data['USD'] is Map<String, dynamic>) {
           final usdData = data['USD'] as Map<String, dynamic>;
-          
+
           if (usdData.containsKey('last')) {
             final price = usdData['last'];
-            
+
             // Convert to double if needed
             if (price is num) {
               btcPriceUsd = price.toDouble();
@@ -86,14 +86,14 @@ class PriceProvider extends ChangeNotifier {
     if (btcPriceUsd == null) {
       return 'Loading...';
     }
-    
+
     // Format with commas and 2 decimal places
     final formatter = NumberFormat.currency(
       locale: 'en_US',
       symbol: '\$',
       decimalDigits: 2,
     );
-    
+
     return formatter.format(btcPriceUsd);
   }
 
@@ -102,10 +102,10 @@ class PriceProvider extends ChangeNotifier {
     if (lastUpdated == null) {
       return 'Never updated';
     }
-    
+
     final now = DateTime.now();
     final difference = now.difference(lastUpdated!);
-    
+
     if (difference.inSeconds < 60) {
       return '${difference.inSeconds}s ago';
     } else if (difference.inMinutes < 60) {

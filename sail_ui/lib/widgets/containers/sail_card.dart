@@ -190,7 +190,7 @@ class SailCard extends StatelessWidget {
 
 class SailCardSmall extends StatelessWidget {
   final String? title;
-    final String? titleTooltip;
+  final String? titleTooltip;
   final String? subtitle;
   final String? error;
   final Widget? headerEnd;
