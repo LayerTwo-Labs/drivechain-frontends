@@ -234,8 +234,10 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []*corepb.GetBloc
 	// Insert the processed blocks
 	if err := blocks.MarkBlocksProcessed(ctx, p.db, lo.Map(coreBlocks, func(block *corepb.GetBlockResponse, _ int) blocks.ProcessedBlock {
 		return blocks.ProcessedBlock{
-			Height: int32(block.Height),
-			Hash:   block.Hash,
+			Height:    int32(block.Height),
+			Hash:      block.Hash,
+			BlockTime: block.Time.AsTime(),
+			Txids:     block.Txids,
 		}
 	})); err != nil {
 		zerolog.Ctx(ctx).Error().
