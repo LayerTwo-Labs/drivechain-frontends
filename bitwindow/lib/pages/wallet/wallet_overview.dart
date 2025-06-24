@@ -72,7 +72,7 @@ class OverviewTab extends StatelessWidget {
                     model: model,
                     searchWidget: SailTextField(
                       controller: model.searchController,
-                      hintText: 'Enter address or transaction id to search',
+                      hintText: 'Search with txid, address or amount',
                     ),
                   ),
                 ],
@@ -162,7 +162,7 @@ class _TransactionTableState extends State<TransactionTable> {
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailCard(
           title: 'Wallet Transaction History',
-          subtitle: 'Contains send, receive and sidechain-interaction transactions.',
+          titleTooltip: 'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
           bottomPadding: false,
           child: Column(
             children: [

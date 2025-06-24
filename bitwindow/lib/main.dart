@@ -21,6 +21,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
@@ -189,6 +190,12 @@ Future<void> initDependencies(
     () => contentProvider,
   );
   unawaited(contentProvider.load());
+
+  PriceProvider priceProvider = PriceProvider();
+  GetIt.I.registerLazySingleton<PriceProvider>(
+    () => priceProvider,
+  );
+  unawaited(priceProvider.fetch());
 
   // Load initial binary states
   final binaries = await _loadBinaries(applicationDir);
