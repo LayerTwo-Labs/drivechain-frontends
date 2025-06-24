@@ -21,6 +21,8 @@ service BitwindowdService {
   rpc GetSyncInfo(google.protobuf.Empty) returns (GetSyncInfoResponse);
 
   rpc SetTransactionNote(SetTransactionNoteRequest) returns (google.protobuf.Empty);
+
+  rpc GetFireplaceStats(google.protobuf.Empty) returns (GetFireplaceStatsResponse);
 }
 
 message CreateDenialRequest {
@@ -108,4 +110,10 @@ message GetSyncInfoResponse {
 message SetTransactionNoteRequest {
   string txid = 1;
   string note = 2;
+}
+
+message GetFireplaceStatsResponse {
+  int64 transaction_count_24h = 1;
+  int64 coinnews_count_7d = 2;
+  int64 block_count_24h = 3;
 }
