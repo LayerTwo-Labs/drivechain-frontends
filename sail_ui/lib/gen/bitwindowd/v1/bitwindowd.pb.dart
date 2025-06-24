@@ -1059,6 +1059,84 @@ class SetTransactionNoteRequest extends $pb.GeneratedMessage {
   void clearNote() => clearField(2);
 }
 
+class GetFireplaceStatsResponse extends $pb.GeneratedMessage {
+  factory GetFireplaceStatsResponse({
+    $fixnum.Int64? transactionCount24h,
+    $fixnum.Int64? coinnewsCount7d,
+    $fixnum.Int64? blockCount24h,
+  }) {
+    final $result = create();
+    if (transactionCount24h != null) {
+      $result.transactionCount24h = transactionCount24h;
+    }
+    if (coinnewsCount7d != null) {
+      $result.coinnewsCount7d = coinnewsCount7d;
+    }
+    if (blockCount24h != null) {
+      $result.blockCount24h = blockCount24h;
+    }
+    return $result;
+  }
+  GetFireplaceStatsResponse._() : super();
+  factory GetFireplaceStatsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetFireplaceStatsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFireplaceStatsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'transactionCount24h', protoName: 'transaction_count_24h')
+    ..aInt64(2, _omitFieldNames ? '' : 'coinnewsCount7d', protoName: 'coinnews_count_7d')
+    ..aInt64(3, _omitFieldNames ? '' : 'blockCount24h', protoName: 'block_count_24h')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetFireplaceStatsResponse clone() => GetFireplaceStatsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetFireplaceStatsResponse copyWith(void Function(GetFireplaceStatsResponse) updates) => super.copyWith((message) => updates(message as GetFireplaceStatsResponse)) as GetFireplaceStatsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetFireplaceStatsResponse create() => GetFireplaceStatsResponse._();
+  GetFireplaceStatsResponse createEmptyInstance() => create();
+  static $pb.PbList<GetFireplaceStatsResponse> createRepeated() => $pb.PbList<GetFireplaceStatsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetFireplaceStatsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFireplaceStatsResponse>(create);
+  static GetFireplaceStatsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get transactionCount24h => $_getI64(0);
+  @$pb.TagNumber(1)
+  set transactionCount24h($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTransactionCount24h() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTransactionCount24h() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get coinnewsCount7d => $_getI64(1);
+  @$pb.TagNumber(2)
+  set coinnewsCount7d($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCoinnewsCount7d() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCoinnewsCount7d() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get blockCount24h => $_getI64(2);
+  @$pb.TagNumber(3)
+  set blockCount24h($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBlockCount24h() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBlockCount24h() => clearField(3);
+}
+
 class BitwindowdServiceApi {
   $pb.RpcClient _client;
   BitwindowdServiceApi(this._client);
@@ -1089,6 +1167,9 @@ class BitwindowdServiceApi {
   ;
   $async.Future<$1.Empty> setTransactionNote($pb.ClientContext? ctx, SetTransactionNoteRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'SetTransactionNote', request, $1.Empty())
+  ;
+  $async.Future<GetFireplaceStatsResponse> getFireplaceStats($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetFireplaceStatsResponse>(ctx, 'BitwindowdService', 'GetFireplaceStats', request, GetFireplaceStatsResponse())
   ;
 }
 

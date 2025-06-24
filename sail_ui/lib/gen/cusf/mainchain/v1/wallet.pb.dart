@@ -109,6 +109,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     $fixnum.Int64? receivedSats,
     $fixnum.Int64? sentSats,
     WalletTransaction_Confirmation? confirmationInfo,
+    $1.ConsensusHex? rawTransaction,
   }) {
     final $result = create();
     if (txid != null) {
@@ -126,6 +127,9 @@ class WalletTransaction extends $pb.GeneratedMessage {
     if (confirmationInfo != null) {
       $result.confirmationInfo = confirmationInfo;
     }
+    if (rawTransaction != null) {
+      $result.rawTransaction = rawTransaction;
+    }
     return $result;
   }
   WalletTransaction._() : super();
@@ -138,6 +142,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'receivedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'sentSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOM<WalletTransaction_Confirmation>(5, _omitFieldNames ? '' : 'confirmationInfo', subBuilder: WalletTransaction_Confirmation.create)
+    ..aOM<$1.ConsensusHex>(6, _omitFieldNames ? '' : 'rawTransaction', subBuilder: $1.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -210,6 +215,17 @@ class WalletTransaction extends $pb.GeneratedMessage {
   void clearConfirmationInfo() => clearField(5);
   @$pb.TagNumber(5)
   WalletTransaction_Confirmation ensureConfirmationInfo() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $1.ConsensusHex get rawTransaction => $_getN(5);
+  @$pb.TagNumber(6)
+  set rawTransaction($1.ConsensusHex v) { setField(6, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasRawTransaction() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRawTransaction() => clearField(6);
+  @$pb.TagNumber(6)
+  $1.ConsensusHex ensureRawTransaction() => $_ensure(5);
 }
 
 class BroadcastWithdrawalBundleRequest extends $pb.GeneratedMessage {

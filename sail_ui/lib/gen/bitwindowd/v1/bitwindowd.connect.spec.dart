@@ -75,4 +75,11 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.SetTransactionNoteRequest.new,
     googleprotobufempty.Empty.new,
   );
+
+  static const getFireplaceStats = connect.Spec(
+    '/$name/GetFireplaceStats',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.GetFireplaceStatsResponse.new,
+  );
 }
