@@ -330,6 +330,8 @@ abstract class BitwindowAPI {
 
   // Transaction note methods here
   Future<void> setTransactionNote(String txid, String note);
+
+  Future<GetFireplaceStatsResponse> getFireplaceStats();
 }
 
 class _BitwindowAPILive implements BitwindowAPI {
@@ -410,6 +412,12 @@ class _BitwindowAPILive implements BitwindowAPI {
         ..txid = txid
         ..note = note,
     );
+  }
+
+    @override
+  Future<GetFireplaceStatsResponse> getFireplaceStats() async {
+      final response = await _client.getFireplaceStats(Empty());
+      return response;
   }
 }
 

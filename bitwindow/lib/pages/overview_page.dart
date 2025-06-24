@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
@@ -5,6 +7,7 @@ import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -24,6 +27,7 @@ class OverviewPage extends StatelessWidget {
             SailColumn(
               spacing: SailStyleValues.padding16,
               children: [
+                FireplaceStats(),
                 CoinNewsView(),
                 TransactionsView(),
               ],
@@ -35,46 +39,123 @@ class OverviewPage extends StatelessWidget {
   }
 }
 
+class FireplaceViewModel extends BaseViewModel {
+  final PriceProvider priceProvider = GetIt.I.get<PriceProvider>();
+  final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
+
+  bool get loading => _enforcerRPC.initializingBinary;
+
+  String get priceLastUpdated => priceProvider.priceAge;
+  String get price => priceProvider.formattedPrice;
+
+  Timer? _timer;
+
+  FireplaceViewModel() {
+    fetchFireplaceStats();
+    priceProvider.addListener(fetchFireplaceStats);
+
+    _timer = Timer.periodic(
+      Duration(seconds: 1),
+      // notify listeners every second to update the last updated time
+      (timer) => notifyListeners(),
+    );
+  }
+
+  GetFireplaceStatsResponse? stats;
+
+  Future<void> fetchFireplaceStats() async {
+    final response = await api.bitwindowd.getFireplaceStats();
+    if (response.toDebugString() != stats?.toDebugString()) {
+      stats = response;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+}
+
+class FireplaceStats extends StatelessWidget {
+  const FireplaceStats({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: SailStyleValues.borderRadius,
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [
-            SailTheme.of(context).colors.orange.withValues(alpha: 0.25),
-            SailTheme.of(context).colors.orangeLight.withValues(alpha: 0.25),
-          ],
-        ),
-        border: Border.all(
-          color: SailTheme.of(context).colors.orange,
-          width: 1.0,
-        ),
-      ),
-      width: double.infinity,
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return ViewModelBuilder<FireplaceViewModel>.reactive(
+      viewModelBuilder: () => FireplaceViewModel(),
+      builder: (context, model, child) => SailRow(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.start,
+        spacing: 16,
         children: [
-          SailSVG.fromAsset(SailSVGAsset.iconWarning, color: SailTheme.of(context).colors.text),
-          const SailSpacing(SailStyleValues.padding08),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                SailText.primary15('Warning', bold: true),
-                SailText.primary15(
-                  'This is experimental sidechain software. Use at your own risk!',
-                ),
-              ],
+            child: FireplaceStat(
+              title: 'Bitcoin Price',
+              subtitle: 'Last updated ${model.priceLastUpdated}',
+              value: model.price,
+              bitcoinAmount: true,
+              icon: SailSVGAsset.dollarSign,
+            ),
+          ),
+          Expanded(
+            child: FireplaceStat(
+              title: 'New transactions',
+              value: model.stats?.transactionCount24h.toString() ?? '0',
+              subtitle: 'Last 24 hours',
+              icon: SailSVGAsset.iconTransactions,
+            ),
+          ),
+          Expanded(
+            child: FireplaceStat(
+              title: 'New coinnews',
+              value: model.stats?.coinnewsCount7d.toString() ?? '0',
+              subtitle: 'Last 7 days',
+              icon: SailSVGAsset.newspaper,
+            ),
+          ),
+          Expanded(
+            child: FireplaceStat(
+              title: 'Number of blocks',
+              value: model.stats?.blockCount24h.toString() ?? '0',
+              subtitle: 'Last 24 hours',
+              icon: SailSVGAsset.blocks,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class FireplaceStat extends ViewModelWidget<FireplaceViewModel> {
+  final String title;
+  final String subtitle;
+  final String value;
+  final SailSVGAsset icon;
+  final bool bitcoinAmount;
+
+  const FireplaceStat({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.icon,
+    this.bitcoinAmount = false,
+  });
+
+  @override
+  Widget build(BuildContext context, FireplaceViewModel viewModel) {
+    return SailCardStats(
+      title: title,
+      subtitle: subtitle,
+      value: value,
+      icon: icon,
+      loading: LoadingDetails(
+        enabled: viewModel.loading,
+        description: 'Waiting for enforcer to boot and wallet to sync..',
       ),
     );
   }
@@ -98,7 +179,6 @@ class TransactionsView extends StatelessWidget {
                   SailCard(
                     bottomPadding: false,
                     title: 'Latest Transactions',
-                    subtitle: 'View the latest transactions on L1',
                     error: model.hasErrorForKey('blockchain') ? model.error('blockchain').toString() : null,
                     child: SizedBox(
                       height: 300,
@@ -117,7 +197,6 @@ class TransactionsView extends StatelessWidget {
                 children: [
                   SailCard(
                     title: 'Latest Blocks',
-                    subtitle: 'View the latest blocks on the blockchain',
                     bottomPadding: false,
                     child: SizedBox(
                       height: 300,
