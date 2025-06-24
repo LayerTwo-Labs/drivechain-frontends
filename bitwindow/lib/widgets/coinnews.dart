@@ -23,7 +23,7 @@ class CoinNewsView extends StatelessWidget {
       builder: (context, viewModel, child) {
         return SailCard(
           title: 'Coin News',
-          subtitle: 'Stay up-to-date on the latest world developments',
+          titleTooltip: 'Stay up-to-date on the latest world developments',
           widgetHeaderEnd: ExtraActionsDropdown(
             title: 'Extra Coin News Actions',
             items: [

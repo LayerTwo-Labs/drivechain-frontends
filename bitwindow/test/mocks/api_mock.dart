@@ -128,7 +128,7 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<void> setTransactionNote(String txid, String note) async {
     return;
   }
-  
+
   @override
   Future<GetFireplaceStatsResponse> getFireplaceStats() {
     return Future.value(GetFireplaceStatsResponse());

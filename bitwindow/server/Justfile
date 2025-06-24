@@ -13,8 +13,11 @@ clean:
     rm -rf .crates*
     go clean
 
-lint:
+lint: format-proto
     golangci-lint run ./...
+
+format-proto:
+    buf format --write
 
 gen: gen-server gen-enforcer
 
