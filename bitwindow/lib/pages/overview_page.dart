@@ -35,8 +35,7 @@ class OverviewPage extends StatelessWidget {
   }
 }
 
-class ExperimentalBanner extends StatelessWidget {
-  const ExperimentalBanner({super.key});
+  final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
 
   @override
   Widget build(BuildContext context) {

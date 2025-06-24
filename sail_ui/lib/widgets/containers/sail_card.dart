@@ -19,6 +19,7 @@ class NewWindowIdentifier {
 
 class SailCard extends StatelessWidget {
   final String? title;
+  final String? titleTooltip;
   final String? subtitle;
   final String? error;
   final VoidCallback? onPressed;
@@ -38,6 +39,7 @@ class SailCard extends StatelessWidget {
   const SailCard({
     super.key,
     this.title,
+    this.titleTooltip,
     this.subtitle,
     this.error,
     this.onPressed,
@@ -100,6 +102,7 @@ class SailCard extends StatelessWidget {
                             Flexible(
                               child: CardHeader(
                                 title: title!,
+                                titleTooltip: titleTooltip,
                                 subtitle: subtitle,
                                 error: error,
                               ),
@@ -170,7 +173,7 @@ class SailCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                    if (title != null) const SailSpacing(SailStyleValues.padding16),
+                    if (title != null) const SailSpacing(SailStyleValues.padding08),
                     Flexible(
                       child: child,
                     ),
@@ -187,6 +190,7 @@ class SailCard extends StatelessWidget {
 
 class SailCardSmall extends StatelessWidget {
   final String? title;
+    final String? titleTooltip;
   final String? subtitle;
   final String? error;
   final Widget? headerEnd;
@@ -196,6 +200,7 @@ class SailCardSmall extends StatelessWidget {
   const SailCardSmall({
     super.key,
     this.title,
+    this.titleTooltip,
     this.subtitle,
     this.error,
     this.onPressed,
@@ -232,6 +237,7 @@ class SailCardSmall extends StatelessWidget {
                         Flexible(
                           child: CardHeader(
                             title: title!,
+                            titleTooltip: titleTooltip,
                             subtitle: subtitle,
                             error: error,
                           ),
