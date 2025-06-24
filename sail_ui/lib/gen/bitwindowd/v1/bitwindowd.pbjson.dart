@@ -239,6 +239,22 @@ final $typed_data.Uint8List setTransactionNoteRequestDescriptor = $convert.base6
     'ChlTZXRUcmFuc2FjdGlvbk5vdGVSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEbm90ZR'
     'gCIAEoCVIEbm90ZQ==');
 
+@$core.Deprecated('Use getFireplaceStatsResponseDescriptor instead')
+const GetFireplaceStatsResponse$json = {
+  '1': 'GetFireplaceStatsResponse',
+  '2': [
+    {'1': 'transaction_count_24h', '3': 1, '4': 1, '5': 3, '10': 'transactionCount24h'},
+    {'1': 'coinnews_count_7d', '3': 2, '4': 1, '5': 3, '10': 'coinnewsCount7d'},
+    {'1': 'block_count_24h', '3': 3, '4': 1, '5': 3, '10': 'blockCount24h'},
+  ],
+};
+
+/// Descriptor for `GetFireplaceStatsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getFireplaceStatsResponseDescriptor = $convert.base64Decode(
+    'ChlHZXRGaXJlcGxhY2VTdGF0c1Jlc3BvbnNlEjIKFXRyYW5zYWN0aW9uX2NvdW50XzI0aBgBIA'
+    'EoA1ITdHJhbnNhY3Rpb25Db3VudDI0aBIqChFjb2lubmV3c19jb3VudF83ZBgCIAEoA1IPY29p'
+    'bm5ld3NDb3VudDdkEiYKD2Jsb2NrX2NvdW50XzI0aBgDIAEoA1INYmxvY2tDb3VudDI0aA==');
+
 const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
@@ -251,6 +267,7 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'DeleteAddressBookEntry', '2': '.bitwindowd.v1.DeleteAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
     {'1': 'GetSyncInfo', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetSyncInfoResponse'},
     {'1': 'SetTransactionNote', '2': '.bitwindowd.v1.SetTransactionNoteRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'GetFireplaceStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetFireplaceStatsResponse'},
   ],
 };
 
@@ -268,6 +285,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.DeleteAddressBookEntryRequest': DeleteAddressBookEntryRequest$json,
   '.bitwindowd.v1.GetSyncInfoResponse': GetSyncInfoResponse$json,
   '.bitwindowd.v1.SetTransactionNoteRequest': SetTransactionNoteRequest$json,
+  '.bitwindowd.v1.GetFireplaceStatsResponse': GetFireplaceStatsResponse$json,
 };
 
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -286,5 +304,6 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'RvYnVmLkVtcHR5EkkKC0dldFN5bmNJbmZvEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiIuYml0'
     'd2luZG93ZC52MS5HZXRTeW5jSW5mb1Jlc3BvbnNlElYKElNldFRyYW5zYWN0aW9uTm90ZRIoLm'
     'JpdHdpbmRvd2QudjEuU2V0VHJhbnNhY3Rpb25Ob3RlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1'
-    'Zi5FbXB0eQ==');
+    'Zi5FbXB0eRJVChFHZXRGaXJlcGxhY2VTdGF0cxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRooLm'
+    'JpdHdpbmRvd2QudjEuR2V0RmlyZXBsYWNlU3RhdHNSZXNwb25zZQ==');
 
