@@ -331,7 +331,7 @@ class TransactionsTab extends StatelessWidget {
           entries: model.entries,
           searchWidget: SailTextField(
             controller: model.searchController,
-            hintText: 'Enter address or transaction id to search',
+            hintText: 'Search with txid, address or amount',
           ),
         );
       },
@@ -637,7 +637,7 @@ class TransactionHistoryCard extends ViewModelWidget<OverviewTabViewModel> {
             entries: model.entries,
             searchWidget: SailTextField(
               controller: model.searchController,
-              hintText: 'Enter address or transaction id to search',
+              hintText: 'Search with txid, address or amount',
             ),
           );
         },

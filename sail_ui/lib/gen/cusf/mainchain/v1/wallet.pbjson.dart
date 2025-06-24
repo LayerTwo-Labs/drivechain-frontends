@@ -23,6 +23,7 @@ const WalletTransaction$json = {
   '1': 'WalletTransaction',
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'txid'},
+    {'1': 'raw_transaction', '3': 6, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'rawTransaction'},
     {'1': 'fee_sats', '3': 2, '4': 1, '5': 4, '10': 'feeSats'},
     {'1': 'received_sats', '3': 3, '4': 1, '5': 4, '10': 'receivedSats'},
     {'1': 'sent_sats', '3': 4, '4': 1, '5': 4, '10': 'sentSats'},
@@ -44,13 +45,14 @@ const WalletTransaction_Confirmation$json = {
 /// Descriptor for `WalletTransaction`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'ChFXYWxsZXRUcmFuc2FjdGlvbhIuCgR0eGlkGAEgASgLMhouY3VzZi5jb21tb24udjEuUmV2ZX'
-    'JzZUhleFIEdHhpZBIZCghmZWVfc2F0cxgCIAEoBFIHZmVlU2F0cxIjCg1yZWNlaXZlZF9zYXRz'
-    'GAMgASgEUgxyZWNlaXZlZFNhdHMSGwoJc2VudF9zYXRzGAQgASgEUghzZW50U2F0cxJeChFjb2'
-    '5maXJtYXRpb25faW5mbxgFIAEoCzIxLmN1c2YubWFpbmNoYWluLnYxLldhbGxldFRyYW5zYWN0'
-    'aW9uLkNvbmZpcm1hdGlvblIQY29uZmlybWF0aW9uSW5mbxqbAQoMQ29uZmlybWF0aW9uEhYKBm'
-    'hlaWdodBgBIAEoDVIGaGVpZ2h0EjkKCmJsb2NrX2hhc2gYAiABKAsyGi5jdXNmLmNvbW1vbi52'
-    'MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSOAoJdGltZXN0YW1wGAMgASgLMhouZ29vZ2xlLnByb3'
-    'RvYnVmLlRpbWVzdGFtcFIJdGltZXN0YW1w');
+    'JzZUhleFIEdHhpZBJFCg9yYXdfdHJhbnNhY3Rpb24YBiABKAsyHC5jdXNmLmNvbW1vbi52MS5D'
+    'b25zZW5zdXNIZXhSDnJhd1RyYW5zYWN0aW9uEhkKCGZlZV9zYXRzGAIgASgEUgdmZWVTYXRzEi'
+    'MKDXJlY2VpdmVkX3NhdHMYAyABKARSDHJlY2VpdmVkU2F0cxIbCglzZW50X3NhdHMYBCABKARS'
+    'CHNlbnRTYXRzEl4KEWNvbmZpcm1hdGlvbl9pbmZvGAUgASgLMjEuY3VzZi5tYWluY2hhaW4udj'
+    'EuV2FsbGV0VHJhbnNhY3Rpb24uQ29uZmlybWF0aW9uUhBjb25maXJtYXRpb25JbmZvGpsBCgxD'
+    'b25maXJtYXRpb24SFgoGaGVpZ2h0GAEgASgNUgZoZWlnaHQSOQoKYmxvY2tfaGFzaBgCIAEoCz'
+    'IaLmN1c2YuY29tbW9uLnYxLlJldmVyc2VIZXhSCWJsb2NrSGFzaBI4Cgl0aW1lc3RhbXAYAyAB'
+    'KAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl0aW1lc3RhbXA=');
 
 @$core.Deprecated('Use broadcastWithdrawalBundleRequestDescriptor instead')
 const BroadcastWithdrawalBundleRequest$json = {

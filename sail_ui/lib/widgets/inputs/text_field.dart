@@ -63,7 +63,7 @@ class SailTextField extends StatelessWidget {
       vertical: 11.5,
       horizontal: 12,
     );
-    final textSize = size == TextFieldSize.regular ? 14.0 : 12.0;
+    final textSize = size == TextFieldSize.regular ? 13.0 : 10.0;
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
@@ -88,7 +88,7 @@ class SailTextField extends StatelessWidget {
             focusNode: focusNode,
             onSubmitted: onSubmitted,
             readOnly: readOnly,
-            style: SailStyleValues.fifteen.copyWith(
+            style: SailStyleValues.thirteen.copyWith(
               color: SailTheme.of(context).colors.text,
               fontSize: textSize,
             ),

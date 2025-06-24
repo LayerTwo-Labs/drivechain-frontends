@@ -131,7 +131,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   @override
   Widget build(BuildContext context) {
     return SailCard(
-      title: 'UTXOs and Denials',
+      title: 'Your UTXOs with denial info',
       subtitle: 'List of your UTXOs with information about their deniability status.',
       error: widget.error,
       bottomPadding: false,

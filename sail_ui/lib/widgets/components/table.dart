@@ -685,7 +685,7 @@ class SailTableHeaderCell extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Flexible(
-              child: SailText.primary13(
+              child: SailText.primary10(
                 name,
                 bold: true,
                 overflow: TextOverflow.ellipsis,

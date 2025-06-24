@@ -110,12 +110,14 @@ Future<T?> widgetDialog<T>({
 
 class CardHeader extends StatelessWidget {
   final String title;
+  final String? titleTooltip;
   final String? subtitle;
   final String? error;
 
   const CardHeader({
     super.key,
     required this.title,
+    this.titleTooltip,
     this.subtitle,
     this.error,
   });
@@ -129,10 +131,19 @@ class CardHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary20(
-          title,
-          bold: true,
-        ),
+        if (titleTooltip != null)
+          Tooltip(
+            message: titleTooltip,
+            child: SailText.primary15(
+              title,
+              bold: true,
+            ),
+          )
+        else
+          SailText.primary15(
+            title,
+            bold: true,
+          ),
         if (error != null || subtitle != null)
           SailText.primary12(
             error ?? subtitle!,
