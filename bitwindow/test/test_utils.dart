@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:flutter/material.dart';
@@ -57,6 +59,24 @@ Future<void> registerTestDependencies() async {
   if (!GetIt.I.isRegistered<MainchainRPC>()) {
     GetIt.I.registerLazySingleton<MainchainRPC>(
       () => MockMainchainRPC(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<EnforcerRPC>()) {
+    GetIt.I.registerLazySingleton<EnforcerRPC>(
+      () => MockEnforcerRPC(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<BinaryProvider>()) {
+    GetIt.I.registerLazySingleton<BinaryProvider>(
+      () => BinaryProvider(appDir: Directory('/'), initialBinaries: []),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<SyncProvider>()) {
+    GetIt.I.registerLazySingleton<SyncProvider>(
+      () => SyncProvider(),
     );
   }
 

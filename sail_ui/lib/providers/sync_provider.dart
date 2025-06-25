@@ -115,6 +115,10 @@ class SyncProvider extends ChangeNotifier {
   }
 
   void _startMainchainTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     _mainchainTimer?.cancel();
     void tick() async {
       if (_isFetchingMainchain) return;
@@ -144,6 +148,10 @@ class SyncProvider extends ChangeNotifier {
   }
 
   void _startEnforcerTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     _enforcerTimer?.cancel();
     void tick() async {
       if (_isFetchingEnforcer) return;
@@ -173,6 +181,10 @@ class SyncProvider extends ChangeNotifier {
   }
 
   void _startAdditionalTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     _additionalTimer?.cancel();
     void tick() async {
       if (_isFetchingAdditional) return;

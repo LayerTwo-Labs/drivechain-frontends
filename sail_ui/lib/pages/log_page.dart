@@ -6,6 +6,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -208,6 +209,10 @@ class _LogPageState extends State<LogPage> {
   }
 
   void _startTailing() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     final logFile = File(widget.logPath);
 
     _tailTimer = Timer.periodic(const Duration(milliseconds: 100), (_) async {

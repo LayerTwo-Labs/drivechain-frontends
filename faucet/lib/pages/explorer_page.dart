@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:faucet/api/api_base.dart';
+import 'package:faucet/env.dart';
 import 'package:faucet/providers/explorer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -90,6 +91,10 @@ class ExplorerViewModel extends BaseViewModel {
   }
 
   void startTimeUpdateTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     // Cancel any existing timer
     _timeUpdateTimer?.cancel();
 

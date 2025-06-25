@@ -158,19 +158,21 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    // Set up periodic release date checks
-    if (!Environment.isInTest) {
-      _releaseCheckTimer = Timer.periodic(
-        const Duration(minutes: 1),
-        (_) => _checkReleaseDates(),
-      );
-
-      _setupDirectoryWatcher();
-      await _checkReleaseDates();
-      // now that we have the release date and binary date, (if any) we can check
-      // for updates/missing binaries
-      await Future.wait(binaries.map((b) => _downloadManager.downloadIfMissing(b)));
+    if (Environment.isInTest) {
+      return;
     }
+
+    // Set up periodic release date checks
+    _releaseCheckTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _checkReleaseDates(),
+    );
+
+    _setupDirectoryWatcher();
+    await _checkReleaseDates();
+    // now that we have the release date and binary date, (if any) we can check
+    // for updates/missing binaries
+    await Future.wait(binaries.map((b) => _downloadManager.downloadIfMissing(b)));
   }
 
   // Start a binary, and set starter seeds (if set)

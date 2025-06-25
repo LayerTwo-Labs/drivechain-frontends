@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/settings/client_settings.dart';
 import 'package:sail_ui/settings/hash_plaintext_settings.dart';
@@ -42,6 +43,8 @@ class BitnamesProvider extends ChangeNotifier {
   }
 
   void _startRetryTimer() {
+    if (Environment.isInTest) return;
+
     _retryTimer?.cancel();
     _retryTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (entries.isNotEmpty && initialized) {
