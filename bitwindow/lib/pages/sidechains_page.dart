@@ -5,6 +5,7 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,7 +26,7 @@ class SidechainsPage extends StatelessWidget {
         builder: (context, model, child) => LayoutBuilder(
           builder: (context, constraints) {
             const spacing = SailStyleValues.padding08;
-            final sidechainsWidth = max(400, constraints.maxWidth * 0.25);
+            final sidechainsWidth = max(450, constraints.maxWidth * 0.25);
             final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
 
             return SailRow(
@@ -58,7 +59,8 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
     return SailCard(
       title: 'Sidechains',
-      subtitle: 'List of sidechains and their current status',
+      titleTooltip:
+          'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
       error: error,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,12 +84,23 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                     name: 'Balance',
                     onSort: () => viewModel.sortSidechains('balance'),
                   ),
+                  SailTableHeaderCell(
+                    name: 'Action',
+                    onSort: () => viewModel.sortSidechains('action'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Update',
+                    onSort: () => viewModel.sortSidechains('update'),
+                  ),
                 ],
                 rowBuilder: (context, row, selected) {
                   final slot = row; // This is now the slot number (0-254)
                   final sidechain = viewModel.sidechains[slot];
                   final textColor =
                       sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
+                  final buttonWidget = viewModel.sidechainWidget(slot);
+                  final updateWidget = viewModel.updateWidget(slot);
+
                   return [
                     SailTableCell(value: '$slot:', textColor: textColor),
                     SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
@@ -97,11 +110,19 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                       ),
                       textColor: textColor,
                     ),
+                    SailTableCell(
+                      value: buttonWidget?.toString() ?? '',
+                      child: buttonWidget,
+                    ),
+                    SailTableCell(
+                      value: updateWidget?.toString() ?? '',
+                      child: updateWidget,
+                    ),
                   ];
                 },
                 rowCount: 255, // Show all possible slots
                 sortAscending: viewModel.sortAscending,
-                sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),
+                sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
                 onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
                 selectedRowId: viewModel.selectedIndex?.toString(),
                 onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
@@ -147,6 +168,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
+  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();
@@ -161,6 +183,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     addressController.addListener(_onChange);
     depositAmountController.addListener(_onChange);
     feeController.addListener(_onChange);
+    binaryProvider.addListener(notifyListeners);
+    binaryProvider.listenDownloadManager(notifyListeners);
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
@@ -171,6 +195,125 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   String sortColumn = 'index';
   bool sortAscending = true;
+
+  Sidechain? sidechainForSlot(int slot) {
+    return binaryProvider.binaries.firstWhereOrNull((b) => b is Sidechain && b.slot == slot) as Sidechain?;
+  }
+
+  Widget? sidechainWidget(int slot) {
+    final sidechain = sidechainForSlot(slot);
+
+    if (sidechain == null) {
+      return null;
+    }
+
+    // Check if binary is running
+    final isRunning = switch (sidechain) {
+      var b when b is BitcoinCore => binaryProvider.mainchainConnected,
+      var b when b is Enforcer => binaryProvider.enforcerConnected,
+      var b when b is BitWindow => binaryProvider.bitwindowConnected,
+      var b when b is Thunder => binaryProvider.thunderConnected,
+      var b when b is Bitnames => binaryProvider.bitnamesConnected,
+      var b when b is BitAssets => binaryProvider.bitassetsConnected,
+      _ => false,
+    };
+
+    // Check if binary is initializing
+    final isInitializing = switch (sidechain) {
+      var b when b is BitcoinCore => binaryProvider.mainchainInitializing,
+      var b when b is Enforcer => binaryProvider.enforcerInitializing,
+      var b when b is BitWindow => binaryProvider.bitwindowInitializing,
+      var b when b is Thunder => binaryProvider.thunderInitializing,
+      var b when b is Bitnames => binaryProvider.bitnamesInitializing,
+      var b when b is BitAssets => binaryProvider.bitassetsInitializing,
+      _ => false,
+    };
+
+    final stopping = switch (sidechain) {
+      var b when b is BitcoinCore => binaryProvider.mainchainStopping,
+      var b when b is Enforcer => binaryProvider.enforcerStopping,
+      var b when b is BitWindow => binaryProvider.bitwindowStopping,
+      var b when b is Thunder => binaryProvider.thunderStopping,
+      var b when b is Bitnames => binaryProvider.bitnamesStopping,
+      var b when b is BitAssets => binaryProvider.bitassetsStopping,
+      _ => false,
+    };
+
+    final isProcessRunning = binaryProvider.isRunning(sidechain);
+
+    if (stopping) {
+      return SailButton(
+        label: 'Stopping...',
+        onPressed: null,
+        insideTable: true,
+        loading: true,
+      );
+    }
+
+    if (isRunning) {
+      return SailButton(
+        label: 'Stop',
+        onPressed: () async => binaryProvider.stop(sidechain),
+        insideTable: true,
+      );
+    }
+
+    if (isInitializing) {
+      return SailButton(
+        label: 'Launching...',
+        onPressed: null,
+        insideTable: true,
+        loading: true,
+      );
+    }
+
+    if (isProcessRunning) {
+      return SailButton(
+        label: 'Kill',
+        onPressed: () => binaryProvider.stop(sidechain),
+        insideTable: true,
+      );
+    }
+
+    if (!sidechain.isDownloaded) {
+      return SailButton(
+        label: 'Download',
+        onPressed: () async => await binaryProvider.download(sidechain),
+        insideTable: true,
+      );
+    }
+
+    if (sidechain.isDownloaded) {
+      return SailButton(
+        label: 'Start',
+        onPressed: () async => await binaryProvider.start(sidechain),
+        insideTable: true,
+      );
+    }
+
+    return SailButton(
+      label: 'Devs did you wrong...',
+      onPressed: () => throw Exception('Send them this error'),
+      insideTable: true,
+    );
+  }
+
+  Widget? updateWidget(int slot) {
+    final sidechain = sidechainForSlot(slot);
+
+    if (sidechain == null) {
+      return null;
+    }
+
+    if (sidechain.updateAvailable) {
+      return SailButton(
+        label: 'Update',
+        onPressed: () async => await binaryProvider.download(sidechain),
+        insideTable: true,
+      );
+    }
+    return null;
+  }
 
   List<SidechainOverview?> get sortedSidechains {
     if (!listEquals(_sortedSidechains, sidechains)) {
@@ -373,6 +516,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     addressController.removeListener(_onChange);
     depositAmountController.removeListener(_onChange);
     feeController.removeListener(_onChange);
+    binaryProvider.removeListener(notifyListeners);
   }
 
   void _onChange() {

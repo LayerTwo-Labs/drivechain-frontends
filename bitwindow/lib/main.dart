@@ -220,7 +220,6 @@ Future<void> initDependencies(
     binary: binaries.firstWhere((b) => b is Enforcer),
     launcherAppDir: launcherAppDir,
   );
-
   GetIt.I.registerLazySingleton<EnforcerRPC>(
     () => enforcer,
   );
@@ -232,6 +231,34 @@ Future<void> initDependencies(
   );
   GetIt.I.registerLazySingleton<BitwindowRPC>(
     () => bitwindow,
+  );
+
+  // now register all sidedchains
+  final bitassetsBinary = binaries.firstWhere((b) => b is BitAssets);
+  final bitassets = await BitAssetsLive.create(
+    binary: bitassetsBinary,
+    chain: Sidechain.fromBinary(bitassetsBinary),
+  );
+  GetIt.I.registerLazySingleton<BitAssetsRPC>(
+    () => bitassets,
+  );
+
+  final bitnamesBinary = binaries.firstWhere((b) => b is Bitnames);
+  final bitnames = await BitnamesLive.create(
+    binary: bitnamesBinary,
+    chain: Sidechain.fromBinary(bitnamesBinary),
+  );
+  GetIt.I.registerLazySingleton<BitnamesRPC>(
+    () => bitnames,
+  );
+
+  final thunderBinary = binaries.firstWhere((b) => b is Thunder);
+  final thunder = await ThunderLive.create(
+    binary: thunderBinary,
+    chain: Sidechain.fromBinary(thunderBinary),
+  );
+  GetIt.I.registerLazySingleton<ThunderRPC>(
+    () => thunder,
   );
 
   // After RPCs have been registered, register the binary provider
@@ -400,6 +427,9 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     BitcoinCore(),
     Enforcer(),
     BitWindow(),
+    BitAssets(),
+    Bitnames(),
+    Thunder(),
   ];
 
   // overwrite existing assets with the latest ones! things get updated
@@ -407,8 +437,8 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     await Future.wait([
       for (final binary in binaries) binary.writeBinaryFromAssetsBundle(appDir),
     ]);
-  } catch (e) {
-    log.e('Failed to write binaries to appDir', error: e);
+  } catch (_) {
+    // is oke to not be able to write the binaries
   }
 
   return await loadBinaryCreationTimestamp(binaries, appDir);

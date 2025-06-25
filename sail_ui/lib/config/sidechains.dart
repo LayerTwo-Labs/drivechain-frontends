@@ -17,6 +17,7 @@ abstract class Sidechain extends Binary {
     required super.port,
     required super.chainLayer,
     required super.downloadInfo,
+    required super.extraBootArgs,
   });
 
   int get slot;
@@ -214,6 +215,7 @@ class TestSidechain extends Sidechain {
     super.port = 38332,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -278,6 +280,7 @@ class ZCash extends Sidechain {
     super.port = 8232,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -315,6 +318,7 @@ class ZCash extends Sidechain {
     int? port,
     int? chainLayer,
     DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
   }) {
     return ZCash(
       name: name,
@@ -327,6 +331,7 @@ class ZCash extends Sidechain {
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
     );
   }
 }
@@ -343,6 +348,7 @@ class Thunder extends Sidechain {
     super.port = 6009,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -380,6 +386,7 @@ class Thunder extends Sidechain {
     int? port,
     int? chainLayer,
     DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
   }) {
     return Thunder(
       name: name,
@@ -392,6 +399,7 @@ class Thunder extends Sidechain {
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
     );
   }
 }
@@ -408,6 +416,7 @@ class Bitnames extends Sidechain {
     super.port = 6002,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -445,6 +454,7 @@ class Bitnames extends Sidechain {
     int? port,
     int? chainLayer,
     DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
   }) {
     return Bitnames(
       name: name,
@@ -457,6 +467,7 @@ class Bitnames extends Sidechain {
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
     );
   }
 }
@@ -473,6 +484,7 @@ class BitAssets extends Sidechain {
     super.port = 6004,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -510,6 +522,7 @@ class BitAssets extends Sidechain {
     int? port,
     int? chainLayer,
     DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
   }) {
     return BitAssets(
       name: name,
@@ -522,6 +535,7 @@ class BitAssets extends Sidechain {
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
     );
   }
 }

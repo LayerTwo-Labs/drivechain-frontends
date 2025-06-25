@@ -230,6 +230,7 @@ Future<void> initDependencies(
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
   final binary = binaries.firstWhere((b) => b is BitAssets);
+
   final bitassets = await BitAssetsLive.create(
     binary: binary,
     chain: Sidechain.fromBinary(binary),
@@ -313,6 +314,9 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     Enforcer(),
     BitAssets(),
   ];
+
+  // make bitassets boot in headless-mode
+  binaries[2].addBootArg('--headless');
 
   return await loadBinaryCreationTimestamp(binaries, appDir);
 }
