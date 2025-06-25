@@ -9,6 +9,7 @@ import 'package:connectrpc/connect.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 // when you implement this class, you should extend a ChangeNotifier, to get
@@ -214,6 +215,10 @@ abstract class RPCConnection extends ChangeNotifier {
     Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment)
         bootProcess,
   ) {
+    if (Environment.isInTest) {
+      return;
+    }
+
     restartTimer?.cancel();
     restartTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       if (restartOnFailure && _completedStartup) {
@@ -261,6 +266,10 @@ abstract class RPCConnection extends ChangeNotifier {
   // so we can update the UI immediately when the connection drops/begins
   Timer? connectionTimer;
   Future<void> startConnectionTimer() async {
+    if (Environment.isInTest) {
+      return;
+    }
+
     // Cancel any existing timer before starting a new one
     connectionTimer?.cancel();
 

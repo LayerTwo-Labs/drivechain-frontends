@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 
 class AddressProvider extends ChangeNotifier {
@@ -27,6 +28,10 @@ class AddressProvider extends ChangeNotifier {
   }
 
   void _startRetryTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     _retryTimer?.cancel();
     _retryTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (receiveAddress != null && depositAddress != null) {

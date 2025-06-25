@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:faucet/api/api_base.dart';
+import 'package:faucet/env.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:faucet/gen/faucet/v1/faucet.pb.dart';
 import 'package:flutter/foundation.dart';
@@ -64,6 +65,10 @@ class TransactionsProvider extends ChangeNotifier {
   Timer? _connectionTimer;
   void poll() {
     fetch();
+
+    if (Environment.isInTest) {
+      return;
+    }
 
     _connectionTimer?.cancel();
     _connectionTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {

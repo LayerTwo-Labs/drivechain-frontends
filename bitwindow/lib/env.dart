@@ -12,6 +12,8 @@ class Variable<T> {
 }
 
 class Environment {
+  static bool isInTest = Platform.environment['FLUTTER_TEST']?.isNotEmpty ?? const bool.fromEnvironment('FLUTTER_TEST');
+
   // Define the environment variables here
   static const bitwindowdHost = Variable(
     'BITWINDOWD_HOST',

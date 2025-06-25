@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
@@ -55,11 +56,13 @@ class FireplaceViewModel extends BaseViewModel {
     fetchFireplaceStats();
     priceProvider.addListener(fetchFireplaceStats);
 
-    _timer = Timer.periodic(
-      Duration(seconds: 1),
-      // notify listeners every second to update the last updated time
-      (timer) => notifyListeners(),
-    );
+    if (!Environment.isInTest) {
+      _timer = Timer.periodic(
+        Duration(seconds: 1),
+        // notify listeners every second to update the last updated time
+        (timer) => notifyListeners(),
+      );
+    }
   }
 
   GetFireplaceStatsResponse? stats;

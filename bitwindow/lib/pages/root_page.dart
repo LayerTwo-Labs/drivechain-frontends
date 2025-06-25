@@ -488,7 +488,9 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
     initChangeTracker();
     blockchainProvider.addListener(_onChange);
     balanceProvider.addListener(_onChange);
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    if (!Environment.isInTest) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    }
   }
 
   void _onChange() {

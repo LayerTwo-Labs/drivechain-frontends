@@ -83,6 +83,7 @@ class BalanceProvider extends ChangeNotifier {
     if (Environment.isInTest) {
       return;
     }
+
     _fetchTimer?.cancel();
     _fetchTimer = Timer.periodic(const Duration(seconds: 1), (_) => fetch());
   }

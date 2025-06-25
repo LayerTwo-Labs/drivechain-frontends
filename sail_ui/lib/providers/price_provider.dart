@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:sail_ui/env.dart';
 
 /// Provider that fetches and maintains the current BTC/USD exchange rate
 class PriceProvider extends ChangeNotifier {
@@ -23,6 +24,10 @@ class PriceProvider extends ChangeNotifier {
   }
 
   void _startFetchingTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     _fetchTimer = Timer.periodic(
       Duration(seconds: 10),
       (timer) => fetch(),
