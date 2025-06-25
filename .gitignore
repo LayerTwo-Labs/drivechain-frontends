@@ -50,3 +50,5 @@ app.*.map.json
 
 # bip300301-enforcer database
 *.mdb
+
+bin

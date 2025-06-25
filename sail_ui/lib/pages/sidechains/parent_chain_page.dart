@@ -20,18 +20,71 @@ class ParentChainPage extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ParentChainTabViewModel(),
       builder: ((context, model, child) {
+        final List<TabItem> allTabs = [
+          const SingleTabItem(
+            label: 'Transfer',
+            child: TransferTab(),
+          ),
+          const SingleTabItem(
+            label: 'Withdrawal Explorer',
+            child: WithdrawalExplorerTab(),
+          ),
+          const SingleTabItem(
+            label: 'BMM',
+            child: BMMTab(),
+          ),
+        ];
+
         return QtPage(
-          child: SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              children: [
-                DepositTab(),
-                WithdrawTab(),
-              ],
-            ),
+          child: InlineTabBar(
+            tabs: allTabs,
+            initialIndex: 0,
           ),
         );
       }),
+    );
+  }
+}
+
+class TransferTab extends StatelessWidget {
+  const TransferTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SailColumn(
+      spacing: SailStyleValues.padding16,
+      children: [
+        DepositTab(),
+        WithdrawTab(),
+      ],
+    );
+  }
+}
+
+class WithdrawalExplorerTab extends StatelessWidget {
+  const WithdrawalExplorerTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding16,
+      children: [
+        SailText.primary20('The withdrawal explorer is not implemented yet, come back soon!'),
+      ],
+    );
+  }
+}
+
+class BMMTab extends StatelessWidget {
+  const BMMTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding16,
+      children: [
+        SailText.primary20('Blind-merged-mining is not implemented yet, come back soon!'),
+      ],
     );
   }
 }
