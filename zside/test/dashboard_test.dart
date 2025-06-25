@@ -16,6 +16,7 @@ import 'package:sail_ui/providers/sidechain/sidechain_transactions_provider.dart
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/zcash_rpc.dart';
+import 'package:zside/pages/test_page.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/transactions_provider.dart';
 
@@ -54,7 +55,7 @@ void main() {
   testWidgets('can render and show balance', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
-      const ParentChainPage(),
+      const SailTestPage(child: ParentChainPage()),
     );
     await tester.pumpAndSettle();
   });

@@ -14,7 +14,6 @@ import 'test_utils.dart';
 
 void main() {
   testWidgets('can build overview page', (WidgetTester tester) async {
-    FlutterError.onError = ignoreOverflowErrors;
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
       ConstrainedBox(

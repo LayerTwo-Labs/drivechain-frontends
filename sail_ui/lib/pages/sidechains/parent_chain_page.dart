@@ -17,31 +17,31 @@ class ParentChainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ParentChainTabViewModel(),
-      builder: ((context, model, child) {
-        final List<TabItem> allTabs = [
-          const SingleTabItem(
-            label: 'Transfer',
-            child: TransferTab(),
-          ),
-          const SingleTabItem(
-            label: 'Withdrawal Explorer',
-            child: WithdrawalExplorerTab(),
-          ),
-          const SingleTabItem(
-            label: 'BMM',
-            child: BMMTab(),
-          ),
-        ];
+    return QtPage(
+      child: ViewModelBuilder.reactive(
+        viewModelBuilder: () => ParentChainTabViewModel(),
+        builder: ((context, model, child) {
+          final List<TabItem> allTabs = [
+            const SingleTabItem(
+              label: 'Transfer',
+              child: TransferTab(),
+            ),
+            const SingleTabItem(
+              label: 'Withdrawal Explorer',
+              child: WithdrawalExplorerTab(),
+            ),
+            const SingleTabItem(
+              label: 'BMM',
+              child: BMMTab(),
+            ),
+          ];
 
-        return QtPage(
-          child: InlineTabBar(
+          return InlineTabBar(
             tabs: allTabs,
             initialIndex: 0,
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 }
