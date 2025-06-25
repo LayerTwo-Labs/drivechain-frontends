@@ -11,7 +11,6 @@ on:
       - "bitnames/**"
       - "bitassets/**"
       - "zside/**"
-      - "launcher/**"
       - ".github/workflows/**"
   pull_request:
     branches: [master]
@@ -23,7 +22,6 @@ on:
       - "bitnames/**"
       - "bitassets/**"
       - "zside/**"
-      - "launcher/**"
       - ".github/workflows/**"
 
 jobs:
@@ -35,7 +33,6 @@ jobs:
       bitassets: ${{ steps.filter.outputs.bitassets }}
       zside: ${{ steps.filter.outputs.zside }}
       bitwindow: ${{ steps.filter.outputs.bitwindow }}
-      launcher: ${{ steps.filter.outputs.launcher }}
       build_all: ${{ steps.filter.outputs.build_all }}
     steps:
       - uses: actions/checkout@v4
@@ -61,10 +58,6 @@ jobs:
               - '.github/workflows/**'
             bitwindow:
               - 'bitwindow/**'
-              - 'sail_ui/**'
-              - '.github/workflows/**'
-            launcher:
-              - 'launcher/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
 
@@ -108,7 +101,6 @@ jobs:
           add_client_configs "bitassets" "${{ needs.check-changes.outputs.bitassets }}"
           add_client_configs "zside" "${{ needs.check-changes.outputs.zside }}"
           add_client_configs "bitwindow" "${{ needs.check-changes.outputs.bitwindow }}"
-          add_client_configs "launcher" "${{ needs.check-changes.outputs.launcher }}"
           
           # Join configurations with commas
           matrix=$(IFS=,; echo "{\"include\":[${configurations[*]}]}")
@@ -289,12 +281,6 @@ jobs:
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
           mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
           mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip || true
-
-          # Launcher
-          mv launcher-binaries-macOS/launcher-osx64.zip Launcher-latest-x86_64-apple-darwin.zip || true
-          mv launcher-binaries-Linux/launcher-x86_64-linux-gnu.zip Launcher-latest-x86_64-unknown-linux-gnu.zip || true
-          mv launcher-binaries-Linux/Launcher-x86_64.AppImage Launcher-latest-x86_64-unknown-linux-gnu.AppImage || true
-          mv launcher-binaries-Windows/launcher-win64.zip Launcher-latest-x86_64-pc-windows-msvc.zip || true
 
       - name: Upload artifacts to releases.drivechain.info
         uses: cross-the-world/ssh-scp-ssh-pipelines@latest
