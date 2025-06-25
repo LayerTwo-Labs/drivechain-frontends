@@ -309,5 +309,8 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     Thunder(),
   ];
 
+  // make bitassets boot in headless-mode
+  binaries[2].addBootArg('--headless');
+
   return await loadBinaryCreationTimestamp(binaries, appDir);
 }

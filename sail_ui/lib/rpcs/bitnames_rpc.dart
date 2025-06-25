@@ -183,7 +183,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    return ['--headless'] + binary.extraBootArgs;
+    return binary.extraBootArgs;
   }
 
   @override

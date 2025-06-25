@@ -37,10 +37,12 @@ class DownloadManager extends ChangeNotifier {
   }
 
   Future<void> downloadIfMissing(Binary binary) async {
-    if (binary.updateAvailable && binary.metadata.updateable) {
-      // We have an available update, and the binary we use is in
-      // appDir/assets/bin, so we go ahead and update it
-      return await _downloadBinary(binary);
+    if (binary.updateAvailable) {
+      if (binary.metadata.updateable) {
+        // We have an available update, and the binary we use is in
+        // appDir/assets/bin, so we go ahead and update it
+        return await _downloadBinary(binary);
+      }
     }
 
     if (binary.isDownloaded) {
@@ -54,10 +56,10 @@ class DownloadManager extends ChangeNotifier {
   /// Download and extract a binary
   Future<void> _downloadBinary(Binary binary) async {
     // Check if already downloading
-    if (_isDownloading(binary)) {
+    if (isDownloading(binary)) {
       log.i('Download already in progress for ${binary.name}, waiting for completion...');
       // Wait for the download to complete
-      while (_isDownloading(binary)) {
+      while (isDownloading(binary)) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
       return;
@@ -89,7 +91,7 @@ class DownloadManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool _isDownloading(Binary binary) {
+  bool isDownloading(Binary binary) {
     return binary.downloadInfo.progress > 0.0 && binary.downloadInfo.progress < 1.0;
   }
 
@@ -113,6 +115,7 @@ class DownloadManager extends ChangeNotifier {
     final releaseDate = await binary.checkReleaseDate();
     // Update binary metadata
     final binaryPath = await binary.resolveBinaryPath(appDir);
+    // only updateable if it is inside the appDir
     final updateableBinary = binaryPath.path.contains(appDir.path);
     _updateBinary(
       binary.name,

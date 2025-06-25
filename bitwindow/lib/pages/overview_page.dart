@@ -68,10 +68,14 @@ class FireplaceViewModel extends BaseViewModel {
   GetFireplaceStatsResponse? stats;
 
   Future<void> fetchFireplaceStats() async {
-    final response = await api.bitwindowd.getFireplaceStats();
-    if (response.toDebugString() != stats?.toDebugString()) {
-      stats = response;
-      notifyListeners();
+    try {
+      final response = await api.bitwindowd.getFireplaceStats();
+      if (response.toDebugString() != stats?.toDebugString()) {
+        stats = response;
+        notifyListeners();
+      }
+    } catch (_) {
+      // is a fine to swallow
     }
   }
 

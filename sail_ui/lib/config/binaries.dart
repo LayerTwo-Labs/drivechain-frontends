@@ -48,7 +48,9 @@ abstract class Binary {
   bool get isDownloaded => metadata.binaryPath != null;
 
   bool get updateAvailable =>
-      isDownloaded && metadata.remoteTimestamp != null && metadata.remoteTimestamp != metadata.downloadedTimestamp;
+      isDownloaded &&
+      metadata.remoteTimestamp != null &&
+      metadata.remoteTimestamp!.isAfter(metadata.downloadedTimestamp!);
 
   @override
   bool operator ==(Object other) =>
@@ -472,6 +474,7 @@ class BitcoinCore extends Binary {
     int? port,
     super.chainLayer = 1,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs,
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -535,6 +538,7 @@ class BitWindow extends Binary {
     int? port,
     super.chainLayer = 1,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs,
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -598,6 +602,7 @@ class Enforcer extends Binary {
     int? port,
     super.chainLayer = 1,
     super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs,
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -844,7 +849,7 @@ class MetadataConfig {
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // Local file timestamp
   File? binaryPath; // Path to the binary on disk (if exists)
-  bool updateable; // Whether the binary should be updated
+  bool updateable; // Whether the binary can be updated
 
   MetadataConfig({
     required this.baseUrl,
@@ -869,6 +874,7 @@ class MetadataConfig {
       remoteTimestamp: remoteTimestamp,
       downloadedTimestamp: downloadedTimestamp,
       binaryPath: binaryPath,
+      updateable: updateable,
     );
   }
 }

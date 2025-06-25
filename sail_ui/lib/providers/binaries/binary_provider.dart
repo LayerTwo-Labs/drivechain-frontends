@@ -99,6 +99,12 @@ class BinaryProvider extends ChangeNotifier {
     required this.appDir,
     required List<Binary> initialBinaries,
   }) {
+    for (var b in initialBinaries) {
+      log.w(
+        'Binary ${b.name} is ${b.updateAvailable ? 'updatable' : 'not updatable'} binaryPath=${b.metadata.binaryPath} downloadedTimestamp=${b.metadata.downloadedTimestamp} remoteTimestamp=${b.metadata.remoteTimestamp}',
+      );
+    }
+
     _downloadManager = DownloadManager(
       appDir: appDir,
       binaries: initialBinaries,
@@ -171,8 +177,8 @@ class BinaryProvider extends ChangeNotifier {
     _setupDirectoryWatcher();
     await _checkReleaseDates();
     // now that we have the release date and binary date, (if any) we can check
-    // for updates/missing binaries
-    await Future.wait(binaries.map((b) => _downloadManager.downloadIfMissing(b)));
+    // for updates/missing binaries, but only for L1-stuff
+    await Future.wait(binaries.where((b) => b.chainLayer == 1).map((b) => _downloadManager.downloadIfMissing(b)));
   }
 
   // Start a binary, and set starter seeds (if set)
@@ -629,6 +635,8 @@ Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Director
       // Load metadata from bin/
       final (lastModified, binaryFile) = await binary.getCreationDate(appDir);
       final updateableBinary = binaryFile?.path.contains(appDir.path) ?? false;
+
+      log.w('Loaded binary state for ${binary.name}: $lastModified $binaryFile $updateableBinary');
 
       final updatedConfig = binary.metadata.copyWith(
         remoteTimestamp: binary.metadata.remoteTimestamp,
