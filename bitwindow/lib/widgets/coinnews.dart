@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/pagination.dart';
@@ -244,6 +245,10 @@ class CoinNewsViewModel extends BaseViewModel {
   }
 
   Future<void> _loadSelectedTopics() async {
+    if (Environment.isInTest) {
+      return;
+    }
+
     final setting = SelectedTopicsSetting();
     final loadedSetting = await _settings.getValue(setting);
 
@@ -257,6 +262,10 @@ class CoinNewsViewModel extends BaseViewModel {
   }
 
   Future<void> _loadPageSize() async {
+    if (Environment.isInTest) {
+      return;
+    }
+
     final setting = PageSizeSetting();
     final loadedSetting = await _settings.getValue(setting);
     pageSize = loadedSetting.value;

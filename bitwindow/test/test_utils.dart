@@ -33,8 +33,9 @@ extension TestExtension on WidgetTester {
         accentColor: SailColorScheme.black,
         log: GetIt.I.get<Logger>(),
       ),
+      duration: const Duration(seconds: 10),
     );
-    await pumpAndSettle();
+    await pump();
   }
 }
 
