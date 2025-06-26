@@ -486,7 +486,7 @@ class BalanceDisplay extends StatelessWidget {
             if (showUnconfirmed || pendingBalance > 0)
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
-                opacity: showUnconfirmed ? 1.0 : 0.0,
+                opacity: 1,
                 child: Tooltip(
                   message: 'Unconfirmed balance',
                   child: SailRow(

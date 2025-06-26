@@ -99,12 +99,6 @@ class BinaryProvider extends ChangeNotifier {
     required this.appDir,
     required List<Binary> initialBinaries,
   }) {
-    for (var b in initialBinaries) {
-      log.w(
-        'Binary ${b.name} is ${b.updateAvailable ? 'updatable' : 'not updatable'} binaryPath=${b.metadata.binaryPath} downloadedTimestamp=${b.metadata.downloadedTimestamp} remoteTimestamp=${b.metadata.remoteTimestamp}',
-      );
-    }
-
     _downloadManager = DownloadManager(
       appDir: appDir,
       binaries: initialBinaries,
@@ -175,7 +169,6 @@ class BinaryProvider extends ChangeNotifier {
     );
 
     _setupDirectoryWatcher();
-    await _checkReleaseDates();
     // now that we have the release date and binary date, (if any) we can check
     // for updates/missing binaries, but only for L1-stuff
     await Future.wait(binaries.where((b) => b.chainLayer == 1).map((b) => _downloadManager.downloadIfMissing(b)));
@@ -629,27 +622,41 @@ String _stripFromString(String input, String whatToStrip) {
 }
 
 Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
-  for (var i = 0; i < binaries.length; i++) {
-    final binary = binaries[i];
-    try {
-      // Load metadata from bin/
-      final (lastModified, binaryFile) = await binary.getCreationDate(appDir);
-      final updateableBinary = binaryFile?.path.contains(appDir.path) ?? false;
-
-      log.w('Loaded binary state for ${binary.name}: $lastModified $binaryFile $updateableBinary');
-
-      final updatedConfig = binary.metadata.copyWith(
-        remoteTimestamp: binary.metadata.remoteTimestamp,
-        downloadedTimestamp: lastModified,
-        binaryPath: binaryFile,
-        updateable: updateableBinary,
-      );
-      binaries[i] = binary.copyWith(metadata: updatedConfig);
-    } catch (e) {
-      // Log error but continue with other binaries
-      GetIt.I.get<Logger>().e('Error loading binary state for ${binary.name}: $e');
-    }
+  // rewrite bundled assets in this build. things get updated!
+  try {
+    await Future.wait([
+      for (final binary in binaries) binary.writeBinaryFromAssetsBundle(appDir),
+    ]);
+  } catch (_) {
+    // is oke to not be able to write the binaries
   }
+
+  // now that assets are written, we can check stuff in parallel
+  await Future.wait(
+    binaries.asMap().entries.map((entry) async {
+      final i = entry.key;
+      final binary = entry.value;
+      try {
+        // Load metadata from bin/ in parallel
+        final (lastModified, binaryFile) = await binary.getCreationDate(appDir);
+        final updateableBinary = binaryFile?.path.contains(appDir.path) ?? false;
+        final serverReleaseDate = await binary.checkReleaseDate();
+
+        log.w('Loaded binary state for ${binary.name}: $lastModified $binaryFile $updateableBinary');
+
+        final updatedConfig = binary.metadata.copyWith(
+          remoteTimestamp: serverReleaseDate,
+          downloadedTimestamp: lastModified,
+          binaryPath: binaryFile,
+          updateable: updateableBinary,
+        );
+        binaries[i] = binary.copyWith(metadata: updatedConfig);
+      } catch (e) {
+        // Log error but continue with other binaries
+        GetIt.I.get<Logger>().e('Error loading binary state for ${binary.name}: $e');
+      }
+    }),
+  );
 
   return binaries;
 }

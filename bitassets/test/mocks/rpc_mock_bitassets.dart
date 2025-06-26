@@ -335,4 +335,11 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }) {
     return Future.value('mocked');
   }
+
+  @override
+  Future<BmmResult> mine(int feeSats) {
+    return Future.value(
+      BmmResult.empty(),
+    );
+  }
 }

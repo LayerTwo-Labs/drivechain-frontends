@@ -233,6 +233,10 @@ class TestSidechain extends Sidechain {
                   OS.macos: 'testchain-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'testchain-latest-x86_64-pc-windows-msvc.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
         );
 
@@ -298,6 +302,10 @@ class ZCash extends Sidechain {
                   OS.macos: 'L2-S5-ZSide-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'L2-S5-ZSide-latest-x86_64-pc-windows-gnu.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
         );
 
@@ -366,6 +374,10 @@ class Thunder extends Sidechain {
                   OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
         );
 
@@ -434,6 +446,10 @@ class Bitnames extends Sidechain {
                   OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
         );
 
@@ -502,6 +518,10 @@ class BitAssets extends Sidechain {
                   OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
         );
 

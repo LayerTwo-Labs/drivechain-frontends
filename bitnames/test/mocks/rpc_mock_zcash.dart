@@ -345,4 +345,9 @@ class MockZCashRPC extends ZCashRPC {
   Future<List<SidechainUTXO>> listUTXOs() async {
     return [];
   }
+
+  @override
+  Future<BmmResult> mine(int feeSats) async {
+    return BmmResult.empty();
+  }
 }

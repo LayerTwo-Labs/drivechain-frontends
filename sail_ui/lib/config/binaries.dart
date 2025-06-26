@@ -261,10 +261,7 @@ abstract class Binary {
       }
     }
 
-    final file = await writeBinaryFromAssetsBundle(appDir);
-    log.i('Found binary in assets bundle: ${file.path}');
-
-    return file;
+    throw Exception('Process: could not find binary $binary in any location.');
   }
 
   Future<File> writeBinaryFromAssetsBundle(Directory? appDir) async {
@@ -492,6 +489,10 @@ class BitcoinCore extends Binary {
                   OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
           port: port ?? 38332,
         );
@@ -556,6 +557,10 @@ class BitWindow extends Binary {
                   OS.macos: 'BitWindow-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'BitWindow-latest-x86_64-pc-windows-msvc.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
           port: port ?? 8080,
         );
@@ -620,6 +625,10 @@ class Enforcer extends Binary {
                   OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
                   OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
                 },
+                remoteTimestamp: null,
+                downloadedTimestamp: null,
+                binaryPath: null,
+                updateable: false,
               ),
           port: port ?? 50051,
         );
@@ -827,7 +836,6 @@ extension BinaryDownload on Binary {
 
       return (lastModified, binaryFile);
     } catch (e) {
-      log.e('Binary does not exist anywhere $binary', error: e);
       return (null, null);
     }
   }
@@ -854,10 +862,10 @@ class MetadataConfig {
   MetadataConfig({
     required this.baseUrl,
     required this.files,
-    this.remoteTimestamp,
-    this.downloadedTimestamp,
-    this.binaryPath,
-    this.updateable = false,
+    required this.updateable,
+    required this.remoteTimestamp,
+    required this.downloadedTimestamp,
+    required this.binaryPath,
   });
 
   MetadataConfig copyWith({

@@ -69,6 +69,7 @@ export 'pages/log_page.dart';
 export 'pages/shutdown_page.dart';
 export 'pages/sidechains/parent_chain_page.dart';
 export 'providers/balance_provider.dart';
+export 'providers/parentchain/bmm_provider.dart';
 export 'providers/binaries/binary_provider.dart';
 export 'providers/binaries/process_manager.dart';
 export 'providers/sidechain/address_provider.dart';

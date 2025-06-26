@@ -3,11 +3,13 @@ import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:sail_ui/pages/sidechains/bmm_view_model.dart';
 
 @RoutePage()
 class ParentChainPage extends StatelessWidget {
@@ -69,7 +71,10 @@ class WithdrawalExplorerTab extends StatelessWidget {
     return SailColumn(
       spacing: SailStyleValues.padding16,
       children: [
-        SailText.primary20('The withdrawal explorer is not implemented yet, come back soon!'),
+        SailCard(
+          title: 'Come back soon!',
+          child: SailText.primary15('The withdrawal explorer is not implemented yet, come back soon!'),
+        ),
       ],
     );
   }
@@ -80,11 +85,159 @@ class BMMTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding16,
-      children: [
-        SailText.primary20('Blind-merged-mining is not implemented yet, come back soon!'),
-      ],
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => BMMViewModel(),
+      builder: (context, viewModel, child) {
+        return SailCard(
+          title: 'BMM',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailRow(
+                spacing: SailStyleValues.padding04,
+                children: [
+                  SailButton(
+                    label: 'Start',
+                    disabled: viewModel.isMining,
+                    onPressed: () async => viewModel.bmmProvider.startMining(),
+                  ),
+                  const SizedBox(width: 8),
+                  SailButton(
+                    label: 'Stop',
+                    onPressed: () async => viewModel.bmmProvider.stopMining(),
+                    disabled: !viewModel.isMining,
+                    variant: ButtonVariant.secondary,
+                  ),
+                  const SizedBox(width: 16),
+                  SailText.primary15('Bid Amount:'),
+                  SizedBox(
+                    width: 120,
+                    child: SailTextField(
+                      controller: viewModel.bidAmountController,
+                      hintText: '0.0001',
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  SailText.primary15('Refresh:'),
+                  SizedBox(
+                    width: 150,
+                    child: SailTextField(
+                      controller: viewModel.intervalController,
+                      hintText: '1 Second(s)',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 400,
+                child: SailTable(
+                  getRowId: (index) => viewModel.attempts[index].txid,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(name: 'MC txid'),
+                    SailTableHeaderCell(name: 'MC Block'),
+                    SailTableHeaderCell(name: 'SC Block'),
+                    SailTableHeaderCell(name: 'Txns'),
+                    SailTableHeaderCell(name: 'Fees'),
+                    SailTableHeaderCell(name: 'Bid Amount'),
+                    SailTableHeaderCell(name: 'Profit'),
+                    SailTableHeaderCell(name: 'Status'),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final attempt = viewModel.attempts[row];
+                    final shortTxid = attempt.txid.length > 10 ? '${attempt.txid.substring(0, 10)}..' : attempt.txid;
+                    final shortBlockHash = attempt.hashLastMainBlock.length > 10
+                        ? '${attempt.hashLastMainBlock.substring(0, 10)}..'
+                        : attempt.hashLastMainBlock;
+
+                    return [
+                      SailTableCell(
+                        value: shortTxid,
+                        copyValue: attempt.txid,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: shortBlockHash,
+                        copyValue: attempt.hashLastMainBlock,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: attempt.bmmBlockCreated ?? '-',
+                        monospace: true,
+                      ),
+                      SailTableCell(value: attempt.ntxn.toString()),
+                      SailTableCell(value: attempt.nfees.toString()),
+                      SailTableCell(value: viewModel.bidAmountController.text),
+                      SailTableCell(value: '-'), // Profit placeholder
+                      SailTableCell(value: attempt.status),
+                    ];
+                  },
+                  rowCount: viewModel.attempts.length,
+                  drawGrid: true,
+                  contextMenuItems: (rowId) {
+                    final attempt = viewModel.attempts.firstWhere((a) => a.txid == rowId);
+                    return [
+                      SailMenuItem(
+                        onSelected: () {
+                          // Copy transaction ID to clipboard
+                          Clipboard.setData(ClipboardData(text: attempt.txid));
+                        },
+                        child: SailText.primary12('Copy TXID'),
+                      ),
+                      if (attempt.bmmBlockCreated != null)
+                        SailMenuItem(
+                          onSelected: () {
+                            // Copy block hash to clipboard
+                            Clipboard.setData(ClipboardData(text: attempt.bmmBlockCreated!));
+                          },
+                          child: SailText.primary12('Copy Block Hash'),
+                        ),
+                      SailMenuItem(
+                        onSelected: () {
+                          // Show attempt details in a dialog
+                          showThemedDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: SailText.primary15('BMM Attempt Details'),
+                                content: SailColumn(
+                                  spacing: SailStyleValues.padding08,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SailText.primary12('Transaction ID: ${attempt.txid}'),
+                                    SailText.primary12('Mainchain Block: ${attempt.hashLastMainBlock}'),
+                                    if (attempt.bmmBlockCreated != null)
+                                      SailText.primary12('Sidechain Block: ${attempt.bmmBlockCreated}'),
+                                    if (attempt.bmmBlockSubmitted != null)
+                                      SailText.primary12('Submitted Block: ${attempt.bmmBlockSubmitted}'),
+                                    if (attempt.bmmBlockSubmittedBlind != null)
+                                      SailText.primary12('Submitted Blind: ${attempt.bmmBlockSubmittedBlind}'),
+                                    SailText.primary12('Transactions: ${attempt.ntxn}'),
+                                    SailText.primary12('Fees: ${attempt.nfees}'),
+                                    if (attempt.error != null)
+                                      SailText.primary12('Error: ${attempt.error}', color: Colors.red),
+                                  ],
+                                ),
+                                actions: [
+                                  SailButton(
+                                    label: 'Close',
+                                    onPressed: () async => Navigator.of(context).pop(),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        child: SailText.primary12('Show Details'),
+                      ),
+                    ];
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -432,15 +432,6 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     Thunder(),
   ];
 
-  // overwrite existing assets with the latest ones! things get updated
-  try {
-    await Future.wait([
-      for (final binary in binaries) binary.writeBinaryFromAssetsBundle(appDir),
-    ]);
-  } catch (_) {
-    // is oke to not be able to write the binaries
-  }
-
   return await loadBinaryCreationTimestamp(binaries, appDir);
 }
 

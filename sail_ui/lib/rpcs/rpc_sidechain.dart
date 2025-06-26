@@ -1,5 +1,6 @@
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/sidechains.dart';
+import 'package:sail_ui/providers/parentchain/bmm_provider.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
@@ -33,6 +34,9 @@ abstract class SidechainRPC extends RPCConnection {
   Future<String> getSideAddress();
   Future<double> sideEstimateFee();
   Future<List<SidechainUTXO>> listUTXOs();
+
+  /// Mine a block with a fee
+  Future<BmmResult> mine(int feeSats);
 
   Sidechain chain;
 }

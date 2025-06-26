@@ -42,6 +42,8 @@ class DownloadManager extends ChangeNotifier {
         // We have an available update, and the binary we use is in
         // appDir/assets/bin, so we go ahead and update it
         return await _downloadBinary(binary);
+      } else {
+        log.w('binary ${binary.name} is not updateable');
       }
     }
 

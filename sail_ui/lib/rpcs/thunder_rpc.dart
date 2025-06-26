@@ -7,6 +7,7 @@ import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
+import 'package:sail_ui/providers/parentchain/bmm_provider.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -36,9 +37,6 @@ abstract class ThunderRPC extends SidechainRPC {
 
   /// List connected peers
   Future<List<Map<String, dynamic>>> listPeers();
-
-  /// Mine a block with optional coinbase value
-  Future<void> mine([int? coinbaseValueSats]);
 
   /// Get block by hash
   Future<Map<String, dynamic>?> getBlock(String hash);
@@ -261,8 +259,9 @@ class ThunderLive extends ThunderRPC {
 
   /// Mine a block with optional coinbase value
   @override
-  Future<void> mine([int? coinbaseValueSats]) async {
-    await _client().call('mine', coinbaseValueSats);
+  Future<BmmResult> mine(int feeSats) async {
+    final response = await _client().call('mine', [feeSats]);
+    return BmmResult.fromMap(response);
   }
 
   /// Get block by hash
