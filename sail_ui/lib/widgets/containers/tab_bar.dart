@@ -75,6 +75,7 @@ class InlineTabBarState extends State<InlineTabBar> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SailRow(
+              mainAxisAlignment: MainAxisAlignment.start,
               children: List.generate(widget.tabs.length, (index) {
                 final tab = widget.tabs[index];
 

@@ -385,6 +385,12 @@ class ZcashRPCLive extends ZCashRPC {
   Future<List<SidechainUTXO>> listUTXOs() async {
     return [];
   }
+
+  @override
+  Future<BmmResult> mine(int feeSats) async {
+    final result = await _client().call('mine', feeSats);
+    return BmmResult.fromMap(result);
+  }
 }
 
 /// List of all known RPC methods available /

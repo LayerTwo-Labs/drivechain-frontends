@@ -685,6 +685,12 @@ class BitAssetsLive extends BitAssetsRPC {
     });
     return response as bool;
   }
+
+  @override
+  Future<BmmResult> mine(int feeSats) async {
+    final response = await _client().call('mine', feeSats);
+    return BmmResult.fromMap(response);
+  }
 }
 
 final bitAssetsRPCMethods = [

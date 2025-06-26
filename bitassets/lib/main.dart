@@ -243,12 +243,12 @@ Future<void> initDependencies(
     appDir: applicationDir,
     initialBinaries: binaries,
   );
-
   GetIt.I.registerSingleton<BinaryProvider>(
     binaryProvider,
   );
-
   bootBinaries(log);
+
+  GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
 
   GetIt.I.registerLazySingleton<AppRouter>(
     () => AppRouter(),

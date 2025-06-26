@@ -499,8 +499,8 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<void> mine([int? coinbaseValueSats]) async {
-    return;
+  Future<BmmResult> mine(int feeSats) async {
+    return BmmResult.empty();
   }
 
   @override
@@ -812,6 +812,11 @@ class MockBitnamesRPC extends BitnamesRPC {
     required int mainchainFeeSats,
   }) async {
     return Future.value('mock_txid_withdraw_1234');
+  }
+
+  @override
+  Future<BmmResult> mine(int feeSats) async {
+    return BmmResult.empty();
   }
 }
 
