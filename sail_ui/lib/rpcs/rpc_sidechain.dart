@@ -571,7 +571,6 @@ class BmmResult {
   }
 
   factory BmmResult.fromMap(Map<String, dynamic>? map) {
-    print('mine result: $map');
     if (map == null) throw Exception('Null mining result');
 
     return BmmResult(

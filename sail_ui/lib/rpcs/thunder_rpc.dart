@@ -237,7 +237,6 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     final response = await _client().call('pending_withdrawal_bundle');
-    print('RESPONSE IS $response');
 
     return PendingWithdrawalBundle.fromMap(response);
   }
