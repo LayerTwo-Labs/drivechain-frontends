@@ -153,7 +153,7 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   double? sidechainFee;
   String? sendError;
-  String? receiveError;
+  String? get receiveError => _addressProvider.error;
   bool isSending = false;
 
   // Properties for sending
