@@ -1,15 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/providers/parentchain/bmm_provider.dart';
-import 'package:sail_ui/rpcs/thunder_utxo.dart';
-import 'package:sail_ui/rpcs/zcash_rpc.dart';
-import 'package:sail_ui/settings/secure_store.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:synchronized/synchronized.dart';
 
 /// Represents a single UTXO for mock implementation
@@ -496,9 +488,9 @@ class MockZCashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
     return await _lock.synchronized(() async {
-      return await sendTransparent(address, amount, false);
+      return await sendTransparent(address, amountSats / 100000000, false);
     });
   }
 
@@ -763,5 +755,10 @@ class MockZCashRPCLive extends ZCashRPC {
   @override
   Future<BmmResult> mine(int feeSats) async {
     return BmmResult.empty();
+  }
+
+  @override
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
+    return null;
   }
 }

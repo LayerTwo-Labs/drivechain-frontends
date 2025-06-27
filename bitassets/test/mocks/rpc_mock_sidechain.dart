@@ -42,7 +42,12 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) async {
     return 'txiddeadbeef';
   }
 
@@ -110,5 +115,10 @@ class MockSidechainRPC extends SidechainRPC {
   @override
   Future<BmmResult> mine(int feeSats) async {
     return BmmResult.empty();
+  }
+
+  @override
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
+    return null;
   }
 }

@@ -165,6 +165,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
 class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider transactionsProvider = GetIt.I.get<TransactionProvider>();
+  final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
   final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
@@ -503,10 +504,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       setBusy(false);
     }
 
-    // refetch sidechain transaction list
-    await sidechainProvider.fetch();
     // refetching the transaction list also triggers the balance to be updated
     await transactionsProvider.fetch();
+    // refetching the balance also triggers the balance to be updated
+    await balanceProvider.fetch();
+    // refetch sidechain transaction list
+    await sidechainProvider.fetch();
   }
 
   @override

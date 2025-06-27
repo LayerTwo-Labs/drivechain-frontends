@@ -9,7 +9,6 @@ import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/providers/parentchain/bmm_provider.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/settings/client_settings.dart';
@@ -60,9 +59,6 @@ abstract class BitnamesRPC extends SidechainRPC {
 
   /// Get the height of the latest failed withdrawal bundle
   Future<int?> getLatestFailedWithdrawalBundleHeight();
-
-  /// Get pending withdrawal bundle
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle();
 
   /// Generate a mnemonic seed phrase
   Future<String> generateMnemonic();
@@ -122,20 +118,8 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// Sign an arbitrary message with the secret key for the specified address
   Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address});
 
-  /// Stop the node
-  @override
-  Future<void> stop();
-
   /// Transfer funds to the specified address
   Future<String> transfer({required String dest, required int value, required int fee, String? memo});
-
-  /// Initiate a withdrawal to the specified mainchain address
-  Future<String> withdraw({
-    required String mainchainAddress,
-    required int amountSats,
-    required int feeSats,
-    required int mainchainFeeSats,
-  });
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -263,17 +247,6 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<List<CoreTransaction>> listTransactions() async {
     throw UnimplementedError();
-  }
-
-  @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
-    final response = await _client().call('withdraw', {
-      'mainchain_address': address,
-      'amount_sats': btcToSatoshi(amount),
-      'fee_sats': btcToSatoshi(sidechainFee),
-      'mainchain_fee_sats': btcToSatoshi(mainchainFee),
-    });
-    return response as String;
   }
 
   @override
@@ -448,9 +421,9 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() async {
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     final response = await _client().call('pending_withdrawal_bundle');
-    return response as Map<String, dynamic>?;
+    return PendingWithdrawalBundle.fromJson(response as Map<String, dynamic>);
   }
 
   @override
@@ -595,18 +568,18 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<String> withdraw({
-    required String mainchainAddress,
-    required int amountSats,
-    required int feeSats,
-    required int mainchainFeeSats,
-  }) async {
-    final response = await _client().call('withdraw', {
-      'mainchain_address': mainchainAddress,
-      'amount_sats': amountSats,
-      'fee_sats': feeSats,
-      'mainchain_fee_sats': mainchainFeeSats,
-    });
+  Future<String> withdraw(
+    String mainchainAddress,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) async {
+    final response = await _client().call('withdraw', [
+      mainchainAddress,
+      amountSats,
+      sidechainFeeSats,
+      mainchainFeeSats,
+    ]);
     return response as String;
   }
 

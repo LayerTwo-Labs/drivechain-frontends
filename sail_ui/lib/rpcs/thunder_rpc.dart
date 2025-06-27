@@ -7,7 +7,6 @@ import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/providers/parentchain/bmm_provider.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -28,9 +27,6 @@ abstract class ThunderRPC extends SidechainRPC {
 
   /// Create a deposit transaction
   Future<String> createDeposit(String address, double amount, double fee);
-
-  /// Get pending withdrawal bundle
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle();
 
   /// Connect to a peer
   Future<void> connectPeer(String peerAddress);
@@ -193,13 +189,13 @@ class ThunderLive extends ThunderRPC {
   }
 
   @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
-    final response = await _client().call('withdraw', {
-      'mainchain_address': address,
-      'amount_sats': btcToSatoshi(amount),
-      'fee_sats': btcToSatoshi(sidechainFee),
-      'mainchain_fee_sats': btcToSatoshi(mainchainFee),
-    });
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
+    final response = await _client().call('withdraw', [
+      address,
+      amountSats,
+      sidechainFeeSats,
+      mainchainFeeSats,
+    ]);
     return response as String;
   }
 
@@ -239,9 +235,11 @@ class ThunderLive extends ThunderRPC {
 
   /// Get pending withdrawal bundle
   @override
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() async {
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     final response = await _client().call('pending_withdrawal_bundle');
-    return response as Map<String, dynamic>?;
+    print('RESPONSE IS $response');
+
+    return PendingWithdrawalBundle.fromMap(response);
   }
 
   /// Connect to a peer
