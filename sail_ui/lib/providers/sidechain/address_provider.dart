@@ -11,8 +11,11 @@ class AddressProvider extends ChangeNotifier {
   String? receiveAddress;
   String? depositAddress;
   bool initialized = false;
-  String? error;
-  String? depositError;
+  String? _error;
+  String? _depositError;
+
+  String? get error => rpc.connected ? _error : null;
+  String? get depositError => rpc.connected ? _depositError : null;
 
   bool _isFetching = false;
   Timer? _retryTimer;
@@ -48,15 +51,15 @@ class AddressProvider extends ChangeNotifier {
       return;
     }
     _isFetching = true;
-    error = null;
-    depositError = null;
+    _error = null;
+    _depositError = null;
 
     if (receiveAddress == null) {
       try {
         receiveAddress = await rpc.getSideAddress();
         initialized = true;
       } catch (e) {
-        error = e.toString();
+        _error = e.toString();
       } finally {
         notifyListeners();
       }
@@ -67,7 +70,7 @@ class AddressProvider extends ChangeNotifier {
         depositAddress = await rpc.getDepositAddress();
         initialized = true;
       } catch (e) {
-        depositError = e.toString();
+        _depositError = e.toString();
       } finally {
         notifyListeners();
       }

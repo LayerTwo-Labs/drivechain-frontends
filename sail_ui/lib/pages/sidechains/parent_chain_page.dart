@@ -304,7 +304,7 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   double? sidechainFee;
   double? mainchainFee;
 
-  String? depositError;
+  String? get depositError => _addressProvider.depositError;
   String? withdrawError;
 
   double? get pegAmount => double.tryParse(bitcoinAmountController.text);
