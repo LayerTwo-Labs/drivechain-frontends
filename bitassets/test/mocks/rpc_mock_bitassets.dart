@@ -207,13 +207,8 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() {
-    return Future.value(
-      {
-        'hash': 'mocked',
-        'height': 123,
-      },
-    );
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() {
+    return Future.value(PendingWithdrawalBundle.empty());
   }
 
   @override
@@ -254,11 +249,6 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   @override
   Future<List<SidechainUTXO>> listUTXOs() {
     return Future.value([]);
-  }
-
-  @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) {
-    return Future.value('mocked');
   }
 
   @override
@@ -327,19 +317,19 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
-  Future<String> withdraw({
-    required String mainchainAddress,
-    required int amountSats,
-    required int feeSats,
-    required int mainchainFeeSats,
-  }) {
-    return Future.value('mocked');
-  }
-
-  @override
   Future<BmmResult> mine(int feeSats) {
     return Future.value(
       BmmResult.empty(),
     );
+  }
+
+  @override
+  Future<String> withdraw(
+    String mainchainAddress,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) {
+    return Future.value('mocked');
   }
 }

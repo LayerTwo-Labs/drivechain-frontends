@@ -264,10 +264,8 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
-    amount = cleanAmount(amount);
-
-    return await _client().call('withdraw', [address, amount, false]);
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
+    return await _client().call('withdraw', [address, amountSats, false]);
   }
 
   @override
@@ -390,6 +388,11 @@ class ZcashRPCLive extends ZCashRPC {
   Future<BmmResult> mine(int feeSats) async {
     final result = await _client().call('mine', feeSats);
     return BmmResult.fromMap(result);
+  }
+
+  @override
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
+    return null;
   }
 }
 
