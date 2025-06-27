@@ -424,7 +424,7 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) {
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
     return Future.value('txid_mainchain_send_1234');
   }
 
@@ -479,8 +479,8 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() {
-    return Future.value({'pending_withdrawal_bundle': 'pending_withdrawal_bundle_1234'});
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() {
+    return Future.value(PendingWithdrawalBundle.empty());
   }
 
   @override
@@ -611,7 +611,7 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) {
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
     return Future.value('txid_mainchain_send_1234');
   }
 
@@ -696,8 +696,8 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() {
-    return Future.value({'pending_withdrawal_bundle': 'mock_pending_withdrawal_bundle_1234'});
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() {
+    return Future.value(PendingWithdrawalBundle.empty());
   }
 
   @override
@@ -802,16 +802,6 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
     return Future.value('mock_txid_transfer_1234');
-  }
-
-  @override
-  Future<String> withdraw({
-    required String mainchainAddress,
-    required int amountSats,
-    required int feeSats,
-    required int mainchainFeeSats,
-  }) async {
-    return Future.value('mock_txid_withdraw_1234');
   }
 
   @override
