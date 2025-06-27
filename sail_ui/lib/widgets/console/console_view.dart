@@ -108,12 +108,8 @@ class _ConsoleViewState extends State<ConsoleView> {
       args = [];
     } else {
       command = text.substring(0, firstSpace);
-      if (text.contains('{')) {
-        // its json! split on '} '
-        args = text.substring(firstSpace + 1).split(' {').map((e) => e.trim()).toList();
-      } else {
-        args = text.substring(firstSpace + 1).split(' ').map((e) => e.trim()).toList();
-      }
+      final remainingText = text.substring(firstSpace + 1);
+      args = _parseArgs(remainingText);
     }
 
     service = _determineService(command);
@@ -232,6 +228,42 @@ class _ConsoleViewState extends State<ConsoleView> {
     });
   }
 
+  List<String> _parseArgs(String text) {
+    if (text.contains('{')) {
+      // its json! split on '} '
+      return text.split(' {').map((e) => e.trim()).toList();
+    }
+    final args = <String>[];
+    final buffer = StringBuffer();
+    bool inQuotes = false;
+
+    for (int i = 0; i < text.length; i++) {
+      final char = text[i];
+
+      // Check for escaped quote
+      if (char == '\\' && i + 1 < text.length && (text[i + 1] == '"' || text[i + 1] == "'")) {
+        // Skip the backslash and add the quote as a literal character
+        buffer.write(text[i + 1]);
+        i++; // Skip the next character since we've already processed it
+      } else if (char == '"' || char == "'") {
+        inQuotes = !inQuotes;
+      } else if (char == ' ' && !inQuotes) {
+        if (buffer.isNotEmpty) {
+          args.add(buffer.toString().trim());
+          buffer.clear();
+        }
+      } else {
+        buffer.write(char);
+      }
+    }
+
+    if (buffer.isNotEmpty) {
+      args.add(buffer.toString().trim());
+    }
+
+    return args;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
@@ -270,7 +302,8 @@ class _ConsoleViewState extends State<ConsoleView> {
                       return _allCommands.where((command) {
                         final service = _determineService(command);
                         return command.toLowerCase().contains(searchTerm) ||
-                            service.name.toLowerCase().contains(searchTerm);
+                            service.name.toLowerCase().contains(searchTerm) ||
+                            service.name.toLowerCase().replaceAll('_', '').replaceAll('-', '').contains(searchTerm);
                       });
                     },
                     optionsViewBuilder: (context, onSelected, options) {
