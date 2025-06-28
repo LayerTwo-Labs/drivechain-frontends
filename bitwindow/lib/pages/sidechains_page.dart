@@ -84,14 +84,16 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                     name: 'Balance',
                     onSort: () => viewModel.sortSidechains('balance'),
                   ),
-                  SailTableHeaderCell(
-                    name: 'Action',
-                    onSort: () => viewModel.sortSidechains('action'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Update',
-                    onSort: () => viewModel.sortSidechains('update'),
-                  ),
+                  if (viewModel.launcherMode)
+                    SailTableHeaderCell(
+                      name: 'Action',
+                      onSort: () => viewModel.sortSidechains('action'),
+                    ),
+                  if (viewModel.launcherMode)
+                    SailTableHeaderCell(
+                      name: 'Update',
+                      onSort: () => viewModel.sortSidechains('update'),
+                    ),
                 ],
                 rowBuilder: (context, row, selected) {
                   final slot = row; // This is now the slot number (0-254)
@@ -110,14 +112,16 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                       ),
                       textColor: textColor,
                     ),
-                    SailTableCell(
-                      value: buttonWidget?.toString() ?? '',
-                      child: buttonWidget,
-                    ),
-                    SailTableCell(
-                      value: updateWidget?.toString() ?? '',
-                      child: updateWidget,
-                    ),
+                    if (viewModel.launcherMode)
+                      SailTableCell(
+                        value: buttonWidget?.toString() ?? '',
+                        child: buttonWidget,
+                      ),
+                    if (viewModel.launcherMode)
+                      SailTableCell(
+                        value: updateWidget?.toString() ?? '',
+                        child: updateWidget,
+                      ),
                   ];
                 },
                 rowCount: 255, // Show all possible slots
@@ -170,6 +174,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
+  final SettingsProvider _settingsProvider = GetIt.I.get<SettingsProvider>();
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();
@@ -186,6 +191,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     feeController.addListener(_onChange);
     binaryProvider.addListener(notifyListeners);
     binaryProvider.listenDownloadManager(notifyListeners);
+    _settingsProvider.addListener(notifyListeners);
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
@@ -194,8 +200,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   List<SidechainOverview?> _sortedSidechains = [];
 
-  String sortColumn = 'index';
+  String sortColumn = 'slot';
   bool sortAscending = true;
+
+  // Get launcher mode from settings provider
+  bool get launcherMode => _settingsProvider.launcherMode;
 
   Sidechain? sidechainForSlot(int slot) {
     return binaryProvider.binaries.firstWhereOrNull((b) => b is Sidechain && b.slot == slot) as Sidechain?;
@@ -520,6 +529,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     depositAmountController.removeListener(_onChange);
     feeController.removeListener(_onChange);
     binaryProvider.removeListener(notifyListeners);
+    _settingsProvider.removeListener(notifyListeners);
   }
 
   void _onChange() {

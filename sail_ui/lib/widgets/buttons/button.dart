@@ -25,6 +25,7 @@ class SailButton extends StatefulWidget {
   final double? iconWidth;
   final bool small;
   final bool insideTable;
+  final Color? textColor;
 
   const SailButton({
     super.key,
@@ -40,6 +41,7 @@ class SailButton extends StatefulWidget {
     this.padding,
     this.small = false,
     this.insideTable = false,
+    this.textColor,
   })  : assert(
           variant != ButtonVariant.icon || (icon != null && label == null),
           'Icon must be set with no label for icon-variant',
@@ -207,7 +209,7 @@ _ButtonVariantStyle _getVariantStyle(ButtonVariant variant, SailColor colors) {
     case ButtonVariant.ghost:
       return _ButtonVariantStyle(
         backgroundColor: Colors.transparent,
-        foregroundColor: colors.ghostButtonText,
+        foregroundColor: colors.textSecondary,
         hoverColor: colors.ghostButtonHover,
       );
     case ButtonVariant.link:
