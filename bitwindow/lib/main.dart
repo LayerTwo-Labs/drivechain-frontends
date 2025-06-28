@@ -14,6 +14,7 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -185,6 +186,10 @@ Future<void> initDependencies(
     ),
   );
 
+  GetIt.I.registerLazySingleton<SettingsProvider>(
+    () => SettingsProvider(),
+  );
+
   final contentProvider = ContentProvider();
   GetIt.I.registerLazySingleton<ContentProvider>(
     () => contentProvider,
@@ -268,6 +273,11 @@ Future<void> initDependencies(
   );
   GetIt.I.registerSingleton<BinaryProvider>(
     binaryProvider,
+  );
+
+  final walletProvider = WalletProvider();
+  GetIt.I.registerLazySingleton<WalletProvider>(
+    () => walletProvider,
   );
 
   // Register all the providers

@@ -41,6 +41,28 @@ class SailText {
     this.value,
   );
 
+  static Widget primary40(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.twentyFour.copyWith(
+            color: color ?? theme.colors.text,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
+            fontSize: 40,
+          ),
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
+
   static Widget primary24(
     String label, {
     TextAlign? textAlign,

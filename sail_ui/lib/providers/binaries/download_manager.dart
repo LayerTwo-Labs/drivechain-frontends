@@ -130,6 +130,9 @@ class DownloadManager extends ChangeNotifier {
         ),
       ),
     );
+
+    // Delete the zip file
+    await File(zipPath).delete();
   }
 
   /// Download a file

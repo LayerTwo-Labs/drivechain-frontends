@@ -118,6 +118,21 @@ class SidechainsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [ToolsPage]
+class ToolsRoute extends PageRouteInfo<void> {
+  const ToolsRoute({List<PageRouteInfo>? children}) : super(ToolsRoute.name, initialChildren: children);
+
+  static const String name = 'ToolsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ToolsPage();
+    },
+  );
+}
+
+/// generated route for
 /// [WalletPage]
 class WalletRoute extends PageRouteInfo<void> {
   const WalletRoute({List<PageRouteInfo>? children}) : super(WalletRoute.name, initialChildren: children);
@@ -128,6 +143,21 @@ class WalletRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const WalletPage();
+    },
+  );
+}
+
+/// generated route for
+/// [WelcomePage]
+class WelcomeRoute extends PageRouteInfo<void> {
+  const WelcomeRoute({List<PageRouteInfo>? children}) : super(WelcomeRoute.name, initialChildren: children);
+
+  static const String name = 'WelcomeRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const WelcomePage();
     },
   );
 }
