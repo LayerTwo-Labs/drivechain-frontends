@@ -21,7 +21,6 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -185,9 +184,9 @@ Future<void> initDependencies(
       log: log,
     ),
   );
-
+  final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(
-    () => SettingsProvider(),
+    () => settingsProvider,
   );
 
   final contentProvider = ContentProvider();
@@ -212,18 +211,10 @@ Future<void> initDependencies(
     () => mainchain,
   );
 
-  final launcherAppDir = Directory(
-    path.join(
-      applicationDir.path,
-      '..',
-      'drivechain-launcher',
-    ),
-  );
   final enforcer = await EnforcerLive.create(
     host: '127.0.0.1',
     port: binaries[1].port,
     binary: binaries.firstWhere((b) => b is Enforcer),
-    launcherAppDir: launcherAppDir,
   );
   GetIt.I.registerLazySingleton<EnforcerRPC>(
     () => enforcer,

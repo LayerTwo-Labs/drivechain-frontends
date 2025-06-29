@@ -37,15 +37,18 @@ class _WelcomePageState extends State<WelcomePage> {
   @override
   void initState() {
     super.initState();
-    _mnemonicController.addListener(() {
-      if (_currentScreen == WelcomeScreen.advanced) {
-        _onEntropyChanged();
-      }
-    });
+    _mnemonicController.addListener(_onMnemonicChanged);
+    _passphraseController.addListener(setstate);
+  }
+
+  void setstate() {
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _mnemonicController.removeListener(_onMnemonicChanged);
+    _passphraseController.removeListener(setstate);
     _mnemonicController.dispose();
     _passphraseController.dispose();
     super.dispose();
@@ -98,7 +101,7 @@ class _WelcomePageState extends State<WelcomePage> {
     }
   }
 
-  void _onEntropyChanged() {
+  void _onMnemonicChanged() {
     if (_currentScreen != WelcomeScreen.advanced) return;
     final input = _mnemonicController.text.trim();
     if (input.isEmpty) {
@@ -135,15 +138,17 @@ class _WelcomePageState extends State<WelcomePage> {
         _clearWalletData();
         return;
       }
-      final wallet = await _walletProvider.generateWalletFromEntropy(entropy, passphrase: null);
-      if (wallet.containsKey('error')) {
+      try {
+        final wallet = await _walletProvider.generateWalletFromEntropy(entropy, passphrase: null, doNotSave: true);
+        setState(() {
+          _currentWalletData = Map<String, dynamic>.from(wallet);
+          _isValidInput = true;
+        });
+      } catch (e) {
+        await _showErrorDialog('Error generating from entropy: $e');
         _clearWalletData();
         return;
       }
-      setState(() {
-        _currentWalletData = Map<String, dynamic>.from(wallet);
-        _isValidInput = true;
-      });
     } catch (e) {
       _clearWalletData();
     }
@@ -165,20 +170,12 @@ class _WelcomePageState extends State<WelcomePage> {
         final hash = sha256.convert(bytes);
         entropy = hash.bytes.sublist(0, 16);
       }
+
       final wallet = await _walletProvider.generateWalletFromEntropy(entropy, passphrase: null);
-      if (wallet.containsKey('error')) {
-        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-        return;
-      }
-      final success = await _walletProvider.saveWallet(wallet);
-      if (!success) {
-        await _showErrorDialog('Failed to save wallet');
-        return;
-      }
-      await _walletProvider.generateStartersForDownloadedChains();
-      if (mounted) {
-        setState(() => _currentScreen = WelcomeScreen.success);
-      }
+      setState(() {
+        _currentWalletData = Map<String, dynamic>.from(wallet);
+        _isValidInput = true;
+      });
     } catch (e) {
       await _showErrorDialog('Error creating wallet: $e');
     }
@@ -482,7 +479,7 @@ class _WelcomePageState extends State<WelcomePage> {
                                     final entropy = List.generate(16, (index) => Random.secure().nextInt(256));
                                     final entropyHex = hex.encode(entropy);
                                     _mnemonicController.text = entropyHex;
-                                    _onEntropyChanged();
+                                    _onMnemonicChanged();
                                   },
                                 ),
                               ),
@@ -553,7 +550,7 @@ class _WelcomePageState extends State<WelcomePage> {
               BootTitle(
                 title: 'Set up your wallet',
                 subtitle:
-                    "Welcome to Drivechain! Let's begin by setting up your wallet. We use one seed for your mainchain node and all your sidechain wallets. This ensures you can easily back up and restore all your wallets at a later date.",
+                    "Welcome to Drivechain! Let's begin by setting up your wallet. The same seed is used for your mainchain node and all your sidechain wallets. This ensures you can easily back up and restore all wallets at a later date.",
               ),
               Spacer(),
               SizedBox(
@@ -701,25 +698,14 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   Future<void> _handleFastMode() async {
-    await _walletProvider.generateWallet().then((wallet) async {
-      if (!mounted) return;
-      if (wallet.containsKey('error')) {
-        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-        return;
-      }
-      final success = await _walletProvider.saveWallet(wallet);
-      if (!success) {
-        await _showErrorDialog('Failed to save wallet');
-        return;
-      }
-      await _walletProvider.generateStartersForDownloadedChains();
+    try {
+      await _walletProvider.generateWallet();
       if (mounted) {
         setState(() => _currentScreen = WelcomeScreen.success);
       }
-    }).catchError((e) {
-      if (!mounted) return;
-      _showErrorDialog('Unexpected error: $e');
-    });
+    } catch (e) {
+      await _showErrorDialog('Failed to generate wallet: $e');
+    }
   }
 
   Future<void> _handleRestore() async {
@@ -727,30 +713,17 @@ class _WelcomePageState extends State<WelcomePage> {
       await _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
       return;
     }
-    await _walletProvider
-        .generateWallet(
-      customMnemonic: _mnemonicController.text,
-      passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
-    )
-        .then((wallet) async {
-      if (!mounted) return;
-      if (wallet.containsKey('error')) {
-        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-        return;
-      }
-      final success = await _walletProvider.saveWallet(wallet);
-      if (!success) {
-        await _showErrorDialog('Failed to save wallet');
-        return;
-      }
-      await _walletProvider.generateStartersForDownloadedChains();
+    try {
+      await _walletProvider.generateWallet(
+        customMnemonic: _mnemonicController.text,
+        passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
+      );
       if (mounted) {
         setState(() => _currentScreen = WelcomeScreen.success);
       }
-    }).catchError((e) {
-      if (!mounted) return;
-      _showErrorDialog('Invalid mnemonic: $e');
-    });
+    } catch (e) {
+      await _showErrorDialog('Failed to generate wallet: $e');
+    }
   }
 
   bool _isValidMnemonic(String mnemonic) {

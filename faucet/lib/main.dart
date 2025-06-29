@@ -59,6 +59,10 @@ Future<void> initDependencies() async {
       log: log,
     ),
   );
+  final settingsProvider = await SettingsProvider.create();
+  GetIt.I.registerLazySingleton<SettingsProvider>(
+    () => settingsProvider,
+  );
 
   // api must be registered first, because other singletons depend on it
   GetIt.I.registerLazySingleton<API>(

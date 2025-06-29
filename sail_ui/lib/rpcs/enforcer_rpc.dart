@@ -7,11 +7,7 @@ import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.client.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pb.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server
 abstract class EnforcerRPC extends RPCConnection {
@@ -30,14 +26,12 @@ abstract class EnforcerRPC extends RPCConnection {
 class EnforcerLive extends EnforcerRPC {
   @override
   late final ValidatorServiceClient validator;
-  final Directory launcherAppDir;
 
   // Private constructor
   EnforcerLive._create({
     required super.conf,
     required super.binary,
     required super.restartOnFailure,
-    required this.launcherAppDir,
   });
 
   // Async factory
@@ -45,7 +39,6 @@ class EnforcerLive extends EnforcerRPC {
     required String host,
     required int port,
     required Binary binary,
-    required Directory launcherAppDir,
   }) async {
     final httpClient = createHttpClient();
     final conf = await readConf();
@@ -59,7 +52,6 @@ class EnforcerLive extends EnforcerRPC {
     );
 
     final liveInstance = EnforcerLive._create(
-      launcherAppDir: launcherAppDir,
       conf: conf,
       binary: binary,
       restartOnFailure: true,
@@ -87,24 +79,33 @@ class EnforcerLive extends EnforcerRPC {
       throw Exception('Could not determine downloads directory');
     }
 
-    final mnemonicPath = path.join(
-      downloadsDir.path,
-      'Drivechain-Launcher-Downloads',
-      'enforcer',
-      'mnemonic',
-      'mnemonic.txt',
-    );
+    final appDir = await getApplicationSupportDirectory();
+    final walletDir = getWalletDir(appDir);
+    final enforcerDir = path.join(binary.datadir(), 'wallet');
 
-    final mnemonicFile = File(mnemonicPath);
+    if (!Directory(enforcerDir).existsSync()) {
+      // enforcer does not have a wallet dir yet. That means we need to create one!
+      var walletArg = '--wallet-auto-create';
 
-    final walletArg = await mnemonicFile.exists() ? '--wallet-seed-file=${mnemonicFile.path}' : '--wallet-auto-create';
+      if (walletDir != null) {
+        // we have a bitwindow wallet dir, and the enforcer does NOT have a wallet loaded
+        // we should add a fitting arg!
+        final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
+
+        if (mnemonicFile.existsSync()) {
+          // we have a mnemonic file! Use that seed
+          walletArg = '--wallet-seed-file=${mnemonicFile.path}';
+        }
+      }
+
+      binary.addBootArg(walletArg);
+    }
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',
       '--node-rpc-user=${mainchainConf.username}',
       '--node-rpc-addr=$host:${mainchainConf.port}',
       '--enable-wallet',
-      walletArg,
       if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
     ];
   }

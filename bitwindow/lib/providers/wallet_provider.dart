@@ -24,71 +24,87 @@ class WalletProvider extends ChangeNotifier {
   static const String defaultBip32Path = "m/44'/0'/0'";
 
   Future<bool> hasExistingWallet() async {
+    return (await getMasterStarter()) != null;
+  }
+
+  Future<File?> getMasterStarter() async {
     final walletFile = await _getWalletFile('master_starter.json');
-    return walletFile.existsSync();
+    if (!await walletFile.exists()) return null;
+
+    final walletJson = await walletFile.readAsString();
+    final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
+
+    if (!walletData.containsKey('mnemonic') || !walletData.containsKey('master_key')) {
+      throw Exception('Invalid wallet data format');
+    }
+
+    return walletFile;
   }
 
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
-    try {
-      final Mnemonic mnemonicObj = customMnemonic != null
-          ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
-          : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
+    final Mnemonic mnemonicObj = customMnemonic != null
+        ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
+        : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
 
-      final seedHex = hex.encode(mnemonicObj.seed);
+    final seedHex = hex.encode(mnemonicObj.seed);
 
-      // Create chain from seed
-      final chain = Chain.seed(seedHex);
-      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+    // Create chain from seed
+    final chain = Chain.seed(seedHex);
+    final masterKey = chain.forPath('m') as ExtendedPrivateKey;
 
-      final walletData = {
-        'mnemonic': mnemonicObj.sentence,
-        'seed_hex': seedHex,
-        'master_key': masterKey.privateKeyHex(),
-        'chain_code': hex.encode(masterKey.chainCode!),
-        'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
-        'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
-        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
-      };
+    final walletData = {
+      'mnemonic': mnemonicObj.sentence,
+      'seed_hex': seedHex,
+      'master_key': masterKey.privateKeyHex(),
+      'chain_code': hex.encode(masterKey.chainCode!),
+      'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
+      'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
+      'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
+    };
 
-      return walletData;
-    } catch (e) {
-      if (e.toString().contains('is not in the wordlist')) {
-        return {'error': 'One or more words are not valid BIP39 words'};
-      }
-      return {'error': e.toString()};
-    }
+    await saveWallet(walletData);
+    await generateStartersForDownloadedChains();
+
+    return walletData;
   }
 
-  Future<Map<String, dynamic>> generateWalletFromEntropy(List<int> entropy, {String? passphrase}) async {
-    try {
-      // Create mnemonic from entropy
-      final mnemonic = Mnemonic(entropy, Language.english);
+  Future<Map<String, dynamic>> generateWalletFromEntropy(
+    List<int> entropy, {
+    String? passphrase,
+    bool doNotSave = false,
+  }) async {
+    // Create mnemonic from entropy
+    final mnemonic = Mnemonic(entropy, Language.english);
 
-      // Generate seed using PBKDF2-HMAC-SHA512
-      final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
-      final params = Pbkdf2Parameters(utf8.encode('Bitcoin seed'), 2048, 64);
-      pbkdf2.init(params);
+    // Generate seed using PBKDF2-HMAC-SHA512
+    final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
+    final params = Pbkdf2Parameters(utf8.encode('Bitcoin seed'), 2048, 64);
+    pbkdf2.init(params);
 
-      // Use mnemonic sentence as the input key material
-      final seedBytes = pbkdf2.process(utf8.encode(mnemonic.sentence + (passphrase ?? '')));
-      final seedHex = hex.encode(seedBytes);
+    // Use mnemonic sentence as the input key material
+    final seedBytes = pbkdf2.process(utf8.encode(mnemonic.sentence + (passphrase ?? '')));
+    final seedHex = hex.encode(seedBytes);
 
-      // Create master key from seed
-      final chain = Chain.seed(seedHex);
-      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+    // Create master key from seed
+    final chain = Chain.seed(seedHex);
+    final masterKey = chain.forPath('m') as ExtendedPrivateKey;
 
-      return {
-        'mnemonic': mnemonic.sentence,
-        'seed_hex': seedHex,
-        'bip39_binary': _bytesToBinary(mnemonic.entropy),
-        'bip39_checksum': _calculateChecksumBits(mnemonic.entropy),
-        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2)]),
-        'master_key': masterKey.privateKeyHex(),
-        'chain_code': hex.encode(masterKey.chainCode!),
-      };
-    } catch (e) {
-      return {'error': e.toString()};
+    final wallet = {
+      'mnemonic': mnemonic.sentence,
+      'seed_hex': seedHex,
+      'bip39_binary': _bytesToBinary(mnemonic.entropy),
+      'bip39_checksum': _calculateChecksumBits(mnemonic.entropy),
+      'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2)]),
+      'master_key': masterKey.privateKeyHex(),
+      'chain_code': hex.encode(masterKey.chainCode!),
+    };
+
+    if (!doNotSave) {
+      await saveWallet(wallet);
+      await generateStartersForDownloadedChains();
     }
+
+    return wallet;
   }
 
   String _bytesToBinary(List<int> bytes) {
@@ -104,59 +120,42 @@ class WalletProvider extends ChangeNotifier {
     return hashBits.substring(0, checksumSize);
   }
 
-  Future<bool> saveWallet(Map<String, dynamic> walletData) async {
-    try {
-      walletData['name'] = 'Master';
+  Future<void> saveWallet(Map<String, dynamic> walletData) async {
+    walletData['name'] = 'Master';
 
-      final requiredFields = ['mnemonic', 'seed_hex', 'master_key'];
-      for (final field in requiredFields) {
-        if (!walletData.containsKey(field) || walletData[field] == null) {
-          throw Exception('Missing required wallet field: $field');
-        }
+    final requiredFields = ['mnemonic', 'seed_hex', 'master_key'];
+    for (final field in requiredFields) {
+      if (!walletData.containsKey(field) || walletData[field] == null) {
+        throw Exception('Missing required wallet field: $field');
       }
-
-      await _ensureWalletDir();
-      final walletFile = await _getWalletFile('master_starter.json');
-      await walletFile.writeAsString(jsonEncode(walletData));
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _logger.e('Error saving wallet: $e');
-      return false;
     }
+
+    await _ensureWalletDir();
+    final walletFile = await _getWalletFile('master_starter.json');
+    await walletFile.writeAsString(jsonEncode(walletData));
+    notifyListeners();
   }
 
-  Future<bool> deleteWallet() async {
-    try {
-      final walletFile = await _getWalletFile('master_starter.json');
-      if (await walletFile.exists()) {
-        await walletFile.delete();
-        notifyListeners();
-      }
-      return true;
-    } catch (e) {
-      _logger.e('Error deleting wallet: $e');
-      return false;
+  Future<void> deleteWallet() async {
+    final walletFile = await getMasterStarter();
+    if (walletFile != null) {
+      await walletFile.delete();
+      notifyListeners();
     }
   }
 
   Future<Map<String, dynamic>?> loadWallet() async {
-    try {
-      final walletFile = await _getWalletFile('master_starter.json');
-      if (!await walletFile.exists()) return null;
+    final walletFile = await getMasterStarter();
+    if (walletFile == null) return null;
 
-      final walletJson = await walletFile.readAsString();
-      final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
+    final walletJson = await walletFile.readAsString();
+    final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
 
-      if (!walletData.containsKey('mnemonic') || !walletData.containsKey('master_key')) {
-        throw Exception('Invalid wallet data format');
-      }
-
-      return walletData;
-    } catch (e) {
-      _logger.e('Error loading wallet: $e');
-      return null;
+    if (!walletData.containsKey('mnemonic') || !walletData.containsKey('master_key')) {
+      throw Exception('Invalid wallet data format');
     }
+
+    return walletData;
   }
 
   /// Derive a starter from the master wallet using a specific derivation path
@@ -245,11 +244,11 @@ class WalletProvider extends ChangeNotifier {
     await _deleteStarter('l1_starter.txt');
   }
 
-  Future<String?> loadL1Starter() async {
+  Future<String?> getL1Starter() async {
     return _loadMnemonicStarter('l1_starter.txt');
   }
 
-  Future<String?> loadSidechainStarter(int sidechainSlot) async {
+  Future<String?> getSidechainStarter(int sidechainSlot) async {
     return _loadMnemonicStarter('sidechain_${sidechainSlot}_starter.txt');
   }
 

@@ -6,25 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/providers/binaries/download_manager.dart';
-import 'package:sail_ui/providers/binaries/process_manager.dart';
-import 'package:sail_ui/rpcs/bitassets_rpc.dart';
-import 'package:sail_ui/rpcs/bitnames_rpc.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
-import 'package:sail_ui/rpcs/zcash_rpc.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 /// Manages downloads, installations and running of binaries
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final Directory appDir;
 
+  final settings = GetIt.I.get<SettingsProvider>();
   final mainchainRPC = GetIt.I.get<MainchainRPC>();
   final enforcerRPC = GetIt.I.get<EnforcerRPC>();
 
@@ -183,7 +175,7 @@ class BinaryProvider extends ChangeNotifier {
 
     if (binary is Thunder || binary is Bitnames || binary is BitAssets) {
       binary = binary as Sidechain;
-      // We're booting some sort of sidechain. Check the launcher-directory for
+      // We're booting some sort of sidechain. Check the wallet-starter-directory for
       // a starter seed
       final mnemonicPath = binary.getMnemonicPath(appDir);
       if (mnemonicPath != null) {
@@ -448,6 +440,23 @@ class BinaryProvider extends ChangeNotifier {
 
     await start(bitcoinCore, useStarter: false);
     log.i('[T+${getElapsed()}ms] STARTUP: Started bitcoin core...');
+
+    // if in launcher mode, we must await in a loop here UNTIL
+    // the wallet has a starter! This is because we need to pass
+    // the l1 mnemonic to the enforcer, to avoid it from generating
+    // one itself
+    if (settings.launcherMode) {
+      while (true) {
+        final walletDir = getWalletDir(appDir);
+        if (walletDir != null) {
+          final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
+          if (await mnemonicFile.exists()) {
+            break;
+          }
+        }
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
 
     await start(
       enforcer,

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -50,16 +49,12 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     if (binary is! Sidechain) return false;
 
     try {
-      final appDir = await getApplicationSupportDirectory();
-      final starterDir = path.join(appDir.path, 'wallet_starters');
-      final starterFile = File(
-        path.join(
-          starterDir,
-          'sidechain_${binary.slot}_starter.txt',
-        ),
-      );
+      final mnemonicPath = binary.getMnemonicPath(await getApplicationSupportDirectory());
+      if (mnemonicPath == null) {
+        return false;
+      }
 
-      return starterFile.existsSync();
+      return File(mnemonicPath).existsSync();
     } catch (e) {
       return false;
     }

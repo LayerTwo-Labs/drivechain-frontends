@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -115,13 +116,11 @@ abstract class Sidechain extends Binary {
 
   String? getMnemonicPath(Directory appDir) {
     final walletDir = getWalletDir(appDir);
-
     if (walletDir == null) {
       return null;
     }
 
-    final mnemonicDir = path.normalize(path.join(walletDir, 'mnemonics'));
-    final mnemonicPath = path.normalize(path.join(mnemonicDir, 'sidechain_$slot.txt'));
+    final mnemonicPath = path.normalize(path.join(walletDir.path, 'sidechain_${slot}_starter.txt'));
 
     if (!File(mnemonicPath).existsSync()) {
       // for some reason the .txt file of the mnemonic does not exist, so we try to
@@ -168,14 +167,20 @@ abstract class Sidechain extends Binary {
   }
 }
 
-String? getWalletDir(Directory appDir) {
-  var launcherAppDir = Directory(
-    path.join(
-      appDir.path,
-      '..',
-      'drivechain-launcher',
-    ),
-  );
+Directory? getWalletDir(Directory appDir) {
+  final settings = GetIt.I.get<SettingsProvider>();
+
+  var launcherAppDir = appDir;
+
+  if (!settings.launcherMode) {
+    launcherAppDir = Directory(
+      path.join(
+        appDir.path,
+        '..',
+        'drivechain-launcher',
+      ),
+    );
+  }
 
   var walletDir = path.join(launcherAppDir.path, 'wallet_starters');
 
@@ -200,7 +205,7 @@ String? getWalletDir(Directory appDir) {
     }
   }
 
-  return walletDir;
+  return Directory(walletDir);
 }
 
 class TestSidechain extends Sidechain {

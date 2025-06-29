@@ -50,6 +50,13 @@ Future<void> registerTestDependencies() async {
     );
   }
 
+  if (!GetIt.I.isRegistered<SettingsProvider>()) {
+    final settingsProvider = await SettingsProvider.create();
+    GetIt.I.registerLazySingleton<SettingsProvider>(
+      () => settingsProvider,
+    );
+  }
+
   if (!GetIt.I.isRegistered<API>()) {
     GetIt.I.registerLazySingleton<API>(
       () => MockAPI(),
