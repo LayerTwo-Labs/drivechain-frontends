@@ -6,7 +6,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
@@ -155,6 +154,10 @@ Future<void> initDependencies(
   GetIt.I.registerLazySingleton<ClientSettings>(
     () => clientSettings,
   );
+  final settingsProvider = await SettingsProvider.create();
+  GetIt.I.registerLazySingleton<SettingsProvider>(
+    () => settingsProvider,
+  );
 
   // Load initial binary states
   final binaries = await _loadBinaries(applicationDir);
@@ -165,19 +168,11 @@ Future<void> initDependencies(
     () => mainchainRPC,
   );
 
-  final launcherAppDir = Directory(
-    path.join(
-      applicationDir.path,
-      '..',
-      'com.layertwolabs.launcher',
-    ),
-  );
   final enforcerBinary = binaries.firstWhere((b) => b is Enforcer);
   final enforcer = await EnforcerLive.create(
     host: '127.0.0.1',
     port: enforcerBinary.port,
     binary: enforcerBinary,
-    launcherAppDir: launcherAppDir,
   );
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 

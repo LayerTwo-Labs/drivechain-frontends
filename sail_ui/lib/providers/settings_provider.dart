@@ -13,8 +13,14 @@ class SettingsProvider extends ChangeNotifier {
   bool debugMode = false;
   bool launcherMode = false;
 
-  SettingsProvider() {
-    _loadAllSettings();
+  // Private constructor
+  SettingsProvider._create();
+
+  // Async factory
+  static Future<SettingsProvider> create() async {
+    final instance = SettingsProvider._create();
+    await instance._loadAllSettings();
+    return instance;
   }
 
   /// Load all settings from storage
@@ -77,6 +83,3 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 }
-
-// Default export for the settings provider
-SettingsProvider settingsProvider = SettingsProvider();

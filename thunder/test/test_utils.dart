@@ -71,4 +71,11 @@ Future<void> registerTestDependencies() async {
       () => ClientSettings(store: MockStore(), log: log),
     );
   }
+
+  if (!GetIt.I.isRegistered<SettingsProvider>()) {
+    final settingsProvider = await SettingsProvider.create();
+    GetIt.I.registerLazySingleton<SettingsProvider>(
+      () => settingsProvider,
+    );
+  }
 }

@@ -788,7 +788,7 @@ class ToolsPageViewModel extends BaseViewModel {
       orElse: () => {'name': 'Bitcoin Core'},
     );
 
-    final l1Mnemonic = await _walletProvider.loadL1Starter();
+    final l1Mnemonic = await _walletProvider.getL1Starter();
     starters.add({
       'name': l1Chain['name'] as String,
       'mnemonic': l1Mnemonic,
@@ -808,7 +808,7 @@ class ToolsPageViewModel extends BaseViewModel {
       final chainName = chain['name'] as String;
       final sidechainSlot = chain['sidechain_slot'] as int;
 
-      final mnemonic = await _walletProvider.loadSidechainStarter(sidechainSlot);
+      final mnemonic = await _walletProvider.getSidechainStarter(sidechainSlot);
       starters.add({
         'name': chainName,
         'mnemonic': mnemonic,

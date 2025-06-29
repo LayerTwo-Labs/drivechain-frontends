@@ -64,7 +64,7 @@ class HDWalletProvider extends ChangeNotifier {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
-      final jsonPath = path.join(walletDir, 'l1_starter.json');
+      final jsonPath = path.join(walletDir.path, 'l1_starter.json');
       final file = File(jsonPath);
       if (!await file.exists()) {
         throw Exception('could not find l1_starter.json');
