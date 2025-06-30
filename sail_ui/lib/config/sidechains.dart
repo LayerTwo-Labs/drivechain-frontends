@@ -170,10 +170,9 @@ abstract class Sidechain extends Binary {
 Directory? getWalletDir(Directory appDir) {
   final settings = GetIt.I.get<SettingsProvider>();
 
-  var launcherAppDir = appDir;
-
+  var walletAppDir = appDir;
   if (!settings.launcherMode) {
-    launcherAppDir = Directory(
+    walletAppDir = Directory(
       path.join(
         appDir.path,
         '..',
@@ -182,7 +181,7 @@ Directory? getWalletDir(Directory appDir) {
     );
   }
 
-  var walletDir = path.join(launcherAppDir.path, 'wallet_starters');
+  var walletDir = path.join(walletAppDir.path, 'wallet_starters');
 
   if (!Directory(walletDir).existsSync()) {
     if (getOS() != OS.linux) {
@@ -191,7 +190,7 @@ Directory? getWalletDir(Directory appDir) {
     }
 
     // on linux on the other hand, we can look in one more place
-    launcherAppDir = Directory(
+    walletAppDir = Directory(
       path.join(
         Platform.environment['HOME']!,
         '.config',
@@ -199,7 +198,7 @@ Directory? getWalletDir(Directory appDir) {
       ),
     );
 
-    walletDir = path.join(launcherAppDir.path, 'wallet_starters');
+    walletDir = path.join(walletAppDir.path, 'wallet_starters');
     if (!Directory(walletDir).existsSync()) {
       return null;
     }

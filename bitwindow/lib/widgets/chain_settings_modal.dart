@@ -1,21 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ChainSettingsModal extends StatefulWidget {
-  final Binary chain;
-  final Function() onWipeAppDir;
-  final bool useStarter;
-  final Function(bool) onUseStarterChanged;
+  final Binary binary;
 
   const ChainSettingsModal({
     super.key,
-    required this.chain,
-    required this.onWipeAppDir,
-    required this.useStarter,
-    required this.onUseStarterChanged,
+    required this.binary,
   });
 
   @override
@@ -24,12 +16,10 @@ class ChainSettingsModal extends StatefulWidget {
 
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
   OS get os => getOS();
-  bool _useStarter = false;
 
   @override
   void initState() {
     super.initState();
-    _useStarter = widget.useStarter;
   }
 
   void _openDownloadLocation(Binary binary) async {
@@ -41,116 +31,62 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     await openDir(appDir);
   }
 
-  Future<bool> _starterExists(Binary binary) async {
-    if (binary.chainLayer != 2) {
-      return false;
-    }
-
-    if (binary is! Sidechain) return false;
-
-    try {
-      final mnemonicPath = binary.getMnemonicPath(await getApplicationSupportDirectory());
-      if (mnemonicPath == null) {
-        return false;
-      }
-
-      return File(mnemonicPath).existsSync();
-    } catch (e) {
-      return false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    final baseDir = widget.chain.directories.base[os];
-    final binary = widget.chain.binary;
-    final downloadFile = widget.chain.metadata.files[os];
+    final baseDir = widget.binary.directories.base[os];
+    final downloadFile = widget.binary.metadata.files[os];
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: SailCard(
-        padding: true,
-        withCloseButton: true,
-        child: Container(
-          width: 500,
-          height: 500,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: theme.colors.backgroundSecondary,
-            borderRadius: SailStyleValues.borderRadius,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SailText.primary20('${widget.chain.name} Settings'),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: SailColorScheme.red),
-                      onPressed: widget.onWipeAppDir,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildInfoRow(context, 'Version', widget.chain.version),
-                if (widget.chain.repoUrl.isNotEmpty) _buildInfoRow(context, 'Repository', widget.chain.repoUrl),
-                _buildInfoRow(context, 'Network Port', widget.chain.port.toString()),
-                _buildInfoRow(context, 'Chain Layer', widget.chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
-                if (baseDir != null) _buildInfoRow(context, 'Installation Directory', baseDir),
-                _buildInfoRow(context, 'Binary Path', binary),
-                if (downloadFile != null) _buildInfoRow(context, 'Download File', downloadFile),
-                _buildInfoRow(
-                  context,
-                  'Latest Release At',
-                  widget.chain.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
-                ),
-                _buildInfoRow(
-                  context,
-                  'Your Version',
-                  widget.chain.metadata.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
-                ),
-                if (widget.chain.chainLayer == 2) ...[
-                  const SizedBox(height: 16),
-                  FutureBuilder<bool>(
-                    future: _starterExists(widget.chain),
-                    builder: (context, snapshot) {
-                      final starterExists = snapshot.data ?? false;
-                      return Row(
-                        children: [
-                          SailCheckbox(
-                            value: starterExists ? _useStarter : false,
-                            onChanged: starterExists
-                                ? (value) {
-                                    setState(() {
-                                      _useStarter = value;
-                                      widget.onUseStarterChanged(value);
-                                    });
-                                  }
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          SailText.secondary13('Use starter'),
-                        ],
-                      );
-                    },
-                  ),
+      child: Container(
+        width: 500,
+        height: 500,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadius,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SailText.primary20('${widget.binary.name} Settings'),
                 ],
-                const SizedBox(height: 24),
-                if (baseDir != null)
-                  Center(
-                    child: SailButton(
-                      label: 'Open Installation Directory',
-                      onPressed: () async => _openDownloadLocation(widget.chain),
-                      variant: ButtonVariant.primary,
-                    ),
-                  ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+              _buildInfoRow(context, 'Version', widget.binary.version),
+              if (widget.binary.repoUrl.isNotEmpty) _buildInfoRow(context, 'Repository', widget.binary.repoUrl),
+              _buildInfoRow(context, 'Network Port', widget.binary.port.toString()),
+              _buildInfoRow(context, 'Chain Layer', widget.binary.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
+              if (baseDir != null) _buildInfoRow(context, 'Installation Directory', baseDir),
+              _buildInfoRow(context, 'Binary Path', widget.binary.metadata.binaryPath?.path ?? 'N/A'),
+              if (downloadFile != null) _buildInfoRow(context, 'Download File', downloadFile),
+              _buildInfoRow(
+                context,
+                'Latest Release At',
+                widget.binary.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
+              ),
+              _buildInfoRow(
+                context,
+                'Your Version Installed At',
+                widget.binary.metadata.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
+              ),
+              const SizedBox(height: 24),
+              SailButton(
+                label: 'Reset Chain Data',
+                onPressed: () async {
+                  await widget.binary.wipeAppDir();
+                  showSnackBar(context, 'Wiped chain data successfully');
+                },
+                variant: ButtonVariant.destructive,
+              ),
+            ],
           ),
         ),
       ),

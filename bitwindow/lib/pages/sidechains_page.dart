@@ -3,8 +3,10 @@ import 'dart:math';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
+import 'package:bitwindow/pages/tools_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/widgets/chain_settings_modal.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,29 +25,65 @@ class SidechainsPage extends StatelessWidget {
     return QtPage(
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => SidechainsViewModel(),
-        builder: (context, model, child) => LayoutBuilder(
-          builder: (context, constraints) {
-            const spacing = SailStyleValues.padding08;
-            final sidechainsWidth = max(450, constraints.maxWidth * 0.25);
-            final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
-
-            return SailRow(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: spacing,
-              children: [
-                SizedBox(
-                  width: sidechainsWidth.toDouble(),
-                  child: const SidechainsList(),
-                ),
-                SizedBox(
-                  width: depositsWidth,
-                  child: const DepositWithdrawView(),
-                ),
-              ],
-            );
-          },
-        ),
+        builder: (context, model, child) {
+          return ViewModelBuilder<ToolsPageViewModel>.reactive(
+            viewModelBuilder: () => ToolsPageViewModel(),
+            onViewModelReady: (model) => model.init(),
+            builder: (context, toolsModel, child) {
+              return InlineTabBar(
+                key: ValueKey('sidechains_page${model.launcherMode}'),
+                tabs: [
+                  TabItem(
+                    label: 'Overview',
+                    child: SidechainsTab(),
+                  ),
+                  if (model.launcherMode)
+                    TabItem(
+                      label: 'Fast Withdrawal',
+                      child: FastWithdrawalTab(),
+                    ),
+                  if (model.launcherMode)
+                    TabItem(
+                      label: 'Starters',
+                      child: StartersTab(),
+                    ),
+                ],
+                initialIndex: 0,
+              );
+            },
+          );
+        },
       ),
+    );
+  }
+}
+
+class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
+  const SidechainsTab({super.key});
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = SailStyleValues.padding08;
+        final sidechainsWidth = max(450, constraints.maxWidth * 0.25);
+        final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
+
+        return SailRow(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: spacing,
+          children: [
+            SizedBox(
+              width: sidechainsWidth.toDouble(),
+              child: const SidechainsList(),
+            ),
+            SizedBox(
+              width: depositsWidth,
+              child: const DepositWithdrawView(),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -70,6 +108,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
               description: 'Waiting for enforcer to become available..',
               enabled: viewModel.loading,
               child: SailTable(
+                key: ValueKey('sidechains_table_${viewModel.launcherMode}'),
                 getRowId: (index) => index.toString(),
                 headerBuilder: (context) => [
                   SailTableHeaderCell(
@@ -91,7 +130,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                     ),
                   if (viewModel.launcherMode)
                     SailTableHeaderCell(
-                      name: 'Update',
+                      name: 'Settings',
                       onSort: () => viewModel.sortSidechains('update'),
                     ),
                 ],
@@ -101,7 +140,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                   final textColor =
                       sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
                   final buttonWidget = viewModel.sidechainWidget(slot);
-                  final updateWidget = viewModel.updateWidget(slot);
+                  final binary = viewModel.sidechainForSlot(slot);
 
                   return [
                     SailTableCell(value: '$slot:', textColor: textColor),
@@ -118,10 +157,27 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                         child: buttonWidget,
                       ),
                     if (viewModel.launcherMode)
-                      SailTableCell(
-                        value: updateWidget?.toString() ?? '',
-                        child: updateWidget,
-                      ),
+                      if (binary != null)
+                        SailTableCell(
+                          value: '',
+                          child: SailButton(
+                            variant: ButtonVariant.outline,
+                            label: '',
+                            icon: SailSVGAsset.settings,
+                            textColor: SailColorScheme.blue,
+                            insideTable: true,
+                            onPressed: () async {
+                              await showDialog(
+                                context: context,
+                                builder: (context) => ChainSettingsModal(
+                                  binary: binary,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      else
+                        Container(),
                   ];
                 },
                 rowCount: 255, // Show all possible slots
