@@ -48,7 +48,7 @@ class DownloadManager extends ChangeNotifier {
     }
 
     if (binary.isDownloaded) {
-      // We already have a binary, dont boether
+      // We already have a binary, dont bother
       return;
     }
 
@@ -63,27 +63,21 @@ class DownloadManager extends ChangeNotifier {
       // Wait for the download to complete
       while (isDownloading(binary)) {
         await Future.delayed(const Duration(milliseconds: 100));
+        log.i('download already in progress for ${binary.name}, waiting for it to finish...');
       }
       return;
     }
 
     try {
       await _downloadAndExtractBinary(binary);
-      _updateBinary(
-        binary.name,
-        (b) => b.copyWith(
-          downloadInfo: const DownloadInfo(progress: 1.0, message: 'Download completed'),
-        ),
-      );
-      log.i('Successfully downloaded and extracted ${binary.name}');
     } catch (e) {
       _updateBinary(
         binary.name,
         (b) => b.copyWith(
-          downloadInfo: DownloadInfo(progress: 0.0, error: 'Download failed: $e'),
+          downloadInfo: DownloadInfo(progress: 0.0, error: 'Download failed: $e', isDownloading: false),
         ),
       );
-      log.e('Download failed for ${binary.name}: $e');
+      log.e('could not download ${binary.name}: $e');
       rethrow;
     }
   }
@@ -94,11 +88,18 @@ class DownloadManager extends ChangeNotifier {
   }
 
   bool isDownloading(Binary binary) {
-    return binary.downloadInfo.progress > 0.0 && binary.downloadInfo.progress < 1.0;
+    return binaries.any((b) => b.name == binary.name && b.downloadInfo.isDownloading);
   }
 
   /// Internal method to handle the actual download and extraction
   Future<void> _downloadAndExtractBinary(Binary binary) async {
+    _updateBinary(
+      binary.name,
+      (b) => b.copyWith(
+        downloadInfo: const DownloadInfo(progress: 0.0, message: 'Downloading...', isDownloading: true),
+      ),
+    );
+
     // 1. Setup directories
     final downloadsDir = Directory(path.join(appDir.path, 'downloads'));
     final extractDir = binDir(appDir.path);
@@ -131,8 +132,21 @@ class DownloadManager extends ChangeNotifier {
       ),
     );
 
-    // Delete the zip file
-    await File(zipPath).delete();
+    try {
+      // Delete the zip file
+      await File(zipPath).delete();
+    } catch (e) {
+      log.e('could not delete zip file: $e');
+    }
+
+    _updateBinary(
+      binary.name,
+      (b) => b.copyWith(
+        downloadInfo: const DownloadInfo(progress: 1.0, message: 'Download completed', isDownloading: false),
+      ),
+    );
+
+    log.i('Successfully downloaded and extracted ${binary.name}');
   }
 
   /// Download a file
@@ -177,6 +191,7 @@ class DownloadManager extends ChangeNotifier {
                 downloadInfo: DownloadInfo(
                   progress: progress,
                   message: 'Downloaded $downloadedMB MB / $totalMB MB ($currentPercentStr%)',
+                  isDownloading: true,
                 ),
               ),
             );
@@ -199,6 +214,7 @@ class DownloadManager extends ChangeNotifier {
           downloadInfo: DownloadInfo(
             progress: 0.0,
             message: error,
+            isDownloading: false,
           ),
         ),
       );

@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:pointycastle/digests/sha512.dart';
 import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
@@ -19,12 +18,22 @@ import 'package:sail_ui/providers/binaries/binary_provider.dart';
 
 class WalletProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
+  final Directory appDir;
+
+  WalletProvider({
+    required this.appDir,
+  });
 
   final _logger = Logger();
   static const String defaultBip32Path = "m/44'/0'/0'";
 
   Future<bool> hasExistingWallet() async {
     return (await getMasterStarter()) != null;
+  }
+
+  Future<bool> hasLauncherModeDir() async {
+    var walletDir = path.join(appDir.path, 'wallet_starters');
+    return Directory(walletDir).existsSync();
   }
 
   Future<File?> getMasterStarter() async {
@@ -62,7 +71,7 @@ class WalletProvider extends ChangeNotifier {
       'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
     };
 
-    await saveWallet(walletData);
+    await saveMasterWallet(walletData);
     await generateStartersForDownloadedChains();
 
     return walletData;
@@ -100,7 +109,7 @@ class WalletProvider extends ChangeNotifier {
     };
 
     if (!doNotSave) {
-      await saveWallet(wallet);
+      await saveMasterWallet(wallet);
       await generateStartersForDownloadedChains();
     }
 
@@ -120,7 +129,7 @@ class WalletProvider extends ChangeNotifier {
     return hashBits.substring(0, checksumSize);
   }
 
-  Future<void> saveWallet(Map<String, dynamic> walletData) async {
+  Future<void> saveMasterWallet(Map<String, dynamic> walletData) async {
     walletData['name'] = 'Master';
 
     final requiredFields = ['mnemonic', 'seed_hex', 'master_key'];
@@ -302,7 +311,6 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<File?> _getWalletFile(String fileName) async {
-    final appDir = await getApplicationSupportDirectory();
     final walletDir = getWalletDir(appDir);
     if (walletDir == null) {
       return null;
@@ -312,7 +320,6 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<void> _ensureWalletDir() async {
-    final appDir = await getApplicationSupportDirectory();
     var walletDir = getWalletDir(appDir);
     walletDir ??= Directory(path.join(appDir.path, 'wallet_starters'));
 
@@ -321,35 +328,27 @@ class WalletProvider extends ChangeNotifier {
 
   Future<void> generateStartersForDownloadedChains() async {
     try {
-      final binaries = binaryProvider.binaries;
-
-      // Check for downloaded L1 chain first
-      final l1Chain = binaries.firstWhere((b) => b.chainLayer == 1);
-
-      final appDir = await getApplicationSupportDirectory();
-      final assetsDir = binDir(appDir.path);
-      final binaryPath = path.join(assetsDir.path, l1Chain.binary);
-
-      if (File(binaryPath).existsSync()) {
-        await deriveL1Starter();
-      }
+      // first derive for L1
+      await deriveL1Starter();
 
       // For each L2 chain in binaries
       final l2Chains = binaryProvider.binaries.where((b) => b.chainLayer == 2);
 
-      for (final chain in l2Chains) {
-        if (chain is Sidechain) {
-          final binaryPath = path.join(assetsDir.path, chain.binary);
+      // then derive for L2s in parallel
+      final derivationFutures = l2Chains
+          .whereType<Sidechain>()
+          .map(
+            (chain) => () async {
+              try {
+                await deriveSidechainStarter(chain.slot);
+              } catch (e) {
+                _logger.e('could not derive starter for ${chain.name}: $e');
+              }
+            }(),
+          )
+          .toList();
 
-          if (File(binaryPath).existsSync()) {
-            try {
-              await deriveSidechainStarter(chain.slot);
-            } catch (e) {
-              _logger.e('Error deriving starter for ${chain.name}: $e');
-            }
-          }
-        }
-      }
+      await Future.wait(derivationFutures);
 
       // Notify listeners after all starters are generated
       notifyListeners();

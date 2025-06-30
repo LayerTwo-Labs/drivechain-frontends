@@ -9,6 +9,7 @@ import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
+import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/settings/client_settings.dart';
@@ -168,7 +169,8 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    return binary.extraBootArgs;
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    return binaryProvider.binaries.where((b) => b.name == binary.name).first.extraBootArgs;
   }
 
   @override

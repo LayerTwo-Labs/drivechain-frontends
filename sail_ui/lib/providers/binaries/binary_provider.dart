@@ -161,9 +161,6 @@ class BinaryProvider extends ChangeNotifier {
     );
 
     _setupDirectoryWatcher();
-    // now that we have the release date and binary date, (if any) we can check
-    // for updates/missing binaries, but only for L1-stuff
-    await Future.wait(binaries.where((b) => b.chainLayer == 1).map((b) => _downloadManager.downloadIfMissing(b)));
   }
 
   // Start a binary, and set starter seeds (if set)
@@ -175,10 +172,13 @@ class BinaryProvider extends ChangeNotifier {
 
     if (binary is Thunder || binary is Bitnames || binary is BitAssets) {
       binary = binary as Sidechain;
+      log.i('booting sidechain ${binary.name}');
       // We're booting some sort of sidechain. Check the wallet-starter-directory for
       // a starter seed
       final mnemonicPath = binary.getMnemonicPath(appDir);
+      log.i('mnemonic path: $mnemonicPath');
       if (mnemonicPath != null) {
+        log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
         binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
       }
     }

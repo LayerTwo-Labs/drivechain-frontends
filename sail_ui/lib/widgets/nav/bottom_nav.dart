@@ -182,17 +182,21 @@ class BottomNav extends StatelessWidget {
   String? _getDownloadMessage(SyncInfo? syncInfo) {
     if (syncInfo == null) return null;
 
+    if (!syncInfo.downloadInfo.isDownloading) {
+      return null;
+    }
+
     // Check if we're downloading (downloadProgress < 1)
-    if (syncInfo.downloadProgress < 1) {
-      final progressPercent = (syncInfo.downloadProgress * 100).toStringAsFixed(0);
+    if (syncInfo.downloadInfo.progress < 1) {
+      final progressPercent = (syncInfo.downloadInfo.progress * 100).toStringAsFixed(0);
       if (progressPercent == '100') {
         return null;
       } else {
-        return 'Downloading binary... $progressPercent%';
+        return syncInfo.downloadInfo.message;
       }
     }
 
-    return null;
+    return 'Finishing up...';
   }
 }
 
@@ -295,16 +299,35 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.green;
     }
 
-    if ((!mainchain.connected && !mainchain.initializingBinary) ||
-        (!enforcer.connected && !enforcer.initializingBinary) ||
-        (!additionalConnection.connected && !additionalConnection.initializingBinary)) {
+    if ((!mainchain.connected &&
+            !mainchain.initializingBinary &&
+            !(syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ?? false)) ||
+        (!enforcer.connected &&
+            !enforcer.initializingBinary &&
+            !(syncProvider.enforcerSyncInfo?.downloadInfo.isDownloading ?? false)) ||
+        (!additionalConnection.connected &&
+            !additionalConnection.initializingBinary &&
+            !(syncProvider.additionalSyncInfo?.downloadInfo.isDownloading ?? false))) {
       // done initializing, but not connected
       return SailColorScheme.red;
     }
+
     return SailColorScheme.orange;
   }
 
   String get connectionStatus {
+    if (syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ?? false) {
+      return 'Downloading mainchain...';
+    }
+
+    if (syncProvider.enforcerSyncInfo?.downloadInfo.isDownloading ?? false) {
+      return 'Downloading enforcer...';
+    }
+
+    if (syncProvider.additionalSyncInfo?.downloadInfo.isDownloading ?? false) {
+      return 'Downloading ${additionalConnection.name}...';
+    }
+
     if (mainchain.initializingBinary) {
       return 'Initializing bitcoind..';
     }
@@ -393,12 +416,12 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
               mainchainSynced) ...[
             DividerDot(),
             SailText.secondary12(
-              '${formatWithThousandSpacers(viewModel.syncProvider.mainchainSyncInfo?.progressCurrent ?? 'Loading')} blocks',
+              '${formatWithThousandSpacers(viewModel.syncProvider.mainchainSyncInfo?.progressCurrent.toInt() ?? 'Loading')} blocks',
             ),
           ] else if (additionalSynced) ...[
             DividerDot(),
             SailText.secondary12(
-              '${formatWithThousandSpacers(viewModel.syncProvider.additionalSyncInfo?.progressCurrent ?? 'Loading')} blocks',
+              '${formatWithThousandSpacers(viewModel.syncProvider.additionalSyncInfo?.progressCurrent.toInt() ?? 'Loading')} blocks',
             ),
           ],
         ],
@@ -423,11 +446,10 @@ class ChainLoader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Tooltip(
-        message: syncInfo.downloadProgress < 1
+        message: syncInfo.downloadInfo.isDownloading
             ? 'Downloading $name\nProgress: ${syncInfo.progressCurrent} MB\nSize: ${syncInfo.progressGoal} MB'
             : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
         child: ProgressBar(
-          progress: syncInfo.progress,
           current: syncInfo.progressCurrent,
           goal: syncInfo.progressGoal,
           justPercent: justPercent,

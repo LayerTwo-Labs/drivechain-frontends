@@ -4,6 +4,7 @@ import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
+import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -68,6 +69,9 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final enforcerBinary = binaryProvider.binaries.where((b) => b.name == binary.name).first;
+
     var host = mainchainConf.host;
 
     if (host == 'localhost' && !Platform.isWindows) {
@@ -94,14 +98,14 @@ class EnforcerLive extends EnforcerRPC {
       }
     }
 
-    binary.addBootArg(walletArg);
+    enforcerBinary.addBootArg(walletArg);
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',
       '--node-rpc-user=${mainchainConf.username}',
       '--node-rpc-addr=$host:${mainchainConf.port}',
       '--enable-wallet',
-      if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
+      if (enforcerBinary.extraBootArgs.isNotEmpty) ...enforcerBinary.extraBootArgs,
     ];
   }
 

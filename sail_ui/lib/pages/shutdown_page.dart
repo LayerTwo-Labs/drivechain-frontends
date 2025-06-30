@@ -105,7 +105,9 @@ class _ShuttingDownPageState extends State<ShuttingDownPage> with SingleTickerPr
                   SizedBox(
                     width: 200,
                     child: ProgressBar(
-                      progress: _progressAnimation.value,
+                      current: _progressAnimation.value,
+                      goal: 1,
+                      hideProgressInside: true,
                       small: true,
                     ),
                   ),

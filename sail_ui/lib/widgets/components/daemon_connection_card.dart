@@ -103,7 +103,7 @@ class DaemonConnectionCard extends StatelessWidget {
   }
 
   Color _getConnectionColor(SailThemeData theme) {
-    if (syncInfo != null && syncInfo!.downloadProgress < 1 && syncInfo!.downloadProgress > 0) {
+    if (syncInfo != null && syncInfo!.downloadInfo.isDownloading) {
       return theme.colors.orangeLight;
     } else if (infoMessage != null) {
       return theme.colors.info;
@@ -129,15 +129,17 @@ class BlockStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentProgress = formatProgress(syncInfo.progressCurrent);
+
     return SailRow(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Tooltip(
-            message: syncInfo.downloadProgress < 1
-                ? 'Downloading $name\nProgress: ${syncInfo.progressCurrent} MB\nSize: ${syncInfo.progressGoal} MB'
-                : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
+            message: syncInfo.downloadInfo.isDownloading
+                ? 'Downloading $name\nProgress: $currentProgress MB\nSize: ${formatProgress(syncInfo.progressGoal)} MB'
+                : '$name\nCurrent height $currentProgress\nHeader height ${formatProgress(syncInfo.progressGoal)}',
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -146,16 +148,15 @@ class BlockStatus extends StatelessWidget {
                 if (!syncInfo.isSynced)
                   Expanded(
                     child: ProgressBar(
-                      progress: syncInfo.progress,
                       current: syncInfo.progressCurrent,
                       goal: syncInfo.progressGoal,
                     ),
                   )
                 else
                   SailText.secondary12(
-                    syncInfo.downloadProgress < 1 && syncInfo.downloadProgress > 0
+                    syncInfo.downloadInfo.isDownloading
                         ? '${formatWithThousandSpacers(syncInfo.progressCurrent)} MB'
-                        : '${formatWithThousandSpacers(syncInfo.progressCurrent)} sync height',
+                        : '${formatWithThousandSpacers(currentProgress)} sync height',
                   ),
               ],
             ),
@@ -164,4 +165,13 @@ class BlockStatus extends StatelessWidget {
       ],
     );
   }
+}
+
+String formatProgress(double progress) {
+  // if progress is a whole number, return it as an integer
+  if (progress == progress.toInt()) {
+    return progress.toInt().toString();
+  }
+  // otherwise return with appropriate decimal places
+  return progress.toStringAsFixed(1);
 }

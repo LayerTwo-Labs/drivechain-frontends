@@ -41,42 +41,43 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
         child: SailCard(
           padding: true,
           title: '${widget.connection.binary.name} Connection Details',
-          subtitle: 'Connection information for this daemon',
           withCloseButton: true,
           child: Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                StaticField(
-                  label: 'Host',
-                  value: widget.connection.conf.host,
-                  copyable: true,
-                ),
-                StaticField(
-                  label: 'Port',
-                  value: widget.connection.binary.port.toString(),
-                  copyable: true,
-                ),
-                if (args.isNotEmpty)
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   StaticField(
-                    label: 'Binary Arguments',
-                    value: args.join(' \\\n'),
+                    label: 'Host',
+                    value: widget.connection.conf.host,
                     copyable: true,
                   ),
-                const SizedBox(height: SailStyleValues.padding08),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SailButton(
-                      label: 'Close',
-                      onPressed: () async => Navigator.pop(context),
+                  StaticField(
+                    label: 'Port',
+                    value: widget.connection.binary.port.toString(),
+                    copyable: true,
+                  ),
+                  if (args.isNotEmpty)
+                    StaticField(
+                      label: 'Binary Arguments',
+                      value: args.join(' \\\n'),
+                      copyable: true,
                     ),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: SailStyleValues.padding08),
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      SailButton(
+                        label: 'Close',
+                        onPressed: () async => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
