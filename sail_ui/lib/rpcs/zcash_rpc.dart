@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -78,12 +79,15 @@ abstract class ZCashRPC extends SidechainRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final zcashBinary = binaryProvider.binaries.where((b) => b.name == binary.name).first;
+
     final sidechainArgs = [
       '-mainport=${mainchainConf.port}',
       '-mainhost=${mainchainConf.host}',
     ];
 
-    return cleanArgs(conf, [...sidechainArgs, ...binary.extraBootArgs]);
+    return cleanArgs(conf, [...sidechainArgs, ...zcashBinary.extraBootArgs]);
   }
 
   @override

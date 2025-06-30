@@ -160,6 +160,32 @@ abstract class Binary {
     }
   }
 
+  Future<void> wipeWallet() async {
+    _log('Starting wallet wipe for $name');
+
+    final dir = datadir();
+
+    switch (this) {
+      case Enforcer():
+        await _deleteFilesInDir(dir, ['wallet']);
+
+      case Bitnames():
+        await _deleteFilesInDir(dir, [
+          'wallet.mdb',
+        ]);
+
+      case BitAssets():
+        await _deleteFilesInDir(dir, [
+          'wallet.mdb',
+        ]);
+
+      case Thunder():
+        await _deleteFilesInDir(dir, [
+          'wallet.mdb',
+        ]);
+    }
+  }
+
   Future<void> wipeAssets(Directory assetsDir) async {
     _log('Starting asset wipe for $name in ${assetsDir.path}');
 
@@ -455,6 +481,10 @@ abstract class Binary {
   String get connectionString => '$name :$port';
 
   void addBootArg(String arg) {
+    if (extraBootArgs.contains(arg)) {
+      return;
+    }
+
     extraBootArgs = List<String>.from(extraBootArgs)..add(arg);
   }
 }
@@ -894,6 +924,7 @@ class DownloadInfo {
   final String? error;
   final String? hash; // SHA256 of the binary
   final DateTime? downloadedAt;
+  final bool isDownloading;
 
   const DownloadInfo({
     this.progress = 0.0,
@@ -901,6 +932,7 @@ class DownloadInfo {
     this.error,
     this.hash,
     this.downloadedAt,
+    this.isDownloading = false,
   });
 
   /// Create a copy with updated fields
@@ -910,6 +942,7 @@ class DownloadInfo {
     String? error,
     String? hash,
     DateTime? downloadedAt,
+    bool? isDownloading,
   }) {
     return DownloadInfo(
       progress: progress ?? this.progress,
@@ -917,6 +950,7 @@ class DownloadInfo {
       error: error ?? this.error,
       hash: hash ?? this.hash,
       downloadedAt: downloadedAt ?? this.downloadedAt,
+      isDownloading: isDownloading ?? this.isDownloading,
     );
   }
 }

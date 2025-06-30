@@ -266,7 +266,9 @@ Future<void> initDependencies(
     binaryProvider,
   );
 
-  final walletProvider = WalletProvider();
+  final walletProvider = WalletProvider(
+    appDir: applicationDir,
+  );
   GetIt.I.registerLazySingleton<WalletProvider>(
     () => walletProvider,
   );

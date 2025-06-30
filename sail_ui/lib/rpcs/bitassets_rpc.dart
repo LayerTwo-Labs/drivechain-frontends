@@ -206,7 +206,8 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    return binary.extraBootArgs;
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    return binaryProvider.binaries.where((b) => b.name == binary.name).first.extraBootArgs;
   }
 
   @override

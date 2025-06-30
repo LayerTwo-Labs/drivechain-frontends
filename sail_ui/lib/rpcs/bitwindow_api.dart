@@ -25,6 +25,7 @@ import 'package:sail_ui/gen/misc/v1/misc.connect.client.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/providers/binaries/binary_provider.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
@@ -107,10 +108,13 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final bitwBinary = binaryProvider.binaries.where((b) => b.name == binary.name).first;
+
     return [
       '--bitcoincore.rpcuser=${mainchainConf.username}',
       '--bitcoincore.rpcpassword=${mainchainConf.password}',
-      if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
+      if (bitwBinary.extraBootArgs.isNotEmpty) ...bitwBinary.extraBootArgs,
     ];
   }
 

@@ -61,7 +61,7 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = SailStyleValues.padding08;
-        final sidechainsWidth = max(450, constraints.maxWidth * 0.25);
+        final sidechainsWidth = max(480, constraints.maxWidth * 0.25);
         final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
 
         return SailRow(

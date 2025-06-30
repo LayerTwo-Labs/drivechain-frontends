@@ -439,7 +439,6 @@ class StartersPageViewModel extends BaseViewModel {
 
     for (var chain in l2Chains) {
       chain = chain as Sidechain;
-      if (!chain.isDownloaded) continue;
 
       final mnemonic = await _walletProvider.getSidechainStarter(chain.slot);
       starters.add({
