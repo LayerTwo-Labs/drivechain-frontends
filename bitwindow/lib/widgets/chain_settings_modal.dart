@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ChainSettingsModal extends StatefulWidget {
@@ -20,15 +19,6 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   @override
   void initState() {
     super.initState();
-  }
-
-  void _openDownloadLocation(Binary binary) async {
-    final baseDir = binary.directories.base[os];
-    if (baseDir == null) return;
-
-    final appDir = await getApplicationSupportDirectory();
-
-    await openDir(appDir);
   }
 
   @override
@@ -82,7 +72,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                 label: 'Reset Chain Data',
                 onPressed: () async {
                   await widget.binary.wipeAppDir();
-                  showSnackBar(context, 'Wiped chain data successfully');
+                  if (context.mounted) {
+                    showSnackBar(context, 'Wiped chain data successfully');
+                  }
                 },
                 variant: ButtonVariant.destructive,
               ),

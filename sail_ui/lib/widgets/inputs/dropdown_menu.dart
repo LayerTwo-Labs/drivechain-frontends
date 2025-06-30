@@ -191,13 +191,15 @@ class SailDropdownItem<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        label,
-        style: SailStyleValues.thirteen.copyWith(
-          color: SailTheme.of(context).colors.text,
-          fontFamily: monospace ? 'SourceCodePro' : 'Inter',
+    return SelectionContainer.disabled(
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          label,
+          style: SailStyleValues.thirteen.copyWith(
+            color: SailTheme.of(context).colors.text,
+            fontFamily: monospace ? 'SourceCodePro' : 'Inter',
+          ),
         ),
       ),
     );
