@@ -30,7 +30,7 @@ dependencies:
   get_it: ^7.7.0
   collection: ^1.18.0
   path_provider: ^2.1.5
-  synchronized: ^3.3.1
+  synchronized: ^3.4.0
   flutter_markdown: ^0.7.7
   url_launcher: ^6.3.1
   connectrpc: 0.4.0
