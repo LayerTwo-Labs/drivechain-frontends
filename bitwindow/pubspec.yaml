@@ -36,7 +36,7 @@ dependencies:
   get_it: ^7.7.0
   meta: ^1.16.0
   protobuf: ^4.1.0
-  dotted_border: ^3.0.1
+  dotted_border: ^3.1.0
   window_manager: ^0.5.0
   synchronized: ^3.4.0
   skeletonizer: ^2.0.1 
