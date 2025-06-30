@@ -6,7 +6,6 @@ import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
-import 'package:bitwindow/pages/tools_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/welcome_page.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';

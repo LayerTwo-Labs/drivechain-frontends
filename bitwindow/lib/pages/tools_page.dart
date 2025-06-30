@@ -1,60 +1,12 @@
-import 'dart:io';
-
-import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-@RoutePage()
-class ToolsPage extends StatelessWidget {
-  const ToolsPage({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return QtPage(
-      child: ViewModelBuilder<ToolsPageViewModel>.reactive(
-        viewModelBuilder: () => ToolsPageViewModel(),
-        onViewModelReady: (model) => model.init(),
-        builder: (context, model, child) {
-          final tabsRouter = AutoTabsRouter.of(context);
-
-          tabsRouter.addListener(() {
-            if (tabsRouter.activeIndex != 1) {
-              model.resetStartersTab();
-            }
-          });
-
-          return InlineTabBar(
-            tabs: [
-              TabItem(
-                label: 'Fast Withdrawal',
-                icon: SailSVGAsset.iconWithdraw,
-                child: WithdrawalTab(),
-              ),
-              TabItem(
-                label: 'Starters',
-                icon: SailSVGAsset.tabStarters,
-                child: StartersTab(),
-              ),
-            ],
-            initialIndex: 0,
-          );
-        },
-      ),
-    );
-  }
-}
-
-class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
-  const WithdrawalTab({super.key});
+class FastWithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
+  const FastWithdrawalTab({super.key});
 
   @override
   Widget build(BuildContext context, ToolsPageViewModel viewModel) {
@@ -490,51 +442,6 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                           ),
                                         ],
                                         const SizedBox(width: 8),
-                                        SailButton(
-                                          label: 'Delete Starter',
-                                          onPressed: () async {
-                                            try {
-                                              if (starter['chain_layer'] == 1) {
-                                                await viewModel.deleteL1Starter();
-                                              } else {
-                                                final sidechainSlot = starter['sidechain_slot'] as int?;
-                                                if (sidechainSlot == null) {
-                                                  throw Exception('Invalid sidechain slot');
-                                                }
-                                                await viewModel.deleteStarter(sidechainSlot);
-                                              }
-                                            } catch (e) {
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Error deleting starter: $e'),
-                                                    backgroundColor: SailColorScheme.red,
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
-                                          variant: ButtonVariant.secondary,
-                                        ),
-                                      ] else ...[
-                                        SailButton(
-                                          label: 'Generate Starter',
-                                          onPressed: () async {
-                                            try {
-                                              await viewModel.generateL1Starter();
-                                            } catch (e) {
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Error generating starter: $e'),
-                                                    backgroundColor: SailColorScheme.red,
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
-                                          variant: ButtonVariant.primary,
-                                        ),
                                       ],
                                     ],
                                   ),
@@ -564,7 +471,6 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                           // Sidechain starter rows
                           ...starters.where((s) => s['chain_layer'] == 2).map((starter) {
                             final isRevealed = viewModel.isStarterRevealed(starter['name']);
-                            final sidechainSlot = starter['sidechain_slot'] as int?;
                             final hasMnemonic = starter['mnemonic'] != null;
 
                             return TableRow(
@@ -625,51 +531,6 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                           ),
                                         ],
                                         const SizedBox(width: 8),
-                                        SailButton(
-                                          label: 'Delete Starter',
-                                          onPressed: () async {
-                                            try {
-                                              if (starter['chain_layer'] == 1) {
-                                                await viewModel.deleteL1Starter();
-                                              } else {
-                                                final sidechainSlot = starter['sidechain_slot'] as int?;
-                                                if (sidechainSlot == null) {
-                                                  throw Exception('Invalid sidechain slot');
-                                                }
-                                                await viewModel.deleteStarter(sidechainSlot);
-                                              }
-                                            } catch (e) {
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Error deleting starter: $e'),
-                                                    backgroundColor: SailColorScheme.red,
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
-                                          variant: ButtonVariant.secondary,
-                                        ),
-                                      ] else ...[
-                                        SailButton(
-                                          label: 'Generate Starter',
-                                          onPressed: () async {
-                                            try {
-                                              await viewModel.generateStarter(sidechainSlot!);
-                                            } catch (e) {
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Error generating starter: $e'),
-                                                    backgroundColor: SailColorScheme.red,
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
-                                          variant: ButtonVariant.primary,
-                                        ),
                                       ],
                                     ],
                                   ),
@@ -694,8 +555,6 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
 class ToolsPageViewModel extends BaseViewModel {
   final Set<String> _revealedStarters = {};
   final WalletProvider _walletProvider = GetIt.I.get<WalletProvider>();
-  final _logger = Logger();
-  Map<String, dynamic>? _chainConfig;
 
   /// Whether to use localhost for the debug server.
   bool useLocalhost = false;
@@ -764,55 +623,34 @@ class ToolsPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<bool> _isBinaryDownloaded(Map<String, dynamic> chain) async {
-    final appDir = await getApplicationSupportDirectory();
-    final chainName = chain['name'] as String;
-    final assetsDir = binDir(appDir.path);
-    final binaryPath = path.join(assetsDir.path, chainName.toLowerCase());
-    return File(binaryPath).existsSync();
-  }
-
   Future<List<Map<String, dynamic>>> loadStarters() async {
-    if (_chainConfig == null) return [];
+    final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
 
     final starters = <Map<String, dynamic>>[];
-    final masterData = await _walletProvider.loadWallet();
+    final masterData = await _walletProvider.loadMasterStarter();
     if (masterData == null) return starters;
 
     // Add master starter
     starters.add(masterData);
 
-    // Add L1 starter
-    final l1Chain = _chainConfig!['chains'].firstWhere(
-      (chain) => chain['chain_layer'] == 1,
-      orElse: () => {'name': 'Bitcoin Core'},
-    );
-
     final l1Mnemonic = await _walletProvider.getL1Starter();
     starters.add({
-      'name': l1Chain['name'] as String,
+      'name': BitcoinCore().name,
       'mnemonic': l1Mnemonic,
       'chain_layer': 1,
     });
 
-    // Add L2 starters
-    final l2Chains = (_chainConfig!['chains'] as List<dynamic>)
-        .where((chain) => chain['chain_layer'] == 2)
-        .where((chain) => chain['sidechain_slot'] != null)
-        .toList();
+    final l2Chains = binaryProvider.binaries.where((b) => b.chainLayer == 2).toList();
 
-    for (final chain in l2Chains) {
-      final isDownloaded = await _isBinaryDownloaded(chain);
-      if (!isDownloaded) continue;
+    for (var chain in l2Chains) {
+      chain = chain as Sidechain;
+      if (!chain.isDownloaded) continue;
 
-      final chainName = chain['name'] as String;
-      final sidechainSlot = chain['sidechain_slot'] as int;
-
-      final mnemonic = await _walletProvider.getSidechainStarter(sidechainSlot);
+      final mnemonic = await _walletProvider.getSidechainStarter(chain.slot);
       starters.add({
-        'name': chainName,
+        'name': chain.name,
         'mnemonic': mnemonic,
-        'sidechain_slot': sidechainSlot,
+        'sidechain_slot': chain.slot,
         'chain_layer': 2,
       });
     }
@@ -833,50 +671,6 @@ class ToolsPageViewModel extends BaseViewModel {
   Future<void> copyStarterMnemonic(String? mnemonic) async {
     if (mnemonic != null) {
       await Clipboard.setData(ClipboardData(text: mnemonic));
-    }
-  }
-
-  Future<void> generateStarter(int sidechainSlot) async {
-    try {
-      await _walletProvider.deriveSidechainStarter(sidechainSlot);
-      notifyListeners();
-    } catch (e) {
-      _logger.e('Error generating starter: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> deleteStarter(int? sidechainSlot) async {
-    if (sidechainSlot == null) return;
-
-    try {
-      await _walletProvider.deleteSidechainStarter(sidechainSlot);
-      _revealedStarters.clear();
-      notifyListeners();
-    } catch (e) {
-      _logger.e('Error deleting starter: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> deleteL1Starter() async {
-    try {
-      await _walletProvider.deleteL1Starter();
-      _revealedStarters.clear();
-      notifyListeners();
-    } catch (e) {
-      _logger.e('Error deleting L1 starter: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> generateL1Starter() async {
-    try {
-      await _walletProvider.deriveL1Starter();
-      notifyListeners();
-    } catch (e) {
-      _logger.e('Error generating L1 starter: $e');
-      rethrow;
     }
   }
 }

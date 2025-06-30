@@ -29,7 +29,7 @@ class WalletProvider extends ChangeNotifier {
 
   Future<File?> getMasterStarter() async {
     final walletFile = await _getWalletFile('master_starter.json');
-    if (!await walletFile.exists()) return null;
+    if (walletFile == null || !await walletFile.exists()) return null;
 
     final walletJson = await walletFile.readAsString();
     final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
@@ -132,6 +132,9 @@ class WalletProvider extends ChangeNotifier {
 
     await _ensureWalletDir();
     final walletFile = await _getWalletFile('master_starter.json');
+    if (walletFile == null) {
+      throw Exception('Could not find wallet file, even after ensured');
+    }
     await walletFile.writeAsString(jsonEncode(walletData));
     notifyListeners();
   }
@@ -144,7 +147,7 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> loadWallet() async {
+  Future<Map<String, dynamic>?> loadMasterStarter() async {
     final walletFile = await getMasterStarter();
     if (walletFile == null) return null;
 
@@ -162,7 +165,7 @@ class WalletProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> _deriveStarter(String derivationPath, {String? name}) async {
     try {
       // Load and validate master wallet
-      final masterWallet = await loadWallet();
+      final masterWallet = await loadMasterStarter();
       if (masterWallet == null) {
         throw Exception('Master starter not found');
       }
@@ -259,7 +262,10 @@ class WalletProvider extends ChangeNotifier {
   Future<String?> _loadMnemonicStarter(String fileName) async {
     try {
       final file = await _getWalletFile(fileName);
-      if (!file.existsSync()) return null;
+      if (file == null || !file.existsSync()) {
+        return null;
+      }
+
       return await file.readAsString();
     } catch (e) {
       _logger.e('Error loading starter $fileName: $e');
@@ -271,6 +277,9 @@ class WalletProvider extends ChangeNotifier {
     try {
       await _ensureWalletDir();
       final file = await _getWalletFile(fileName);
+      if (file == null) {
+        throw Exception('Could not find wallet file, even after ensured');
+      }
       await file.writeAsString(mnemonic);
       notifyListeners();
     } catch (e, stackTrace) {
@@ -282,7 +291,7 @@ class WalletProvider extends ChangeNotifier {
   Future<void> _deleteStarter(String fileName) async {
     try {
       final file = await _getWalletFile(fileName);
-      if (file.existsSync()) {
+      if (file != null && file.existsSync()) {
         await file.delete();
         notifyListeners();
       }
@@ -292,21 +301,22 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<File> _getWalletFile(String fileName) async {
-    final walletDir = await _getWalletDir();
+  Future<File?> _getWalletFile(String fileName) async {
+    final appDir = await getApplicationSupportDirectory();
+    final walletDir = getWalletDir(appDir);
+    if (walletDir == null) {
+      return null;
+    }
+
     return File(path.join(walletDir.path, fileName));
   }
 
-  Future<Directory> _getWalletDir() async {
-    final appDir = await getApplicationSupportDirectory();
-    return Directory(path.join(appDir.path, 'wallet_starters'));
-  }
-
   Future<void> _ensureWalletDir() async {
-    final walletDir = await _getWalletDir();
-    if (!walletDir.existsSync()) {
-      await walletDir.create(recursive: true);
-    }
+    final appDir = await getApplicationSupportDirectory();
+    var walletDir = getWalletDir(appDir);
+    walletDir ??= Directory(path.join(appDir.path, 'wallet_starters'));
+
+    await walletDir.create(recursive: true);
   }
 
   Future<void> generateStartersForDownloadedChains() async {
