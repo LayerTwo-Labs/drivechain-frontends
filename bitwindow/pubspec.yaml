@@ -38,7 +38,7 @@ dependencies:
   protobuf: ^4.1.0
   dotted_border: ^3.0.1
   window_manager: ^0.5.0
-  synchronized: ^3.3.1
+  synchronized: ^3.4.0
   skeletonizer: ^2.0.1 
   flutter_markdown: ^0.7.7
   path: ^1.9.0
