@@ -81,25 +81,20 @@ class EnforcerLive extends EnforcerRPC {
 
     final appDir = await getApplicationSupportDirectory();
     final walletDir = getWalletDir(appDir);
-    final enforcerDir = path.join(binary.datadir(), 'wallet');
 
-    if (!Directory(enforcerDir).existsSync()) {
-      // enforcer does not have a wallet dir yet. That means we need to create one!
-      var walletArg = '--wallet-auto-create';
+    var walletArg = '--wallet-auto-create';
+    if (walletDir != null) {
+      // we have a bitwindow wallet dir, and the enforcer does NOT have a wallet loaded
+      // we should add a fitting arg!
+      final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
 
-      if (walletDir != null) {
-        // we have a bitwindow wallet dir, and the enforcer does NOT have a wallet loaded
-        // we should add a fitting arg!
-        final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
-
-        if (mnemonicFile.existsSync()) {
-          // we have a mnemonic file! Use that seed
-          walletArg = '--wallet-seed-file=${mnemonicFile.path}';
-        }
+      if (mnemonicFile.existsSync()) {
+        // we have a mnemonic file! Use that seed
+        walletArg = '--wallet-seed-file=${mnemonicFile.path}';
       }
-
-      binary.addBootArg(walletArg);
     }
+
+    binary.addBootArg(walletArg);
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',

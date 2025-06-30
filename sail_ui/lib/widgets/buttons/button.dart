@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'dart:async';
 
 enum ButtonVariant {
   primary,
@@ -82,7 +83,7 @@ class _SailButtonState extends State<SailButton> {
     final theme = SailTheme.of(context);
     final colors = theme.colors;
 
-    final style = _getVariantStyle(widget.variant, colors);
+    final style = _getVariantStyle(widget.variant, colors, widget.textColor);
     final content = _buildButtonContent(style.foregroundColor, widget.variant);
 
     return _SailScaleButton(
@@ -179,70 +180,100 @@ class _ButtonVariantStyle {
   });
 }
 
-_ButtonVariantStyle _getVariantStyle(ButtonVariant variant, SailColor colors) {
+_ButtonVariantStyle _getVariantStyle(ButtonVariant variant, SailColor colors, Color? textColor) {
   switch (variant) {
     case ButtonVariant.primary:
       return _ButtonVariantStyle(
         backgroundColor: colors.primaryButtonBackground,
-        foregroundColor: colors.primaryButtonText,
+        foregroundColor: textColor ?? colors.primaryButtonText,
         hoverColor: colors.primaryButtonHover,
       );
     case ButtonVariant.secondary:
       return _ButtonVariantStyle(
         backgroundColor: colors.secondaryButtonBackground,
-        foregroundColor: colors.secondaryButtonText,
+        foregroundColor: textColor ?? colors.secondaryButtonText,
         hoverColor: colors.secondaryButtonHover,
       );
     case ButtonVariant.destructive:
       return _ButtonVariantStyle(
         backgroundColor: colors.destructiveButtonBackground,
-        foregroundColor: colors.destructiveButtonText,
+        foregroundColor: textColor ?? colors.destructiveButtonText,
         hoverColor: colors.destructiveButtonHover,
       );
     case ButtonVariant.outline:
       return _ButtonVariantStyle(
         backgroundColor: Colors.transparent,
-        foregroundColor: colors.outlineButtonText,
+        foregroundColor: textColor ?? colors.outlineButtonText,
         borderColor: colors.outlineButtonBorder,
         hoverColor: colors.outlineButtonHover,
       );
     case ButtonVariant.ghost:
       return _ButtonVariantStyle(
         backgroundColor: Colors.transparent,
-        foregroundColor: colors.textSecondary,
+        foregroundColor: textColor ?? colors.textSecondary,
         hoverColor: colors.ghostButtonHover,
       );
     case ButtonVariant.link:
       return _ButtonVariantStyle(
         backgroundColor: Colors.transparent,
-        foregroundColor: colors.linkButtonText,
+        foregroundColor: textColor ?? colors.linkButtonText,
         hoverColor: colors.linkButtonText,
       );
     case ButtonVariant.icon:
       return _ButtonVariantStyle(
         backgroundColor: Colors.transparent,
-        foregroundColor: colors.ghostButtonText,
+        foregroundColor: textColor ?? colors.ghostButtonText,
         hoverColor: colors.ghostButtonHover,
       );
   }
 }
 
-class CopyButton extends StatelessWidget {
+class CopyButton extends StatefulWidget {
   final String text;
 
   const CopyButton({super.key, required this.text});
 
   @override
+  State<CopyButton> createState() => _CopyButtonState();
+}
+
+class _CopyButtonState extends State<CopyButton> {
+  bool _copied = false;
+  Timer? _resetTimer;
+
+  @override
+  void dispose() {
+    _resetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _resetCopiedState() {
+    setState(() {
+      _copied = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SailButton(
       variant: ButtonVariant.icon,
-      icon: SailSVGAsset.iconCopy,
+      icon: _copied ? SailSVGAsset.iconCheck : SailSVGAsset.iconCopy,
+      textColor: _copied ? SailColorScheme.green : null,
       padding: EdgeInsets.all(10.5),
       onPressed: () async {
-        await Clipboard.setData(ClipboardData(text: text)).then((_) {
-          if (context.mounted) showSnackBar(context, 'Copied $text');
+        await Clipboard.setData(ClipboardData(text: widget.text)).then((_) {
+          if (mounted) {
+            setState(() {
+              _copied = true;
+            });
+            // Reset after 2 seconds
+            _resetTimer?.cancel();
+            _resetTimer = Timer(const Duration(seconds: 2), _resetCopiedState);
+          }
         }).catchError((error) {
-          if (context.mounted) showSnackBar(context, 'Could not copy $text: $error');
+          if (context.mounted) {
+            showSnackBar(context, 'Could not copy ${widget.text}: $error');
+          }
         });
       },
     );

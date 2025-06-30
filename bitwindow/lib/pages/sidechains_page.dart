@@ -3,10 +3,11 @@ import 'dart:math';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
-import 'package:bitwindow/pages/tools_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/chain_settings_modal.dart';
+import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
+import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,31 +27,25 @@ class SidechainsPage extends StatelessWidget {
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => SidechainsViewModel(),
         builder: (context, model, child) {
-          return ViewModelBuilder<ToolsPageViewModel>.reactive(
-            viewModelBuilder: () => ToolsPageViewModel(),
-            onViewModelReady: (model) => model.init(),
-            builder: (context, toolsModel, child) {
-              return InlineTabBar(
-                key: ValueKey('sidechains_page${model.launcherMode}'),
-                tabs: [
-                  TabItem(
-                    label: 'Overview',
-                    child: SidechainsTab(),
-                  ),
-                  if (model.launcherMode)
-                    TabItem(
-                      label: 'Fast Withdrawal',
-                      child: FastWithdrawalTab(),
-                    ),
-                  if (model.launcherMode)
-                    TabItem(
-                      label: 'Starters',
-                      child: StartersTab(),
-                    ),
-                ],
-                initialIndex: 0,
-              );
-            },
+          return InlineTabBar(
+            key: ValueKey('sidechains_page${model.launcherMode}'),
+            tabs: [
+              TabItem(
+                label: 'Overview',
+                child: SidechainsTab(),
+              ),
+              if (model.launcherMode)
+                TabItem(
+                  label: 'Fast Withdrawal',
+                  child: FastWithdrawalTab(),
+                ),
+              if (model.launcherMode)
+                TabItem(
+                  label: 'Starters',
+                  child: StartersTab(),
+                ),
+            ],
+            initialIndex: 0,
           );
         },
       ),
@@ -164,7 +159,6 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                             variant: ButtonVariant.outline,
                             label: '',
                             icon: SailSVGAsset.settings,
-                            textColor: SailColorScheme.blue,
                             insideTable: true,
                             onPressed: () async {
                               await showDialog(
