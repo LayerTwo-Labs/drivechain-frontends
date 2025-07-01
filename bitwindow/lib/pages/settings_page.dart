@@ -136,9 +136,9 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
     await showDialog(
       context: context,
       builder: (context) => SailAlertCard(
-        title: 'Enable Launch Mode?',
+        title: 'Enable Launcher Mode?',
         subtitle:
-            'WARNING: Enabling launch mode will delete all your current wallets. If you want to restore your wallet, '
+            'WARNING: Enabling launcher mode will delete all your current wallets. If you want to restore your wallet, '
             'make sure to save your master seed from the old launcher BEFORE enabling launcher mode.',
         onConfirm: () async {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
@@ -153,6 +153,13 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             await binary.wipeWallet();
           }
 
+          // then finally update the launcher mode
+          await _settingsProvider.updateLauncherMode(true);
+          final hasWallet = await GetIt.I.get<WalletProvider>().hasExistingWallet();
+          if (!hasWallet) {
+            await GetIt.I.get<AppRouter>().push(const WelcomeRoute());
+          }
+
           // reboot L1-binaries
           await binaryProvider
               .startWithEnforcer(binaryProvider.binaries.where((b) => b.name == BitWindow().name).first);
@@ -160,13 +167,6 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
           // then restart all sidechains we stopped
           for (final binary in runningBinaries) {
             await binaryProvider.start(binary);
-          }
-
-          // then finally update the launcher mode
-          await _settingsProvider.updateLauncherMode(true);
-          final hasWallet = await GetIt.I.get<WalletProvider>().hasExistingWallet();
-          if (!hasWallet) {
-            await GetIt.I.get<AppRouter>().push(const WelcomeRoute());
           }
 
           if (context.mounted) Navigator.of(context).pop();
