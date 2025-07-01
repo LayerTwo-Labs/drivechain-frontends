@@ -43,7 +43,7 @@ class WalletProvider extends ChangeNotifier {
     final walletJson = await walletFile.readAsString();
     final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
 
-    if (!walletData.containsKey('mnemonic') || !walletData.containsKey('master_key')) {
+    if (!walletData.containsKey('mnemonic') || !walletData.containsKey('seed_hex')) {
       throw Exception('Invalid wallet data format');
     }
 
