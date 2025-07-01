@@ -53,7 +53,7 @@ dependencies:
   bs58: ^1.0.2
 
 dev_dependencies:
-  sentry_dart_plugin: ^3.0.0
+  sentry_dart_plugin: ^3.1.0
   flutter_test:
     sdk: flutter
 
