@@ -71,6 +71,13 @@ func realMain(ctx context.Context) error {
 		bitnamesPassword,
 	)
 
+	var zsideUsername, zsidePassword string
+	zsideClient := jsonrpc.NewClient(
+		conf.ZsideAddress,
+		zsideUsername,
+		zsidePassword,
+	)
+
 	proxy, err := coreproxy.NewBitcoind(
 		ctx, conf.BitcoinCoreAddress,
 		conf.BitcoinCoreRPCUser, conf.BitcoinCoreRPCPassword,
@@ -88,6 +95,7 @@ func realMain(ctx context.Context) error {
 		Thunder:   thunderClient,
 		BitAssets: bitassetsClient,
 		BitNames:  bitnamesClient,
+		Zside:     zsideClient,
 	}, validatorConnector)
 
 	zerolog.Ctx(ctx).Info().Msgf("server: listening on %q", conf.Listen)

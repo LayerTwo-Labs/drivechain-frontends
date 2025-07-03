@@ -21,6 +21,7 @@ type RpcClients struct {
 	Thunder   *jsonrpc.Client
 	BitAssets *jsonrpc.Client
 	BitNames  *jsonrpc.Client
+	Zside     *jsonrpc.Client
 }
 
 func New(
@@ -32,6 +33,7 @@ func New(
 		rpcClients.Thunder,
 		rpcClients.BitAssets,
 		rpcClients.BitNames,
+		rpcClients.Zside,
 	}
 }
 
@@ -40,6 +42,7 @@ type Server struct {
 	thunder   *jsonrpc.Client
 	bitassets *jsonrpc.Client
 	bitnames  *jsonrpc.Client
+	zside     *jsonrpc.Client
 }
 
 func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetChainTipsRequest]) (*connect.Response[pb.GetChainTipsResponse], error) {
@@ -83,6 +86,12 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 			Msgf("failed to get bitnames tip: %s", err)
 	}
 
+	zsideTip, err := s.getSidechainTip(ctx, s.zside, bestMainchainBlock.Msg)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().
+			Msgf("failed to get zside tip: %s", err)
+	}
+
 	return connect.NewResponse(&pb.GetChainTipsResponse{
 		Mainchain: &pb.ChainTip{
 			Height:    uint64(bestMainchainBlock.Msg.Height),
@@ -92,6 +101,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 		Thunder:   thunderTip,
 		Bitassets: bitassetsTip,
 		Bitnames:  bitnamesTip,
+		Zside:     zsideTip,
 	}), nil
 }
 

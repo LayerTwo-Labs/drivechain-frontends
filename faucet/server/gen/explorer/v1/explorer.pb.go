@@ -124,6 +124,7 @@ type GetChainTipsResponse struct {
 	Thunder       *ChainTip              `protobuf:"bytes,2,opt,name=thunder,proto3" json:"thunder,omitempty"`     // L2-S9
 	Bitassets     *ChainTip              `protobuf:"bytes,3,opt,name=bitassets,proto3" json:"bitassets,omitempty"` // L2-S4
 	Bitnames      *ChainTip              `protobuf:"bytes,4,opt,name=bitnames,proto3" json:"bitnames,omitempty"`   // L2-S2
+	Zside         *ChainTip              `protobuf:"bytes,5,opt,name=zside,proto3" json:"zside,omitempty"`         // L2-S98
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -186,6 +187,13 @@ func (x *GetChainTipsResponse) GetBitnames() *ChainTip {
 	return nil
 }
 
+func (x *GetChainTipsResponse) GetZside() *ChainTip {
+	if x != nil {
+		return x.Zside
+	}
+	return nil
+}
+
 var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 
 const file_explorer_v1_explorer_proto_rawDesc = "" +
@@ -195,12 +203,13 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\bChainTip\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x04R\x06height\x128\n" +
-	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xe4\x01\n" +
+	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\x91\x02\n" +
 	"\x14GetChainTipsResponse\x123\n" +
 	"\tmainchain\x18\x01 \x01(\v2\x15.explorer.v1.ChainTipR\tmainchain\x12/\n" +
 	"\athunder\x18\x02 \x01(\v2\x15.explorer.v1.ChainTipR\athunder\x123\n" +
 	"\tbitassets\x18\x03 \x01(\v2\x15.explorer.v1.ChainTipR\tbitassets\x121\n" +
-	"\bbitnames\x18\x04 \x01(\v2\x15.explorer.v1.ChainTipR\bbitnames2h\n" +
+	"\bbitnames\x18\x04 \x01(\v2\x15.explorer.v1.ChainTipR\bbitnames\x12+\n" +
+	"\x05zside\x18\x05 \x01(\v2\x15.explorer.v1.ChainTipR\x05zside2h\n" +
 	"\x0fExplorerService\x12U\n" +
 	"\fGetChainTips\x12 .explorer.v1.GetChainTipsRequest\x1a!.explorer.v1.GetChainTipsResponse\"\x00B\xb9\x01\n" +
 	"\x0fcom.explorer.v1B\rExplorerProtoP\x01ZJgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1;explorerv1\xa2\x02\x03EXX\xaa\x02\vExplorer.V1\xca\x02\vExplorer\\V1\xe2\x02\x17Explorer\\V1\\GPBMetadata\xea\x02\fExplorer::V1b\x06proto3"
@@ -230,13 +239,14 @@ var file_explorer_v1_explorer_proto_depIdxs = []int32{
 	1, // 2: explorer.v1.GetChainTipsResponse.thunder:type_name -> explorer.v1.ChainTip
 	1, // 3: explorer.v1.GetChainTipsResponse.bitassets:type_name -> explorer.v1.ChainTip
 	1, // 4: explorer.v1.GetChainTipsResponse.bitnames:type_name -> explorer.v1.ChainTip
-	0, // 5: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
-	2, // 6: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
-	6, // [6:7] is the sub-list for method output_type
-	5, // [5:6] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1, // 5: explorer.v1.GetChainTipsResponse.zside:type_name -> explorer.v1.ChainTip
+	0, // 6: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
+	2, // 7: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
+	7, // [7:8] is the sub-list for method output_type
+	6, // [6:7] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_explorer_v1_explorer_proto_init() }

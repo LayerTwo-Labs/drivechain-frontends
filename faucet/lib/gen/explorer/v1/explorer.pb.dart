@@ -135,6 +135,7 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
     ChainTip? thunder,
     ChainTip? bitassets,
     ChainTip? bitnames,
+    ChainTip? zside,
   }) {
     final $result = create();
     if (mainchain != null) {
@@ -149,6 +150,9 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
     if (bitnames != null) {
       $result.bitnames = bitnames;
     }
+    if (zside != null) {
+      $result.zside = zside;
+    }
     return $result;
   }
   GetChainTipsResponse._() : super();
@@ -160,6 +164,7 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
     ..aOM<ChainTip>(2, _omitFieldNames ? '' : 'thunder', subBuilder: ChainTip.create)
     ..aOM<ChainTip>(3, _omitFieldNames ? '' : 'bitassets', subBuilder: ChainTip.create)
     ..aOM<ChainTip>(4, _omitFieldNames ? '' : 'bitnames', subBuilder: ChainTip.create)
+    ..aOM<ChainTip>(5, _omitFieldNames ? '' : 'zside', subBuilder: ChainTip.create)
     ..hasRequiredFields = false
   ;
 
@@ -227,6 +232,17 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
   void clearBitnames() => clearField(4);
   @$pb.TagNumber(4)
   ChainTip ensureBitnames() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  ChainTip get zside => $_getN(4);
+  @$pb.TagNumber(5)
+  set zside(ChainTip v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasZside() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearZside() => clearField(5);
+  @$pb.TagNumber(5)
+  ChainTip ensureZside() => $_ensure(4);
 }
 
 class ExplorerServiceApi {
