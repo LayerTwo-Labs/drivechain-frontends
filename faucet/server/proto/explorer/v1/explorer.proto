@@ -21,4 +21,5 @@ message GetChainTipsResponse {
   ChainTip thunder = 2; // L2-S9
   ChainTip bitassets = 3; // L2-S4
   ChainTip bitnames = 4; // L2-S2
+  ChainTip zside = 5; // L2-S98
 }
