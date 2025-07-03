@@ -80,6 +80,14 @@ class ExplorerViewModel extends BaseViewModel {
         )
       : null;
 
+  Block? get latestZsideBlock => explorerProvider.zsideTip != null
+      ? Block(
+          hash: explorerProvider.zsideTip!.hash,
+          blockHeight: explorerProvider.zsideTip!.height.toInt(),
+          blockTime: explorerProvider.zsideTip!.timestamp.toDateTime(),
+        )
+      : null;
+
   ExplorerViewModel() {
     explorerProvider.addListener(notifyListeners);
     // Start timer for updating "time ago" text
@@ -285,6 +293,43 @@ class _ExplorerPageState extends State<ExplorerPage> {
                                       ),
                                     ],
                                   ),
+                          ),
+                        ),
+                        IntrinsicHeight(
+                          child: SailCard(
+                            title: 'Latest Zside Block',
+                            subtitle: 'Most recent block on the Zside sidechain (L2-S98)',
+                            child:
+                                ((model.latestZsideBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
+                                    ? Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SailText.primary13('Height: ${model.latestZsideBlock?.blockHeight}'),
+                                          const SizedBox(height: 4),
+                                          SailText.primary13(
+                                            'Hash: ${model.latestZsideBlock?.hash}',
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          SailText.primary13('Time: ${model.latestZsideBlock?.formattedTime}'),
+                                          const SizedBox(height: 4),
+                                          SailText.primary13(
+                                            model.latestZsideBlock?.timeSince() ?? '',
+                                            color: context.sailTheme.colors.orange,
+                                            bold: true,
+                                          ),
+                                        ],
+                                      )
+                                    : Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SailText.primary13(
+                                            'Unable to connect to Zside',
+                                            color: context.sailTheme.colors.error,
+                                            bold: true,
+                                          ),
+                                        ],
+                                      ),
                           ),
                         ),
                       ];

@@ -13,6 +13,7 @@ class ExplorerProvider extends ChangeNotifier {
   ChainTip? thunderTip;
   ChainTip? bitassetsTip;
   ChainTip? bitnamesTip;
+  ChainTip? zsideTip;
   bool initialized = false;
 
   bool _isFetching = false;
@@ -42,6 +43,9 @@ class ExplorerProvider extends ChangeNotifier {
       }
       if (response.bitnames.height > 0) {
         bitnamesTip = response.bitnames;
+      }
+      if (response.zside.height > 0) {
+        zsideTip = response.zside;
       }
       initialized = true;
       notifyListeners();
