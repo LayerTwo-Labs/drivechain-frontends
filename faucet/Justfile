@@ -31,4 +31,17 @@ build-server:
 lint: 
     golangci-lint run ./server/...
 
-run: run-server run-client
+run:
+    #!/usr/bin/env bash
+    # Run server in background
+    ./server/faucetd &
+    SERVER_PID=$!
+    
+    # Wait for server to start
+    sleep 3
+    
+    # Run client
+    flutter run -d chrome --web-port 3000 --dart-define=FAUCET_BASE_URL=http://localhost:8082
+    
+    # Clean up server when client exits
+    kill $SERVER_PID
