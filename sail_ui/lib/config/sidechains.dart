@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -167,21 +166,39 @@ abstract class Sidechain extends Binary {
   }
 }
 
-Directory? getWalletDir(Directory appDir) {
-  final settings = GetIt.I.get<SettingsProvider>();
-
-  var walletAppDir = appDir;
-  if (!settings.launcherMode) {
-    walletAppDir = Directory(
+Directory? getWalletDir(Directory bitwindowAppDir) {
+  var directory = _findWalletDir(bitwindowAppDir);
+  if (directory == null) {
+    // not in bitwindow.. lets look in drivechain-launcher
+    final launcherDir = Directory(
       path.join(
-        appDir.path,
+        bitwindowAppDir.path,
         '..',
         'drivechain-launcher',
       ),
     );
+    directory = _findWalletDir(launcherDir);
+
+    if (directory == null) {
+      // not there either.. do one final check in home/.config
+      final launcherDir = Directory(
+        path.join(
+          Platform.environment['HOME']!,
+          '.config',
+          'drivechain-launcher',
+        ),
+      );
+      return _findWalletDir(launcherDir);
+    }
+
+    return directory;
   }
 
-  var walletDir = path.join(walletAppDir.path, 'wallet_starters');
+  return directory;
+}
+
+Directory? _findWalletDir(Directory mainDir) {
+  var walletDir = path.join(mainDir.path, 'wallet_starters');
 
   if (!Directory(walletDir).existsSync()) {
     if (getOS() != OS.linux) {
@@ -189,16 +206,7 @@ Directory? getWalletDir(Directory appDir) {
       return null;
     }
 
-    // on linux on the other hand, we can look in one more place
-    walletAppDir = Directory(
-      path.join(
-        Platform.environment['HOME']!,
-        '.config',
-        'drivechain-launcher',
-      ),
-    );
-
-    walletDir = path.join(walletAppDir.path, 'wallet_starters');
+    walletDir = path.join(mainDir.path, 'wallet_starters');
     if (!Directory(walletDir).existsSync()) {
       return null;
     }
