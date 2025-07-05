@@ -15,6 +15,7 @@ import 'package:sail_ui/sail_ui.dart';
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final Directory appDir;
+  late final Directory bitwindowAppDir;
 
   final settings = GetIt.I.get<SettingsProvider>();
   final mainchainRPC = GetIt.I.get<MainchainRPC>();
@@ -91,6 +92,14 @@ class BinaryProvider extends ChangeNotifier {
     required this.appDir,
     required List<Binary> initialBinaries,
   }) {
+    bitwindowAppDir = Directory(
+      path.join(
+        appDir.path,
+        '..',
+        'bitwindow',
+      ),
+    );
+
     _downloadManager = DownloadManager(
       appDir: appDir,
       binaries: initialBinaries,
@@ -175,7 +184,7 @@ class BinaryProvider extends ChangeNotifier {
       log.i('booting sidechain ${binary.name}');
       // We're booting some sort of sidechain. Check the wallet-starter-directory for
       // a starter seed
-      final mnemonicPath = binary.getMnemonicPath(appDir);
+      final mnemonicPath = binary.getMnemonicPath(bitwindowAppDir);
       log.i('mnemonic path: $mnemonicPath');
       if (mnemonicPath != null) {
         log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
@@ -447,7 +456,7 @@ class BinaryProvider extends ChangeNotifier {
     // one itself
     if (settings.launcherMode) {
       while (true) {
-        final walletDir = getWalletDir(appDir);
+        final walletDir = getWalletDir(bitwindowAppDir);
         if (walletDir != null) {
           final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
           if (await mnemonicFile.exists()) {

@@ -614,39 +614,6 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 	}
 }
 
-func (s *Server) getAddressFromOutpoint(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient, txid string, vout int) (string, error) {
-	rawTxResp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
-		Msg: &corepb.GetRawTransactionRequest{
-			Txid: txid,
-		},
-	})
-	if err != nil {
-		return "", fmt.Errorf("enforcer/wallet: could not get raw transaction: %w", err)
-	}
-
-	rawBytes, err := hex.DecodeString(rawTxResp.Msg.Tx.Hex)
-	if err != nil {
-		return "", fmt.Errorf("could not decode raw tx hex: %w", err)
-	}
-	decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
-	if err != nil {
-		return "", fmt.Errorf("could not decode raw transaction: %w", err)
-	}
-	if vout < 0 || vout >= len(decodedTx.MsgTx().TxOut) {
-		return "", fmt.Errorf("enforcer/wallet: vout %d out of range for tx %s", vout, txid)
-	}
-	txOut := decodedTx.MsgTx().TxOut[vout]
-
-	// Extract address from scriptPubKey
-	var address string
-	_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
-	if err == nil && len(addrs) > 0 {
-		address = addrs[0].EncodeAddress()
-	}
-
-	return address, nil
-}
-
 // ListReceiveAddresses implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
 	wallet, err := s.wallet.Get(ctx)
