@@ -218,10 +218,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
     return SailCard(
       key: Key('address-book-$direction'),
       title: direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
-      subtitle: widget.viewModel.error('create') ??
-          widget.viewModel.error('edit') ??
-          widget.viewModel.error('delete') ??
-          'Manage your addresses.',
+      subtitle: widget.viewModel.error('create') ?? widget.viewModel.error('edit') ?? widget.viewModel.error('delete'),
       widgetHeaderEnd: direction == Direction.DIRECTION_SEND
           ? Padding(
               padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
@@ -229,7 +226,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
                 spacing: SailStyleValues.padding08,
                 children: [
                   SailButton(
-                    label: 'Create New Sending Address',
+                    label: 'Add New Sending Address',
                     onPressed: () async => _showCreateDialog(context),
                   ),
                 ],
