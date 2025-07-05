@@ -64,14 +64,6 @@ updates:
         update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
-    directory: "/launcher"
-    schedule:
-      interval: weekly
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
-
-  - package-ecosystem: pub
     directory: "/zside"
     schedule:
       interval: weekly

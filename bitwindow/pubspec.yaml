@@ -39,13 +39,13 @@ dependencies:
   dotted_border: ^3.1.0
   window_manager: ^0.5.0
   synchronized: ^3.4.0
-  skeletonizer: ^2.1.0+1 
+  skeletonizer: ^2.1.0+1
   flutter_markdown: ^0.7.7
   path: ^1.9.0
   url_launcher: ^6.3.1
   pointycastle: ^3.9.1
   crypto: ^3.0.6
-  connectrpc: 0.4.0
+  connectrpc: ^1.0.0
   desktop_multi_window: ^0.2.1
   convert: ^3.1.1
   bip39_mnemonic: ^3.0.9
