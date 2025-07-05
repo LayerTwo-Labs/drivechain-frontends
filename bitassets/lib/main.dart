@@ -38,21 +38,6 @@ Future<void> start(List<String> args) async {
     }
   }
 
-  await windowManager.ensureInitialized();
-  const windowOptions = WindowOptions(
-    minimumSize: Size(400, 400),
-    size: Size(1200, 600),
-    titleBarStyle: TitleBarStyle.normal,
-    title: 'BitAssets Sidechain',
-  );
-
-  unawaited(
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    }),
-  );
-
   // Fall back to filesystem if not provided in args
   applicationDir ??= await getApplicationSupportDirectory();
   logFile ??= await getLogFile();
@@ -146,6 +131,21 @@ Future<void> start(List<String> args) async {
     }
   }
 
+  await windowManager.ensureInitialized();
+  const windowOptions = WindowOptions(
+    minimumSize: Size(400, 400),
+    size: Size(1200, 600),
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'BitAssets Sidechain',
+  );
+
+  unawaited(
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    }),
+  );
+
   final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
 
   runApp(
@@ -229,7 +229,6 @@ Future<void> initDependencies(
 
   final bitassets = await BitAssetsLive.create(
     binary: binary,
-    chain: Sidechain.fromBinary(binary),
   );
   GetIt.I.registerSingleton<BitAssetsRPC>(bitassets);
   GetIt.I.registerSingleton<SidechainRPC>(bitassets);

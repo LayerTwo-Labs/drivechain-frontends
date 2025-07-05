@@ -243,7 +243,7 @@ class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewMode
 enum ConnectionStatus { connected, unconnected }
 
 class NodeConnectionViewModel extends BaseViewModel {
-  ZCashRPC get rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
   MainchainRPC get mainRPC => GetIt.I.get<MainchainRPC>();
 
   bool _sidechainBusy = false;

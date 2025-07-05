@@ -4,20 +4,20 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:zside/providers/zcash_provider.dart';
+import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
-import 'package:zside/widgets/containers/tabs/zcash_tab_widgets.dart';
+import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
 
 @RoutePage()
-class ZCashShieldDeshieldTabPage extends StatelessWidget {
+class ZSideShieldDeshieldTabPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashShieldDeshieldTabPage({super.key});
+  const ZSideShieldDeshieldTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashShieldTabViewModel(),
+      viewModelBuilder: () => ZSideShieldTabViewModel(),
       builder: ((context, model, child) {
         return QtPage(
           child: Padding(
@@ -74,13 +74,6 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                SailButton(
-                  variant: ButtonVariant.secondary,
-                  label: 'View Z Operation Status',
-                  onPressed: () async {
-                    await router.push(const ZCashOperationStatusesTabRoute());
-                  },
-                ),
               ],
             ),
           ),
@@ -90,15 +83,15 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
   }
 }
 
-class ZCashShieldTabViewModel extends BaseViewModel {
+class ZSideShieldTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
-  String get zcashAddress => _zcashProvider.zcashAddress;
+  String get zsideAddress => _zsideProvider.zsideAddress;
   List<UnshieldedUTXO> get unshieldedUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
-  List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
+      _zsideProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zsideFee).toList();
+  List<ShieldedUTXO> get shieldedUTXOs => _zsideProvider.shieldedUTXOs;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
@@ -109,8 +102,8 @@ class ZCashShieldTabViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  ZCashShieldTabViewModel() {
-    _zcashProvider.addListener(notifyListeners);
+  ZSideShieldTabViewModel() {
+    _zsideProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
   }
 
@@ -155,7 +148,7 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   @override
   void dispose() {
     super.dispose();
-    _zcashProvider.removeListener(notifyListeners);
+    _zsideProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
   }
 }

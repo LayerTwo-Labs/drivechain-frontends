@@ -6,13 +6,10 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
-
-final log = GetIt.I.get<Logger>();
 
 /// API to the thunder server.
 abstract class ThunderRPC extends SidechainRPC {
@@ -20,7 +17,6 @@ abstract class ThunderRPC extends SidechainRPC {
     required super.conf,
     required super.binary,
     required super.restartOnFailure,
-    required super.chain,
   });
 
   /// Get total sidechain wealth in BTC
@@ -61,6 +57,9 @@ abstract class ThunderRPC extends SidechainRPC {
 }
 
 class ThunderLive extends ThunderRPC {
+  @override
+  final log = GetIt.I.get<Logger>();
+
   RPCClient _client() {
     final client = RPCClient(
       host: '127.0.0.1',
@@ -79,13 +78,11 @@ class ThunderLive extends ThunderRPC {
     required super.conf,
     required super.binary,
     required super.restartOnFailure,
-    required super.chain,
   });
 
   // Async factory
   static Future<ThunderLive> create({
     required Binary binary,
-    required Sidechain chain,
   }) async {
     final conf = await readConf();
 
@@ -93,7 +90,6 @@ class ThunderLive extends ThunderRPC {
       conf: conf,
       binary: binary,
       restartOnFailure: false,
-      chain: chain,
     );
 
     await instance._init();
@@ -114,8 +110,7 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<int> ping() async {
-    final response = await _client().call('balance') as Map<String, dynamic>;
-    return response['total_sats'] as int;
+    return await getBlockCount();
   }
 
   @override
@@ -134,6 +129,11 @@ class ThunderLive extends ThunderRPC {
     final unconfirmed = satoshiToBTC(totalSats - availableSats);
 
     return (confirmed, unconfirmed);
+  }
+
+  @override
+  Future<int> getBlockCount() async {
+    return await _client().call('getblockcount') as int;
   }
 
   @override

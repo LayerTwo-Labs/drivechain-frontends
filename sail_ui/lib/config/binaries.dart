@@ -90,8 +90,8 @@ abstract class Binary {
       return TestSidechain();
     }
 
-    if (ZCash().name.toLowerCase() == name) {
-      return ZCash();
+    if (ZSide().name.toLowerCase() == name) {
+      return ZSide();
     }
 
     return null;
@@ -447,7 +447,12 @@ abstract class Binary {
   Future<DateTime?> checkReleaseDate() async {
     try {
       final os = getOS();
-      final fileName = metadata.files[os]!;
+      final fileName = metadata.files[os];
+      if (fileName == null) {
+        log.w('Warning: No file name for $name on $os');
+        return null;
+      }
+
       final downloadUrl = Uri.parse(metadata.baseUrl).resolve(fileName).toString();
 
       final client = HttpClient();
@@ -697,7 +702,7 @@ extension BinaryPaths on Binary {
   String confFile() {
     return switch (this) {
       var b when b is TestSidechain => 'testchain.conf',
-      var b when b is ZCash => 'zcash.conf',
+      var b when b is ZSide => 'zside.conf',
       var b when b is BitcoinCore => 'bitcoin.conf',
       _ => throw 'unsupported binary type: $runtimeType',
     };
@@ -706,7 +711,7 @@ extension BinaryPaths on Binary {
   String logPath() {
     return switch (this) {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
-      var b when b is ZCash => filePath([datadir(), 'regtest', 'debug.log']),
+      var b when b is ZSide => filePath([datadir(), 'regtest', 'debug.log']),
       var b when b is Thunder || b is Bitnames || b is BitAssets => _findLatestVersionedLog(),
       var b when b is BitcoinCore => filePath([datadir(), 'debug.log']),
       var b when b is BitWindow => filePath([datadir(), 'server.log']),

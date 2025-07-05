@@ -12,7 +12,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:zside/config/runtime_args.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/transactions_provider.dart';
-import 'package:zside/providers/zcash_provider.dart';
+import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/rpc/models/active_sidechains.dart';
 import 'package:zside/storage/sail_settings/font_settings.dart';
@@ -39,21 +39,6 @@ Future<void> start(List<String> args) async {
     }
   }
 
-  await windowManager.ensureInitialized();
-  const windowOptions = WindowOptions(
-    minimumSize: Size(400, 400),
-    size: Size(1200, 600),
-    titleBarStyle: TitleBarStyle.normal,
-    title: 'ZSide Sidechain',
-  );
-
-  unawaited(
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    }),
-  );
-
   // Fall back to filesystem if not provided in args
   applicationDir ??= await getApplicationSupportDirectory();
   logFile ??= await getLogFile();
@@ -64,8 +49,8 @@ Future<void> start(List<String> args) async {
   AppRouter router = GetIt.I.get<AppRouter>();
   Logger log = GetIt.I.get<Logger>();
 
-  log.i('starting thunder');
-  final thunder = GetIt.I.get<ZCashRPC>();
+  log.i('starting zside');
+  final zside = GetIt.I.get<ZSideRPC>();
 
   if (args.contains('multi_window')) {
     final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
@@ -93,10 +78,25 @@ Future<void> start(List<String> args) async {
             body: child,
           ),
         ),
-        accentColor: thunder.chain.color,
+        accentColor: zside.chain.color,
       ),
     );
   }
+
+  await windowManager.ensureInitialized();
+  const windowOptions = WindowOptions(
+    minimumSize: Size(400, 400),
+    size: Size(1200, 600),
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'ZSide Sidechain',
+  );
+
+  unawaited(
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    }),
+  );
 
   final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
 
@@ -107,13 +107,13 @@ Future<void> start(List<String> args) async {
       builder: (context) => MaterialApp.router(
         routerDelegate: router.delegate(),
         routeInformationParser: router.defaultRouteParser(),
-        title: thunder.chain.name,
+        title: zside.chain.name,
         theme: ThemeData(
           fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
-          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: thunder.chain.color),
+          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: zside.chain.color),
         ),
       ),
-      accentColor: thunder.chain.color,
+      accentColor: zside.chain.color,
       log: log,
     ),
   );
@@ -176,10 +176,11 @@ Future<void> initDependencies(
   );
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
-  final zcash = MockZCashRPCLive(
-    storage: store,
+  final zside = await ZSideLive.create(
+    binary: binaries.firstWhere((b) => b is ZSide),
   );
-  GetIt.I.registerSingleton<ZCashRPC>(zcash);
+  GetIt.I.registerSingleton<ZSideRPC>(zside);
+  GetIt.I.registerSingleton<SidechainRPC>(zside);
 
   // After RPCs including sidechain rpcs have been registered, register the binary provider
   final binaryProvider = BinaryProvider(
@@ -199,14 +200,14 @@ Future<void> initDependencies(
 
   GetIt.I.registerLazySingleton<BalanceProvider>(
     () => BalanceProvider(
-      connections: [zcash],
+      connections: [zside],
     ),
   );
 
   final syncProvider = SyncProvider(
     additionalConnection: SyncConnection(
-      rpc: zcash,
-      name: zcash.binary.name,
+      rpc: zside,
+      name: zside.binary.name,
     ),
   );
   GetIt.I.registerLazySingleton<SyncProvider>(
@@ -218,8 +219,8 @@ Future<void> initDependencies(
     () => TransactionsProvider(),
   );
 
-  GetIt.I.registerLazySingleton<ZCashProvider>(
-    () => ZCashProvider(),
+  GetIt.I.registerLazySingleton<ZSideProvider>(
+    () => ZSideProvider(),
   );
 
   GetIt.I.registerLazySingleton<CastProvider>(
@@ -243,10 +244,10 @@ Future<File> getLogFile() async {
 
 void bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final thunder = binaryProvider.binaries.firstWhere((b) => b is Thunder);
+  final zside = binaryProvider.binaries.firstWhere((b) => b is ZSide);
 
   await binaryProvider.startWithEnforcer(
-    thunder,
+    zside,
   );
 }
 
@@ -255,8 +256,11 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
   var binaries = [
     BitcoinCore(),
     Enforcer(),
-    Thunder(),
+    ZSide(),
   ];
+
+  // make bitassets boot in headless-mode
+  binaries[2].addBootArg('--headless');
 
   return await loadBinaryCreationTimestamp(binaries, appDir);
 }

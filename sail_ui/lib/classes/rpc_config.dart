@@ -125,7 +125,7 @@ void addEntryIfNotSet(List<String> args, String key, String value) {
     return;
   }
 
-  // args are expected on the form -paramsdir=/home/.zcash
+  // args are expected on the form -paramsdir=/home/.zside
   final newEntry = '-$key=$value';
   log.i('$key not present in conf, adding $newEntry');
   args.add(newEntry);

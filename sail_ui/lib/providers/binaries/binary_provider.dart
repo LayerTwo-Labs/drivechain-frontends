@@ -24,7 +24,7 @@ class BinaryProvider extends ChangeNotifier {
   late final ThunderRPC? thunderRPC;
   late final BitnamesRPC? bitnamesRPC;
   late final BitAssetsRPC? bitassetsRPC;
-  late final ZCashRPC? zcashRPC;
+  late final ZSideRPC? zsideRPC;
   late final DownloadManager _downloadManager;
   late final ProcessManager _processManager;
 
@@ -38,7 +38,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get thunderConnected => thunderRPC?.connected ?? false;
   bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
   bool get bitassetsConnected => bitassetsRPC?.connected ?? false;
-  bool get zcashConnected => zcashRPC?.connected ?? false;
+  bool get zsideConnected => zsideRPC?.connected ?? false;
 
   bool get mainchainInitializing => mainchainRPC.initializingBinary;
   bool get enforcerInitializing => enforcerRPC.initializingBinary;
@@ -46,7 +46,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
   bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
   bool get bitassetsInitializing => bitassetsRPC?.initializingBinary ?? false;
-  bool get zcashInitializing => zcashRPC?.initializingBinary ?? false;
+  bool get zsideInitializing => zsideRPC?.initializingBinary ?? false;
 
   bool get mainchainStopping => mainchainRPC.stoppingBinary;
   bool get enforcerStopping => enforcerRPC.stoppingBinary;
@@ -54,7 +54,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
   bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
   bool get bitassetsStopping => bitassetsRPC?.stoppingBinary ?? false;
-  bool get zcashStopping => zcashRPC?.stoppingBinary ?? false;
+  bool get zsideStopping => zsideRPC?.stoppingBinary ?? false;
 
   // Only show errors for explicitly launched binaries
   String? get mainchainError => mainchainRPC.connectionError;
@@ -63,7 +63,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get thunderError => thunderRPC?.connectionError;
   String? get bitnamesError => bitnamesRPC?.connectionError;
   String? get bitassetsError => bitassetsRPC?.connectionError;
-  String? get zcashError => zcashRPC?.connectionError;
+  String? get zsideError => zsideRPC?.connectionError;
 
   // Only show errors for explicitly launched binaries
   String? get mainchainStartupError => mainchainRPC.startupError;
@@ -72,7 +72,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get thunderStartupError => thunderRPC?.startupError;
   String? get bitnamesStartupError => bitnamesRPC?.startupError;
   String? get bitassetsStartupError => bitassetsRPC?.startupError;
-  String? get zcashStartupError => zcashRPC?.startupError;
+  String? get zsideStartupError => zsideRPC?.startupError;
 
   // let the download manager handle all binary stuff. Only it does updates!
   List<Binary> get binaries => _downloadManager.binaries;
@@ -140,10 +140,10 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     try {
-      zcashRPC = GetIt.I.get<ZCashRPC>();
-      zcashRPC?.addListener(notifyListeners);
+      zsideRPC = GetIt.I.get<ZSideRPC>();
+      zsideRPC?.addListener(notifyListeners);
     } catch (_) {
-      zcashRPC = null;
+      zsideRPC = null;
     }
 
     _init();
@@ -190,7 +190,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Thunder => thunderRPC,
       var b when b is Bitnames => bitnamesRPC,
       var b when b is BitAssets => bitassetsRPC,
-      var b when b is ZCash => zcashRPC,
+      var b when b is ZSide => zsideRPC,
       _ => null,
     };
 
@@ -223,7 +223,7 @@ class BinaryProvider extends ChangeNotifier {
 
       var timeout = const Duration(seconds: 60);
       if (binary.binary == 'zsided') {
-        // zcash can take a long time. initial sync as well
+        // zside can take a long time. initial sync as well
         timeout = const Duration(seconds: 5 * 60);
       }
 
@@ -307,8 +307,8 @@ class BinaryProvider extends ChangeNotifier {
           await bitnamesRPC?.stop();
         case BitAssets():
           await bitassetsRPC?.stop();
-        case ZCash():
-          await zcashRPC?.stop();
+        case ZSide():
+          await zsideRPC?.stop();
       }
     } catch (e) {
       log.e('could not stop ${binary.name}: $e');
@@ -346,7 +346,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Thunder => thunderConnected,
       var b when b is Bitnames => bitnamesConnected,
       var b when b is BitAssets => bitassetsConnected,
-      var b when b is ZCash => zcashConnected,
+      var b when b is ZSide => zsideConnected,
       _ => false,
     };
   }
@@ -361,7 +361,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Thunder => thunderInitializing,
       var b when b is Bitnames => bitnamesInitializing,
       var b when b is BitAssets => bitassetsInitializing,
-      var b when b is ZCash => zcashInitializing,
+      var b when b is ZSide => zsideInitializing,
       _ => false,
     };
   }
@@ -376,7 +376,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Thunder => thunderError,
       var b when b is Bitnames => bitnamesError,
       var b when b is BitAssets => bitassetsError,
-      var b when b is ZCash => zcashError,
+      var b when b is ZSide => zsideError,
       _ => null,
     };
   }
@@ -390,7 +390,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Thunder => _processManager.isRunning(Thunder()),
       var b when b is Bitnames => _processManager.isRunning(Bitnames()),
       var b when b is BitAssets => _processManager.isRunning(BitAssets()),
-      var b when b is ZCash => _processManager.isRunning(ZCash()),
+      var b when b is ZSide => _processManager.isRunning(ZSide()),
       _ => false,
     };
   }
@@ -403,7 +403,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Thunder => thunderStopping,
       var b when b is Bitnames => bitnamesStopping,
       var b when b is BitAssets => bitassetsStopping,
-      var b when b is ZCash => zcashStopping,
+      var b when b is ZSide => zsideStopping,
       _ => false,
     };
   }
@@ -580,7 +580,7 @@ class BinaryProvider extends ChangeNotifier {
     thunderRPC?.removeListener(notifyListeners);
     bitnamesRPC?.removeListener(notifyListeners);
     bitassetsRPC?.removeListener(notifyListeners);
-    zcashRPC?.removeListener(notifyListeners);
+    zsideRPC?.removeListener(notifyListeners);
     _downloadManager.dispose();
     super.dispose();
   }
@@ -631,6 +631,8 @@ String _stripFromString(String input, String whatToStrip) {
 }
 
 Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
+  final log = GetIt.I.get<Logger>();
+
   // rewrite bundled assets in this build. things get updated!
   try {
     await Future.wait([

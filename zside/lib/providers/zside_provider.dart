@@ -6,26 +6,24 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-class ZCashProvider extends ChangeNotifier {
-  ZCashRPC get rpc => GetIt.I.get<ZCashRPC>();
+class ZSideProvider extends ChangeNotifier {
+  ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
   Logger get log => GetIt.I.get<Logger>();
 
   MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
-  NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
-  String zcashAddress = '';
-  List<OperationStatus> operations = [];
+  String zsideAddress = '';
   List<ShieldedUTXO> shieldedUTXOs = [];
   List<UnshieldedUTXO> unshieldedUTXOs = [];
   List<CoreTransaction> transparentTransactions = [];
   List<ShieldedUTXO> privateTransactions = [];
 
-  double sideFee = zcashFee;
+  double sideFee = zsideFee;
 
   bool _isFetching = false;
 
-  ZCashProvider() {
+  ZSideProvider() {
     // fetch on launch
     fetch();
 
@@ -41,28 +39,22 @@ class ZCashProvider extends ChangeNotifier {
       }
       _isFetching = true;
 
-      var newZcashAddress = await rpc.getPrivateAddress();
-      var newOperations = await rpc.listOperations();
-      var newShieldedUTXOs = (await rpc.listShieldedCoins()).reversed.toList();
-      var newUnshieldedUTXOs = (await rpc.listUnshieldedCoins()).reversed.toList();
+      var newZcashAddress = await rpc.getNewShieldedAddress();
+      var newShieldedUTXOs = (await rpc.listShieldedUTXOs()).reversed.toList();
+      var newUnshieldedUTXOs = (await rpc.listUnshieldedUTXOs()).reversed.toList();
       var newTransparentTXs = (await rpc.listTransactions()).reversed.toList();
       var newPrivateTXs = (await rpc.listPrivateTransactions()).reversed.toList();
       var newSideFee = await rpc.sideEstimateFee();
 
       if (_dataHasChanged(
         newZcashAddress,
-        newOperations,
         newShieldedUTXOs,
         newUnshieldedUTXOs,
         newTransparentTXs,
         newPrivateTXs,
         newSideFee,
       )) {
-        zcashAddress = newZcashAddress;
-        operations.addAll(newOperations);
-        for (final newOp in newOperations) {
-          _notifyNewOperation(newOp);
-        }
+        zsideAddress = newZcashAddress;
         shieldedUTXOs = newShieldedUTXOs;
         unshieldedUTXOs = newUnshieldedUTXOs;
         transparentTransactions = newTransparentTXs;
@@ -79,18 +71,13 @@ class ZCashProvider extends ChangeNotifier {
 
   bool _dataHasChanged(
     String newZcashAddress,
-    List<OperationStatus> newOperations,
     List<ShieldedUTXO> newShieldedUTXOs,
     List<UnshieldedUTXO> newUnshieldedUTXOs,
     List<CoreTransaction> newTransparentTXs,
     List<ShieldedUTXO> newPrivateTXs,
     double newSideFee,
   ) {
-    if (newZcashAddress != zcashAddress) {
-      return true;
-    }
-
-    if (newOperations.isNotEmpty) {
+    if (newZcashAddress != zsideAddress) {
       return true;
     }
 
@@ -115,14 +102,6 @@ class ZCashProvider extends ChangeNotifier {
     }
 
     return false;
-  }
-
-  void _notifyNewOperation(OperationStatus operation) {
-    _notificationProvider.add(
-      title: '${operation.method} ${operation.status == 'success' ? 'succeeded' : 'failed'}',
-      content: operation.id,
-      dialogType: operation.status == 'success' ? DialogType.success : DialogType.error,
-    );
   }
 
   // From here on out, MELT CODE BBY

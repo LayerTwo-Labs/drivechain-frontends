@@ -15,13 +15,13 @@ import 'package:sail_ui/providers/sidechain/address_provider.dart';
 import 'package:sail_ui/providers/sidechain/sidechain_transactions_provider.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
-import 'package:sail_ui/rpcs/zcash_rpc.dart';
+import 'package:sail_ui/rpcs/zside_rpc.dart';
 import 'package:zside/pages/test_page.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/transactions_provider.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
-import 'mocks/rpc_mock_zcash.dart';
+import 'mocks/rpc_mock_zside.dart';
 import 'test_utils.dart';
 
 final txProvider = SidechainTransactionsProvider();
@@ -36,9 +36,9 @@ void main() {
 
   setUpAll(() async {
     final sidechainRPC = MockSidechainRPC();
-    final zcashRPC = MockZCashRPC();
+    final zsideRPC = MockZSideRPC();
     GetIt.I.registerLazySingleton<SidechainRPC>(() => sidechainRPC);
-    GetIt.I.registerLazySingleton<ZCashRPC>(() => zcashRPC);
+    GetIt.I.registerLazySingleton<ZSideRPC>(() => zsideRPC);
     GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
     GetIt.I.registerLazySingleton<CastProvider>(() => CastProvider());
     GetIt.I.registerLazySingleton<Logger>(() => Logger());

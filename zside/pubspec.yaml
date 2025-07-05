@@ -120,7 +120,7 @@ flutter:
 # Windows release stuff.
 # This currently relies on having a self-signed certificate
 # locally available, which must be changed before this is
-# properly deployed (either published to the MS store or 
+# properly deployed (either published to the MS store or
 # as an installer on a website somewhere).
 # https://pub.dev/packages/msix
 msix_config:
@@ -133,7 +133,7 @@ msix_config:
   logo_path: logo.png
   capabilities: internetClientServer
   output_name: ZSide
-  store_certificate: false  # Use a test certificate instead of store certificate
+  store_certificate: false # Use a test certificate instead of store certificate
   install_certificate: false # Don't install certificate during CI builds
   os_min_version: 10.0.17763.0
-  store: false  # Not publishing to Microsoft Store
+  store: false # Not publishing to Microsoft Store

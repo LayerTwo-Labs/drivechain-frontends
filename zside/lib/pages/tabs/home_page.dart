@@ -26,9 +26,9 @@ enum Tabs {
   // sidechain balance/transfer route
   SidechainOverview,
 
-  // zcash routes
-  ZCashShieldDeshield,
-  ZCashMeltCast,
+  // zside routes
+  ZSideShieldDeshield,
+  ZSideMeltCast,
 
   // trailing common routes
   SettingsHome,
@@ -44,7 +44,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
 
@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'About $ZCashRPC.rpc.chain.name',
+                  label: 'About $ZSideRPC.rpc.chain.name',
                   onSelected: null,
                 ),
               ],
@@ -89,7 +89,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'Quit $ZCashRPC.rpc.chain.name',
+                  label: 'Quit $ZSideRPC.rpc.chain.name',
                   shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
                   onSelected: () => didRequestAppExit(),
                 ),
@@ -119,7 +119,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                     );
                     await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
                     await window.center();
-                    await window.setTitle('$ZCashRPC.rpc.chain.name Console');
+                    await window.setTitle('$ZSideRPC.rpc.chain.name Console');
                     await window.show();
                   },
                 ),
@@ -148,9 +148,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             // sidechain balance/transfer route
             SidechainOverviewTabRoute(),
 
-            // zcash routes
-            ZCashShieldDeshieldTabRoute(),
-            ZCashMeltCastTabRoute(),
+            // zside routes
+            ZSideShieldDeshieldTabRoute(),
+            ZSideMeltCastTabRoute(),
 
             // trailing common routes
             SettingsTabRoute(),
@@ -172,16 +172,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                       ),
                       TopNavRoute(
                         label: 'Shield/Deshield',
-                        optionalKey: Tabs.ZCashShieldDeshield.index,
+                        optionalKey: Tabs.ZSideShieldDeshield.index,
                         onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
+                          tabsRouter.setActiveIndex(Tabs.ZSideShieldDeshield.index);
                         },
                       ),
                       TopNavRoute(
                         label: 'Melt/Cast',
-                        optionalKey: Tabs.ZCashMeltCast.index,
+                        optionalKey: Tabs.ZSideMeltCast.index,
                         onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
+                          tabsRouter.setActiveIndex(Tabs.ZSideMeltCast.index);
                         },
                       ),
                     ],
@@ -262,7 +262,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;

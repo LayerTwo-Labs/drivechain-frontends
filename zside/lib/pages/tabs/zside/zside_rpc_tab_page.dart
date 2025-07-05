@@ -6,15 +6,15 @@ import 'package:stacked/stacked.dart';
 import 'package:zside/routing/router.dart';
 
 @RoutePage()
-class ZCashRPCTabPage extends StatelessWidget {
+class ZSideRPCTabPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashRPCTabPage({super.key});
+  const ZSideRPCTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashRPCTabPageViewModel(),
+      viewModelBuilder: () => ZSideRPCTabPageViewModel(),
       builder: ((context, model, child) {
         return SailCard(
           color: context.sailTheme.colors.background,
@@ -24,8 +24,8 @@ class ZCashRPCTabPage extends StatelessWidget {
                 child: ConsoleView(
                   services: [
                     ConsoleService(
-                      name: 'zcash',
-                      commands: zcashRPCMethods,
+                      name: 'zside',
+                      commands: zsideRPCMethods,
                       execute: (command, args) => model._rpc.callRAW(command, args),
                     ),
                   ],
@@ -39,10 +39,10 @@ class ZCashRPCTabPage extends StatelessWidget {
   }
 }
 
-class ZCashRPCTabPageViewModel extends BaseViewModel {
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+class ZSideRPCTabPageViewModel extends BaseViewModel {
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
-  ZCashRPCTabPageViewModel() {
+  ZSideRPCTabPageViewModel() {
     _rpc.addListener(notifyListeners);
   }
 

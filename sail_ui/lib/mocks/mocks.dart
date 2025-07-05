@@ -333,7 +333,6 @@ class MockThunderRPC extends ThunderRPC {
           conf: NodeConnectionSettings.empty(),
           binary: Thunder(),
           restartOnFailure: true,
-          chain: Thunder(),
         );
 
   bool _connected = false;
@@ -384,7 +383,12 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<int> ping() {
+  Future<int> ping() async {
+    return await getBlockCount();
+  }
+
+  @override
+  Future<int> getBlockCount() {
     return Future.value(0);
   }
 
@@ -520,7 +524,6 @@ class MockBitnamesRPC extends BitnamesRPC {
           conf: NodeConnectionSettings.empty(),
           binary: Bitnames(),
           restartOnFailure: true,
-          chain: Bitnames(),
         );
 
   bool _connected = false;

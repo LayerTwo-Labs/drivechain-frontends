@@ -8,7 +8,6 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
@@ -22,7 +21,6 @@ abstract class BitnamesRPC extends SidechainRPC {
     required super.conf,
     required super.binary,
     required super.restartOnFailure,
-    required super.chain,
   });
 
   /// Get balance in sats
@@ -89,6 +87,7 @@ abstract class BitnamesRPC extends SidechainRPC {
   Future<String> getNewAddress();
 
   /// Get the current block count
+  @override
   Future<int> getBlockCount();
 
   /// Get all paymail
@@ -142,13 +141,11 @@ class BitnamesLive extends BitnamesRPC {
     required super.conf,
     required super.binary,
     required super.restartOnFailure,
-    required super.chain,
   });
 
   // Async factory
   static Future<BitnamesLive> create({
     required Binary binary,
-    required Sidechain chain,
   }) async {
     final conf = await readConf();
 
@@ -156,7 +153,6 @@ class BitnamesLive extends BitnamesRPC {
       conf: conf,
       binary: binary,
       restartOnFailure: true,
-      chain: chain,
     );
 
     await instance._init();
@@ -175,8 +171,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<int> ping() async {
-    final response = await getBalance();
-    return response.totalSats;
+    return await getBlockCount();
   }
 
   @override

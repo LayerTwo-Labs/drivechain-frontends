@@ -94,95 +94,79 @@ class SidechainOverviewTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ZCashBillPage]
-class ZCashBillRoute extends PageRouteInfo<void> {
-  const ZCashBillRoute({List<PageRouteInfo>? children}) : super(ZCashBillRoute.name, initialChildren: children);
+/// [ZSideBillPage]
+class ZSideBillRoute extends PageRouteInfo<void> {
+  const ZSideBillRoute({List<PageRouteInfo>? children}) : super(ZSideBillRoute.name, initialChildren: children);
 
-  static const String name = 'ZCashBillRoute';
+  static const String name = 'ZSideBillRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const ZCashBillPage();
+      return const ZSideBillPage();
     },
   );
 }
 
 /// generated route for
-/// [ZCashMeltCastTabPage]
-class ZCashMeltCastTabRoute extends PageRouteInfo<void> {
-  const ZCashMeltCastTabRoute({List<PageRouteInfo>? children})
-      : super(ZCashMeltCastTabRoute.name, initialChildren: children);
+/// [ZSideMeltCastTabPage]
+class ZSideMeltCastTabRoute extends PageRouteInfo<void> {
+  const ZSideMeltCastTabRoute({List<PageRouteInfo>? children})
+      : super(ZSideMeltCastTabRoute.name, initialChildren: children);
 
-  static const String name = 'ZCashMeltCastTabRoute';
+  static const String name = 'ZSideMeltCastTabRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const ZCashMeltCastTabPage();
+      return const ZSideMeltCastTabPage();
     },
   );
 }
 
 /// generated route for
-/// [ZCashOperationStatusesTabPage]
-class ZCashOperationStatusesTabRoute extends PageRouteInfo<void> {
-  const ZCashOperationStatusesTabRoute({List<PageRouteInfo>? children})
-      : super(ZCashOperationStatusesTabRoute.name, initialChildren: children);
+/// [ZSideRPCTabPage]
+class ZSideRPCTabRoute extends PageRouteInfo<void> {
+  const ZSideRPCTabRoute({List<PageRouteInfo>? children}) : super(ZSideRPCTabRoute.name, initialChildren: children);
 
-  static const String name = 'ZCashOperationStatusesTabRoute';
+  static const String name = 'ZSideRPCTabRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const ZCashOperationStatusesTabPage();
+      return const ZSideRPCTabPage();
     },
   );
 }
 
 /// generated route for
-/// [ZCashRPCTabPage]
-class ZCashRPCTabRoute extends PageRouteInfo<void> {
-  const ZCashRPCTabRoute({List<PageRouteInfo>? children}) : super(ZCashRPCTabRoute.name, initialChildren: children);
+/// [ZSideShieldDeshieldTabPage]
+class ZSideShieldDeshieldTabRoute extends PageRouteInfo<void> {
+  const ZSideShieldDeshieldTabRoute({List<PageRouteInfo>? children})
+      : super(ZSideShieldDeshieldTabRoute.name, initialChildren: children);
 
-  static const String name = 'ZCashRPCTabRoute';
+  static const String name = 'ZSideShieldDeshieldTabRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const ZCashRPCTabPage();
+      return const ZSideShieldDeshieldTabPage();
     },
   );
 }
 
 /// generated route for
-/// [ZCashShieldDeshieldTabPage]
-class ZCashShieldDeshieldTabRoute extends PageRouteInfo<void> {
-  const ZCashShieldDeshieldTabRoute({List<PageRouteInfo>? children})
-      : super(ZCashShieldDeshieldTabRoute.name, initialChildren: children);
+/// [ZSideTransferTabPage]
+class ZSideTransferTabRoute extends PageRouteInfo<void> {
+  const ZSideTransferTabRoute({List<PageRouteInfo>? children})
+      : super(ZSideTransferTabRoute.name, initialChildren: children);
 
-  static const String name = 'ZCashShieldDeshieldTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const ZCashShieldDeshieldTabPage();
-    },
-  );
-}
-
-/// generated route for
-/// [ZCashTransferTabPage]
-class ZCashTransferTabRoute extends PageRouteInfo<void> {
-  const ZCashTransferTabRoute({List<PageRouteInfo>? children})
-      : super(ZCashTransferTabRoute.name, initialChildren: children);
-
-  static const String name = 'ZCashTransferTabRoute';
+  static const String name = 'ZSideTransferTabRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const ZCashTransferTabPage();
+      return const ZSideTransferTabPage();
     },
   );
 }

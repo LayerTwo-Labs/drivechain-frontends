@@ -6,7 +6,6 @@ class MockBitAssetsRPC extends BitAssetsRPC {
           conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
           binary: BitAssets(),
           restartOnFailure: false,
-          chain: BitAssets(),
         );
 
   @override

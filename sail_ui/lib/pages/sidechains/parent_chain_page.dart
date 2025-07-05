@@ -93,7 +93,7 @@ class DepositWithdrawHelp extends StatelessWidget {
   }
 }
 
-class ZCashWidgetTitleViewModel extends BaseViewModel {
+class ZSideWidgetTitleViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
@@ -101,7 +101,7 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
 
   bool showAll = false;
 
-  ZCashWidgetTitleViewModel() {
+  ZSideWidgetTitleViewModel() {
     _balanceProvider.addListener(notifyListeners);
   }
 
