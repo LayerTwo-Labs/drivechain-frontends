@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class NewWindowIdentifier {
@@ -34,7 +33,7 @@ class SailCard extends StatelessWidget {
   final bool secondary;
   final bool withCloseButton;
   final bool inSeparateWindow;
-  final NewWindowIdentifier? newWindowIdentifier;
+  final SailWindow? newWindow;
 
   const SailCard({
     super.key,
@@ -54,7 +53,7 @@ class SailCard extends StatelessWidget {
     this.secondary = false,
     this.withCloseButton = false,
     this.inSeparateWindow = false,
-    this.newWindowIdentifier,
+    this.newWindow,
   });
 
   @override
@@ -111,22 +110,13 @@ class SailCard extends StatelessWidget {
                               spacing: SailStyleValues.padding08,
                               children: [
                                 if (widgetHeaderEnd != null) widgetHeaderEnd!,
-                                if (newWindowIdentifier != null)
+                                if (newWindow != null)
                                   SailButton(
                                     variant: ButtonVariant.icon,
                                     icon: SailSVGAsset.iconNewWindow,
                                     onPressed: () async {
-                                      final window = await DesktopMultiWindow.createWindow(
-                                        jsonEncode({
-                                          'window_type': newWindowIdentifier!.windowType,
-                                          'application_dir': newWindowIdentifier!.applicationDir.path,
-                                          'log_file': newWindowIdentifier!.logFile.path,
-                                        }),
-                                      );
-                                      await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                                      await window.center();
-                                      await window.setTitle('UTXOs and Denials');
-                                      await window.show();
+                                      final windowProvider = GetIt.I.get<WindowProvider>();
+                                      await windowProvider.open(newWindow!);
                                     },
                                   ),
                                 if (withCloseButton)
@@ -140,28 +130,19 @@ class SailCard extends StatelessWidget {
                           ],
                         ),
                       )
-                    else if (withCloseButton || newWindowIdentifier != null)
+                    else if (withCloseButton || newWindow != null)
                       Align(
                         alignment: Alignment.centerRight,
                         child: SailRow(
                           spacing: SailStyleValues.padding08,
                           children: [
-                            if (newWindowIdentifier != null)
+                            if (newWindow != null)
                               SailButton(
                                 variant: ButtonVariant.icon,
                                 icon: SailSVGAsset.iconNewWindow,
                                 onPressed: () async {
-                                  final window = await DesktopMultiWindow.createWindow(
-                                    jsonEncode({
-                                      'window_type': newWindowIdentifier!.windowType,
-                                      'application_dir': newWindowIdentifier!.applicationDir.path,
-                                      'log_file': newWindowIdentifier!.logFile.path,
-                                    }),
-                                  );
-                                  await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                                  await window.center();
-                                  await window.setTitle('UTXOs and Denials');
-                                  await window.show();
+                                  final windowProvider = GetIt.I.get<WindowProvider>();
+                                  await windowProvider.open(newWindow!);
                                 },
                               ),
                             if (withCloseButton)

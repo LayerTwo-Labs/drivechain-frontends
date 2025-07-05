@@ -66,28 +66,29 @@ void main(List<String> args) async {
 
   if (args.contains('multi_window')) {
     final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+    final windowType = arguments['window_type'] as String?;
 
     Widget child = SailCard(
-      title: 'no window type provided, the programmers messed up',
-      child: SailText.primary15('no window type provided, the programmers messed up'),
+      title: 'Unknown window type: $windowType',
+      child: SailText.primary15('Unknown window type: $windowType'),
     );
 
-    switch (arguments['window_type']) {
-      case 'debug':
-        child = DebugWindow(
-          // can't open a new window from a new window!
-          newWindowIdentifier: null,
+    // Map string identifiers to window types
+    switch (windowType) {
+      case SubWindowTypes.debugId:
+        child = DebugWindow();
+        break;
+      case SubWindowTypes.logsId:
+        child = LogPage(
+          logPath: logFile.path,
+          title: 'Bitwindow Logs',
         );
         break;
-      case 'deniability':
-        child = DeniabilityTab(
-          newWindowIdentifier: null,
-        );
+      case SubWindowTypes.deniabilityId:
+        child = DeniabilityTab(newWindowButton: null);
         break;
-      case 'block_explorer':
-        child = const BlockExplorerDialog(
-          newWindowIdentifier: null,
-        );
+      case SubWindowTypes.blockExplorerId:
+        child = const BlockExplorerDialog(newWindowButton: null);
         break;
     }
 
@@ -124,6 +125,10 @@ void main(List<String> args) async {
       await windowManager.focus();
     }),
   );
+
+  // Initialize WindowProvider for the main window
+  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
+  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
   unawaited(bootBinaries(log));
   await setupSignalHandlers(log);
@@ -469,4 +474,38 @@ Future<void> setupSignalHandlers(Logger log) async {
       },
     );
   }
+}
+
+// BitWindow window types
+class SubWindowTypes {
+  static const String logsId = 'logs';
+  static const String debugId = 'debug';
+  static const String deniabilityId = 'deniability';
+  static const String blockExplorerId = 'block_explorer';
+
+  static var debug = SailWindow(
+    identifier: debugId,
+    name: 'Debug',
+    defaultSize: Size(800, 600),
+    defaultPosition: Offset(100, 100),
+  );
+
+  static var logs = SailWindow(
+    identifier: logsId,
+    name: 'Logs',
+    defaultSize: Size(800, 600),
+    defaultPosition: Offset(100, 100),
+  );
+  static var deniability = SailWindow(
+    identifier: deniabilityId,
+    name: 'Deniability',
+    defaultSize: Size(600, 400),
+    defaultPosition: Offset(200, 200),
+  );
+  static var blockExplorer = SailWindow(
+    identifier: blockExplorerId,
+    name: 'Block Explorer',
+    defaultSize: Size(1000, 700),
+    defaultPosition: Offset(150, 150),
+  );
 }

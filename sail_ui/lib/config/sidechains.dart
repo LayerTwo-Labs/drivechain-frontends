@@ -302,9 +302,9 @@ class ZSide extends Sidechain {
               MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
-                  OS.linux: 'L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S5-ZSide-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S5-ZSide-latest-x86_64-pc-windows-gnu.zip',
+                  OS.linux: 'L2-S98-ZSide-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'L2-S98-ZSide-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'L2-S98-ZSide-latest-x86_64-pc-windows-gnu.zip',
                 },
                 remoteTimestamp: null,
                 downloadedTimestamp: null,
@@ -314,7 +314,7 @@ class ZSide extends Sidechain {
         );
 
   @override
-  int slot = 5;
+  int slot = 98;
 
   @override
   Color color = SailColorScheme.blue;

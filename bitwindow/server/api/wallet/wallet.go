@@ -654,11 +654,6 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[em
 		return nil, err
 	}
 
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
@@ -688,18 +683,16 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[em
 	addressMap := make(map[string]*pb.ReceiveAddress)
 
 	for _, utxo := range utxos.Msg.Outputs {
-		address, err := s.getAddressFromOutpoint(ctx, bitcoind, utxo.Txid.Hex.Value, int(utxo.Vout))
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not get address from outpoint: %w", err)
-		}
-		if address == "" {
-			continue
-		}
+
 		utxoTimestamp := utxo.UnconfirmedLastSeen
 		if utxoTimestamp == nil {
 			utxoTimestamp = utxo.ConfirmedAtTime
 		}
 
+		var address string
+		if utxo.Address != nil {
+			address = utxo.Address.Value
+		}
 		if _, ok := addressMap[address]; !ok {
 
 			addressMap[address] = &pb.ReceiveAddress{

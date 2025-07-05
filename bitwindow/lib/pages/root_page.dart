@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
-import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/message_signer.dart';
@@ -210,9 +209,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Deniability',
                   onSelected: () async {
-                    final applicationDir = await Environment.datadir();
-                    final logFile = await getLogFile();
-
                     await showDialog(
                       context: _routerKey.currentContext!,
                       builder: (context) => SailPadding(
@@ -223,11 +219,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           bottom: SailStyleValues.padding64 * 2,
                         ),
                         child: DeniabilityTab(
-                          newWindowIdentifier: NewWindowIdentifier(
-                            windowType: 'deniability',
-                            applicationDir: applicationDir,
-                            logFile: logFile,
-                          ),
+                          newWindowButton: SubWindowTypes.deniability,
                         ),
                       ),
                     );
@@ -291,9 +283,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Block Explorer',
                   onSelected: () async {
-                    final applicationDir = await Environment.datadir();
-                    final logFile = await getLogFile();
-
                     await showDialog(
                       context: _routerKey.currentContext!,
                       builder: (context) => SailPadding(
@@ -304,11 +293,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           bottom: SailStyleValues.padding64 * 2,
                         ),
                         child: BlockExplorerDialog(
-                          newWindowIdentifier: NewWindowIdentifier(
-                            windowType: 'block_explorer',
-                            applicationDir: applicationDir,
-                            logFile: logFile,
-                          ),
+                          newWindowButton: SubWindowTypes.blockExplorer,
                         ),
                       ),
                     );
@@ -349,37 +334,16 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Debug Window',
                   onSelected: () async {
-                    final applicationDir = await Environment.datadir();
-                    final logFile = await getLogFile();
-
-                    await showDialog(
-                      context: _routerKey.currentContext!,
-                      builder: (context) => SailPadding(
-                        padding: EdgeInsets.only(
-                          top: SailStyleValues.padding16,
-                          left: SailStyleValues.padding16,
-                          right: SailStyleValues.padding16,
-                          bottom: SailStyleValues.padding64 * 2,
-                        ),
-                        child: DebugWindow(
-                          newWindowIdentifier: NewWindowIdentifier(
-                            windowType: 'debug',
-                            applicationDir: applicationDir,
-                            logFile: logFile,
-                          ),
-                        ),
-                      ),
-                    );
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    await windowProvider.open(SubWindowTypes.debug);
                   },
                 ),
                 PlatformMenuItem(
                   label: 'View Logs',
-                  onSelected: () => GetIt.I.get<AppRouter>().push(
-                        LogRoute(
-                          title: 'Bitwindow Logs',
-                          logPath: BitWindow().logPath(),
-                        ),
-                      ),
+                  onSelected: () async {
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    await windowProvider.open(SubWindowTypes.logs);
+                  },
                 ),
               ],
             ),
