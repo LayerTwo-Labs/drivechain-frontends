@@ -233,7 +233,6 @@ Future<void> initDependencies(
   final bitassetsBinary = binaries.firstWhere((b) => b is BitAssets);
   final bitassets = await BitAssetsLive.create(
     binary: bitassetsBinary,
-    chain: Sidechain.fromBinary(bitassetsBinary),
   );
   GetIt.I.registerLazySingleton<BitAssetsRPC>(
     () => bitassets,
@@ -242,7 +241,6 @@ Future<void> initDependencies(
   final bitnamesBinary = binaries.firstWhere((b) => b is Bitnames);
   final bitnames = await BitnamesLive.create(
     binary: bitnamesBinary,
-    chain: Sidechain.fromBinary(bitnamesBinary),
   );
   GetIt.I.registerLazySingleton<BitnamesRPC>(
     () => bitnames,
@@ -251,7 +249,6 @@ Future<void> initDependencies(
   final thunderBinary = binaries.firstWhere((b) => b is Thunder);
   final thunder = await ThunderLive.create(
     binary: thunderBinary,
-    chain: Sidechain.fromBinary(thunderBinary),
   );
   GetIt.I.registerLazySingleton<ThunderRPC>(
     () => thunder,

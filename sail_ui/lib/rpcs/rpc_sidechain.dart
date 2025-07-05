@@ -8,10 +8,11 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 abstract class SidechainRPC extends RPCConnection {
   SidechainRPC({
     required super.conf,
-    required this.chain,
     required super.binary,
     required super.restartOnFailure,
   });
+
+  Sidechain get chain => Sidechain.fromBinary(binary);
 
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
 
@@ -19,6 +20,7 @@ abstract class SidechainRPC extends RPCConnection {
   List<String> getMethods();
 
   Future<String> getDepositAddress();
+  Future<int> getBlockCount();
 
   Future<String> sideSend(
     String address,
@@ -41,8 +43,6 @@ abstract class SidechainRPC extends RPCConnection {
     int sidechainFeeSats,
     int mainchainFeeSats,
   );
-
-  Sidechain chain;
 }
 
 class RPCError {

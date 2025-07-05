@@ -9,9 +9,9 @@ enum SailSVGAsset {
 
   tabSidechainSend,
 
-  tabZCashMeltCast,
-  tabZCashShieldDeshield,
-  tabZCashOperationStatuses,
+  tabZSideMeltCast,
+  tabZSideShieldDeshield,
+  tabZSideOperationStatuses,
 
   tabConsole,
   tabSettings,
@@ -4607,11 +4607,11 @@ extension AsAssetPath on SailSVGAsset {
       case SailSVGAsset.tabSidechainSend:
         return 'assets/svgs/icon_tab_send.svg';
 
-      case SailSVGAsset.tabZCashMeltCast:
+      case SailSVGAsset.tabZSideMeltCast:
         return 'assets/svgs/icon_tab_melt_cast.svg';
-      case SailSVGAsset.tabZCashShieldDeshield:
+      case SailSVGAsset.tabZSideShieldDeshield:
         return 'assets/svgs/icon_tab_shield_deshield.svg';
-      case SailSVGAsset.tabZCashOperationStatuses:
+      case SailSVGAsset.tabZSideOperationStatuses:
         return 'assets/svgs/icon_tab_operation_statuses.svg';
 
       case SailSVGAsset.tabConsole:

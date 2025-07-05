@@ -6,7 +6,6 @@ class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
       : super(
           conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
-          chain: TestSidechain(),
           binary: MockBinary(),
           restartOnFailure: false,
         );
@@ -53,12 +52,17 @@ class MockSidechainRPC extends SidechainRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    return zcashFee;
+    return 0.00001;
   }
 
   @override
   Future<int> ping() async {
-    return 69;
+    return await getBlockCount();
+  }
+
+  @override
+  Future<int> getBlockCount() async {
+    return 1;
   }
 
   @override
@@ -104,7 +108,7 @@ class MockSidechainRPC extends SidechainRPC {
 
   @override
   List<String> getMethods() {
-    return zcashRPCMethods;
+    return [];
   }
 
   @override

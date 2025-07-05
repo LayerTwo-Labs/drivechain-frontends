@@ -6,7 +6,7 @@ class ConsoleWindow extends StatelessWidget {
   const ConsoleWindow({super.key});
 
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
-  ZCashRPC get rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
 
   @override
@@ -22,7 +22,7 @@ class ConsoleWindow extends StatelessWidget {
             execute: (command, args) => mainchain.callRAW(command, args),
           ),
           ConsoleService(
-            name: 'thunder',
+            name: 'zside',
             commands: rpc.getMethods(),
             execute: (command, args) => rpc.callRAW(command, args),
           ),

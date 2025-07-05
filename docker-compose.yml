@@ -1,41 +1,41 @@
 services:
   mainchain:
-   # 38333 = P2P, 38332 = RPC
-   ports: ["38333:38333", "38332:38332"]
-   healthcheck:
-    test:
-      [
-        "CMD",
-         "curl",
-         "--fail",
-         "-X",
-         "POST",
-         "-u",
-         "user:password",
-         "http://localhost:38332",
-       ]
+    # 38333 = P2P, 38332 = RPC
+    ports: ["38333:38333", "38332:38332"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "--fail",
+          "-X",
+          "POST",
+          "-u",
+          "user:password",
+          "http://localhost:38332",
+        ]
 
-   # https://github.com/barebitcoin/bitcoin-patched
-   image: barebitcoin/bitcoin-patched:2024-09-29-signet
-   volumes: [mainchain-data:/root/drivechain]
-   restart: unless-stopped
-   command:
-     - drivechaind
-     - -rpcuser=user
-     - -rpcpassword=password
-     - -server
-     - -signet
-     - -signetblocktime=60
-     - -signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a
-     - -listen
-     - -rpcbind=0.0.0.0
-     - -rpcallowip=0.0.0.0/0
-     - -debug=rpc
-     - -debug=net
-     - -txindex
-     - -fallbackfee=0.00021
-     - -zmqpubsequence=tcp://0.0.0.0:29000
-     - -addnode=drivechain.live:8383
+    # https://github.com/barebitcoin/bitcoin-patched
+    image: barebitcoin/bitcoin-patched:2024-09-29-signet
+    volumes: [mainchain-data:/root/drivechain]
+    restart: unless-stopped
+    command:
+      - drivechaind
+      - -rpcuser=user
+      - -rpcpassword=password
+      - -server
+      - -signet
+      - -signetblocktime=60
+      - -signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a
+      - -listen
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=0.0.0.0/0
+      - -debug=rpc
+      - -debug=net
+      - -txindex
+      - -fallbackfee=0.00021
+      - -zmqpubsequence=tcp://0.0.0.0:29000
+      - -addnode=drivechain.live:8383
 
   zside:
     image: barebitcoin/zside:latest
@@ -49,9 +49,9 @@ services:
       interval: 1s
       start_interval: 20s
     volumes:
-      - $PWD/zcash.conf:/root/.zcash/zcash.conf
-      # for some reason zcash requires the conf file, unable to pass as CLI opts
-    environment: 
+      - $PWD/zside.conf:/root/.zside/zside.conf
+      # for some reason zside requires the conf file, unable to pass as CLI opts
+    environment:
       RUST_LOG: info # logs from the Rust Drivechain lib is controlled here
     ports:
       - 20000:20000
@@ -66,4 +66,4 @@ services:
       - -rpcport=20000
 
 volumes:
-  mainchain-data: 
+  mainchain-data:

@@ -5,8 +5,8 @@ A collection of frontends for different Drivechain-based sidechains.
 1. [Testchain](https://github.com/layerTwo-Labs/testchain)  
    A template sidechain that can be used as the starting point for creating
    Drivechain sidechains
-2. [ZSide](https://github.com/LayerTwo-Labs/zcash-sidechain)  
-   A sidechain based off of Zcash
+2. [ZSide](https://github.com/LayerTwo-Labs/thunder-orchard)  
+   A sidechain based off of ZSide
 
 The frontends come in different flavors for the different sidechains:
 
@@ -19,7 +19,7 @@ application into the end result, as well as download node binaries for the
 sidechain in question. This is all wrapped up in a script:
 
 ```bash
-$ ./scripts/build-app.sh {macos,linux,windows} {zcash,testchain}
+$ ./scripts/build-app.sh {macos,linux,windows} {zside,testchain}
 # result is in ./release
 ```
 

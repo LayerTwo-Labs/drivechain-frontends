@@ -38,21 +38,6 @@ Future<void> start(List<String> args) async {
     }
   }
 
-  await windowManager.ensureInitialized();
-  const windowOptions = WindowOptions(
-    minimumSize: Size(400, 400),
-    size: Size(1200, 600),
-    titleBarStyle: TitleBarStyle.normal,
-    title: 'Bitnames Sidechain',
-  );
-
-  unawaited(
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    }),
-  );
-
   // Fall back to filesystem if not provided in args
   applicationDir ??= await getApplicationSupportDirectory();
   logFile ??= await getLogFile();
@@ -146,6 +131,21 @@ Future<void> start(List<String> args) async {
     }
   }
 
+  await windowManager.ensureInitialized();
+  const windowOptions = WindowOptions(
+    minimumSize: Size(400, 400),
+    size: Size(1200, 600),
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'Bitnames Sidechain',
+  );
+
+  unawaited(
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    }),
+  );
+
   final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
 
   runApp(
@@ -227,7 +227,6 @@ Future<void> initDependencies(
   final binary = binaries.firstWhere((b) => b is Bitnames);
   final bitnames = await BitnamesLive.create(
     binary: binary,
-    chain: Sidechain.fromBinary(binary),
   );
   GetIt.I.registerSingleton<BitnamesRPC>(bitnames);
   GetIt.I.registerSingleton<SidechainRPC>(bitnames);

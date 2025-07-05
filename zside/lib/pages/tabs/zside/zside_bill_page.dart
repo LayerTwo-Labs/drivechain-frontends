@@ -8,17 +8,17 @@ import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/routing/router.dart';
 
 @RoutePage()
-class ZCashBillPage extends StatelessWidget {
+class ZSideBillPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashBillPage({super.key});
+  const ZSideBillPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZcashBillTabViewModel(),
+      viewModelBuilder: () => ZSideBillTabViewModel(),
       builder: ((context, model, child) {
         return SailPage(
           widgetTitle: SailText.primary15('Bill Amounts'),
@@ -132,10 +132,10 @@ class ZCashBillPage extends StatelessWidget {
   }
 }
 
-class ZcashBillTabViewModel extends BaseViewModel {
+class ZSideBillTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   List<PendingCastBill> get pendingBills => _castProvider.futureCasts.toList().sublist(1);
 
@@ -148,7 +148,7 @@ class ZcashBillTabViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  ZcashBillTabViewModel() {
+  ZSideBillTabViewModel() {
     _castProvider.addListener(notifyListeners);
   }
 

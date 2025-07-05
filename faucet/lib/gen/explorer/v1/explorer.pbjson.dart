@@ -21,8 +21,7 @@ const GetChainTipsRequest$json = {
 };
 
 /// Descriptor for `GetChainTipsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getChainTipsRequestDescriptor = $convert.base64Decode(
-    'ChNHZXRDaGFpblRpcHNSZXF1ZXN0');
+final $typed_data.Uint8List getChainTipsRequestDescriptor = $convert.base64Decode('ChNHZXRDaGFpblRpcHNSZXF1ZXN0');
 
 @$core.Deprecated('Use chainTipDescriptor instead')
 const ChainTip$json = {
@@ -35,10 +34,10 @@ const ChainTip$json = {
 };
 
 /// Descriptor for `ChainTip`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List chainTipDescriptor = $convert.base64Decode(
-    'CghDaGFpblRpcBISCgRoYXNoGAEgASgJUgRoYXNoEhYKBmhlaWdodBgCIAEoBFIGaGVpZ2h0Ej'
-    'gKCXRpbWVzdGFtcBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCXRpbWVzdGFt'
-    'cA==');
+final $typed_data.Uint8List chainTipDescriptor =
+    $convert.base64Decode('CghDaGFpblRpcBISCgRoYXNoGAEgASgJUgRoYXNoEhYKBmhlaWdodBgCIAEoBFIGaGVpZ2h0Ej'
+        'gKCXRpbWVzdGFtcBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCXRpbWVzdGFt'
+        'cA==');
 
 @$core.Deprecated('Use getChainTipsResponseDescriptor instead')
 const GetChainTipsResponse$json = {
@@ -53,12 +52,12 @@ const GetChainTipsResponse$json = {
 };
 
 /// Descriptor for `GetChainTipsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getChainTipsResponseDescriptor = $convert.base64Decode(
-    'ChRHZXRDaGFpblRpcHNSZXNwb25zZRIzCgltYWluY2hhaW4YASABKAsyFS5leHBsb3Jlci52MS'
-    '5DaGFpblRpcFIJbWFpbmNoYWluEi8KB3RodW5kZXIYAiABKAsyFS5leHBsb3Jlci52MS5DaGFp'
-    'blRpcFIHdGh1bmRlchIzCgliaXRhc3NldHMYAyABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcF'
-    'IJYml0YXNzZXRzEjEKCGJpdG5hbWVzGAQgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXBSCGJp'
-    'dG5hbWVzEisKBXpzaWRlGAUgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXBSBXpzaWRl');
+final $typed_data.Uint8List getChainTipsResponseDescriptor =
+    $convert.base64Decode('ChRHZXRDaGFpblRpcHNSZXNwb25zZRIzCgltYWluY2hhaW4YASABKAsyFS5leHBsb3Jlci52MS'
+        '5DaGFpblRpcFIJbWFpbmNoYWluEi8KB3RodW5kZXIYAiABKAsyFS5leHBsb3Jlci52MS5DaGFp'
+        'blRpcFIHdGh1bmRlchIzCgliaXRhc3NldHMYAyABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcF'
+        'IJYml0YXNzZXRzEjEKCGJpdG5hbWVzGAQgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXBSCGJp'
+        'dG5hbWVzEisKBXpzaWRlGAUgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXBSBXpzaWRl');
 
 const $core.Map<$core.String, $core.dynamic> ExplorerServiceBase$json = {
   '1': 'ExplorerService',
@@ -76,7 +75,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ExplorerSe
 };
 
 /// Descriptor for `ExplorerService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List explorerServiceDescriptor = $convert.base64Decode(
-    'Cg9FeHBsb3JlclNlcnZpY2USVQoMR2V0Q2hhaW5UaXBzEiAuZXhwbG9yZXIudjEuR2V0Q2hhaW'
-    '5UaXBzUmVxdWVzdBohLmV4cGxvcmVyLnYxLkdldENoYWluVGlwc1Jlc3BvbnNlIgA=');
-
+final $typed_data.Uint8List explorerServiceDescriptor =
+    $convert.base64Decode('Cg9FeHBsb3JlclNlcnZpY2USVQoMR2V0Q2hhaW5UaXBzEiAuZXhwbG9yZXIudjEuR2V0Q2hhaW'
+        '5UaXBzUmVxdWVzdBohLmV4cGxvcmVyLnYxLkdldENoYWluVGlwc1Jlc3BvbnNlIgA=');

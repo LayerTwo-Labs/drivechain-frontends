@@ -7,7 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/cast_provider.dart';
-import 'package:zside/providers/zcash_provider.dart';
+import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/dashboard_action_modal.dart';
 
@@ -69,9 +69,9 @@ class ShieldUTXOAction extends StatelessWidget {
 
 class ShieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
 
   final bitcoinAmountController = TextEditingController();
@@ -80,7 +80,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
         symbol: ticker,
       );
 
-  double get shieldFee => _zcashProvider.sideFee;
+  double get shieldFee => _zsideProvider.sideFee;
   String get ticker => _rpc.chain.ticker;
   double? get amount => double.tryParse(bitcoinAmountController.text);
   late double maxAmount;
@@ -139,7 +139,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_zcashProvider.fetch());
+      unawaited(_zsideProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -228,15 +228,15 @@ class DeshieldUTXOAction extends StatelessWidget {
 class DeshieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount =>
       formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (deshieldFee)), symbol: ticker);
 
-  double get deshieldFee => _zcashProvider.sideFee;
+  double get deshieldFee => _zsideProvider.sideFee;
   String get ticker => _rpc.chain.ticker;
   double? get amount => double.tryParse(bitcoinAmountController.text);
 
@@ -291,7 +291,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
     );
 
     try {
-      final (deshieldID, address) = await _rpc.deshield(
+      final deshieldID = await _rpc.deshield(
         utxo,
         amount!,
       );
@@ -300,7 +300,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_zcashProvider.fetch());
+      unawaited(_zsideProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -309,7 +309,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated deshield',
-        title: 'Initiated deshield of $amount $ticker to $address',
+        title: 'Initiated deshield of $amount $ticker to ${utxo.address}',
         subtitle: 'OPID: $deshieldID',
       );
       // also pop the info modal
@@ -387,14 +387,14 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   List<PendingDeshield>? get includedInBills => _castProvider.findBillsForAmount(utxo);
   double get castableAmount => includedInBills!.fold(0, (sum, bill) => sum + bill.amount);
   double get totalBitcoinAmount => castableAmount + castFee;
-  double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
+  double get castFee => _zsideProvider.sideFee * _rpc.numUTXOsPerCast;
   String get ticker => _rpc.chain.ticker;
 
   List<String> castAddresses = [];
@@ -452,7 +452,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_zcashProvider.fetch());
+      unawaited(_zsideProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -549,21 +549,21 @@ class MeltActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
 
   final bitcoinAmountController = TextEditingController();
 
-  double get shieldFee => _zcashProvider.sideFee;
+  double get shieldFee => _zsideProvider.sideFee;
   String get ticker => _rpc.chain.ticker;
   double get totalBitcoinAmount => (meltAmount + meltFee);
   List<UnshieldedUTXO> get meltableUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > zcashFee).toList();
+      _zsideProvider.unshieldedUTXOs.where((utxo) => utxo.amount > zsideFee).toList();
   double get meltAmount =>
-      _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).fold(0.0, (value, element) => value + element) -
+      _zsideProvider.unshieldedUTXOs.map((entry) => entry.amount).fold(0.0, (value, element) => value + element) -
       meltFee;
-  double get meltFee => (_zcashProvider.sideFee * meltableUTXOs.length);
+  double get meltFee => (_zsideProvider.sideFee * meltableUTXOs.length);
 
   MeltActionViewModel() {
     bitcoinAmountController.addListener(notifyListeners);
@@ -588,7 +588,7 @@ class MeltActionViewModel extends BaseViewModel {
     );
 
     try {
-      final willMeltAt = await _zcashProvider.melt(
+      final willMeltAt = await _zsideProvider.melt(
         meltableUTXOs,
         0.10,
       );
@@ -596,7 +596,7 @@ class MeltActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_zcashProvider.fetch());
+      unawaited(_zsideProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -688,15 +688,15 @@ class MeltSingleUTXOAction extends StatelessWidget {
 class MeltSingleUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final UnshieldedUTXO utxo;
 
   String get totalBitcoinAmount => formatBitcoin(((castAmount + (shieldFee))), symbol: ticker);
   String get ticker => _rpc.chain.ticker;
-  double get shieldFee => _zcashProvider.sideFee;
+  double get shieldFee => _zsideProvider.sideFee;
   double get castAmount => utxo.amount - shieldFee;
 
   MeltSingleUTXOActionViewModel({required this.utxo});
@@ -722,7 +722,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_zcashProvider.fetch());
+      unawaited(_zsideProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -807,15 +807,15 @@ class CastActionViewModel extends BaseViewModel {
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
 
   String get ticker => _rpc.chain.ticker;
-  double get shieldFee => _zcashProvider.sideFee;
+  double get shieldFee => _zsideProvider.sideFee;
   List<PendingDeshield> get includedInBundle {
     final List<PendingDeshield> bundles = [];
 
-    for (final utxo in _zcashProvider.shieldedUTXOs) {
+    for (final utxo in _zsideProvider.shieldedUTXOs) {
       final utxoBundle = _castProvider.findBillsForAmount(utxo);
       if (utxoBundle != null) {
         bundles.addAll(utxoBundle);
@@ -827,7 +827,7 @@ class CastActionViewModel extends BaseViewModel {
 
   // cant cast utxo with less than cast fee
   List<ShieldedUTXO> get castableUTXOs =>
-      _zcashProvider.shieldedUTXOs.where((element) => element.amount > castFee).toList();
+      _zsideProvider.shieldedUTXOs.where((element) => element.amount > castFee).toList();
   num get castFee => _rpc.numUTXOsPerCast * shieldFee;
   num get castAllFee => castFee * castableUTXOs.length;
   num get castAmount => includedInBundle.map((e) => e.amount).fold(0.0, (sum, fee) => sum + fee);
@@ -850,13 +850,13 @@ class CastActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'casting ${_zcashProvider.shieldedUTXOs.length} utxos: $castAmount $ticker to with $castFee cast fee',
+      'casting ${_zsideProvider.shieldedUTXOs.length} utxos: $castAmount $ticker to with $castFee cast fee',
     );
 
     try {
       List<PendingDeshield>? bundles = [];
 
-      for (final utxo in _zcashProvider.shieldedUTXOs) {
+      for (final utxo in _zsideProvider.shieldedUTXOs) {
         final utxoBundle = _castProvider.findBillsForAmount(utxo);
         if (utxoBundle == null) {
           continue;
@@ -876,7 +876,7 @@ class CastActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_zcashProvider.fetch());
+      unawaited(_zsideProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -886,7 +886,7 @@ class CastActionViewModel extends BaseViewModel {
         context: context,
         action: 'Cast UTXOs',
         title:
-            'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount, symbol: ticker)} to your Z-address',
+            'You will cast ${_zsideProvider.shieldedUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount, symbol: ticker)} to your Z-address',
         subtitle:
             'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
@@ -981,7 +981,7 @@ class OperationHelp extends StatelessWidget {
       children: [
         QuestionTitle('What are operations?'),
         QuestionText(
-          "Operations are zcash's way of keeping track of what happens to zero-knowledge operations, for example when you shield/deshield/melt/cast.",
+          "Operations are zside's way of keeping track of what happens to zero-knowledge operations, for example when you shield/deshield/melt/cast.",
         ),
         QuestionText(
           'In the table below, you can keep track of whether the z_operation fails or succeeds, and view all parameters to each zero-knowledge operation.',

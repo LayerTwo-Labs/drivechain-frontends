@@ -1,29 +1,26 @@
-import 'dart:convert';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart' as foundation;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/pages/tabs/sidechain_overview_page.dart';
 import 'package:zside/providers/cast_provider.dart';
-import 'package:zside/providers/zcash_provider.dart';
+import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
-import 'package:zside/widgets/containers/tabs/zcash_tab_widgets.dart';
+import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
 
 @RoutePage()
-class ZCashMeltCastTabPage extends StatelessWidget {
+class ZSideMeltCastTabPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashMeltCastTabPage({super.key});
+  const ZSideMeltCastTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashMeltCastViewModel(),
+      viewModelBuilder: () => ZSideMeltCastViewModel(),
       builder: ((context, model, child) {
         return QtPage(
           child: SingleChildScrollView(
@@ -96,20 +93,6 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SailButton(
-                    label: 'View Z Operation Status',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async {
-                      await router.push(const ZCashOperationStatusesTabRoute());
-                    },
-                  ),
-                  SizedBox(
-                    height: 300,
-                    child: OperationsTable(
-                      entries: model.operations,
-                      onClear: () => model.clear(),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -120,7 +103,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
   }
 }
 
-class ZCashShieldCastViewModel extends BaseViewModel {
+class ZSideShieldCastViewModel extends BaseViewModel {
   bool castMode = true;
 
   void setCastMode(bool to) {
@@ -128,20 +111,20 @@ class ZCashShieldCastViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  ZCashShieldCastViewModel();
+  ZSideShieldCastViewModel();
 }
 
-class ZCashMeltCast extends StatelessWidget {
+class ZSideMeltCast extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashMeltCast({super.key});
+  const ZSideMeltCast({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashMeltCastViewModel(),
+      viewModelBuilder: () => ZSideMeltCastViewModel(),
       builder: ((context, model, child) {
         return Padding(
           padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
@@ -283,34 +266,32 @@ class ZCashMeltCast extends StatelessWidget {
   }
 }
 
-class ZCashMeltCastViewModel extends BaseViewModel {
+class ZSideMeltCastViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   AppRouter get router => GetIt.I.get<AppRouter>();
 
   Binary get chain => _rpc.chain;
-  String get zcashAddress => _zcashProvider.zcashAddress;
+  String get zsideAddress => _zsideProvider.zsideAddress;
   List<PendingShield> get pendingMelts =>
-      _zcashProvider.utxosToMelt.where((element) => element.executeTime.isAfter(DateTime.now())).toList();
+      _zsideProvider.utxosToMelt.where((element) => element.executeTime.isAfter(DateTime.now())).toList();
   List<PendingCastBill> get pendingNonEmptyBills =>
       _castProvider.futureCasts.where((element) => element.pendingShields.isNotEmpty).toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
-  List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
+      _zsideProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zsideFee).toList();
+  List<ShieldedUTXO> get shieldedUTXOs => _zsideProvider.shieldedUTXOs;
   List<dynamic> get allUTXOs => [...unshieldedUTXOs, ...shieldedUTXOs];
 
-  List<CoreTransaction> get transparentTransactions => _zcashProvider.transparentTransactions;
-  List<ShieldedUTXO> get privateTransactions => _zcashProvider.privateTransactions;
+  List<CoreTransaction> get transparentTransactions => _zsideProvider.transparentTransactions;
+  List<ShieldedUTXO> get privateTransactions => _zsideProvider.privateTransactions;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
   bool castMode = true;
   bool hideDust = true;
-
-  List<OperationStatus> get operations => _zcashProvider.operations;
 
   void setShowAll(bool to) {
     hideDust = to;
@@ -322,8 +303,8 @@ class ZCashMeltCastViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  ZCashMeltCastViewModel() {
-    _zcashProvider.addListener(notifyListeners);
+  ZSideMeltCastViewModel() {
+    _zsideProvider.addListener(notifyListeners);
     _castProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
   }
@@ -405,18 +386,13 @@ class ZCashMeltCastViewModel extends BaseViewModel {
   }
 
   Future<void> viewBills() async {
-    await router.push(const ZCashBillRoute());
-  }
-
-  void clear() {
-    _zcashProvider.operations = List.empty();
-    notifyListeners();
+    await router.push(const ZSideBillRoute());
   }
 
   @override
   void dispose() {
     super.dispose();
-    _zcashProvider.removeListener(notifyListeners);
+    _zsideProvider.removeListener(notifyListeners);
     _castProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
   }
@@ -839,7 +815,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
 
   @override
   Widget build(BuildContext context) {
-    final container = GetIt.I.get<ZCashRPC>();
+    final container = GetIt.I.get<ZSideRPC>();
 
     return SailTable(
       getRowId: (index) => entries[index] is UnshieldedUTXO
@@ -934,7 +910,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
                   await widget.onCastSingle(context, entry);
                 }
               },
-              disabled: amount <= zcashFee,
+              disabled: amount <= zsideFee,
             ),
           ),
         ];
@@ -975,7 +951,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
                     label: 'Amount',
                     value: formatBitcoin(
                       utxo.amount,
-                      symbol: GetIt.I.get<ZCashRPC>().chain.ticker,
+                      symbol: GetIt.I.get<ZSideRPC>().chain.ticker,
                     ),
                   ),
                   DetailRow(
@@ -1000,208 +976,6 @@ class _UTXOsTableState extends State<UTXOsTable> {
   }
 }
 
-class OperationsTable extends StatefulWidget {
-  final List<OperationStatus> entries;
-  final VoidCallback onClear;
-
-  const OperationsTable({
-    super.key,
-    required this.entries,
-    required this.onClear,
-  });
-
-  @override
-  State<OperationsTable> createState() => _OperationsTableState();
-}
-
-class _OperationsTableState extends State<OperationsTable> {
-  String sortColumn = 'date';
-  bool sortAscending = false; // Default newest first
-  List<OperationStatus> entries = [];
-
-  @override
-  void initState() {
-    super.initState();
-    entries = widget.entries;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!foundation.listEquals(entries, widget.entries)) {
-      entries = List.from(widget.entries);
-      sortEntries();
-    }
-  }
-
-  void onSort(String column) {
-    setState(() {
-      if (sortColumn == column) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = column;
-        sortAscending = true;
-      }
-      sortEntries();
-    });
-  }
-
-  void sortEntries() {
-    entries.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
-
-      switch (sortColumn) {
-        case 'date':
-          aValue = a.creationTime.millisecondsSinceEpoch;
-          bValue = b.creationTime.millisecondsSinceEpoch;
-          break;
-        case 'method':
-          aValue = a.method;
-          bValue = b.method;
-          break;
-        case 'status':
-          aValue = a.status;
-          bValue = b.status;
-          break;
-        case 'id':
-          aValue = a.id;
-          bValue = b.id;
-          break;
-      }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailCard(
-      title: 'Operation statuses',
-      subtitle: 'List of zero-knowledge operations and their status',
-      bottomPadding: false,
-      widgetHeaderEnd: SailRow(
-        spacing: SailStyleValues.padding12,
-        children: [
-          SailButton(
-            label: 'Clear',
-            variant: ButtonVariant.ghost,
-            onPressed: () async {
-              widget.onClear();
-            },
-          ),
-          HelpButton(
-            onPressed: () async {
-              await showDialog(
-                context: context,
-                builder: (context) => const Dialog(
-                  child: OperationHelp(),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      child: SailTable(
-        getRowId: (index) => entries[index].id,
-        headerBuilder: (context) => [
-          SailTableHeaderCell(
-            name: 'Date',
-            onSort: () => onSort('date'),
-          ),
-          SailTableHeaderCell(
-            name: 'Method',
-            onSort: () => onSort('method'),
-          ),
-          SailTableHeaderCell(
-            name: 'Status',
-            onSort: () => onSort('status'),
-          ),
-          SailTableHeaderCell(
-            name: 'Operation ID',
-            onSort: () => onSort('id'),
-          ),
-        ],
-        rowBuilder: (context, row, selected) {
-          final entry = entries[row];
-
-          return [
-            SailTableCell(
-              value: DateFormat('dd MMM HH:mm:ss').format(entry.creationTime),
-            ),
-            SailTableCell(
-              value: entry.method,
-            ),
-            SailTableCell(
-              value: entry.status,
-              textColor: entry.status == 'success' ? SailColorScheme.green : SailColorScheme.red,
-              child: entry.status == 'success'
-                  ? Tooltip(
-                      message: 'Success',
-                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-                    )
-                  : Tooltip(
-                      message: 'Failed',
-                      child: SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
-                    ),
-            ),
-            SailTableCell(
-              value: entry.id,
-            ),
-          ];
-        },
-        rowCount: entries.length,
-        drawGrid: true,
-        sortColumnIndex: [
-          'date',
-          'method',
-          'status',
-          'id',
-        ].indexOf(sortColumn),
-        sortAscending: sortAscending,
-        onDoubleTap: (rowId) {
-          final operation = entries.firstWhere((op) => op.id == rowId);
-          _showOperationDetails(context, operation);
-        },
-      ),
-    );
-  }
-
-  void _showOperationDetails(BuildContext context, OperationStatus operation) {
-    final decodedTX = jsonDecode(operation.raw);
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'Operation Details',
-            subtitle: 'Details of the selected operation',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'Operation ID', value: operation.id),
-                  DetailRow(label: 'Method', value: operation.method),
-                  DetailRow(label: 'Status', value: operation.status),
-                  DetailRow(
-                    label: 'Creation Time',
-                    value: DateFormat('dd MMM HH:mm:ss').format(operation.creationTime),
-                  ),
-                  DetailRow(label: 'Raw Data', value: const JsonEncoder.withIndent('  ').convert(decodedTX)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class PendingMeltView extends StatelessWidget {
   final PendingShield tx;
 
@@ -1212,7 +986,7 @@ class PendingMeltView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final container = GetIt.I.get<ZCashRPC>();
+    final container = GetIt.I.get<ZSideRPC>();
 
     return Dialog(
       backgroundColor: Colors.transparent,

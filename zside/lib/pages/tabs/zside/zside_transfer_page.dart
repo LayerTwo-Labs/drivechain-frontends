@@ -10,29 +10,29 @@ import 'package:stacked/stacked.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/sidechain_overview_page.dart';
 import 'package:zside/providers/transactions_provider.dart';
-import 'package:zside/providers/zcash_provider.dart';
+import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/tabs/dashboard_tab_widgets.dart';
-import 'package:zside/widgets/containers/tabs/zcash_tab_widgets.dart';
+import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
 
 @RoutePage()
-class ZCashTransferTabPage extends StatelessWidget {
+class ZSideTransferTabPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashTransferTabPage({super.key});
+  const ZSideTransferTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashTransferTabViewModel(),
+      viewModelBuilder: () => ZSideTransferTabViewModel(),
       builder: ((context, model, child) {
         final tabsRouter = AutoTabsRouter.of(context);
 
         return SailPage(
           scrollable: true,
-          widgetTitle: ZCashWidgetTitle(
+          widgetTitle: ZSideWidgetTitle(
             depositNudgeAction: () => tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index),
           ),
           body: Padding(
@@ -141,27 +141,26 @@ class ZCashTransferTabPage extends StatelessWidget {
   }
 }
 
-class ZCashTransferTabViewModel extends BaseViewModel {
+class ZSideTransferTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
 
-  String get zcashAddress => _zcashProvider.zcashAddress;
-  List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
+  String get zsideAddress => _zsideProvider.zsideAddress;
   final TextEditingController searchController = TextEditingController();
   final TextEditingController privateSearchController = TextEditingController();
 
-  List<UnshieldedUTXO> get transparentUTXOs => _zcashProvider.unshieldedUTXOs
+  List<UnshieldedUTXO> get transparentUTXOs => _zsideProvider.unshieldedUTXOs
       .where(
         (utxo) =>
-            (!hideDust || utxo.amount > zcashFee) &&
+            (!hideDust || utxo.amount > zsideFee) &&
             (searchController.text.isEmpty ||
                 utxo.txid.contains(searchController.text) ||
                 utxo.address.contains(searchController.text)),
       )
       .toList();
-  List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs
+  List<ShieldedUTXO> get shieldedUTXOs => _zsideProvider.shieldedUTXOs
       .where(
         (utxo) => privateSearchController.text.isEmpty || utxo.txid.contains(privateSearchController.text),
       )
@@ -176,10 +175,10 @@ class ZCashTransferTabViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  ZCashTransferTabViewModel() {
+  ZSideTransferTabViewModel() {
     searchController.addListener(notifyListeners);
     privateSearchController.addListener(notifyListeners);
-    _zcashProvider.addListener(notifyListeners);
+    _zsideProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
     _transactionsProvider.addListener(notifyListeners);
   }
@@ -191,22 +190,22 @@ class ZCashTransferTabViewModel extends BaseViewModel {
       context: context,
       builder: (BuildContext context) {
         return SendOnSidechainAction(
-          maxAmount: max(privateBalance - _zcashProvider.sideFee, 0),
+          maxAmount: max(privateBalance - _zsideProvider.sideFee, 0),
         );
       },
     );
   }
 
   void receivePrivate(BuildContext context) async {
-    final provider = GetIt.I.get<ZCashProvider>();
+    final provider = GetIt.I.get<ZSideProvider>();
 
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
         return ReceiveAction(
           customTitle: 'Receive private coins',
-          customReceiveAction: () => provider.rpc.getPrivateAddress(),
-          initialAddress: provider.zcashAddress,
+          customReceiveAction: () => provider.rpc.getNewShieldedAddress(),
+          initialAddress: provider.zsideAddress,
         );
       },
     );
@@ -221,10 +220,10 @@ class ZCashTransferTabViewModel extends BaseViewModel {
         return SendOnSidechainAction(
           maxAmount: transparentBalance,
           customSendAction: (address, amount) async {
-            return await _zcashProvider.rpc.sendTransparent(
+            return await _zsideProvider.rpc.sendTransparent(
               address,
               amount,
-              true,
+              zsideFee,
             );
           },
         );
@@ -238,7 +237,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
       builder: (BuildContext context) {
         return ReceiveAction(
           customReceiveAction: () async {
-            return await _zcashProvider.rpc.getSideAddress();
+            return await _zsideProvider.rpc.getSideAddress();
           },
         );
       },
@@ -250,18 +249,18 @@ class ZCashTransferTabViewModel extends BaseViewModel {
     searchController.removeListener(notifyListeners);
     privateSearchController.removeListener(notifyListeners);
     super.dispose();
-    _zcashProvider.removeListener(notifyListeners);
+    _zsideProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
     _transactionsProvider.removeListener(notifyListeners);
   }
 }
 
-class ZCashWidgetTitle extends StatelessWidget {
+class ZSideWidgetTitle extends StatelessWidget {
   final VoidCallback depositNudgeAction;
 
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashWidgetTitle({
+  const ZSideWidgetTitle({
     super.key,
     required this.depositNudgeAction,
   });
@@ -269,13 +268,13 @@ class ZCashWidgetTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashWidgetTitleViewModel(),
+      viewModelBuilder: () => ZSideWidgetTitleViewModel(),
       builder: ((context, model, child) {
         if (model.balance != 0) {
           return SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SailText.secondary13('Your ZCash-address: ${model.zcashAddress}'),
+              SailText.secondary13('Your ZSide-address: ${model.zsideAddress}'),
               Expanded(child: Container()),
             ],
           );
@@ -316,25 +315,25 @@ class ZCashWidgetTitle extends StatelessWidget {
   }
 }
 
-class ZCashWidgetTitleViewModel extends BaseViewModel {
+class ZSideWidgetTitleViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
-  String get zcashAddress => _zcashProvider.zcashAddress;
+  String get zsideAddress => _zsideProvider.zsideAddress;
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
   bool showAll = false;
 
-  ZCashWidgetTitleViewModel() {
-    _zcashProvider.addListener(notifyListeners);
+  ZSideWidgetTitleViewModel() {
+    _zsideProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
   }
 
   @override
   void dispose() {
     super.dispose();
-    _zcashProvider.removeListener(notifyListeners);
+    _zsideProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
   }
 }

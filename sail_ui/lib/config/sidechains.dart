@@ -28,8 +28,8 @@ abstract class Sidechain extends Binary {
       case 'testchain':
         return TestSidechain();
 
-      case 'zcash':
-        return ZCash();
+      case 'zside':
+        return ZSide();
 
       case 'thunder':
         return Thunder();
@@ -59,7 +59,7 @@ abstract class Sidechain extends Binary {
         );
 
       case 'zSide':
-        return ZCash(
+        return ZSide(
           name: binary.name,
           version: binary.version,
           description: binary.description,
@@ -276,16 +276,16 @@ class TestSidechain extends Sidechain {
   }
 }
 
-class ZCash extends Sidechain {
-  ZCash({
+class ZSide extends Sidechain {
+  ZSide({
     super.name = 'zSide',
     super.version = '0.1.0',
-    super.description = 'ZCash Sidechain',
-    super.repoUrl = 'https://github.com/LayerTwo-Labs/zebra',
+    super.description = 'ZSide Sidechain',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/thunder-orchard',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'zsided',
-    super.port = 8232,
+    super.port = 6098,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
@@ -293,9 +293,9 @@ class ZCash extends Sidechain {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: '.zcash-drivechain',
-                  OS.macos: '/zcash-drivechain',
-                  OS.windows: '/zcash-drivechain',
+                  OS.linux: '.thunder-orchard',
+                  OS.macos: '/thunder-orchard',
+                  OS.windows: '/thunder-orchard',
                 },
               ),
           metadata: metadata ??
@@ -320,7 +320,7 @@ class ZCash extends Sidechain {
   Color color = SailColorScheme.blue;
 
   @override
-  ZCash copyWith({
+  ZSide copyWith({
     String? version,
     String? description,
     String? repoUrl,
@@ -332,7 +332,7 @@ class ZCash extends Sidechain {
     DownloadInfo? downloadInfo,
     List<String>? extraBootArgs,
   }) {
-    return ZCash(
+    return ZSide(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,

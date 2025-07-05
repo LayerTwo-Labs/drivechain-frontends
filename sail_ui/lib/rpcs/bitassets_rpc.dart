@@ -11,7 +11,6 @@ abstract class BitAssetsRPC extends SidechainRPC {
     required super.conf,
     required super.binary,
     required super.restartOnFailure,
-    required super.chain,
   });
 
   /// Get balance in sats
@@ -59,6 +58,7 @@ abstract class BitAssetsRPC extends SidechainRPC {
   Future<String> getNewAddress();
 
   /// Get the current block count
+  @override
   Future<int> getBlockCount();
 
   /// Get wallet addresses, sorted by base58 encoding
@@ -179,13 +179,11 @@ class BitAssetsLive extends BitAssetsRPC {
     required super.conf,
     required super.binary,
     required super.restartOnFailure,
-    required super.chain,
   });
 
   // Async factory
   static Future<BitAssetsLive> create({
     required Binary binary,
-    required Sidechain chain,
   }) async {
     final conf = await readConf();
 
@@ -193,7 +191,6 @@ class BitAssetsLive extends BitAssetsRPC {
       conf: conf,
       binary: binary,
       restartOnFailure: true,
-      chain: chain,
     );
 
     await instance._init();
@@ -212,8 +209,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<int> ping() async {
-    final response = await getBalance();
-    return response.totalSats;
+    return await getBlockCount();
   }
 
   @override
@@ -384,7 +380,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<int> getBlockCount() async {
-    final response = await _client().call('get_blockcount');
+    final response = await _client().call('getblockcount');
     return response as int;
   }
 

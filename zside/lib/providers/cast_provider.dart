@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/rpcs/zcash_rpc.dart';
-import 'package:zside/providers/zcash_provider.dart';
+import 'package:sail_ui/rpcs/zside_rpc.dart';
+import 'package:zside/providers/zside_provider.dart';
 
 const lowestCastValueSats = 1;
 const maxCastFactor = 42;
@@ -93,10 +93,10 @@ class PendingDeshield {
 }
 
 class CastProvider extends ChangeNotifier {
-  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   Logger get log => GetIt.I.get<Logger>();
-  double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
+  double get castFee => _zsideProvider.sideFee * _rpc.numUTXOsPerCast;
 
   double autoMeltUTXOsOfSize = 0.0;
 
@@ -118,11 +118,11 @@ class CastProvider extends ChangeNotifier {
       futureCasts[i] = newBill;
     }
 
-    _zcashProvider.addListener(_checkAutoMelt);
+    _zsideProvider.addListener(_checkAutoMelt);
   }
 
   void _checkAutoMelt() {
-    final privateUTXOs = _zcashProvider.privateTransactions;
+    final privateUTXOs = _zsideProvider.privateTransactions;
 
     for (final utxo in privateUTXOs) {
       if (utxo.amount == 0) {
@@ -163,7 +163,7 @@ class CastProvider extends ChangeNotifier {
       );
       futureCasts[bill.powerOf] = newBill;
 
-      await _zcashProvider.fetch();
+      await _zsideProvider.fetch();
     } catch (error) {
       log.e('could not cast ${error.toString()}');
     }

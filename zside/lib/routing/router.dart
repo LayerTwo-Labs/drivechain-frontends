@@ -4,12 +4,11 @@ import 'package:sail_ui/pages/router.gr.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
 import 'package:zside/pages/tabs/sidechain_overview_page.dart';
-import 'package:zside/pages/tabs/zcash/zcash_bill_page.dart';
-import 'package:zside/pages/tabs/zcash/zcash_melt_cast_page.dart';
-import 'package:zside/pages/tabs/zcash/zcash_operation_statuses.dart';
-import 'package:zside/pages/tabs/zcash/zcash_rpc_tab_page.dart';
-import 'package:zside/pages/tabs/zcash/zcash_shield_deshield_page.dart';
-import 'package:zside/pages/tabs/zcash/zcash_transfer_page.dart';
+import 'package:zside/pages/tabs/zside/zside_bill_page.dart';
+import 'package:zside/pages/tabs/zside/zside_melt_cast_page.dart';
+import 'package:zside/pages/tabs/zside/zside_rpc_tab_page.dart';
+import 'package:zside/pages/tabs/zside/zside_shield_deshield_page.dart';
+import 'package:zside/pages/tabs/zside/zside_transfer_page.dart';
 import 'package:zside/pages/test_page.dart';
 
 part 'router.gr.dart';
@@ -46,19 +45,16 @@ class AppRouter extends RootStackRouter {
               initial: true,
             ),
             AutoRoute(
-              page: ZCashMeltCastTabRoute.page,
+              page: ZSideMeltCastTabRoute.page,
             ),
             AutoRoute(
-              page: ZCashShieldDeshieldTabRoute.page,
+              page: ZSideShieldDeshieldTabRoute.page,
             ),
             AutoRoute(
-              page: ZCashTransferTabRoute.page,
+              page: ZSideTransferTabRoute.page,
             ),
             AutoRoute(
-              page: ZCashOperationStatusesTabRoute.page,
-            ),
-            AutoRoute(
-              page: ZCashRPCTabRoute.page,
+              page: ZSideRPCTabRoute.page,
             ),
             AutoRoute(
               page: SettingsTabRoute.page,
@@ -66,7 +62,7 @@ class AppRouter extends RootStackRouter {
           ],
         ),
         AutoRoute(
-          page: ZCashBillRoute.page,
+          page: ZSideBillRoute.page,
         ),
         AutoRoute(
           page: LogRoute.page,
