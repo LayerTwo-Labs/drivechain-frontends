@@ -189,10 +189,10 @@ packages:
     dependency: "direct main"
     description:
       name: connectrpc
-      sha256: b0511b158b6b02fd132eea8bbaba2252e8d31ef26057f2335417a22b4d68f5cb
+      sha256: a1dbf301d0dfa189bb879a9f15bbe72f31dbac581f385035a10fcc2d31a93a18
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.0"
+    version: "1.0.0"
   convert:
     dependency: transitive
     description:
@@ -867,10 +867,10 @@ packages:
     dependency: transitive
     description:
       name: skeletonizer
-      sha256: a9ddf63900947f4c0648372b6e9987bc2b028db9db843376db6767224d166c31
+      sha256: eebc03dc86b298e2d7f61e0ebce5713e9dbbc3e786f825909b4591756f196eb6
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.1"
+    version: "2.1.0+1"
   sky_engine:
     dependency: transitive
     description: flutter
