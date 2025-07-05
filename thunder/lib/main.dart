@@ -81,6 +81,13 @@ Future<void> start(List<String> args) async {
       // do absolutely nothing, probably no debug mode setting
     }
 
+    final sailApp = buildSailWindowApp(
+      log,
+      '${arguments['window_title'] as String} | Thunder',
+      child,
+      thunder.chain.color,
+    );
+
     if (debugMode) {
       log.i('Initializing Sentry in debug mode');
       await SentryFlutter.init(
@@ -98,40 +105,14 @@ Future<void> start(List<String> args) async {
           log.i('Starting app with Sentry monitoring');
           return runApp(
             SentryWidget(
-              child: SailApp(
-                log: log,
-                dense: true,
-                builder: (context) => MaterialApp(
-                  theme: ThemeData(
-                    visualDensity: VisualDensity.compact,
-                    fontFamily: 'Inter',
-                  ),
-                  home: Scaffold(
-                    body: child,
-                  ),
-                ),
-                accentColor: thunder.chain.color,
-              ),
+              child: sailApp,
             ),
           );
         },
       );
     } else {
       return runApp(
-        SailApp(
-          log: log,
-          dense: true,
-          builder: (context) => MaterialApp(
-            theme: ThemeData(
-              visualDensity: VisualDensity.compact,
-              fontFamily: 'Inter',
-            ),
-            home: Scaffold(
-              body: child,
-            ),
-          ),
-          accentColor: thunder.chain.color,
-        ),
+        sailApp,
       );
     }
   }

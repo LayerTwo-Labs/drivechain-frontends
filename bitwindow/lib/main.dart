@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
+import 'package:bitwindow/pages/message_signer.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
@@ -16,6 +17,8 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/widgets/address_list.dart';
+import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -67,10 +70,15 @@ void main(List<String> args) async {
   if (args.contains('multi_window')) {
     final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
     final windowType = arguments['window_type'] as String?;
+    final windowTitle = arguments['window_title'] as String?;
+
+    if (windowTitle == null) {
+      throw ArgumentError('Missing required arguments for multi-window mode: window_title');
+    }
 
     Widget child = SailCard(
       title: 'Unknown window type: $windowType',
-      child: SailText.primary15('Unknown window type: $windowType'),
+      child: SailText.primary15('Programmers messed up, and supplied an unknown window type: $windowType'),
     );
 
     // Map string identifiers to window types
@@ -78,34 +86,41 @@ void main(List<String> args) async {
       case SubWindowTypes.debugId:
         child = DebugWindow();
         break;
+
       case SubWindowTypes.logsId:
         child = LogPage(
           logPath: logFile.path,
           title: 'Bitwindow Logs',
         );
         break;
+
       case SubWindowTypes.deniabilityId:
         child = DeniabilityTab(newWindowButton: null);
         break;
+
       case SubWindowTypes.blockExplorerId:
-        child = const BlockExplorerDialog(newWindowButton: null);
+        child = const BlockExplorerDialog();
+        break;
+
+      case SubWindowTypes.addressbookId:
+        child = AddressBookTable();
+        break;
+
+      case SubWindowTypes.messageSignerId:
+        child = const MessageSigner();
+        break;
+
+      case SubWindowTypes.hashCalculatorId:
+        child = const HashCalculator();
         break;
     }
 
     return runApp(
-      SailApp(
-        log: log,
-        dense: true,
-        builder: (context) => MaterialApp(
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-          ),
-          home: Scaffold(
-            body: child,
-          ),
-        ),
-        accentColor: const Color.fromARGB(255, 255, 153, 0),
+      buildSailWindowApp(
+        log,
+        '$windowTitle | Bitwindow',
+        child,
+        const Color.fromARGB(255, 255, 153, 0),
       ),
     );
   }
@@ -478,11 +493,7 @@ Future<void> setupSignalHandlers(Logger log) async {
 
 // BitWindow window types
 class SubWindowTypes {
-  static const String logsId = 'logs';
   static const String debugId = 'debug';
-  static const String deniabilityId = 'deniability';
-  static const String blockExplorerId = 'block_explorer';
-
   static var debug = SailWindow(
     identifier: debugId,
     name: 'Debug',
@@ -490,22 +501,51 @@ class SubWindowTypes {
     defaultPosition: Offset(100, 100),
   );
 
+  static const String logsId = 'logs';
   static var logs = SailWindow(
     identifier: logsId,
     name: 'Logs',
     defaultSize: Size(800, 600),
     defaultPosition: Offset(100, 100),
   );
+
+  static const String deniabilityId = 'deniability';
   static var deniability = SailWindow(
     identifier: deniabilityId,
     name: 'Deniability',
     defaultSize: Size(600, 400),
     defaultPosition: Offset(200, 200),
   );
+
+  static const String blockExplorerId = 'block_explorer';
   static var blockExplorer = SailWindow(
     identifier: blockExplorerId,
     name: 'Block Explorer',
     defaultSize: Size(1000, 700),
+    defaultPosition: Offset(150, 150),
+  );
+
+  static const String addressbookId = 'addressbook';
+  static var addressbook = SailWindow(
+    identifier: addressbookId,
+    name: 'Address Book',
+    defaultSize: Size(1000, 700),
+    defaultPosition: Offset(150, 150),
+  );
+
+  static const String messageSignerId = 'message_signer';
+  static var messageSigner = SailWindow(
+    identifier: messageSignerId,
+    name: 'Message Signer',
+    defaultSize: Size(600, 400),
+    defaultPosition: Offset(150, 150),
+  );
+
+  static const String hashCalculatorId = 'hash_calculator';
+  static var hashCalculator = SailWindow(
+    identifier: hashCalculatorId,
+    name: 'Hash Calculator',
+    defaultSize: Size(600, 400),
     defaultPosition: Offset(150, 150),
   );
 }

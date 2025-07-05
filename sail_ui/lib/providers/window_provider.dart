@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 // WindowProvider lets you
 // 1. Open new windows with predefined pages
@@ -58,6 +59,7 @@ class WindowProvider extends ChangeNotifier {
     try {
       final windowConfig = {
         'window_type': windowType.identifier,
+        'window_title': windowType.name,
         'application_dir': appDir.path,
         'log_file': logFile.path,
       };
@@ -256,4 +258,35 @@ class WindowInfo {
   String toString() {
     return 'WindowInfo(id: $id, title: ${windowType.name}, windowType: ${windowType.identifier})';
   }
+}
+
+SailApp buildSailWindowApp(Logger log, String windowTitle, Widget child, Color accentColor) {
+  return SailApp(
+    log: log,
+    dense: true,
+    builder: (context) => MaterialApp(
+      theme: ThemeData(
+        visualDensity: VisualDensity.compact,
+        fontFamily: 'Inter',
+      ),
+      home: Scaffold(
+        body: Column(
+          children: [
+            Container(
+              height: 26,
+              color: Colors.grey[200],
+              alignment: Alignment.centerLeft,
+              child: Center(
+                child: SailText.primary13(
+                  windowTitle,
+                ),
+              ),
+            ),
+            Expanded(child: child),
+          ],
+        ),
+      ),
+    ),
+    accentColor: accentColor,
+  );
 }

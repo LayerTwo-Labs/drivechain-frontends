@@ -126,28 +126,24 @@ class _AddressBookTableState extends State<AddressBookTable> {
             right: SailStyleValues.padding16,
             bottom: SailStyleValues.padding64,
           ),
-          child: SailCard(
-            withCloseButton: true,
-            color: context.sailTheme.colors.background,
-            child: InlineTabBar(
-              tabs: [
-                TabItem(
-                  label: 'Send',
-                  icon: SailSVGAsset.iconSend,
-                  child: content,
-                ),
-                TabItem(
-                  label: 'Receive',
-                  icon: SailSVGAsset.iconReceive,
-                  child: content,
-                ),
-              ],
-              initialIndex: model.direction == Direction.DIRECTION_SEND ? 0 : 1,
-              onTabChanged: (index) {
-                final newDirection = index == 0 ? Direction.DIRECTION_SEND : Direction.DIRECTION_RECEIVE;
-                model.setDirection(newDirection);
-              },
-            ),
+          child: InlineTabBar(
+            tabs: [
+              TabItem(
+                label: 'Send',
+                icon: SailSVGAsset.iconSend,
+                child: content,
+              ),
+              TabItem(
+                label: 'Receive',
+                icon: SailSVGAsset.iconReceive,
+                child: content,
+              ),
+            ],
+            initialIndex: model.direction == Direction.DIRECTION_SEND ? 0 : 1,
+            onTabChanged: (index) {
+              final newDirection = index == 0 ? Direction.DIRECTION_SEND : Direction.DIRECTION_RECEIVE;
+              model.setDirection(newDirection);
+            },
           ),
         );
       },
