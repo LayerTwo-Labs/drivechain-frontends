@@ -9,11 +9,11 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class DeniabilityTab extends StatelessWidget {
-  final NewWindowIdentifier? newWindowIdentifier;
+  final SailWindow? newWindowButton;
 
   const DeniabilityTab({
     super.key,
-    required this.newWindowIdentifier,
+    required this.newWindowButton,
   });
 
   @override
@@ -27,7 +27,7 @@ class DeniabilityTab extends StatelessWidget {
             final error = model.error('deniability');
 
             return DeniabilityTable(
-              newWindowIdentifier: newWindowIdentifier,
+              newWindowButton: newWindowButton,
               error: error,
               utxos: model.utxos,
               onDeny: (output) => model.showDenyDialog(context, output),
@@ -41,7 +41,7 @@ class DeniabilityTab extends StatelessWidget {
 }
 
 class DeniabilityTable extends StatefulWidget {
-  final NewWindowIdentifier? newWindowIdentifier;
+  final SailWindow? newWindowButton;
   final String? error;
   final List<UnspentOutput> utxos;
   final void Function(String output) onDeny;
@@ -53,7 +53,7 @@ class DeniabilityTable extends StatefulWidget {
     required this.utxos,
     required this.onDeny,
     required this.onCancel,
-    required this.newWindowIdentifier,
+    required this.newWindowButton,
   });
 
   @override
@@ -135,8 +135,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
       subtitle: 'List of your UTXOs with information about their deniability status.',
       error: widget.error,
       bottomPadding: false,
-      inSeparateWindow: widget.newWindowIdentifier == null,
-      newWindowIdentifier: widget.newWindowIdentifier,
+      inSeparateWindow: widget.newWindowButton == null,
+      newWindow: widget.newWindowButton,
       child: Column(
         children: [
           SailSpacing(SailStyleValues.padding16),

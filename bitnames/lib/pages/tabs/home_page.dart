@@ -1,17 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/main.dart';
 import 'package:bitnames/routing/router.dart';
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -115,30 +112,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Console',
                       onSelected: () async {
-                        final applicationDir = await getApplicationSupportDirectory();
-                        final logFile = await getLogFile();
-
-                        final window = await DesktopMultiWindow.createWindow(
-                          jsonEncode({
-                            'window_type': 'console',
-                            'application_dir': applicationDir.path,
-                            'log_file': logFile.path,
-                          }),
-                        );
-                        await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                        await window.center();
-                        await window.setTitle('$BitnamesRPC.rpc.chain.name Console');
-                        await window.show();
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        await windowProvider.open(SubWindowTypes.console);
                       },
                     ),
                     PlatformMenuItem(
                       label: 'View Logs',
-                      onSelected: () => GetIt.I.get<AppRouter>().push(
-                            LogRoute(
-                              title: '${_rpc.chain.name} Logs',
-                              logPath: _rpc.binary.logPath(),
-                            ),
-                          ),
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.logs);
+                      },
                     ),
                   ],
                 ),

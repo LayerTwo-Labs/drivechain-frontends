@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_hd.dart';
@@ -65,13 +66,7 @@ class WalletPage extends StatelessWidget {
                 TabItem(
                   label: 'Deniability',
                   child: DeniabilityTab(
-                    newWindowIdentifier: model.applicationDir == null || model.logFile == null
-                        ? null
-                        : NewWindowIdentifier(
-                            windowType: 'deniability',
-                            applicationDir: model.applicationDir!,
-                            logFile: model.logFile!,
-                          ),
+                    newWindowButton: SubWindowTypes.deniability,
                   ),
                   onTap: () {
                     transactionProvider.fetch();

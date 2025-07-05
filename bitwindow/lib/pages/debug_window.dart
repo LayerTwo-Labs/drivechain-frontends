@@ -4,11 +4,8 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DebugWindow extends StatefulWidget {
-  final NewWindowIdentifier? newWindowIdentifier;
-
   const DebugWindow({
     super.key,
-    required this.newWindowIdentifier,
   });
 
   @override
@@ -25,8 +22,7 @@ class _DebugWindowState extends State<DebugWindow> {
   Widget build(BuildContext context) {
     return SailCard(
       color: context.sailTheme.colors.background,
-      inSeparateWindow: widget.newWindowIdentifier == null,
-      newWindowIdentifier: widget.newWindowIdentifier,
+      inSeparateWindow: true,
       child: InlineTabBar(
         tabs: const [
           TabItem(

@@ -59,8 +59,14 @@ Future<void> start(List<String> args) async {
     );
 
     switch (arguments['window_type']) {
-      case 'console':
+      case SubWindowTypes.consoleId:
         child = const ConsoleWindow();
+        break;
+      case SubWindowTypes.logsId:
+        child = LogPage(
+          logPath: logFile.path,
+          title: 'Bitassets Logs',
+        );
         break;
     }
 
@@ -145,6 +151,10 @@ Future<void> start(List<String> args) async {
       await windowManager.focus();
     }),
   );
+
+  // Initialize WindowProvider for the main window
+  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
+  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
   final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
 
@@ -314,4 +324,24 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
   binaries[2].addBootArg('--headless');
 
   return await loadBinaryCreationTimestamp(binaries, appDir);
+}
+
+// BitAssets window types
+class SubWindowTypes {
+  static const String consoleId = 'console';
+  static const String logsId = 'logs';
+
+  static var console = SailWindow(
+    identifier: consoleId,
+    name: 'Console',
+    defaultSize: Size(800, 600),
+    defaultPosition: Offset(100, 100),
+  );
+
+  static var logs = SailWindow(
+    identifier: logsId,
+    name: 'Logs',
+    defaultSize: Size(800, 600),
+    defaultPosition: Offset(100, 100),
+  );
 }
