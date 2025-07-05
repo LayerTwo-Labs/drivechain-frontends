@@ -6,14 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:pointycastle/export.dart' as pc;
 import 'package:sail_ui/sail_ui.dart';
 
-class HashCalculatorModal extends StatefulWidget {
-  const HashCalculatorModal({super.key});
+class HashCalculator extends StatefulWidget {
+  const HashCalculator({super.key});
 
   @override
-  State<HashCalculatorModal> createState() => _HashCalculatorModalState();
+  State<HashCalculator> createState() => _HashCalculatorState();
 }
 
-class _HashCalculatorModalState extends State<HashCalculatorModal> {
+class _HashCalculatorState extends State<HashCalculator> {
   final TextEditingController _inputController = TextEditingController();
   final TextEditingController _hmacKeyController = TextEditingController();
   bool _isHexMode = false;

@@ -66,19 +66,11 @@ Future<void> start(List<String> args) async {
     }
 
     return runApp(
-      SailApp(
-        log: log,
-        dense: true,
-        builder: (context) => MaterialApp(
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-          ),
-          home: Scaffold(
-            body: child,
-          ),
-        ),
-        accentColor: zside.chain.color,
+      buildSailWindowApp(
+        log,
+        '${arguments['window_title'] as String} | ZSide',
+        child,
+        zside.chain.color,
       ),
     );
   }

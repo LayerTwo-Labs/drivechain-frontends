@@ -4,19 +4,14 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
-import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
-import 'package:bitwindow/pages/message_signer.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
-import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
-import 'package:bitwindow/widgets/address_list.dart';
-import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -72,18 +67,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   label: 'Change Theme',
                   onSelected: () async {
                     final log = GetIt.I.get<Logger>();
-                    log.d('Changing theme...');
 
                     final themeSetting = await _clientSettings.getValue(ThemeSetting());
                     final currentTheme = themeSetting.value;
-                    log.d('Current theme: $currentTheme');
 
                     final SailThemeValues nextTheme = currentTheme.toggleTheme();
-                    log.d('Switching to theme: $nextTheme');
 
                     await _clientSettings.setValue(ThemeSetting().withValue(nextTheme));
                     await app.loadTheme(nextTheme);
-                    log.d('Theme change complete');
+                    log.d('Theme change complete from ${currentTheme.name} to ${nextTheme.name}');
                   },
                 ),
               ],
@@ -93,16 +85,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Hide bitwindow',
                   shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
-                  onSelected: null,
-                ),
-                PlatformMenuItem(
-                  label: 'Hide Others',
-                  shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true, shift: true),
-                  onSelected: null,
+                  onSelected: () async {
+                    await windowManager.hide();
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Show All',
-                  onSelected: null,
+                  onSelected: () async {
+                    await windowManager.show();
+                  },
                 ),
               ],
             ),
@@ -132,12 +123,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Address Book',
                   onSelected: () {
-                    final theme = SailTheme.of(context);
-                    showDialog(
-                      context: context,
-                      barrierColor: theme.colors.background.withValues(alpha: 0.4),
-                      builder: (context) => AddressBookTable(),
-                    );
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    windowProvider.open(SubWindowTypes.addressbook);
                   },
                 ),
               ],
@@ -209,20 +196,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Deniability',
                   onSelected: () async {
-                    await showDialog(
-                      context: _routerKey.currentContext!,
-                      builder: (context) => SailPadding(
-                        padding: EdgeInsets.only(
-                          top: SailStyleValues.padding16,
-                          left: SailStyleValues.padding16,
-                          right: SailStyleValues.padding16,
-                          bottom: SailStyleValues.padding64 * 2,
-                        ),
-                        child: DeniabilityTab(
-                          newWindowButton: SubWindowTypes.deniability,
-                        ),
-                      ),
-                    );
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    await windowProvider.open(SubWindowTypes.deniability);
                   },
                 ),
               ],
@@ -247,10 +222,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Sign / Verify Message',
                   onSelected: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const MessageSigner(),
-                    );
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    windowProvider.open(SubWindowTypes.messageSigner);
                   },
                 ),
                 PlatformMenuItem(
@@ -283,29 +256,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Block Explorer',
                   onSelected: () async {
-                    await showDialog(
-                      context: _routerKey.currentContext!,
-                      builder: (context) => SailPadding(
-                        padding: EdgeInsets.only(
-                          top: SailStyleValues.padding16,
-                          left: SailStyleValues.padding16,
-                          right: SailStyleValues.padding16,
-                          bottom: SailStyleValues.padding64 * 2,
-                        ),
-                        child: BlockExplorerDialog(
-                          newWindowButton: SubWindowTypes.blockExplorer,
-                        ),
-                      ),
-                    );
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    await windowProvider.open(SubWindowTypes.blockExplorer);
                   },
                 ),
                 PlatformMenuItem(
                   label: 'Hash Calculator',
                   onSelected: () {
-                    showDialog(
-                      context: _routerKey.currentContext!,
-                      builder: (context) => const HashCalculatorModal(),
-                    );
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    windowProvider.open(SubWindowTypes.hashCalculator);
                   },
                 ),
                 PlatformMenuItem(

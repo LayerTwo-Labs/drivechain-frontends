@@ -6,11 +6,8 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class BlockExplorerDialog extends StatelessWidget {
-  final SailWindow? newWindowButton;
-
   const BlockExplorerDialog({
     super.key,
-    required this.newWindowButton,
   });
 
   @override
@@ -28,8 +25,7 @@ class BlockExplorerDialog extends StatelessWidget {
           subtitle:
               'Last block time: ${model.blockchainProvider.syncProvider.mainchainSyncInfo?.lastBlockAt?.toDateTime().toLocal().format()}',
           bottomPadding: false,
-          inSeparateWindow: newWindowButton != null,
-          newWindow: newWindowButton,
+          inSeparateWindow: true,
           child: Column(
             children: [
               SailRow(
