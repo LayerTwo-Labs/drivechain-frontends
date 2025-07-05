@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:faucet/api/api_base.dart';
@@ -47,6 +48,8 @@ class Block {
 class ExplorerViewModel extends BaseViewModel {
   ExplorerProvider get explorerProvider => GetIt.I.get<ExplorerProvider>();
   Timer? _timeUpdateTimer;
+  Timer? _countdownTimer;
+  int _currentTick = 0;
 
   Block? get latestMainchainBlock => explorerProvider.mainchainTip != null
       ? Block(
@@ -88,28 +91,39 @@ class ExplorerViewModel extends BaseViewModel {
         )
       : null;
 
+  // Getter for the countdown seconds
+  int get secondsTillNextRefresh => min(30 - _currentTick, 0);
+
   ExplorerViewModel() {
     explorerProvider.addListener(notifyListeners);
-    // Start timer for updating "time ago" text
-    startTimeUpdateTimer();
+    // Start timer for updating "time ago" text and countdown
+    startTimers();
   }
 
   void refreshData() {
     explorerProvider.fetch();
   }
 
-  void startTimeUpdateTimer() {
+  void startTimers() {
     if (Environment.isInTest) {
       return;
     }
 
-    // Cancel any existing timer
+    // Cancel any existing timers
     _timeUpdateTimer?.cancel();
+    _countdownTimer?.cancel();
 
-    // Create a new timer that updates the UI every second
+    // Create a new timer that updates the UI every second for "time ago" text
     _timeUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      // Just notify listeners to update the UI
+      // Reset countdown when manually refreshing
+      _currentTick = 0;
       notifyListeners();
+    });
+
+    // Create countdown timer that tracks seconds until next auto-refresh
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _currentTick = timer.tick;
+      notifyListeners(); // Trigger UI update for countdown
     });
   }
 
@@ -117,6 +131,7 @@ class ExplorerViewModel extends BaseViewModel {
   void dispose() {
     explorerProvider.removeListener(notifyListeners);
     _timeUpdateTimer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 }
@@ -150,10 +165,13 @@ class _ExplorerPageState extends State<ExplorerPage> {
                         label: 'Refresh Now',
                         onPressed: () async => model.refreshData(),
                         variant: ButtonVariant.primary,
+                        loading: model.explorerProvider.isFetching,
                       ),
                       const SizedBox(width: 16),
                       SailText.secondary12(
-                        'Auto-refreshes every 30 seconds',
+                        model.secondsTillNextRefresh > 0
+                            ? 'Auto-refreshing in ${model.secondsTillNextRefresh} seconds'
+                            : 'Refreshing, please wait...',
                         italic: true,
                       ),
                     ],

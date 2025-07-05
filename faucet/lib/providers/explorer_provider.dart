@@ -16,17 +16,17 @@ class ExplorerProvider extends ChangeNotifier {
   ChainTip? zsideTip;
   bool initialized = false;
 
-  bool _isFetching = false;
+  bool isFetching = false;
 
   ExplorerProvider() {
     poll();
   }
 
   Future<void> fetch() async {
-    if (_isFetching) {
+    if (isFetching) {
       return;
     }
-    _isFetching = true;
+    isFetching = true;
 
     try {
       final response = await api.clients.explorer.getChainTips(GetChainTipsRequest());
@@ -50,7 +50,7 @@ class ExplorerProvider extends ChangeNotifier {
       initialized = true;
       notifyListeners();
     } finally {
-      _isFetching = false;
+      isFetching = false;
     }
   }
 
