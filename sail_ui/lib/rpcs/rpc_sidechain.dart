@@ -418,10 +418,12 @@ class WithdrawalOutput {
 class PendingWithdrawalBundle {
   final List<SpendUtxo> spendUtxos;
   final BitcoinTransaction tx;
+  final int heightCreated;
 
   PendingWithdrawalBundle({
     required this.spendUtxos,
     required this.tx,
+    required this.heightCreated,
   });
 
   factory PendingWithdrawalBundle.fromMap(Map<String, dynamic> map) {
@@ -430,6 +432,7 @@ class PendingWithdrawalBundle {
           (map['spend_utxos'] as List<dynamic>?)?.map((item) => SpendUtxo.fromMap(item as List<dynamic>)).toList() ??
               [],
       tx: BitcoinTransaction.fromMap(map['tx'] as Map<String, dynamic>),
+      heightCreated: map['height_created'] as int,
     );
   }
 
@@ -441,6 +444,7 @@ class PendingWithdrawalBundle {
   Map<String, dynamic> toMap() => {
         'spend_utxos': spendUtxos.map((e) => e.toList()).toList(),
         'tx': tx.toMap(),
+        'height_created': heightCreated,
       };
 
   String toJson() => jsonEncode(toMap());
@@ -483,6 +487,7 @@ class PendingWithdrawalBundle {
           inputs: [],
           outputs: [],
         ),
+        heightCreated: 0,
       );
 }
 

@@ -54,8 +54,7 @@ class BMMTab extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                height: 400,
+              Expanded(
                 child: SailTable(
                   getRowId: (index) => viewModel.attempts[index].txid,
                   headerBuilder: (context) => [
