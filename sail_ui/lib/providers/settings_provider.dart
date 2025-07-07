@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -19,7 +21,7 @@ class SettingsProvider extends ChangeNotifier {
   // Async factory
   static Future<SettingsProvider> create() async {
     final instance = SettingsProvider._create();
-    await instance._loadAllSettings();
+    unawaited(instance._loadAllSettings()); // unawaited to make bootup faster
     return instance;
   }
 
@@ -34,6 +36,7 @@ class SettingsProvider extends ChangeNotifier {
     final setting = DebugModeSetting();
     final loadedSetting = await clientSettings.getValue(setting);
     debugMode = loadedSetting.value;
+    notifyListeners();
   }
 
   /// Load launcher mode setting
@@ -41,6 +44,7 @@ class SettingsProvider extends ChangeNotifier {
     final setting = LauncherModeSetting();
     final loadedSetting = await clientSettings.getValue(setting);
     launcherMode = loadedSetting.value;
+    notifyListeners();
   }
 
   /// Update debug mode setting

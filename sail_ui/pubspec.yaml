@@ -25,7 +25,7 @@ dependencies:
   crypto: ^3.0.6
   logger: ^2.6.0
   stacked: ^3.4.3
-  skeletonizer: ^2.1.0+1 
+  skeletonizer: ^2.1.0+1
   auto_route: ^10.1.0
   get_it: ^7.7.0
   collection: ^1.18.0
@@ -36,6 +36,7 @@ dependencies:
   connectrpc: 1.0.0
   convert: ^3.1.1
   desktop_multi_window: ^0.2.1
+  window_manager: ^0.5.0
   web: ^1.1.1
   thirds: ^0.2.0-alpha.1
 
