@@ -236,9 +236,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
                   if (!hasLauncherModeDir) {
                     // They're going from old launcher to new launcher. Warn them we must delete stuff!
                     await _showLauncherModeWarning();
-                  } else {
-                    await _settingsProvider.updateLauncherMode(true);
-                  }
+                  } else {}
                 } else if (newValue == false) {
                   await _settingsProvider.updateLauncherMode(false);
                 }
