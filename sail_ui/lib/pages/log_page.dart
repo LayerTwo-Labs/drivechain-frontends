@@ -44,6 +44,55 @@ class _LogPageState extends State<LogPage> {
     });
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: SailColorScheme.blackLighter,
+      appBar: AppBar(
+        title: SailText.primary20(widget.title, color: SailColorScheme.whiteDark),
+        backgroundColor: SailColorScheme.blackLighter,
+        foregroundColor: SailColorScheme.whiteDark,
+        actions: [
+          SailButton(
+            onPressed: () async {
+              final logFile = File(widget.logPath);
+              await openFile(logFile);
+            },
+            variant: ButtonVariant.icon,
+            icon: SailSVGAsset.download,
+          ),
+        ],
+      ),
+      body: SelectableRegion(
+        focusNode: _focusNode,
+        selectionControls: DesktopTextSelectionControls(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: ListView.builder(
+            controller: _scrollController,
+            itemCount: _logLines.length + 1,
+            itemBuilder: (context, index) {
+              if (index == _logLines.length) {
+                return const SizedBox(height: 100);
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+                child: Text.rich(
+                  _parseAnsiCodes(_logLines[index]),
+                  style: const TextStyle(
+                    fontFamily: 'SourceCodePro',
+                    fontSize: 10,
+                    color: SailColorScheme.whiteDark,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _initializeLogView() async {
     final logFile = File(widget.logPath);
     if (!logFile.existsSync()) return;
@@ -282,55 +331,6 @@ class _LogPageState extends State<LogPage> {
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: SailColorScheme.blackLighter,
-      appBar: AppBar(
-        title: SailText.primary20(widget.title, color: SailColorScheme.whiteDark),
-        backgroundColor: SailColorScheme.blackLighter,
-        foregroundColor: SailColorScheme.whiteDark,
-        actions: [
-          SailButton(
-            onPressed: () async {
-              final logFile = File(widget.logPath);
-              await openFile(logFile);
-            },
-            variant: ButtonVariant.icon,
-            icon: SailSVGAsset.download,
-          ),
-        ],
-      ),
-      body: SelectableRegion(
-        focusNode: _focusNode,
-        selectionControls: DesktopTextSelectionControls(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          child: ListView.builder(
-            controller: _scrollController,
-            itemCount: _logLines.length + 1,
-            itemBuilder: (context, index) {
-              if (index == _logLines.length) {
-                return const SizedBox(height: 100);
-              }
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
-                child: Text.rich(
-                  _parseAnsiCodes(_logLines[index]),
-                  style: const TextStyle(
-                    fontFamily: 'SourceCodePro',
-                    fontSize: 10,
-                    color: SailColorScheme.whiteDark,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
   }
 }
 

@@ -166,32 +166,41 @@ abstract class Sidechain extends Binary {
   }
 }
 
-Directory? getWalletDir(Directory bitwindowAppDir) {
-  var directory = _findWalletDir(bitwindowAppDir);
+Directory? getBitwindowWalletDir(Directory bitwindowAppDir) {
+  return _findWalletDir(bitwindowAppDir);
+}
+
+Directory? getLauncherWalletDir(Directory bitwindowAppDir) {
+  // not in bitwindow.. lets look in drivechain-launcher
+  final launcherDir = Directory(
+    path.join(
+      bitwindowAppDir.path,
+      '..',
+      'drivechain-launcher',
+    ),
+  );
+
+  final directory = _findWalletDir(launcherDir);
+
   if (directory == null) {
-    // not in bitwindow.. lets look in drivechain-launcher
+    // not there either.. do one final check in home/.config
     final launcherDir = Directory(
       path.join(
-        bitwindowAppDir.path,
-        '..',
+        Platform.environment['HOME']!,
+        '.config',
         'drivechain-launcher',
       ),
     );
-    directory = _findWalletDir(launcherDir);
+    return _findWalletDir(launcherDir);
+  }
 
-    if (directory == null) {
-      // not there either.. do one final check in home/.config
-      final launcherDir = Directory(
-        path.join(
-          Platform.environment['HOME']!,
-          '.config',
-          'drivechain-launcher',
-        ),
-      );
-      return _findWalletDir(launcherDir);
-    }
+  return null;
+}
 
-    return directory;
+Directory? getWalletDir(Directory bitwindowAppDir) {
+  var directory = _findWalletDir(bitwindowAppDir);
+  if (directory == null) {
+    return getLauncherWalletDir(bitwindowAppDir);
   }
 
   return directory;

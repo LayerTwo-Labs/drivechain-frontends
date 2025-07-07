@@ -11,11 +11,16 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class WelcomePage extends StatefulWidget {
-  const WelcomePage({super.key});
+class CreateWalletPage extends StatefulWidget {
+  final WelcomeScreen initalScreen;
+
+  const CreateWalletPage({
+    super.key,
+    this.initalScreen = WelcomeScreen.initial,
+  });
 
   @override
-  State<WelcomePage> createState() => _WelcomePageState();
+  State<CreateWalletPage> createState() => _CreateWalletPageState();
 }
 
 enum WelcomeScreen {
@@ -25,8 +30,8 @@ enum WelcomeScreen {
   success,
 }
 
-class _WelcomePageState extends State<WelcomePage> {
-  WelcomeScreen _currentScreen = WelcomeScreen.initial;
+class _CreateWalletPageState extends State<CreateWalletPage> {
+  late WelcomeScreen _currentScreen;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final WalletProvider _walletProvider = GetIt.I.get<WalletProvider>();
@@ -34,11 +39,21 @@ class _WelcomePageState extends State<WelcomePage> {
   bool _isValidInput = false;
   Map<String, dynamic> _currentWalletData = {};
 
+  bool hasExistingWallet = false;
+
   @override
   void initState() {
     super.initState();
+
+    _currentScreen = widget.initalScreen;
     _mnemonicController.addListener(_onMnemonicChanged);
     _passphraseController.addListener(setstate);
+
+    _walletProvider.hasExistingWallet().then((value) {
+      setState(() {
+        hasExistingWallet = value;
+      });
+    });
   }
 
   void setstate() {
@@ -58,6 +73,11 @@ class _WelcomePageState extends State<WelcomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SailTheme.of(context).colors.background,
+      appBar: AppBar(
+        automaticallyImplyLeading: hasExistingWallet,
+        backgroundColor: SailTheme.of(context).colors.background,
+        foregroundColor: SailTheme.of(context).colors.text,
+      ),
       body: SafeArea(
         child: Builder(
           builder: (context) {
@@ -548,9 +568,10 @@ class _WelcomePageState extends State<WelcomePage> {
             mainAxisSize: MainAxisSize.max,
             children: [
               BootTitle(
-                title: 'Set up your wallet',
-                subtitle:
-                    "Welcome to Drivechain! Let's begin by setting up your wallet. The same seed is used for your mainchain node and all your sidechain wallets. This ensures you can easily back up and restore all wallets at a later date.",
+                title: hasExistingWallet ? 'Create New Wallet' : 'Set up your wallet',
+                subtitle: hasExistingWallet
+                    ? "Let's create a new wallet. Note that creating a new wallet will wipe your current wallet, and you should backup your current wallet before generating a new one."
+                    : "Welcome to Drivechain! Let's begin by setting up your wallet. The same seed is used for your mainchain node and all your sidechain wallets. This ensures you can easily back up and restore all wallets at a later date.",
               ),
               Spacer(),
               SizedBox(
@@ -588,7 +609,7 @@ class _WelcomePageState extends State<WelcomePage> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: SailText.primary15(
-                            'Generate Wallet',
+                            hasExistingWallet ? 'Create New Wallet' : 'Generate Wallet',
                             color: Colors.white,
                             bold: true,
                           ),

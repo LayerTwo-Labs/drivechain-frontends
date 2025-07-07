@@ -160,30 +160,66 @@ abstract class Binary {
     }
   }
 
-  Future<void> wipeWallet() async {
-    _log('Starting wallet wipe for $name');
+  Future<void> deleteWallet() async {
+    _log('Starting wallet backup for $name');
 
     final dir = datadir();
 
     switch (this) {
       case Enforcer():
-        await _deleteFilesInDir(dir, ['wallet']);
+        await _renameWalletDir(dir, 'wallet');
 
       case Bitnames():
-        await _deleteFilesInDir(dir, [
-          'wallet.mdb',
-        ]);
+        await _renameWalletDir(dir, 'wallet.mdb');
 
       case BitAssets():
-        await _deleteFilesInDir(dir, [
-          'wallet.mdb',
-        ]);
+        await _renameWalletDir(dir, 'wallet.mdb');
 
       case Thunder():
-        await _deleteFilesInDir(dir, [
-          'wallet.mdb',
-        ]);
+        await _renameWalletDir(dir, 'wallet.mdb');
+
+      case ZSide():
+        await _renameWalletDir(dir, 'wallet.mdb');
     }
+  }
+
+  Future<void> _renameWalletDir(String dir, String walletName) async {
+    final walletPath = path.join(dir, walletName);
+    final walletFile = File(walletPath);
+    final walletDir = Directory(walletPath);
+
+    if (await walletFile.exists()) {
+      // Handle wallet file
+      final newName = await _findAvailableName(dir, walletName);
+      final newPath = path.join(dir, newName);
+      await walletFile.rename(newPath);
+      _log('Renamed wallet file $walletName to $newName');
+    } else if (await walletDir.exists()) {
+      // Handle wallet directory
+      final newName = await _findAvailableName(dir, walletName);
+      final newPath = path.join(dir, newName);
+      await walletDir.rename(newPath);
+      _log('Renamed wallet directory $walletName to $newName');
+    } else {
+      _log('No wallet found at $walletPath');
+    }
+  }
+
+  Future<String> _findAvailableName(String dir, String originalName) async {
+    final baseName = path.basenameWithoutExtension(originalName);
+    final extension = path.extension(originalName);
+
+    // Try the original name first
+    String candidateName = originalName;
+    int counter = 2;
+
+    while (
+        await File(path.join(dir, candidateName)).exists() || await Directory(path.join(dir, candidateName)).exists()) {
+      candidateName = '$baseName-$counter$extension';
+      counter++;
+    }
+
+    return candidateName;
   }
 
   Future<void> wipeAssets(Directory assetsDir) async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -13,6 +14,7 @@ import 'package:pointycastle/digests/sha512.dart';
 import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 
@@ -50,7 +52,48 @@ class WalletProvider extends ChangeNotifier {
     return walletFile;
   }
 
+  Future<void> moveMasterWalletDir() async {
+    final isInLauncherMode = await hasLauncherModeDir();
+    if (!isInLauncherMode) {
+      throw Exception(
+        'Tried to move wallet dir WITHOUT being in launcher mode, this should never happen. Devs messed up',
+      );
+    }
+
+    final newName = await _findAvailableName(appDir.path, 'wallet_starters');
+    final newPath = path.join(appDir.path, newName);
+    await getBitwindowWalletDir(appDir)!.rename(newPath);
+    _logger.i('Moved wallet_starters directory to $newName');
+  }
+
+  Future<String> _findAvailableName(String dir, String originalName) async {
+    final baseName = path.basenameWithoutExtension(originalName);
+    final extension = path.extension(originalName);
+
+    // Try the original name first
+    String candidateName = originalName;
+    int counter = 2;
+
+    while (await Directory(path.join(dir, candidateName)).exists()) {
+      candidateName = '$baseName-$counter$extension';
+      counter++;
+    }
+
+    return candidateName;
+  }
+
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
+    final walletData = await deleteAllWallets(() async {
+      return _genWallet(customMnemonic: customMnemonic, passphrase: passphrase);
+    });
+    if (walletData == null) {
+      throw Exception('No wallet data returned from deleteAllWallets');
+    }
+
+    return walletData;
+  }
+
+  Future<Map<String, dynamic>> _genWallet({String? customMnemonic, String? passphrase}) async {
     final Mnemonic mnemonicObj = customMnemonic != null
         ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
         : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
@@ -252,20 +295,12 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteL1Starter() async {
-    await _deleteStarter('l1_starter.txt');
-  }
-
   Future<String?> getL1Starter() async {
     return _loadMnemonicStarter('l1_starter.txt');
   }
 
   Future<String?> getSidechainStarter(int sidechainSlot) async {
     return _loadMnemonicStarter('sidechain_${sidechainSlot}_starter.txt');
-  }
-
-  Future<void> deleteSidechainStarter(int sidechainSlot) async {
-    await _deleteStarter('sidechain_${sidechainSlot}_starter.txt');
   }
 
   Future<String?> _loadMnemonicStarter(String fileName) async {
@@ -297,19 +332,6 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _deleteStarter(String fileName) async {
-    try {
-      final file = await _getWalletFile(fileName);
-      if (file != null && file.existsSync()) {
-        await file.delete();
-        notifyListeners();
-      }
-    } catch (e, stackTrace) {
-      _logger.e('Error deleting starter $fileName: $e\n$stackTrace');
-      rethrow;
-    }
-  }
-
   Future<File?> _getWalletFile(String fileName) async {
     final walletDir = getWalletDir(appDir);
     if (walletDir == null) {
@@ -320,8 +342,13 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<void> _ensureWalletDir() async {
-    var walletDir = getWalletDir(appDir);
-    walletDir ??= Directory(path.join(appDir.path, 'wallet_starters'));
+    var walletDir = getBitwindowWalletDir(appDir);
+    if (walletDir == null) {
+      _logger.e('Could not find wallet dir, creating new one');
+      walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+    } else {
+      _logger.i('Found wallet dir: ${walletDir.path}');
+    }
 
     await walletDir.create(recursive: true);
   }
@@ -355,5 +382,47 @@ class WalletProvider extends ChangeNotifier {
     } catch (e, stack) {
       _logger.e('Error generating starters for downloaded chains: $e\n$stack');
     }
+  }
+
+  Future<Map<String, dynamic>?> deleteAllWallets(Future<Map<String, dynamic>?> Function()? beforeRebootAction) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    // Store connected and running binaries to reboot them after wallet wipe is complete
+    final connected = binaryProvider.binaries.where(binaryProvider.isConnected).toList();
+    final running = binaryProvider.runningBinaries;
+    final allBinaries = [...running, ...connected];
+    final runningBinaries = allBinaries.fold<List<Binary>>([], (unique, binary) {
+      if (!unique.any((b) => b.name == binary.name)) {
+        unique.add(binary);
+      }
+      return unique;
+    });
+
+    // then be extra sure and stop everything in the process manager
+    await binaryProvider.stopAll();
+
+    for (final binary in binaryProvider.binaries) {
+      // stop absolutely all binaries, to avoid corruption/file overwriting
+      await binaryProvider.stop(binary);
+    }
+
+    await Future.delayed(const Duration(seconds: 5));
+
+    for (final binary in binaryProvider.binaries) {
+      // wipe all wallets
+      await binary.deleteWallet();
+    }
+
+    await moveMasterWalletDir();
+    final walletData = await beforeRebootAction?.call();
+
+    // reboot L1-binaries
+    await binaryProvider.startWithEnforcer(binaryProvider.binaries.where((b) => b.name == BitWindow().name).first);
+
+    // then restart all sidechains we stopped
+    for (final binary in runningBinaries) {
+      unawaited(binaryProvider.start(binary));
+    }
+
+    return walletData;
   }
 }
