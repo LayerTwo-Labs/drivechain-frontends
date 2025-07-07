@@ -13,85 +13,22 @@ class StartersTab extends StatelessWidget {
     return ViewModelBuilder<StartersPageViewModel>.reactive(
       viewModelBuilder: () => StartersPageViewModel(),
       builder: (context, viewModel, child) {
-        return SailCard(
-          padding: true,
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header section with improved spacing
-                    Column(
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: viewModel.loadStarters(),
+          builder: (context, snapshot) {
+            final starters = snapshot.data ?? [];
+
+            return SailCard(
+              title: 'Starters',
+              padding: true,
+              error: snapshot.hasError ? snapshot.error.toString() : null,
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SailText.primary24('Starters'),
-                        const SizedBox(height: 8),
-                        SailText.secondary13(
-                          'View and manage your wallet starters',
-                          color: SailTheme.of(context).colors.textSecondary,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    FutureBuilder<List<Map<String, dynamic>>>(
-                      future: viewModel.loadStarters(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32.0),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    color: SailTheme.of(context).colors.error,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  SailText.secondary13(
-                                    'Error loading starters: ${snapshot.error}',
-                                    color: SailTheme.of(context).colors.error,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        final starters = snapshot.data ?? [];
-                        if (starters.isEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32.0),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: SailTheme.of(context).colors.textSecondary,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  SailText.secondary13(
-                                    'No downloaded sidechains found',
-                                    color: SailTheme.of(context).colors.textSecondary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        return DecoratedBox(
+                        DecoratedBox(
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: SailTheme.of(context).colors.divider,
@@ -135,72 +72,13 @@ class StartersTab extends StatelessWidget {
                               ),
                               // Master starter row
                               ...starters.where((s) => s['name'] == 'Master').map((starter) {
-                                final isRevealed = viewModel.isStarterRevealed(starter['name']);
-                                final hasMnemonic = starter['mnemonic'] != null;
-
-                                return TableRow(
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: SailTheme.of(context).colors.divider,
-                                        width: 1,
-                                      ),
-                                    ),
-                                  ),
-                                  children: [
-                                    // Starter name
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: SailText.primary13(
-                                        starter['name'] ?? 'Unknown',
-                                        color: SailTheme.of(context).colors.text,
-                                      ),
-                                    ),
-                                    // Mnemonic
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: SailText.secondary13(
-                                        hasMnemonic
-                                            ? (isRevealed ? starter['mnemonic'] ?? '' : '••••••••••••')
-                                            : 'No starter generated',
-                                        color: hasMnemonic
-                                            ? SailTheme.of(context).colors.text
-                                            : SailTheme.of(context).colors.textSecondary,
-                                      ),
-                                    ),
-                                    // Action buttons
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          if (hasMnemonic) ...[
-                                            if (!isRevealed)
-                                              SailButton(
-                                                label: 'Reveal',
-                                                onPressed: () async =>
-                                                    viewModel.toggleStarterReveal(starter['name'], true),
-                                                variant: ButtonVariant.secondary,
-                                              )
-                                            else ...[
-                                              SailButton(
-                                                label: 'Copy',
-                                                onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
-                                                variant: ButtonVariant.secondary,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              SailButton(
-                                                label: 'Hide',
-                                                onPressed: () async =>
-                                                    viewModel.toggleStarterReveal(starter['name'], false),
-                                                variant: ButtonVariant.secondary,
-                                              ),
-                                            ],
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                return mnemonicRow(
+                                  context,
+                                  viewModel,
+                                  starter['name'],
+                                  starter['mnemonic'],
+                                  viewModel.isStarterRevealed(starter['name']),
+                                  starter['mnemonic'] != null,
                                 );
                               }),
                               // Layer 1 divider and starters
@@ -225,72 +103,14 @@ class StartersTab extends StatelessWidget {
                               // L1 starter row
                               ...starters.where((s) => s['name'] == 'Layer 1' || s['chain_layer'] == 1).map((starter) {
                                 final isRevealed = viewModel.isStarterRevealed(starter['name']);
-                                final hasMnemonic = starter['mnemonic'] != null;
 
-                                return TableRow(
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: SailTheme.of(context).colors.divider,
-                                        width: 1,
-                                      ),
-                                    ),
-                                  ),
-                                  children: [
-                                    // Starter name
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: SailText.primary13(
-                                        starter['name'] ?? 'Unknown',
-                                        color: SailTheme.of(context).colors.text,
-                                      ),
-                                    ),
-                                    // Mnemonic
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: SailText.secondary13(
-                                        hasMnemonic
-                                            ? (isRevealed ? starter['mnemonic'] ?? '' : '••••••••••••')
-                                            : 'No starter generated',
-                                        color: hasMnemonic
-                                            ? SailTheme.of(context).colors.text
-                                            : SailTheme.of(context).colors.textSecondary,
-                                      ),
-                                    ),
-                                    // Action buttons
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          if (hasMnemonic) ...[
-                                            if (!isRevealed)
-                                              SailButton(
-                                                label: 'Reveal',
-                                                onPressed: () async =>
-                                                    viewModel.toggleStarterReveal(starter['name'], true),
-                                                variant: ButtonVariant.secondary,
-                                              )
-                                            else ...[
-                                              SailButton(
-                                                label: 'Copy',
-                                                onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
-                                                variant: ButtonVariant.secondary,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              SailButton(
-                                                label: 'Hide',
-                                                onPressed: () async =>
-                                                    viewModel.toggleStarterReveal(starter['name'], false),
-                                                variant: ButtonVariant.secondary,
-                                              ),
-                                            ],
-                                            const SizedBox(width: 8),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                return mnemonicRow(
+                                  context,
+                                  viewModel,
+                                  starter['name'],
+                                  starter['mnemonic'],
+                                  isRevealed,
+                                  starter['mnemonic'] != null,
                                 );
                               }),
                               // Layer 2 divider
@@ -315,88 +135,97 @@ class StartersTab extends StatelessWidget {
                               // Sidechain starter rows
                               ...starters.where((s) => s['chain_layer'] == 2).map((starter) {
                                 final isRevealed = viewModel.isStarterRevealed(starter['name']);
-                                final hasMnemonic = starter['mnemonic'] != null;
 
-                                return TableRow(
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: SailTheme.of(context).colors.divider,
-                                        width: 1,
-                                      ),
-                                    ),
-                                  ),
-                                  children: [
-                                    // Starter name
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: SailText.primary13(
-                                        starter['name'] ?? 'Unknown',
-                                        color: SailTheme.of(context).colors.text,
-                                      ),
-                                    ),
-                                    // Mnemonic
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: SailText.secondary13(
-                                        hasMnemonic
-                                            ? (isRevealed ? starter['mnemonic'] ?? '' : '••••••••••••')
-                                            : 'No starter generated',
-                                        color: hasMnemonic
-                                            ? SailTheme.of(context).colors.text
-                                            : SailTheme.of(context).colors.textSecondary,
-                                      ),
-                                    ),
-                                    // Action buttons
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          if (hasMnemonic) ...[
-                                            if (!isRevealed)
-                                              SailButton(
-                                                label: 'Reveal',
-                                                onPressed: () async =>
-                                                    viewModel.toggleStarterReveal(starter['name'], true),
-                                                variant: ButtonVariant.secondary,
-                                              )
-                                            else ...[
-                                              SailButton(
-                                                label: 'Copy',
-                                                onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
-                                                variant: ButtonVariant.secondary,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              SailButton(
-                                                label: 'Hide',
-                                                onPressed: () async =>
-                                                    viewModel.toggleStarterReveal(starter['name'], false),
-                                                variant: ButtonVariant.secondary,
-                                              ),
-                                            ],
-                                            const SizedBox(width: 8),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                return mnemonicRow(
+                                  context,
+                                  viewModel,
+                                  starter['name'],
+                                  starter['mnemonic'],
+                                  isRevealed,
+                                  starter['mnemonic'] != null,
                                 );
                               }),
                             ],
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
+}
+
+TableRow mnemonicRow(
+  BuildContext context,
+  StartersPageViewModel viewModel,
+  String name,
+  String mnemonic,
+  bool isRevealed,
+  bool hasMnemonic,
+) {
+  return TableRow(
+    decoration: BoxDecoration(
+      border: Border(
+        bottom: BorderSide(
+          color: SailTheme.of(context).colors.divider,
+          width: 1,
+        ),
+      ),
+    ),
+    children: [
+      // Starter name
+      Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: SailText.primary13(
+          name,
+          color: SailTheme.of(context).colors.text,
+        ),
+      ),
+      // Mnemonic
+      Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: SailText.secondary13(
+          hasMnemonic ? (isRevealed ? mnemonic : '••••••••••••') : 'No starter generated',
+          color: hasMnemonic ? SailTheme.of(context).colors.text : SailTheme.of(context).colors.textSecondary,
+        ),
+      ),
+      // Action buttons
+      Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (hasMnemonic) ...[
+              if (!isRevealed)
+                SailButton(
+                  label: 'Reveal',
+                  onPressed: () async => viewModel.toggleStarterReveal(name, true),
+                  variant: ButtonVariant.secondary,
+                )
+              else ...[
+                CopyButton(
+                  text: mnemonic,
+                ),
+                const SizedBox(width: 8),
+                SailButton(
+                  label: 'Hide',
+                  onPressed: () async => viewModel.toggleStarterReveal(name, false),
+                  variant: ButtonVariant.secondary,
+                ),
+              ],
+              const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class StartersPageViewModel extends BaseViewModel {
