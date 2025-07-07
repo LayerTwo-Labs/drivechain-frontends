@@ -11,6 +11,58 @@
 part of 'router.dart';
 
 /// generated route for
+/// [CreateWalletPage]
+class CreateWalletRoute extends PageRouteInfo<CreateWalletRouteArgs> {
+  CreateWalletRoute({
+    Key? key,
+    WelcomeScreen initalScreen = WelcomeScreen.initial,
+    List<PageRouteInfo>? children,
+  }) : super(
+          CreateWalletRoute.name,
+          args: CreateWalletRouteArgs(key: key, initalScreen: initalScreen),
+          initialChildren: children,
+        );
+
+  static const String name = 'CreateWalletRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<CreateWalletRouteArgs>(
+        orElse: () => const CreateWalletRouteArgs(),
+      );
+      return CreateWalletPage(key: args.key, initalScreen: args.initalScreen);
+    },
+  );
+}
+
+class CreateWalletRouteArgs {
+  const CreateWalletRouteArgs({
+    this.key,
+    this.initalScreen = WelcomeScreen.initial,
+  });
+
+  final Key? key;
+
+  final WelcomeScreen initalScreen;
+
+  @override
+  String toString() {
+    return 'CreateWalletRouteArgs{key: $key, initalScreen: $initalScreen}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CreateWalletRouteArgs) return false;
+    return key == other.key && initalScreen == other.initalScreen;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ initalScreen.hashCode;
+}
+
+/// generated route for
 /// [LearnPage]
 class LearnRoute extends PageRouteInfo<void> {
   const LearnRoute({List<PageRouteInfo>? children}) : super(LearnRoute.name, initialChildren: children);
@@ -128,21 +180,6 @@ class WalletRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const WalletPage();
-    },
-  );
-}
-
-/// generated route for
-/// [WelcomePage]
-class WelcomeRoute extends PageRouteInfo<void> {
-  const WelcomeRoute({List<PageRouteInfo>? children}) : super(WelcomeRoute.name, initialChildren: children);
-
-  static const String name = 'WelcomeRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const WelcomePage();
     },
   );
 }

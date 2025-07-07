@@ -8,6 +8,7 @@ import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
+import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
@@ -118,6 +119,22 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         PlatformMenu(
           label: 'Your Wallet',
           menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Create New Wallet',
+                  onSelected: () {
+                    GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.initial));
+                  },
+                ),
+                PlatformMenuItem(
+                  label: 'Restore My Wallet',
+                  onSelected: () {
+                    GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.restore));
+                  },
+                ),
+              ],
+            ),
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(

@@ -7,8 +7,9 @@ import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
-import 'package:bitwindow/pages/welcome/welcome_page.dart';
+import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/settings/client_settings.dart';
@@ -77,8 +78,8 @@ class AppRouter extends RootStackRouter {
           page: ShuttingDownRoute.page,
         ),
         AutoRoute(
-          path: '/welcome',
-          page: WelcomeRoute.page,
+          path: '/create-wallet',
+          page: CreateWalletRoute.page,
         ),
       ];
 }
@@ -103,7 +104,7 @@ class WalletGuard extends AutoRouteGuard {
 
       // Only route to welcome if launcher mode is enabled
       if (launcherModeEnabled) {
-        await router.push(const WelcomeRoute());
+        await router.push(CreateWalletRoute());
       }
       resolver.next(true);
     }

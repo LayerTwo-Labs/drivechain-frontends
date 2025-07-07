@@ -86,6 +86,11 @@ class EnforcerLive extends EnforcerRPC {
     final appDir = await getApplicationSupportDirectory();
     final walletDir = getWalletDir(appDir);
 
+    // Remove any existing wallet arguments before setting new ones
+    enforcerBinary.extraBootArgs = enforcerBinary.extraBootArgs
+        .where((arg) => !arg.startsWith('--wallet-auto-create') && !arg.startsWith('--wallet-seed-file'))
+        .toList();
+
     var walletArg = '--wallet-auto-create';
     if (walletDir != null) {
       // we have a bitwindow wallet dir, and the enforcer does NOT have a wallet loaded

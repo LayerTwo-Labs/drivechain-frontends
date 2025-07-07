@@ -450,6 +450,7 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     BitAssets(),
     Bitnames(),
     Thunder(),
+    ZSide(),
   ];
 
   return await loadBinaryCreationTimestamp(binaries, appDir);

@@ -141,33 +141,20 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             'WARNING: Enabling launcher mode will delete all your current wallets. If you want to restore your wallet, '
             'make sure to save your master seed from the old launcher BEFORE enabling launcher mode.',
         onConfirm: () async {
-          final binaryProvider = GetIt.I.get<BinaryProvider>();
-          // Store running binaries to reboot them later
-          final runningBinaries = binaryProvider.runningBinaries;
+          final walletProvider = GetIt.I.get<WalletProvider>();
 
-          // stop all running binaries
-          await binaryProvider.stopAll();
-          await Future.delayed(const Duration(seconds: 5));
-          for (final binary in binaryProvider.binaries) {
-            // after they're stopped, wipe their wallets
-            await binary.wipeWallet();
-          }
+          await walletProvider.deleteAllWallets(() async {
+            // update launcher mode
+            await _settingsProvider.updateLauncherMode(true);
 
-          // then finally update the launcher mode
-          await _settingsProvider.updateLauncherMode(true);
-          final hasWallet = await GetIt.I.get<WalletProvider>().hasExistingWallet();
-          if (!hasWallet) {
-            await GetIt.I.get<AppRouter>().push(const WelcomeRoute());
-          }
+            final hasWallet = await walletProvider.hasExistingWallet();
+            if (!hasWallet) {
+              await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
+            }
 
-          // reboot L1-binaries
-          await binaryProvider
-              .startWithEnforcer(binaryProvider.binaries.where((b) => b.name == BitWindow().name).first);
-
-          // then restart all sidechains we stopped
-          for (final binary in runningBinaries) {
-            await binaryProvider.start(binary);
-          }
+            // no new wallet data! That's done automatically
+            return null;
+          });
 
           if (context.mounted) Navigator.of(context).pop();
         },
