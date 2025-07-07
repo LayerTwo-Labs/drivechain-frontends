@@ -12,7 +12,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
@@ -39,14 +39,35 @@ Future<void> start(List<String> args) async {
   }
 
   // Fall back to filesystem if not provided in args
-  applicationDir ??= await getApplicationSupportDirectory();
-  logFile ??= await getLogFile();
+  applicationDir ??= await RuntimeArgs.datadir();
+  logFile ??= await getLogFile(applicationDir);
   final store = await KeyValueStore.create(dir: applicationDir);
 
-  await initDependencies(applicationDir, logFile, store);
+  final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
+  GetIt.I.registerLazySingleton<Logger>(() => log);
+  final router = AppRouter();
+  GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  AppRouter router = GetIt.I.get<AppRouter>();
-  Logger log = GetIt.I.get<Logger>();
+  Future<SidechainRPC> createSidechainConnection(Binary binary) async {
+    final bitnames = await BitnamesLive.create(
+      binary: binary,
+    );
+    GetIt.I.registerSingleton<BitnamesRPC>(bitnames);
+
+    return bitnames;
+  }
+
+  await initSidechainDependencies(
+    sidechain: Bitnames(),
+    createSidechainConnection: createSidechainConnection,
+    applicationDir: applicationDir,
+    store: store,
+    log: log,
+  );
+
+  GetIt.I.registerLazySingleton<BitnamesProvider>(
+    () => BitnamesProvider(),
+  );
 
   log.i('starting bitnames');
   final bitnames = GetIt.I.get<BitnamesRPC>();
@@ -256,14 +277,9 @@ Future<void> initDependencies(
   GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
     () => SidechainTransactionsProvider(),
   );
-
-  GetIt.I.registerLazySingleton<BitnamesProvider>(
-    () => BitnamesProvider(),
-  );
 }
 
-Future<File> getLogFile() async {
-  final datadir = await RuntimeArgs.datadir();
+Future<File> getLogFile(Directory datadir) async {
   try {
     await datadir.create(recursive: true);
   } catch (error) {

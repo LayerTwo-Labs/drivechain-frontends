@@ -6,12 +6,11 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:zside/config/runtime_args.dart';
 import 'package:zside/providers/cast_provider.dart';
-import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/rpc/models/active_sidechains.dart';
@@ -40,14 +39,39 @@ Future<void> start(List<String> args) async {
   }
 
   // Fall back to filesystem if not provided in args
-  applicationDir ??= await getApplicationSupportDirectory();
-  logFile ??= await getLogFile();
+  applicationDir ??= await RuntimeArgs.datadir();
+  logFile ??= await getLogFile(applicationDir);
   final store = await KeyValueStore.create(dir: applicationDir);
 
-  await initDependencies(applicationDir, logFile, store);
+  final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
+  GetIt.I.registerLazySingleton<Logger>(() => log);
+  final router = AppRouter();
+  GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  AppRouter router = GetIt.I.get<AppRouter>();
-  Logger log = GetIt.I.get<Logger>();
+  Future<SidechainRPC> createSidechainConnection(Binary binary) async {
+    final zside = await ZSideLive.create(
+      binary: binary,
+    );
+    GetIt.I.registerSingleton<ZSideRPC>(zside);
+
+    return zside;
+  }
+
+  await initSidechainDependencies(
+    sidechain: ZSide(),
+    createSidechainConnection: createSidechainConnection,
+    applicationDir: applicationDir,
+    store: store,
+    log: log,
+  );
+
+  GetIt.I.registerLazySingleton<ZSideProvider>(
+    () => ZSideProvider(),
+  );
+
+  GetIt.I.registerLazySingleton<CastProvider>(
+    () => CastProvider(),
+  );
 
   log.i('starting zside');
   final zside = GetIt.I.get<ZSideRPC>();
@@ -129,103 +153,7 @@ void main(List<String> args) async {
   await start(args);
 }
 
-// register all global dependencies, for use in views, or in view models
-// each dependency can only be registered once
-Future<void> initDependencies(
-  Directory applicationDir,
-  File logFile,
-  KeyValueStore store,
-) async {
-  final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
-
-  GetIt.I.registerLazySingleton<NotificationProvider>(
-    () => NotificationProvider(),
-  );
-
-  final clientSettings = ClientSettings(
-    store: store,
-    log: log,
-  );
-  GetIt.I.registerLazySingleton<ClientSettings>(
-    () => clientSettings,
-  );
-  final settingsProvider = await SettingsProvider.create();
-  GetIt.I.registerLazySingleton<SettingsProvider>(
-    () => settingsProvider,
-  );
-
-  // Load initial binary states
-  final binaries = await _loadBinaries(applicationDir);
-  final mainchainRPC = await MainchainRPCLive.create(
-    binaries.firstWhere((b) => b is BitcoinCore),
-  );
-  GetIt.I.registerLazySingleton<MainchainRPC>(
-    () => mainchainRPC,
-  );
-
-  final enforcerBinary = binaries.firstWhere((b) => b is Enforcer);
-  final enforcer = await EnforcerLive.create(
-    host: '127.0.0.1',
-    port: enforcerBinary.port,
-    binary: enforcerBinary,
-  );
-  GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
-
-  final zside = await ZSideLive.create(
-    binary: binaries.firstWhere((b) => b is ZSide),
-  );
-  GetIt.I.registerSingleton<ZSideRPC>(zside);
-  GetIt.I.registerSingleton<SidechainRPC>(zside);
-
-  // After RPCs including sidechain rpcs have been registered, register the binary provider
-  final binaryProvider = BinaryProvider(
-    appDir: applicationDir,
-    initialBinaries: binaries,
-  );
-  GetIt.I.registerSingleton<BinaryProvider>(
-    binaryProvider,
-  );
-  bootBinaries(log);
-
-  GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
-
-  GetIt.I.registerLazySingleton<AppRouter>(
-    () => AppRouter(),
-  );
-
-  GetIt.I.registerLazySingleton<BalanceProvider>(
-    () => BalanceProvider(
-      connections: [zside],
-    ),
-  );
-
-  final syncProvider = SyncProvider(
-    additionalConnection: SyncConnection(
-      rpc: zside,
-      name: zside.binary.name,
-    ),
-  );
-  GetIt.I.registerLazySingleton<SyncProvider>(
-    () => syncProvider,
-  );
-  unawaited(syncProvider.fetch());
-
-  GetIt.I.registerLazySingleton<TransactionsProvider>(
-    () => TransactionsProvider(),
-  );
-
-  GetIt.I.registerLazySingleton<ZSideProvider>(
-    () => ZSideProvider(),
-  );
-
-  GetIt.I.registerLazySingleton<CastProvider>(
-    () => CastProvider(),
-  );
-}
-
-Future<File> getLogFile() async {
-  final datadir = await RuntimeArgs.datadir();
+Future<File> getLogFile(Directory datadir) async {
   try {
     await datadir.create(recursive: true);
   } catch (error) {
@@ -245,20 +173,6 @@ void bootBinaries(Logger log) async {
   await binaryProvider.startWithEnforcer(
     zside,
   );
-}
-
-Future<List<Binary>> _loadBinaries(Directory appDir) async {
-  // Register all binaries
-  var binaries = [
-    BitcoinCore(),
-    Enforcer(),
-    ZSide(),
-  ];
-
-  // make bitassets boot in headless-mode
-  binaries[2].addBootArg('--headless');
-
-  return await loadBinaryCreationTimestamp(binaries, appDir);
 }
 
 // BitAssets window types
