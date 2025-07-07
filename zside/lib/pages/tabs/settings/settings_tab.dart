@@ -328,7 +328,7 @@ class ThemeSettingsViewModel extends BaseViewModel {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
     font = (await _clientSettings.getValue(FontSetting())).value;
     fontOnLoad = font;
-    final logFile = await getLogFile();
+    final logFile = await getLogFile(await RuntimeArgs.datadir());
     logdir = logFile.path;
     notifyListeners();
   }

@@ -121,10 +121,9 @@ class _AddressBookTableState extends State<AddressBookTable> {
 
         return SailPadding(
           padding: EdgeInsets.only(
-            top: SailStyleValues.padding16,
-            left: SailStyleValues.padding16,
-            right: SailStyleValues.padding16,
-            bottom: SailStyleValues.padding64,
+            top: SailStyleValues.padding08,
+            left: SailStyleValues.padding08,
+            right: SailStyleValues.padding08,
           ),
           child: InlineTabBar(
             tabs: [

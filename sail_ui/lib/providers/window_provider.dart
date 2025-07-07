@@ -270,6 +270,7 @@ SailApp buildSailWindowApp(Logger log, String windowTitle, Widget child, Color a
         fontFamily: 'Inter',
       ),
       home: Scaffold(
+        backgroundColor: SailTheme.of(context).colors.background,
         body: Column(
           children: [
             Container(
