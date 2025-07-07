@@ -95,6 +95,11 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
       titleTooltip:
           'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
       error: error,
+      widgetHeaderEnd: SailToggle(
+        label: 'Show only filled slots',
+        value: viewModel.showOnlyFilled,
+        onChanged: (value) => viewModel.setShowOnlyFilled(value),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -102,106 +107,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             child: SailSkeletonizer(
               description: 'Waiting for enforcer to become available..',
               enabled: viewModel.loading,
-              child: SailTable(
-                key: ValueKey('sidechains_table_${viewModel.launcherMode}'),
-                getRowId: (index) => index.toString(),
-                headerBuilder: (context) => [
-                  SailTableHeaderCell(
-                    name: 'Slot',
-                    onSort: () => viewModel.sortSidechains('slot'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Name',
-                    onSort: () => viewModel.sortSidechains('name'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Balance',
-                    onSort: () => viewModel.sortSidechains('balance'),
-                  ),
-                  if (viewModel.launcherMode)
-                    SailTableHeaderCell(
-                      name: 'Action',
-                      onSort: () => viewModel.sortSidechains('action'),
-                    ),
-                  if (viewModel.launcherMode)
-                    SailTableHeaderCell(
-                      name: 'Settings',
-                      onSort: () => viewModel.sortSidechains('update'),
-                    ),
-                ],
-                rowBuilder: (context, row, selected) {
-                  final slot = row; // This is now the slot number (0-254)
-                  final sidechain = viewModel.sidechains[slot];
-                  final textColor =
-                      sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
-                  final buttonWidget = viewModel.sidechainWidget(slot);
-                  final binary = viewModel.sidechainForSlot(slot);
-
-                  return [
-                    SailTableCell(value: '$slot:', textColor: textColor),
-                    SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
-                    SailTableCell(
-                      value: formatBitcoin(
-                        satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
-                      ),
-                      textColor: textColor,
-                    ),
-                    if (viewModel.launcherMode)
-                      SailTableCell(
-                        value: buttonWidget?.toString() ?? '',
-                        child: buttonWidget,
-                      ),
-                    if (viewModel.launcherMode)
-                      if (binary != null)
-                        SailTableCell(
-                          value: '',
-                          child: SailButton(
-                            variant: ButtonVariant.outline,
-                            label: '',
-                            icon: SailSVGAsset.settings,
-                            insideTable: true,
-                            onPressed: () async {
-                              await showDialog(
-                                context: context,
-                                builder: (context) => ChainSettingsModal(
-                                  binary: binary,
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                      else
-                        Container(),
-                  ];
-                },
-                rowCount: 255, // Show all possible slots
-                sortAscending: viewModel.sortAscending,
-                sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
-                onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
-                selectedRowId: viewModel.selectedIndex?.toString(),
-                onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
-                onDoubleTap: (rowId) {
-                  final sidechain = viewModel.sidechains[int.parse(rowId)];
-                  if (sidechain == null || sidechain.info.chaintipTxid == '') {
-                    return;
-                  }
-
-                  showTransactionDetails(context, rowId);
-                },
-                contextMenuItems: (rowId) {
-                  final sidechain = viewModel.sidechains[int.parse(rowId)];
-                  if (sidechain == null || sidechain.info.chaintipTxid == '') {
-                    return [];
-                  }
-
-                  return [
-                    SailMenuItem(
-                      onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
-                      child: SailText.primary12('Show Chaintip Transaction'),
-                    ),
-                  ];
-                },
-              ),
+              child: viewModel.showOnlyFilled ? OnlyFilledTable() : FullTable(),
             ),
           ),
           const SizedBox(height: SailStyleValues.padding16),
@@ -213,6 +119,228 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
+  const OnlyFilledTable({super.key});
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    // Filter to only show filled slots
+    final filledSlots = <int>[];
+    for (int i = 0; i < viewModel.sidechains.length; i++) {
+      if (viewModel.sidechains[i] != null) {
+        filledSlots.add(i);
+      }
+    }
+
+    return SailTable(
+      key: ValueKey('sidechains_table_${viewModel.launcherMode}'),
+      getRowId: (index) => filledSlots[index].toString(),
+      headerBuilder: (context) => [
+        SailTableHeaderCell(
+          name: 'Slot',
+          onSort: () => viewModel.sortSidechains('slot'),
+        ),
+        SailTableHeaderCell(
+          name: 'Name',
+          onSort: () => viewModel.sortSidechains('name'),
+        ),
+        SailTableHeaderCell(
+          name: 'Balance',
+          onSort: () => viewModel.sortSidechains('balance'),
+        ),
+        if (viewModel.launcherMode)
+          SailTableHeaderCell(
+            name: 'Action',
+            onSort: () => viewModel.sortSidechains('action'),
+          ),
+        if (viewModel.launcherMode)
+          SailTableHeaderCell(
+            name: 'Settings',
+            onSort: () => viewModel.sortSidechains('update'),
+          ),
+      ],
+      rowBuilder: (context, row, selected) {
+        final slot = filledSlots[row]; // Get the actual slot number from filtered list
+        final sidechain = viewModel.sidechains[slot];
+        final textColor = context.sailTheme.colors.text;
+        final buttonWidget = viewModel.sidechainWidget(slot);
+        final binary = viewModel.sidechainForSlot(slot);
+
+        return [
+          SailTableCell(value: '$slot:', textColor: textColor),
+          SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
+          SailTableCell(
+            value: formatBitcoin(
+              satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
+            ),
+            textColor: textColor,
+          ),
+          if (viewModel.launcherMode)
+            SailTableCell(
+              value: buttonWidget?.toString() ?? '',
+              child: buttonWidget,
+            ),
+          if (viewModel.launcherMode)
+            if (binary != null)
+              SailTableCell(
+                value: '',
+                child: SailButton(
+                  variant: ButtonVariant.outline,
+                  label: '',
+                  icon: SailSVGAsset.settings,
+                  insideTable: true,
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (context) => ChainSettingsModal(
+                        binary: binary,
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(),
+        ];
+      },
+      rowCount: filledSlots.length, // Only show filled slots
+      sortAscending: viewModel.sortAscending,
+      sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
+      onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
+      selectedRowId: viewModel.selectedIndex?.toString(),
+      onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
+      onDoubleTap: (rowId) {
+        final sidechain = viewModel.sidechains[int.parse(rowId)];
+        if (sidechain == null || sidechain.info.chaintipTxid == '') {
+          return;
+        }
+
+        showTransactionDetails(context, rowId);
+      },
+      contextMenuItems: (rowId) {
+        final sidechain = viewModel.sidechains[int.parse(rowId)];
+        if (sidechain == null || sidechain.info.chaintipTxid == '') {
+          return [];
+        }
+
+        return [
+          SailMenuItem(
+            onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
+            child: SailText.primary12('Show Chaintip Transaction'),
+          ),
+        ];
+      },
+    );
+  }
+}
+
+class FullTable extends ViewModelWidget<SidechainsViewModel> {
+  const FullTable({super.key});
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    return SailTable(
+      key: ValueKey('sidechains_table_${viewModel.launcherMode}'),
+      getRowId: (index) => index.toString(),
+      headerBuilder: (context) => [
+        SailTableHeaderCell(
+          name: 'Slot',
+          onSort: () => viewModel.sortSidechains('slot'),
+        ),
+        SailTableHeaderCell(
+          name: 'Name',
+          onSort: () => viewModel.sortSidechains('name'),
+        ),
+        SailTableHeaderCell(
+          name: 'Balance',
+          onSort: () => viewModel.sortSidechains('balance'),
+        ),
+        if (viewModel.launcherMode)
+          SailTableHeaderCell(
+            name: 'Action',
+            onSort: () => viewModel.sortSidechains('action'),
+          ),
+        if (viewModel.launcherMode)
+          SailTableHeaderCell(
+            name: 'Settings',
+            onSort: () => viewModel.sortSidechains('update'),
+          ),
+      ],
+      rowBuilder: (context, row, selected) {
+        final slot = row; // This is now the slot number (0-254)
+        final sidechain = viewModel.sidechains[slot];
+        final textColor = sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
+        final buttonWidget = viewModel.sidechainWidget(slot);
+        final binary = viewModel.sidechainForSlot(slot);
+
+        return [
+          SailTableCell(value: '$slot:', textColor: textColor),
+          SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
+          SailTableCell(
+            value: formatBitcoin(
+              satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
+            ),
+            textColor: textColor,
+          ),
+          if (viewModel.launcherMode)
+            SailTableCell(
+              value: buttonWidget?.toString() ?? '',
+              child: buttonWidget,
+            ),
+          if (viewModel.launcherMode)
+            if (binary != null)
+              SailTableCell(
+                value: '',
+                child: SailButton(
+                  variant: ButtonVariant.outline,
+                  label: '',
+                  icon: SailSVGAsset.settings,
+                  insideTable: true,
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (context) => ChainSettingsModal(
+                        binary: binary,
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(),
+        ];
+      },
+      rowCount: 255, // Show all possible slots
+      sortAscending: viewModel.sortAscending,
+      sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
+      onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
+      selectedRowId: viewModel.selectedIndex?.toString(),
+      onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
+      onDoubleTap: (rowId) {
+        final sidechain = viewModel.sidechains[int.parse(rowId)];
+        if (sidechain == null || sidechain.info.chaintipTxid == '') {
+          return;
+        }
+
+        showTransactionDetails(context, rowId);
+      },
+      contextMenuItems: (rowId) {
+        final sidechain = viewModel.sidechains[int.parse(rowId)];
+        if (sidechain == null || sidechain.info.chaintipTxid == '') {
+          return [];
+        }
+
+        return [
+          SailMenuItem(
+            onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
+            child: SailText.primary12('Show Chaintip Transaction'),
+          ),
+        ];
+      },
     );
   }
 }
@@ -247,11 +375,16 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get loading => _enforcerRPC.initializingBinary;
 
   List<SidechainOverview?> get sidechains => sidechainProvider.sidechains;
-
   List<SidechainOverview?> _sortedSidechains = [];
 
   String sortColumn = 'slot';
   bool sortAscending = true;
+
+  bool showOnlyFilled = true;
+  void setShowOnlyFilled(bool value) {
+    showOnlyFilled = value;
+    notifyListeners();
+  }
 
   // Get launcher mode from settings provider
   bool get launcherMode => _settingsProvider.launcherMode;
