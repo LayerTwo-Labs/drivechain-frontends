@@ -146,6 +146,8 @@ class _RecipientFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return SailColumn(
       spacing: SailStyleValues.padding08,
       children: [
@@ -162,27 +164,25 @@ class _RecipientFields extends StatelessWidget {
                   recipient.addressController.text = text;
                 },
               ),
-              // TODO: Add this dropdown
-              /*
-              Flexible(
-                child: SailDropdownButton<AddressBookEntry>(
-                  value: null,
-                  hint: selectedEntry?.label ?? 'Address Book',
-                  items: addressBookEntries.map((entry) {
-                    return SailDropdownItem<AddressBookEntry>(
-                      value: entry,
-                      label: entry.label,
-                    );
-                  }).toList(),
-                  icon: SailSVG.fromAsset(
-                    SailSVGAsset.bookUser,
-                    width: 13,
-                    color: theme.colors.inactiveNavText,
+              if (addressBookEntries.isNotEmpty)
+                Flexible(
+                  child: SailDropdownButton<AddressBookEntry>(
+                    value: null,
+                    hint: selectedEntry?.label ?? 'Address Book',
+                    items: addressBookEntries.map((entry) {
+                      return SailDropdownItem<AddressBookEntry>(
+                        value: entry,
+                        label: entry.label,
+                      );
+                    }).toList(),
+                    icon: SailSVG.fromAsset(
+                      SailSVGAsset.bookUser,
+                      width: 13,
+                      color: theme.colors.inactiveNavText,
+                    ),
+                    onChanged: onAddressSelected,
                   ),
-                  onChanged: onAddressSelected,
                 ),
-              ),
-              */
             ],
           ),
         ),
