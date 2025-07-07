@@ -53,11 +53,9 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<void> moveMasterWalletDir() async {
-    final isInLauncherMode = await hasLauncherModeDir();
-    if (!isInLauncherMode) {
-      throw Exception(
-        'Tried to move wallet dir WITHOUT being in launcher mode, this should never happen. Devs messed up',
-      );
+    final hasLauncherDir = await hasLauncherModeDir();
+    if (!hasLauncherDir) {
+      return;
     }
 
     final newName = await _findAvailableName(appDir.path, 'wallet_starters');
