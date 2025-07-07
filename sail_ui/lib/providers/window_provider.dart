@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
@@ -71,8 +72,65 @@ class WindowProvider extends ChangeNotifier {
         jsonEncode(windowConfig),
       );
 
-      final windowPosition = windowType.defaultPosition ?? const Offset(100, 100);
-      final windowSize = windowType.defaultSize ?? const Size(800, 600);
+      final screen = PlatformDispatcher.instance.displays.first;
+      // Get the actual physical size (accounting for display scaling)
+      final physicalSize = screen.size;
+      final devicePixelRatio = screen.devicePixelRatio;
+      final actualScreenSize = Size(
+        physicalSize.width / devicePixelRatio,
+        physicalSize.height / devicePixelRatio,
+      );
+
+      var windowPosition = windowType.defaultPosition ?? const Offset(100, 100);
+      var windowSize = windowType.defaultSize ?? const Size(800, 600);
+
+      // If set to some proportion of maxFinite, USE THAT PROPORTION relative to the actualScreenSize
+      // For example if defaultSize == maxFinite / 2, then windowSize = actualScreenSize / 2
+      // If defaultSize == maxFinite, then windowSize = actualScreenSize
+      if (windowSize.width == double.maxFinite) {
+        windowSize = Size(actualScreenSize.width, windowSize.height);
+      } else if (windowSize.width > actualScreenSize.width) {
+        // Check if it's a proportion of maxFinite
+        final proportion = windowSize.width / double.maxFinite;
+        if (proportion > 0 && proportion <= 1) {
+          final newWidth = actualScreenSize.width * proportion;
+          windowSize = Size(newWidth, windowSize.height);
+        } else {
+          windowSize = Size(actualScreenSize.width, windowSize.height);
+        }
+      }
+
+      if (windowSize.height == double.maxFinite) {
+        windowSize = Size(windowSize.width, actualScreenSize.height);
+      } else if (windowSize.height > actualScreenSize.height) {
+        // Check if it's a proportion of maxFinite
+        final proportion = windowSize.height / double.maxFinite;
+        if (proportion > 0 && proportion <= 1) {
+          final newHeight = actualScreenSize.height * proportion;
+          windowSize = Size(windowSize.width, newHeight);
+        } else {
+          windowSize = Size(windowSize.width, actualScreenSize.height);
+        }
+      }
+
+      // now do the exact same for window offset/position!
+      if (windowPosition.dx > actualScreenSize.width) {
+        final proportion = windowPosition.dx / double.maxFinite;
+        if (proportion > 0 && proportion <= 1) {
+          windowPosition = Offset(actualScreenSize.width * proportion, windowPosition.dy);
+        } else {
+          windowPosition = Offset(actualScreenSize.width, windowPosition.dy);
+        }
+      }
+
+      if (windowPosition.dy > actualScreenSize.height) {
+        final proportion = windowPosition.dy / double.maxFinite;
+        if (proportion > 0 && proportion <= 1) {
+          windowPosition = Offset(windowPosition.dx, actualScreenSize.height * proportion);
+        } else {
+          windowPosition = Offset(windowPosition.dx, actualScreenSize.height);
+        }
+      }
 
       await windowController.setFrame(windowPosition & windowSize);
       await windowController.setTitle(title);

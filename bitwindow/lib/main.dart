@@ -545,7 +545,8 @@ class SubWindowTypes {
   static var hashCalculator = SailWindow(
     identifier: hashCalculatorId,
     name: 'Hash Calculator',
-    defaultSize: Size(600, 400),
-    defaultPosition: Offset(150, 150),
+    // set width to half of screen size, full height
+    defaultSize: Size(double.maxFinite / 2, double.maxFinite),
+    defaultPosition: Offset(double.maxFinite / 2, 0),
   );
 }
