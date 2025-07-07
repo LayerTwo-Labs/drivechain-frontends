@@ -111,13 +111,16 @@ class SailCard extends StatelessWidget {
                               children: [
                                 if (widgetHeaderEnd != null) widgetHeaderEnd!,
                                 if (newWindow != null)
-                                  SailButton(
-                                    variant: ButtonVariant.icon,
-                                    icon: SailSVGAsset.iconNewWindow,
-                                    onPressed: () async {
-                                      final windowProvider = GetIt.I.get<WindowProvider>();
-                                      await windowProvider.open(newWindow!);
-                                    },
+                                  Tooltip(
+                                    message: 'Open in a new window',
+                                    child: SailButton(
+                                      variant: ButtonVariant.icon,
+                                      icon: SailSVGAsset.iconNewWindow,
+                                      onPressed: () async {
+                                        final windowProvider = GetIt.I.get<WindowProvider>();
+                                        await windowProvider.open(newWindow!);
+                                      },
+                                    ),
                                   ),
                                 if (withCloseButton)
                                   SailButton(
