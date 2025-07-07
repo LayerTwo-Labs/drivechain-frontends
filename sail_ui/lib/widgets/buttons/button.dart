@@ -259,7 +259,7 @@ class _CopyButtonState extends State<CopyButton> {
       variant: ButtonVariant.icon,
       icon: _copied ? SailSVGAsset.iconCheck : SailSVGAsset.iconCopy,
       textColor: _copied ? SailColorScheme.green : null,
-      padding: EdgeInsets.all(10.5),
+      padding: EdgeInsets.all(9.5),
       onPressed: () async {
         await Clipboard.setData(ClipboardData(text: widget.text)).then((_) {
           if (mounted) {
