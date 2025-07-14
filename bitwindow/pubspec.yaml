@@ -9,7 +9,7 @@ environment:
   sdk: ">=3.4.1 <4.0.0"
 
 dependencies:
-  sentry_flutter: ^9.3.0
+  sentry_flutter: ^9.4.0
   flutter:
     sdk: flutter
   file_picker: ^10.2.0
