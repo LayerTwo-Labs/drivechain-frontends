@@ -70,7 +70,9 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
           children: [
             SizedBox(
               width: sidechainsWidth.toDouble(),
-              child: const SidechainsList(),
+              child: SidechainsList(
+                smallVersion: false,
+              ),
             ),
             SizedBox(
               width: depositsWidth,
@@ -84,7 +86,12 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
 }
 
 class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
-  const SidechainsList({super.key});
+  final bool smallVersion;
+
+  const SidechainsList({
+    super.key,
+    required this.smallVersion,
+  });
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
@@ -95,15 +102,17 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
       titleTooltip:
           'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
       error: error,
-      widgetHeaderEnd: SailToggle(
-        label: 'Show only filled slots',
-        value: viewModel.showOnlyFilled,
-        onChanged: (value) => viewModel.setShowOnlyFilled(value),
-      ),
+      widgetHeaderEnd: smallVersion
+          ? null
+          : SailToggle(
+              label: 'Show only filled slots',
+              value: viewModel.showOnlyFilled,
+              onChanged: (value) => viewModel.setShowOnlyFilled(value),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          Flexible(
             child: SailSkeletonizer(
               description: 'Waiting for enforcer to become available..',
               enabled: viewModel.loading,
@@ -111,12 +120,13 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             ),
           ),
           const SizedBox(height: SailStyleValues.padding16),
-          Center(
-            child: SailButton(
-              label: 'Add / Remove',
-              onPressed: () => showSidechainActivationManagementModal(context),
+          if (!smallVersion)
+            Center(
+              child: SailButton(
+                label: 'Add / Remove',
+                onPressed: () => showSidechainActivationManagementModal(context),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -654,7 +664,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   Future<void> formatAddress() async {
-    addressController.text = formatDepositAddress(addressController.text, _selectedIndex ?? 254);
+    final sidechain = sidechainForSlot(_selectedIndex ?? 254);
+    if (sidechain == null) {
+      return;
+    }
+    addressController.text = formatDepositAddress(addressController.text, sidechain.slot);
     notifyListeners();
   }
 

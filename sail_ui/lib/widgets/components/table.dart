@@ -5,17 +5,15 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:sail_ui/sail_ui.dart';
 
+const double defaultMinColumnWidth = 60;
+
 class SailTable extends StatefulWidget {
   const SailTable({
     required this.headerBuilder,
     required this.rowBuilder,
     required this.rowCount,
-    this.columnMinWidths,
-    this.columnMaxWidths,
-    this.defaultMinColumnWidth = 50,
     this.backgroundColor,
     this.altBackgroundColor,
-    this.headerDecoration,
     this.selectedRowId,
     this.selectableRows = true,
     this.onSelectedRow,
@@ -23,7 +21,6 @@ class SailTable extends StatefulWidget {
     this.contextMenuItems,
     this.cellHeight = 24.0,
     this.shrinkWrap = false,
-    this.physics,
     this.drawGrid = false,
     this.resizableColumns = true,
     this.onColumnWidthsChanged,
@@ -39,13 +36,9 @@ class SailTable extends StatefulWidget {
 
   final List<Widget> Function(BuildContext context) headerBuilder;
   final List<Widget> Function(BuildContext context, int row, bool selected) rowBuilder;
-  final List<double>? columnMinWidths;
-  final List<double>? columnMaxWidths;
-  final double defaultMinColumnWidth;
   final int rowCount;
   final Color? backgroundColor;
   final Color? altBackgroundColor;
-  final BoxDecoration? headerDecoration;
   final String? selectedRowId;
   final bool selectableRows;
   final ValueChanged<String?>? onSelectedRow;
@@ -53,7 +46,6 @@ class SailTable extends StatefulWidget {
   final List<SailMenuEntity> Function(String rowId)? contextMenuItems;
   final double cellHeight;
   final bool shrinkWrap;
-  final ScrollPhysics? physics;
   final bool drawGrid;
   final bool resizableColumns;
   final bool drawLastRowsBorder;
@@ -91,6 +83,31 @@ class _SailTableState extends State<SailTable> {
     _verticalController.addListener(_checkScrollPosition);
   }
 
+  @override
+  void didUpdateWidget(SailTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Recalculate column widths when data changes
+    if (oldWidget.rowCount != widget.rowCount ||
+        oldWidget.selectedRowId != widget.selectedRowId ||
+        oldWidget.sortColumnIndex != widget.sortColumnIndex ||
+        oldWidget.sortAscending != widget.sortAscending) {
+      // Update internal state
+      _selectedId = widget.selectedRowId;
+      _sortColumnIndex = widget.sortColumnIndex;
+      _sortAscending = widget.sortAscending ?? true;
+
+      // Trigger column resize if we have a valid width constraint
+      if (_currentConstraints != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _resizeColumns(_currentConstraints!.maxWidth, force: true);
+          }
+        });
+      }
+    }
+  }
+
   void _initializeState() {
     _selectedId = widget.selectedRowId;
     _sortColumnIndex = widget.sortColumnIndex;
@@ -102,7 +119,7 @@ class _SailTableState extends State<SailTable> {
 
     // Initialize with default widths immediately
     if (_widths.isEmpty) {
-      _widths.addAll(List.filled(_numColumns!, widget.defaultMinColumnWidth));
+      _widths.addAll(List.filled(_numColumns!, defaultMinColumnWidth));
     }
 
     // Still keep the post-frame callback to adjust to actual size
@@ -126,11 +143,14 @@ class _SailTableState extends State<SailTable> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (_currentConstraints?.maxWidth != constraints.maxWidth) {
+        // Only auto-size if width is valid and changed
+        if (_currentConstraints?.maxWidth != constraints.maxWidth &&
+            constraints.maxWidth > 0 &&
+            constraints.maxWidth != double.infinity) {
           _currentConstraints = constraints;
           if (mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _resizeColumns(constraints.maxWidth, force: false);
+              _resizeColumns(constraints.maxWidth, force: true);
             });
           }
         }
@@ -142,22 +162,15 @@ class _SailTableState extends State<SailTable> {
   void _resizeColumns(double parentWidth, {bool force = false}) {
     if (parentWidth <= 0 || !mounted) return;
 
-    // Only distribute widths if they're empty or we're forced to
-    if (_widths.isEmpty || force) {
-      setState(() {
-        // Auto-size columns
-        _autoSizeColumns(parentWidth);
-      });
-    }
+    // Always auto-size columns when window size changes
+    // This ensures columns are properly sized for the new window dimensions
+    setState(() {
+      _autoSizeColumns(parentWidth);
+    });
   }
 
   void _autoSizeColumns(double availableWidth) {
     _widths.clear();
-
-    // Calculate space needed for resize handles
-    final numResizeHandles = _numColumns! - 1;
-    final handleSpace = widget.resizableColumns ? numResizeHandles * 8.0 : 0.0;
-    final widthForColumns = availableWidth - handleSpace;
 
     // Measure content for each column
     final columnWidths = List<double>.filled(_numColumns!, 0);
@@ -178,26 +191,9 @@ class _SailTableState extends State<SailTable> {
       }
     }
 
-    // Apply min/max constraints and distribute remaining space
-    double totalMeasuredWidth = 0;
+    // Apply minimum width constraint only
     for (int i = 0; i < _numColumns!; i++) {
-      final minWidth = widget.columnMinWidths?.elementAt(i) ?? widget.defaultMinColumnWidth;
-      final maxWidth = widget.columnMaxWidths?.elementAt(i);
-
-      columnWidths[i] = columnWidths[i].clamp(
-        minWidth,
-        maxWidth ?? double.infinity,
-      );
-      totalMeasuredWidth += columnWidths[i];
-    }
-
-    // If we have extra space, distribute it proportionally
-    if (totalMeasuredWidth < widthForColumns) {
-      final scaleFactor = widthForColumns / totalMeasuredWidth;
-
-      for (int i = 0; i < _numColumns!; i++) {
-        columnWidths[i] *= scaleFactor;
-      }
+      columnWidths[i] = max(columnWidths[i], defaultMinColumnWidth);
     }
 
     _widths.addAll(columnWidths);
@@ -235,10 +231,10 @@ class _SailTableState extends State<SailTable> {
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
-      return textPainter.width + 16; // Add padding
+      return textPainter.width + 25; // Add padding
     }
 
-    return widget.defaultMinColumnWidth;
+    return defaultMinColumnWidth;
   }
 
   void _checkScrollPosition() {
@@ -262,11 +258,11 @@ class _SailTableState extends State<SailTable> {
     if (!widget.resizableColumns || !mounted) return;
 
     setState(() {
-      final minWidth = widget.columnMinWidths?.elementAt(column) ?? widget.defaultMinColumnWidth;
-      final maxWidth = widget.columnMaxWidths?.elementAt(column);
+      final minWidth = defaultMinColumnWidth;
+      final maxWidth = _currentConstraints!.maxWidth;
       final newWidth = (_startColumnWidth + delta).clamp(
         minWidth,
-        maxWidth ?? _currentConstraints!.maxWidth,
+        maxWidth,
       );
 
       _widths[column] = newWidth;
@@ -276,9 +272,8 @@ class _SailTableState extends State<SailTable> {
 
   Widget _buildTable(BuildContext context, BoxConstraints constraints) {
     // Calculate total width including resize handles
-    final handleWidth = widget.resizableColumns ? (_numColumns!) * 8.0 : 0.0;
-    final tableWidth =
-        constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths + handleWidth;
+    final handleWidth = widget.resizableColumns ? (_numColumns! - 1) * 8.0 : 0.0; // Fixed: was _numColumns! * 8.0
+    final tableWidth = _totalColumnWidths + handleWidth;
 
     return SelectionContainer.disabled(
       child: Scrollbar(
@@ -287,11 +282,13 @@ class _SailTableState extends State<SailTable> {
         child: SingleChildScrollView(
           controller: _horizontalController,
           scrollDirection: Axis.horizontal,
-          physics: const ClampingScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           child: SizedBox(
             width: tableWidth,
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(context),
                 if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),
@@ -310,12 +307,11 @@ class _SailTableState extends State<SailTable> {
         widget.headerBuilder(context).asMap().map((i, cell) => MapEntry(i, _wrapHeaderCell(i, cell))).values.toList();
 
     return Container(
-      decoration: widget.headerDecoration ??
-          BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: theme.colors.divider),
-            ),
-          ),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: theme.colors.divider),
+        ),
+      ),
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: _addResizeHandles(headerCells),
@@ -395,6 +391,8 @@ class _SailTableState extends State<SailTable> {
   Widget _buildRows(BuildContext context) {
     if (widget.shrinkWrap) {
       return Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: List.generate(
           widget.rowCount,
@@ -646,6 +644,7 @@ class SailTableCell extends StatelessWidget {
             color: textColor,
             monospace: monospace,
             italic: italic,
+            overflow: TextOverflow.ellipsis,
           ),
     );
   }

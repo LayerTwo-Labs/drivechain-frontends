@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
@@ -13,28 +15,89 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class OverviewPage extends StatelessWidget {
+class OverviewPage extends StatefulWidget {
   const OverviewPage({super.key});
 
   @override
+  State<OverviewPage> createState() => _OverviewPageState();
+}
+
+class _OverviewPageState extends State<OverviewPage> {
+  @override
   Widget build(BuildContext context) {
-    return const QtPage(
-      child: SingleChildScrollView(
-        child: SailColumn(
-          spacing: SailStyleValues.padding16,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailColumn(
-              spacing: SailStyleValues.padding16,
-              children: [
-                FireplaceStats(),
-                CoinNewsView(),
-                TransactionsView(),
-              ],
+    return ViewModelBuilder<SidechainsViewModel>.reactive(
+      viewModelBuilder: () => SidechainsViewModel(),
+      builder: (context, viewModel, child) => LayoutBuilder(
+        builder: (context, constraints) {
+          final sidechainsMinWidth = 450;
+          final coinnewsMaxWidth = 800; // never bigger than this!
+
+          // Calculate available space after accounting for padding
+          final availableWidth = constraints.maxWidth - SailStyleValues.padding16;
+
+          // Calculate coinnews width first, respecting max constraint
+          final coinnewsWidth = min(coinnewsMaxWidth, availableWidth).toDouble();
+
+          // Whatever is left over goes to sidechains
+          final sidechainsWidth = max(sidechainsMinWidth, availableWidth - coinnewsWidth).toDouble();
+
+          return QtPage(
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    children: [
+                      FireplaceStats(),
+                      // AI: Inside SidechainsList() there is a table wrapped with Flexible()
+                      // I want you to make sure that the height of the SidechainsList is ALWAYS THE SAME
+                      // as the coinnewsview. I assume you need to use IntrinsicHeight for this, but I'm not entirely sure.
+                      // As you can see, all of it is inside a scrollable container. So using Expandeed won't do
+                      ViewModelBuilder<CoinNewsViewModel>.reactive(
+                        viewModelBuilder: () => CoinNewsViewModel(),
+                        builder: (context, newsModel, child) {
+                          final maxHeight = newsModel.coinnewsHeight;
+
+                          return ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight: maxHeight,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Flexible(
+                                  flex: sidechainsWidth.toInt(),
+                                  child: SizedBox(
+                                    width: sidechainsWidth,
+                                    child: SidechainsList(
+                                      smallVersion: true,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: SailStyleValues.padding08),
+                                Flexible(
+                                  flex: coinnewsWidth.toInt(),
+                                  child: SizedBox(
+                                    width: coinnewsWidth,
+                                    child: CoinNewsView(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      TransactionsView(),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -479,58 +542,6 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
         onSort(['time', 'height', 'hash'][columnIndex]);
       },
     );
-  }
-}
-
-class CoinNewsViewModel extends BaseViewModel {
-  final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
-  List<CoinNews> get leftEntries => _newsProvider.news.where((news) => news.topic == leftTopic.topic).toList();
-  List<CoinNews> get rightEntries => _newsProvider.news.where((news) => news.topic == rightTopic.topic).toList();
-
-  List<Topic> get topics => _newsProvider.topics;
-
-  bool _sortAscending = true;
-  String _sortColumn = 'date';
-
-  Topic get _defaultLeftTopic => topics[0]; // US Weekly topic
-  Topic get _defaultRightTopic => topics[1]; // Japan Weekly topic
-
-  Topic? _leftTopic;
-  Topic? _rightTopic;
-
-  Topic get leftTopic => _leftTopic ?? _defaultLeftTopic;
-  Topic get rightTopic => _rightTopic ?? _defaultRightTopic;
-
-  CoinNewsViewModel() {
-    _newsProvider.addListener(notifyListeners);
-  }
-
-  void setLeftTopic(Topic? topic) {
-    if (topic == null) {
-      return;
-    }
-
-    _leftTopic = topic;
-    notifyListeners();
-  }
-
-  void setRightTopic(Topic? topic) {
-    if (topic == null) {
-      return;
-    }
-
-    _rightTopic = topic;
-    notifyListeners();
-  }
-
-  void sortEntries(String column) {
-    if (_sortColumn == column) {
-      _sortAscending = !_sortAscending;
-    } else {
-      _sortColumn = column;
-      _sortAscending = true;
-    }
-    notifyListeners();
   }
 }
 

@@ -12,98 +12,93 @@ import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-class CoinNewsView extends StatelessWidget {
+class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
   const CoinNewsView({
     super.key,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return ViewModelBuilder<CoinNewsViewModel>.reactive(
-      viewModelBuilder: () => CoinNewsViewModel(),
-      builder: (context, viewModel, child) {
-        return SailCard(
-          title: 'Coin News',
-          titleTooltip: 'Stay up-to-date on the latest world developments',
-          widgetHeaderEnd: ExtraActionsDropdown(
-            title: 'Extra Coin News Actions',
-            items: [
-              ExtraActionItem(
-                label: 'Create Topic',
-                icon: SailSVGAsset.newspaper,
-                onSelect: () => displayCreateTopicDialog(context),
-              ),
-              ExtraActionItem(
-                label: 'Graffiti Explorer',
-                icon: SailSVGAsset.sprayCan,
-                onSelect: () => displayGraffitiExplorerDialog(context),
-              ),
-            ],
+  Widget build(BuildContext context, CoinNewsViewModel viewModel) {
+    return SailCard(
+      title: 'Coin News',
+      titleTooltip: 'Stay up-to-date on the latest world developments',
+      widgetHeaderEnd: ExtraActionsDropdown(
+        title: 'Extra Coin News Actions',
+        items: [
+          ExtraActionItem(
+            label: 'Create Topic',
+            icon: SailSVGAsset.newspaper,
+            onSelect: () => displayCreateTopicDialog(context),
           ),
-          child: SailRow(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            spacing: SailStyleValues.padding16,
-            children: [
-              Flexible(
-                child: SailColumn(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  spacing: 0,
-                  mainAxisSize: MainAxisSize.min,
+          ExtraActionItem(
+            label: 'Graffiti Explorer',
+            icon: SailSVGAsset.sprayCan,
+            onSelect: () => displayGraffitiExplorerDialog(context),
+          ),
+        ],
+      ),
+      child: SailRow(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: SailStyleValues.padding16,
+        children: [
+          Flexible(
+            child: SailColumn(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              spacing: 0,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailRow(
+                  spacing: SailStyleValues.padding16,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
                   children: [
-                    SailRow(
-                      spacing: SailStyleValues.padding16,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Expanded(
-                          child: SailTextField(
-                            hintText: 'Search coin news...',
-                            controller: viewModel.searchController,
-                          ),
-                        ),
-                        SailMultiSelectDropdown(
-                          selectedCountText: '${viewModel.selectedTopicIds.length} topics',
-                          items: viewModel.topics
-                              .map(
-                                (topic) => SailDropdownItem(
-                                  value: topic.topic,
-                                  label: topic.name,
-                                ),
-                              )
-                              .toList(),
-                          selectedValues: viewModel.selectedTopicIds,
-                          onSelected: viewModel.toggleTopic,
-                          searchPlaceholder: 'Select topics..',
-                        ),
-                        SailButton(
-                          label: 'Broadcast',
-                          onPressed:
-                              viewModel.selectedTopicIds.isNotEmpty ? () => displayBroadcastNewsDialog(context) : null,
-                        ),
-                      ],
+                    Expanded(
+                      child: SailTextField(
+                        hintText: 'Search coin news...',
+                        controller: viewModel.searchController,
+                      ),
                     ),
-                    const SailSpacing(16),
-                    CoinNewsTable(
-                      entries: viewModel.paginatedEntries,
-                      onSort: viewModel.sortEntries,
+                    SailMultiSelectDropdown(
+                      selectedCountText: '${viewModel.selectedTopicIds.length} topics',
+                      items: viewModel.topics
+                          .map(
+                            (topic) => SailDropdownItem(
+                              value: topic.topic,
+                              label: topic.name,
+                            ),
+                          )
+                          .toList(),
+                      selectedValues: viewModel.selectedTopicIds,
+                      onSelected: viewModel.toggleTopic,
+                      searchPlaceholder: 'Select topics..',
                     ),
-                    const SizedBox(height: 16),
-                    Pagination(
-                      currentPage: viewModel.currentPage,
-                      totalPages: viewModel.totalPages,
-                      onPageChanged: viewModel.setPage,
-                      pageSize: viewModel.pageSize,
-                      pageSizeOptions: const [3, 5, 10, 20, 50],
-                      onPageSizeChanged: (val) => viewModel.setPageSize(val ?? viewModel.pageSize),
+                    SailButton(
+                      label: 'Broadcast',
+                      onPressed:
+                          viewModel.selectedTopicIds.isNotEmpty ? () => displayBroadcastNewsDialog(context) : null,
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SailSpacing(16),
+                CoinNewsTable(
+                  entries: viewModel.paginatedEntries,
+                  onSort: viewModel.sortEntries,
+                ),
+                const SizedBox(height: 16),
+                Pagination(
+                  currentPage: viewModel.currentPage,
+                  totalPages: viewModel.totalPages,
+                  onPageChanged: viewModel.setPage,
+                  pageSize: viewModel.pageSize,
+                  pageSizeOptions: const [3, 5, 10, 20],
+                  onPageSizeChanged: (val) => viewModel.setPageSize(val ?? viewModel.pageSize),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -125,6 +120,21 @@ class CoinNewsViewModel extends BaseViewModel {
 
   bool get loading {
     return !_newsProvider.initialized;
+  }
+
+  double get coinnewsHeight {
+    switch (pageSize) {
+      case 3:
+        return 289;
+      case 5:
+        return 337;
+      case 10:
+        return 457;
+      case 20:
+        return 553;
+      default:
+        return 400;
+    }
   }
 
   List<CoinNews> get entries {

@@ -13,7 +13,7 @@ class SettingsProvider extends ChangeNotifier {
 
   // Individual setting variables
   bool debugMode = false;
-  bool launcherMode = false;
+  bool launcherMode = true;
 
   // Private constructor
   SettingsProvider._create();

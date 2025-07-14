@@ -134,12 +134,10 @@ void main(List<String> args) async {
     title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
   );
 
-  unawaited(
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    }),
-  );
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
