@@ -18,7 +18,7 @@ class LauncherModeSetting extends SettingValue<bool> {
   String get key => 'launcher_mode';
 
   @override
-  bool defaultValue() => false;
+  bool defaultValue() => true;
 
   @override
   String toJson() {
