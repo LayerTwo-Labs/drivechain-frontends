@@ -8,7 +8,7 @@ for dir in thunder bitnames zside faucet sail_ui bitwindow; do
   ) &
 done
 
-for dir in thunder bitnames zside sail_ui bitwindow; do
+for dir in thunder bitnames bitassets zside bitwindow; do
   (
     cd "$dir/macos"
     pod install --repo-update

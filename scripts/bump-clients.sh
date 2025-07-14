@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
-for dir in thunder bitnames zside faucet sail_ui bitwindow; do
+for dir in sail_ui thunder bitnames zside faucet bitwindow; do
   (
     cd "$dir"
     flutter pub upgrade --major-versions --tighten
-  ) &
-done
-
-for dir in thunder bitnames zside sail_ui bitwindow; do
-  (
-    cd "$dir/macos"
-    pod install --repo-update
   ) &
 done
 
