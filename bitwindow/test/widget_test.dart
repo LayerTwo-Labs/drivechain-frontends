@@ -8,6 +8,7 @@
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stacked/stacked.dart';
 
 import 'test_utils.dart';
 
@@ -20,7 +21,10 @@ void main() {
           maxHeight: 1200,
           maxWidth: 1000,
         ),
-        child: CoinNewsView(),
+        child: ViewModelBuilder.reactive(
+          viewModelBuilder: () => CoinNewsViewModel(),
+          builder: (context, model, child) => CoinNewsView(),
+        ),
       ),
     );
   });
