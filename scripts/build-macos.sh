@@ -4,13 +4,13 @@ set -e
 
 app_name="$1"
 client_dir="$2"
-identity="$3"
-notarization_key_path="$4"
+notarization_key_path="$3"
+notarization_identity="$4"
 notarization_key_id="$5"
 notarization_issuer_id="$6"
 
 if [ "$app_name" = "" ] || [ "$client_dir" = "" ]; then
-    echo "Usage: $0 app_name client_directory [identity notarization_key_path notarization_key_id notarization_issuer_id]"
+    echo "Usage: $0 app_name client_directory [notarization_key_path notarization_identity notarization_key_id notarization_issuer_id]"
     exit 1
 fi
 
@@ -27,24 +27,28 @@ old_cwd=$PWD
 cd ./build/macos/Build/Products/Release 
 
 if test -n  "$identity"; then 
-    echo Signing $app_name with identity "'$identity'"
+    echo Signing $app_name with identity "'$notarization_identity'"
     
     # We FIRST need to sign the binaries, and then the app itself. Otherwise, the 
     # notarization server reports "a sealed resource is missing or invalid"
     assets_bin_dir=$app_name.app/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/assets/bin
-    
+
+    # Create assets/bin directory if it doesn't exist
+    mkdir -p "$assets_bin_dir"
     # Only try to sign binaries if the directory exists and has files
     if [ -d "$assets_bin_dir" ] && [ "$(ls -A $assets_bin_dir)" ]; then
         for asset in $assets_bin_dir/* ; do 
             echo Signing binary asset $(basename $asset)
             codesign --verbose --deep --force --options runtime --sign \
-                "$identity" $asset
+                "$notarization_identity" $asset
         done
+    else
+        echo "No binary assets to sign in $assets_bin_dir (directory empty)"
     fi
 
     codesign --verbose --deep --force --options runtime \
         --entitlements $old_cwd/macos/Runner/Release.entitlements \
-        --sign "$identity" $app_name.app
+        --sign "$notarization_identity" $app_name.app
 fi
 
 zip_name=$lower_app_name-osx64.zip 
