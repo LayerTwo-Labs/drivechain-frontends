@@ -153,7 +153,6 @@ msix_config:
   store: false
   sign_msix: true
   certificate_subject: CN=LayerTwo Labs
-  certificate_path: "../windows-certificate.pfx"
 
 sentry:
   upload_debug_symbols: true
