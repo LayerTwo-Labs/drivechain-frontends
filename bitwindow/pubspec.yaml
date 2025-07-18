@@ -141,17 +141,19 @@ msix_config:
   display_name: BitWindow
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
+  publisher: LayerTwo Labs
   publisher_display_name: LayerTwo Labs
   identity_name: bitwindow
   msix_version: 1.0.0.0
   logo_path: windows/runner/resources/app_icon.ico
   capabilities: internetClient,internetClientServer
   os_min_version: 10.0.17763.0
-  store_certificate: false # Use a test certificate instead of store certificate
-  install_certificate: false # Don't install certificate during CI builds
-  store: false # Not publishing to Microsoft Store
-  sign_msix: true # Enable code signing
-  certificate_subject: CN=LayerTwo Labs # Will be overridden by certificate_path in CI
+  store_certificate: false
+  install_certificate: false
+  store: false
+  sign_msix: true
+  certificate_subject: CN=LayerTwo Labs
+  certificate_path: "../windows-certificate.pfx"
 
 sentry:
   upload_debug_symbols: true
