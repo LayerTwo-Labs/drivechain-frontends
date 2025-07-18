@@ -24,7 +24,9 @@ build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
 # Create signed MSIX
 if [ -n "$certificate_path" ]; then
     echo "Building signed MSIX with certificate $certificate_path"
-    msix_cmd="dart run msix:create --store false --certificate-path \"$certificate_path\""
+    # Extract filename and use relative path from client directory
+    cert_filename=$(basename "$certificate_path")
+    msix_cmd="dart run msix:create --store false --certificate-path \"../$cert_filename\""
 else
     echo "Building unsigned MSIX (no certificate provided)"
     msix_cmd="dart run msix:create"
