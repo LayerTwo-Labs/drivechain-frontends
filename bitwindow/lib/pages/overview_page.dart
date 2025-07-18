@@ -29,17 +29,13 @@ class _OverviewPageState extends State<OverviewPage> {
       viewModelBuilder: () => SidechainsViewModel(),
       builder: (context, viewModel, child) => LayoutBuilder(
         builder: (context, constraints) {
-          final sidechainsMinWidth = 450;
-          final coinnewsMaxWidth = 800; // never bigger than this!
+          final sidechainsWidth = 480.0;
 
           // Calculate available space after accounting for padding
-          final availableWidth = constraints.maxWidth - SailStyleValues.padding16;
+          final availableWidth = constraints.maxWidth - SailStyleValues.padding16 - sidechainsWidth;
 
           // Calculate coinnews width first, respecting max constraint
-          final coinnewsWidth = min(coinnewsMaxWidth, availableWidth).toDouble();
-
-          // Whatever is left over goes to sidechains
-          final sidechainsWidth = max(sidechainsMinWidth, availableWidth - coinnewsWidth).toDouble();
+          final coinnewsWidth = availableWidth.toDouble();
 
           return QtPage(
             child: SingleChildScrollView(
@@ -61,32 +57,42 @@ class _OverviewPageState extends State<OverviewPage> {
                         builder: (context, newsModel, child) {
                           final maxHeight = newsModel.coinnewsHeight;
 
-                          return ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxHeight: maxHeight,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Flexible(
-                                  flex: sidechainsWidth.toInt(),
-                                  child: SizedBox(
-                                    width: sidechainsWidth,
-                                    child: SidechainsList(
-                                      smallVersion: true,
-                                    ),
-                                  ),
+                          return LayoutBuilder(
+                            builder: (context, outerConstraints) {
+                              // Calculate if we'll have 1 column based on the outer width
+                              int crossAxisCount = (outerConstraints.maxWidth / 800).ceil();
+                              double dynamicMaxHeight =
+                                  crossAxisCount == 1 ? maxHeight * 2 + SailStyleValues.padding08 : maxHeight;
+
+                              return ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: dynamicMaxHeight,
                                 ),
-                                const SizedBox(width: SailStyleValues.padding08),
-                                Flexible(
-                                  flex: coinnewsWidth.toInt(),
-                                  child: SizedBox(
-                                    width: coinnewsWidth,
-                                    child: CoinNewsView(),
-                                  ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    // Responsive columns based on width
+                                    double gridSpacing = SailStyleValues.padding08;
+                                    double totalSpacing = gridSpacing * (crossAxisCount - 1);
+                                    double cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+                                    double desiredCardHeight = maxHeight;
+
+                                    double childAspectRatio = cardWidth / desiredCardHeight;
+
+                                    return GridView.count(
+                                      crossAxisCount: crossAxisCount,
+                                      crossAxisSpacing: gridSpacing,
+                                      mainAxisSpacing: gridSpacing,
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      childAspectRatio: childAspectRatio,
+                                      children: crossAxisCount == 2
+                                          ? [SidechainsList(smallVersion: true), CoinNewsView()]
+                                          : [CoinNewsView(), SidechainsList(smallVersion: true)],
+                                    );
+                                  },
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           );
                         },
                       ),
@@ -156,45 +162,54 @@ class FireplaceStats extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<FireplaceViewModel>.reactive(
       viewModelBuilder: () => FireplaceViewModel(),
-      builder: (context, model, child) => SailRow(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.start,
-        spacing: 16,
-        children: [
-          Expanded(
-            child: FireplaceStat(
+      builder: (context, model, child) => LayoutBuilder(
+        builder: (context, constraints) {
+          int crossAxisCount = min(4, (constraints.maxWidth / 301).ceil());
+          double gridSpacing = SailStyleValues.padding16;
+          double totalSpacing = gridSpacing * (crossAxisCount - 1);
+          double cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+          double desiredCardHeight = 128; // Set your ideal card height here
+
+          double childAspectRatio = cardWidth / desiredCardHeight;
+
+          List<Widget> cardList = [
+            FireplaceStat(
               title: 'Bitcoin Price',
               subtitle: 'Last updated ${model.priceLastUpdated}',
               value: model.price,
               bitcoinAmount: true,
               icon: SailSVGAsset.dollarSign,
             ),
-          ),
-          Expanded(
-            child: FireplaceStat(
+            FireplaceStat(
               title: 'New transactions',
               value: model.stats?.transactionCount24h.toString() ?? '0',
               subtitle: 'Last 24 hours',
               icon: SailSVGAsset.iconTransactions,
             ),
-          ),
-          Expanded(
-            child: FireplaceStat(
+            FireplaceStat(
               title: 'New coinnews',
               value: model.stats?.coinnewsCount7d.toString() ?? '0',
               subtitle: 'Last 7 days',
               icon: SailSVGAsset.newspaper,
             ),
-          ),
-          Expanded(
-            child: FireplaceStat(
+            FireplaceStat(
               title: 'Number of blocks',
               value: model.stats?.blockCount24h.toString() ?? '0',
               subtitle: 'Last 24 hours',
               icon: SailSVGAsset.blocks,
             ),
-          ),
-        ],
+          ];
+
+          return GridView.count(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: gridSpacing,
+            mainAxisSpacing: gridSpacing,
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            childAspectRatio: childAspectRatio,
+            children: cardList,
+          );
+        },
       ),
     );
   }
@@ -239,46 +254,51 @@ class TransactionsView extends StatelessWidget {
     return ViewModelBuilder<TransactionsViewModel>.reactive(
       viewModelBuilder: () => TransactionsViewModel(),
       builder: (context, model, child) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailCard(
-                    bottomPadding: false,
-                    title: 'Latest Transactions',
-                    error: model.hasErrorForKey('blockchain') ? model.error('blockchain').toString() : null,
-                    child: SizedBox(
-                      height: 300,
-                      child: LatestTransactionTable(
-                        entries: model.recentTransactions,
-                      ),
-                    ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Responsive columns based on width
+            int crossAxisCount = (constraints.maxWidth / 600).ceil();
+            double gridSpacing = SailStyleValues.padding16;
+            double totalSpacing = gridSpacing * (crossAxisCount - 1);
+            double cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+            double desiredCardHeight = 300;
+
+            double childAspectRatio = cardWidth / desiredCardHeight;
+
+            List<Widget> cardList = [
+              SailCard(
+                bottomPadding: false,
+                title: 'Latest Transactions',
+                error: model.hasErrorForKey('blockchain') ? model.error('blockchain').toString() : null,
+                child: SizedBox(
+                  height: 300,
+                  child: LatestTransactionTable(
+                    entries: model.recentTransactions,
                   ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: SailStyleValues.padding16),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailCard(
-                    title: 'Latest Blocks',
-                    bottomPadding: false,
-                    child: SizedBox(
-                      height: 300,
-                      child: LatestBlocksTable(
-                        blocks: model.recentBlocks,
-                      ),
-                    ),
+              SailCard(
+                title: 'Latest Blocks',
+                bottomPadding: false,
+                child: SizedBox(
+                  height: 300,
+                  child: LatestBlocksTable(
+                    blocks: model.recentBlocks,
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ];
+
+            return GridView.count(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: gridSpacing,
+              mainAxisSpacing: gridSpacing,
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              childAspectRatio: childAspectRatio,
+              children: cardList,
+            );
+          },
         );
       },
     );
