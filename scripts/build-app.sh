@@ -10,8 +10,8 @@ set -e
 
 os=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 client="$2"
-identity="$3"
-notarization_key_path="$4"
+notarization_key_path="$3"
+notarization_identity="$4"
 notarization_key_id="$5"
 notarization_issuer_id="$6"
 
@@ -23,7 +23,7 @@ case "$os" in
 esac
 
 if test -z "$os" -o -z "$client"; then
-    echo "Usage: $0 <linux/macos/windows> <thunder/bitnames/launcher/bitwindow> [code_sign_identity] [notarization_key_path] [notarization_key_id] [notarization_issuer_id]"
+    echo "Usage: $0 <linux/macos/windows> <thunder/bitnames/launcher/bitwindow> [notarization_key_path] [notarization_identity] [notarization_key_id] [notarization_issuer_id]"
     exit 1
 fi
 
@@ -64,5 +64,5 @@ fi
 cd ../
 echo "Building $client_dir $app_name release"
 bash ./scripts/build-"$os".sh "$app_name" "$client_dir" \
-    "$identity" "$notarization_key_path" \
+    "$notarization_key_path" "$notarization_identity" \
     "$notarization_key_id" "$notarization_issuer_id"
