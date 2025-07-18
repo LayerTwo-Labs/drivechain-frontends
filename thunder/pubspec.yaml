@@ -129,16 +129,18 @@ msix_config:
   display_name: Thunder
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
-  publisher_display_name: LayerTwo Labs
-  identity_name: com.layertwolabs.thunder
+  publisher: C=US, S=Connecticut, O="LayerTwo Labs, Inc.", CN=layertwolabs.com
+  publisher_display_name: LayerTwo Labs, Inc.
+  identity_name: thunder
   msix_version: 1.0.0.0
-  logo_path: logo.png
-  capabilities: internetClientServer
-  output_name: Thunder
-  store_certificate: false # Use a test certificate instead of store certificate
-  install_certificate: false # Don't install certificate during CI builds
+  logo_path: windows/runner/resources/app_icon.ico
+  capabilities: internetClient,internetClientServer
   os_min_version: 10.0.17763.0
-  store: false # Not publishing to Microsoft Store
+  store_certificate: false
+  install_certificate: false
+  store: false
+  sign_msix: true
+  certificate_subject: CN=layertwolabs.com
 
 sentry:
   upload_debug_symbols: true

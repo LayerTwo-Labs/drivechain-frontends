@@ -53,3 +53,4 @@ app.*.map.json
 
 bin
 mycert.pfx
+mycert.pem

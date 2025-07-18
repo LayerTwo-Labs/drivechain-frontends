@@ -5,9 +5,10 @@ set -e
 app_name="$1"
 client_dir="$2"
 notarization_key_path="$3"
-notarization_identity="$4"
-notarization_key_id="$5"
-notarization_issuer_id="$6"
+notarization_key_password="$4"
+notarization_identity="$5"
+notarization_key_id="$6"
+notarization_issuer_id="$7"
 
 if [ "$app_name" = "" ] || [ "$client_dir" = "" ]; then
     echo "Usage: $0 app_name client_directory [notarization_key_path notarization_identity notarization_key_id notarization_issuer_id]"
@@ -26,24 +27,25 @@ flutter build macos --dart-define-from-file=build-vars.env
 old_cwd=$PWD
 cd ./build/macos/Build/Products/Release 
 
-if test -n  "$identity"; then 
+if test -n "$notarization_identity"; then 
     echo Signing $app_name with identity "'$notarization_identity'"
     
     # We FIRST need to sign the binaries, and then the app itself. Otherwise, the 
     # notarization server reports "a sealed resource is missing or invalid"
     assets_bin_dir=$app_name.app/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/assets/bin
+    mkdir -p $assets_bin_dir
 
-    # Create assets/bin directory if it doesn't exist
-    mkdir -p "$assets_bin_dir"
     # Only try to sign binaries if the directory exists and has files
-    if [ -d "$assets_bin_dir" ] && [ "$(ls -A $assets_bin_dir)" ]; then
-        for asset in $assets_bin_dir/* ; do 
-            echo Signing binary asset $(basename $asset)
+    if [ -d "$assets_bin_dir" ] && [ "$(ls -A $assets_bin_dir 2>/dev/null)" ]; then
+        for asset in "$assets_bin_dir"/* ; do 
+            # Skip if no files match the pattern
+            [ -e "$asset" ] || continue
+            echo Signing binary asset $(basename "$asset")
             codesign --verbose --deep --force --options runtime --sign \
-                "$notarization_identity" $asset
+                "$notarization_identity" "$asset"
         done
     else
-        echo "No binary assets to sign in $assets_bin_dir (directory empty)"
+        echo "No binary assets to sign in $assets_bin_dir (directory does not exist or is empty)"
     fi
 
     codesign --verbose --deep --force --options runtime \

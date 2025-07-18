@@ -11,9 +11,10 @@ set -e
 os=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 client="$2"
 notarization_key_path="$3"
-notarization_identity="$4"
-notarization_key_id="$5"
-notarization_issuer_id="$6"
+notarization_key_password="$4"
+notarization_identity="$5"
+notarization_key_id="$6"
+notarization_issuer_id="$7"
 
 # Convert github actions os names names to a format we expect
 case "$os" in
@@ -64,5 +65,6 @@ fi
 cd ../
 echo "Building $client_dir $app_name release"
 bash ./scripts/build-"$os".sh "$app_name" "$client_dir" \
-    "$notarization_key_path" "$notarization_identity" \
-    "$notarization_key_id" "$notarization_issuer_id"
+    "$notarization_key_path" "$notarization_key_password" \
+    "$notarization_identity" "$notarization_key_id" \
+    "$notarization_issuer_id"

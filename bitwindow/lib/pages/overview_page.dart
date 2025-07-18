@@ -60,7 +60,7 @@ class _OverviewPageState extends State<OverviewPage> {
                           return LayoutBuilder(
                             builder: (context, outerConstraints) {
                               // Calculate if we'll have 1 column based on the outer width
-                              int crossAxisCount = (outerConstraints.maxWidth / 800).ceil();
+                              int crossAxisCount = min(2, (outerConstraints.maxWidth / 800).ceil());
                               double dynamicMaxHeight =
                                   crossAxisCount == 1 ? maxHeight * 2 + SailStyleValues.padding08 : maxHeight;
 
@@ -78,17 +78,45 @@ class _OverviewPageState extends State<OverviewPage> {
 
                                     double childAspectRatio = cardWidth / desiredCardHeight;
 
-                                    return GridView.count(
-                                      crossAxisCount: crossAxisCount,
-                                      crossAxisSpacing: gridSpacing,
-                                      mainAxisSpacing: gridSpacing,
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      childAspectRatio: childAspectRatio,
-                                      children: crossAxisCount == 2
-                                          ? [SidechainsList(smallVersion: true), CoinNewsView()]
-                                          : [CoinNewsView(), SidechainsList(smallVersion: true)],
-                                    );
+                                    if (crossAxisCount == 2) {
+                                      return Row(
+                                        children: [
+                                          SizedBox(
+                                            width: sidechainsWidth,
+                                            child: SidechainsList(smallVersion: true),
+                                          ),
+                                          SizedBox(width: gridSpacing),
+                                          SizedBox(
+                                            width: coinnewsWidth,
+                                            child: CoinNewsView(),
+                                          ),
+                                        ],
+                                      );
+                                    } else {
+                                      return GridView.count(
+                                        crossAxisCount: crossAxisCount,
+                                        crossAxisSpacing: gridSpacing,
+                                        mainAxisSpacing: gridSpacing,
+                                        shrinkWrap: true,
+                                        physics: NeverScrollableScrollPhysics(),
+                                        childAspectRatio: childAspectRatio,
+                                        children: crossAxisCount == 2
+                                            ? [
+                                                SizedBox(
+                                                  width: sidechainsWidth,
+                                                  child: SidechainsList(smallVersion: true),
+                                                ),
+                                                SizedBox(
+                                                  width: coinnewsWidth,
+                                                  child: CoinNewsView(),
+                                                ),
+                                              ]
+                                            : [
+                                                CoinNewsView(),
+                                                SidechainsList(smallVersion: true),
+                                              ],
+                                      );
+                                    }
                                   },
                                 ),
                               );
