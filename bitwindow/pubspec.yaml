@@ -150,6 +150,8 @@ msix_config:
   store_certificate: false # Use a test certificate instead of store certificate
   install_certificate: false # Don't install certificate during CI builds
   store: false # Not publishing to Microsoft Store
+  sign_msix: true # Enable code signing
+  certificate_subject: CN=LayerTwo Labs # Will be overridden by certificate_path in CI
 
 sentry:
   upload_debug_symbols: true
