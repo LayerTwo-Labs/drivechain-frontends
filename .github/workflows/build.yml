@@ -211,6 +211,14 @@ jobs:
           echo "Creating notarization API key file in ${{ env.BUILD_DIR }}"
           echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > "${{ env.BUILD_DIR }}/notarization_api_key.p8"
 
+      - name: Setup Windows code signing
+        if: runner.os == 'Windows'
+        run: |
+          # Create windows-certificate file from base64 secret
+          echo "${{ secrets.MICROSOFT_CODE_SIGNING_OV_KEY_PFX_BASE64 }}" | base64 --decode > "${{ env.BUILD_DIR }}/windows-certificate.pfx"
+          echo "CERTIFICATE_PATH=${{ env.BUILD_DIR }}/windows-certificate.pfx" >> $GITHUB_ENV
+        shell: bash
+
       - name: Build app
         run: |
           cd ${{ env.BUILD_DIR }}
