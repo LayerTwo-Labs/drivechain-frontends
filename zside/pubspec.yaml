@@ -116,26 +116,3 @@ flutter:
         - asset: ./assets/fonts/SourceCodePro-BlackItalic.ttf
           style: italic
           weight: 600
-
-# Windows release stuff.
-# This currently relies on having a self-signed certificate
-# locally available, which must be changed before this is
-# properly deployed (either published to the MS store or
-# as an installer on a website somewhere).
-# https://pub.dev/packages/msix
-msix_config:
-  display_name: ZSide
-  languages: en-us
-  windows_build_args: --dart-define-from-file=build-vars.env
-  publisher: C=US, S=Connecticut, O="LayerTwo Labs, Inc.", CN=layertwolabs.com
-  publisher_display_name: LayerTwo Labs, Inc.
-  identity_name: zside
-  msix_version: 1.0.0.0
-  logo_path: windows/runner/resources/app_icon.ico
-  capabilities: internetClient,internetClientServer
-  os_min_version: 10.0.17763.0
-  store_certificate: false
-  install_certificate: false
-  store: false
-  sign_msix: true
-  certificate_subject: CN=layertwolabs.com
