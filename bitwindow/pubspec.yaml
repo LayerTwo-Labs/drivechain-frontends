@@ -141,7 +141,7 @@ msix_config:
   display_name: BitWindow
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
-  publisher: C=US, O="LayerTwo Labs, Inc.", CN=layertwolabs.com
+  publisher: C=US, S=Connecticut, O="LayerTwo Labs, Inc.", CN=layertwolabs.com
   publisher_display_name: LayerTwo Labs, Inc.
   identity_name: bitwindow
   msix_version: 1.0.0.0
