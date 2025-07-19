@@ -304,9 +304,10 @@ jobs:
           mv bitassets-binaries-Windows/bitassets-win64.zip test-bitassets-x86_64-pc-windows-msvc.zip || true
 
           # ZSide
-          mv zside-binaries-macOS-zside/zside-osx64.zip L2-S5-ZSide-latest-x86_64-apple-darwin.zip || true
-          mv zside-binaries-Linux-zside/zside-x86_64-linux-gnu.zip L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip || true
-          mv zside-binaries-Linux-zside/ZSide-x86_64.AppImage L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.AppImage || true
+          mv zside-binaries-macOS/zside-osx64.zip test-zside-x86_64-apple-darwin.zip || true
+          mv zside-binaries-Linux/zside-x86_64-linux-gnu.zip test-zside-x86_64-unknown-linux-gnu.zip || true
+          mv zside-binaries-Linux/ZSide-x86_64.AppImage test-zside-x86_64-unknown-linux-gnu.AppImage || true
+          mv zside-binaries-Linux/zside-x86_64-linux-gnu.zip test-zside-x86_64-unknown-linux-gnu.zip || true
 
           # BitWindow
           mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
