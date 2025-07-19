@@ -38,7 +38,7 @@ else
     msix_cmd="dart run msix:create"
 fi
 
-powershell.exe -Command "& {$clean_cmd; $build_cmd; $msix_cmd; exit}"
+powershell.exe -Command "& {$clean_cmd; $msix_cmd; exit}"
 
 # Prepare release directory
 zip_name=$lower_app_name-win64.zip
