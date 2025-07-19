@@ -80,7 +80,7 @@ jobs:
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
               for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
                 # Skip macOS and linux for PRs
-                if [[ "${{ github.event_name }}" == "pull_request" && "$os" = "ubuntu-latest" ]]; then
+                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "windows-latest" ]]; then
                   continue
                 fi
                 
@@ -325,3 +325,16 @@ jobs:
           scp: |
             'BitWindow-*.zip' => '/var/www/html/'
             'test-*.zip' => '/var/www/html/'
+
+      - name: Upload BitWindow App Installer files for auto-updates
+        uses: yitianyigexiangfa/ssh-scp-ssh-pipelines@v1.1.5
+        continue-on-error: true
+        with:
+          host: 45.33.96.47
+          user: root
+          pass: ${{ secrets.RELEASES_SERVER_PW }}
+          port: 22
+          scp: |
+            'bitwindow-binaries-Windows/bitwindow.appinstaller' => '/var/www/html/bitwindow/'
+            'bitwindow-binaries-Windows/bitwindow.msix' => '/var/www/html/bitwindow/'
+            'bitwindow-binaries-Windows/Dependencies/*' => '/var/www/html/bitwindow/Dependencies/'
