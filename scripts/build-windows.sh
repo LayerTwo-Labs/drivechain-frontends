@@ -32,7 +32,7 @@ mkdir -p release
 # Create signed MSIX and App Installer
 if [ -n "$certificate_path" ] && [ -n "$certificate_password" ]; then
     echo "Building signed MSIX with certificate $certificate_path and identity $certificate_identity"
-    msix_cmd="dart run msix:create --certificate-path windows/certificate.pfx --certificate-password $certificate_password"
+    msix_cmd="dart run msix:publish --certificate-path windows/certificate.pfx --certificate-password $certificate_password"
 else
     echo "Building unsigned MSIX (no certificate or password provided)"
     msix_cmd="dart run msix:create"
