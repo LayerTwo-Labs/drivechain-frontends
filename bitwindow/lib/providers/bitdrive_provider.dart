@@ -72,9 +72,11 @@ class BitDriveProvider extends ChangeNotifier {
 
   // Constants
   static const int BITDRIVE_DERIVATION_INDEX = 4000;
-  static const String BITDRIVE_DERIVATION_PATH = "m/44'/0'/0'/$BITDRIVE_DERIVATION_INDEX";
-  static const String AUTH_KEY_PATH = "m/44'/0'/0'/$BITDRIVE_DERIVATION_INDEX/1";
+  static const int MULTISIG_DERIVATION_INDEX = 8000;
+  static const String BITDRIVE_DERIVATION_PATH = "m/84'/1'/0'/0/4000";
+  static const String AUTH_KEY_PATH = "m/84'/1'/0'/1/4000";
   static const int AUTH_TAG_SIZE = 8; // 8 bytes auth tag
+  static const int MULTISIG_FLAG = 0x02; // Flag to identify multisig transactions
 
   BitDriveProvider() {
     // Listen for blockchain sync status changes
@@ -274,9 +276,25 @@ class BitDriveProvider extends ChangeNotifier {
           if (metadataBytes.length != 9) continue;
 
           final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
-          final isEncrypted = metadata.getUint8(0) == 1;
+          final flags = metadata.getUint8(0);
+          final isEncrypted = (flags & 0x01) != 0;
+          final isMultisig = (flags & MULTISIG_FLAG) != 0;
           final timestamp = metadata.getUint32(1);
           final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
+
+          if (isMultisig) {
+            // Process multisig transactions during auto restore
+            try {
+              final contentBytes = base64.decode(parts[1]);
+              final content = isEncrypted ? await _decryptContent(contentBytes, timestamp, fileType) : contentBytes;
+              await _processMultisigTransaction(content);
+              log.i('BitDrive: Processed multisig transaction ${tx.txid} during auto restore');
+              restoredCount++;
+            } catch (e) {
+              log.e('BitDrive: Error processing multisig tx ${tx.txid} during auto restore: $e');
+            }
+            continue;
+          }
 
           final fileName = '$timestamp.$fileType';
           final file = File(path.join(_bitdriveDir!, fileName));
@@ -604,6 +622,82 @@ class BitDriveProvider extends ChangeNotifier {
     } finally {
       _isDownloading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _processMultisigTransaction(Uint8List content) async {
+    try {
+      // Parse the decrypted JSON content
+      final jsonString = utf8.decode(content);
+      final multisigData = json.decode(jsonString) as Map<String, dynamic>;
+      
+      // Extract multisig information
+      final name = multisigData['name'] as String;
+      final n = multisigData['n'] as int;
+      final m = multisigData['m'] as int;
+      
+      log.i('BitDrive: Processing multisig group "$name" ($n-of-$m)');
+      
+      // Save to local multisig.json file (single source of truth)
+      await _saveMultisigToLocalFile(multisigData);
+      
+    } catch (e) {
+      log.e('BitDrive: Error processing multisig transaction: $e');
+    }
+  }
+
+  Future<void> _saveMultisigToLocalFile(Map<String, dynamic> multisigData) async {
+    try {
+      final file = File(path.join(_bitdriveDir!, 'multisig.json'));
+      
+      // Load existing data or create new
+      List<dynamic> existingGroups = [];
+      if (await file.exists()) {
+        try {
+          final content = await file.readAsString();
+          if (content.trim().isNotEmpty) {
+            existingGroups = json.decode(content);
+          }
+        } catch (e) {
+          log.w('BitDrive: Error reading existing multisig.json, creating new: $e');
+          existingGroups = [];
+        }
+      }
+      
+      // Check if this multisig group already exists (by ID - the unique identifier)
+      final groupId = multisigData['id'] as String?;
+      final groupName = multisigData['name'] as String? ?? 'Unknown';
+      
+      if (groupId != null && groupId.isNotEmpty) {
+        final existingIndex = existingGroups.indexWhere((group) => group['id'] == groupId);
+        
+        if (existingIndex != -1) {
+          // Update existing group (prevents duplicates from multiple restoration runs)
+          existingGroups[existingIndex] = multisigData;
+          log.i('BitDrive: Updated existing multisig group "$groupName" (ID: $groupId)');
+        } else {
+          // Add new group
+          existingGroups.add(multisigData);
+          log.i('BitDrive: Added new multisig group "$groupName" (ID: $groupId)');
+        }
+      } else {
+        // Fallback to name-based checking for legacy data without ID
+        final existingIndex = existingGroups.indexWhere((group) => group['name'] == groupName);
+        
+        if (existingIndex != -1) {
+          existingGroups[existingIndex] = multisigData;
+          log.i('BitDrive: Updated existing multisig group "$groupName" (legacy mode)');
+        } else {
+          existingGroups.add(multisigData);
+          log.i('BitDrive: Added new multisig group "$groupName" (legacy mode)');
+        }
+      }
+      
+      // Save updated data - this is the single source of truth for multisig groups
+      await file.writeAsString(json.encode(existingGroups));
+      
+    } catch (e) {
+      log.e('BitDrive: Error saving multisig to local file: $e');
     }
   }
 
