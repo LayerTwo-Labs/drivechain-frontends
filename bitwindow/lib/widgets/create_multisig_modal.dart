@@ -9,6 +9,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -146,9 +147,10 @@ class CreateMultisigModal extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SailRow(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.start,
                               children: [
-                                SailText.primary15('${viewModel.nameController.text}'),
+                                SailText.primary15(viewModel.nameController.text),
+                                SailSpacing(SailStyleValues.padding16),
                                 SailText.secondary12('${viewModel.m}-of-${viewModel.n} multisig'),
                               ],
                             ),
@@ -185,7 +187,7 @@ class CreateMultisigModal extends StatelessWidget {
                                   child: SailTextField(
                                     label: 'Derivation Path',
                                     controller: viewModel.pathController,
-                                    hintText: "m/44'/0'/0'/0/0",
+                                    hintText: "m/84'/1'/0'/0/0",
                                     size: TextFieldSize.small,
                                   ),
                                 ),
@@ -344,7 +346,7 @@ class CreateMultisigModal extends StatelessWidget {
                                                          if (viewModel.currentStep == 0)
                                SailButton(
                                  label: 'Next',
-                                 onPressed: viewModel.canProceed ? () async => viewModel.nextStep() : null,
+                                 onPressed: viewModel.canProceed ? () async => await viewModel.nextStep() : null,
                                  disabled: !viewModel.canProceed,
                                )
                              else if (viewModel.canSaveGroup)
@@ -381,10 +383,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController mController = TextEditingController(text: '2');
-  final TextEditingController nController = TextEditingController(text: '3');
+  final TextEditingController nController = TextEditingController(text: '2');
   final TextEditingController ownerController = TextEditingController();
   final TextEditingController pubkeyController = TextEditingController();
-  final TextEditingController pathController = TextEditingController(text: "m/44'/0'/0'/0/0");
+  final TextEditingController pathController = TextEditingController(text: "m/84'/1'/0'/0/0");
   final TextEditingController feeController = TextEditingController(text: '0.001');
 
   // State
@@ -428,12 +430,32 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     mController.addListener(_validateParameters);
     nController.addListener(_validateParameters);
     
+    // Listen for name changes to clear error state
+    nameController.addListener(_clearNameError);
+    
+    // Run initial validation to recognize default values
+    _validateParameters();
+    
+    notifyListeners();
+  }
+
+  void _clearNameError() {
+    // Clear name-related errors when user types in the name field
+    if (parameterError != null && parameterError!.contains('already exists')) {
+      parameterError = null;
+    }
+    // Always notify listeners when name changes to update canProceed state
     notifyListeners();
   }
 
   void _validateParameters() {
     final mValue = int.tryParse(mController.text);
     final nValue = int.tryParse(nController.text);
+    
+    // Clear name-related errors when user modifies parameters
+    if (parameterError != null && parameterError!.contains('already exists')) {
+      parameterError = null;
+    }
     
     if (mValue != null && nValue != null) {
       if (mValue > nValue) {
@@ -454,17 +476,56 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void nextStep() {
-    if (canProceed) {
-      currentStep = 1;
-      ownerController.text = 'MyKey0';
-      // Set default path for manual entry (external keys) to match enforcer pattern
-      pathController.text = "m/84'/1'/0'/0/0";
-      notifyListeners();
+  Future<bool> _isNameAlreadyUsed(String name) async {
+    try {
+      final appDir = await Environment.datadir();
+      final bitdriveDir = path.join(appDir.path, 'bitdrive');
+      final jsonFile = File(path.join(bitdriveDir, 'multisig.json'));
       
-      // Auto-generate the first wallet key
-      generatePublicKey();
+      if (!await jsonFile.exists()) {
+        return false; // No existing groups, name is available
+      }
+      
+      final content = await jsonFile.readAsString();
+      if (content.trim().isEmpty) {
+        return false; // Empty file, name is available
+      }
+      
+      final List<dynamic> existingGroups = json.decode(content);
+      
+      // Check if any existing group has the same name (case-insensitive)
+      return existingGroups.any((group) => 
+        (group['name'] as String?)?.toLowerCase() == name.toLowerCase(),
+      );
+      
+    } catch (e) {
+      // If there's an error reading the file, assume name is available
+      GetIt.I.get<Logger>().w('Error checking existing group names: $e');
+      return false;
     }
+  }
+
+  Future<void> nextStep() async {
+    if (!canProceed) return;
+    
+    // Check if the name is already used
+    final nameAlreadyUsed = await _isNameAlreadyUsed(nameController.text.trim());
+    if (nameAlreadyUsed) {
+      parameterError = 'A multisig group with this name already exists';
+      notifyListeners();
+      return;
+    }
+    
+    // Clear any previous errors and proceed
+    parameterError = null;
+    currentStep = 1;
+    ownerController.text = 'MyKey0';
+    // Set default path for manual entry (external keys) to match enforcer pattern
+    pathController.text = "m/84'/1'/0'/0/0";
+    notifyListeners();
+    
+    // Auto-generate the first wallet key
+    generatePublicKey();
   }
 
   void goBack() {
@@ -488,7 +549,8 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       
       final jsonFile = File(path.join(bitdriveDir, 'multisig.json'));
       
-      int highestIndex = MULTISIG_DERIVATION_INDEX - 1; // Start from 7999
+      // Collect all used wallet key indices
+      Set<int> usedIndices = {};
       
       // Check existing saved groups
       if (await jsonFile.exists()) {
@@ -505,9 +567,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
               // Extract index from path like "m/84'/1'/0'/0/8005"
               final pathParts = keyPath.split('/');
               if (pathParts.length == 6 && keyPath.startsWith(MULTISIG_DERIVATION_BASE)) {
-                final index = int.tryParse(pathParts[5]) ?? (MULTISIG_DERIVATION_INDEX - 1);
-                if (index > highestIndex) {
-                  highestIndex = index;
+                final index = int.tryParse(pathParts[5]);
+                if (index != null && index >= MULTISIG_DERIVATION_INDEX) {
+                  usedIndices.add(index);
                 }
               }
             }
@@ -520,15 +582,21 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         if (key.isWallet) {
           final pathParts = key.derivationPath.split('/');
           if (pathParts.length == 6 && key.derivationPath.startsWith(MULTISIG_DERIVATION_BASE)) {
-            final index = int.tryParse(pathParts[5]) ?? (MULTISIG_DERIVATION_INDEX - 1);
-            if (index > highestIndex) {
-              highestIndex = index;
+            final index = int.tryParse(pathParts[5]);
+            if (index != null && index >= MULTISIG_DERIVATION_INDEX) {
+              usedIndices.add(index);
             }
           }
         }
       }
       
-      return highestIndex + 1; // Return next available index
+      // Find the first available index starting from MULTISIG_DERIVATION_INDEX
+      int nextIndex = MULTISIG_DERIVATION_INDEX;
+      while (usedIndices.contains(nextIndex)) {
+        nextIndex++;
+      }
+      
+      return nextIndex;
       
     } catch (e) {
       modalError = 'Failed to get next key index: $e';
@@ -873,6 +941,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    nameController.removeListener(_clearNameError);
     nameController.dispose();
     mController.dispose();
     nController.dispose();
@@ -1177,3 +1246,4 @@ class ImportMultisigModalViewModel extends BaseViewModel {
     super.dispose();
   }
 }
+
