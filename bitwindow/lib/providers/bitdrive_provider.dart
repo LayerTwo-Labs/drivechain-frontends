@@ -287,7 +287,7 @@ class BitDriveProvider extends ChangeNotifier {
             try {
               final contentBytes = base64.decode(parts[1]);
               final content = isEncrypted ? await _decryptContent(contentBytes, timestamp, fileType) : contentBytes;
-              await _processMultisigTransaction(content);
+              await _processMultisigTransaction(content, tx.txid);
               log.i('BitDrive: Processed multisig transaction ${tx.txid} during auto restore');
               restoredCount++;
             } catch (e) {
@@ -556,10 +556,24 @@ class BitDriveProvider extends ChangeNotifier {
           if (metadataBytes.length != 9) continue;
 
           final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
-          final isEncrypted = metadata.getUint8(0) == 1;
+          final flags = metadata.getUint8(0);
+          final isEncrypted = (flags & 0x01) != 0;
+          final isMultisig = (flags & MULTISIG_FLAG) != 0;
           final timestamp = metadata.getUint32(1);
           final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
+          if (isMultisig) {
+            // Process multisig transactions during scanning too
+            try {
+              final contentBytes = base64.decode(parts[1]);
+              final content = isEncrypted ? await _decryptContent(contentBytes, timestamp, fileType) : contentBytes;
+              await _processMultisigTransaction(content, tx.txid);
+              log.i('BitDrive: Processed multisig transaction ${tx.txid} during scan');
+            } catch (e) {
+              log.e('BitDrive: Error processing multisig tx ${tx.txid} during scan: $e');
+            }
+            continue;
+          }
           final fileName = '$timestamp.$fileType';
           final file = File(path.join(_bitdriveDir!, fileName));
 
@@ -625,18 +639,25 @@ class BitDriveProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _processMultisigTransaction(Uint8List content) async {
+  Future<void> _processMultisigTransaction(Uint8List content, String txid) async {
     try {
-      // Parse the decrypted JSON content
+      // The content should already be decrypted if it was encrypted
+      // For non-encrypted groups, this will be the raw JSON bytes
       final jsonString = utf8.decode(content);
       final multisigData = json.decode(jsonString) as Map<String, dynamic>;
       
       // Extract multisig information
-      final name = multisigData['name'] as String;
-      final n = multisigData['n'] as int;
-      final m = multisigData['m'] as int;
+      final name = multisigData['name'] as String? ?? 'Unknown';
+      final id = multisigData['id'] as String? ?? '';
+      final n = multisigData['n'] as int? ?? 0;
+      final m = multisigData['m'] as int? ?? 0;
       
-      log.i('BitDrive: Processing multisig group "$name" ($n-of-$m)');
+      // Add the TXID to the data if not already present
+      if (multisigData['txid'] == null) {
+        multisigData['txid'] = txid;
+      }
+      
+      log.i('BitDrive: Processing multisig group "$name" (ID: $id, $n-of-$m, TXID: $txid)');
       
       // Save to local multisig.json file (single source of truth)
       await _saveMultisigToLocalFile(multisigData);
