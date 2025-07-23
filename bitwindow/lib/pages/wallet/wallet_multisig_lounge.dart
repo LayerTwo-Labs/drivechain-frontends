@@ -14,6 +14,7 @@ class MultisigGroup {
   final int m;
   final List<MultisigKey> keys;
   final int created;
+  final String? txid; // Add txid field
 
   MultisigGroup({
     required this.id,
@@ -22,6 +23,7 @@ class MultisigGroup {
     required this.m,
     required this.keys,
     required this.created,
+    this.txid, // Optional txid
   });
 
   factory MultisigGroup.fromJson(Map<String, dynamic> json) => MultisigGroup(
@@ -34,6 +36,7 @@ class MultisigGroup {
                 .toList() ??
             [],
         created: json['created'] ?? 0,
+        txid: json['txid'], // Include txid from JSON
       );
 
   String get participantNames => keys.map((k) => k.owner).join(', ');
@@ -101,9 +104,9 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Lounges section
+            // Groups section
             SailCard(
-              title: 'Multisig Lounges',
+              title: 'Multisig Groups',
               subtitle: 'Create and manage multi-signature wallets',
               error: _error,
               child: SizedBox(
@@ -121,6 +124,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                               headerBuilder: (context) => [
                                 const SailTableHeaderCell(name: 'Name'),
                                 const SailTableHeaderCell(name: 'ID'),
+                                const SailTableHeaderCell(name: 'TXID'),
                                 const SailTableHeaderCell(name: 'Total Keys'),
                                 const SailTableHeaderCell(name: 'Keys Required'),
                                 const SailTableHeaderCell(name: 'Participants'),
@@ -133,6 +137,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                                     const SailTableCell(value: ''),
                                     const SailTableCell(value: ''),
                                     const SailTableCell(value: ''),
+                                    const SailTableCell(value: ''),
                                   ];
                                 }
                                 
@@ -140,6 +145,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                                 return [
                                   SailTableCell(value: group.name),
                                   SailTableCell(value: group.id.toUpperCase()),
+                                  SailTableCell(value: group.txid ?? 'Unknown'),
                                   SailTableCell(value: group.n.toString()),
                                   SailTableCell(value: group.m.toString()),
                                   SailTableCell(value: group.participantNames),
@@ -151,20 +157,40 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                     ),
                     const SizedBox(width: SailStyleValues.padding16),
                     Center(
-                      child: SailButton(
-                        label: 'Create New Lounge',
-                        onPressed: () async {
-                          final result = await showDialog(
-                            context: context,
-                            builder: (context) => const CreateMultisigModal(),
-                          );
-                          
-                          // Reload groups after modal closes
-                          if (result != false) {
-                            await _loadMultisigGroups();
-                          }
-                        },
-                        variant: ButtonVariant.primary,
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailButton(
+                            label: 'Create New Group',
+                            onPressed: () async {
+                              final result = await showDialog(
+                                context: context,
+                                builder: (context) => const CreateMultisigModal(),
+                              );
+                              
+                              // Reload groups after modal closes
+                              if (result != false) {
+                                await _loadMultisigGroups();
+                              }
+                            },
+                            variant: ButtonVariant.primary,
+                          ),
+                          SailButton(
+                            label: 'Import from TXID',
+                            onPressed: () async {
+                              final result = await showDialog(
+                                context: context,
+                                builder: (context) => const ImportMultisigModal(),
+                              );
+                              
+                              // Reload groups after import
+                              if (result == true) {
+                                await _loadMultisigGroups();
+                              }
+                            },
+                            variant: ButtonVariant.secondary,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -184,7 +210,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                       child: SailTable(
                         getRowId: (index) => 'tx_empty$index',
                         headerBuilder: (context) => [
-                          const SailTableHeaderCell(name: 'Lounge'),
+                          const SailTableHeaderCell(name: 'Group'),
                           const SailTableHeaderCell(name: 'MuTxid'),
                           const SailTableHeaderCell(name: 'Status'),
                           const SailTableHeaderCell(name: 'Action'),
