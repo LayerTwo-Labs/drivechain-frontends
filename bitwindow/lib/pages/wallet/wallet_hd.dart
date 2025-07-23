@@ -20,7 +20,7 @@ class HDWalletTab extends StatefulWidget {
 
 class _HDWalletTabState extends State<HDWalletTab> {
   final TextEditingController _mnemonicController = TextEditingController();
-  final TextEditingController _derivationPathController = TextEditingController(text: "m/44'/0'/0'/0");
+  final TextEditingController _derivationPathController = TextEditingController(text: "m/84'/1'/0'/0/0");
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
 
   List<HDWalletEntry> _derivedEntries = [];
@@ -382,7 +382,7 @@ class _HDWalletTabState extends State<HDWalletTab> {
                       child: SailTextField(
                         label: 'Derivation Path',
                         controller: _derivationPathController,
-                        hintText: "m/44'/0'/0'/0",
+                        hintText: "m/84'/1'/0'/0/0",
                         enabled: !_isBusy,
                       ),
                     ),
