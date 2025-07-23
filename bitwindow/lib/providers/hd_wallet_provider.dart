@@ -64,18 +64,16 @@ class HDWalletProvider extends ChangeNotifier {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
-      final jsonPath = path.join(walletDir.path, 'l1_starter.json');
-      final file = File(jsonPath);
+      final txtPath = path.join(walletDir.path, 'l1_starter.txt');
+      final file = File(txtPath);
       if (!await file.exists()) {
-        throw Exception('could not find l1_starter.json');
+        throw Exception('could not find l1_starter.txt');
       }
 
-      final jsonContent = await file.readAsString();
-      final config = json.decode(jsonContent);
-
-      _mnemonic = config['mnemonic']?.toString().trim();
+      final fileContent = await file.readAsString();
+      _mnemonic = fileContent.trim();
       if (_mnemonic == null || _mnemonic!.isEmpty) {
-        throw Exception('no "mnemonic" key found in l1_starter.json');
+        throw Exception('l1_starter.txt is empty or contains no mnemonic');
       }
 
       final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
