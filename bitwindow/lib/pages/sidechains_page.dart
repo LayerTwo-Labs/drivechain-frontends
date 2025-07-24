@@ -324,7 +324,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
               Container(),
         ];
       },
-      rowCount: 255, // Show all possible slots
+      rowCount: 256, // Show all slots
       sortAscending: viewModel.sortAscending,
       sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
       onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
