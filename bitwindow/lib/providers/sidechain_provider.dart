@@ -14,9 +14,9 @@ class SidechainProvider extends ChangeNotifier {
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
 
-  // This always has 255 slots. The fetch-method fills in the slots that
+  // This always has 256 slots. The fetch-method fills in the slots that
   // are actually in use.
-  List<SidechainOverview?> sidechains = List.filled(255, null);
+  List<SidechainOverview?> sidechains = List.filled(256, null);
 
   List<SidechainProposal> sidechainProposals = [];
 
@@ -39,8 +39,8 @@ class SidechainProvider extends ChangeNotifier {
       final newSidechains = await bitwindowd.drivechain.listSidechains();
       final newSidechainProposals = await bitwindowd.drivechain.listSidechainProposals();
 
-      // Create a new list with 255 slots
-      List<SidechainOverview?> updatedSidechains = List.filled(255, null);
+      // Create a new list with 256 slots
+      List<SidechainOverview?> updatedSidechains = List.filled(256, null);
 
       // Fill in the slots with the data retrieved from the API
       for (var sidechain in newSidechains) {
