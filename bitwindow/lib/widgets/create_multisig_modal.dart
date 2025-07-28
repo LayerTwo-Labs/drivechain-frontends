@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -13,31 +14,42 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class MultisigKey {
   final String owner;
-  final String pubkey;
+  final String xpub;  // Changed from pubkey to xpub
   final String derivationPath;
+  final String? fingerprint;
+  final String? originPath;
   final bool isWallet;
 
   MultisigKey({
     required this.owner,
-    required this.pubkey,
+    required this.xpub,
     required this.derivationPath,
+    this.fingerprint,
+    this.originPath,
     required this.isWallet,
   });
 
   Map<String, dynamic> toJson() => {
         'owner': owner,
-        'pubkey': pubkey,
+        'xpub': xpub,
+        'pubkey': xpub, // Keep legacy field for compatibility
         'path': derivationPath,
+        'fingerprint': fingerprint,
+        'origin_path': originPath,
         'is_wallet': isWallet,
       };
 
   factory MultisigKey.fromJson(Map<String, dynamic> json) => MultisigKey(
         owner: json['owner'],
-        pubkey: json['pubkey'],
+        xpub: json['xpub'] ?? json['pubkey'], // Support legacy pubkey field
         derivationPath: json['path'],
+        fingerprint: json['fingerprint'],
+        originPath: json['origin_path'],
         isWallet: json['is_wallet'] ?? false,
       );
 }
@@ -194,11 +206,24 @@ class CreateMultisigModal extends StatelessWidget {
                               ],
                             ),
                             SailTextField(
-                              label: 'Public Key',
+                              label: 'Extended Public Key (xPub)',
                               controller: viewModel.pubkeyController,
-                              hintText: 'Paste public key or generate from path',
+                              hintText: 'Paste xPub or generate wallet xPub',
                               size: TextFieldSize.small,
                               minLines: 2,
+                            ),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                Expanded(
+                                  child: SailTextField(
+                                    label: 'Master Fingerprint (Optional)',
+                                    controller: viewModel.fingerprintController,
+                                    hintText: 'e.g., d34db33f',
+                                    size: TextFieldSize.small,
+                                  ),
+                                ),
+                              ],
                             ),
                             SailRow(
                               spacing: SailStyleValues.padding08,
@@ -213,12 +238,12 @@ class CreateMultisigModal extends StatelessWidget {
                                   ),
                                 ),
                                                                  SailButton(
-                                   label: 'Generate Key',
+                                   label: 'Generate Wallet xPub',
                                    onPressed: viewModel.canGenerateKey && viewModel.keys.length < viewModel.n ? () async => await viewModel.generatePublicKey() : null,
                                    variant: ButtonVariant.secondary,
                                  ),
                                  SailButton(
-                                   label: 'Paste Key',
+                                   label: 'Paste xPub',
                                    onPressed: viewModel.keys.length < viewModel.n ? () async => await viewModel.pastePublicKey() : null,
                                    variant: ButtonVariant.secondary,
                                  ),
@@ -314,7 +339,7 @@ class CreateMultisigModal extends StatelessWidget {
                                    ],
                                  ),
                                  SailText.secondary12('Path: ${key.derivationPath}'),
-                                 SailText.secondary12('Pubkey: ${key.pubkey.substring(0, 20)}...'),
+                                 SailText.secondary12('xPub: ${key.xpub.substring(0, 20)}...'),
                                ],
                              ),
                            );
@@ -377,8 +402,52 @@ class CreateMultisigModal extends StatelessWidget {
 }
 
 class CreateMultisigModalViewModel extends BaseViewModel {
+  Logger get log => GetIt.I.get<Logger>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
+  final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
+  
+  // Session tracking for in-progress key generation
+  final Set<int> _sessionUsedAccountIndices = <int>{};
+
+  // Network configuration (simplified)
+  final bool isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
+  
+  // Network utility methods
+  String get coinType => isMainnet ? "0'" : "1'";
+  String get xpubPrefix => isMainnet ? 'xpub' : 'tpub';
+  String get bech32HRP => isMainnet ? 'bc' : 'tb';
+  
+  // Validate xPub format
+  bool _isValidXpub(String xpub) {
+    if (xpub.isEmpty) return false;
+    
+    // Check prefix
+    if (!xpub.startsWith(xpubPrefix)) return false;
+    
+    // Check length (xpubs are typically 111 characters, but allow some flexibility)
+    if (xpub.length < 100 || xpub.length > 120) return false;
+    
+    // Check if it's valid base58
+    try {
+      base58.decode(xpub);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Check if a derivation path represents a wallet-generated key
+  bool _isWalletGeneratedPath(String path) {
+    // Extract account index from path like "m/84'/1'/8000'"
+    final match = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(path);
+    if (match != null) {
+      final accountIndex = int.tryParse(match.group(1)!);
+      return accountIndex != null && accountIndex >= 8000;
+    }
+    return false;
+  }
+
 
   // Controllers
   final TextEditingController nameController = TextEditingController();
@@ -386,8 +455,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   final TextEditingController nController = TextEditingController(text: '2');
   final TextEditingController ownerController = TextEditingController();
   final TextEditingController pubkeyController = TextEditingController();
-  final TextEditingController pathController = TextEditingController(text: "m/84'/1'/0'/0/0");
+  final TextEditingController pathController = TextEditingController(text: "m/84'/1'/8000'");
   final TextEditingController feeController = TextEditingController(text: '0.001');
+  final TextEditingController fingerprintController = TextEditingController();
 
   // State
   int currentStep = 0;
@@ -519,6 +589,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     // Clear any previous errors and proceed
     parameterError = null;
     currentStep = 1;
+    
+    // Reset session tracking when starting key creation
+    _sessionUsedAccountIndices.clear();
+    
     ownerController.text = 'MyKey0';
     // Set default path for manual entry (external keys) to match enforcer pattern
     pathController.text = "m/84'/1'/0'/0/0";
@@ -612,31 +686,33 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       modalError = null;
       setBusy(true);
       
-      // Get the next available wallet key index
-      final nextIndex = await _getNextWalletKeyIndex();
-      final walletKeyPath = '$MULTISIG_DERIVATION_BASE$nextIndex';
+      // Get the next available account index (considering session usage)
+      final accountIndex = await _hdWallet.getNextAccountIndex(_sessionUsedAccountIndices);
       
-      // Update the path controller to show the correct path
-      pathController.text = walletKeyPath;
+      // Track this index in the session
+      _sessionUsedAccountIndices.add(accountIndex);
       
-      // Update the owner name to show relative index (e.g., MyKey0, MyKey1, etc.)
-      final relativeIndex = nextIndex - MULTISIG_DERIVATION_INDEX;
-      ownerController.text = 'MyKey$relativeIndex';
+      // Generate wallet xPub
+      log.d('Generate key: isMainnet=$isMainnet, accountIndex=$accountIndex');
+      final keyInfo = await _hdWallet.generateWalletXpub(accountIndex, isMainnet);
       
-      final keyInfo = await _hdWallet.deriveKeyInfo(
-        _hdWallet.mnemonic ?? '', 
-        walletKeyPath,
-      );
-      
-      final publicKey = keyInfo['publicKey'] ?? '';
-      if (publicKey.isNotEmpty) {
-        pubkeyController.text = publicKey;
-      } else {
-        throw Exception('Failed to generate public key');
+      if (keyInfo.isEmpty) {
+        throw Exception('Failed to generate xPub');
       }
       
+      log.d('Generated xpub: ${keyInfo['xpub']?.substring(0, 8) ?? 'null'}...');
+      
+      // Update controllers
+      pubkeyController.text = keyInfo['xpub'] ?? '';
+      pathController.text = keyInfo['derivation_path'] ?? '';
+      fingerprintController.text = keyInfo['fingerprint'] ?? '';
+      
+      // Update the owner name to show relative index
+      final relativeIndex = accountIndex - 8000;
+      ownerController.text = 'MyKey$relativeIndex';
+      
     } catch (e) {
-      modalError = 'Failed to generate public key: $e';
+      modalError = 'Failed to generate xPub: $e';
     } finally {
       setBusy(false);
       notifyListeners();
@@ -647,7 +723,23 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     try {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
       if (clipboardData?.text != null) {
-        pubkeyController.text = clipboardData!.text!;
+        final xpub = clipboardData!.text!.trim();
+        
+        // Validate xPub format
+        if (!_isValidXpub(xpub)) {
+          modalError = 'Invalid xPub format. Expected valid $xpubPrefix format.';
+          notifyListeners();
+          return;
+        }
+        
+        pubkeyController.text = xpub;
+        
+        // For external keys, prompt for fingerprint if not provided
+        if (!pathController.text.contains("8000'")) {
+          // This is an external key, clear fingerprint
+          fingerprintController.clear();
+        }
+        
         notifyListeners();
       }
     } catch (e) {
@@ -656,7 +748,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
   }
 
-  void saveKey() {
+  Future<void> saveKey() async {
     if (!canSaveKey) return;
 
     // Check if we've reached the maximum number of keys
@@ -666,32 +758,34 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       return;
     }
 
-    // Check for duplicate public keys
-    if (keys.any((key) => key.pubkey == pubkeyController.text)) {
-      modalError = 'This public key has already been added';
+    // Check for duplicate xPubs
+    if (keys.any((key) => key.xpub == pubkeyController.text)) {
+      modalError = 'This xPub has already been added';
+      notifyListeners();
+      return;
+    }
+    
+    // Validate xPub
+    final xpub = pubkeyController.text;
+    if (!_isValidXpub(xpub)) {
+      modalError = 'Invalid xPub format';
       notifyListeners();
       return;
     }
 
     // Determine if this is a wallet-generated key
     final currentPath = pathController.text;
-    final isWalletKey = currentPath.startsWith(MULTISIG_DERIVATION_BASE);
+    final isWalletKey = _isWalletGeneratedPath(currentPath);
 
-    // Extract the index from the path for wallet keys (e.g., "m/84'/1'/0'/0/8003" -> 8003)
-    String ownerName = ownerController.text;
-    if (isWalletKey) {
-      final pathParts = currentPath.split('/');
-      if (pathParts.length == 6) {
-        final keyIndex = int.tryParse(pathParts[5]) ?? MULTISIG_DERIVATION_INDEX;
-        final relativeIndex = keyIndex - MULTISIG_DERIVATION_INDEX;
-        ownerName = 'MyKey$relativeIndex';
-      }
-    }
+    // Extract origin path (remove 'm/')
+    final originPath = currentPath.startsWith('m/') ? currentPath.substring(2) : currentPath;
 
     final key = MultisigKey(
-      owner: ownerName,
-      pubkey: pubkeyController.text,
+      owner: ownerController.text,
+      xpub: pubkeyController.text,
       derivationPath: currentPath,
+      fingerprint: fingerprintController.text.isNotEmpty ? fingerprintController.text : null,
+      originPath: originPath,
       isWallet: isWalletKey,
     );
 
@@ -701,14 +795,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     if (keys.length < n) {
       ownerController.text = 'External Key ${keys.length + 1}';
       pubkeyController.clear();
+      fingerprintController.clear();
       
-      // Reset path to the default manual entry format for external keys (enforcer pattern)
-      pathController.text = "m/84'/1'/0'/0/0";
+      // Reset path to the default manual entry format for external keys
+      pathController.text = "m/84'/$coinType/0'";
     } else {
       // Clear form but don't set defaults since we're at the limit
       ownerController.clear();
       pubkeyController.clear();
       pathController.clear();
+      fingerprintController.clear();
     }
     
     modalError = null;
@@ -724,12 +820,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   String _computeMultisigId(List<MultisigKey> sortedKeys) {
     try {
-      // Concatenate all public keys in order
-      final concatenatedPubkeys = sortedKeys.map((key) => key.pubkey).join('');
-      final pubkeyBytes = hex.decode(concatenatedPubkeys);
+      // Concatenate all xpubs in order
+      final concatenatedXpubs = sortedKeys.map((key) => key.xpub).join('');
+      final xpubBytes = utf8.encode(concatenatedXpubs);
       
       // Compute SHA256d (double SHA256)
-      final firstHash = sha256.convert(pubkeyBytes).bytes;
+      final firstHash = sha256.convert(xpubBytes).bytes;
       final secondHash = sha256.convert(firstHash).bytes;
       
       // Take first 3 bytes and convert to hex
@@ -747,14 +843,14 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       modalError = null;
       setBusy(true);
 
-      // Sort keys by BIP174 order (lexicographic order of public keys)
+      // Sort keys by BIP67 order (lexicographic order of xpubs)
       final sortedKeys = List<MultisigKey>.from(keys);
-      sortedKeys.sort((a, b) => a.pubkey.compareTo(b.pubkey));
+      sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
 
       // Compute multisig ID
       final multisigId = _computeMultisigId(sortedKeys);
 
-      // Create multisig JSON (without txid first)
+      // Create multisig JSON with only essential data (no derived data)  
       final multisigData = {
         'id': multisigId,
         'name': nameController.text,
@@ -939,8 +1035,65 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  Future<String> _buildDescriptor(List<MultisigKey> sortedKeys, bool isChange) async {
+    try {
+      // Build the key list with origins for wallet keys
+      final keyDescriptors = sortedKeys.map((key) {
+        if (key.isWallet && key.fingerprint != null && key.originPath != null) {
+          return '[${key.fingerprint}/${key.originPath}]${key.xpub}/${isChange ? '1' : '0'}/*';
+        } else {
+          return '${key.xpub}/${isChange ? '1' : '0'}/*';
+        }
+      }).join(',');
+      
+      // Build the descriptor (without validation for now)
+      final descriptor = 'wsh(sortedmulti($m,$keyDescriptors))';
+      
+      // Note: Descriptor validation will be done when the wallet is actually used
+      // in the fund group modal, not during group creation
+      return descriptor;
+    } catch (e) {
+      throw Exception('Failed to build descriptor: $e');
+    }
+  }
+
+  Future<void> _createWatchOnlyWallet(String walletName, String descriptorReceive, String descriptorChange) async {
+    try {
+      // Create watch-only wallet
+      await _rpc.callRAW('createwallet', [
+        walletName,
+        true,  // disable_private_keys
+        true,  // blank
+      ]);
+      
+      // Import descriptors
+      await _rpc.callRAW('importdescriptors', [
+        [
+          {
+            'desc': descriptorReceive,
+            'active': true,
+            'internal': false,
+            'timestamp': 'now',
+          },
+          {
+            'desc': descriptorChange,
+            'active': true,
+            'internal': true,
+            'timestamp': 'now',
+          },
+        ],
+      ]);
+    } catch (e) {
+      // Wallet might already exist or other error
+      throw Exception('Failed to create watch-only wallet: $e');
+    }
+  }
+
   @override
   void dispose() {
+    // Clean up session tracking when modal is disposed
+    _sessionUsedAccountIndices.clear();
+    
     nameController.removeListener(_clearNameError);
     nameController.dispose();
     mController.dispose();
@@ -949,6 +1102,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     pubkeyController.dispose();
     pathController.dispose();
     feeController.dispose();
+    fingerprintController.dispose();
     super.dispose();
   }
 }
@@ -1011,7 +1165,7 @@ class ImportMultisigModal extends StatelessWidget {
                                   onChanged: (value) => viewModel.toggleKeySelection(index),
                                 ),
                                 SailText.secondary12('Path: ${key.derivationPath}'),
-                                SailText.secondary12('Pubkey: ${key.pubkey.substring(0, 20)}...'),
+                                SailText.secondary12('xPub: ${key.xpub.substring(0, 20)}...'),
                               ],
                             ),
                           );
@@ -1168,8 +1322,10 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         final key = entry.value;
         return MultisigKey(
           owner: key.owner,
-          pubkey: key.pubkey,
+          xpub: key.xpub,
           derivationPath: key.derivationPath,
+          fingerprint: key.fingerprint,
+          originPath: key.originPath,
           isWallet: selectedKeys.contains(index), // Set based on user selection
         );
       }).toList();
