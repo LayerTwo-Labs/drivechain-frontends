@@ -48,6 +48,7 @@ class MainchainRPCLive extends MainchainRPC {
     return client;
   }
 
+
   // hacky way to create an async class
   // https://stackoverflow.com/a/59304510
   MainchainRPCLive._create({

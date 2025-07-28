@@ -11,6 +11,7 @@ class Variable<T> {
   const Variable(this.key, this.value);
 }
 
+
 class Environment {
   static bool isInTest = Platform.environment['FLUTTER_TEST']?.isNotEmpty ?? const bool.fromEnvironment('FLUTTER_TEST');
 
@@ -23,6 +24,7 @@ class Environment {
     'BITWINDOWD_PORT',
     int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 8080),
   );
+  
 
   static Future<Directory> datadir() async {
     final fromEnv = Platform.environment['BITWINDOWD_DATADIR'] ?? const String.fromEnvironment('BITWINDOWD_DATADIR');
@@ -58,3 +60,4 @@ class Environment {
 
 // Helper function to access environment variables
 T env<T>(Variable<T> variable) => variable.value;
+
