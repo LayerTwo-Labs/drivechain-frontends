@@ -94,11 +94,10 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         }
 
         try {
-          // Get wallet balance using the wallet manager
-          final balance = await _walletManager.getWalletBalance(walletName);
-          final utxos = await _walletManager.listUnspent(walletName);
-          final utxoCount = utxos.length;
-          
+          // Get wallet balance and UTXO count together to ensure consistency
+          final walletInfo = await _walletManager.getWalletBalanceAndUtxos(walletName);
+          final balance = walletInfo['balance'] as double;
+          final utxoCount = walletInfo['utxos'] as int;
           
           // Check if balance or UTXO count has changed
           if (group.balance != balance || group.utxos != utxoCount) {
@@ -141,9 +140,9 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
               await _createWatchOnlyWallet(group);
               
               // Try balance again
-              final balance = await _walletManager.getWalletBalance(walletName);
-              final utxos = await _walletManager.listUnspent(walletName);
-              final utxoCount = utxos.length;
+              final walletInfo = await _walletManager.getWalletBalanceAndUtxos(walletName);
+              final balance = walletInfo['balance'] as double;
+              final utxoCount = walletInfo['utxos'] as int;
               
               if (group.balance != balance || group.utxos != utxoCount) {
                 hasUpdates = true;
@@ -329,10 +328,10 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
             print('Descriptors imported successfully for $walletName');
           }
           
-          // Get updated balance
-          var balance = await _walletManager.getWalletBalance(walletName);
-          var utxos = await _walletManager.listUnspent(walletName);
-          var utxoCount = utxos.length;
+          // Get updated balance and UTXO count together
+          var walletInfo = await _walletManager.getWalletBalanceAndUtxos(walletName);
+          var balance = walletInfo['balance'] as double;
+          var utxoCount = walletInfo['utxos'] as int;
           
           
           // If balance is 0, force reimport and rescan
@@ -369,9 +368,9 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
               print('Rescan initiated for $walletName');
               
               // Get balance again after rescan
-              balance = await _walletManager.getWalletBalance(walletName);
-              utxos = await _walletManager.listUnspent(walletName);
-              utxoCount = utxos.length;
+              walletInfo = await _walletManager.getWalletBalanceAndUtxos(walletName);
+              balance = walletInfo['balance'] as double;
+              utxoCount = walletInfo['utxos'] as int;
               print('After rescan - balance=$balance BTC, utxos=$utxoCount');
             } catch (e) {
               print('Rescan failed: $e');

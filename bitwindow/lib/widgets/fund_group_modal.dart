@@ -300,7 +300,6 @@ class FundGroupModalViewModel extends BaseViewModel {
       
       try {
         // Try to get descriptor from wallet
-        GetIt.I.get<Logger>().i('Getting descriptor from wallet $walletName');
         final walletDescriptors = await walletManager.callWalletRPC<Map<String, dynamic>>(
           walletName,
           'listdescriptors',
@@ -311,19 +310,16 @@ class FundGroupModalViewModel extends BaseViewModel {
           for (final desc in walletDescriptors['descriptors']) {
             if (desc is Map && desc['active'] == true && desc['internal'] == false) {
               descriptor = desc['desc'] as String;
-              GetIt.I.get<Logger>().i('Found receive descriptor in wallet');
               break;
             }
           }
         }
       } catch (e) {
         // Wallet doesn't exist or has issues, will create it below
-        GetIt.I.get<Logger>().w('Failed to get descriptors from wallet $walletName: $e');
       }
       
       // If no descriptor found, create/recreate the wallet
       if (descriptor == null) {
-        GetIt.I.get<Logger>().i('Creating wallet $walletName');
         try {
           // Create watch-only wallet
           await walletManager.createWallet(
@@ -365,8 +361,7 @@ class FundGroupModalViewModel extends BaseViewModel {
             : changeDesc;
         
         // Import descriptors
-        GetIt.I.get<Logger>().i('Importing descriptors to wallet $walletName');
-        final importResult = await walletManager.importDescriptors(walletName, [
+        await walletManager.importDescriptors(walletName, [
           {
             'desc': receiveWithChecksum,
             'active': true,
@@ -383,9 +378,6 @@ class FundGroupModalViewModel extends BaseViewModel {
           },
         ]);
         
-        // Check if import was successful
-        GetIt.I.get<Logger>().i('Import descriptors result: $importResult');
-        
         // Verify the descriptor was actually imported by re-querying the wallet
         try {
           final verifyDescriptors = await walletManager.callWalletRPC<Map<String, dynamic>>(
@@ -398,13 +390,13 @@ class FundGroupModalViewModel extends BaseViewModel {
             for (final desc in verifyDescriptors['descriptors']) {
               if (desc is Map && desc['active'] == true && desc['internal'] == false) {
                 descriptor = desc['desc'] as String;
-                GetIt.I.get<Logger>().i('Verified descriptor import successful');
                 break;
               }
             }
           }
         } catch (e) {
-          GetIt.I.get<Logger>().e('Failed to verify descriptor import: $e');
+          // Fallback to the checksum descriptor if verification failed
+          descriptor = receiveWithChecksum;
         }
         
         // Fallback to the checksum descriptor if verification failed
@@ -427,7 +419,6 @@ class FundGroupModalViewModel extends BaseViewModel {
       int nextIndex = enhancedGroup.nextReceiveIndex;
       
       // Derive address using the descriptor from wallet
-      GetIt.I.get<Logger>().i('Deriving address at index $nextIndex');
       final addresses = await api.callRAW(
         'deriveaddresses',
         [descriptor, [nextIndex, nextIndex]],
@@ -460,8 +451,6 @@ class FundGroupModalViewModel extends BaseViewModel {
       
       // Save updated data back to file
       await file.writeAsString(json.encode(jsonGroups));
-      
-      GetIt.I.get<Logger>().i('Generated new multisig address at index $addressIndex: $newAddress');
       
       return newAddress;
       
