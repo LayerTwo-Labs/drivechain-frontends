@@ -428,17 +428,18 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   Future<void> saveNote(BuildContext context, String txid, String note) async {
     try {
       setBusy(true);
-      notifyListeners();
       await _txProvider.saveNote(txid, note);
 
       if (context.mounted) {
         Navigator.of(context).pop();
       }
     } catch (error) {
-      modelError = error.toString();
+      if (error.toString() != modelError) {
+        modelError = error.toString();
+        notifyListeners();
+      }
     } finally {
       setBusy(false);
-      notifyListeners();
     }
   }
 

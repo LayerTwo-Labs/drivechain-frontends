@@ -14,7 +14,6 @@ class ExplorerProvider extends ChangeNotifier {
   ChainTip? bitassetsTip;
   ChainTip? bitnamesTip;
   ChainTip? zsideTip;
-  bool initialized = false;
 
   bool isFetching = false;
 
@@ -31,24 +30,39 @@ class ExplorerProvider extends ChangeNotifier {
     try {
       final response = await api.clients.explorer.getChainTips(GetChainTipsRequest());
 
-      // Always update the data and notify listeners
-      if (response.mainchain.height > 0) {
+      // Track if any data actually changed
+      bool hasChanges = false;
+
+      // Only update and mark as changed if the data actually differs
+      if (mainchainTip != response.mainchain) {
         mainchainTip = response.mainchain;
+        hasChanges = true;
       }
-      if (response.thunder.height > 0) {
+
+      if (thunderTip != response.thunder) {
         thunderTip = response.thunder;
+        hasChanges = true;
       }
-      if (response.bitassets.height > 0) {
+
+      if (bitassetsTip != response.bitassets) {
         bitassetsTip = response.bitassets;
+        hasChanges = true;
       }
-      if (response.bitnames.height > 0) {
+
+      if (bitnamesTip != response.bitnames) {
         bitnamesTip = response.bitnames;
+        hasChanges = true;
       }
-      if (response.zside.height > 0) {
+
+      if (zsideTip != response.zside) {
         zsideTip = response.zside;
+        hasChanges = true;
       }
-      initialized = true;
-      notifyListeners();
+
+      // Only notify if data actually changed or if this is the first initialization
+      if (hasChanges) {
+        notifyListeners();
+      }
     } finally {
       isFetching = false;
     }

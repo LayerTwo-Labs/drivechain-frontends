@@ -58,10 +58,12 @@ class AddressProvider extends ChangeNotifier {
       try {
         receiveAddress = await rpc.getSideAddress();
         initialized = true;
-      } catch (e) {
-        _error = e.toString();
-      } finally {
         notifyListeners();
+      } catch (e) {
+        if (e.toString() != _error) {
+          _error = e.toString();
+          notifyListeners();
+        }
       }
     }
 
@@ -69,10 +71,12 @@ class AddressProvider extends ChangeNotifier {
       try {
         depositAddress = await rpc.getDepositAddress();
         initialized = true;
-      } catch (e) {
-        _depositError = e.toString();
-      } finally {
         notifyListeners();
+      } catch (e) {
+        if (e.toString() != _depositError) {
+          _depositError = e.toString();
+          notifyListeners();
+        }
       }
     }
 

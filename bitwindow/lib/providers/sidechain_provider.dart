@@ -55,12 +55,15 @@ class SidechainProvider extends ChangeNotifier {
         sidechains = updatedSidechains;
         sidechainProposals = newSidechainProposals;
         error = null;
+        notifyListeners();
       }
     } catch (e) {
-      error = e.toString();
+      if (e.toString() != error) {
+        error = e.toString();
+        notifyListeners();
+      }
     } finally {
       _isFetching = false;
-      notifyListeners();
     }
   }
 

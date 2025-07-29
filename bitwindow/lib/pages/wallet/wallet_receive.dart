@@ -265,15 +265,13 @@ class ReceivePageViewModel extends BaseViewModel {
   String? modelError;
 
   String get address => transactionsProvider.address;
+  List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
         (e) => e.address == address,
         orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
       );
   bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
-
-  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
-  List<ReceiveAddress> get receiveAddresses => _txProvider.receiveAddresses.toList();
 
   String sortColumn = 'address';
   bool sortAscending = true;
@@ -284,16 +282,13 @@ class ReceivePageViewModel extends BaseViewModel {
     _bitwindowRPC.addListener(generateNewAddress);
     transactionsProvider.addListener(notifyListeners);
     _addressBookProvider.addListener(notifyListeners);
-    _txProvider.addListener(notifyListeners);
     generateNewAddress();
-    _txProvider.fetch();
   }
 
   @override
   void dispose() {
     transactionsProvider.removeListener(notifyListeners);
     _addressBookProvider.removeListener(notifyListeners);
-    _txProvider.removeListener(notifyListeners);
     super.dispose();
   }
 
@@ -301,10 +296,11 @@ class ReceivePageViewModel extends BaseViewModel {
     try {
       modelError = null;
       await transactionsProvider.fetch();
-      notifyListeners();
     } catch (e) {
-      modelError = e.toString();
-      notifyListeners();
+      if (e.toString() != modelError) {
+        modelError = e.toString();
+        notifyListeners();
+      }
     }
   }
 
@@ -312,7 +308,6 @@ class ReceivePageViewModel extends BaseViewModel {
     try {
       modelError = null;
       setBusy(true);
-      notifyListeners();
       await _addressBookProvider.createEntry(
         label,
         address,
@@ -320,18 +315,18 @@ class ReceivePageViewModel extends BaseViewModel {
       );
 
       // Fetch the transactions provider to update the receiveAddresses list
-      await _txProvider.fetch();
-
-      notifyListeners();
+      await transactionsProvider.fetch();
 
       if (context.mounted) {
         Navigator.of(context).pop();
       }
     } catch (error) {
-      modelError = error.toString();
+      if (error.toString() != modelError) {
+        modelError = error.toString();
+        notifyListeners();
+      }
     } finally {
       setBusy(false);
-      notifyListeners();
     }
   }
 }

@@ -202,23 +202,22 @@ TableRow mnemonicRow(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (hasMnemonic) ...[
+              CopyButton(
+                text: mnemonic,
+              ),
+              const SizedBox(width: 8),
               if (!isRevealed)
                 SailButton(
                   label: 'Reveal',
                   onPressed: () async => viewModel.toggleStarterReveal(name, true),
                   variant: ButtonVariant.secondary,
                 )
-              else ...[
-                CopyButton(
-                  text: mnemonic,
-                ),
-                const SizedBox(width: 8),
+              else
                 SailButton(
                   label: 'Hide',
                   onPressed: () async => viewModel.toggleStarterReveal(name, false),
                   variant: ButtonVariant.secondary,
                 ),
-              ],
               const SizedBox(width: 8),
             ],
           ],

@@ -48,8 +48,10 @@ class NewsProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      error = e.toString();
-      notifyListeners();
+      if (e.toString() != error) {
+        error = e.toString();
+        notifyListeners();
+      }
     } finally {
       _isFetching = false;
     }

@@ -71,7 +71,7 @@ class BottomNav extends StatelessWidget {
                           spacing: SailStyleValues.padding08,
                           children: [
                             DecoratedBox(
-                              decoration: model.connectionColor == SailColorScheme.red
+                              decoration: !model.initializingAny && model.connectionColor == SailColorScheme.red
                                   ? BoxDecoration(
                                       boxShadow: [
                                         BoxShadow(
@@ -293,23 +293,43 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   // Connection status
   bool get allConnected => mainchain.connected && enforcer.connected && additionalConnection.connected;
+  bool get initializingAny =>
+      mainchain.initializingBinary || enforcer.initializingBinary || additionalConnection.initializingBinary;
+  bool get downloadingAny =>
+      syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ??
+      syncProvider.enforcerSyncInfo?.downloadInfo.isDownloading ??
+      syncProvider.additionalSyncInfo?.downloadInfo.isDownloading ??
+      false;
 
   Color get connectionColor {
     if (allConnected) {
       return SailColorScheme.green;
     }
 
-    if ((!mainchain.connected &&
-            !mainchain.initializingBinary &&
-            !(syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ?? false)) ||
-        (!enforcer.connected &&
-            !enforcer.initializingBinary &&
-            !(syncProvider.enforcerSyncInfo?.downloadInfo.isDownloading ?? false)) ||
-        (!additionalConnection.connected &&
-            !additionalConnection.initializingBinary &&
-            !(syncProvider.additionalSyncInfo?.downloadInfo.isDownloading ?? false))) {
-      // done initializing, but not connected
+    if (initializingAny) {
+      return SailColorScheme.orange;
+    }
+
+    if (mainchain.startupError != null) {
+      return SailColorScheme.orange;
+    }
+
+    if (enforcer.startupError != null) {
+      return SailColorScheme.orange;
+    }
+
+    if (additionalConnection.rpc.startupError != null) {
+      return SailColorScheme.orange;
+    }
+
+    if (mainchain.connectionError != null ||
+        enforcer.connectionError != null ||
+        additionalConnection.connectionError != null) {
       return SailColorScheme.red;
+    }
+
+    if (downloadingAny) {
+      return SailColorScheme.orange;
     }
 
     return SailColorScheme.orange;
@@ -332,20 +352,20 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return 'Initializing bitcoind..';
     }
 
-    if (mainchain.connectionError != null || mainchain.startupError != null) {
-      return mainchain.connectionError ?? mainchain.startupError!;
-    }
-
     if (enforcer.initializingBinary || enforcer.startupError != null) {
       return 'Initializing enforcer..';
     }
 
-    if (enforcer.connectionError != null || enforcer.startupError != null) {
-      return enforcer.connectionError ?? enforcer.startupError!;
-    }
-
     if (additionalConnection.initializingBinary) {
       return 'Initializing ${additionalConnection.name}..';
+    }
+
+    if (mainchain.connectionError != null || mainchain.startupError != null) {
+      return mainchain.connectionError ?? mainchain.startupError!;
+    }
+
+    if (enforcer.connectionError != null || enforcer.startupError != null) {
+      return enforcer.connectionError ?? enforcer.startupError!;
     }
 
     if (additionalConnection.connectionError != null || additionalConnection.rpc.startupError != null) {
