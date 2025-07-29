@@ -14,7 +14,6 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 
 class FundGroupModal extends StatelessWidget {
   final List<MultisigGroup> groups;
@@ -303,7 +302,7 @@ class FundGroupModalViewModel extends BaseViewModel {
         final walletDescriptors = await walletManager.callWalletRPC<Map<String, dynamic>>(
           walletName,
           'listdescriptors',
-          []
+          [],
         );
         
         if (walletDescriptors['descriptors'] != null) {
@@ -383,7 +382,7 @@ class FundGroupModalViewModel extends BaseViewModel {
           final verifyDescriptors = await walletManager.callWalletRPC<Map<String, dynamic>>(
             walletName,
             'listdescriptors',
-            []
+            [],
           );
           
           if (verifyDescriptors['descriptors'] != null) {
@@ -400,19 +399,12 @@ class FundGroupModalViewModel extends BaseViewModel {
         }
         
         // Fallback to the checksum descriptor if verification failed
-        if (descriptor == null) {
-          descriptor = receiveWithChecksum;
-        }
+        descriptor ??= receiveWithChecksum;
         
         // Update the group data with descriptors for future use
         groupData['descriptorReceive'] = receiveWithChecksum;
         groupData['descriptorChange'] = changeWithChecksum;
         groupData['watchWalletName'] = walletName;
-      }
-      
-      // Ensure we have a descriptor before proceeding
-      if (descriptor == null) {
-        throw Exception('No active receive descriptor found in wallet $walletName');
       }
       
       // Get current address index
