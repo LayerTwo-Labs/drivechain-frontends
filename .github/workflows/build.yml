@@ -326,3 +326,4 @@ jobs:
             'BitWindow-*.msix' => '/var/www/html/'
             'BitWindow-*.zip' => '/var/www/html/'
             'test-*.zip' => '/var/www/html/'
+            'test-*.msix' => '/var/www/html/'
