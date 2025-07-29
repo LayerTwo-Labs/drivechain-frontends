@@ -121,16 +121,13 @@ flutter:
           weight: 600
 
 # Windows release stuff.
-# This currently relies on having a self-signed certificate
-# locally available, which must be changed before this is
-# properly deployed (either published to the MS store or
-# as an installer on a website somewhere).
+# CI has a certificate.pfx we use to sign the build with
 # https://pub.dev/packages/msix
 msix_config:
-  display_name: Bitnames
+  display_name: BitNames
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
-  publisher: C=US, S=Connecticut, O="LayerTwo Labs, Inc.", CN=layertwolabs.com
+  publisher: CN=CB6BF331-C832-4005-970F-B880295700CA
   publisher_display_name: LayerTwo Labs, Inc.
   identity_name: LayerTwoLabs.BitNames
   msix_version: 1.0.0.0
@@ -139,6 +136,7 @@ msix_config:
   os_min_version: 10.0.17763.0
   store: false
   install_certificate: false
+  sign_msix: true
 
 sentry:
   upload_debug_symbols: true
