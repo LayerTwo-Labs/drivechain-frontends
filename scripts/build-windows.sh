@@ -33,7 +33,7 @@ build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
 # Create signed MSIX
 if [ -n "$certificate_path" ] && [ -n "$certificate_password" ]; then
     echo "Building signed MSIX with certificate $certificate_path and identity $certificate_identity"
-    msix_cmd="dart run msix:create --store false --certificate-path windows/certificate.pfx --certificate-password $certificate_password"
+    msix_cmd="dart run msix:create --store false --certificate-path windows/certificate.pfx --certificate-password $certificate_password --signtool-options=\"/d Use Drivechains /n LayerTwo Labs, Inc. /t http://timestamp.comodoca.com/rfc3161\""
 else
     echo "Building unsigned MSIX (no certificate or password provided)"
     msix_cmd="dart run msix:create"
