@@ -27,13 +27,23 @@ class AddressBookProvider extends ChangeNotifier {
 
     try {
       final response = await bitwindowd.bitwindowd.listAddressBook();
-      _entries = response;
+
+      if (_dataHasChanged(response)) {
+        _entries = response;
+        notifyListeners();
+      }
     } catch (e) {
-      error = e.toString();
+      if (e.toString() != error) {
+        error = e.toString();
+        notifyListeners();
+      }
     } finally {
       _isFetching = false;
-      notifyListeners();
     }
+  }
+
+  bool _dataHasChanged(List<AddressBookEntry> newEntries) {
+    return !listEquals(entries, newEntries);
   }
 
   Future<void> createEntry(String label, String address, Direction direction) async {

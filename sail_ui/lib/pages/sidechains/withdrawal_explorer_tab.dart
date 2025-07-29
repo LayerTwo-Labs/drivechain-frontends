@@ -323,15 +323,20 @@ class PendingBundleViewModel extends BaseViewModel {
   }
 
   Future<void> fetchBundle() async {
-    setBusy(true);
     try {
       final response = await sidechainRPC.getPendingWithdrawalBundle();
-      bundle = response;
+      // Only notify if the bundle actually changed
+      if (bundle?.toJson() != response?.toJson()) {
+        bundle = response;
+        notifyListeners();
+      }
     } catch (e) {
-      bundle = null;
+      // Only notify if the bundle actually changed (from non-null to null)
+      if (bundle != null) {
+        bundle = null;
+        notifyListeners();
+      }
     }
-    setBusy(false);
-    notifyListeners();
   }
 
   @override
@@ -357,15 +362,20 @@ class NextBundleViewModel extends BaseViewModel {
   }
 
   Future<void> fetchBundle() async {
-    setBusy(true);
     try {
       final response = await sidechainRPC.getPendingWithdrawalBundle();
-      bundle = response;
+      // Only notify if the bundle actually changed
+      if (bundle?.toJson() != response?.toJson()) {
+        bundle = response;
+        notifyListeners();
+      }
     } catch (e) {
-      bundle = null;
+      // Only notify if the bundle actually changed (from non-null to null)
+      if (bundle != null) {
+        bundle = null;
+        notifyListeners();
+      }
     }
-    setBusy(false);
-    notifyListeners();
   }
 
   @override

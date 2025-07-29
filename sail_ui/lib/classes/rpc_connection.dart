@@ -160,8 +160,8 @@ abstract class RPCConnection extends ChangeNotifier {
       _testing = false;
       if (_shouldNotify) {
         notifyListeners();
+        _shouldNotify = false;
       }
-      _shouldNotify = false;
     }
 
     return (connected, connectionError);

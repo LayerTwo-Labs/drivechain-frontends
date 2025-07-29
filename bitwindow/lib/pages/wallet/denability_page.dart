@@ -399,7 +399,6 @@ class DeniabilityViewModel extends BaseViewModel {
   void init() {
     // Set busy state to show loading indicator
     setBusy(true);
-    notifyListeners();
   }
 
   // Post-frame initialization for async operations
@@ -411,7 +410,6 @@ class DeniabilityViewModel extends BaseViewModel {
       setErrorForObject('deniability', e.toString());
     } finally {
       setBusy(false);
-      notifyListeners();
     }
   }
 

@@ -61,28 +61,23 @@ class PriceProvider extends ChangeNotifier {
               btcPriceUsd = price.toDouble();
               lastUpdated = DateTime.now();
               error = null;
-              notifyListeners();
             } else {
               error = 'Invalid price format from API';
-              notifyListeners();
             }
           } else {
             error = 'USD price data missing "last" field';
-            notifyListeners();
           }
         } else {
           error = 'USD price data not found in response';
-          notifyListeners();
         }
       } else {
         error = 'Failed to fetch price: HTTP ${response.statusCode}';
-        notifyListeners();
       }
     } catch (e) {
       error = 'Error fetching price: $e';
-      notifyListeners();
     } finally {
       isFetching = false;
+      notifyListeners();
     }
   }
 

@@ -48,7 +48,8 @@ class BitDriveProvider extends ChangeNotifier {
 
   bool initialized = false;
   String? error;
-  bool _isFetching = false;
+  bool _isStoring = false;
+  bool _isRestoring = false;
   bool _hasRestoredFiles = false;
 
   // Scan and download state
@@ -245,6 +246,8 @@ class BitDriveProvider extends ChangeNotifier {
 
   Future<void> autoRestoreFiles() async {
     if (_bitdriveDir == null) return;
+    if (_isRestoring) return;
+    _isRestoring = true;
 
     try {
       log.i('BitDrive: Starting file restoration...');
@@ -295,6 +298,8 @@ class BitDriveProvider extends ChangeNotifier {
       log.e('BitDrive: Restoration error: $e');
       error = e.toString();
       notifyListeners();
+    } finally {
+      _isRestoring = false;
     }
   }
 
@@ -337,8 +342,8 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> store() async {
-    if (_isFetching) return;
-    _isFetching = true;
+    if (_isStoring) return;
+    _isStoring = true;
     error = null;
 
     try {
@@ -396,7 +401,7 @@ class BitDriveProvider extends ChangeNotifier {
       notifyListeners();
       rethrow;
     } finally {
-      _isFetching = false;
+      _isStoring = false;
     }
   }
 

@@ -543,9 +543,24 @@ class BinaryProvider extends ChangeNotifier {
       switch (event.type) {
         case FileSystemEvent.create:
         case FileSystemEvent.delete:
-          // Always reload metadata and notify when files change
+          // Store original binaries to compare for changes
+          final originalBinaries = List<Binary>.from(_downloadManager.binaries);
+
+          // Reload metadata
           _downloadManager.binaries = await loadBinaryCreationTimestamp(_downloadManager.binaries, appDir);
-          notifyListeners(); // Notify immediately after metadata reload
+
+          // Only notify if any binary metadata actually changed
+          bool hasChanges = false;
+          for (int i = 0; i < originalBinaries.length && i < _downloadManager.binaries.length; i++) {
+            if (originalBinaries[i].metadata != _downloadManager.binaries[i].metadata) {
+              hasChanges = true;
+              break;
+            }
+          }
+
+          if (hasChanges) {
+            notifyListeners();
+          }
           break;
         default:
           break;
@@ -554,6 +569,8 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> _checkReleaseDates() async {
+    bool hasChanges = false;
+
     for (var i = 0; i < binaries.length; i++) {
       try {
         final binary = binaries[i];
@@ -565,16 +582,23 @@ class BinaryProvider extends ChangeNotifier {
             binaryPath: binary.metadata.binaryPath,
             updateable: binary.metadata.updateable,
           );
-          binaries[i] = binary.copyWith(metadata: updatedConfig);
 
-          // Notify immediately after each binary update
-          notifyListeners();
+          // Only update and mark as changed if the config actually differs
+          if (updatedConfig != binary.metadata) {
+            binaries[i] = binary.copyWith(metadata: updatedConfig);
+            hasChanges = true;
+          }
         }
       } catch (e) {
         log.e('Error checking release date: $e');
         // Still notify even on error so UI can update error states
-        notifyListeners();
+        hasChanges = true;
       }
+    }
+
+    // Only notify if there were actual changes
+    if (hasChanges) {
+      notifyListeners();
     }
   }
 
