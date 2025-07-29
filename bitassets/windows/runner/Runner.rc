@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "LayerTwo Labs" "\0"
-            VALUE "FileDescription", "SideSail" "\0"
+            VALUE "CompanyName", "LayerTwoLabs" "\0"
+            VALUE "FileDescription", "BitAssets" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "SideSail" "\0"
+            VALUE "InternalName", "BitAssets" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 LayerTwo Labs, Inc. All rights reserved." "\0"
-            VALUE "OriginalFilename", "sidesail.exe" "\0"
-            VALUE "ProductName", "SideSail" "\0"
+            VALUE "OriginalFilename", "bitassets.exe" "\0"
+            VALUE "ProductName", "BitAssets" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
