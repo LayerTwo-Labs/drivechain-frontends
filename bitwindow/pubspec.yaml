@@ -141,7 +141,7 @@ msix_config:
   display_name: BitWindow
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
-  publisher: CN=CB6BF331-C832-4005-970F-B880295700CA
+  publisher: C=US, S=Connecticut, O="LayerTwo Labs, Inc.", CN=layertwolabs.com
   publisher_display_name: LayerTwo Labs, Inc.
   identity_name: LayerTwoLabs.BitWindow
   msix_version: 1.0.0.0
@@ -150,6 +150,7 @@ msix_config:
   os_min_version: 10.0.17763.0
   store: false
   install_certificate: false
+  sign_msix: true
 
 sentry:
   upload_debug_symbols: true
