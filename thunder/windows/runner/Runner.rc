@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "LayerTwo Labs" "\0"
-            VALUE "FileDescription", "SideSail" "\0"
+            VALUE "CompanyName", "LayerTwoLabs" "\0"
+            VALUE "FileDescription", "Thunder" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "SideSail" "\0"
+            VALUE "InternalName", "Thunder" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 LayerTwo Labs, Inc. All rights reserved." "\0"
-            VALUE "OriginalFilename", "sidesail.exe" "\0"
-            VALUE "ProductName", "SideSail" "\0"
+            VALUE "OriginalFilename", "thunder.exe" "\0"
+            VALUE "ProductName", "Thunder" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
