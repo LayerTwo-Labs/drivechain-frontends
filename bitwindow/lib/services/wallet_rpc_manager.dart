@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -14,22 +13,14 @@ class WalletRPCManager {
   String? _currentlyLoadedWallet;
   final Map<String, Completer<void>> _loadingOperations = {};
 
-  /// Execute wallet-specific operations, ensuring wallet exists
+  /// Execute wallet-specific operations on an existing wallet
   Future<T> withWallet<T>(
     String walletName,
     Future<T> Function() operation,
   ) async {
-    // Ensure wallet exists (create if missing)
+    // Verify wallet exists (should be created explicitly beforehand)
     if (!await isWalletLoaded(walletName)) {
-      try {
-        await _rpc.callRAW('createwallet', [walletName, true, true]); // disable_privkeys, blank
-        print('Created missing wallet: $walletName');
-      } catch (e) {
-        if (!e.toString().contains('already exists')) {
-          print('Failed to create wallet $walletName: $e');
-          rethrow;
-        }
-      }
+      throw Exception('Wallet $walletName does not exist. Create it explicitly first.');
     }
 
     // Execute the operation using wallet-specific endpoint
@@ -232,7 +223,7 @@ class WalletRPCManager {
         final result = await callWalletRPC<Map<String, dynamic>>(
           walletName,
           'getaddressinfo',
-          [address]
+          [address],
         );
         return result['ismine'] == true || result['iswatchonly'] == true;
       } catch (e) {
@@ -242,7 +233,7 @@ class WalletRPCManager {
     });
   }
 
-  /// Get wallet balance and UTXO info combined
+  /// Get wallet balance, UTXO count, and detailed UTXO information
   Future<Map<String, dynamic>> getWalletBalanceAndUtxos(String walletName) async {
     return await withWallet<Map<String, dynamic>>(walletName, () async {
       try {
@@ -252,12 +243,14 @@ class WalletRPCManager {
         return {
           'balance': balance is num ? balance.toDouble() : 0.0,
           'utxos': utxos.length,
+          'utxo_details': utxos.cast<Map<String, dynamic>>(),
         };
       } catch (e) {
-        print('Balance fetch failed for $walletName: $e');
+        print('Balance and UTXO details fetch failed for $walletName: $e');
         return {
           'balance': 0.0,
           'utxos': 0,
+          'utxo_details': <Map<String, dynamic>>[],
         };
       }
     });
