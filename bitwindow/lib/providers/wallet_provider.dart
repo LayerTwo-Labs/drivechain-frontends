@@ -81,14 +81,7 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
-    final walletData = await deleteAllWallets(() async {
-      return _genWallet(customMnemonic: customMnemonic, passphrase: passphrase);
-    });
-    if (walletData == null) {
-      throw Exception('No wallet data returned from deleteAllWallets');
-    }
-
-    return walletData;
+    return _genWallet(customMnemonic: customMnemonic, passphrase: passphrase);
   }
 
   Future<Map<String, dynamic>> _genWallet({String? customMnemonic, String? passphrase}) async {
