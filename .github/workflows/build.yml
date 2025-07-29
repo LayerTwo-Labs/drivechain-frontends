@@ -41,22 +41,27 @@ jobs:
         with:
           filters: |
             thunder:
+              - 'scripts/**'
               - 'thunder/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
             bitnames:
+              - 'scripts/**'
               - 'bitnames/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
             bitassets:
+              - 'scripts/**'
               - 'bitassets/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
             zside:
+              - 'scripts/**'
               - 'zside/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
             bitwindow:
+              - 'scripts/**'
               - 'bitwindow/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
