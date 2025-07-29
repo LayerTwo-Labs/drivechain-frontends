@@ -150,8 +150,6 @@ msix_config:
   os_min_version: 10.0.17763.0
   store: false
   install_certificate: false
-  app_installer:
-    publish_folder_path: release
 
 sentry:
   upload_debug_symbols: true

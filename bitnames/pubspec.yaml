@@ -132,15 +132,13 @@ msix_config:
   windows_build_args: --dart-define-from-file=build-vars.env
   publisher: C=US, S=Connecticut, O="LayerTwo Labs, Inc.", CN=layertwolabs.com
   publisher_display_name: LayerTwo Labs, Inc.
-  identity_name: bitnames
+  identity_name: LayerTwoLabs.BitNames
   msix_version: 1.0.0.0
   logo_path: windows/runner/resources/app_icon.ico
   capabilities: internetClient,internetClientServer
   os_min_version: 10.0.17763.0
   store: false
   install_certificate: false
-  app_installer:
-    publish_folder_path: release
 
 sentry:
   upload_debug_symbols: true
