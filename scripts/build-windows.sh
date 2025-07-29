@@ -41,11 +41,5 @@ fi
 
 powershell.exe -Command "& {$clean_cmd; $build_cmd; $msix_cmd; exit}"
 
-zip_name=$lower_app_name-win64.zip
-
 # Copy MSIX to release directory
 powershell.exe -Command "Copy-Item build\windows\x64\runner\Release\\$lower_app_name.msix release\\$lower_app_name.msix"
-
-# Create zip with the MSIX
-powershell.exe -Command "Compress-Archive -Force release\\$lower_app_name.msix $zip_name"
-powershell.exe -Command "Move-Item $zip_name release\\"
