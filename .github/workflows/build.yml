@@ -289,19 +289,19 @@ jobs:
           mv thunder-binaries-macOS/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
           mv thunder-binaries-Linux/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
           mv thunder-binaries-Linux/Thunder-x86_64.AppImage test-thunder-x86_64-unknown-linux-gnu.AppImage || true
-          mv thunder-binaries-Windows/thunder-win64.zip test-thunder-x86_64-pc-windows-msvc.zip || true
+          mv thunder-binaries-Windows/thunder.msix test-thunder-x86_64-windows.msix || true
 
           # BitNames
           mv bitnames-binaries-macOS/bitnames-osx64.zip test-bitnames-x86_64-apple-darwin.zip || true
           mv bitnames-binaries-Linux/bitnames-x86_64-linux-gnu.zip test-bitnames-x86_64-unknown-linux-gnu.zip || true
           mv bitnames-binaries-Linux/Bitnames-x86_64.AppImage test-bitnames-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitnames-binaries-Windows/bitnames-win64.zip test-bitnames-x86_64-pc-windows-msvc.zip || true
+          mv bitnames-binaries-Windows/bitnames.msix test-bitnames-x86_64-windows.msix || true
 
           # BitAssets
           mv bitassets-binaries-macOS/bitassets-osx64.zip test-bitassets-x86_64-apple-darwin.zip || true
           mv bitassets-binaries-Linux/bitassets-x86_64-linux-gnu.zip test-bitassets-x86_64-unknown-linux-gnu.zip || true
           mv bitassets-binaries-Linux/BitAssets-x86_64.AppImage test-bitassets-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitassets-binaries-Windows/bitassets-win64.zip test-bitassets-x86_64-pc-windows-msvc.zip || true
+          mv bitassets-binaries-Windows/bitassets.msix test-bitassets-x86_64-windows.msix || true
 
           # ZSide
           mv zside-binaries-macOS/zside-osx64.zip test-zside-x86_64-apple-darwin.zip || true
