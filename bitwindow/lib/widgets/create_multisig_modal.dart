@@ -14,8 +14,6 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class MultisigKey {
   final String owner;

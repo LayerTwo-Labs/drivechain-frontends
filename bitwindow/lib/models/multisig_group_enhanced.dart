@@ -21,6 +21,7 @@ class MultisigGroupEnhanced {
   final int utxos;  // UTXO count
   final int nextReceiveIndex;  // For address generation
   final int nextChangeIndex;   // For change addresses
+  final List<String> transactionIds;  // References to transactions in transactions.json
   
   MultisigGroupEnhanced({
     required this.id,
@@ -40,8 +41,10 @@ class MultisigGroupEnhanced {
     this.utxos = 0,
     this.nextReceiveIndex = 0,
     this.nextChangeIndex = 0,
+    List<String>? transactionIds,
   }) : addresses = addresses ?? {'receive': [], 'change': []},
-       utxoDetails = utxoDetails ?? [];
+       utxoDetails = utxoDetails ?? [],
+       transactionIds = transactionIds ?? [];
 
   factory MultisigGroupEnhanced.fromJson(Map<String, dynamic> json) {
     return MultisigGroupEnhanced(
@@ -65,6 +68,7 @@ class MultisigGroupEnhanced {
       utxos: json['utxos'] ?? 0, // Default to 0
       nextReceiveIndex: json['next_receive_index'] ?? 0, // Default to 0
       nextChangeIndex: json['next_change_index'] ?? 0, // Default to 0
+      transactionIds: List<String>.from(json['transaction_ids'] ?? []), // Default to empty list
     );
   }
 
@@ -89,6 +93,7 @@ class MultisigGroupEnhanced {
         'utxos': utxos,
         'next_receive_index': nextReceiveIndex,
         'next_change_index': nextChangeIndex,
+        'transaction_ids': transactionIds,
       };
 
   static Map<String, List<AddressInfo>> _parseAddresses(dynamic json) {
