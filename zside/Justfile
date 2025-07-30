@@ -6,6 +6,9 @@ format:
 
 lint: format fix
 
+gen-version:
+    cd ../ && bash scripts/generate-version.sh zside
+
 clean:
     flutter clean
 

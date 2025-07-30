@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
@@ -54,6 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   items: const [
                     SideNavItem(label: 'General'),
                     SideNavItem(label: 'Reset'),
+                    SideNavItem(label: 'Info'),
                   ],
                   selectedIndex: _selectedIndex,
                   onItemSelected: (index) {
@@ -81,6 +83,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return _GeneralSettingsContent();
       case 1:
         return _ResetSettingsContent();
+      case 2:
+        return _InfoSettingsContent();
       default:
         return _GeneralSettingsContent();
     }
@@ -182,7 +186,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.primary13('Debug Mode'),
+            SailText.primary15('Debug Mode'),
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<bool>(
               value: _settingsProvider.debugMode,
@@ -215,7 +219,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.primary13('Launcher Mode'),
+            SailText.primary15('Launcher Mode'),
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<bool>(
               value: _settingsProvider.launcherMode,
@@ -319,6 +323,65 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           label: 'Reset All Chains',
           variant: ButtonVariant.destructive,
           onPressed: _onResetAllChains,
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoSettingsContent extends StatefulWidget {
+  @override
+  State<_InfoSettingsContent> createState() => _InfoSettingsContentState();
+}
+
+class _InfoSettingsContentState extends State<_InfoSettingsContent> {
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary20('Info'),
+        SailText.secondary13('Application version and build information'),
+
+        // Version Information
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Version'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.versionString),
+          ],
+        ),
+
+        // Build Date
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Build Date'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.buildDate),
+          ],
+        ),
+
+        // Commit Hash
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Commit'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.commitFull),
+          ],
+        ),
+
+        // App Name
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Application'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.appName),
+          ],
         ),
       ],
     );

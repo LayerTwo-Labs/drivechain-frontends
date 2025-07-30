@@ -1,6 +1,9 @@
 format:
    find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
 
+gen-version:
+    cd ../ && bash scripts/generate-version.sh sail_ui
+
 gen-enforcer:
     buf generate --template ../buf.dart.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 

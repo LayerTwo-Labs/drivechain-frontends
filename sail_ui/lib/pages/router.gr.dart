@@ -10,12 +10,13 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:auto_route/auto_route.dart' as _i5;
+import 'package:collection/collection.dart' as _i8;
 import 'package:flutter/material.dart' as _i6;
-import 'package:sail_ui/config/binaries.dart' as _i7;
 import 'package:sail_ui/pages/log_page.dart' as _i1;
 import 'package:sail_ui/pages/shutdown_page.dart' as _i3;
 import 'package:sail_ui/pages/sidechains/parent_chain_page.dart' as _i2;
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart' as _i4;
+import 'package:sail_ui/sail_ui.dart' as _i7;
 
 /// generated route for
 /// [_i1.LogPage]
@@ -59,12 +60,23 @@ class LogRouteArgs {
   String toString() {
     return 'LogRouteArgs{key: $key, logPath: $logPath, title: $title}';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! LogRouteArgs) return false;
+    return key == other.key && logPath == other.logPath && title == other.title;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ logPath.hashCode ^ title.hashCode;
 }
 
 /// generated route for
 /// [_i2.ParentChainPage]
 class ParentChainRoute extends _i5.PageRouteInfo<void> {
-  const ParentChainRoute({List<_i5.PageRouteInfo>? children}) : super(ParentChainRoute.name, initialChildren: children);
+  const ParentChainRoute({List<_i5.PageRouteInfo>? children})
+      : super(ParentChainRoute.name, initialChildren: children);
 
   static const String name = 'ParentChainRoute';
 
@@ -126,6 +138,21 @@ class ShuttingDownRouteArgs {
   String toString() {
     return 'ShuttingDownRouteArgs{key: $key, binaries: $binaries, onComplete: $onComplete}';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ShuttingDownRouteArgs) return false;
+    return key == other.key &&
+        const _i8.ListEquality().equals(binaries, other.binaries) &&
+        onComplete == other.onComplete;
+  }
+
+  @override
+  int get hashCode =>
+      key.hashCode ^
+      const _i8.ListEquality().hash(binaries) ^
+      onComplete.hashCode;
 }
 
 /// generated route for

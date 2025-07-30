@@ -5,7 +5,6 @@ gen: gen-validator
     buf generate --template ../buf.dart.gen.yaml ./server
     cd server && buf generate --template buf.go.gen.yaml .
 
-
 gen-validator:
     cd server && buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 

@@ -9,3 +9,12 @@ gen-router:
             (cd "$dir" && dart run build_runner build --delete-conflicting-outputs)
         fi
     done
+
+gen-version:
+    bash scripts/generate-version.sh bitassets
+    scripts/generate-version.sh bitnames
+    scripts/generate-version.sh bitwindow
+    scripts/generate-version.sh thunder
+    scripts/generate-version.sh zside
+
+gen: gen-router gen-version

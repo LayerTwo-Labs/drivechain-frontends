@@ -7,6 +7,7 @@ import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/config/runtime_args.dart';
+import 'package:zside/gen/version.dart';
 import 'package:zside/main.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/storage/sail_settings/font_settings.dart';
@@ -59,7 +60,13 @@ class SettingsTabPage extends StatelessWidget {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(top: SailStyleValues.padding20),
-                        child: SailText.primary20('Font', bold: true),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SailText.primary20('Font'),
+                            SailText.secondary13('Choose your preferred font'),
+                          ],
+                        ),
                       ),
                       Row(
                         children: [
@@ -101,7 +108,13 @@ class SettingsTabPage extends StatelessWidget {
                         ],
                       ),
                       const SailSpacing(SailStyleValues.padding20),
-                      SailText.primary20('Log file', bold: true),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailText.primary20('Log file'),
+                          SailText.secondary13('View application logs and debugging information'),
+                        ],
+                      ),
                       SailButton(
                         label: 'Open Log File',
                         onPressed: settingsmodel.openLogRoute,
@@ -124,6 +137,71 @@ class SettingsTabPage extends StatelessWidget {
                     ],
                   );
                 }),
+              ),
+              // App Version Information Section
+              SailColumn(
+                spacing: SailStyleValues.padding10,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: SailStyleValues.padding20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary20('Application Info'),
+                        SailText.secondary13('Version and build information'),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 640,
+                        ),
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding10,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SailColumn(
+                              spacing: SailStyleValues.padding04,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary13('Version'),
+                                SailText.secondary13(AppVersion.versionString),
+                              ],
+                            ),
+                            SailColumn(
+                              spacing: SailStyleValues.padding04,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary13('Build Date'),
+                                SailText.secondary13(AppVersion.buildDate),
+                              ],
+                            ),
+                            SailColumn(
+                              spacing: SailStyleValues.padding04,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary13('Commit'),
+                                SailText.secondary13(AppVersion.commitFull),
+                              ],
+                            ),
+                            SailColumn(
+                              spacing: SailStyleValues.padding04,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary13('Application'),
+                                SailText.secondary13(AppVersion.appName),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(child: Container()),
+                    ],
+                  ),
+                ],
               ),
             ],
           );
