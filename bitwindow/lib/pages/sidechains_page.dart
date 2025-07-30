@@ -178,6 +178,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
         final sidechain = viewModel.sidechains[slot];
         final textColor = context.sailTheme.colors.text;
         final buttonWidget = viewModel.sidechainWidget(slot);
+        final updateAvailable = viewModel.updateAvailable(slot);
         final binary = viewModel.sidechainForSlot(slot);
 
         return [
@@ -198,19 +199,36 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             if (binary != null)
               SailTableCell(
                 value: '',
-                child: SailButton(
-                  variant: ButtonVariant.outline,
-                  label: '',
-                  icon: SailSVGAsset.settings,
-                  insideTable: true,
-                  onPressed: () async {
-                    await showDialog(
-                      context: context,
-                      builder: (context) => ChainSettingsModal(
-                        binary: binary,
+                child: Stack(
+                  children: [
+                    SailButton(
+                      variant: ButtonVariant.outline,
+                      label: '',
+                      icon: SailSVGAsset.settings,
+                      insideTable: true,
+                      onPressed: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (context) => ChainSettingsModal(
+                            binary: binary,
+                          ),
+                        );
+                      },
+                    ),
+                    if (updateAvailable)
+                      Positioned(
+                        top: 4,
+                        right: 6,
+                        child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ),
-                    );
-                  },
+                  ],
                 ),
               )
             else
@@ -285,6 +303,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
         final sidechain = viewModel.sidechains[slot];
         final textColor = sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
         final buttonWidget = viewModel.sidechainWidget(slot);
+        final updateAvailable = viewModel.updateAvailable(slot);
         final binary = viewModel.sidechainForSlot(slot);
 
         return [
@@ -305,19 +324,36 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             if (binary != null)
               SailTableCell(
                 value: '',
-                child: SailButton(
-                  variant: ButtonVariant.outline,
-                  label: '',
-                  icon: SailSVGAsset.settings,
-                  insideTable: true,
-                  onPressed: () async {
-                    await showDialog(
-                      context: context,
-                      builder: (context) => ChainSettingsModal(
-                        binary: binary,
+                child: Stack(
+                  children: [
+                    SailButton(
+                      variant: ButtonVariant.outline,
+                      label: '',
+                      icon: SailSVGAsset.settings,
+                      insideTable: true,
+                      onPressed: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (context) => ChainSettingsModal(
+                            binary: binary,
+                          ),
+                        );
+                      },
+                    ),
+                    if (updateAvailable)
+                      Positioned(
+                        top: 4,
+                        right: 6,
+                        child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ),
-                    );
-                  },
+                  ],
                 ),
               )
             else
@@ -379,7 +415,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _sidechainProvider.fetch();
 
     _binaryProvider.addListener(_onChange);
-    _binaryProvider.listenDownloadManager(_onChange);
+    _binaryProvider.listenDownloadManager(notifyListeners);
     _settingsProvider.addListener(_onChange);
   }
 
@@ -502,21 +538,14 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     );
   }
 
-  Widget? updateWidget(int slot) {
+  bool updateAvailable(int slot) {
     final sidechain = sidechainForSlot(slot);
 
     if (sidechain == null) {
-      return null;
+      return false;
     }
 
-    if (sidechain.updateAvailable) {
-      return SailButton(
-        label: 'Update',
-        onPressed: () async => await _binaryProvider.download(sidechain),
-        insideTable: true,
-      );
-    }
-    return null;
+    return sidechain.updateAvailable;
   }
 
   List<SidechainOverview?> get sortedSidechains {

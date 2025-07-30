@@ -54,7 +54,7 @@ class ProgressBar extends StatelessWidget {
                     widthFactor: progress,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: theme.colors.backgroundSecondary,
+                        color: theme.colors.text,
                         borderRadius: BorderRadius.horizontal(
                           left: const Radius.circular(999),
                           right: Radius.circular(current / goal > 0.99 ? 999 : 0),

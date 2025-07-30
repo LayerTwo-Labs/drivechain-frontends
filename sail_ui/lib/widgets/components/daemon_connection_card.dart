@@ -1,7 +1,11 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DaemonConnectionCard extends StatelessWidget {
+  BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
+
   final void Function(String name, String logPath)? navigateToLogs;
   final RPCConnection connection;
   final SyncInfo? syncInfo;
@@ -23,6 +27,7 @@ class DaemonConnectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final providerBinary = _binaryProvider.binaries.firstWhereOrNull((b) => b.name == connection.binary.name);
 
     return SailCard(
       child: SailColumn(
@@ -39,6 +44,44 @@ class DaemonConnectionCard extends StatelessWidget {
                 color: _getConnectionColor(theme),
               ),
               Expanded(child: Container()),
+              if (providerBinary != null && providerBinary.updateAvailable)
+                SailButton(
+                  label: 'Update',
+                  onPressed: () async {
+                    try {
+                      // 1. Download the updated binary
+                      await _binaryProvider.download(providerBinary, shouldUpdate: true);
+
+                      // 2. Stop the binary
+                      await _binaryProvider.stop(providerBinary);
+
+                      // 3. Start the binary with retry logic (3 attempts, 5 second wait)
+                      bool started = false;
+                      int attempts = 0;
+                      const maxAttempts = 3;
+                      const retryDelay = Duration(seconds: 5);
+
+                      while (!started && attempts < maxAttempts) {
+                        attempts++;
+                        try {
+                          await _binaryProvider.start(providerBinary);
+                          started = true;
+                        } catch (e) {
+                          if (attempts < maxAttempts) {
+                            // Wait before retry
+                            await Future.delayed(retryDelay);
+                          } else {
+                            // Re-throw the error on final attempt
+                            rethrow;
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      // Handle any errors during the update process
+                      // You might want to show a snackbar or dialog here
+                    }
+                  },
+                ),
               SailButton(
                 variant: ButtonVariant.ghost,
                 onPressed: () async => navigateToLogs!(connection.binary.binary, connection.binary.logPath()),
