@@ -6,6 +6,9 @@ format:
 
 lint: format fix
 
+gen-version:
+    cd ../ && bash scripts/generate-version.sh bitassets
+
 run:
     #!/usr/bin/env bash
     case "$(uname -s)" in

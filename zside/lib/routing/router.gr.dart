@@ -13,7 +13,8 @@ part of 'router.dart';
 /// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children}) : super(HomeRoute.name, initialChildren: children);
+  const HomeRoute({List<PageRouteInfo>? children})
+      : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -60,12 +61,23 @@ class SailTestRouteArgs {
   String toString() {
     return 'SailTestRouteArgs{key: $key, child: $child}';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SailTestRouteArgs) return false;
+    return key == other.key && child == other.child;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ child.hashCode;
 }
 
 /// generated route for
 /// [SettingsTabPage]
 class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children}) : super(SettingsTabRoute.name, initialChildren: children);
+  const SettingsTabRoute({List<PageRouteInfo>? children})
+      : super(SettingsTabRoute.name, initialChildren: children);
 
   static const String name = 'SettingsTabRoute';
 
@@ -96,7 +108,8 @@ class SidechainOverviewTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [ZSideBillPage]
 class ZSideBillRoute extends PageRouteInfo<void> {
-  const ZSideBillRoute({List<PageRouteInfo>? children}) : super(ZSideBillRoute.name, initialChildren: children);
+  const ZSideBillRoute({List<PageRouteInfo>? children})
+      : super(ZSideBillRoute.name, initialChildren: children);
 
   static const String name = 'ZSideBillRoute';
 
@@ -127,7 +140,8 @@ class ZSideMeltCastTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [ZSideRPCTabPage]
 class ZSideRPCTabRoute extends PageRouteInfo<void> {
-  const ZSideRPCTabRoute({List<PageRouteInfo>? children}) : super(ZSideRPCTabRoute.name, initialChildren: children);
+  const ZSideRPCTabRoute({List<PageRouteInfo>? children})
+      : super(ZSideRPCTabRoute.name, initialChildren: children);
 
   static const String name = 'ZSideRPCTabRoute';
 

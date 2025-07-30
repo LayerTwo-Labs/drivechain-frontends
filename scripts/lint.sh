@@ -3,7 +3,7 @@ set -euo pipefail
 
 
 # first run fix --apply (and any server lints)
-for dir in bitwindow faucet launcher sail_ui thunder zside; do
+for dir in bitwindow bitassets bitnames sail_ui thunder zside; do
   if [ -d "$dir" ]; then
     # Run all three Dart commands in parallel for this dir
     (cd "$dir" && dart fix --apply) &
@@ -18,7 +18,7 @@ done
 wait
 
 # then run analyze
-for dir in bitwindow faucet launcher sail_ui thunder zside; do
+for dir in bitwindow bitassets bitnames sail_ui thunder zside; do
   if [ -d "$dir" ]; then
     # Run all three Dart commands in parallel for this dir
     (cd "$dir" && dart analyze) &

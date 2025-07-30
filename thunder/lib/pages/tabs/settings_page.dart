@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:thunder/gen/version.dart';
 import 'package:thunder/main.dart';
 
 @RoutePage()
@@ -52,6 +53,7 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
                   items: const [
                     SideNavItem(label: 'General'),
                     SideNavItem(label: 'Reset'),
+                    SideNavItem(label: 'Info'),
                   ],
                   selectedIndex: _selectedIndex,
                   onItemSelected: (index) {
@@ -79,6 +81,8 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
         return _GeneralSettingsContent();
       case 1:
         return _ResetSettingsContent();
+      case 2:
+        return _InfoSettingsContent();
       default:
         return _GeneralSettingsContent();
     }
@@ -146,7 +150,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.primary13('Debug Mode'),
+            SailText.primary15('Debug Mode'),
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<bool>(
               value: _debugMode,
@@ -230,12 +234,81 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       spacing: SailStyleValues.padding20,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary20('Reset'),
-        SailText.secondary13('Reset blockchain data'),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('Reset'),
+            SailText.secondary13('Reset blockchain data'),
+          ],
+        ),
         SailButton(
           label: 'Reset Thunder Data',
           variant: ButtonVariant.destructive,
           onPressed: _onResetAllChains,
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoSettingsContent extends StatefulWidget {
+  @override
+  State<_InfoSettingsContent> createState() => _InfoSettingsContentState();
+}
+
+class _InfoSettingsContentState extends State<_InfoSettingsContent> {
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('Info'),
+            SailText.secondary13('Application version and build information'),
+          ],
+        ),
+
+        // Version Information
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Version'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.versionString),
+          ],
+        ),
+
+        // Build Date
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Build Date'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.buildDate),
+          ],
+        ),
+
+        // Commit Hash
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Commit'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.commitFull),
+          ],
+        ),
+
+        // App Name
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Application'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.appName),
+          ],
         ),
       ],
     );
