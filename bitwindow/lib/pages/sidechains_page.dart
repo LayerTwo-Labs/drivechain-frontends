@@ -356,12 +356,12 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
 }
 
 class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
-  final TransactionProvider transactionsProvider = GetIt.I.get<TransactionProvider>();
-  final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
-  final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
-  final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
+  final TransactionProvider _transactionsProvider = GetIt.I.get<TransactionProvider>();
+  final BalanceProvider _balanceProvider = GetIt.I.get<BalanceProvider>();
+  final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
+  final SidechainProvider _sidechainProvider = GetIt.I.get<SidechainProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
+  final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
   final SettingsProvider _settingsProvider = GetIt.I.get<SettingsProvider>();
 
   final TextEditingController addressController = TextEditingController();
@@ -370,21 +370,22 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   SidechainsViewModel() {
     initChangeTracker();
-    sidechainProvider
-      ..addListener(_onChange)
-      ..addListener(errorListener);
-    sidechainProvider.fetch();
+
     addressController.addListener(_onChange);
     depositAmountController.addListener(_onChange);
     feeController.addListener(_onChange);
-    binaryProvider.addListener(notifyListeners);
-    binaryProvider.listenDownloadManager(notifyListeners);
-    _settingsProvider.addListener(notifyListeners);
+
+    _sidechainProvider.addListener(_onChange);
+    _sidechainProvider.fetch();
+
+    _binaryProvider.addListener(_onChange);
+    _binaryProvider.listenDownloadManager(_onChange);
+    _settingsProvider.addListener(_onChange);
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
 
-  List<SidechainOverview?> get sidechains => sidechainProvider.sidechains;
+  List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;
   List<SidechainOverview?> _sortedSidechains = [];
 
   String sortColumn = 'slot';
@@ -400,7 +401,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get launcherMode => _settingsProvider.launcherMode;
 
   Sidechain? sidechainForSlot(int slot) {
-    return binaryProvider.binaries.firstWhereOrNull((b) => b is Sidechain && b.slot == slot) as Sidechain?;
+    return _binaryProvider.binaries.firstWhereOrNull((b) => b is Sidechain && b.slot == slot) as Sidechain?;
   }
 
   Widget? sidechainWidget(int slot) {
@@ -412,37 +413,37 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     // Check if binary is running
     final isRunning = switch (sidechain) {
-      var b when b is BitcoinCore => binaryProvider.mainchainConnected,
-      var b when b is Enforcer => binaryProvider.enforcerConnected,
-      var b when b is BitWindow => binaryProvider.bitwindowConnected,
-      var b when b is Thunder => binaryProvider.thunderConnected,
-      var b when b is Bitnames => binaryProvider.bitnamesConnected,
-      var b when b is BitAssets => binaryProvider.bitassetsConnected,
+      var b when b is BitcoinCore => _binaryProvider.mainchainConnected,
+      var b when b is Enforcer => _binaryProvider.enforcerConnected,
+      var b when b is BitWindow => _binaryProvider.bitwindowConnected,
+      var b when b is Thunder => _binaryProvider.thunderConnected,
+      var b when b is Bitnames => _binaryProvider.bitnamesConnected,
+      var b when b is BitAssets => _binaryProvider.bitassetsConnected,
       _ => false,
     };
 
     // Check if binary is initializing
     final isInitializing = switch (sidechain) {
-      var b when b is BitcoinCore => binaryProvider.mainchainInitializing,
-      var b when b is Enforcer => binaryProvider.enforcerInitializing,
-      var b when b is BitWindow => binaryProvider.bitwindowInitializing,
-      var b when b is Thunder => binaryProvider.thunderInitializing,
-      var b when b is Bitnames => binaryProvider.bitnamesInitializing,
-      var b when b is BitAssets => binaryProvider.bitassetsInitializing,
+      var b when b is BitcoinCore => _binaryProvider.mainchainInitializing,
+      var b when b is Enforcer => _binaryProvider.enforcerInitializing,
+      var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
+      var b when b is Thunder => _binaryProvider.thunderInitializing,
+      var b when b is Bitnames => _binaryProvider.bitnamesInitializing,
+      var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
       _ => false,
     };
 
     final stopping = switch (sidechain) {
-      var b when b is BitcoinCore => binaryProvider.mainchainStopping,
-      var b when b is Enforcer => binaryProvider.enforcerStopping,
-      var b when b is BitWindow => binaryProvider.bitwindowStopping,
-      var b when b is Thunder => binaryProvider.thunderStopping,
-      var b when b is Bitnames => binaryProvider.bitnamesStopping,
-      var b when b is BitAssets => binaryProvider.bitassetsStopping,
+      var b when b is BitcoinCore => _binaryProvider.mainchainStopping,
+      var b when b is Enforcer => _binaryProvider.enforcerStopping,
+      var b when b is BitWindow => _binaryProvider.bitwindowStopping,
+      var b when b is Thunder => _binaryProvider.thunderStopping,
+      var b when b is Bitnames => _binaryProvider.bitnamesStopping,
+      var b when b is BitAssets => _binaryProvider.bitassetsStopping,
       _ => false,
     };
 
-    final isProcessRunning = binaryProvider.isRunning(sidechain);
+    final isProcessRunning = _binaryProvider.isRunning(sidechain);
 
     if (stopping) {
       return SailButton(
@@ -456,7 +457,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (isRunning) {
       return SailButton(
         label: 'Stop',
-        onPressed: () async => binaryProvider.stop(sidechain),
+        onPressed: () async => _binaryProvider.stop(sidechain),
         insideTable: true,
       );
     }
@@ -473,7 +474,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (isProcessRunning) {
       return SailButton(
         label: 'Kill',
-        onPressed: () => binaryProvider.stop(sidechain),
+        onPressed: () => _binaryProvider.stop(sidechain),
         insideTable: true,
       );
     }
@@ -481,7 +482,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (!sidechain.isDownloaded) {
       return SailButton(
         label: 'Download',
-        onPressed: () async => await binaryProvider.download(sidechain),
+        onPressed: () async => await _binaryProvider.download(sidechain),
         insideTable: true,
       );
     }
@@ -489,7 +490,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (sidechain.isDownloaded) {
       return SailButton(
         label: 'Start',
-        onPressed: () async => await binaryProvider.start(sidechain),
+        onPressed: () async => await _binaryProvider.start(sidechain),
         insideTable: true,
       );
     }
@@ -511,7 +512,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (sidechain.updateAvailable) {
       return SailButton(
         label: 'Update',
-        onPressed: () async => await binaryProvider.download(sidechain),
+        onPressed: () async => await _binaryProvider.download(sidechain),
         insideTable: true,
       );
     }
@@ -579,13 +580,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       _selectedIndex = index; // Select the new item
     }
     notifyListeners();
-  }
-
-  void errorListener() {
-    final hasChanges = track('error', sidechainProvider.error);
-    if (hasChanges) {
-      setErrorForObject('sidechain', sidechainProvider.error);
-    }
   }
 
   void decrementSelectedIndex() {
@@ -656,7 +650,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   List<ListSidechainDepositsResponse_SidechainDeposit> get recentDeposits =>
-      sidechainProvider.sidechains[_selectedIndex ?? 254]?.deposits ?? [];
+      _sidechainProvider.sidechains[_selectedIndex ?? 254]?.deposits ?? [];
 
   Future<void> clearAddress() async {
     addressController.clear();
@@ -696,7 +690,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     try {
       setBusy(true);
-      await api.wallet.createSidechainDeposit(
+      await _api.wallet.createSidechainDeposit(
         _selectedIndex ?? 254,
         addressController.text,
         double.parse(depositAmountController.text),
@@ -711,31 +705,81 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     // refetching the transaction list also triggers the balance to be updated
-    await transactionsProvider.fetch();
+    await _transactionsProvider.fetch();
     // refetching the balance also triggers the balance to be updated
-    await balanceProvider.fetch();
+    await _balanceProvider.fetch();
     // refetch sidechain transaction list
-    await sidechainProvider.fetch();
+    await _sidechainProvider.fetch();
   }
 
   @override
   void dispose() {
     super.dispose();
-    sidechainProvider.removeListener(_onChange);
+    _sidechainProvider.removeListener(_onChange);
     addressController.removeListener(_onChange);
     depositAmountController.removeListener(_onChange);
     feeController.removeListener(_onChange);
-    binaryProvider.removeListener(notifyListeners);
+    _binaryProvider.removeListener(_onChange);
     _settingsProvider.removeListener(notifyListeners);
   }
 
   void _onChange() {
-    track('sidechains', sidechainProvider.sidechains);
-    track('deposits', recentDeposits);
+    // Core data that affects the UI
+    track('sidechains', _sidechainProvider.sidechains);
+    track('recentDeposits', recentDeposits);
+
+    // UI state that affects rendering
+    track('launcherMode', launcherMode);
+    track('showOnlyFilled', showOnlyFilled);
+    track('selectedIndex', selectedIndex);
+
+    // Sorting state
+    track('sortColumn', sortColumn);
+    track('sortAscending', sortAscending);
+    track('depositSortColumn', depositSortColumn);
+    track('depositSortAscending', depositSortAscending);
+
+    // Text input values
     track('depositAmount', depositAmountController.text);
     track('addressController', addressController.text);
     track('fee', feeController.text);
+
+    // Binary states that affect sidechainWidget() rendering
+    track('binaryStates', _getBinaryStates());
+
+    // Loading and error states
+    track('loading', loading);
+    // Error handling
+    final hasChanges = track('error', _sidechainProvider.error);
+    if (hasChanges) {
+      setErrorForObject('sidechain', _sidechainProvider.error);
+    }
+
     notifyIfChanged();
+  }
+
+  // Helper method to track binary states efficiently
+  Map<String, bool> _getBinaryStates() {
+    return {
+      'mainchainConnected': _binaryProvider.mainchainConnected,
+      'enforcerConnected': _binaryProvider.enforcerConnected,
+      'bitwindowConnected': _binaryProvider.bitwindowConnected,
+      'thunderConnected': _binaryProvider.thunderConnected,
+      'bitnamesConnected': _binaryProvider.bitnamesConnected,
+      'bitassetsConnected': _binaryProvider.bitassetsConnected,
+      'mainchainInitializing': _binaryProvider.mainchainInitializing,
+      'enforcerInitializing': _binaryProvider.enforcerInitializing,
+      'bitwindowInitializing': _binaryProvider.bitwindowInitializing,
+      'thunderInitializing': _binaryProvider.thunderInitializing,
+      'bitnamesInitializing': _binaryProvider.bitnamesInitializing,
+      'bitassetsInitializing': _binaryProvider.bitassetsInitializing,
+      'mainchainStopping': _binaryProvider.mainchainStopping,
+      'enforcerStopping': _binaryProvider.enforcerStopping,
+      'bitwindowStopping': _binaryProvider.bitwindowStopping,
+      'thunderStopping': _binaryProvider.thunderStopping,
+      'bitnamesStopping': _binaryProvider.bitnamesStopping,
+      'bitassetsStopping': _binaryProvider.bitassetsStopping,
+    };
   }
 }
 
