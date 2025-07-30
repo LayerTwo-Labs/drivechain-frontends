@@ -36,9 +36,9 @@ class DownloadManager extends ChangeNotifier {
     });
   }
 
-  Future<void> downloadIfMissing(Binary binary) async {
+  Future<void> downloadIfMissing(Binary binary, {bool shouldUpdate = false}) async {
     if (binary.updateAvailable) {
-      if (binary.metadata.updateable) {
+      if (shouldUpdate) {
         // We have an available update, and the binary we use is in
         // appDir/assets/bin, so we go ahead and update it
         return await _downloadBinary(binary);

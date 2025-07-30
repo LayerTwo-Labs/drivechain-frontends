@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ChainSettingsModal extends StatefulWidget {
@@ -14,6 +15,8 @@ class ChainSettingsModal extends StatefulWidget {
 }
 
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
+  final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+
   OS get os => getOS();
 
   @override
@@ -47,6 +50,45 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SailText.primary20('${widget.binary.name} Settings'),
+                  // Update button
+                  if (widget.binary.updateAvailable)
+                    SailButton(
+                      label: 'Update',
+                      onPressed: () async {
+                        try {
+                          // 1. Download the updated binary
+                          await _binaryProvider.download(widget.binary, shouldUpdate: true);
+
+                          // 2. Stop the binary
+                          await _binaryProvider.stop(widget.binary);
+
+                          // 3. Start the binary with retry logic (3 attempts, 5 second wait)
+                          bool started = false;
+                          int attempts = 0;
+                          const maxAttempts = 3;
+                          const retryDelay = Duration(seconds: 5);
+
+                          while (!started && attempts < maxAttempts) {
+                            attempts++;
+                            try {
+                              await _binaryProvider.start(widget.binary);
+                              started = true;
+                            } catch (e) {
+                              if (attempts < maxAttempts) {
+                                // Wait before retry
+                                await Future.delayed(retryDelay);
+                              } else {
+                                // Re-throw the error on final attempt
+                                rethrow;
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          // Handle any errors during the update process
+                          // You might want to show a snackbar or dialog here
+                        }
+                      },
+                    ),
                 ],
               ),
               const SizedBox(height: 24),

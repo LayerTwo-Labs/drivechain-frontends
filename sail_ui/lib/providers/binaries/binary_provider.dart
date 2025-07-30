@@ -337,8 +337,8 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   /// Download a binary using the DownloadProvider
-  Future<void> download(Binary binary) async {
-    await _downloadManager.downloadIfMissing(binary);
+  Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
+    await _downloadManager.downloadIfMissing(binary, shouldUpdate: shouldUpdate);
   }
 
   /// Get download progress for a binary

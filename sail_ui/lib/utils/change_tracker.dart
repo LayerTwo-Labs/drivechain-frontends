@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -7,10 +8,20 @@ mixin ChangeTrackingMixin on ChangeNotifier {
 
   final Map<String, dynamic> _previousValues = {};
   bool _hasChanges = false;
+  Timer? _notificationTimer;
+
+  // Backoff configuration. If changes come in rapid succcession, we don't want to notify too often.
+  // This makes sure to only notify once every 16ms.
+  static const Duration _initialDelay = Duration(milliseconds: 32); // ~30fps
+  static const Duration _maxDelay = Duration(milliseconds: 100);
+  Duration _currentDelay = _initialDelay;
 
   void initChangeTracker() {
     _previousValues.clear();
     _hasChanges = false;
+    _notificationTimer?.cancel();
+    _notificationTimer = null;
+    _currentDelay = _initialDelay;
   }
 
   bool track(String key, dynamic value) {
@@ -20,6 +31,7 @@ mixin ChangeTrackingMixin on ChangeNotifier {
     if (hasChanged) {
       _previousValues[key] = value;
       _hasChanges = true;
+      _scheduleNotification();
     }
 
     return hasChanged;
@@ -28,8 +40,33 @@ mixin ChangeTrackingMixin on ChangeNotifier {
   void notifyIfChanged() {
     if (_hasChanges) {
       _hasChanges = false;
+      _notificationTimer?.cancel();
+      _notificationTimer = null;
+      _currentDelay = _initialDelay; // Reset delay after successful notification
       notifyListeners();
     }
+  }
+
+  void _scheduleNotification() {
+    // Cancel any existing timer
+    _notificationTimer?.cancel();
+
+    // Schedule new notification with current delay
+    _notificationTimer = Timer(_currentDelay, () {
+      notifyIfChanged();
+    });
+
+    // Increase delay for next time (exponential backoff with max cap)
+    final newDelayMs = (_currentDelay.inMilliseconds * 1.5).round();
+    _currentDelay = Duration(
+      milliseconds: newDelayMs > _maxDelay.inMilliseconds ? _maxDelay.inMilliseconds : newDelayMs,
+    );
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
   }
 
   bool _deepEquals(dynamic a, dynamic b) {
