@@ -382,7 +382,7 @@ abstract class Binary {
     if (kDebugMode) {
       // In debug mode, check pwd/bin first
       paths.addAll([
-        path.join(Directory.current.path, 'assets', 'bin', baseBinary),
+        path.join(binDir(Directory.current.path).path, baseBinary),
       ]);
     }
 
@@ -470,7 +470,7 @@ abstract class Binary {
     if (appDir != null) {
       // In release mode, check the folder where binaries are downloaded to
       paths.addAll([
-        path.join(appDir.path, 'assets', 'bin', baseBinary),
+        path.join(binDir(appDir.path).path, baseBinary),
       ]);
     }
 

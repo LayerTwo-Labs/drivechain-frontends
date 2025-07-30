@@ -169,7 +169,11 @@ class BinaryProvider extends ChangeNotifier {
       (_) => _checkReleaseDates(),
     );
 
-    _setupDirectoryWatcher();
+    try {
+      _setupDirectoryWatcher();
+    } catch (e) {
+      log.e('could not set up directory watcher: $e');
+    }
   }
 
   // Start a binary, and set starter seeds (if set)
@@ -538,8 +542,7 @@ class BinaryProvider extends ChangeNotifier {
 
   void _setupDirectoryWatcher() {
     // Watch the assets directory for changes
-    final assetsDir = Directory(path.join(appDir.path, 'bin'));
-    _dirWatcher = assetsDir.watch(recursive: true).listen((event) async {
+    _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) async {
       switch (event.type) {
         case FileSystemEvent.create:
         case FileSystemEvent.delete:
