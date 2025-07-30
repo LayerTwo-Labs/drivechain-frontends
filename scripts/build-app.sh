@@ -45,6 +45,11 @@ if [ ! -d "$client_dir" ]; then
     echo "Error: Client directory $client_dir does not exist."
     exit 1
 fi
+
+# Generate version information
+echo "Generating version information for $client"
+bash ./scripts/generate-version.sh "$client"
+
 cd "$client_dir"
 
 source ./scripts/set-app-name.sh

@@ -34,6 +34,9 @@ build/
 */assets/bin/*
 build-vars.env
 
+# Generated version files
+*/lib/gen/version.dart
+
 # Symbolication related
 app.*.symbols
 

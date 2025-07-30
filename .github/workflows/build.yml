@@ -319,6 +319,52 @@ jobs:
           mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
           mv bitwindow-binaries-Windows/bitwindow.msix BitWindow-latest-x86_64-windows.msix || true
 
+      - name: Update versions.json and upload artifacts
+        continue-on-error: true
+        run: |
+          # Install jq for JSON manipulation
+          sudo apt-get update && sudo apt-get install -y jq
+          
+          # Function to update versions.json for a file
+          update_version_info() {
+            local file="$1"
+            local client="$2"
+            local platform="$3"
+            
+            if [ -f "$file" ]; then
+              echo "Updating versions.json for $file"
+              ./scripts/update-versions.sh "$client" "$platform" "$file"
+            else
+              echo "File $file not found, skipping version update"
+            fi
+          }
+          
+          # Update versions.json for each uploaded file
+          
+          # BitWindow
+          update_version_info "BitWindow-latest-x86_64-apple-darwin.zip" "bitwindow" "macos"
+          update_version_info "BitWindow-latest-x86_64-unknown-linux-gnu.zip" "bitwindow" "linux"
+          update_version_info "BitWindow-latest-x86_64-windows.msix" "bitwindow" "windows"
+          
+          # Thunder
+          update_version_info "test-thunder-x86_64-apple-darwin.zip" "thunder" "macos"
+          update_version_info "test-thunder-x86_64-unknown-linux-gnu.zip" "thunder" "linux"
+          update_version_info "test-thunder-x86_64-windows.msix" "thunder" "windows"
+          
+          # BitNames
+          update_version_info "test-bitnames-x86_64-apple-darwin.zip" "bitnames" "macos"
+          update_version_info "test-bitnames-x86_64-unknown-linux-gnu.zip" "bitnames" "linux"
+          update_version_info "test-bitnames-x86_64-windows.msix" "bitnames" "windows"
+          
+          # BitAssets
+          update_version_info "test-bitassets-x86_64-apple-darwin.zip" "bitassets" "macos"
+          update_version_info "test-bitassets-x86_64-unknown-linux-gnu.zip" "bitassets" "linux"
+          update_version_info "test-bitassets-x86_64-windows.msix" "bitassets" "windows"
+          
+          # ZSide
+          update_version_info "test-zside-x86_64-apple-darwin.zip" "zside" "macos"
+          update_version_info "test-zside-x86_64-unknown-linux-gnu.zip" "zside" "linux"
+
       - name: Upload artifacts to releases.drivechain.info
         uses: yitianyigexiangfa/ssh-scp-ssh-pipelines@v1.1.5
         continue-on-error: true
@@ -332,3 +378,4 @@ jobs:
             'BitWindow-*.zip' => '/var/www/html/'
             'test-*.zip' => '/var/www/html/'
             'test-*.msix' => '/var/www/html/'
+            'versions.json' => '/var/www/html/'
