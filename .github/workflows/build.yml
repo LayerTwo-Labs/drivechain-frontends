@@ -256,6 +256,22 @@ jobs:
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
 
+      - name: Generate version.json for this build
+        run: |
+          cd ${{ env.BUILD_DIR }}
+
+          # Find a .zip, .msix or .appimage in release directory
+          built_file=$(ls ${{ matrix.client }}/release/*.msix ${{ matrix.client }}/release/*.appimage ${{ matrix.client }}/release/*.zip 2>/dev/null | head -1)
+          if [ -n "$built_file" ]; then
+            # Generate individual version.json for this client/platform
+            ./scripts/update-versions.sh ${{ matrix.client }} ${{ matrix.os }} "$built_file"
+            # Move to release directory with unique filename
+            mv versions.json "${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
+            echo "Generated ${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
+          else
+            echo "No build artifact found in release directory"
+          fi
+
       # List artifacts for verification
       - name: List build artifacts
         run: |
@@ -319,51 +335,36 @@ jobs:
           mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
           mv bitwindow-binaries-Windows/bitwindow.msix BitWindow-latest-x86_64-windows.msix || true
 
-      - name: Update versions.json and upload artifacts
+      - name: Install jq for merging version files
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Merge individual version.json files into versions.json
         continue-on-error: true
         run: |
-          # Install jq for JSON manipulation
-          sudo apt-get update && sudo apt-get install -y jq
-          
-          # Function to update versions.json for a file
-          update_version_info() {
-            local file="$1"
-            local client="$2"
-            local platform="$3"
-            
-            if [ -f "$file" ]; then
-              echo "Updating versions.json for $file"
-              ./scripts/update-versions.sh "$client" "$platform" "$file"
-            else
-              echo "File $file not found, skipping version update"
+          echo "Downloading existing versions.json..."
+
+          # Download existing versions.json from server
+          if curl -s -f "https://releases.drivechain.info/versions.json" -o versions.json 2>/dev/null; then
+            echo "Downloaded existing versions.json"
+          else
+            echo "No existing versions.json found, creating new one"
+            echo '{}' > versions.json
+          fi
+
+          echo "Merging generated version.json files..."
+
+          # Find all generated version.json files and merge them
+          for version_file in *-*-version.json; do
+            if [ -f "$version_file" ]; then
+              echo "Merging $version_file..."
+              # Use jq to merge the individual version file into the main versions.json
+              jq -s '.[0] * .[1]' versions.json "$version_file" > temp_versions.json
+              mv temp_versions.json versions.json
             fi
-          }
-          
-          # Update versions.json for each uploaded file
-          
-          # BitWindow
-          update_version_info "BitWindow-latest-x86_64-apple-darwin.zip" "bitwindow" "macos"
-          update_version_info "BitWindow-latest-x86_64-unknown-linux-gnu.zip" "bitwindow" "linux"
-          update_version_info "BitWindow-latest-x86_64-windows.msix" "bitwindow" "windows"
-          
-          # Thunder
-          update_version_info "test-thunder-x86_64-apple-darwin.zip" "thunder" "macos"
-          update_version_info "test-thunder-x86_64-unknown-linux-gnu.zip" "thunder" "linux"
-          update_version_info "test-thunder-x86_64-windows.msix" "thunder" "windows"
-          
-          # BitNames
-          update_version_info "test-bitnames-x86_64-apple-darwin.zip" "bitnames" "macos"
-          update_version_info "test-bitnames-x86_64-unknown-linux-gnu.zip" "bitnames" "linux"
-          update_version_info "test-bitnames-x86_64-windows.msix" "bitnames" "windows"
-          
-          # BitAssets
-          update_version_info "test-bitassets-x86_64-apple-darwin.zip" "bitassets" "macos"
-          update_version_info "test-bitassets-x86_64-unknown-linux-gnu.zip" "bitassets" "linux"
-          update_version_info "test-bitassets-x86_64-windows.msix" "bitassets" "windows"
-          
-          # ZSide
-          update_version_info "test-zside-x86_64-apple-darwin.zip" "zside" "macos"
-          update_version_info "test-zside-x86_64-unknown-linux-gnu.zip" "zside" "linux"
+          done
+
+          echo "Final versions.json:"
+          cat versions.json | jq . || echo "Failed to parse versions.json"
 
       - name: Upload artifacts to releases.drivechain.info
         uses: yitianyigexiangfa/ssh-scp-ssh-pipelines@v1.1.5
