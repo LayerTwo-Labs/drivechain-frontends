@@ -261,10 +261,42 @@ jobs:
           # Find a .zip, .msix or .appimage in release directory
           built_file=$(ls ${{ matrix.client }}/release/*.msix ${{ matrix.client }}/release/*.appimage ${{ matrix.client }}/release/*.zip 2>/dev/null | head -1)
           if [ -n "$built_file" ]; then
-            # Generate individual version.json for this client/platform
-            ./scripts/update-versions.sh ${{ matrix.client }} ${{ matrix.os }} "$built_file"
-            # Move to release directory with unique filename
-            mv versions.json "${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
+            # Map GitHub runner OS to platform name
+            case "${{ matrix.os }}" in
+              ubuntu-latest) platform="linux" ;;
+              macos-latest) platform="macos" ;;  
+              windows-latest) platform="windows" ;;
+              *) platform="${{ matrix.os }}" ;;
+            esac
+            
+            # Get version from lib/gen/version.dart
+            version="unknown"
+            if [ -f "${{ matrix.client }}/lib/gen/version.dart" ]; then
+              version=$(grep 'const String version' "${{ matrix.client }}/lib/gen/version.dart" | sed 's/.*= "\(.*\)";/\1/')
+            fi
+            
+            # Get file size and git info
+            file_size=$(stat -c%s "$built_file" 2>/dev/null || stat -f%z "$built_file" 2>/dev/null || wc -c < "$built_file")
+            commit_hash=$(git rev-parse --short HEAD)
+            commit_full=$(git rev-parse HEAD)
+            build_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            download_url=$(basename "$built_file")
+            
+            # Create version.json
+            cat > "${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json" << EOF
+            {
+              "${{ matrix.client }}": {
+                "\$platform": {
+                  "version": "\$version",
+                  "commit": "\$commit_hash",
+                  "commitFull": "\$commit_full",
+                  "buildDate": "\$build_date",
+                  "downloadUrl": "\$download_url",
+                  "size": \$file_size
+                }
+              }
+            }
+            EOF
             echo "Generated ${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
           else
             echo "No build artifact found in release directory"
