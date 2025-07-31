@@ -258,8 +258,9 @@ jobs:
 
       - name: Generate version.json for this build
         run: |
+
           # Find a .zip, .msix or .appimage in release directory
-          built_file=$(ls ${{ matrix.client }}/release/*.msix ${{ matrix.client }}/release/*.appimage ${{ matrix.client }}/release/*.zip 2>/dev/null | head -1)
+          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.msix" -o -name "*.appimage" -o -name "*.zip" | head -1)
           if [ -n "$built_file" ]; then
             # Map GitHub runner OS to platform name
             case "${{ matrix.os }}" in
@@ -269,38 +270,31 @@ jobs:
               *) platform="${{ matrix.os }}" ;;
             esac
             
-            # Get version from lib/gen/version.dart
-            version="unknown"
-            if [ -f "${{ matrix.client }}/lib/gen/version.dart" ]; then
-              version=$(grep 'const String version' "${{ matrix.client }}/lib/gen/version.dart" | sed 's/.*= "\(.*\)";/\1/')
+            # Get all version info from lib/gen/version.dart (must exist)
+            if [ ! -f "${{ matrix.client }}/lib/gen/version.dart" ]; then
+              echo "ERROR: ${{ matrix.client }}/lib/gen/version.dart does not exist!"
+              exit 1
             fi
             
-            # Get file size and git info
+            version=$(grep 'const String version =' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
+            commit_hash=$(grep 'const String commit =' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
+            commit_full=$(grep 'const String commitFull' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
+            build_date=$(grep 'const String buildDate' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
+            
+            # Get file size and download URL
             file_size=$(stat -c%s "$built_file" 2>/dev/null || stat -f%z "$built_file" 2>/dev/null || wc -c < "$built_file")
-            commit_hash=$(git rev-parse --short HEAD)
-            commit_full=$(git rev-parse HEAD)
-            build_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            
             download_url=$(basename "$built_file")
             
             # Create version.json
-            cat > "${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json" << EOF
-            {
-              "${{ matrix.client }}": {
-                "\$platform": {
-                  "version": "\$version",
-                  "commit": "\$commit_hash",
-                  "commitFull": "\$commit_full",
-                  "buildDate": "\$build_date",
-                  "downloadUrl": "\$download_url",
-                  "size": \$file_size
-                }
-              }
-            }
-            EOF
-            echo "Generated ${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
-          else
-            echo "No build artifact found in release directory"
+            printf '{\n  "%s": {\n    "%s": {\n      "version": "%s",\n      "commit": "%s",\n      "commitFull": "%s",\n      "buildDate": "%s",\n      "downloadUrl": "%s",\n      "size": %s\n    }\n  }\n}\n' \
+              "${{ matrix.client }}" "$platform" "$version" "$commit_hash" "$commit_full" "$build_date" "$download_url" "$file_size" \
+              > "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
+            cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
           fi
+
+          echo "Content of created file:"
+          cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
 
       # List artifacts for verification
       - name: List build artifacts
@@ -382,16 +376,25 @@ jobs:
           fi
 
           echo "Merging generated version.json files..."
-
-          # Find all generated version.json files and merge them
-          for version_file in *-*-version.json; do
-            if [ -f "$version_file" ]; then
-              echo "Merging $version_file..."
-              # Use jq to merge the individual version file into the main versions.json
-              jq -s '.[0] * .[1]' versions.json "$version_file" > temp_versions.json
-              mv temp_versions.json versions.json
-            fi
-          done
+          echo "Looking for version files in artifact directories..."
+          version_files=$(find . -name "*-*-version.json" -type f)
+          
+          if [ -z "$version_files" ]; then
+            echo "No version files found - keeping existing versions.json"
+          else
+            echo "Found version files:"
+            echo "$version_files"
+            
+            # Find all generated version.json files and merge them
+            echo "$version_files" | while read version_file; do
+              if [ -n "$version_file" ]; then
+                echo "Merging $version_file..."
+                # Use jq to merge the individual version file into the main versions.json
+                jq -s '.[0] * .[1]' versions.json "$version_file" > temp_versions.json
+                mv temp_versions.json versions.json
+              fi
+            done
+          fi
 
           echo "Final versions.json:"
           cat versions.json | jq . || echo "Failed to parse versions.json"
