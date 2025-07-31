@@ -258,8 +258,6 @@ jobs:
 
       - name: Generate version.json for this build
         run: |
-          cd ${{ env.BUILD_DIR }}
-
           # Find a .zip, .msix or .appimage in release directory
           built_file=$(ls ${{ matrix.client }}/release/*.msix ${{ matrix.client }}/release/*.appimage ${{ matrix.client }}/release/*.zip 2>/dev/null | head -1)
           if [ -n "$built_file" ]; then
