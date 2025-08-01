@@ -30,6 +30,38 @@ release_dir="$old_cwd/release"
 mkdir -p "$release_dir"
 cp $zip_name "$release_dir"
 
+# Build snap package for bitwindow if snapcraft is available
+if [ "$lower_app_name" = "bitwindow" ] && command -v snapcraft >/dev/null 2>&1; then
+    echo "Building snap package for $app_name"
+    
+    # Run snapcraft from the bitwindow directory
+    cd "$old_cwd"
+    
+    # Build the snap
+    # Use sudo -u $USER to ensure proper permissions (same as snapcore/action-build)
+    if sudo -u $USER -E snapcraft 2>&1 | tee snapcraft.log; then
+        # Find the generated snap file
+        snap_file=$(find . -name "*.snap" | head -1)
+        if [ -n "$snap_file" ]; then
+            cp "$snap_file" "$release_dir/"
+            echo "Snap package created: $(basename "$snap_file")"
+        else
+            echo "Snap build succeeded but no .snap file found"
+        fi
+    else
+        echo "Snap build failed. Check snapcraft.log for details"
+    fi
+    
+    # Return to bundle directory
+    cd build/linux/x64/release/bundle
+else
+    if [ "$lower_app_name" = "bitwindow" ]; then
+        echo "snapcraft not found, skipping snap package creation"
+        echo "Install it with: sudo snap install snapcraft --classic"
+    fi
+fi
+
+
 # Create AppImage if appimagetool is available
 if command -v appimagetool >/dev/null 2>&1; then
     echo "Creating AppImage for $app_name"
@@ -47,7 +79,7 @@ if command -v appimagetool >/dev/null 2>&1; then
         fi
     done
     
-    # Create .desktop file
+    # Create .desktop file for AppImage
     cat > "$appdir_name/$lower_app_name.desktop" << EOF
 [Desktop Entry]
 Type=Application

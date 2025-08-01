@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=BitWindow
+Comment=BitWindow - Drivechain Bitcoin Frontend
+Exec=bitwindow
+Icon=${SNAP}/meta/gui/bitwindow.png
+Terminal=false
+Type=Application
+Categories=Office;Finance;
