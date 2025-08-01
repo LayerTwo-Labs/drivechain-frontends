@@ -640,18 +640,6 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
               ),
               const Spacer(),
               const Spacer(),
-              // Navigation buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SailButton(
-                    label: 'Continue',
-                    variant: ButtonVariant.primary,
-                    disabled: true,
-                    onPressed: () async {},
-                  ),
-                ],
-              ),
               const SizedBox(height: 32),
             ],
           ),
