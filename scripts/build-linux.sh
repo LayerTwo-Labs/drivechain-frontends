@@ -34,22 +34,20 @@ cp $zip_name "$release_dir"
 if [ "$lower_app_name" = "bitwindow" ] && command -v snapcraft >/dev/null 2>&1; then
     echo "Building snap package for $app_name"
     
-    # Run snapcraft from the bitwindow directory
+    # Go to bitwindow directory where snapcraft.yaml is located
     cd "$old_cwd"
     
-    # Build the snap
-    # Use sudo -u $USER to ensure proper permissions (same as snapcore/action-build)
-    if sudo -u $USER -E snapcraft 2>&1 | tee snapcraft.log; then
-        # Find the generated snap file
-        snap_file=$(find . -name "*.snap" | head -1)
-        if [ -n "$snap_file" ]; then
-            cp "$snap_file" "$release_dir/"
-            echo "Snap package created: $(basename "$snap_file")"
-        else
-            echo "Snap build succeeded but no .snap file found"
-        fi
+    # Build the snap using LXD
+    echo "Running: snapcraft --use-lxd"
+    snapcraft --use-lxd
+    
+    # Find the generated .snap file
+    snap_file=$(find . -name "*.snap" | head -1)
+    if [ -n "$snap_file" ]; then
+        cp "$snap_file" "$release_dir/"
+        echo "Snap package created: $(basename "$snap_file")"
     else
-        echo "Snap build failed. Check snapcraft.log for details"
+        echo "Snap build succeeded but no .snap file found"
     fi
     
     # Return to bundle directory

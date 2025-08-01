@@ -1,5 +1,5 @@
 name: bitwindow
-base: core22
+base: core18
 version: "latest"
 summary: BitWindow - Drivechain Bitcoin Frontend
 description: |
@@ -22,7 +22,7 @@ slots:
 apps:
   bitwindow:
     command: bitwindow
-    extensions: [gnome]
+    extensions: [flutter-stable]
     plugs:
       - home
       - network
@@ -32,9 +32,11 @@ apps:
 
 parts:
   bitwindow:
-    source: .
-    plugin: flutter
-    flutter-target: lib/main.dart
-
-    build-packages:
-      - curl
+    source: build/linux/x64/release/bundle/
+    plugin: dump
+    build-attributes: [keep-execstack]
+    stage-packages:
+      - libblkid1
+      - liblzma5
+      - libglu1-mesa
+      - libcurl4

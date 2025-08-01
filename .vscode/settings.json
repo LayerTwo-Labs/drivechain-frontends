@@ -7,5 +7,23 @@
   "[dart]": {
     "editor.rulers": [120]
   },
-  "cmake.sourceDirectory": "/Users/bo/code/drivechain-frontends/clients/bitwindow/linux"
+  "cmake.sourceDirectory": "/Users/bo/code/drivechain-frontends/clients/bitwindow/linux",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.bloop": true,
+    "**/.classpath": true,
+    "**/.factorypath": true,
+    "**/.history": true,
+    "**/.metals": true,
+    "**/.project": true,
+    "**/.settings": true,
+    "**/.retool_types/**": true,
+    "**/*tsconfig.json": true,
+    ".cache": true,
+    "retool.config.json": true
+  }
 }
