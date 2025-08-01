@@ -1,0 +1,40 @@
+name: bitwindow
+base: core22
+version: "latest"
+summary: BitWindow - Drivechain Bitcoin Frontend
+description: |
+  A frontend for interacting with a Drivechain-enabled layer 1 bitcoin network.
+  BitWindow provides Bitcoin wallet functionality with HD wallet support, 
+  drivechain sidechain management and activation, and educational content.
+
+grade: stable
+confinement: strict
+
+architectures:
+  - build-on: amd64
+
+slots:
+  dbus-bitwindow:
+    interface: dbus
+    bus: session
+    name: org.layertwolabs.bitwindow
+
+apps:
+  bitwindow:
+    command: bitwindow
+    extensions: [gnome]
+    plugs:
+      - home
+      - network
+      - network-bind
+    slots:
+      - dbus-bitwindow
+
+parts:
+  bitwindow:
+    source: .
+    plugin: flutter
+    flutter-target: lib/main.dart
+
+    build-packages:
+      - curl

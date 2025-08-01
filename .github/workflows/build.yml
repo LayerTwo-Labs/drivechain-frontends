@@ -85,7 +85,7 @@ jobs:
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
               for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
                 # Skip macOS and linux for PRs
-                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "windows-latest" ]]; then
+                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "ubuntu-latest" ]]; then
                   continue
                 fi
                 
@@ -177,6 +177,26 @@ jobs:
           chmod +x appimagetool-x86_64.AppImage
           sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
 
+      # Install snapcraft and LXD for snap package building
+      - name: Install snapcraft
+        if: runner.os == 'Linux' && matrix.client == 'bitwindow'
+        run: |
+          # Add runner to lxd group
+          sudo groupadd --force --system lxd
+          sudo usermod --append --groups lxd runner
+
+          # Install LXD
+          sudo snap install lxd
+
+          # Initialize LXD
+          sudo lxd init --auto
+
+          # Fix potential Docker interference with LXD networking
+          sudo iptables -P FORWARD ACCEPT
+
+          # Install snapcraft
+          sudo snap install --channel stable --classic snapcraft
+
       - name: Setup macOS app signing
         if: runner.os == 'macOS'
         run: |
@@ -248,6 +268,15 @@ jobs:
       - name: Build app
         run: |
           cd ${{ env.BUILD_DIR }}
+          
+          # For Linux bitwindow builds, move files to snap/local to avoid warnings
+          if [[ "${{ runner.os }}" == "Linux" && "${{ matrix.client }}" == "bitwindow" ]]; then
+            if [ -f "${{ matrix.client }}/snap/bitwindow.desktop" ] || [ -f "${{ matrix.client }}/snap/bitwindow.png" ]; then
+              mkdir -p ${{ matrix.client }}/snap/local
+              [ -f "${{ matrix.client }}/snap/bitwindow.desktop" ] && mv ${{ matrix.client }}/snap/bitwindow.desktop ${{ matrix.client }}/snap/local/
+              [ -f "${{ matrix.client }}/snap/bitwindow.png" ] && mv ${{ matrix.client }}/snap/bitwindow.png ${{ matrix.client }}/snap/local/
+            fi
+          fi
 
           # Everything after the third line is only relevant for macOS
           ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} \
@@ -258,6 +287,7 @@ jobs:
 
       - name: Generate version.json for this build
         run: |
+          ./scripts/generate-version.sh ${{ matrix.client }}
 
           # Find a .zip, .msix or .appimage in release directory
           built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.msix" -o -name "*.appimage" -o -name "*.zip" | head -1)
@@ -295,6 +325,22 @@ jobs:
 
           echo "Content of created file:"
           cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
+
+      # Publish snap
+      - name: Publish snap
+        if:
+          runner.os == 'Linux' && matrix.client == 'bitwindow' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          # Decode the base64 credentials and export to environment
+          export SNAPCRAFT_STORE_CREDENTIALS=$(echo "${{ secrets.SNAPCRAFT_LOGIN }}" | base64 --decode)
+          
+          # The snap should be built by build-linux.sh
+          snap_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.snap" | head -1)
+          echo "Publishing snap: $snap_file"
+          
+          # Snapcraft will use SNAPCRAFT_STORE_CREDENTIALS automatically
+          snapcraft upload "$snap_file" --release edge
 
       # List artifacts for verification
       - name: List build artifacts
@@ -378,7 +424,7 @@ jobs:
           echo "Merging generated version.json files..."
           echo "Looking for version files in artifact directories..."
           version_files=$(find . -name "*-*-version.json" -type f)
-          
+
           if [ -z "$version_files" ]; then
             echo "No version files found - keeping existing versions.json"
           else
