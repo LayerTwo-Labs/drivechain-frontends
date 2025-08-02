@@ -338,9 +338,6 @@ jobs:
             cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
           fi
 
-          echo "Content of created file:"
-          cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
-
       # Publish snap
       - name: Publish snap
         if:
