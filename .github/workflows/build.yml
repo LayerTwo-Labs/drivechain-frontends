@@ -191,16 +191,6 @@ jobs:
           # Initialize LXD
           sudo lxd init --auto
 
-          # Start and enable LXD
-          sudo systemctl start snap.lxd.daemon
-          sudo systemctl enable snap.lxd.daemon
-
-          # Wait for LXD to be ready
-          sudo lxd waitready
-
-          # Fix socket permissions
-          sudo chmod 666 /var/snap/lxd/common/lxd/unix.socket
-
           # Fix potential Docker interference with LXD networking
           sudo iptables -P FORWARD ACCEPT
 

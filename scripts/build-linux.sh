@@ -39,7 +39,7 @@ if [ "$lower_app_name" = "bitwindow" ] && command -v snapcraft >/dev/null 2>&1; 
     
     # Build the snap using LXD
     echo "Running: snapcraft --use-lxd"
-    snapcraft --use-lxd
+    sudo snapcraft --use-lxd
     
     # Find the generated .snap file
     snap_file=$(find . -name "*.snap" | head -1)
