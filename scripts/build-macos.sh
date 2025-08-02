@@ -22,7 +22,7 @@ echo Building $app_name
 cd "$client_dir"
 
 flutter clean
-flutter build macos --dart-define-from-file=build-vars.env
+SENTRY_NATIVE_BACKEND=breakpad flutter build macos --dart-define-from-file=build-vars.env
 
 old_cwd=$PWD
 cd ./build/macos/Build/Products/Release 
