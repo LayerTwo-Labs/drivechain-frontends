@@ -52,8 +52,12 @@ bash ./scripts/generate-version.sh "$client"
 
 cd "$client_dir"
 
-# If you need to set any build vars, do it in this file
-echo "" > build-vars.env
+source ./scripts/set-app-name.sh
+if [ -z "$app_name" ]; then
+    echo "Error: set-app-name.sh did not set a valid app name"
+    exit 1
+fi
+echo "App name set to: $app_name"
 
 if [ -f "./scripts/download-binaries.sh" ]; then
     echo "Downloading $client_dir binaries for $os"
