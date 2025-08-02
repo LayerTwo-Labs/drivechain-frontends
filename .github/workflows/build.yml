@@ -340,12 +340,31 @@ jobs:
           # Decode the base64 credentials and export to environment
           export SNAPCRAFT_STORE_CREDENTIALS=$(echo "${{ secrets.SNAPCRAFT_LOGIN }}" | base64 --decode)
 
-          # The snap should be built by build-linux.sh
-          snap_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.snap" | head -1)
-          echo "Publishing snap: $snap_file"
+          # Get the new version from pubspec.yaml
+          NEW_VERSION=$(grep '^version: ' "${{ env.BUILD_DIR }}/${{ matrix.client }}/pubspec.yaml" | sed 's/version: //')
+          echo "New version from pubspec.yaml: $NEW_VERSION"
 
-          # Snapcraft will use SNAPCRAFT_STORE_CREDENTIALS automatically
-          snapcraft upload "$snap_file" --release edge
+          # Get current snap version from the store
+          CURRENT_VERSION=""
+          if snapcraft info bitwindow >/dev/null 2>&1; then
+            CURRENT_VERSION=$(snapcraft info bitwindow | grep -E "^[[:space:]]*version:" | sed 's/.*version:[[:space:]]*//')
+            echo "Current snap version: $CURRENT_VERSION"
+          else
+            echo "No existing snap found, will publish new version"
+          fi
+
+          # Compare versions and publish only if new version is higher
+          if [ -z "$CURRENT_VERSION" ] || [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "Version changed or new snap - publishing to store"
+            
+            # The snap should be built by build-linux.sh
+            snap_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.snap" | head -1)
+            echo "Publishing snap: $snap_file"
+
+            snapcraft upload "$snap_file" --release edge
+          else
+            echo "Version unchanged ($NEW_VERSION), skipping snap publication"
+          fi
 
       # List artifacts for verification
       - name: List build artifacts
