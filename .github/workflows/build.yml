@@ -461,6 +461,8 @@ jobs:
           scp: |
             'BitWindow-*.msix' => '/var/www/html/'
             'BitWindow-*.zip' => '/var/www/html/'
+            'BitWindow-*.AppImage' => '/var/www/html/'
             'test-*.zip' => '/var/www/html/'
             'test-*.msix' => '/var/www/html/'
+            'test-*.AppImage' => '/var/www/html/'
             'versions.json' => '/var/www/html/'
