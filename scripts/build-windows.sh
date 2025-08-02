@@ -28,6 +28,7 @@ fi
 git config --system core.longpaths true
 clean_cmd="flutter clean"
 mkdir -p release
+export SENTRY_NATIVE_BACKEND=breakpad
 build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
 
 # Create signed MSIX
