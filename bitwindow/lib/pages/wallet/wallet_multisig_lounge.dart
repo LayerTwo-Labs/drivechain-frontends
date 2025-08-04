@@ -1,7 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:bitwindow/env.dart';
+import 'dart:async';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
@@ -13,26 +10,14 @@ import 'package:bitwindow/widgets/psbt_coordinator_modal.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:path/path.dart' as path;
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
-// Helper function to log multisig debugging information to file
-Future<void> _logToFile(String message) async {
-  try {
-    final dir = Directory(path.dirname(path.current));
-    final file = File(path.join(dir.path, 'bitwindow', 'multisig_output.txt'));
-    
-    // Ensure parent directory exists
-    await file.parent.create(recursive: true);
-    
-    final timestamp = DateTime.now().toIso8601String();
-    await file.writeAsString('[$timestamp] MULTISIG_LOUNGE: $message\n', mode: FileMode.append);
-  } catch (e) {
-    print('Failed to write to multisig_output.txt: $e');
-  }
-}
+// Constants
+const int kDescriptorAddressRange = 999;
+const double kTableHeight = 300.0;
 
-// MultisigGroup is now imported directly
 class TransactionRow {
   final MultisigTransaction transaction;
   final bool hasWalletKeys;
@@ -52,52 +37,387 @@ class MultisigLoungeTab extends StatefulWidget {
   State<MultisigLoungeTab> createState() => _MultisigLoungeTabState();
 }
 
-class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
-  List<MultisigGroup> _multisigGroups = [];
-  List<MultisigTransaction> _transactions = [];
-  bool _isLoading = true;
-  String? _error;
-  MultisigGroup? _selectedGroup;
-  MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
-  final _walletManager = WalletRPCManager();
+class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindingObserver {
+  MultisigLoungeViewModel? _viewModel;
 
-  Future<Map<String, String>> _buildDescriptors(MultisigGroup group) async {
-    final sortedKeys = List<MultisigKey>.from(group.keys);
-    sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
-    
-    final keyDescriptors = sortedKeys.map((key) {
-      if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-        return '[${key.fingerprint!}/${key.originPath!}]${key.xpub}';
-      } else {
-        return key.xpub;
-      }
-    }).join(',');
-    
-    String receiveDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/0/*))';
-    String changeDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/1/*))';
-    
-    final receiveResult = await _rpc.callRAW('getdescriptorinfo', [receiveDesc]);
-    if (receiveResult is Map && receiveResult['descriptor'] != null) {
-      receiveDesc = receiveResult['descriptor'] as String;
-    }
-    
-    final changeResult = await _rpc.callRAW('getdescriptorinfo', [changeDesc]);
-    if (changeResult is Map && changeResult['descriptor'] != null) {
-      changeDesc = changeResult['descriptor'] as String;
-    }
-    
-    return {'receive': receiveDesc, 'change': changeDesc};
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
   }
 
-  List<TransactionRow> get _transactionRows {
-    final rows = <TransactionRow>[];
-    
-    for (final tx in _transactions) {
-      // Find the group for this transaction
-      final group = _multisigGroups.firstWhere(
-        (g) => g.id == tx.groupId,
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _viewModel?.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _viewModel != null) {
+      _viewModel!.onPageResumed();
+    } else if (state == AppLifecycleState.paused && _viewModel != null) {
+      _viewModel!.onPagePaused();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<MultisigLoungeViewModel>.reactive(
+      viewModelBuilder: () => MultisigLoungeViewModel(),
+      onViewModelReady: (model) {
+        _viewModel = model;
+        model.initialize();
+        model.onPageResumed(); // Start listening when page is ready
+      },
+      builder: (context, viewModel, child) {
+        if (viewModel.isLoading) {
+          return const SailPage(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (viewModel.errorMessage != null) {
+          return SailPage(
+            body: Center(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SailText.primary13('Error loading multisig data'),
+                  SailText.secondary12(viewModel.errorMessage!),
+                  SailButton(
+                    label: 'Retry',
+                    onPressed: viewModel.refreshData,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SailPage(
+          body: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              children: [
+                // Refresh button at the top
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SailButton(
+                      label: 'Refresh Data',
+                      onPressed: () => viewModel.refreshData(),
+                      variant: ButtonVariant.secondary,
+                    ),
+                  ],
+                ),
+                _buildGroupsSection(context, viewModel),
+                _buildTransactionsSection(context, viewModel),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGroupsSection(BuildContext context, MultisigLoungeViewModel viewModel) {
+    return SailCard(
+      title: 'Multisig Groups',
+      subtitle: '${viewModel.multisigGroups.length} group(s)',
+      child: SizedBox(
+        height: kTableHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: MultisigGroupsTable(
+                groups: viewModel.multisigGroups,
+                selectedGroup: viewModel.selectedGroup,
+                onSelectGroup: viewModel.selectGroup,
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding16),
+            Center(
+              child: SailColumn(
+                spacing: SailStyleValues.padding08,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SailText.primary13('Group Tools'),
+                  SailSpacing(SailStyleValues.padding08),
+                  SailButton(
+                    label: 'Create New Group',
+                    onPressed: () => viewModel.createNewGroup(context),
+                    variant: ButtonVariant.primary,
+                  ),
+                  SailButton(
+                    label: 'Fund Group',
+                    onPressed: viewModel.multisigGroups.isNotEmpty
+                        ? () => viewModel.fundGroupWithSelection(context)
+                        : null,
+                    variant: ButtonVariant.secondary,
+                  ),
+                  SailButton(
+                    label: 'Import from TXID',
+                    onPressed: () => viewModel.importFromTxid(context),
+                    variant: ButtonVariant.secondary,
+                  ),
+                  if (viewModel.selectedGroup != null) ...[
+                    SailSpacing(SailStyleValues.padding16),
+                    SailText.primary13('Selected Group'),
+                    SailSpacing(SailStyleValues.padding08),
+                    SailButton(
+                      label: 'Reimport Descriptors',
+                      onPressed: () => viewModel.reimportDescriptors(context, viewModel.selectedGroup!),
+                      variant: ButtonVariant.secondary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransactionsSection(BuildContext context, MultisigLoungeViewModel viewModel) {
+    return SailCard(
+      title: 'Multisig Transactions',
+      subtitle: '${viewModel.transactionRows.length} transaction(s)',
+      child: SizedBox(
+        height: kTableHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: MultisigTransactionsTable(
+                transactionRows: viewModel.transactionRows,
+                groups: viewModel.multisigGroups,
+                onAction: (tx, group) => viewModel.handleTransactionAction(context, tx, group),
+                onBroadcast: () => viewModel.openCombineAndBroadcastModal(context),
+                onView: (tx) => viewModel.openTransactionModal(context, tx),
+                onSign: (tx, group) => viewModel.signTransaction(context, tx, group),
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding16),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SailText.primary13('Transaction Tools'),
+                SailSpacing(SailStyleValues.padding08),
+                SailButton(
+                  label: 'Create Transaction',
+                  onPressed: viewModel.multisigGroups.any((g) => g.balance > 0)
+                      ? () => viewModel.createTransaction(context, null)
+                      : null,
+                  variant: ButtonVariant.primary,
+                ),
+                SailButton(
+                  label: 'Import PSBT',
+                  onPressed: () => viewModel.importPSBT(context),
+                  variant: ButtonVariant.secondary,
+                ),
+                SailButton(
+                  label: 'Combine & Broadcast',
+                  onPressed: viewModel.hasReadyTransactions
+                      ? () => viewModel.openCombineAndBroadcastModal(context)
+                      : null,
+                  variant: ButtonVariant.secondary,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Table widgets
+class MultisigGroupsTable extends StatefulWidget {
+  final List<MultisigGroup> groups;
+  final MultisigGroup? selectedGroup;
+  final Function(MultisigGroup?) onSelectGroup;
+
+  const MultisigGroupsTable({
+    super.key,
+    required this.groups,
+    required this.selectedGroup,
+    required this.onSelectGroup,
+  });
+
+  @override
+  State<MultisigGroupsTable> createState() => _MultisigGroupsTableState();
+}
+
+class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
+  String sortColumn = 'name';
+  bool sortAscending = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    sortGroups();
+  }
+
+  void onSort(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    sortGroups();
+    setState(() {});
+  }
+
+  void sortGroups() {
+    widget.groups.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (sortColumn) {
+        case 'name':
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case 'balance':
+          aValue = a.balance;
+          bValue = b.balance;
+          break;
+        case 'utxos':
+          aValue = a.utxos;
+          bValue = b.utxos;
+          break;
+        case 'total':
+          aValue = a.n;
+          bValue = b.n;
+          break;
+        case 'required':
+          aValue = a.m;
+          bValue = b.m;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => widget.groups.isNotEmpty
+          ? widget.groups[index].id
+          : 'empty$index',
+      onSelectedRow: (rowId) {
+        if (rowId != null && widget.groups.isNotEmpty) {
+          final group = widget.groups.firstWhere(
+            (g) => g.id == rowId,
+            orElse: () => widget.groups.first,
+          );
+          widget.onSelectGroup(group);
+        }
+      },
+      headerBuilder: (context) => [
+        SailTableHeaderCell(name: 'Name', onSort: () => onSort('name')),
+        const SailTableHeaderCell(name: 'ID'),
+        SailTableHeaderCell(name: 'Balance (BTC)', onSort: () => onSort('balance')),
+        SailTableHeaderCell(name: 'UTXOs', onSort: () => onSort('utxos')),
+        SailTableHeaderCell(name: 'Total Keys', onSort: () => onSort('total')),
+        SailTableHeaderCell(name: 'Keys Required', onSort: () => onSort('required')),
+        const SailTableHeaderCell(name: 'Type'),
+      ],
+      rowBuilder: (context, row, selected) {
+        if (widget.groups.isEmpty) {
+          return [
+            const SailTableCell(value: 'No multisig groups yet'),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+          ];
+        }
+
+        final group = widget.groups[row];
+        return [
+          SailTableCell(value: group.name),
+          SailTableCell(value: group.id.toUpperCase()),
+          SailTableCell(value: group.balance.toStringAsFixed(8)),
+          SailTableCell(value: group.utxos.toString()),
+          SailTableCell(value: group.n.toString()),
+          SailTableCell(value: group.m.toString()),
+          SailTableCell(value: 'xPub'),
+        ];
+      },
+      rowCount: widget.groups.isEmpty ? 1 : widget.groups.length,
+      drawGrid: true,
+      sortColumnIndex: ['name', 'id', 'balance', 'utxos', 'total', 'required', 'type'].indexOf(sortColumn),
+      sortAscending: sortAscending,
+      onSort: (columnIndex, ascending) {
+        onSort(['name', 'id', 'balance', 'utxos', 'total', 'required', 'type'][columnIndex]);
+      },
+    );
+  }
+}
+
+class MultisigTransactionsTable extends StatefulWidget {
+  final List<TransactionRow> transactionRows;
+  final List<MultisigGroup> groups;
+  final Function(MultisigTransaction, MultisigGroup) onAction;
+  final VoidCallback onBroadcast;
+  final Function(MultisigTransaction) onView;
+  final Function(MultisigTransaction, MultisigGroup) onSign;
+
+  const MultisigTransactionsTable({
+    super.key,
+    required this.transactionRows,
+    required this.groups,
+    required this.onAction,
+    required this.onBroadcast,
+    required this.onView,
+    required this.onSign,
+  });
+
+  @override
+  State<MultisigTransactionsTable> createState() => _MultisigTransactionsTableState();
+}
+
+class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
+  String sortColumn = 'group';
+  bool sortAscending = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    sortTransactions();
+  }
+
+  void onSort(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    sortTransactions();
+    setState(() {});
+  }
+
+  void sortTransactions() {
+    widget.transactionRows.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+      
+      final aGroup = widget.groups.firstWhere(
+        (g) => g.id == a.transaction.groupId,
         orElse: () => MultisigGroup(
-          id: tx.groupId,
+          id: a.transaction.groupId,
           name: 'Unknown',
           n: 0,
           m: 0,
@@ -106,12 +426,431 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         ),
       );
       
-      // Check if this group has wallet keys
+      final bGroup = widget.groups.firstWhere(
+        (g) => g.id == b.transaction.groupId,
+        orElse: () => MultisigGroup(
+          id: b.transaction.groupId,
+          name: 'Unknown',
+          n: 0,
+          m: 0,
+          keys: [],
+          created: 0,
+        ),
+      );
+
+      switch (sortColumn) {
+        case 'group':
+          aValue = aGroup.name;
+          bValue = bGroup.name;
+          break;
+        case 'amount':
+          aValue = a.transaction.amount;
+          bValue = b.transaction.amount;
+          break;
+        case 'signatures':
+          aValue = a.transaction.signatureCount;
+          bValue = b.transaction.signatureCount;
+          break;
+        case 'status':
+          aValue = a.transaction.status.index;
+          bValue = b.transaction.status.index;
+          break;
+        case 'confirmations':
+          aValue = a.transaction.confirmations;
+          bValue = b.transaction.confirmations;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => widget.transactionRows.isNotEmpty
+          ? widget.transactionRows[index].transaction.id
+          : 'empty$index',
+      headerBuilder: (context) => [
+        SailTableHeaderCell(name: 'Group', onSort: () => onSort('group')),
+        const SailTableHeaderCell(name: 'MuSIG ID'),
+        SailTableHeaderCell(name: 'Amount (BTC)', onSort: () => onSort('amount')),
+        SailTableHeaderCell(name: 'Signatures', onSort: () => onSort('signatures')),
+        SailTableHeaderCell(name: 'Status', onSort: () => onSort('status')),
+        const SailTableHeaderCell(name: 'TXID'),
+        SailTableHeaderCell(name: 'Confirmations', onSort: () => onSort('confirmations')),
+        const SailTableHeaderCell(name: 'Action'),
+      ],
+      rowBuilder: (context, row, selected) {
+        if (widget.transactionRows.isEmpty) {
+          return [
+            const SailTableCell(value: 'No transactions yet'),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+          ];
+        }
+
+        final txRow = widget.transactionRows[row];
+        final tx = txRow.transaction;
+        final group = widget.groups.firstWhere(
+          (g) => g.id == tx.groupId,
+          orElse: () => MultisigGroup(
+            id: tx.groupId,
+            name: 'Unknown',
+            n: 0,
+            m: 0,
+            keys: [],
+            created: 0,
+          ),
+        );
+
+        return [
+          SailTableCell(value: group.name),
+          SailTableCell(value: tx.shortId),
+          SailTableCell(value: tx.amount.toStringAsFixed(8)),
+          SailTableCell(value: '${tx.signatureCount}/${group.m}'),
+          SailTableCell(value: tx.status.displayName),
+          SailTableCell(value: tx.shortTxid ?? '-'),
+          SailTableCell(value: tx.confirmations > 0 ? tx.confirmations.toString() : '-'),
+          _buildActionCell(txRow, tx, group),
+        ];
+      },
+      rowCount: widget.transactionRows.isEmpty ? 1 : widget.transactionRows.length,
+      drawGrid: true,
+      sortColumnIndex: ['group', 'id', 'amount', 'signatures', 'status', 'txid', 'confirmations', 'action'].indexOf(sortColumn),
+      sortAscending: sortAscending,
+      onSort: (columnIndex, ascending) {
+        onSort(['group', 'id', 'amount', 'signatures', 'status', 'txid', 'confirmations', 'action'][columnIndex]);
+      },
+    );
+  }
+
+  Widget _buildActionCell(TransactionRow txRow, MultisigTransaction tx, MultisigGroup group) {
+    if (txRow.hasWalletKeys && !txRow.walletHasSigned && tx.status == TxStatus.needsSignatures) {
+      return SailTableCell(
+        value: '',
+        child: SailButton(
+          label: 'Sign',
+          variant: ButtonVariant.primary,
+          insideTable: true,
+          onPressed: () => widget.onSign(tx, group),
+        ),
+      );
+    } else if (tx.status == TxStatus.readyForBroadcast) {
+      return SailTableCell(
+        value: '',
+        child: SailButton(
+          label: 'Broadcast',
+          variant: ButtonVariant.secondary,
+          insideTable: true,
+          onPressed: () async => widget.onBroadcast(),
+        ),
+      );
+    } else {
+      return SailTableCell(
+        value: '',
+        child: SailButton(
+          label: 'View',
+          variant: ButtonVariant.secondary,
+          insideTable: true,
+          onPressed: () => widget.onView(tx),
+        ),
+      );
+    }
+  }
+}
+
+// ViewModel
+class MultisigLoungeViewModel extends BaseViewModel {
+  final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
+  final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+  final _walletManager = WalletRPCManager();
+  final _logger = Logger();
+
+  List<MultisigGroup> _multisigGroups = [];
+  List<MultisigTransaction> _transactions = [];
+  MultisigGroup? selectedGroup;
+  Timer? _refreshTimer;
+  int _lastKnownBlockHeight = 0;
+  bool _isPageActive = false;
+
+  List<MultisigGroup> get multisigGroups => _multisigGroups;
+  List<MultisigTransaction> get transactions => _transactions;
+  
+  bool isLoading = false;
+  String? errorMessage;
+
+  MultisigLoungeViewModel();
+
+  void onPageResumed() {
+    if (!_isPageActive) {
+      _isPageActive = true;
+      _startRefreshTimer();
+    }
+  }
+
+  void onPagePaused() {
+    if (_isPageActive) {
+      _isPageActive = false;
+      _stopRefreshTimer();
+    }
+  }
+
+  void _startRefreshTimer() {
+    _stopRefreshTimer(); // Ensure no duplicate timers
+    // Set up periodic refresh every 10 seconds to catch file changes and new blocks
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (!isLoading && _isPageActive) {
+        _checkForNewBlocksAndRefresh();
+      }
+    });
+  }
+
+  void _stopRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+
+
+  // Helper method to find a group by ID with fallback
+  MultisigGroup _findGroupByIdWithFallback(String groupId) {
+    return multisigGroups.firstWhere(
+      (g) => g.id == groupId,
+      orElse: () => MultisigGroup(
+        id: groupId,
+        name: 'Unknown',
+        n: 0,
+        m: 0,
+        keys: [],
+        created: 0,
+      ),
+    );
+  }
+
+  Future<void> initialize() async {
+    // Get initial block height
+    try {
+      final blockchainInfo = await _rpc.callRAW('getblockchaininfo', []);
+      if (blockchainInfo is Map && blockchainInfo['blocks'] is int) {
+        _lastKnownBlockHeight = blockchainInfo['blocks'] as int;
+      }
+    } catch (e) {
+      _logger.d('Failed to get initial block height: $e');
+    }
+    
+    await refreshData();
+  }
+
+  // Check for new blocks and refresh data if blocks have been confirmed
+  Future<void> _checkForNewBlocksAndRefresh() async {
+    try {
+      // First check for new blocks
+      final blockchainInfo = await _rpc.callRAW('getblockchaininfo', []);
+      if (blockchainInfo is Map && blockchainInfo['blocks'] is int) {
+        final currentHeight = blockchainInfo['blocks'] as int;
+        
+        if (currentHeight > _lastKnownBlockHeight) {
+          _logger.d('New block detected: $currentHeight (was $_lastKnownBlockHeight)');
+          _lastKnownBlockHeight = currentHeight;
+          
+          // Force a full refresh when new blocks are detected
+          await refreshData();
+          return;
+        }
+      }
+      
+      // If no new blocks, just check for file changes
+      await _checkAndRefreshData();
+    } catch (e) {
+      // Silently fail for background checks, fall back to file check
+      _logger.d('Block check failed, falling back to file check: $e');
+      await _checkAndRefreshData();
+    }
+  }
+
+  // Check if data has changed and refresh if needed
+  Future<void> _checkAndRefreshData() async {
+    try {
+      final newGroups = await MultisigStorage.loadGroups();
+      final newTransactions = await TransactionStorage.loadTransactions();
+      
+      // Check if data has changed
+      bool hasChanges = false;
+      
+      if (newGroups.length != _multisigGroups.length ||
+          newTransactions.length != _transactions.length) {
+        hasChanges = true;
+      } else {
+        // Check for changes in group IDs or transaction IDs
+        final currentGroupIds = _multisigGroups.map((g) => g.id).toSet();
+        final newGroupIds = newGroups.map((g) => g.id).toSet();
+        final currentTxIds = _transactions.map((t) => t.id).toSet();
+        final newTxIds = newTransactions.map((t) => t.id).toSet();
+        
+        if (!currentGroupIds.containsAll(newGroupIds) ||
+            !newGroupIds.containsAll(currentGroupIds) ||
+            !currentTxIds.containsAll(newTxIds) ||
+            !newTxIds.containsAll(currentTxIds)) {
+          hasChanges = true;
+        }
+      }
+      
+      if (hasChanges) {
+        _multisigGroups = newGroups;
+        _transactions = newTransactions;
+        notifyListeners();
+      }
+    } catch (e) {
+      // Silently fail for background checks
+      _logger.d('Background data check failed: $e');
+    }
+  }
+
+  Future<void> refreshData() async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Load multisig groups and transactions from storage
+      _multisigGroups = await MultisigStorage.loadGroups();
+      _transactions = await TransactionStorage.loadTransactions();
+      
+      // Update balances for all groups
+      for (final group in multisigGroups) {
+        try {
+          await _updateGroupBalance(group);
+        } catch (e) {
+          _logger.e('Failed to update balance for group ${group.name}', error: e);
+        }
+      }
+    } catch (e) {
+      errorMessage = e.toString();
+      _logger.e('Error refreshing multisig data', error: e);
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _updateGroupBalance(MultisigGroup group) async {
+    try {
+      final walletName = group.watchWalletName ?? 'multisig_${group.id}';
+      
+      try {
+        final walletInfo = await _walletManager.getWalletInfo(walletName);
+        
+        if (walletInfo['descriptors'] != true) {
+          return;
+        }
+      } catch (e) {
+        await _createWatchOnlyWallet(group);
+      }
+
+      // Get balance and UTXOs together to ensure consistency
+      final balance = await _walletManager.getWalletBalance(walletName);
+      final utxos = await _walletManager.listUnspent(walletName);
+      final utxoCount = utxos.length;
+      
+      _logger.d('Updating group ${group.name}: balance=$balance, utxos=$utxoCount');
+      
+      // Update storage
+      await MultisigStorage.updateGroupBalance(group.id, balance, utxoCount);
+      
+      // Update the in-memory group to reflect changes immediately
+      final groupIndex = _multisigGroups.indexWhere((g) => g.id == group.id);
+      if (groupIndex != -1) {
+        final updatedGroup = MultisigGroup(
+          id: group.id,
+          name: group.name,
+          n: group.n,
+          m: group.m,
+          keys: group.keys,
+          created: group.created,
+          descriptorReceive: group.descriptorReceive,
+          descriptorChange: group.descriptorChange,
+          watchWalletName: group.watchWalletName,
+          txid: group.txid,
+          addresses: group.addresses,
+          nextReceiveIndex: group.nextReceiveIndex,
+          balance: balance,
+          utxos: utxoCount,
+          utxoDetails: group.utxoDetails,
+        );
+        
+        _multisigGroups[groupIndex] = updatedGroup;
+      }
+    } catch (e) {
+      _logger.e('Failed to update balance for group ${group.name}', error: e);
+    }
+  }
+
+  Future<void> _createWatchOnlyWallet(MultisigGroup group) async {
+    try {
+      final walletName = group.watchWalletName ?? 'multisig_${group.id}';
+      
+      await _walletManager.createWallet(
+        walletName,
+        disablePrivateKeys: true,
+        blank: true,
+        descriptors: true,
+      );
+      
+      await _importDescriptorsToWallet(walletName, group);
+    } catch (e) {
+      _logger.e('Failed to create watch-only wallet for group ${group.name}', error: e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, String>> _buildDescriptors(MultisigGroup group) async {
+    final descriptors = await MultisigDescriptorBuilder.buildWatchOnlyDescriptors(group);
+    return {'receive': descriptors.receive, 'change': descriptors.change};
+  }
+
+  // Helper method to import descriptors with common logic
+  Future<void> _importDescriptorsToWallet(String walletName, MultisigGroup group, {bool rescanning = false}) async {
+    String? receiveDesc = group.descriptorReceive;
+    String? changeDesc = group.descriptorChange;
+    
+    if (receiveDesc == null || changeDesc == null) {
+      final descriptors = await _buildDescriptors(group);
+      receiveDesc = descriptors['receive'];
+      changeDesc = descriptors['change'];
+    }
+    
+    await _walletManager.importDescriptors(walletName, [
+      {
+        'desc': receiveDesc,
+        'active': true,
+        'internal': false,
+        'timestamp': rescanning ? 0 : 'now',
+        'range': [0, kDescriptorAddressRange],
+      },
+      {
+        'desc': changeDesc,
+        'active': true,
+        'internal': true,
+        'timestamp': rescanning ? 0 : 'now',
+        'range': [0, kDescriptorAddressRange],
+      },
+    ]);
+  }
+
+  List<TransactionRow> get transactionRows {
+    final rows = <TransactionRow>[];
+    
+    for (final tx in transactions) {
+      final group = _findGroupByIdWithFallback(tx.groupId);
+      
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
       final hasWalletKeys = walletKeys.isNotEmpty;
-      
-      // Check if wallet has signed (any wallet key has a signed PSBT)
-      final walletHasSigned = hasWalletKeys && tx.keyPSBTs.any((kp) => 
+      final walletHasSigned = tx.keyPSBTs.any((kp) => 
         walletKeys.any((wk) => wk.xpub == kp.keyId) && kp.isSigned,
       );
       
@@ -125,588 +864,116 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
     return rows;
   }
 
-  Future<Map<String, dynamic>> _getWalletInfo(String walletName) async {
-    await _logToFile('Getting wallet info for: $walletName');
-    final walletInfo = await _walletManager.getWalletBalanceAndUtxos(walletName);
-    
-    // Validate response structure
-    if (walletInfo['balance'] is! num) {
-      throw Exception('Invalid balance type from wallet $walletName: ${walletInfo['balance'].runtimeType}');
-    }
-    if (walletInfo['utxos'] is! int) {
-      throw Exception('Invalid utxos type from wallet $walletName: ${walletInfo['utxos'].runtimeType}');  
-    }
-    if (walletInfo['utxo_details'] is! List) {
-      throw Exception('Invalid utxo_details type from wallet $walletName: ${walletInfo['utxo_details'].runtimeType}');
-    }
-    
-    final balance = (walletInfo['balance'] as num).toDouble();
-    final utxoCount = walletInfo['utxos'] as int;
-    final utxoDetailsList = walletInfo['utxo_details'] as List<Map<String, dynamic>>;
-    
-    // Convert UTXO details to UtxoInfo objects
-    final utxoDetails = utxoDetailsList.map((utxo) => UtxoInfo(
-      txid: utxo['txid'] as String,
-      vout: utxo['vout'] as int,
-      address: utxo['address'] as String,
-      amount: (utxo['amount'] as num).toDouble(),
-      confirmations: utxo['confirmations'] as int,
-      scriptPubKey: utxo['scriptPubKey'] as String?,
-      spendable: utxo['spendable'] as bool? ?? true,
-      solvable: utxo['solvable'] as bool? ?? true,
-      safe: utxo['safe'] as bool? ?? true,
-    ),).toList();
-    
-    await _logToFile('Wallet $walletName info: balance=$balance, UTXOs=${utxoDetails.length}');
-    
-    return {
-      'balance': balance,
-      'utxos': utxoCount,
-      'utxo_details': utxoDetails,
-    };
+  bool get hasReadyTransactions => 
+    transactions.any((tx) => tx.status == TxStatus.readyForBroadcast);
+
+  void selectGroup(MultisigGroup? group) {
+    selectedGroup = group;
+    notifyListeners();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _refreshData();
-  }
-  
-  Future<void> _refreshData() async {
-    await _loadMultisigGroups();
-    await _loadAndUpdateTransactions();
-    if (mounted) setState(() {});
+  // Actions
+  Future<void> createNewGroup(BuildContext context) async {
+    final result = await showDialog(
+      context: context,
+      builder: (context) => const CreateMultisigModal(),
+    );
+    
+    // Always refresh data after modal is closed, regardless of result
+    // because the modal might have created a group
+    if (context.mounted) {
+      await refreshData();
+    }
   }
 
-  Future<void> _loadMultisigGroups() async {
+  Future<void> importFromTxid(BuildContext context) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Import from TXID not yet implemented')),
+    );
+  }
+
+  Future<void> importPSBT(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => ImportPSBTModal(
+        availableGroups: multisigGroups,
+        onImportSuccess: () async {
+          await _refreshTransactions();
+          notifyListeners();
+        },
+      ),
+    );
+    
+    if (result == true && context.mounted) {
+      await _refreshTransactions();
+      notifyListeners();
+    }
+  }
+
+  Future<void> fundGroup(BuildContext context, MultisigGroup group) async {
     try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-
-      final appDir = await Environment.datadir();
-      final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final file = File(path.join(bitdriveDir, 'multisig.json'));
-
-      if (!await file.exists()) {
-        setState(() {
-          _multisigGroups = [];
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final content = await file.readAsString();
-      final List<dynamic> jsonGroups = json.decode(content);
+      final address = await _getNewAddress(group);
+      _logger.d('Got funding address for group ${group.name}: $address');
       
-      final groups = <MultisigGroup>[];
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => FundGroupModal(
+          groups: [group],
+        ),
+      );
       
-      // Load groups and update balances from watch-only wallets
-      bool hasUpdates = false;
-      
-      for (int i = 0; i < jsonGroups.length; i++) {
-        final jsonGroup = jsonGroups[i];
-        var group = MultisigGroup.fromJson(jsonGroup);
-        
-        // Ensure group has a watch wallet name
-        final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-        
-        // Get wallet balance, UTXO count, and detailed UTXO info using wallet-specific RPC
-        final walletInfo = await _getWalletInfo(walletName);
-        final balance = walletInfo['balance'] as double;
-        final utxoCount = walletInfo['utxos'] as int;
-        final utxoDetails = walletInfo['utxo_details'] as List<UtxoInfo>;
-        
-        // Ensure group has watchWalletName set
-        if (group.watchWalletName == null) {
-          group = MultisigGroup(
-            id: group.id,
-            name: group.name,
-            n: group.n,
-            m: group.m,
-            keys: group.keys,
-            created: group.created,
-            txid: group.txid,
-            descriptor: group.descriptor,
-            descriptorReceive: group.descriptorReceive,
-            descriptorChange: group.descriptorChange,
-            watchWalletName: walletName,
-            addresses: group.addresses,
-            utxoDetails: utxoDetails,
-            balance: balance,
-            utxos: utxoCount,
-            nextReceiveIndex: group.nextReceiveIndex,
-            nextChangeIndex: group.nextChangeIndex,
-          );
-          hasUpdates = true;
-          jsonGroup['watchWalletName'] = walletName;
-        }
-
-        try {
-          // Check if existing wallet has correct configuration
-          try {
-            final walletInfo = await _walletManager.getWalletInfo(walletName);
-            await _logToFile('Wallet $walletName configuration: private_keys_enabled=${walletInfo['private_keys_enabled']}, descriptors=${walletInfo['descriptors']}');
-            // Multisig wallets should always be watch-only (no private keys)
-            // We don't need to recreate the wallet
-          } catch (e) {
-            await _logToFile('Could not check wallet configuration: $e');
-          }
-          
-          // Get final wallet info to ensure we have the latest data
-          final finalWalletInfo = await _getWalletInfo(walletName);
-          final finalBalance = finalWalletInfo['balance'] as double;
-          final finalUtxoCount = finalWalletInfo['utxos'] as int;
-          final finalUtxoDetails = finalWalletInfo['utxo_details'] as List<UtxoInfo>;
-
-          // Check if balance or UTXO count has changed
-          if (group.balance != finalBalance || group.utxos != finalUtxoCount) {
-            hasUpdates = true;
-            
-            // Update the JSON data
-            jsonGroup['balance'] = finalBalance;
-            jsonGroup['utxos'] = finalUtxoCount;
-            jsonGroup['utxo_details'] = finalUtxoDetails.map((utxo) => utxo.toJson()).toList();
-          }
-          
-          // Create updated group object with latest wallet data
-          group = MultisigGroup(
-            id: group.id,
-            name: group.name,
-            n: group.n,
-            m: group.m,
-            keys: group.keys,
-            created: group.created,
-            txid: group.txid,
-            descriptor: group.descriptor,
-            descriptorReceive: group.descriptorReceive,
-            descriptorChange: group.descriptorChange,
-            watchWalletName: walletName,
-            addresses: group.addresses,
-            utxoDetails: finalUtxoDetails,
-            balance: finalBalance,
-            utxos: finalUtxoCount,
-            nextReceiveIndex: group.nextReceiveIndex,
-            nextChangeIndex: group.nextChangeIndex,
-          );
-          
-        } catch (e) {
-          
-          // If wallet doesn't exist, try to create it
-          if (e.toString().contains('Wallet file not specified') || 
-              e.toString().contains('not found')) {
-            try {
-              await _createWatchOnlyWallet(group);
-              
-              // Try getting wallet info again after wallet creation
-              // Note: At this point we'll update the group in the final section
-              
-              if (group.balance != balance || group.utxos != utxoCount) {
-                hasUpdates = true;
-                jsonGroup['balance'] = balance;
-                jsonGroup['utxos'] = utxoCount;
-              }
-              
-              group = MultisigGroup(
-                id: group.id,
-                name: group.name,
-                n: group.n,
-                m: group.m,
-                keys: group.keys,
-                created: group.created,
-                txid: group.txid,
-                descriptor: group.descriptor,
-                descriptorReceive: group.descriptorReceive,
-                descriptorChange: group.descriptorChange,
-                watchWalletName: walletName,
-                addresses: group.addresses,
-                utxoDetails: utxoDetails,
-                balance: balance,
-                utxos: utxoCount,
-                nextReceiveIndex: group.nextReceiveIndex,
-                nextChangeIndex: group.nextChangeIndex,
-              );
-            } catch (createError) {
-              await _logToFile('Failed to create watch-only wallet for ${group.name}: $createError');
-              rethrow;
-            }
-          }
-        }
-        
-        groups.add(group);
-      }
-      
-      // Write updates back to multisig.json if there were changes
-      if (hasUpdates) {
-        try {
-          await file.writeAsString(json.encode(jsonGroups));
-        } catch (e) {
-          await _logToFile('CRITICAL: Failed to save multisig groups after loading: $e');
-          rethrow;
-        }
-      }
-      
-      // Load transactions and update confirmations for broadcasted transactions
-      await _loadAndUpdateTransactions();
-      
-      setState(() {
-        _multisigGroups = groups;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load multisig groups: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadAndUpdateTransactions() async {
-    try {
-      // Load all transactions
-      _transactions = await TransactionStorage.loadTransactions();
-      
-      // Update confirmations for broadcasted transactions
-      final broadcastedTransactions = _transactions
-          .where((tx) => tx.status == TxStatus.broadcasted && tx.txid != null)
-          .toList();
-      
-      for (final tx in broadcastedTransactions) {
-        try {
-          // Find the group for this transaction to get the wallet name
-          final group = _multisigGroups.firstWhere(
-            (g) => g.id == tx.groupId,
-            orElse: () => throw Exception('Group not found'),
-          );
-          
-          // Get transaction info from the watch-only wallet
-          final txInfo = await _walletManager.callWalletRPC<Map<String, dynamic>>(
-            group.watchWalletName ?? 'multisig_${group.id}',
-            'gettransaction',
-            [tx.txid!],
-          );
-          
-          final confirmations = txInfo['confirmations'] as int? ?? 0;
-          
-          // Update status if confirmed
-          if (confirmations >= 6 && tx.status != TxStatus.confirmed) {
-            await TransactionStorage.updateTransactionStatus(
-              tx.id,
-              TxStatus.confirmed,
-              confirmations: confirmations,
-            );
-          } else if (confirmations != tx.confirmations) {
-            // Update confirmation count
-            await TransactionStorage.updateTransactionStatus(
-              tx.id,
-              tx.status,
-              confirmations: confirmations,
-            );
-          }
-        } catch (e) {
-          // Transaction might not be in wallet yet, continue
-        }
-      }
-      
-      // Reload transactions after updates
-      _transactions = await TransactionStorage.loadTransactions();
-      
-      if (mounted) {
-        setState(() {});
+      if (result == true && context.mounted) {
+        await refreshData();
       }
     } catch (e) {
-      await _logToFile('Failed to load transactions: $e');
-      if (mounted) {
-        setState(() {});
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to get funding address: $e')),
+        );
       }
     }
   }
-  
-  Future<void> _refreshAllGroups() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
 
+  Future<void> fundGroupWithSelection(BuildContext context) async {
     try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final file = File(path.join(bitdriveDir, 'multisig.json'));
-
-      if (!await file.exists()) {
-        setState(() {
-          _multisigGroups = [];
-          _isLoading = false;
-        });
-        return;
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => FundGroupModal(
+          groups: multisigGroups,
+        ),
+      );
+      
+      if (result == true && context.mounted) {
+        await refreshData();
       }
-
-      final content = await file.readAsString();
-      final List<dynamic> jsonGroups = json.decode(content);
-      
-      final groups = <MultisigGroup>[];
-      bool hasUpdates = false;
-      
-      
-      for (int i = 0; i < jsonGroups.length; i++) {
-        final jsonGroup = jsonGroups[i];
-        var group = MultisigGroup.fromJson(jsonGroup);
-        
-        final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-        
-        try {
-          // Check if descriptors are imported
-          bool needsImport = false;
-          
-          // Descriptors - declare at this scope so they can be used throughout
-          String? receiveDesc = group.descriptorReceive;
-          String? changeDesc = group.descriptorChange;
-          
-          // Check if wallet exists and has correct configuration
-          final walletExists = await _walletManager.isWalletLoaded(walletName);
-          
-          if (!walletExists) {
-            await _walletManager.createWallet(
-              walletName,
-              disablePrivateKeys: true, // Multisig wallets are watch-only
-              blank: true,
-              descriptors: true,
-            );
-            needsImport = true;
-          } else {
-            // Check if existing wallet has private keys disabled
-            try {
-              final walletInfo = await _walletManager.getWalletInfo(walletName);
-              final privateKeysDisabled = walletInfo['private_keys_enabled'] == false;
-              
-              if (privateKeysDisabled) {
-                
-                // Unload and remove the old wallet
-                try {
-                  await _rpc.callRAW('unloadwallet', [walletName]);
-                } catch (e) {
-                  await _logToFile('Failed to unload wallet $walletName during recreation: $e');
-                  // Don't rethrow here - continue with creation attempt
-                }
-                
-                // Create new wallet with private keys enabled
-                await _walletManager.createWallet(
-                  walletName,
-                  disablePrivateKeys: true, // Multisig wallets are watch-only
-                  blank: true,
-                  descriptors: true,
-                );
-                
-                // Mark that we need to reimport descriptors
-                needsImport = true;
-              }
-            } catch (e) {
-              await _logToFile('Failed to create wallet $walletName: $e');
-              rethrow;
-            }
-          }
-          
-          // Also check by trying to get balance - if it fails with specific errors, we need to import
-          if (!needsImport) {
-            try {
-              await _walletManager.getWalletBalance(walletName);
-            } catch (e) {
-              if (e.toString().contains('does not have descriptors') || 
-                  e.toString().contains('no descriptors')) {
-                needsImport = true;
-              }
-            }
-          }
-          
-          // Also check by trying to list descriptors
-          try {
-            final descriptors = await _walletManager.callWalletRPC<Map<String, dynamic>>(
-              walletName, 
-              'listdescriptors', 
-              [],
-            );
-            if (descriptors['descriptors'] == null || 
-                (descriptors['descriptors'] as List).isEmpty) {
-              needsImport = true;
-            }
-          } catch (e) {
-            needsImport = true;
-          }
-          
-          if (needsImport) {
-            
-            // Build descriptors if not available
-            if (receiveDesc == null || changeDesc == null) {
-              final descriptors = await _buildDescriptors(group);
-              receiveDesc = descriptors['receive'];
-              changeDesc = descriptors['change'];
-              
-              // Save the regenerated descriptors back to the JSON
-              hasUpdates = true;
-              jsonGroup['descriptorReceive'] = receiveDesc;
-              jsonGroup['descriptorChange'] = changeDesc;
-              await _logToFile('Generated and saved descriptors for group ${group.name}');
-            }
-            
-            // Import with appropriate timestamp
-            final timestamp = group.created ?? 'now';
-            await _walletManager.importDescriptors(walletName, [
-              {
-                'desc': receiveDesc,
-                'active': true,
-                'internal': false,
-                'timestamp': timestamp,
-                'range': [0, 999],
-              },
-              {
-                'desc': changeDesc,
-                'active': true,
-                'internal': true,
-                'timestamp': timestamp,
-                'range': [0, 999],
-              },
-            ]);
-            
-          }
-          
-          // Get wallet balance and UTXO info using wallet-specific RPC
-          var walletInfo = await _getWalletInfo(walletName);
-          var balance = walletInfo['balance'] as double;
-          var utxoCount = walletInfo['utxos'] as int;
-          var utxoDetails = walletInfo['utxo_details'] as List<UtxoInfo>;
-          
-          // If wallet shows 0 balance but was created more than 2 hours ago, trigger a rescan
-          final walletAge = DateTime.now().millisecondsSinceEpoch ~/ 1000 - group.created;
-          if (balance == 0.0 && utxoCount == 0 && walletAge > 7200) { // 2 hours in seconds
-            await _logToFile('Wallet $walletName shows 0 balance but is ${walletAge ~/ 3600} hours old. FORCING rescan...');
-            await _walletManager.rescanRecentBlocks(walletName, hoursBack: 48);
-            // Refetch balance after rescan
-            walletInfo = await _getWalletInfo(walletName);
-            balance = walletInfo['balance'] as double;
-            utxoCount = walletInfo['utxos'] as int;
-            utxoDetails = walletInfo['utxo_details'] as List<UtxoInfo>;
-            await _logToFile('After rescan: wallet $walletName balance: $balance, UTXOs: $utxoCount');
-          }
-          
-          // Update if changed
-          if (group.balance != balance || group.utxos != utxoCount) {
-            hasUpdates = true;
-            jsonGroup['balance'] = balance;
-            jsonGroup['utxos'] = utxoCount;
-            jsonGroup['utxo_details'] = utxoDetails.map((utxo) => utxo.toJson()).toList();
-          }
-          
-          // Ensure watchWalletName is saved
-          if (group.watchWalletName == null) {
-            hasUpdates = true;
-            jsonGroup['watchWalletName'] = walletName;
-          }
-          
-          groups.add(MultisigGroup(
-            id: group.id,
-            name: group.name,
-            n: group.n,
-            m: group.m,
-            keys: group.keys,
-            created: group.created,
-            txid: group.txid,
-            descriptor: group.descriptor,
-            descriptorReceive: receiveDesc ?? group.descriptorReceive,
-            descriptorChange: changeDesc ?? group.descriptorChange,
-            watchWalletName: walletName,
-            addresses: group.addresses,
-            utxoDetails: utxoDetails,
-            balance: balance,
-            utxos: utxoCount,
-            nextReceiveIndex: group.nextReceiveIndex,
-            nextChangeIndex: group.nextChangeIndex,
-          ),);
-          
-        } catch (e) {
-          // Fail fast - don't silently add the old group, propagate the error
-          print('WALLET ERROR for ${group.name} (${group.id}): $e');
-          rethrow;
-        }
-      }
-      
-      // Save updates
-      if (hasUpdates) {
-        print('Saving updates to multisig.json with ${jsonGroups.length} groups');
-        await file.writeAsString(json.encode(jsonGroups));
-        print('Successfully saved multisig.json updates');
-      }
-      
-      setState(() {
-        _multisigGroups = groups;
-        _isLoading = false;
-      });
-      
     } catch (e) {
-      setState(() {
-        _error = 'Failed to refresh groups: $e';
-        _isLoading = false;
-      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open funding modal: $e')),
+        );
+      }
     }
   }
 
-  Future<void> _reimportDescriptors(MultisigGroup group) async {
+  Future<String> _getNewAddress(MultisigGroup group) async {
+    final walletName = group.watchWalletName ?? 'multisig_${group.id}';
+    
+    try {
+      await _walletManager.getWalletInfo(walletName);
+    } catch (e) {
+      await _createWatchOnlyWallet(group);
+    }
+    
+    return await _walletManager.getNewAddress(walletName);
+  }
+
+  Future<void> reimportDescriptors(BuildContext context, MultisigGroup group) async {
     try {
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
       
-      print('Reimporting descriptors for wallet: $walletName');
+      await _importDescriptorsToWallet(walletName, group, rescanning: true);
       
-      // Ensure wallet exists and has correct configuration
-      if (!await _walletManager.isWalletLoaded(walletName)) {
-        print('Wallet $walletName not found, creating it first');
-        await _walletManager.createWallet(
-          walletName,
-          disablePrivateKeys: true, // Multisig wallets are watch-only
-          blank: true,
-          descriptors: true,
-        );
-      } else {
-        // Check wallet configuration
-        try {
-          final walletInfo = await _walletManager.getWalletInfo(walletName);
-          print('Wallet $walletName exists with configuration: private_keys_enabled=${walletInfo['private_keys_enabled']}, descriptors=${walletInfo['descriptors']}');
-        } catch (e) {
-          print('Could not check wallet configuration: $e');
-        }
-      }
-      
-      // Get descriptors
-      String? receiveDesc = group.descriptorReceive;
-      String? changeDesc = group.descriptorChange;
-      
-      if (receiveDesc == null || changeDesc == null) {
-          final descriptors = await _buildDescriptors(group);
-        receiveDesc = descriptors['receive'];
-        changeDesc = descriptors['change'];
-      }
-      
-      
-      // Import descriptors with rescan
-      final importResult = await _walletManager.importDescriptors(walletName, [
-        {
-          'desc': receiveDesc,
-          'active': true,
-          'internal': false,
-          'timestamp': 0,  // Rescan from genesis
-          'range': [0, 999],  // Import first 1000 addresses
-        },
-        {
-          'desc': changeDesc,
-          'active': true,
-          'internal': true,
-          'timestamp': 0,  // Rescan from genesis
-          'range': [0, 999],  // Import first 1000 addresses
-        },
-      ]);
-      
-      
-      // Show success message
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Descriptors reimported for ${group.name}. Rescanning blockchain...'),
@@ -714,9 +981,8 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           ),
         );
       }
-      
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to reimport descriptors: $e'),
@@ -727,73 +993,23 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
     }
   }
 
-  Future<void> _createWatchOnlyWallet(MultisigGroup group) async {
-    try {
-      final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-      
-      
-      // Create watch-only wallet for multisig
-      await _walletManager.createWallet(
-        walletName,
-        disablePrivateKeys: true, // Multisig wallets are watch-only
-        blank: true,
-        descriptors: true,
-      );
-      
-      // Build descriptors on-demand if not available
-      String? receiveDesc = group.descriptorReceive;
-      String? changeDesc = group.descriptorChange;
-      
-      if (receiveDesc == null || changeDesc == null) {
-        final descriptors = await _buildDescriptors(group);
-        receiveDesc = descriptors['receive'];
-        changeDesc = descriptors['change'];
-      }
-      
-      // Import descriptors using wallet manager
-      final importResult = await _walletManager.importDescriptors(walletName, [
-        {
-          'desc': receiveDesc,
-          'active': true,
-          'internal': false,
-          'timestamp': 'now',
-          'range': [0, 999],
-        },
-        {
-          'desc': changeDesc,
-          'active': true,
-          'internal': true,
-          'timestamp': 'now',
-          'range': [0, 999],
-        },
-      ]);
-      
-      
-    } catch (e) {
-      print('Failed to import descriptors for group ${group.name}: $e');
-      rethrow;
-    }
-  }
-
-  // Transaction management methods
-  Future<void> _createTransaction(MultisigGroup? group) async {
+  Future<void> createTransaction(BuildContext context, MultisigGroup? group) async {
     try {
       final result = await showDialog<bool>(
         context: context,
         builder: (context) => PSBTCoordinatorModal(
-          group: group, // Can be null to trigger group selection
-          availableGroups: _multisigGroups.where((g) => g.balance > 0).toList(),
+          group: group,
+          availableGroups: multisigGroups.where((g) => g.balance > 0).toList(),
         ),
       );
       
-      
-      // Reload data after modal closes
-      if (result == true) {
-        await _refreshData();
+      if (result == true && context.mounted) {
+        // Immediately refresh transactions list
+        await _refreshTransactions();
+        notifyListeners();
       }
     } catch (e) {
-      print('Failed to create transaction: $e');
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to create transaction: $e')),
         );
@@ -801,49 +1017,205 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
     }
   }
 
-  Future<void> _openTransactionModal(MultisigTransaction transaction) async {
-    final group = _multisigGroups.firstWhere(
+  /// Refresh just the transactions without updating balances (faster)
+  Future<void> _refreshTransactions() async {
+    try {
+      _transactions = await TransactionStorage.loadTransactions();
+      _logger.d('Refreshed transactions: ${_transactions.length} loaded');
+    } catch (e) {
+      _logger.e('Failed to refresh transactions: $e');
+    }
+  }
+
+  Future<void> openCombineAndBroadcastModal(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => CombineBroadcastModal(
+        eligibleTransactions: transactions.where((tx) => 
+          tx.status == TxStatus.readyForBroadcast,
+        ).toList(),
+        multisigGroups: multisigGroups,
+        onBroadcastSuccess: () async {
+          await _refreshTransactions();
+          notifyListeners();
+        },
+      ),
+    );
+    
+    if (result == true && context.mounted) {
+      await _refreshTransactions();
+      notifyListeners();
+    }
+  }
+
+  Future<void> openTransactionModal(BuildContext context, MultisigTransaction transaction) async {
+    final group = multisigGroups.firstWhere(
       (g) => g.id == transaction.groupId,
       orElse: () => throw Exception('Group not found for transaction'),
     );
     
-    final result = await showDialog<bool>(
+    await showDialog<void>(
       context: context,
-      builder: (context) => PSBTCoordinatorModal(
-        group: group,
+      builder: (context) => _buildTransactionDetailsModal(context, transaction, group),
+    );
+  }
+
+  Widget _buildTransactionDetailsModal(BuildContext context, MultisigTransaction transaction, MultisigGroup group) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
+        child: SailCard(
+          title: 'Transaction Details',
+          subtitle: 'ID: ${transaction.id}',
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Transaction Status
+                SailRow(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SailText.primary15('Status:'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(transaction.status),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: SailText.primary12(
+                        _getStatusText(transaction.status),
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Basic Info
+                _buildDetailRow('Group:', group.name),
+                _buildDetailRow('Amount:', '${transaction.amount.toStringAsFixed(8)} BTC'),
+                _buildDetailRow('Fee:', '${transaction.fee.toStringAsFixed(8)} BTC'),
+                _buildDetailRow('Destination:', transaction.destination),
+                _buildDetailRow('Created:', _formatDateTime(transaction.created)),
+                
+                // Transaction Hash (if broadcasted)
+                if (transaction.txid != null)
+                  _buildDetailRow('Transaction ID:', transaction.txid!),
+                
+                // Confirmations (if confirmed)
+                if (transaction.confirmations > 0)
+                  _buildDetailRow('Confirmations:', transaction.confirmations.toString()),
+                
+                // Broadcast time (if broadcasted)
+                if (transaction.broadcastTime != null)
+                  _buildDetailRow('Broadcasted:', _formatDateTime(transaction.broadcastTime!)),
+                
+                // Signing Status
+                const SizedBox(height: 16),
+                SailText.primary15('Signing Status:'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.secondary12('Required signatures: ${transaction.requiredSignatures}'),
+                      SailText.secondary12('Current signatures: ${transaction.keyPSBTs.where((k) => k.isSigned).length}'),
+                      const SizedBox(height: 8),
+                      ...transaction.keyPSBTs.map((keyPSBT) {
+                        final keyName = group.keys.firstWhere(
+                          (k) => k.xpub == keyPSBT.keyId,
+                          orElse: () => MultisigKey(
+                            xpub: keyPSBT.keyId,
+                            owner: 'Unknown',
+                            derivationPath: '',
+                            isWallet: false,
+                          ),
+                        ).owner;
+                        
+                        return SailRow(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SailText.secondary12(keyName),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: keyPSBT.isSigned ? Colors.green : Colors.grey,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: SailText.primary10(
+                                keyPSBT.isSigned ? 'Signed' : 'Pending',
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                
+                // Close button
+                const SizedBox(height: 16),
+                SailButton(
+                  label: 'Close',
+                  onPressed: () async => Navigator.of(context).pop(),
+                  variant: ButtonVariant.secondary,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
-    
-    // Reload data after modal closes
-    if (result == true) {
-      await _refreshData();
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return SailRow(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary13(label),
+        const SizedBox(width: 16),
+        Flexible(
+          child: SailText.secondary13(
+            value,
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getStatusColor(TxStatus status) {
+    switch (status) {
+      case TxStatus.needsSignatures:
+        return Colors.orange;
+      case TxStatus.readyForBroadcast:
+        return Colors.blue;
+      case TxStatus.broadcasted:
+        return Colors.purple;
+      case TxStatus.confirmed:
+        return Colors.green;
+      case TxStatus.completed:
+        return Colors.teal;
+      case TxStatus.voided:
+        return Colors.red;
     }
   }
 
-  String _getTransactionActionLabel(MultisigTransaction tx) {
-    final group = _multisigGroups.firstWhere(
-      (g) => g.id == tx.groupId,
-      orElse: () => MultisigGroup(
-        id: tx.groupId,
-        name: 'Unknown',
-        n: 0,
-        m: 0,
-        keys: [],
-        created: 0,
-      ),
-    );
-    
-    // Check if current wallet has signed
-    final walletKeys = group.keys.where((k) => k.isWallet).toList();
-    final hasWalletSigned = tx.keyPSBTs.any((kp) => 
-      walletKeys.any((wk) => wk.xpub == kp.keyId) && kp.isSigned,
-    );
-    
-    switch (tx.status) {
+  String _getStatusText(TxStatus status) {
+    switch (status) {
       case TxStatus.needsSignatures:
-        return hasWalletSigned ? 'Signed' : 'Sign';
+        return 'Needs Signatures';
       case TxStatus.readyForBroadcast:
-        return 'Ready';
+        return 'Ready to Broadcast';
       case TxStatus.broadcasted:
         return 'Broadcasted';
       case TxStatus.confirmed:
@@ -855,25 +1227,23 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
     }
   }
 
-  Future<void> _handleTransactionAction(MultisigTransaction tx) async {
-    final group = _multisigGroups.firstWhere(
-      (g) => g.id == tx.groupId,
-      orElse: () => throw Exception('Group not found'),
-    );
-    
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
+           '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> handleTransactionAction(BuildContext context, MultisigTransaction tx, MultisigGroup group) async {
     switch (tx.status) {
       case TxStatus.needsSignatures:
-        // Check if current wallet needs to sign
         final walletKeys = group.keys.where((k) => k.isWallet).toList();
         final hasWalletSigned = tx.keyPSBTs.any((kp) => 
           walletKeys.any((wk) => wk.xpub == kp.keyId) && kp.isSigned,
         );
         
         if (!hasWalletSigned) {
-          await _signTransaction(tx, group);
+          await signTransaction(context, tx, group);
         } else {
-          // Show transaction details
-          await _openTransactionModal(tx);
+          await openTransactionModal(context, tx);
         }
         break;
       case TxStatus.readyForBroadcast:
@@ -881,40 +1251,29 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
       case TxStatus.confirmed:
       case TxStatus.completed:
       case TxStatus.voided:
-        await _openTransactionModal(tx);
+        await openTransactionModal(context, tx);
         break;
     }
   }
-  
-  Future<void> _signTransaction(MultisigTransaction tx, MultisigGroup group) async {
-    await _logToFile('=== STARTING TRANSACTION SIGNING WITH RPC ===');
-    await _logToFile('Transaction ID: ${tx.id}');
-    await _logToFile('Group: ${group.name} (${group.m}-of-${group.n})');
+
+  Future<void> signTransaction(BuildContext context, MultisigTransaction tx, MultisigGroup group) async {
+    MultisigLogger.info('Starting transaction signing for ${tx.id} in group ${group.name}');
     
     try {
-      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
       final rpcSigner = MultisigRPCSigner();
       
-      // Find the wallet key(s)
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
       if (walletKeys.isEmpty) {
         throw Exception('No wallet keys found in group');
       }
       
-      await _logToFile('Found ${walletKeys.length} wallet keys to sign with:');
-      for (int i = 0; i < walletKeys.length; i++) {
-        final key = walletKeys[i];
-        await _logToFile('  [$i] ${key.owner}: ${key.xpub.substring(0, 20)}... (path: ${key.derivationPath}, fingerprint: ${key.fingerprint}, isWallet: ${key.isWallet})');
-      }
-      
-      // Check if already signed
       final alreadySigned = walletKeys.any((walletKey) =>
         tx.keyPSBTs.any((kp) => kp.keyId == walletKey.xpub && kp.isSigned),
       );
       
       if (alreadySigned) {
-        await _logToFile('WARNING - Wallet has already signed this transaction!');
-        if (mounted) {
+        MultisigLogger.info('Wallet has already signed this transaction');
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Transaction already signed by this wallet')),
           );
@@ -922,15 +1281,12 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         return;
       }
       
-      // Get mnemonic from HD wallet provider
-      if (hdWalletProvider.mnemonic == null) {
+      if (_hdWalletProvider.mnemonic == null) {
         throw Exception('HD wallet not initialized - no mnemonic available');
       }
       
-      final mnemonic = hdWalletProvider.mnemonic!;
-      await _logToFile('Using mnemonic from HD wallet provider');
+      final mnemonic = _hdWalletProvider.mnemonic!;
       
-      // Determine network (mainnet vs signet)
       final isMainnet = await _rpc.callRAW('getblockchaininfo').then((info) {
         if (info is Map) {
           final chain = info['chain'] as String? ?? 'main';
@@ -939,11 +1295,6 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         return false;
       });
       
-      await _logToFile('Network detected: ${isMainnet ? "mainnet" : "signet/testnet"}');
-      await _logToFile('Initial PSBT to sign (length: ${tx.initialPSBT.length})');
-      
-      // Sign PSBT using RPC-based signer
-      await _logToFile('Calling MultisigRPCSigner.signPSBT with ${walletKeys.length} wallet keys...');
       final signingResult = await rpcSigner.signPSBT(
         psbtBase64: tx.initialPSBT,
         group: group,
@@ -952,19 +1303,13 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         isMainnet: isMainnet,
       );
       
-      await _logToFile('✓ PSBT signed successfully with RPC signer');
-      await _logToFile('Signed PSBT length: ${signingResult.signedPsbt.length}');
-      await _logToFile('Is complete: ${signingResult.isComplete}');
-      await _logToFile('Signatures added: ${signingResult.signaturesAdded}');
+      MultisigLogger.info('PSBT signed successfully: ${signingResult.signaturesAdded} signatures added, complete: ${signingResult.isComplete}');
       
       if (signingResult.errors.isNotEmpty) {
-        await _logToFile('Signing warnings: ${signingResult.errors.join(', ')}');
+        MultisigLogger.error('Signing warnings: ${signingResult.errors.join(', ')}');
       }
       
-      // Update transaction with signed PSBT for all wallet keys
-      await _logToFile('Updating key PSBTs in storage...');
       for (final key in walletKeys) {
-        await _logToFile('  Updating key: ${key.xpub.substring(0, 20)}... (${key.owner})');
         await TransactionStorage.updateKeyPSBT(
           tx.id, 
           key.xpub, 
@@ -972,14 +1317,12 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           signatureThreshold: group.m,
         );
       }
-      await _logToFile('✓ All wallet keys updated with signed PSBT');
       
-      // Reload transactions to reflect the new signatures
-      await _logToFile('Reloading transactions...');
-      await _loadAndUpdateTransactions();
+      // Immediately refresh transactions to show updated signing status
+      await _refreshTransactions();
+      notifyListeners(); // Ensure UI updates with new transaction status
       
-      if (mounted) {
-        // Only show success message if signatures were actually added
+      if (context.mounted) {
         if (signingResult.signaturesAdded > 0) {
           final message = signingResult.isComplete 
               ? 'Transaction signed and completed successfully!'
@@ -992,7 +1335,6 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
             ),
           );
         } else {
-          // Show error message when no signatures added
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to add signatures to transaction'),
@@ -1002,12 +1344,12 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         }
       }
       
-      await _logToFile('=== TRANSACTION SIGNING COMPLETED SUCCESSFULLY ===');
+      MultisigLogger.info('Transaction signing completed successfully');
       
     } catch (e) {
-      await _logToFile('ERROR in _signTransaction: $e');
+      MultisigLogger.error('Error in transaction signing: $e');
       
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to sign transaction: $e'),
@@ -1018,321 +1360,9 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
     }
   }
 
-
-  
-  Future<void> _openCombineAndBroadcastModal() async {
-    final eligibleTransactions = _transactions.where((tx) => 
-      tx.status != TxStatus.completed && 
-      tx.status != TxStatus.voided && 
-      tx.signedPSBTs.isNotEmpty,
-    ).toList();
-    
-    await showDialog(
-      context: context,
-      builder: (context) => CombineBroadcastModal(
-        eligibleTransactions: eligibleTransactions,
-        multisigGroups: _multisigGroups,
-        onBroadcastSuccess: _refreshData,
-      ),
-    );
-  }
-
-
-  Future<void> _openImportPSBTModal() async {
-    await showDialog(
-      context: context,
-      builder: (context) => ImportPSBTModal(
-        availableGroups: _multisigGroups,
-        onImportSuccess: _refreshData,
-      ),
-    );
-  }
-
-
   @override
-  Widget build(BuildContext context) {
-    return QtPage(
-      child: SingleChildScrollView(
-        child: SailColumn(
-          spacing: SailStyleValues.padding16,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Groups section
-            SailCard(
-              title: 'Multisig Groups',
-              subtitle: 'Create and manage multi-signature wallets',
-              error: _error,
-              child: SizedBox(
-                height: 300,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : SailTable(
-                              getRowId: (index) => _multisigGroups.isNotEmpty 
-                                  ? _multisigGroups[index].id 
-                                  : 'empty$index',
-                              onSelectedRow: (rowId) {
-                                if (rowId != null && _multisigGroups.isNotEmpty) {
-                                  final group = _multisigGroups.firstWhere(
-                                    (g) => g.id == rowId,
-                                    orElse: () => _multisigGroups.first,
-                                  );
-                                  setState(() {
-                                    _selectedGroup = group;
-                                  });
-                                }
-                              },
-                              headerBuilder: (context) => [
-                                const SailTableHeaderCell(name: 'Name'),
-                                const SailTableHeaderCell(name: 'ID'),
-                                const SailTableHeaderCell(name: 'Balance (BTC)'),
-                                const SailTableHeaderCell(name: 'UTXOs'),
-                                const SailTableHeaderCell(name: 'Total Keys'),
-                                const SailTableHeaderCell(name: 'Keys Required'),
-                                const SailTableHeaderCell(name: 'Type'),
-                              ],
-                              rowBuilder: (context, row, selected) {
-                                if (_multisigGroups.isEmpty) {
-                                  return [
-                                    const SailTableCell(value: 'No multisig groups yet'),
-                                    const SailTableCell(value: ''),
-                                    const SailTableCell(value: ''),
-                                    const SailTableCell(value: ''),
-                                    const SailTableCell(value: ''),
-                                    const SailTableCell(value: ''),
-                                    const SailTableCell(value: ''),
-                                  ];
-                                }
-                                
-                                final group = _multisigGroups[row];
-                                return [
-                                  SailTableCell(value: group.name),
-                                  SailTableCell(value: group.id.toUpperCase()),
-                                  SailTableCell(value: group.balance.toStringAsFixed(8)),
-                                  SailTableCell(value: group.utxos.toString()),
-                                  SailTableCell(value: group.n.toString()),
-                                  SailTableCell(value: group.m.toString()),
-                                  SailTableCell(value: 'xPub'),
-                                ];
-                              },
-                              rowCount: _multisigGroups.isEmpty ? 1 : _multisigGroups.length,
-                              drawGrid: true,
-                            ),
-                    ),
-                    const SizedBox(width: SailStyleValues.padding16),
-                    Center(
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding08,
-                        children: [
-                          SailButton(
-                            label: 'Create New Group',
-                            onPressed: () async {
-                              final result = await showDialog(
-                                context: context,
-                                builder: (context) => const CreateMultisigModal(),
-                              );
-                              
-                              // Reload groups after modal closes
-                              if (result != false) {
-                                await _refreshData();
-                              }
-                            },
-                            variant: ButtonVariant.primary,
-                          ),
-                          SailButton(
-                            label: 'Import from TXID',
-                            onPressed: () async {
-                              final result = await showDialog(
-                                context: context,
-                                builder: (context) => const ImportMultisigModal(),
-                              );
-                              
-                              // Reload groups after import
-                              if (result == true) {
-                                await _refreshData();
-                              }
-                            },
-                            variant: ButtonVariant.secondary,
-                          ),
-                          SailButton(
-                            label: 'Fund Group',
-                            onPressed: _multisigGroups.isEmpty ? null : () async {
-                              final result = await showDialog(
-                                context: context,
-                                builder: (context) => FundGroupModal(
-                                  groups: _multisigGroups,
-                                ),
-                              );
-                              
-                              if (result == true) {
-                                await _refreshData();
-                              }
-                            },
-                            variant: ButtonVariant.secondary,
-                          ),
-                          SailButton(
-                            label: 'Refresh',
-                            onPressed: _refreshData,
-                            variant: ButtonVariant.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Transaction History section
-            SailCard(
-              title: 'Transaction History',
-              subtitle: 'View and manage multisig transactions',
-              child: SizedBox(
-                height: 300,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: SailTable(
-                        getRowId: (index) => _transactionRows.isNotEmpty 
-                            ? _transactionRows[index].transaction.id
-                            : 'empty$index',
-                        headerBuilder: (context) => [
-                          const SailTableHeaderCell(name: 'Group'),
-                          const SailTableHeaderCell(name: 'MuSIG ID'),
-                          const SailTableHeaderCell(name: 'Amount (BTC)'),
-                          const SailTableHeaderCell(name: 'Signatures'),
-                          const SailTableHeaderCell(name: 'Status'),
-                          const SailTableHeaderCell(name: 'TXID'),
-                          const SailTableHeaderCell(name: 'Confirmations'),
-                          const SailTableHeaderCell(name: 'Action'),
-                        ],
-                        rowBuilder: (context, row, selected) {
-                          if (_transactionRows.isEmpty) {
-                            return [
-                              const SailTableCell(value: 'No transactions yet'),
-                              const SailTableCell(value: ''),
-                              const SailTableCell(value: ''),
-                              const SailTableCell(value: ''),
-                              const SailTableCell(value: ''),
-                              const SailTableCell(value: ''),
-                              const SailTableCell(value: ''),
-                              const SailTableCell(value: ''),
-                            ];
-                          }
-                          
-                          final txRow = _transactionRows[row];
-                          final tx = txRow.transaction;
-                          final group = _multisigGroups.firstWhere(
-                            (g) => g.id == tx.groupId,
-                            orElse: () => MultisigGroup(
-                              id: tx.groupId,
-                              name: 'Unknown',
-                              n: 0,
-                              m: 0,
-                              keys: [],
-                              created: 0,
-                            ),
-                          );
-                          
-                          return [
-                            SailTableCell(value: group.name),
-                            SailTableCell(value: tx.shortId),
-                            SailTableCell(value: tx.amount.toStringAsFixed(8)),
-                            SailTableCell(value: '${tx.signatureCount}/${group.m}'),
-                            SailTableCell(value: tx.status.displayName),
-                            SailTableCell(value: tx.shortTxid ?? '-'),
-                            SailTableCell(value: tx.confirmations > 0 ? tx.confirmations.toString() : '-'),
-                            txRow.hasWalletKeys && !txRow.walletHasSigned && tx.status == TxStatus.needsSignatures
-                                ? SailTableCell(
-                                    value: '',
-                                    child: SailButton(
-                                      label: 'Sign',
-                                      variant: ButtonVariant.primary,
-                                      insideTable: true,
-                                      onPressed: () async {
-                                        print('Sign button pressed for transaction: ${tx.id}');
-                                        await _signTransaction(tx, group);
-                                      },
-                                    ),
-                                  )
-                                : tx.status == TxStatus.readyForBroadcast
-                                    ? SailTableCell(
-                                        value: '',
-                                        child: SailButton(
-                                          label: 'Broadcast',
-                                          variant: ButtonVariant.secondary,
-                                          insideTable: true,
-                                          onPressed: () async {
-                                            print('Broadcast button pressed for transaction: ${tx.id}');
-                                            await _openCombineAndBroadcastModal();
-                                          },
-                                        ),
-                                      )
-                                    : SailTableCell(
-                                        value: '',
-                                        child: SailButton(
-                                          label: 'View',
-                                          variant: ButtonVariant.secondary,
-                                          insideTable: true,
-                                          onPressed: () async {
-                                            print('View button pressed for transaction: ${tx.id}');
-                                            await _openTransactionModal(tx);
-                                          },
-                                        ),
-                                      ),
-                          ];
-                        },
-                        rowCount: _transactionRows.isEmpty ? 1 : _transactionRows.length,
-                        drawGrid: true,
-                      ),
-                    ),
-                    const SizedBox(width: SailStyleValues.padding16),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SailText.primary13('Transaction Tools'),
-                        SailSpacing(SailStyleValues.padding08),
-                        SailButton(
-                          label: 'Create Transaction',
-                          onPressed: _multisigGroups.any((g) => g.balance > 0) 
-                            ? () async {
-                                print('Create Transaction button pressed');
-                                await _createTransaction(null); // Pass null to trigger group selection
-                              }
-                            : null, // Disable if no funded groups
-                          variant: ButtonVariant.primary,
-                        ),
-                        SailSpacing(SailStyleValues.padding08),
-                        SailButton(
-                          label: 'Combine and Broadcast',
-                          onPressed: _transactions.any((tx) => 
-                            tx.status != TxStatus.completed && 
-                            tx.status != TxStatus.voided && 
-                            tx.signedPSBTs.isNotEmpty,)
-                            ? () async => await _openCombineAndBroadcastModal()
-                            : null,
-                          variant: ButtonVariant.secondary,
-                        ),
-                        SailSpacing(SailStyleValues.padding08),
-                        SailButton(
-                          label: 'Import PSBT',
-                          onPressed: () async => await _openImportPSBTModal(),
-                          variant: ButtonVariant.secondary,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-          ],
-        ),
-      ),
-    );
+  void dispose() {
+    _stopRefreshTimer();
+    super.dispose();
   }
 }

@@ -16,21 +16,6 @@ import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-// Helper function to log multisig debugging information to file
-Future<void> _logToFile(String message) async {
-  try {
-    final dir = Directory(path.dirname(path.current));
-    final file = File(path.join(dir.path, 'bitwindow', 'multisig_output.txt'));
-    
-    // Ensure parent directory exists
-    await file.parent.create(recursive: true);
-    
-    final timestamp = DateTime.now().toIso8601String();
-    await file.writeAsString('[$timestamp] MULTISIG_MODAL: $message\n', mode: FileMode.append);
-  } catch (e) {
-    print('Failed to write to multisig_output.txt: $e');
-  }
-}
 
 class MultisigKey {
   final String owner;
@@ -703,20 +688,17 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       
       // Get the next available account index (considering session usage)
       final accountIndex = await _hdWallet.getNextAccountIndex(_sessionUsedAccountIndices);
-      await _logToFile('Using account index: $accountIndex');
       
       // Track this index in the session
       _sessionUsedAccountIndices.add(accountIndex);
       
       // Generate wallet xPub
-      await _logToFile('Generate key: isMainnet=$isMainnet, accountIndex=$accountIndex');
       final keyInfo = await _hdWallet.generateWalletXpub(accountIndex, isMainnet);
       
       if (keyInfo.isEmpty) {
         throw Exception('Failed to generate xPub');
       }
       
-      await _logToFile('Generated key info: xpub=${keyInfo['xpub']?.substring(0, 20) ?? 'null'}..., path=${keyInfo['derivation_path']}, fingerprint=${keyInfo['fingerprint']}');
       
       // Update controllers
       pubkeyController.text = keyInfo['xpub'] ?? '';
@@ -727,10 +709,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final relativeIndex = accountIndex - 8000;
       ownerController.text = 'MyKey$relativeIndex';
       
-      await _logToFile('Key generation complete for owner: MyKey$relativeIndex');
       
     } catch (e) {
-      await _logToFile('Failed to generate key: $e');
+      MultisigLogger.error('Failed to generate key: $e');
       modalError = 'Failed to generate xPub: $e';
     } finally {
       setBusy(false);
@@ -808,11 +789,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       isWallet: isWalletKey,
     );
 
-    await _logToFile('Saving key - owner: ${key.owner}, xpub: ${key.xpub.substring(0, 20)}..., path: ${key.derivationPath}, fingerprint: ${key.fingerprint}, isWallet: ${key.isWallet}');
 
     keys.add(key);
     
-    await _logToFile('Total keys saved: ${keys.length}/$n');
     
     // Clear form and prepare for next key (only if we haven't reached the limit)
     if (keys.length < n) {
@@ -866,34 +845,34 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       modalError = null;
       setBusy(true);
 
-      await _logToFile('Saving multisig group "${nameController.text}" with ${keys.length} keys');
+      MultisigLogger.info('Creating multisig group "${nameController.text}" with ${keys.length} keys');
 
       // Sort keys by BIP67 order (lexicographic order of xpubs)
       final sortedKeys = List<MultisigKey>.from(keys);
       sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
 
-      await _logToFile('Keys sorted by BIP67 order:');
-      for (int i = 0; i < sortedKeys.length; i++) {
-        final key = sortedKeys[i];
-        await _logToFile('  [$i] ${key.owner}: ${key.xpub.substring(0, 20)}..., path: ${key.derivationPath}, isWallet: ${key.isWallet}');
-      }
 
       // Compute multisig ID
       final multisigId = _computeMultisigId(sortedKeys);
-      await _logToFile('Computed multisig ID: $multisigId');
 
-      // Build descriptors for the multisig
-      String? descriptorReceive;
-      String? descriptorChange;
+      // Build descriptors for the multisig using centralized builder
+      late MultisigDescriptors descriptors;
       
       try {
-        descriptorReceive = await _buildDescriptor(sortedKeys, false);
-        descriptorChange = await _buildDescriptor(sortedKeys, true);
+        // Create a temporary MultisigGroup object with the sorted keys
+        final tempGroup = MultisigGroup(
+          id: multisigId,
+          name: nameController.text,
+          n: n,
+          m: m,
+          keys: sortedKeys,
+          created: DateTime.now().millisecondsSinceEpoch,
+        );
         
-        await _logToFile('Built descriptors - receive: ${descriptorReceive.substring(0, 50)}...');
-        await _logToFile('Built descriptors - change: ${descriptorChange.substring(0, 50)}...');
+        descriptors = await MultisigDescriptorBuilder.buildWatchOnlyDescriptors(tempGroup);
+        
       } catch (e) {
-        await _logToFile('Failed to build descriptors: $e');
+        MultisigLogger.error('Failed to build descriptors: $e');
         throw Exception('Failed to build multisig descriptors: $e');
       }
 
@@ -905,37 +884,35 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         'm': m,
         'keys': sortedKeys.map((key) => key.toJson()).toList(),
         'created': DateTime.now().millisecondsSinceEpoch,
-        'descriptorReceive': descriptorReceive,
-        'descriptorChange': descriptorChange,
+        'descriptorReceive': descriptors.receive,
+        'descriptorChange': descriptors.change,
         'watch_wallet_name': 'multisig_$multisigId',
       };
 
-      await _logToFile('Created multisig data structure with descriptors');
 
       // Create the Bitcoin Core watch-only wallet
-      await _logToFile('Creating Bitcoin Core watch-only wallet: multisig_$multisigId');
       
       try {
         // Create the multisig wallet in Bitcoin Core with private keys enabled
-        await _createMultisigWallet('multisig_$multisigId', descriptorReceive, descriptorChange);
-        await _logToFile('Successfully created multisig wallet: multisig_$multisigId');
+        await _createMultisigWallet('multisig_$multisigId', descriptors.receive, descriptors.change);
+        MultisigLogger.info('Successfully created multisig wallet: multisig_$multisigId');
         
       } catch (e) {
-        await _logToFile('Failed to create multisig wallet (continuing anyway): $e');
+        MultisigLogger.error('Failed to create multisig wallet (continuing anyway): $e');
         // Don't fail the entire process if wallet creation fails
         // The wallet can be created later when needed
       }
 
       // Broadcast via BitDrive with multisig flag and capture TXID
       final txid = await _broadcastMultisigGroup(multisigData);
-      await _logToFile('Broadcasted multisig group with TXID: $txid');
+      MultisigLogger.info('Broadcasted multisig group with TXID: $txid');
       
       // Add TXID to the data before saving locally
       multisigData['txid'] = txid;
 
       // Save to local file
       await _saveToLocalFile(multisigData);
-      await _logToFile('Saved multisig group to local file');
+      MultisigLogger.info('Multisig group created successfully');
 
       // Close dialog on success
       if (context.mounted) {
@@ -943,7 +920,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       }
       
     } catch (e) {
-      await _logToFile('Failed to save multisig group: $e');
+      MultisigLogger.error('Failed to save multisig group: $e');
       modalError = 'Failed to save multisig group: $e';
     } finally {
       setBusy(false);
@@ -1104,42 +1081,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<String> _buildDescriptor(List<MultisigKey> sortedKeys, bool isChange) async {
-    try {
-      // Build the key list with origins for wallet keys (consistent with wallet_multisig_lounge.dart)
-      final keyDescriptors = sortedKeys.map((key) {
-        if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-          return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
-        } else {
-          return key.xpub;
-        }
-      }).join(',');
-      
-      // Build the descriptor without checksum first
-      final descriptor = 'wsh(sortedmulti($m,$keyDescriptors/${isChange ? '1' : '0'}/*))'; 
-      
-      // Use Bitcoin Core to add checksum and validate the descriptor
-      try {
-        final descriptorInfo = await _rpc.callRAW('getdescriptorinfo', [descriptor]);
-        if (descriptorInfo is Map && descriptorInfo['descriptor'] != null) {
-          final descriptorWithChecksum = descriptorInfo['descriptor'] as String;
-          await _logToFile('Generated descriptor with checksum: ${descriptorWithChecksum.substring(0, 50)}...');
-          return descriptorWithChecksum;
-        } else {
-          throw Exception('Invalid descriptor info response: $descriptorInfo');
-        }
-      } catch (e) {
-        await _logToFile('Failed to add checksum to descriptor: $e');
-        throw Exception('Failed to validate and add checksum to descriptor: $e');
-      }
-    } catch (e) {
-      throw Exception('Failed to build descriptor: $e');
-    }
-  }
 
   Future<void> _createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {
     try {
-      await _logToFile('Creating multisig watch-only wallet: $walletName in wallets directory');
       
       // Create wallet as watch-only (no private keys) for multisig tracking
       // Bitcoin Core automatically places wallets in the wallets subdirectory when using createwallet
@@ -1153,22 +1097,17 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         false,  // load_on_startup
       ]);
       
-      await _logToFile('Wallet created successfully in wallets directory: $createResult');
       
       // Import descriptors using direct wallet RPC call
-      await _logToFile('Importing descriptors for wallet: $walletName');
       
       // Load the wallet first to make sure it's active
       try {
         await _rpc.callRAW('loadwallet', [walletName]);
-        await _logToFile('Wallet $walletName loaded successfully');
       } catch (e) {
         // Wallet might already be loaded, continue
-        await _logToFile('Wallet load warning (continuing): $e');
       }
       
       // Import descriptors to enable UTXO tracking
-      await _logToFile('Importing receive and change descriptors...');
       
       final descriptorsToImport = [
         {
@@ -1193,7 +1132,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         // Use WalletRPCManager to import descriptors
         final walletManager = WalletRPCManager();
         final importResult = await walletManager.importDescriptors(walletName, descriptorsToImport);
-        await _logToFile('Descriptor import result: $importResult');
         
         // Check if import was successful
         for (int i = 0; i < importResult.length; i++) {
@@ -1202,10 +1140,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
           final desc = i == 0 ? 'receive' : 'change';
           
           if (success) {
-            await _logToFile('✓ Successfully imported $desc descriptor');
           } else {
             final error = result['error'] ?? 'Unknown error';
-            await _logToFile('✗ Failed to import $desc descriptor: $error');
+            MultisigLogger.error('Failed to import $desc descriptor: $error');
             throw Exception('Failed to import $desc descriptor: $error');
           }
         }
@@ -1214,17 +1151,14 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         // Rescan will be done when funding the wallet
         
       } catch (e) {
-        await _logToFile('ERROR: Failed to import descriptors: $e');
+        MultisigLogger.error('Failed to import descriptors: $e');
         throw Exception('Failed to import descriptors for wallet $walletName: $e');
       }
-      await _logToFile('Multisig wallet $walletName created successfully with watch-only descriptors in wallets directory');
       
     } catch (e) {
-      await _logToFile('Failed to create multisig wallet $walletName: $e');
       
       // Check if it's just a "wallet already exists" error
       if (e.toString().contains('already exists') || e.toString().contains('Database already exists')) {
-        await _logToFile('Wallet $walletName already exists in wallets directory, continuing...');
         return; // Not a fatal error
       }
       
