@@ -130,7 +130,7 @@ packages:
     source: hosted
     version: "6.7.0"
   blockchain_utils:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: blockchain_utils
       sha256: "2681bc950d31fd12eff8b9ea803d686a845a69f94fa88fdefc8c12ad63f55837"

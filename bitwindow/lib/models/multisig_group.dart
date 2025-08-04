@@ -1,7 +1,7 @@
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 
-/// Enhanced MultisigGroup with full Bitcoin Core integration support
-class MultisigGroupEnhanced {
+/// MultisigGroup with full Bitcoin Core integration support
+class MultisigGroup {
   final String id;
   final String name;
   final int n;
@@ -23,7 +23,7 @@ class MultisigGroupEnhanced {
   final int nextChangeIndex;   // For change addresses
   final List<String> transactionIds;  // References to transactions in transactions.json
   
-  MultisigGroupEnhanced({
+  MultisigGroup({
     required this.id,
     required this.name,
     required this.n,
@@ -46,8 +46,8 @@ class MultisigGroupEnhanced {
        utxoDetails = utxoDetails ?? [],
        transactionIds = transactionIds ?? [];
 
-  factory MultisigGroupEnhanced.fromJson(Map<String, dynamic> json) {
-    return MultisigGroupEnhanced(
+  factory MultisigGroup.fromJson(Map<String, dynamic> json) {
+    return MultisigGroup(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       n: json['n'] ?? 0,
@@ -59,8 +59,8 @@ class MultisigGroupEnhanced {
       created: json['created'] ?? 0,
       txid: json['txid'],
       descriptor: json['descriptor'], // Legacy field, may be null
-      descriptorReceive: json['descriptor_receive'], // Legacy field, may be null
-      descriptorChange: json['descriptor_change'], // Legacy field, may be null
+      descriptorReceive: json['descriptorReceive'] ?? json['descriptor_receive'], // Support both naming conventions
+      descriptorChange: json['descriptorChange'] ?? json['descriptor_change'], // Support both naming conventions
       watchWalletName: json['watch_wallet_name'] ?? 'multisig_${json['id']}', // Generate default
       addresses: _parseAddresses(json['addresses']), // May be null
       utxoDetails: _parseUtxos(json['utxo_details']), // May be null
@@ -81,8 +81,8 @@ class MultisigGroupEnhanced {
         'created': created,
         'txid': txid,
         'descriptor': descriptor,
-        'descriptor_receive': descriptorReceive,
-        'descriptor_change': descriptorChange,
+        'descriptorReceive': descriptorReceive,
+        'descriptorChange': descriptorChange,
         'watch_wallet_name': watchWalletName,
         'addresses': {
           'receive': addresses['receive']?.map((a) => a.toJson()).toList() ?? [],

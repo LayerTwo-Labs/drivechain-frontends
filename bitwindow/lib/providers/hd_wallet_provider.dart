@@ -14,6 +14,22 @@ import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:sail_ui/config/sidechains.dart';
 
+// Helper function to log multisig debugging information to file
+Future<void> _logToFile(String message) async {
+  try {
+    final dir = Directory(path.dirname(path.current));
+    final file = File(path.join(dir.path, 'bitwindow', 'multisig_output.txt'));
+    
+    // Ensure parent directory exists
+    await file.parent.create(recursive: true);
+    
+    final timestamp = DateTime.now().toIso8601String();
+    await file.writeAsString('[$timestamp] HD_WALLET: $message\n', mode: FileMode.append);
+  } catch (e) {
+    print('Failed to write to multisig_output.txt: $e');
+  }
+}
+
 class HDWalletProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
@@ -207,7 +223,7 @@ class HDWalletProvider extends ChangeNotifier {
   }
 
 
-  // Enhanced key derivation method with proper xPub/tpub handling
+  // Key derivation method with proper xPub/tpub handling
   Future<Map<String, String>> deriveExtendedKeyInfo(String mnemonic, String path, [bool isMainnet = false]) async {
     try {
       // Adjust path for network-specific coin type
@@ -232,13 +248,13 @@ class HDWalletProvider extends ChangeNotifier {
       final extendedPrivateKey = chain.forPath(adjustedPath) as ExtendedPrivateKey;
       final extendedPublicKey = extendedPrivateKey.publicKey();
       
-      // Get raw extended key
-      final xprv = extendedPrivateKey.toString();
+      // Get raw extended keys
+      var xprv = extendedPrivateKey.toString();
       var xpub = extendedPublicKey.toString();
       
-      log.d('Network: ${isMainnet ? "mainnet" : "testnet/signet"}, Original xpub: $xpub');
+      log.d('Network: ${isMainnet ? "mainnet" : "testnet/signet"}, Original xpub: $xpub, Original xprv: ${xprv.substring(0, 8)}...');
       
-      // For testnet, convert xpub to tpub with proper checksum
+      // For testnet, convert both xpub to tpub and xprv to tprv with proper checksums
       // Bitcoin Core should accept this even if dart_bip32_bip44 can't import it
       if (!isMainnet && xpub.startsWith('xpub')) {
         try {
@@ -261,6 +277,30 @@ class HDWalletProvider extends ChangeNotifier {
         } catch (e) {
           log.e('Failed to convert to tpub: $e');
         }
+        
+        // Also convert xprv to tprv for testnet
+        if (xprv.startsWith('xprv')) {
+          try {
+            final decodedPriv = base58.decode(xprv);
+            if (decodedPriv.length == 82) {
+              // Change version bytes: xprv (0x0488ade4) -> tprv (0x04358394)
+              decodedPriv[0] = 0x04; decodedPriv[1] = 0x35; decodedPriv[2] = 0x83; decodedPriv[3] = 0x94;
+              
+              // Recalculate checksum
+              final payload = decodedPriv.sublist(0, 78);
+              final sha256Digest = SHA256Digest();
+              final hash1 = sha256Digest.process(payload);
+              final hash2 = sha256Digest.process(hash1);
+              final newChecksum = hash2.sublist(0, 4);
+              
+              decodedPriv.setRange(78, 82, newChecksum);
+              xprv = base58.encode(decodedPriv);
+              log.d('Generated testnet tprv: ${xprv.substring(0, 8)}...');
+            }
+          } catch (e) {
+            log.e('Failed to convert to tprv: $e');
+          }
+        }
       } else if (isMainnet && xpub.startsWith('tpub')) {
         // Convert tpub to xpub for mainnet
         try {
@@ -282,6 +322,30 @@ class HDWalletProvider extends ChangeNotifier {
           }
         } catch (e) {
           log.e('Failed to convert tpub version bytes: $e');
+        }
+        
+        // Also convert tprv to xprv for mainnet
+        if (xprv.startsWith('tprv')) {
+          try {
+            final decodedPriv = base58.decode(xprv);
+            if (decodedPriv.length == 82) {
+              // Change version bytes: tprv (0x04358394) -> xprv (0x0488ade4)
+              decodedPriv[0] = 0x04; decodedPriv[1] = 0x88; decodedPriv[2] = 0xad; decodedPriv[3] = 0xe4;
+              
+              // Recalculate checksum
+              final payload = decodedPriv.sublist(0, 78);
+              final sha256Digest = SHA256Digest();
+              final hash1 = sha256Digest.process(payload);
+              final hash2 = sha256Digest.process(hash1);
+              final newChecksum = hash2.sublist(0, 4);
+              
+              decodedPriv.setRange(78, 82, newChecksum);
+              xprv = base58.encode(decodedPriv);
+              log.d('Converted testnet tprv to mainnet xprv');
+            }
+          } catch (e) {
+            log.e('Failed to convert tprv version bytes: $e');
+          }
         }
       }
       
@@ -359,16 +423,27 @@ class HDWalletProvider extends ChangeNotifier {
 
   // Generate wallet xPub with origin info
   Future<Map<String, String>> generateWalletXpub(int accountIndex, [bool isMainnet = false]) async {
+    await _logToFile('generateWalletXpub called with accountIndex=$accountIndex, isMainnet=$isMainnet');
+    
     final coinType = isMainnet ? "0'" : "1'";
     final path = "m/84'/$coinType/$accountIndex'";
+    
+    await _logToFile('Deriving key at path: $path');
     final info = await deriveExtendedKeyInfo(_mnemonic ?? '', path, isMainnet);
     
-    if (info.isEmpty) return {};
+    if (info.isEmpty) {
+      await _logToFile('Failed to derive key info for path: $path');
+      return {};
+    }
+    
+    await _logToFile('Successfully derived key info: xpub=${info['xpub']?.substring(0, 20)}..., fingerprint=${info['fingerprint']}');
     
     // Add origin info to xpub
     final originPath = path.replaceFirst('m/', '');
     info['xpub_with_origin'] = "[${info['fingerprint']}/$originPath]${info['xpub']}";
     info['derivation_path'] = path;
+    
+    await _logToFile('Added derivation_path=$path to key info');
     
     return info;
   }

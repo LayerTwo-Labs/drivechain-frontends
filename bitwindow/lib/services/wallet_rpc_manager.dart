@@ -1,8 +1,26 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
+
+// Helper function to log wallet debugging information to file
+Future<void> _logToFile(String message) async {
+  try {
+    final dir = Directory(path.dirname(path.current));
+    final file = File(path.join(dir.path, 'bitwindow', 'multisig_output.txt'));
+    
+    // Ensure parent directory exists
+    await file.parent.create(recursive: true);
+    
+    final timestamp = DateTime.now().toIso8601String();
+    await file.writeAsString('[$timestamp] WALLET_RPC: $message\n', mode: FileMode.append);
+  } catch (e) {
+    print('Failed to write to multisig_output.txt: $e');
+  }
+}
 
 class WalletRPCManager {
   static final WalletRPCManager _instance = WalletRPCManager._internal();
@@ -18,9 +36,13 @@ class WalletRPCManager {
     String walletName,
     Future<T> Function() operation,
   ) async {
-    // Verify wallet exists (should be created explicitly beforehand)
+    // Load wallet if not already loaded
     if (!await isWalletLoaded(walletName)) {
-      throw Exception('Wallet $walletName does not exist. Create it explicitly first.');
+      try {
+        await loadWallet(walletName);
+      } catch (e) {
+        throw Exception('Wallet $walletName does not exist and could not be loaded: $e');
+      }
     }
 
     // Execute the operation using wallet-specific endpoint
@@ -28,41 +50,41 @@ class WalletRPCManager {
   }
 
   /// Load a specific wallet
-  Future<void> _loadWallet(String walletName) async {
+  Future<void> loadWallet(String walletName) async {
     try {
       // Check if wallet is already loaded
       final loadedWallets = await _rpc.callRAW('listwallets', []);
       if (loadedWallets is List && loadedWallets.contains(walletName)) {
-        print('Wallet $walletName is already loaded');
+        await _logToFile('Wallet $walletName is already loaded');
         return;
       }
 
-      print('Loading wallet: $walletName');
+      await _logToFile('Loading wallet: $walletName');
       await _rpc.callRAW('loadwallet', [walletName]);
-      print('Successfully loaded wallet: $walletName');
+      await _logToFile('Successfully loaded wallet: $walletName');
     } catch (e) {
       if (e.toString().contains('already loaded')) {
-        print('Wallet $walletName is already loaded (caught error)');
+        await _logToFile('Wallet $walletName is already loaded (caught error)');
         return;
       }
-      print('Failed to load wallet $walletName: $e');
+      await _logToFile('Failed to load wallet $walletName: $e');
       rethrow;
     }
   }
 
   /// Unload a specific wallet
-  Future<void> _unloadWallet(String walletName) async {
+  Future<void> unloadWallet(String walletName) async {
     try {
-      print('Unloading wallet: $walletName');
+      await _logToFile('Unloading wallet: $walletName');
       await _rpc.callRAW('unloadwallet', [walletName]);
-      print('Successfully unloaded wallet: $walletName');
+      await _logToFile('Successfully unloaded wallet: $walletName');
     } catch (e) {
       if (e.toString().contains('not found') || 
           e.toString().contains('not loaded')) {
-        print('Wallet $walletName was not loaded (ignoring error)');
+        await _logToFile('Wallet $walletName was not loaded (ignoring error)');
         return;
       }
-      print('Failed to unload wallet $walletName: $e');
+      await _logToFile('Failed to unload wallet $walletName: $e');
       // Don't rethrow - we want to continue even if unloading fails
     }
   }
@@ -96,7 +118,7 @@ class WalletRPCManager {
         data: payload,
       );
       
-      print('Wallet RPC URL: ${response.requestOptions.uri}');
+      await _logToFile('Wallet RPC URL: ${response.requestOptions.uri}');
       
       final data = response.data;
       if (data['error'] != null) {
@@ -105,7 +127,7 @@ class WalletRPCManager {
       }
       return data['result'] as T;
     } catch (e) {
-      print('Wallet RPC failed for $walletName.$method: $e');
+      await _logToFile('Wallet RPC failed for $walletName.$method: $e');
       rethrow;
     }
   }
@@ -193,13 +215,13 @@ class WalletRPCManager {
       if (loadedWallets is List) {
         for (final walletName in loadedWallets) {
           if (walletName is String) {
-            await _unloadWallet(walletName);
+            await unloadWallet(walletName);
           }
         }
       }
       _currentlyLoadedWallet = null;
     } catch (e) {
-      print('Failed to unload all wallets: $e');
+      await _logToFile('Failed to unload all wallets: $e');
     }
   }
 
@@ -227,32 +249,91 @@ class WalletRPCManager {
         );
         return result['ismine'] == true || result['iswatchonly'] == true;
       } catch (e) {
-        print('Failed to check address ownership: $e');
+        await _logToFile('Failed to check address ownership: $e');
         return false;
       }
+    });
+  }
+
+  /// Rescan wallet from a specific block height or timestamp
+  Future<void> rescanWallet(String walletName, {int? startHeight, int? startTime}) async {
+    return await withWallet<void>(walletName, () async {
+      await _logToFile('Starting rescan for wallet: $walletName');
+      
+      // Use rescanblockchain to rescan from a specific point
+      if (startHeight != null) {
+        await _logToFile('Rescanning from block height: $startHeight');
+        await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
+      } else if (startTime != null) {
+        await _logToFile('Rescanning from timestamp: $startTime');
+        await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startTime]);
+      } else {
+        // Rescan from the beginning (genesis block)
+        await _logToFile('Rescanning entire blockchain');
+        await callWalletRPC<dynamic>(walletName, 'rescanblockchain', []);
+      }
+      await _logToFile('Wallet $walletName rescanned successfully');
+    });
+  }
+
+  /// Force rescan of recent blocks for a wallet (useful when UTXOs are missing)
+  Future<void> rescanRecentBlocks(String walletName, {int hoursBack = 24}) async {
+    return await withWallet<void>(walletName, () async {
+      // Get current block height
+      final blockchainInfo = await _rpc.callRAW('getblockchaininfo', []);
+      
+      if (blockchainInfo is! Map || blockchainInfo['blocks'] is! int) {
+        throw Exception('getblockchaininfo returned invalid response: $blockchainInfo');
+      }
+      
+      final currentHeight = blockchainInfo['blocks'] as int;
+      
+      // Calculate start height (approximately 6 blocks per hour)
+      final blocksBack = hoursBack * 6;
+      final startHeight = (currentHeight - blocksBack).clamp(0, currentHeight);
+      
+      await _logToFile('Rescanning wallet $walletName from height $startHeight to $currentHeight (last $hoursBack hours)');
+      await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
+      await _logToFile('Recent rescan completed for wallet $walletName');
     });
   }
 
   /// Get wallet balance, UTXO count, and detailed UTXO information
   Future<Map<String, dynamic>> getWalletBalanceAndUtxos(String walletName) async {
     return await withWallet<Map<String, dynamic>>(walletName, () async {
+      await _logToFile('Fetching balance and UTXOs for wallet: $walletName');
+      
+      // First, check if wallet is properly loaded by getting wallet info
+      final walletInfo = await callWalletRPC<Map<String, dynamic>>(walletName, 'getwalletinfo', []);
+      await _logToFile('Wallet $walletName info: scanning=${walletInfo['scanning']}, txcount=${walletInfo['txcount']}');
+      
+      // Get detailed balance info
+      final balances = await callWalletRPC<Map<String, dynamic>>(walletName, 'getbalances', []);
+      await _logToFile('Wallet $walletName detailed balances: $balances');
+      
+      final balance = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, 0, true]);
+      final utxos = await callWalletRPC<List<dynamic>>(walletName, 'listunspent', [0, 9999999, null, true]);
+      
+      await _logToFile('Wallet $walletName balance: $balance, UTXOs: ${utxos.length}');
+      
+      // List all descriptors to verify they're imported
       try {
-        final balance = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, 0, true]);
-        final utxos = await callWalletRPC<List<dynamic>>(walletName, 'listunspent', []);
-        
-        return {
-          'balance': balance is num ? balance.toDouble() : 0.0,
-          'utxos': utxos.length,
-          'utxo_details': utxos.cast<Map<String, dynamic>>(),
-        };
+        final descriptors = await callWalletRPC<Map<String, dynamic>>(walletName, 'listdescriptors', []);
+        await _logToFile('Wallet $walletName has ${descriptors['descriptors']?.length ?? 0} descriptors');
       } catch (e) {
-        print('Balance and UTXO details fetch failed for $walletName: $e');
-        return {
-          'balance': 0.0,
-          'utxos': 0,
-          'utxo_details': <Map<String, dynamic>>[],
-        };
+        await _logToFile('Failed to list descriptors: $e');
       }
+      
+      // Fail fast if balance is not a number
+      if (balance is! num) {
+        throw Exception('getbalance returned invalid type: ${balance.runtimeType} for wallet $walletName');
+      }
+      
+      return {
+        'balance': balance.toDouble(),
+        'utxos': utxos.length,
+        'utxo_details': utxos.cast<Map<String, dynamic>>(),
+      };
     });
   }
 }

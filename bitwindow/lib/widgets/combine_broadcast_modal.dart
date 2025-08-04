@@ -1,13 +1,12 @@
-import 'dart:math' as math;
 
-import 'package:bitwindow/models/multisig_group_enhanced.dart';
+import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/services/transaction_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-typedef MultisigGroup = MultisigGroupEnhanced;
+// MultisigGroup is now imported directly
 
 class CombineBroadcastModal extends StatefulWidget {
   final List<MultisigTransaction> eligibleTransactions;
@@ -66,7 +65,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                 final missing = input['missing'] as Map<String, dynamic>? ?? {};
                 final signatures = missing['signatures'] as List<dynamic>? ?? [];
                 
-                if (kp.isSigned && signatures.length > 0) {
+                if (kp.isSigned && signatures.isNotEmpty) {
                   print('Key marked as signed but PSBT has no signatures - resetting status');
                   
                   final updatedKeyPSBTs = tx.keyPSBTs.map((keyPSBT) => KeyPSBTStatus(
@@ -74,7 +73,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                     psbt: keyPSBT.psbt,
                     isSigned: false,
                     signedAt: null,
-                  )).toList();
+                  ),).toList();
                   
                   final updatedTx = tx.copyWith(
                     keyPSBTs: updatedKeyPSBTs,

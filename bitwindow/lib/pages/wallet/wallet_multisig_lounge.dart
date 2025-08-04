@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
-import 'package:bitwindow/models/multisig_group_enhanced.dart';
+import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/services/transaction_storage.dart';
 import 'package:bitwindow/widgets/combine_broadcast_modal.dart';
@@ -11,13 +11,30 @@ import 'package:bitwindow/widgets/fund_group_modal.dart';
 import 'package:bitwindow/widgets/import_psbt_modal.dart';
 import 'package:bitwindow/widgets/psbt_coordinator_modal.dart';
 import 'package:bitwindow/services/wallet_rpc_manager.dart';
+import 'package:bitwindow/services/multisig_rpc_signer.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
-typedef MultisigGroup = MultisigGroupEnhanced;
+// Helper function to log multisig debugging information to file
+Future<void> _logToFile(String message) async {
+  try {
+    final dir = Directory(path.dirname(path.current));
+    final file = File(path.join(dir.path, 'bitwindow', 'multisig_output.txt'));
+    
+    // Ensure parent directory exists
+    await file.parent.create(recursive: true);
+    
+    final timestamp = DateTime.now().toIso8601String();
+    await file.writeAsString('[$timestamp] MULTISIG_LOUNGE: $message\n', mode: FileMode.append);
+  } catch (e) {
+    print('Failed to write to multisig_output.txt: $e');
+  }
+}
+
+// MultisigGroup is now imported directly
 class TransactionRow {
   final MultisigTransaction transaction;
   final bool hasWalletKeys;
@@ -104,44 +121,51 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         transaction: tx,
         hasWalletKeys: hasWalletKeys,
         walletHasSigned: walletHasSigned,
-      ));
+      ),);
     }
     
     return rows;
   }
 
   Future<Map<String, dynamic>> _getWalletInfo(String walletName) async {
-    try {
-      final walletInfo = await _walletManager.getWalletBalanceAndUtxos(walletName);
-      final balance = walletInfo['balance'] as double;
-      final utxoCount = walletInfo['utxos'] as int;
-      final utxoDetailsList = walletInfo['utxo_details'] as List<Map<String, dynamic>>;
-      
-      // Convert UTXO details to UtxoInfo objects
-      final utxoDetails = utxoDetailsList.map((utxo) => UtxoInfo(
-        txid: utxo['txid'] as String,
-        vout: utxo['vout'] as int,
-        address: utxo['address'] as String,
-        amount: (utxo['amount'] as num).toDouble(),
-        confirmations: utxo['confirmations'] as int,
-        scriptPubKey: utxo['scriptPubKey'] as String?,
-        spendable: utxo['spendable'] as bool? ?? true,
-        solvable: utxo['solvable'] as bool? ?? true,
-        safe: utxo['safe'] as bool? ?? true,
-      ),).toList();
-      
-      return {
-        'balance': balance,
-        'utxos': utxoCount,
-        'utxo_details': utxoDetails,
-      };
-    } catch (e) {
-      return {
-        'balance': 0.0,
-        'utxos': 0,
-        'utxo_details': <UtxoInfo>[],
-      };
+    await _logToFile('Getting wallet info for: $walletName');
+    final walletInfo = await _walletManager.getWalletBalanceAndUtxos(walletName);
+    
+    // Validate response structure
+    if (walletInfo['balance'] is! num) {
+      throw Exception('Invalid balance type from wallet $walletName: ${walletInfo['balance'].runtimeType}');
     }
+    if (walletInfo['utxos'] is! int) {
+      throw Exception('Invalid utxos type from wallet $walletName: ${walletInfo['utxos'].runtimeType}');  
+    }
+    if (walletInfo['utxo_details'] is! List) {
+      throw Exception('Invalid utxo_details type from wallet $walletName: ${walletInfo['utxo_details'].runtimeType}');
+    }
+    
+    final balance = (walletInfo['balance'] as num).toDouble();
+    final utxoCount = walletInfo['utxos'] as int;
+    final utxoDetailsList = walletInfo['utxo_details'] as List<Map<String, dynamic>>;
+    
+    // Convert UTXO details to UtxoInfo objects
+    final utxoDetails = utxoDetailsList.map((utxo) => UtxoInfo(
+      txid: utxo['txid'] as String,
+      vout: utxo['vout'] as int,
+      address: utxo['address'] as String,
+      amount: (utxo['amount'] as num).toDouble(),
+      confirmations: utxo['confirmations'] as int,
+      scriptPubKey: utxo['scriptPubKey'] as String?,
+      spendable: utxo['spendable'] as bool? ?? true,
+      solvable: utxo['solvable'] as bool? ?? true,
+      safe: utxo['safe'] as bool? ?? true,
+    ),).toList();
+    
+    await _logToFile('Wallet $walletName info: balance=$balance, UTXOs=${utxoDetails.length}');
+    
+    return {
+      'balance': balance,
+      'utxos': utxoCount,
+      'utxo_details': utxoDetails,
+    };
   }
 
   @override
@@ -198,7 +222,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         
         // Ensure group has watchWalletName set
         if (group.watchWalletName == null) {
-          group = MultisigGroupEnhanced(
+          group = MultisigGroup(
             id: group.id,
             name: group.name,
             n: group.n,
@@ -222,6 +246,16 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         }
 
         try {
+          // Check if existing wallet has correct configuration
+          try {
+            final walletInfo = await _walletManager.getWalletInfo(walletName);
+            await _logToFile('Wallet $walletName configuration: private_keys_enabled=${walletInfo['private_keys_enabled']}, descriptors=${walletInfo['descriptors']}');
+            // Multisig wallets should always be watch-only (no private keys)
+            // We don't need to recreate the wallet
+          } catch (e) {
+            await _logToFile('Could not check wallet configuration: $e');
+          }
+          
           // Get final wallet info to ensure we have the latest data
           final finalWalletInfo = await _getWalletInfo(walletName);
           final finalBalance = finalWalletInfo['balance'] as double;
@@ -239,7 +273,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           }
           
           // Create updated group object with latest wallet data
-          group = MultisigGroupEnhanced(
+          group = MultisigGroup(
             id: group.id,
             name: group.name,
             n: group.n,
@@ -276,7 +310,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                 jsonGroup['utxos'] = utxoCount;
               }
               
-              group = MultisigGroupEnhanced(
+              group = MultisigGroup(
                 id: group.id,
                 name: group.name,
                 n: group.n,
@@ -296,6 +330,8 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                 nextChangeIndex: group.nextChangeIndex,
               );
             } catch (createError) {
+              await _logToFile('Failed to create watch-only wallet for ${group.name}: $createError');
+              rethrow;
             }
           }
         }
@@ -308,7 +344,8 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         try {
           await file.writeAsString(json.encode(jsonGroups));
         } catch (e) {
-          // Silently continue if write fails
+          await _logToFile('CRITICAL: Failed to save multisig groups after loading: $e');
+          rethrow;
         }
       }
       
@@ -381,7 +418,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         setState(() {});
       }
     } catch (e) {
-      print('Failed to load transactions: $e');
+      await _logToFile('Failed to load transactions: $e');
       if (mounted) {
         setState(() {});
       }
@@ -424,14 +461,19 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           // Check if descriptors are imported
           bool needsImport = false;
           
+          // Descriptors - declare at this scope so they can be used throughout
+          String? receiveDesc = group.descriptorReceive;
+          String? changeDesc = group.descriptorChange;
+          
           // Check if wallet exists and has correct configuration
           final walletExists = await _walletManager.isWalletLoaded(walletName);
           
           if (!walletExists) {
             await _walletManager.createWallet(
               walletName,
-              disablePrivateKeys: false, // Enable private keys for signing
+              disablePrivateKeys: true, // Multisig wallets are watch-only
               blank: true,
+              descriptors: true,
             );
             needsImport = true;
           } else {
@@ -446,19 +488,24 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
                 try {
                   await _rpc.callRAW('unloadwallet', [walletName]);
                 } catch (e) {
+                  await _logToFile('Failed to unload wallet $walletName during recreation: $e');
+                  // Don't rethrow here - continue with creation attempt
                 }
                 
                 // Create new wallet with private keys enabled
                 await _walletManager.createWallet(
                   walletName,
-                  disablePrivateKeys: false, // Enable private keys for signing
+                  disablePrivateKeys: true, // Multisig wallets are watch-only
                   blank: true,
+                  descriptors: true,
                 );
                 
                 // Mark that we need to reimport descriptors
                 needsImport = true;
               }
             } catch (e) {
+              await _logToFile('Failed to create wallet $walletName: $e');
+              rethrow;
             }
           }
           
@@ -492,13 +539,16 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           if (needsImport) {
             
             // Build descriptors if not available
-            String? receiveDesc = group.descriptorReceive;
-            String? changeDesc = group.descriptorChange;
-            
             if (receiveDesc == null || changeDesc == null) {
               final descriptors = await _buildDescriptors(group);
               receiveDesc = descriptors['receive'];
               changeDesc = descriptors['change'];
+              
+              // Save the regenerated descriptors back to the JSON
+              hasUpdates = true;
+              jsonGroup['descriptorReceive'] = receiveDesc;
+              jsonGroup['descriptorChange'] = changeDesc;
+              await _logToFile('Generated and saved descriptors for group ${group.name}');
             }
             
             // Import with appropriate timestamp
@@ -523,10 +573,23 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           }
           
           // Get wallet balance and UTXO info using wallet-specific RPC
-          final walletInfo = await _getWalletInfo(walletName);
-          final balance = walletInfo['balance'] as double;
-          final utxoCount = walletInfo['utxos'] as int;
-          final utxoDetails = walletInfo['utxo_details'] as List<UtxoInfo>;
+          var walletInfo = await _getWalletInfo(walletName);
+          var balance = walletInfo['balance'] as double;
+          var utxoCount = walletInfo['utxos'] as int;
+          var utxoDetails = walletInfo['utxo_details'] as List<UtxoInfo>;
+          
+          // If wallet shows 0 balance but was created more than 2 hours ago, trigger a rescan
+          final walletAge = DateTime.now().millisecondsSinceEpoch ~/ 1000 - group.created;
+          if (balance == 0.0 && utxoCount == 0 && walletAge > 7200) { // 2 hours in seconds
+            await _logToFile('Wallet $walletName shows 0 balance but is ${walletAge ~/ 3600} hours old. FORCING rescan...');
+            await _walletManager.rescanRecentBlocks(walletName, hoursBack: 48);
+            // Refetch balance after rescan
+            walletInfo = await _getWalletInfo(walletName);
+            balance = walletInfo['balance'] as double;
+            utxoCount = walletInfo['utxos'] as int;
+            utxoDetails = walletInfo['utxo_details'] as List<UtxoInfo>;
+            await _logToFile('After rescan: wallet $walletName balance: $balance, UTXOs: $utxoCount');
+          }
           
           // Update if changed
           if (group.balance != balance || group.utxos != utxoCount) {
@@ -542,7 +605,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
             jsonGroup['watchWalletName'] = walletName;
           }
           
-          groups.add(MultisigGroupEnhanced(
+          groups.add(MultisigGroup(
             id: group.id,
             name: group.name,
             n: group.n,
@@ -551,8 +614,8 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
             created: group.created,
             txid: group.txid,
             descriptor: group.descriptor,
-            descriptorReceive: group.descriptorReceive,
-            descriptorChange: group.descriptorChange,
+            descriptorReceive: receiveDesc ?? group.descriptorReceive,
+            descriptorChange: changeDesc ?? group.descriptorChange,
             watchWalletName: walletName,
             addresses: group.addresses,
             utxoDetails: utxoDetails,
@@ -563,16 +626,17 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           ),);
           
         } catch (e) {
-          groups.add(group); // Keep original on error
+          // Fail fast - don't silently add the old group, propagate the error
+          print('WALLET ERROR for ${group.name} (${group.id}): $e');
+          rethrow;
         }
       }
       
       // Save updates
       if (hasUpdates) {
-        try {
-          await file.writeAsString(json.encode(jsonGroups));
-        } catch (e) {
-        }
+        print('Saving updates to multisig.json with ${jsonGroups.length} groups');
+        await file.writeAsString(json.encode(jsonGroups));
+        print('Successfully saved multisig.json updates');
       }
       
       setState(() {
@@ -599,32 +663,15 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         print('Wallet $walletName not found, creating it first');
         await _walletManager.createWallet(
           walletName,
-          disablePrivateKeys: false, // Enable private keys for signing
+          disablePrivateKeys: true, // Multisig wallets are watch-only
           blank: true,
+          descriptors: true,
         );
       } else {
-        // Check if existing wallet has private keys disabled
+        // Check wallet configuration
         try {
           final walletInfo = await _walletManager.getWalletInfo(walletName);
-          final privateKeysDisabled = walletInfo['private_keys_enabled'] == false;
-          
-          if (privateKeysDisabled) {
-            print('Wallet $walletName has private keys disabled, recreating...');
-            
-            // Unload and remove the old wallet
-            try {
-              await _rpc.callRAW('unloadwallet', [walletName]);
-            } catch (e) {
-              print('Failed to unload wallet (continuing): $e');
-            }
-            
-            // Create new wallet with private keys enabled
-            await _walletManager.createWallet(
-              walletName,
-              disablePrivateKeys: false, // Enable private keys for signing
-              blank: true,
-            );
-          }
+          print('Wallet $walletName exists with configuration: private_keys_enabled=${walletInfo['private_keys_enabled']}, descriptors=${walletInfo['descriptors']}');
         } catch (e) {
           print('Could not check wallet configuration: $e');
         }
@@ -687,11 +734,12 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
       
       
-      // Create wallet with private keys enabled for signing
+      // Create watch-only wallet for multisig
       await _walletManager.createWallet(
         walletName,
-        disablePrivateKeys: false, // Enable private keys for signing
+        disablePrivateKeys: true, // Multisig wallets are watch-only
         blank: true,
+        descriptors: true,
       );
       
       // Build descriptors on-demand if not available
@@ -711,17 +759,21 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
           'active': true,
           'internal': false,
           'timestamp': 'now',
+          'range': [0, 999],
         },
         {
           'desc': changeDesc,
           'active': true,
           'internal': true,
           'timestamp': 'now',
+          'range': [0, 999],
         },
       ]);
       
       
     } catch (e) {
+      print('Failed to import descriptors for group ${group.name}: $e');
+      rethrow;
     }
   }
 
@@ -742,6 +794,12 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         await _refreshData();
       }
     } catch (e) {
+      print('Failed to create transaction: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create transaction: $e')),
+        );
+      }
     }
   }
 
@@ -831,13 +889,13 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
   }
   
   Future<void> _signTransaction(MultisigTransaction tx, MultisigGroup group) async {
-    print('=== STARTING TRANSACTION SIGNING WITH TEMPORARY WALLET ===');
-    print('Transaction ID: ${tx.id}');
-    print('Group: ${group.name} (${group.m}-of-${group.n})');
+    await _logToFile('=== STARTING TRANSACTION SIGNING WITH RPC ===');
+    await _logToFile('Transaction ID: ${tx.id}');
+    await _logToFile('Group: ${group.name} (${group.m}-of-${group.n})');
     
     try {
-      final walletManager = WalletRPCManager();
       final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+      final rpcSigner = MultisigRPCSigner();
       
       // Find the wallet key(s)
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
@@ -845,9 +903,10 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         throw Exception('No wallet keys found in group');
       }
       
-      print('Found ${walletKeys.length} wallet keys to sign with');
-      for (final key in walletKeys) {
-        print('  Wallet key: ${key.xpub.substring(0, 12)}... (path: ${key.derivationPath})');
+      await _logToFile('Found ${walletKeys.length} wallet keys to sign with:');
+      for (int i = 0; i < walletKeys.length; i++) {
+        final key = walletKeys[i];
+        await _logToFile('  [$i] ${key.owner}: ${key.xpub.substring(0, 20)}... (path: ${key.derivationPath}, fingerprint: ${key.fingerprint}, isWallet: ${key.isWallet})');
       }
       
       // Check if already signed
@@ -856,7 +915,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
       );
       
       if (alreadySigned) {
-        print('WARNING: Wallet has already signed this transaction!');
+        await _logToFile('WARNING - Wallet has already signed this transaction!');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Transaction already signed by this wallet')),
@@ -865,207 +924,90 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> {
         return;
       }
       
-      // Create a temporary wallet for signing
-      final tempWalletName = 'temp_sign_${DateTime.now().millisecondsSinceEpoch}';
-      print('Creating temporary wallet: $tempWalletName');
-      
-      try {
-        // Create temp wallet with private keys enabled
-        await walletManager.createWallet(
-          tempWalletName,
-          disablePrivateKeys: false,
-          blank: true,
-        );
-        print('✓ Temporary wallet created successfully');
-        
-        // Build descriptors with xprv for wallet keys, xpub for external keys
-        print('Building descriptors with private keys for wallet keys...');
-        
-        final sortedKeys = List<MultisigKey>.from(group.keys);
-        sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
-        
-        final List<String> receiveKeyDescs = [];
-        final List<String> changeKeyDescs = [];
-        
-        for (final key in sortedKeys) {
-          String keyDesc;
-          if (key.isWallet) {
-            print('  Processing wallet key: ${key.xpub.substring(0, 12)}...');
-            print('    Derivation path: ${key.derivationPath}');
-            print('    Origin path: ${key.originPath}');
-            print('    Fingerprint: ${key.fingerprint}');
-            
-            // Derive xprv for this key using HD wallet provider
-            try {
-              if (hdWalletProvider.mnemonic == null) {
-                throw Exception('HD wallet not initialized - no mnemonic available');
-              }
-              
-              final keyInfo = await hdWalletProvider.deriveExtendedKeyInfo(
-                hdWalletProvider.mnemonic!,
-                key.derivationPath ?? "m/84'/1'/0'", // Default if not set
-              );
-              
-              final xprv = keyInfo['xprv'];
-              if (xprv == null) {
-                throw Exception('Failed to derive xprv for key ${key.xpub.substring(0, 12)}...');
-              }
-              
-              print('    ✓ Successfully derived xprv: ${xprv.substring(0, 12)}...');
-              
-              if (key.fingerprint != null && key.originPath != null) {
-                keyDesc = '[${key.fingerprint}/${key.originPath}]$xprv';
-              } else {
-                keyDesc = xprv;
-              }
-            } catch (e) {
-              print('    ✗ Failed to derive xprv: $e');
-              throw Exception('Failed to derive private key for wallet key: $e');
-            }
-          } else {
-            // External key - use xpub
-            print('  Processing external key: ${key.xpub.substring(0, 12)}...');
-            if (key.fingerprint != null && key.originPath != null) {
-              keyDesc = '[${key.fingerprint}/${key.originPath}]${key.xpub}';
-            } else {
-              keyDesc = key.xpub;
-            }
-          }
-          
-          receiveKeyDescs.add(keyDesc);
-          changeKeyDescs.add(keyDesc);
-        }
-        
-        // Build descriptors
-        String receiveDesc = 'wsh(sortedmulti(${group.m},${receiveKeyDescs.join(',')}/0/*))';
-        String changeDesc = 'wsh(sortedmulti(${group.m},${changeKeyDescs.join(',')}/1/*))';
-        
-        print('Built receive descriptor (first 100 chars): ${receiveDesc.substring(0, 100)}...');
-        print('Built change descriptor (first 100 chars): ${changeDesc.substring(0, 100)}...');
-        
-        // Add checksums
-        print('Adding checksums to descriptors...');
-        final receiveResult = await _rpc.callRAW('getdescriptorinfo', [receiveDesc]);
-        if (receiveResult is Map && receiveResult['descriptor'] != null) {
-          receiveDesc = receiveResult['descriptor'] as String;
-          print('✓ Receive descriptor with checksum: ${receiveDesc.substring(0, 100)}...');
-        } else {
-          throw Exception('Failed to get descriptor info for receive descriptor');
-        }
-        
-        final changeResult = await _rpc.callRAW('getdescriptorinfo', [changeDesc]);
-        if (changeResult is Map && changeResult['descriptor'] != null) {
-          changeDesc = changeResult['descriptor'] as String;
-          print('✓ Change descriptor with checksum: ${changeDesc.substring(0, 100)}...');
-        } else {
-          throw Exception('Failed to get descriptor info for change descriptor');
-        }
-        
-        // Import descriptors to temporary wallet
-        print('Importing descriptors to temporary wallet...');
-        final importResult = await walletManager.importDescriptors(tempWalletName, [
-          {
-            'desc': receiveDesc,
-            'active': true,
-            'internal': false,
-            'timestamp': 'now',
-            'range': [0, 999],
-          },
-          {
-            'desc': changeDesc,
-            'active': true,
-            'internal': true,
-            'timestamp': 'now',
-            'range': [0, 999],
-          },
-        ]);
-        print('✓ Descriptors imported successfully: $importResult');
-        
-        // Process PSBT with temporary wallet
-        print('Processing PSBT with temporary wallet...');
-        print('Initial PSBT (first 100 chars): ${tx.initialPSBT.substring(0, 100)}...');
-        
-        final processResult = await walletManager.callWalletRPC<Map<String, dynamic>>(
-          tempWalletName,
-          'walletprocesspsbt',
-          [tx.initialPSBT],
-        );
-        
-        print('walletprocesspsbt result keys: ${processResult.keys.toList()}');
-        print('walletprocesspsbt complete: ${processResult['complete']}');
-        
-        final signedPSBT = processResult['psbt'] as String?;
-        final isComplete = processResult['complete'] as bool? ?? false;
-        
-        if (signedPSBT == null) {
-          throw Exception('Failed to sign PSBT - no PSBT returned from wallet');
-        }
-        
-        print('✓ PSBT signed successfully');
-        print('Signed PSBT complete: $isComplete');
-        print('Signed PSBT (first 100 chars): ${signedPSBT.substring(0, 100)}...');
-        
-        // Verify the signed PSBT actually has signatures
-        try {
-          final signedAnalysis = await _rpc.callRAW('analyzepsbt', [signedPSBT]);
-          if (signedAnalysis is Map) {
-            final inputs = signedAnalysis['inputs'] as List<dynamic>? ?? [];
-            print('Signed PSBT analysis - inputs count: ${inputs.length}');
-            for (int i = 0; i < inputs.length; i++) {
-              final input = inputs[i] as Map<String, dynamic>;
-              print('  Input[$i]: is_final=${input['is_final']}, missing=${input['missing']}');
-              if (input.containsKey('partial_signatures')) {
-                final partialSigs = input['partial_signatures'] as Map<String, dynamic>?;
-                print('    Partial signatures count: ${partialSigs?.keys.length ?? 0}');
-              }
-            }
-          }
-        } catch (e) {
-          print('Failed to analyze signed PSBT: $e');
-        }
-        
-        // Update transaction with signed PSBT for all wallet keys
-        print('Updating key PSBTs in storage...');
-        for (final key in walletKeys) {
-          print('  Updating key: ${key.xpub.substring(0, 12)}...');
-          await TransactionStorage.updateKeyPSBT(
-            tx.id, 
-            key.xpub, 
-            signedPSBT,
-            signatureThreshold: group.m,
-          );
-        }
-        print('✓ All wallet keys updated with signed PSBT');
-        
-      } finally {
-        // Clean up temporary wallet
-        try {
-          print('Cleaning up temporary wallet...');
-          await _rpc.callRAW('unloadwallet', [tempWalletName]);
-          print('✓ Temporary wallet unloaded successfully');
-        } catch (e) {
-          print('Warning: Failed to unload temporary wallet: $e');
-        }
+      // Get mnemonic from HD wallet provider
+      if (hdWalletProvider.mnemonic == null) {
+        throw Exception('HD wallet not initialized - no mnemonic available');
       }
       
+      final mnemonic = hdWalletProvider.mnemonic!;
+      await _logToFile('Using mnemonic from HD wallet provider');
+      
+      // Determine network (mainnet vs signet)
+      final isMainnet = await _rpc.callRAW('getblockchaininfo').then((info) {
+        if (info is Map) {
+          final chain = info['chain'] as String? ?? 'main';
+          return chain == 'main';
+        }
+        return false;
+      });
+      
+      await _logToFile('Network detected: ${isMainnet ? "mainnet" : "signet/testnet"}');
+      await _logToFile('Initial PSBT to sign (length: ${tx.initialPSBT.length})');
+      
+      // Sign PSBT using RPC-based signer
+      await _logToFile('Calling MultisigRPCSigner.signPSBT with ${walletKeys.length} wallet keys...');
+      final signingResult = await rpcSigner.signPSBT(
+        psbtBase64: tx.initialPSBT,
+        group: group,
+        mnemonic: mnemonic,
+        walletKeys: walletKeys,
+        isMainnet: isMainnet,
+      );
+      
+      await _logToFile('✓ PSBT signed successfully with RPC signer');
+      await _logToFile('Signed PSBT length: ${signingResult.signedPsbt.length}');
+      await _logToFile('Is complete: ${signingResult.isComplete}');
+      await _logToFile('Signatures added: ${signingResult.signaturesAdded}');
+      
+      if (signingResult.errors.isNotEmpty) {
+        await _logToFile('Signing warnings: ${signingResult.errors.join(', ')}');
+      }
+      
+      // Update transaction with signed PSBT for all wallet keys
+      await _logToFile('Updating key PSBTs in storage...');
+      for (final key in walletKeys) {
+        await _logToFile('  Updating key: ${key.xpub.substring(0, 20)}... (${key.owner})');
+        await TransactionStorage.updateKeyPSBT(
+          tx.id, 
+          key.xpub, 
+          signingResult.signedPsbt,
+          signatureThreshold: group.m,
+        );
+      }
+      await _logToFile('✓ All wallet keys updated with signed PSBT');
+      
       // Reload transactions to reflect the new signatures
-      print('Reloading transactions...');
+      await _logToFile('Reloading transactions...');
       await _loadAndUpdateTransactions();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transaction signed successfully with temporary wallet'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Only show success message if signatures were actually added
+        if (signingResult.signaturesAdded > 0) {
+          final message = signingResult.isComplete 
+              ? 'Transaction signed and completed successfully!'
+              : 'Transaction signed successfully (${signingResult.signaturesAdded} signatures added)';
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          // Show error message when no signatures added
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to add signatures to transaction'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
       
-      print('=== TRANSACTION SIGNING COMPLETED SUCCESSFULLY ===');
+      await _logToFile('=== TRANSACTION SIGNING COMPLETED SUCCESSFULLY ===');
       
     } catch (e) {
-      print('ERROR in _signTransaction: $e');
-      print('Stack trace: ${StackTrace.current}');
+      await _logToFile('ERROR in _signTransaction: $e');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
