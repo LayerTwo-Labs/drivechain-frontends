@@ -49,10 +49,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         orElse: () => throw Exception('Group not found'),
       );
 
-      print('=== COMBINE AND BROADCAST TRANSACTION ===');
-      print('Transaction ID: ${tx.id}');
-      print('Group: ${group.name} (${group.m}-of-${group.n})');
-
       // Check keyPSBTs for signed entries and reset if necessary
       for (final kp in tx.keyPSBTs) {
         if (kp.isSigned && kp.psbt != null) {
@@ -66,8 +62,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                 final signatures = missing['signatures'] as List<dynamic>? ?? [];
                 
                 if (kp.isSigned && signatures.isNotEmpty) {
-                  print('Key marked as signed but PSBT has no signatures - resetting status');
-                  
                   final updatedKeyPSBTs = tx.keyPSBTs.map((keyPSBT) => KeyPSBTStatus(
                     keyId: keyPSBT.keyId,
                     psbt: keyPSBT.psbt,
@@ -94,7 +88,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
               }
             }
           } catch (e) {
-            print('Failed to analyze stored PSBT: $e');
+            // Invalid PSBT signatures - continue processing
           }
         }
       }
@@ -123,7 +117,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       }
       
       final analyzeResult = await _rpc.callRAW('analyzepsbt', [combined]);
-      print('PSBT analysis result: $analyzeResult');
       
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [combined]);
       
