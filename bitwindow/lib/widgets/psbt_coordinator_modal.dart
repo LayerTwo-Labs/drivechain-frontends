@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:bitwindow/models/multisig_group_enhanced.dart';
+import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/services/transaction_storage.dart';
@@ -18,8 +17,8 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class PSBTCoordinatorModal extends StatelessWidget {
-  final MultisigGroupEnhanced? group;
-  final List<MultisigGroupEnhanced>? availableGroups;
+  final MultisigGroup? group;
+  final List<MultisigGroup>? availableGroups;
   
   const PSBTCoordinatorModal({
     super.key,
@@ -175,7 +174,7 @@ class PSBTCoordinatorModal extends StatelessWidget {
 }
 
 class CreateTransactionViewModel extends BaseViewModel {
-  final MultisigGroupEnhanced group;
+  final MultisigGroup group;
   
   // Controllers
   final TextEditingController destinationController = TextEditingController();
@@ -290,7 +289,7 @@ class CreateTransactionViewModel extends BaseViewModel {
         psbt: psbt,
         isSigned: false,
         signedAt: null,
-      )).toList();
+      ),).toList();
       
       // Create and save transaction
       final transaction = MultisigTransaction(
@@ -404,7 +403,7 @@ class CreateTransactionViewModel extends BaseViewModel {
             );
             
             importedCount++;
-            GetIt.I.get<Logger>().d('Successfully imported private key ${importedCount}/${walletKeys.length}');
+            GetIt.I.get<Logger>().d('Successfully imported private key $importedCount/${walletKeys.length}');
             
           } catch (e) {
             GetIt.I.get<Logger>().w('Failed to import private key for key ${key.xpub.substring(0, 20)}: $e');

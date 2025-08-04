@@ -1,4 +1,4 @@
-import 'package:bitwindow/models/multisig_group_enhanced.dart';
+import 'package:bitwindow/models/multisig_group.dart';
 
 /// Transaction status for multisig PSBT workflow
 enum TxStatus {

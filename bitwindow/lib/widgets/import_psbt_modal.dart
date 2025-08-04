@@ -1,14 +1,12 @@
-import 'dart:convert';
 
-import 'package:bitwindow/models/multisig_group_enhanced.dart';
+import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/services/transaction_storage.dart';
-import 'package:bitwindow/services/wallet_rpc_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-typedef MultisigGroup = MultisigGroupEnhanced;
+// MultisigGroup is now imported directly
 
 class ImportPSBTModal extends StatefulWidget {
   final List<MultisigGroup> availableGroups;
@@ -173,7 +171,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
               items: widget.availableGroups.map((group) => DropdownMenuItem(
                 value: group.id,
                 child: Text('${group.name} (${group.id})'),
-              )).toList(),
+              ),).toList(),
               onChanged: (value) => setState(() => _selectedGroupId = value),
             ),
             const SizedBox(height: 16),
