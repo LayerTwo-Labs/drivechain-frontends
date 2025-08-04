@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
-import 'package:bitwindow/services/wallet_rpc_manager.dart';
+import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:bitwindow/widgets/multisig_compatibility_note.dart';
 import 'package:flutter/material.dart';

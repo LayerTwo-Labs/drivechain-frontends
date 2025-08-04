@@ -1,7 +1,7 @@
 
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
-import 'package:bitwindow/services/transaction_storage.dart';
+import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
