@@ -9,23 +9,135 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
-// Helper function to log multisig debugging information to file
-Future<void> _logToFile(String message) async {
-  try {
-    final dir = Directory(path.dirname(path.current));
-    final file = File(path.join(dir.path, 'bitwindow', 'multisig_output.txt'));
-    
-    // Ensure parent directory exists
-    await file.parent.create(recursive: true);
-    
-    final timestamp = DateTime.now().toIso8601String();
-    await file.writeAsString('[$timestamp] MULTISIG_PROVIDER: $message\n', mode: FileMode.append);
-  } catch (e) {
-    // Failed to write log file - continue silently
+// Centralized logging utility for multisig operations
+class MultisigLogger {
+  static final Logger _logger = GetIt.I.get<Logger>();
+  
+  static void info(String message) {
+    _logger.i('[MULTISIG] $message');
   }
+  
+  static void error(String message) {
+    _logger.e('[MULTISIG] $message');
+  }
+  
+  static void debug(String message) {
+    _logger.d('[MULTISIG] $message');
+  }
+}
+
+/// Centralized descriptor building utility for multisig operations
+/// This ensures consistent descriptor format across all multisig functionality
+class MultisigDescriptorBuilder {
+  static final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
+  
+  /// Build a watch-only multisig descriptor (for wallet creation and funding)
+  static Future<MultisigDescriptors> buildWatchOnlyDescriptors(MultisigGroup group) async {
+    final sortedKeys = _sortKeysByBIP67(group.keys);
+    
+    final keyDescriptors = sortedKeys.map((key) {
+      if (key.isWallet && key.fingerprint != null && key.originPath != null) {
+        return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
+      } else {
+        return key.xpub;
+      }
+    }).join(',');
+    
+    final receiveDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/0/*))';
+    final changeDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/1/*))';
+    
+    // Add checksums using Bitcoin Core
+    final receiveWithChecksum = await _addChecksum(receiveDesc);
+    final changeWithChecksum = await _addChecksum(changeDesc);
+    
+    return MultisigDescriptors(
+      receive: receiveWithChecksum,
+      change: changeWithChecksum,
+    );
+  }
+  
+  /// Build a signing descriptor with private keys (for PSBT signing)
+  static Future<List<String>> buildSigningDescriptors(
+    MultisigGroup group,
+    MultisigKey signingKey,
+    String privateKeyXprv,
+    String fingerprint,
+  ) async {
+    final sortedKeys = _sortKeysByBIP67(group.keys);
+    final originPath = signingKey.derivationPath.startsWith('m/') 
+        ? signingKey.derivationPath.substring(2) 
+        : signingKey.derivationPath;
+    
+    final receiveKeys = <String>[];
+    final changeKeys = <String>[];
+    
+    for (final key in sortedKeys) {
+      final keyOriginPath = key.derivationPath.startsWith('m/') 
+          ? key.derivationPath.substring(2) 
+          : key.derivationPath;
+      
+      if (key == signingKey) {
+        // Use private key for this participant
+        receiveKeys.add('[$fingerprint/$originPath]$privateKeyXprv/0/*');
+        changeKeys.add('[$fingerprint/$originPath]$privateKeyXprv/1/*');
+      } else {
+        // Use public key for other participants
+        final keyDesc = key.fingerprint != null && key.originPath != null
+            ? '[${key.fingerprint}/${key.originPath}]${key.xpub}'
+            : key.xpub;
+        receiveKeys.add('$keyDesc/0/*');
+        changeKeys.add('$keyDesc/1/*');
+      }
+    }
+    
+    // Build descriptors (no checksum needed for descriptorprocesspsbt)
+    final receiveDesc = 'wsh(sortedmulti(${group.m},${receiveKeys.join(',')}))';
+    final changeDesc = 'wsh(sortedmulti(${group.m},${changeKeys.join(',')}))';
+    
+    return [receiveDesc, changeDesc];
+  }
+  
+  /// Sort keys by BIP67 order (lexicographic order of xpubs)
+  static List<MultisigKey> _sortKeysByBIP67(List<MultisigKey> keys) {
+    final sortedKeys = List<MultisigKey>.from(keys);
+    sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
+    return sortedKeys;
+  }
+  
+  /// Add checksum to descriptor using Bitcoin Core's getdescriptorinfo
+  static Future<String> _addChecksum(String descriptor) async {
+    try {
+      if (descriptor.contains('#')) {
+        return descriptor; // Already has checksum
+      }
+      
+      final result = await _rpc.callRAW('getdescriptorinfo', [descriptor]);
+      
+      if (result is Map && result['descriptor'] != null) {
+        return result['descriptor'] as String;
+      }
+      
+      throw Exception('Bitcoin Core getdescriptorinfo returned invalid response: $result');
+    } catch (e) {
+      MultisigLogger.error('Failed to add checksum to descriptor: $e');
+      throw Exception('Failed to add checksum to descriptor: $e');
+    }
+  }
+}
+
+/// Container for multisig descriptors
+class MultisigDescriptors {
+  final String receive;
+  final String change;
+  
+  const MultisigDescriptors({
+    required this.receive,
+    required this.change,
+  });
 }
 
 /// Result of PSBT signing operation
@@ -56,11 +168,7 @@ class MultisigRPCSigner {
     required List<MultisigKey> walletKeys,
     bool isMainnet = false,
   }) async {
-    await _logToFile('=== STARTING MULTISIG PSBT SIGNING ===');
-    await _logToFile('Group: ${group.name} (${group.m}-of-${group.n})');
-    await _logToFile('Total keys in group: ${group.keys.length}');
-    await _logToFile('Wallet keys to sign with: ${walletKeys.length}');
-    await _logToFile('Network: ${isMainnet ? "mainnet" : "signet/testnet"}');
+    MultisigLogger.info('Signing PSBT for group ${group.name} (${group.m}-of-${group.n}) with ${walletKeys.length} wallet keys');
     
     final errors = <String>[];
     
@@ -70,9 +178,6 @@ class MultisigRPCSigner {
         throw Exception('Group missing descriptors - cannot sign');
       }
       
-      await _logToFile('\nMultisig descriptors:');
-      await _logToFile('  Receive: ${group.descriptorReceive!.substring(0, 50)}...');
-      await _logToFile('  Change: ${group.descriptorChange!.substring(0, 50)}...');
       
       // Sign with each participant wallet
       final participantPSBTs = <String>[];
@@ -80,7 +185,6 @@ class MultisigRPCSigner {
       
       for (int i = 0; i < walletKeys.length; i++) {
         final walletKey = walletKeys[i];
-        await _logToFile('\n=== Participant ${i + 1}/${walletKeys.length}: ${walletKey.owner} ===');
         
         try {
           final result = await _signWithParticipant(
@@ -94,13 +198,12 @@ class MultisigRPCSigner {
           if (result != null) {
             participantPSBTs.add(result.signedPsbt);
             totalSignaturesAdded += result.signaturesAdded;
-            await _logToFile('✓ Participant signed successfully, added ${result.signaturesAdded} signatures');
           }
           
         } catch (e) {
           final error = 'Failed to sign with ${walletKey.owner}: $e';
           errors.add(error);
-          await _logToFile('✗ $error');
+          MultisigLogger.error(error);
           // Continue with other participants
         }
       }
@@ -112,28 +215,21 @@ class MultisigRPCSigner {
       // Combine PSBTs if multiple participants signed
       String finalPsbt;
       if (participantPSBTs.length > 1) {
-        await _logToFile('\n=== Combining ${participantPSBTs.length} signed PSBTs ===');
         finalPsbt = await _rpc.callRAW('combinepsbt', [participantPSBTs]) as String;
-        await _logToFile('✓ PSBTs combined successfully');
       } else {
         finalPsbt = participantPSBTs[0];
-        await _logToFile('✓ Using single participant PSBT');
       }
       
       // Check if complete
       final isComplete = await _checkPsbtComplete(finalPsbt, group.m);
       
       
-      await _logToFile('\n=== SIGNING SUMMARY ===');
-      await _logToFile('Participants who signed: ${participantPSBTs.length}/${walletKeys.length}');
-      await _logToFile('Total signatures added: $totalSignaturesAdded');
-      await _logToFile('Required signatures: ${group.m}');
-      await _logToFile('Transaction complete: $isComplete');
+      MultisigLogger.info('PSBT signing complete: ${participantPSBTs.length}/${walletKeys.length} participants signed, $totalSignaturesAdded signatures added, transaction complete: $isComplete');
       
       // Only return success if we actually added signatures
       if (totalSignaturesAdded == 0 && participantPSBTs.isNotEmpty) {
         errors.add('No signatures were added despite successful processing');
-        await _logToFile('WARNING: Signing completed but no signatures were added');
+        MultisigLogger.error('Signing completed but no signatures were added');
       }
       
       return SigningResult(
@@ -144,7 +240,7 @@ class MultisigRPCSigner {
       );
       
     } catch (e) {
-      await _logToFile('\nCRITICAL ERROR: $e');
+      MultisigLogger.error('PSBT signing failed: $e');
       throw Exception('Multisig PSBT signing failed: $e');
     }
   }
@@ -159,7 +255,6 @@ class MultisigRPCSigner {
   }) async {
     try {
       // Step 1: Derive private key for this participant
-      await _logToFile('Deriving private key for path: ${walletKey.derivationPath}');
       final keyInfo = await _hdWallet.deriveExtendedKeyInfo(mnemonic, walletKey.derivationPath, isMainnet);
       final xprv = keyInfo['xprv'];
       final fingerprint = keyInfo['fingerprint'];
@@ -168,21 +263,14 @@ class MultisigRPCSigner {
         throw Exception('Failed to derive extended private key for ${walletKey.owner}');
       }
       
-      await _logToFile('Derived ${isMainnet ? "mainnet" : "testnet"} private key for ${walletKey.owner}');
       
       // Step 2: Build descriptors with private keys for this participant
-      final descriptors = await _buildPrivateDescriptors(
+      final descriptors = await MultisigDescriptorBuilder.buildSigningDescriptors(
         group, walletKey, xprv, fingerprint!,
       );
       
-      await _logToFile('Built descriptors for signing: ${descriptors.length} descriptors');
       
       // Step 3: Use descriptorprocesspsbt to sign directly
-      await _logToFile('Signing PSBT with descriptorprocesspsbt');
-      await _logToFile('RPC call: descriptorprocesspsbt');
-      await _logToFile('  PSBT: ${psbtBase64.substring(0, 50)}...');
-      await _logToFile('  Descriptors: $descriptors');
-      await _logToFile('  Parameters: sighashtype=ALL, bip32derivs=true, finalize=false');
       
       final result = await _rpc.callRAW('descriptorprocesspsbt', [
         psbtBase64,
@@ -192,7 +280,6 @@ class MultisigRPCSigner {
         false, // finalize
       ]);
       
-      await _logToFile('RPC response: $result');
       
       if (result is Map) {
         final signedPsbt = result['psbt'] as String;
@@ -201,7 +288,6 @@ class MultisigRPCSigner {
         // Count signatures added
         final signaturesAdded = await _countNewSignatures(psbtBase64, signedPsbt);
         
-        await _logToFile('Signing result - complete: $isComplete, signatures: $signaturesAdded');
         
         return SigningResult(
           signedPsbt: signedPsbt,
@@ -214,7 +300,6 @@ class MultisigRPCSigner {
       throw Exception('Invalid response from descriptorprocesspsbt');
       
     } catch (e) {
-      await _logToFile('Error signing with participant: $e');
       rethrow;
     }
   }
@@ -226,92 +311,15 @@ class MultisigRPCSigner {
     try {
       // If PSBTs are different, assume signatures were added
       if (psbtBefore != psbtAfter) {
-        await _logToFile('PSBT changed - assuming 1 signature added');
         return 1;
       }
       
-      await _logToFile('PSBT unchanged - no signatures added');
       return 0;
     } catch (e) {
-      await _logToFile('Could not count signatures: $e');
       return 0;
     }
   }
   
-  /// Build descriptors with private keys for descriptorprocesspsbt
-  Future<List<String>> _buildPrivateDescriptors(
-    MultisigGroup group,
-    MultisigKey thisKey,
-    String thisXprv,
-    String thisFingerprint,
-  ) async {
-    final originPath = thisKey.derivationPath.startsWith('m/') 
-        ? thisKey.derivationPath.substring(2) 
-        : thisKey.derivationPath;
-    
-    // Build multisig descriptors with this participant's private key
-    final receiveDesc = await _buildMultisigDescriptorWithPrivateKey(
-      group, thisKey, thisXprv, thisFingerprint, originPath, false, // external
-    );
-    
-    final changeDesc = await _buildMultisigDescriptorWithPrivateKey(
-      group, thisKey, thisXprv, thisFingerprint, originPath, true, // internal
-    );
-    
-    await _logToFile('Built multisig descriptors with private key for ${thisKey.owner}');
-    await _logToFile('  Receive: ${receiveDesc.substring(0, 60)}...');
-    await _logToFile('  Change: ${changeDesc.substring(0, 60)}...');
-    
-    return [receiveDesc, changeDesc];
-  }
-  
-  /// Build multisig descriptor with private key for this participant
-  Future<String> _buildMultisigDescriptorWithPrivateKey(
-    MultisigGroup group,
-    MultisigKey thisKey,
-    String thisXprv,
-    String thisFingerprint,
-    String thisOriginPath,
-    bool isInternal,
-  ) async {
-    final chain = isInternal ? '1' : '0';
-    final keys = <String>[];
-    
-    await _logToFile('Building descriptor for ${thisKey.owner}:');
-    await _logToFile('  Private key: ${thisXprv.substring(0, 20)}...');
-    await _logToFile('  Fingerprint: $thisFingerprint');
-    await _logToFile('  Origin path: $thisOriginPath');
-    await _logToFile('  Chain: $chain (${isInternal ? "internal" : "external"})');
-    
-    // Add all keys to the multisig
-    for (final key in group.keys) {
-      final keyOriginPath = key.derivationPath.startsWith('m/') 
-          ? key.derivationPath.substring(2) 
-          : key.derivationPath;
-      
-      if (key == thisKey) {
-        // Use private key for this participant
-        final keyDesc = '[$thisFingerprint/$thisOriginPath]$thisXprv/$chain/*';
-        keys.add(keyDesc);
-        await _logToFile('  Added THIS key (private): ${keyDesc.substring(0, 60)}...');
-      } else {
-        // Use public key for other participants
-        final keyDesc = '[${key.fingerprint}/$keyOriginPath]${key.xpub}/$chain/*';
-        keys.add(keyDesc);
-        await _logToFile('  Added OTHER key (public): ${keyDesc.substring(0, 60)}...');
-      }
-    }
-    
-    // Sort keys for BIP 67 compliance (sortedmulti)
-    keys.sort();
-    await _logToFile('  Keys after sorting: ${keys.length} keys');
-    
-    // Build the descriptor (no checksum needed for descriptorprocesspsbt)
-    final descriptor = 'wsh(sortedmulti(${group.m},${keys.join(',')}))';
-    await _logToFile('  Final descriptor: ${descriptor.substring(0, 80)}...');
-    
-    return descriptor;
-  }
   
   
   /// Check if PSBT has enough signatures
@@ -323,10 +331,6 @@ class MultisigRPCSigner {
         final next = analysis['next'] as String?;
         final isComplete = next == 'finalizer' || next == 'extractor';
         
-        await _logToFile('\nPSBT Analysis:');
-        await _logToFile('  Next step: $next');
-        await _logToFile('  Complete: $isComplete');
-        
         // Check each input
         final inputs = analysis['inputs'] as List? ?? [];
         bool allInputsReady = true;
@@ -335,10 +339,6 @@ class MultisigRPCSigner {
           final input = inputs[i] as Map?;
           if (input != null) {
             final sigs = (input['partial_signatures'] as Map?)?.length ?? 0;
-            final hasUtxo = input['has_utxo'] as bool? ?? false;
-            final isFinal = input['is_final'] as bool? ?? false;
-            
-            await _logToFile('  Input $i: signatures=$sigs/$requiredSigs, has_utxo=$hasUtxo, final=$isFinal');
             
             if (sigs < requiredSigs) {
               allInputsReady = false;
@@ -351,7 +351,6 @@ class MultisigRPCSigner {
       
       return false;
     } catch (e) {
-      await _logToFile('Error analyzing PSBT: $e');
       return false;
     }
   }
@@ -644,19 +643,15 @@ class WalletRPCManager {
       // Check if wallet is already loaded
       final loadedWallets = await _rpc.callRAW('listwallets', []);
       if (loadedWallets is List && loadedWallets.contains(walletName)) {
-        await _logToFile('Wallet $walletName is already loaded');
         return;
       }
 
-      await _logToFile('Loading wallet: $walletName');
       await _rpc.callRAW('loadwallet', [walletName]);
-      await _logToFile('Successfully loaded wallet: $walletName');
     } catch (e) {
       if (e.toString().contains('already loaded')) {
-        await _logToFile('Wallet $walletName is already loaded (caught error)');
         return;
       }
-      await _logToFile('Failed to load wallet $walletName: $e');
+      MultisigLogger.error('Failed to load wallet $walletName: $e');
       rethrow;
     }
   }
@@ -664,16 +659,12 @@ class WalletRPCManager {
   /// Unload a specific wallet
   Future<void> unloadWallet(String walletName) async {
     try {
-      await _logToFile('Unloading wallet: $walletName');
       await _rpc.callRAW('unloadwallet', [walletName]);
-      await _logToFile('Successfully unloaded wallet: $walletName');
     } catch (e) {
       if (e.toString().contains('not found') || 
           e.toString().contains('not loaded')) {
-        await _logToFile('Wallet $walletName was not loaded (ignoring error)');
         return;
       }
-      await _logToFile('Failed to unload wallet $walletName: $e');
       // Don't rethrow - we want to continue even if unloading fails
     }
   }
@@ -707,7 +698,6 @@ class WalletRPCManager {
         data: payload,
       );
       
-      await _logToFile('Wallet RPC URL: ${response.requestOptions.uri}');
       
       final data = response.data;
       if (data['error'] != null) {
@@ -716,7 +706,7 @@ class WalletRPCManager {
       }
       return data['result'] as T;
     } catch (e) {
-      await _logToFile('Wallet RPC failed for $walletName.$method: $e');
+      MultisigLogger.error('Wallet RPC failed for $walletName.$method: $e');
       rethrow;
     }
   }
@@ -810,7 +800,7 @@ class WalletRPCManager {
       }
       _currentlyLoadedWallet = null;
     } catch (e) {
-      await _logToFile('Failed to unload all wallets: $e');
+      MultisigLogger.error('Failed to unload all wallets: $e');
     }
   }
 
@@ -838,7 +828,6 @@ class WalletRPCManager {
         );
         return result['ismine'] == true || result['iswatchonly'] == true;
       } catch (e) {
-        await _logToFile('Failed to check address ownership: $e');
         return false;
       }
     });
@@ -847,21 +836,18 @@ class WalletRPCManager {
   /// Rescan wallet from a specific block height or timestamp
   Future<void> rescanWallet(String walletName, {int? startHeight, int? startTime}) async {
     return await withWallet<void>(walletName, () async {
-      await _logToFile('Starting rescan for wallet: $walletName');
+      MultisigLogger.info('Starting rescan for wallet: $walletName');
       
       // Use rescanblockchain to rescan from a specific point
       if (startHeight != null) {
-        await _logToFile('Rescanning from block height: $startHeight');
         await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
       } else if (startTime != null) {
-        await _logToFile('Rescanning from timestamp: $startTime');
         await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startTime]);
       } else {
         // Rescan from the beginning (genesis block)
-        await _logToFile('Rescanning entire blockchain');
         await callWalletRPC<dynamic>(walletName, 'rescanblockchain', []);
       }
-      await _logToFile('Wallet $walletName rescanned successfully');
+      MultisigLogger.info('Wallet $walletName rescanned successfully');
     });
   }
 
@@ -881,36 +867,29 @@ class WalletRPCManager {
       final blocksBack = hoursBack * 6;
       final startHeight = (currentHeight - blocksBack).clamp(0, currentHeight);
       
-      await _logToFile('Rescanning wallet $walletName from height $startHeight to $currentHeight (last $hoursBack hours)');
       await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
-      await _logToFile('Recent rescan completed for wallet $walletName');
+      MultisigLogger.info('Recent rescan completed for wallet $walletName');
     });
   }
 
   /// Get wallet balance, UTXO count, and detailed UTXO information
   Future<Map<String, dynamic>> getWalletBalanceAndUtxos(String walletName) async {
     return await withWallet<Map<String, dynamic>>(walletName, () async {
-      await _logToFile('Fetching balance and UTXOs for wallet: $walletName');
       
       // First, check if wallet is properly loaded by getting wallet info
       final walletInfo = await callWalletRPC<Map<String, dynamic>>(walletName, 'getwalletinfo', []);
-      await _logToFile('Wallet $walletName info: scanning=${walletInfo['scanning']}, txcount=${walletInfo['txcount']}');
       
       // Get detailed balance info
       final balances = await callWalletRPC<Map<String, dynamic>>(walletName, 'getbalances', []);
-      await _logToFile('Wallet $walletName detailed balances: $balances');
       
       final balance = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, 0, true]);
       final utxos = await callWalletRPC<List<dynamic>>(walletName, 'listunspent', [0, 9999999, null, true]);
       
-      await _logToFile('Wallet $walletName balance: $balance, UTXOs: ${utxos.length}');
       
       // List all descriptors to verify they're imported
       try {
         final descriptors = await callWalletRPC<Map<String, dynamic>>(walletName, 'listdescriptors', []);
-        await _logToFile('Wallet $walletName has ${descriptors['descriptors']?.length ?? 0} descriptors');
       } catch (e) {
-        await _logToFile('Failed to list descriptors: $e');
       }
       
       // Fail fast if balance is not a number
@@ -924,5 +903,123 @@ class WalletRPCManager {
         'utxo_details': utxos.cast<Map<String, dynamic>>(),
       };
     });
+  }
+}
+
+/// Service for managing multisig group storage
+class MultisigStorage {
+  static const String _fileName = 'multisig.json';
+
+  /// Get the path to the multisig.json file
+  static Future<String> _getGroupsFilePath() async {
+    final appDir = await Environment.datadir();
+    final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
+    return path.join(bitdriveDir.path, _fileName);
+  }
+
+  /// Load all groups from multisig.json
+  static Future<List<MultisigGroup>> loadGroups() async {
+    try {
+      final filePath = await _getGroupsFilePath();
+      final file = File(filePath);
+      
+      if (!await file.exists()) {
+        // Return empty list if file doesn't exist yet
+        return [];
+      }
+      
+      final content = await file.readAsString();
+      final jsonList = json.decode(content) as List<dynamic>;
+      
+      return jsonList
+          .map((json) => MultisigGroup.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to load groups: $e');
+    }
+  }
+
+  /// Save all groups to multisig.json
+  static Future<void> saveGroups(List<MultisigGroup> groups) async {
+    try {
+      final filePath = await _getGroupsFilePath();
+      final file = File(filePath);
+      
+      // Ensure directory exists
+      await file.parent.create(recursive: true);
+      
+      final jsonList = groups.map((group) => group.toJson()).toList();
+      final content = json.encode(jsonList);
+      
+      await file.writeAsString(content);
+    } catch (e) {
+      throw Exception('Failed to save groups: $e');
+    }
+  }
+
+  /// Save a single group to multisig.json
+  static Future<void> saveGroup(MultisigGroup group) async {
+    final groups = await loadGroups();
+    
+    // Find existing group with same ID
+    final existingIndex = groups.indexWhere((g) => g.id == group.id);
+    
+    if (existingIndex != -1) {
+      // Update existing group
+      groups[existingIndex] = group;
+    } else {
+      // Add new group
+      groups.add(group);
+    }
+    
+    await saveGroups(groups);
+  }
+
+  /// Get a specific group by ID
+  static Future<MultisigGroup?> getGroup(String groupId) async {
+    final groups = await loadGroups();
+    try {
+      return groups.firstWhere((group) => group.id == groupId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Delete a group by ID
+  static Future<void> deleteGroup(String groupId) async {
+    final groups = await loadGroups();
+    groups.removeWhere((group) => group.id == groupId);
+    await saveGroups(groups);
+  }
+
+  /// Update group balance and UTXO count
+  static Future<void> updateGroupBalance(String groupId, double balance, int utxoCount) async {
+    final groups = await loadGroups();
+    final groupIndex = groups.indexWhere((g) => g.id == groupId);
+    
+    if (groupIndex != -1) {
+      // Create updated group with new balance and utxo count
+      final group = groups[groupIndex];
+      final updatedGroup = MultisigGroup(
+        id: group.id,
+        name: group.name,
+        n: group.n,
+        m: group.m,
+        keys: group.keys,
+        created: group.created,
+        descriptorReceive: group.descriptorReceive,
+        descriptorChange: group.descriptorChange,
+        watchWalletName: group.watchWalletName,
+        txid: group.txid,
+        addresses: group.addresses,
+        nextReceiveIndex: group.nextReceiveIndex,
+        balance: balance,
+        utxos: utxoCount,
+        utxoDetails: group.utxoDetails,
+      );
+      
+      groups[groupIndex] = updatedGroup;
+      await saveGroups(groups);
+    }
   }
 }
