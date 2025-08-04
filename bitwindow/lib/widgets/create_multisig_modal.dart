@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
-import 'package:bitwindow/services/wallet_rpc_manager.dart';
+import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
