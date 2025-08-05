@@ -139,6 +139,48 @@ class MultisigGroup {
   /// Check if this group uses ranged descriptors (xPub-based)
   /// Since we've moved to xpub-only model, all groups are now xpub-based
   bool get hasRangedDescriptors => true;
+
+  MultisigGroup copyWith({
+    String? id,
+    String? name,
+    int? n,
+    int? m,
+    List<MultisigKey>? keys,
+    int? created,
+    String? txid,
+    String? descriptor,
+    String? descriptorReceive,
+    String? descriptorChange,
+    String? watchWalletName,
+    Map<String, List<AddressInfo>>? addresses,
+    List<UtxoInfo>? utxoDetails,
+    double? balance,
+    int? utxos,
+    int? nextReceiveIndex,
+    int? nextChangeIndex,
+    List<String>? transactionIds,
+  }) {
+    return MultisigGroup(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      n: n ?? this.n,
+      m: m ?? this.m,
+      keys: keys ?? this.keys,
+      created: created ?? this.created,
+      txid: txid ?? this.txid,
+      descriptor: descriptor ?? this.descriptor,
+      descriptorReceive: descriptorReceive ?? this.descriptorReceive,
+      descriptorChange: descriptorChange ?? this.descriptorChange,
+      watchWalletName: watchWalletName ?? this.watchWalletName,
+      addresses: addresses ?? this.addresses,
+      utxoDetails: utxoDetails ?? this.utxoDetails,
+      balance: balance ?? this.balance,
+      utxos: utxos ?? this.utxos,
+      nextReceiveIndex: nextReceiveIndex ?? this.nextReceiveIndex,
+      nextChangeIndex: nextChangeIndex ?? this.nextChangeIndex,
+      transactionIds: transactionIds ?? this.transactionIds,
+    );
+  }
 }
 
 /// Address information with index

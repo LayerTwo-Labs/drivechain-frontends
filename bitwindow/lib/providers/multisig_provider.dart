@@ -8,10 +8,25 @@ import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
+
+/// Singleton notifier for multisig transaction changes
+class MultisigTransactionNotifier extends ChangeNotifier {
+  static final MultisigTransactionNotifier _instance = MultisigTransactionNotifier._internal();
+  
+  factory MultisigTransactionNotifier() => _instance;
+  
+  MultisigTransactionNotifier._internal();
+  
+  /// Notify listeners that transactions have changed
+  void notifyTransactionChange() {
+    notifyListeners();
+  }
+}
 
 // Centralized logging utility for multisig operations
 class MultisigLogger {
@@ -76,10 +91,6 @@ class MultisigDescriptorBuilder {
     final changeKeys = <String>[];
     
     for (final key in sortedKeys) {
-      final keyOriginPath = key.derivationPath.startsWith('m/') 
-          ? key.derivationPath.substring(2) 
-          : key.derivationPath;
-      
       if (key == signingKey) {
         // Use private key for this participant
         receiveKeys.add('[$fingerprint/$originPath]$privateKeyXprv/0/*');
@@ -232,6 +243,14 @@ class MultisigRPCSigner {
         MultisigLogger.error('Signing completed but no signatures were added');
       }
       
+      // Fail fast if no signatures were added
+      if (totalSignaturesAdded == 0 && participantPSBTs.isEmpty) {
+        throw Exception('No wallet keys were able to sign this transaction. Check that the keys match the multisig configuration.');
+      }
+      
+      // Log detailed results for debugging
+      MultisigLogger.info('Final signing result: $totalSignaturesAdded signatures from ${participantPSBTs.length} keys, complete: $isComplete');
+      
       return SigningResult(
         signedPsbt: finalPsbt,
         isComplete: isComplete,
@@ -309,14 +328,40 @@ class MultisigRPCSigner {
   /// Count new signatures added to PSBT
   Future<int> _countNewSignatures(String psbtBefore, String psbtAfter) async {
     try {
-      // If PSBTs are different, assume signatures were added
-      if (psbtBefore != psbtAfter) {
-        return 1;
+      // If PSBTs are identical, no signatures were added
+      if (psbtBefore == psbtAfter) {
+        return 0;
       }
       
-      return 0;
+      // Use analyzepsbt to count signatures in both PSBTs
+      final beforeAnalysis = await _rpc.callRAW('analyzepsbt', [psbtBefore]);
+      final afterAnalysis = await _rpc.callRAW('analyzepsbt', [psbtAfter]);
+      
+      if (beforeAnalysis is Map && afterAnalysis is Map) {
+        final beforeInputs = beforeAnalysis['inputs'] as List? ?? [];
+        final afterInputs = afterAnalysis['inputs'] as List? ?? [];
+        
+        int signaturesAdded = 0;
+        
+        for (int i = 0; i < beforeInputs.length && i < afterInputs.length; i++) {
+          final beforeInput = beforeInputs[i] as Map;
+          final afterInput = afterInputs[i] as Map;
+          
+          final beforeSigs = (beforeInput['partial_signatures'] as Map?)?.length ?? 0;
+          final afterSigs = (afterInput['partial_signatures'] as Map?)?.length ?? 0;
+          
+          signaturesAdded += afterSigs - beforeSigs;
+        }
+        
+        return signaturesAdded > 0 ? signaturesAdded : 1; // Fallback to 1 if we can't count properly
+      }
+      
+      // Fallback: if PSBTs are different, assume 1 signature was added
+      return 1;
     } catch (e) {
-      return 0;
+      MultisigLogger.error('Error counting signatures: $e');
+      // If PSBTs are different but we can't count, assume 1 signature was added
+      return psbtBefore != psbtAfter ? 1 : 0;
     }
   }
   
@@ -359,6 +404,7 @@ class MultisigRPCSigner {
 /// Service for managing multisig transaction storage in transactions.json
 class TransactionStorage {
   static const String _fileName = 'transactions.json';
+  static final _notifier = MultisigTransactionNotifier();
 
   /// Get the path to the transactions.json file
   static Future<String> _getTransactionsFilePath() async {
@@ -408,6 +454,9 @@ class TransactionStorage {
       final content = json.encode(jsonList);
       
       await file.writeAsString(content);
+      
+      // Notify listeners that transactions have changed
+      _notifier.notifyTransactionChange();
     } catch (e) {
       throw Exception('Failed to save transactions: $e');
     }
@@ -430,6 +479,12 @@ class TransactionStorage {
     
     await saveTransactions(transactions);
   }
+  
+  /// Get the transaction notifier for listening to changes
+  static MultisigTransactionNotifier get notifier => _notifier;
+  
+  /// Get the path to the transactions.json file (for checksum calculation)
+  static Future<String> getTransactionFilePath() => _getTransactionsFilePath();
 
   /// Get a specific transaction by ID
   static Future<MultisigTransaction?> getTransaction(String transactionId) async {
@@ -487,6 +542,7 @@ class TransactionStorage {
     String keyId,
     String signedPSBT, {
     int? signatureThreshold,
+    bool? isOwnedKey,
   }) async {
     final transaction = await getTransaction(transactionId);
     if (transaction == null) {
@@ -509,9 +565,16 @@ class TransactionStorage {
     // Check if we have enough signatures
     final signedCount = updatedKeyPSBTs.where((k) => k.isSigned).length;
     final threshold = signatureThreshold ?? transaction.requiredSignatures;
-    final newStatus = signedCount >= threshold
-      ? TxStatus.readyForBroadcast
-      : TxStatus.needsSignatures;
+    
+    TxStatus newStatus;
+    if (signedCount >= threshold) {
+      newStatus = TxStatus.readyForBroadcast;
+    } else if (isOwnedKey == true && signedCount > 0) {
+      // If we just signed with an owned key but don't have enough signatures yet
+      newStatus = TxStatus.awaitingSignedPSBTs;
+    } else {
+      newStatus = TxStatus.needsSignatures;
+    }
 
     final updatedTransaction = transaction.copyWith(
       keyPSBTs: updatedKeyPSBTs,
@@ -519,6 +582,104 @@ class TransactionStorage {
     );
 
     await saveTransaction(updatedTransaction);
+    
+    // Store PSBT data in multisig.json for wallet restoration if this is a wallet-owned key
+    if (isOwnedKey == true) {
+      await _storePSBTInMultisigFile(transactionId, keyId, transaction.initialPSBT, signedPSBT);
+    }
+  }
+
+  /// Store PSBT data in multisig.json for wallet restoration
+  static Future<void> _storePSBTInMultisigFile(
+    String transactionId,
+    String keyId,
+    String initialPSBT,
+    String signedPSBT,
+  ) async {
+    try {
+      final groups = await MultisigStorage.loadGroups();
+      bool groupUpdated = false;
+      
+      final updatedGroups = groups.map((group) {
+        // Find if this transaction belongs to this group
+        if (group.transactionIds.contains(transactionId)) {
+          final updatedKeys = group.keys.map((key) {
+            if (key.xpub == keyId && key.isWallet) {
+              // Update the key with PSBT data
+              final currentActivePSBTs = Map<String, String>.from(key.activePSBTs ?? {});
+              final currentInitialPSBTs = Map<String, String>.from(key.initialPSBTs ?? {});
+              
+              currentActivePSBTs[transactionId] = signedPSBT;
+              currentInitialPSBTs[transactionId] = initialPSBT;
+              
+              groupUpdated = true;
+              return key.copyWith(
+                activePSBTs: currentActivePSBTs,
+                initialPSBTs: currentInitialPSBTs,
+              );
+            }
+            return key;
+          }).toList();
+          
+          if (groupUpdated) {
+            return group.copyWith(keys: updatedKeys);
+          }
+        }
+        return group;
+      }).toList();
+      
+      if (groupUpdated) {
+        await MultisigStorage.saveGroups(updatedGroups);
+        MultisigLogger.info('Stored PSBT data for transaction $transactionId in multisig.json');
+      }
+    } catch (e) {
+      MultisigLogger.error('Failed to store PSBT data in multisig.json: $e');
+      // Don't throw - this is supplementary storage, transaction should still succeed
+    }
+  }
+
+  /// Clean up PSBT data from multisig.json when transaction is broadcasted
+  static Future<void> cleanupPSBTFromMultisigFile(String transactionId) async {
+    try {
+      final groups = await MultisigStorage.loadGroups();
+      bool groupUpdated = false;
+      
+      final updatedGroups = groups.map((group) {
+        // Find if this transaction belongs to this group
+        if (group.transactionIds.contains(transactionId)) {
+          final updatedKeys = group.keys.map((key) {
+            if (key.isWallet && (key.activePSBTs?.containsKey(transactionId) == true || key.initialPSBTs?.containsKey(transactionId) == true)) {
+              // Remove PSBT data for this transaction
+              final currentActivePSBTs = Map<String, String>.from(key.activePSBTs ?? {});
+              final currentInitialPSBTs = Map<String, String>.from(key.initialPSBTs ?? {});
+              
+              currentActivePSBTs.remove(transactionId);
+              currentInitialPSBTs.remove(transactionId);
+              
+              groupUpdated = true;
+              return key.copyWith(
+                activePSBTs: currentActivePSBTs.isEmpty ? null : currentActivePSBTs,
+                initialPSBTs: currentInitialPSBTs.isEmpty ? null : currentInitialPSBTs,
+              );
+            }
+            return key;
+          }).toList();
+          
+          if (groupUpdated) {
+            return group.copyWith(keys: updatedKeys);
+          }
+        }
+        return group;
+      }).toList();
+      
+      if (groupUpdated) {
+        await MultisigStorage.saveGroups(updatedGroups);
+        MultisigLogger.info('Cleaned up PSBT data for broadcasted transaction $transactionId');
+      }
+    } catch (e) {
+      MultisigLogger.error('Failed to cleanup PSBT data from multisig.json: $e');
+      // Don't throw - this is cleanup, main operation should still succeed
+    }
   }
 
   /// Get transactions that need confirmation updates (broadcasted but not confirmed)
@@ -617,7 +778,6 @@ class WalletRPCManager {
 
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   String? _currentlyLoadedWallet;
-  final Map<String, Completer<void>> _loadingOperations = {};
 
   /// Execute wallet-specific operations on an existing wallet
   Future<T> withWallet<T>(
@@ -875,22 +1035,8 @@ class WalletRPCManager {
   /// Get wallet balance, UTXO count, and detailed UTXO information
   Future<Map<String, dynamic>> getWalletBalanceAndUtxos(String walletName) async {
     return await withWallet<Map<String, dynamic>>(walletName, () async {
-      
-      // First, check if wallet is properly loaded by getting wallet info
-      final walletInfo = await callWalletRPC<Map<String, dynamic>>(walletName, 'getwalletinfo', []);
-      
-      // Get detailed balance info
-      final balances = await callWalletRPC<Map<String, dynamic>>(walletName, 'getbalances', []);
-      
       final balance = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, 0, true]);
       final utxos = await callWalletRPC<List<dynamic>>(walletName, 'listunspent', [0, 9999999, null, true]);
-      
-      
-      // List all descriptors to verify they're imported
-      try {
-        final descriptors = await callWalletRPC<Map<String, dynamic>>(walletName, 'listdescriptors', []);
-      } catch (e) {
-      }
       
       // Fail fast if balance is not a number
       if (balance is! num) {
@@ -929,9 +1075,15 @@ class MultisigStorage {
       }
       
       final content = await file.readAsString();
-      final jsonList = json.decode(content) as List<dynamic>;
+      final jsonData = json.decode(content);
       
-      return jsonList
+      // Expect new format only: object with groups/solo_keys
+      if (jsonData is! Map<String, dynamic>) {
+        throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
+      }
+      
+      final groupsList = jsonData['groups'] as List<dynamic>? ?? [];
+      return groupsList
           .map((json) => MultisigGroup.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
@@ -948,9 +1100,26 @@ class MultisigStorage {
       // Ensure directory exists
       await file.parent.create(recursive: true);
       
-      final jsonList = groups.map((group) => group.toJson()).toList();
-      final content = json.encode(jsonList);
+      // Load existing solo_keys or create empty array
+      List<Map<String, dynamic>> soloKeys = [];
+      if (await file.exists()) {
+        try {
+          final existingContent = await file.readAsString();
+          final existingData = json.decode(existingContent);
+          if (existingData is Map<String, dynamic> && existingData['solo_keys'] is List) {
+            soloKeys = List<Map<String, dynamic>>.from(existingData['solo_keys']);
+          }
+        } catch (e) {
+          // If parsing fails, start with empty solo_keys
+        }
+      }
       
+      final jsonData = {
+        'groups': groups.map((group) => group.toJson()).toList(),
+        'solo_keys': soloKeys,
+      };
+      
+      final content = json.encode(jsonData);
       await file.writeAsString(content);
     } catch (e) {
       throw Exception('Failed to save groups: $e');
@@ -975,22 +1144,6 @@ class MultisigStorage {
     await saveGroups(groups);
   }
 
-  /// Get a specific group by ID
-  static Future<MultisigGroup?> getGroup(String groupId) async {
-    final groups = await loadGroups();
-    try {
-      return groups.firstWhere((group) => group.id == groupId);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Delete a group by ID
-  static Future<void> deleteGroup(String groupId) async {
-    final groups = await loadGroups();
-    groups.removeWhere((group) => group.id == groupId);
-    await saveGroups(groups);
-  }
 
   /// Update group balance and UTXO count
   static Future<void> updateGroupBalance(String groupId, double balance, int utxoCount) async {
@@ -1020,6 +1173,64 @@ class MultisigStorage {
       
       groups[groupIndex] = updatedGroup;
       await saveGroups(groups);
+    }
+  }
+  
+  /// Get the path to the multisig groups file (for checksum calculation)
+  static Future<String> getMultisigFilePath() => _getGroupsFilePath();
+  
+  /// Load solo keys from multisig.json
+  static Future<List<Map<String, dynamic>>> loadSoloKeys() async {
+    try {
+      final filePath = await _getGroupsFilePath();
+      final file = File(filePath);
+      
+      if (!await file.exists()) {
+        return [];
+      }
+      
+      final content = await file.readAsString();
+      final jsonData = json.decode(content);
+      
+      if (jsonData is Map<String, dynamic> && jsonData['solo_keys'] is List) {
+        return List<Map<String, dynamic>>.from(jsonData['solo_keys']);
+      }
+      
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+  
+  /// Add a solo key to multisig.json
+  static Future<void> addSoloKey(Map<String, dynamic> keyData) async {
+    try {
+      final soloKeys = await loadSoloKeys();
+      
+      // Check if key already exists (by xpub)
+      final existingIndex = soloKeys.indexWhere((key) => key['xpub'] == keyData['xpub']);
+      
+      if (existingIndex == -1) {
+        // Add new key
+        soloKeys.add(keyData);
+        
+        // Save back to file
+        final groups = await loadGroups();
+        final filePath = await _getGroupsFilePath();
+        final file = File(filePath);
+        
+        await file.parent.create(recursive: true);
+        
+        final jsonData = {
+          'groups': groups.map((group) => group.toJson()).toList(),
+          'solo_keys': soloKeys,
+        };
+        
+        final content = json.encode(jsonData);
+        await file.writeAsString(content);
+      }
+    } catch (e) {
+      throw Exception('Failed to add solo key: $e');
     }
   }
 }

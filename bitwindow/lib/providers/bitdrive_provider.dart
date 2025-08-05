@@ -671,51 +671,55 @@ class BitDriveProvider extends ChangeNotifier {
     try {
       final file = File(path.join(_bitdriveDir!, 'multisig.json'));
       
-      // Load existing data or create new
-      List<dynamic> existingGroups = [];
+      // Load existing data or create new structure
+      Map<String, dynamic> jsonData = {
+        'groups': [],
+        'solo_keys': [],
+      };
+      
       if (await file.exists()) {
         try {
           final content = await file.readAsString();
           if (content.trim().isNotEmpty) {
-            existingGroups = json.decode(content);
+            final decoded = json.decode(content);
+            if (decoded is Map<String, dynamic>) {
+              jsonData = decoded;
+            } else {
+              throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
+            }
           }
         } catch (e) {
-          log.w('BitDrive: Error reading existing multisig.json, creating new: $e');
-          existingGroups = [];
+          log.e('BitDrive: Error reading existing multisig.json: $e');
+          throw Exception('Invalid multisig.json format');
         }
       }
+      
+      // Get groups array
+      final groups = jsonData['groups'] as List<dynamic>;
       
       // Check if this multisig group already exists (by ID - the unique identifier)
       final groupId = multisigData['id'] as String?;
       final groupName = multisigData['name'] as String? ?? 'Unknown';
       
       if (groupId != null && groupId.isNotEmpty) {
-        final existingIndex = existingGroups.indexWhere((group) => group['id'] == groupId);
+        final existingIndex = groups.indexWhere((group) => group['id'] == groupId);
         
         if (existingIndex != -1) {
           // Update existing group (prevents duplicates from multiple restoration runs)
-          existingGroups[existingIndex] = multisigData;
+          groups[existingIndex] = multisigData;
           log.i('BitDrive: Updated existing multisig group "$groupName" (ID: $groupId)');
         } else {
           // Add new group
-          existingGroups.add(multisigData);
+          groups.add(multisigData);
           log.i('BitDrive: Added new multisig group "$groupName" (ID: $groupId)');
         }
       } else {
-        // Fallback to name-based checking for legacy data without ID
-        final existingIndex = existingGroups.indexWhere((group) => group['name'] == groupName);
-        
-        if (existingIndex != -1) {
-          existingGroups[existingIndex] = multisigData;
-          log.i('BitDrive: Updated existing multisig group "$groupName" (legacy mode)');
-        } else {
-          existingGroups.add(multisigData);
-          log.i('BitDrive: Added new multisig group "$groupName" (legacy mode)');
-        }
+        // No fallback to name-based checking - require ID
+        throw Exception('Multisig group must have an ID');
       }
       
       // Save updated data - this is the single source of truth for multisig groups
-      await file.writeAsString(json.encode(existingGroups));
+      await file.writeAsString(json.encode(jsonData));
       
     } catch (e) {
       log.e('BitDrive: Error saving multisig to local file: $e');
