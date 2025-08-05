@@ -25,9 +25,8 @@ class MultisigKey {
   final String? originPath;
   final bool isWallet;
   
-  // PSBT storage for wallet restoration - only stored for wallet-owned keys
-  final Map<String, String>? activePSBTs; // Map<transactionId, signedPSBT>
-  final Map<String, String>? initialPSBTs; // Map<transactionId, initialPSBT>
+  final Map<String, String>? activePSBTs;
+  final Map<String, String>? initialPSBTs;
 
   MultisigKey({
     required this.owner,
@@ -43,7 +42,7 @@ class MultisigKey {
   Map<String, dynamic> toJson() => {
         'owner': owner,
         'xpub': xpub,
-        'pubkey': xpub, // Keep legacy field for compatibility
+        'pubkey': xpub,
         'path': derivationPath,
         'fingerprint': fingerprint,
         'origin_path': originPath,
@@ -112,7 +111,6 @@ class CreateMultisigModal extends StatelessWidget {
                   children: [
                     
                     if (viewModel.currentStep == 0) ...[
-                      // Step 1: Basic Configuration
                       SailTextField(
                         label: 'Multisig Group Name',
                         controller: viewModel.nameController,
@@ -183,7 +181,6 @@ class CreateMultisigModal extends StatelessWidget {
                           ),
                         ),
                     ] else ...[
-                      // Step 2: Public Key Management
                       SailCard(
                         shadowSize: ShadowSize.none,
                         child: SailColumn(
@@ -976,7 +973,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       modalError = null;
       setBusy(true);
 
-      MultisigLogger.info('Creating multisig group "${nameController.text}" with ${keys.length} keys');
 
       // Sort keys by BIP67 order (lexicographic order of xpubs)
       final sortedKeys = List<MultisigKey>.from(keys);
@@ -1026,7 +1022,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       try {
         // Create the multisig wallet in Bitcoin Core with private keys enabled
         await _createMultisigWallet('multisig_$multisigId', descriptors.receive, descriptors.change);
-        MultisigLogger.info('Successfully created multisig wallet: multisig_$multisigId');
         
       } catch (e) {
         MultisigLogger.error('Failed to create multisig wallet (continuing anyway): $e');
@@ -1036,14 +1031,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
       // Broadcast via BitDrive with multisig flag and capture TXID
       final txid = await _broadcastMultisigGroup(multisigData);
-      MultisigLogger.info('Broadcasted multisig group with TXID: $txid');
       
       // Add TXID to the data before saving locally
       multisigData['txid'] = txid;
 
       // Save to local file
       await _saveToLocalFile(multisigData);
-      MultisigLogger.info('Multisig group created successfully');
 
       // Close dialog on success
       if (context.mounted) {
@@ -1349,7 +1342,6 @@ class ImportMultisigModal extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (!viewModel.hasFoundGroup) ...[
-                      // Step 1: Enter TXID
                       SailTextField(
                         label: 'Transaction ID',
                         controller: viewModel.txidController,
@@ -1362,7 +1354,6 @@ class ImportMultisigModal extends StatelessWidget {
                         loading: viewModel.isBusy,
                       ),
                     ] else ...[
-                      // Step 2: Select owned keys
                       SailText.primary15('Select Your Keys'),
                       SailText.secondary12(
                         'Check the keys that belong to you. This helps the wallet know which keys it can use for signing.',
