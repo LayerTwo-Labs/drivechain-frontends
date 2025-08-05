@@ -1,6 +1,5 @@
 import 'package:bitwindow/models/multisig_group.dart';
 
-/// Transaction status for multisig PSBT workflow
 enum TxStatus {
   needsSignatures,
   awaitingSignedPSBTs,
@@ -56,7 +55,6 @@ extension TxStatusExtension on TxStatus {
 }
 
 
-/// Key-specific PSBT signing status
 class KeyPSBTStatus {
   final String keyId; // xpub or key identifier
   final String? psbt; // The PSBT for this key
@@ -89,7 +87,6 @@ class KeyPSBTStatus {
   };
 }
 
-/// Multisig transaction tracking PSBT workflow state
 class MultisigTransaction {
   final String id; // MuSIG_TXID
   final String groupId;
@@ -183,7 +180,6 @@ class MultisigTransaction {
     };
   }
 
-  /// Create a copy with updated fields
   MultisigTransaction copyWith({
     String? id,
     String? groupId,
@@ -220,25 +216,20 @@ class MultisigTransaction {
     );
   }
 
-  /// Get short transaction ID for display
   String get shortId => id.length > 8 ? '${id.substring(0, 8)}...' : id;
 
-  /// Get short txid for display if broadcasted
   String? get shortTxid => txid != null && txid!.length > 8 
       ? '${txid!.substring(0, 8)}...' 
       : txid;
 
-  /// Check if transaction needs more signatures
   bool get needsMoreSignatures {
     return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isEmpty;
   }
 
-  /// Check if transaction is ready to combine
   bool get readyToCombine {
     return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isNotEmpty;
   }
 
-  /// Check if transaction can be broadcasted
   bool get canBroadcast {
     return status == TxStatus.readyForBroadcast && finalHex != null;
   }

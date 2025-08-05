@@ -14,7 +14,6 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
-/// Singleton notifier for multisig transaction changes
 class MultisigTransactionNotifier extends ChangeNotifier {
   static final MultisigTransactionNotifier _instance = MultisigTransactionNotifier._internal();
   
@@ -22,13 +21,11 @@ class MultisigTransactionNotifier extends ChangeNotifier {
   
   MultisigTransactionNotifier._internal();
   
-  /// Notify listeners that transactions have changed
   void notifyTransactionChange() {
     notifyListeners();
   }
 }
 
-// Centralized logging utility for multisig operations
 class MultisigLogger {
   static final Logger _logger = GetIt.I.get<Logger>();
   
@@ -45,12 +42,9 @@ class MultisigLogger {
   }
 }
 
-/// Centralized descriptor building utility for multisig operations
-/// This ensures consistent descriptor format across all multisig functionality
 class MultisigDescriptorBuilder {
   static final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
   
-  /// Build a watch-only multisig descriptor (for wallet creation and funding)
   static Future<MultisigDescriptors> buildWatchOnlyDescriptors(MultisigGroup group) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
     
@@ -65,7 +59,6 @@ class MultisigDescriptorBuilder {
     final receiveDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/0/*))';
     final changeDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/1/*))';
     
-    // Add checksums using Bitcoin Core
     final receiveWithChecksum = await _addChecksum(receiveDesc);
     final changeWithChecksum = await _addChecksum(changeDesc);
     
@@ -75,7 +68,6 @@ class MultisigDescriptorBuilder {
     );
   }
   
-  /// Build a signing descriptor with private keys (for PSBT signing)
   static Future<List<String>> buildSigningDescriptors(
     MultisigGroup group,
     MultisigKey signingKey,
@@ -92,11 +84,9 @@ class MultisigDescriptorBuilder {
     
     for (final key in sortedKeys) {
       if (key == signingKey) {
-        // Use private key for this participant
         receiveKeys.add('[$fingerprint/$originPath]$privateKeyXprv/0/*');
         changeKeys.add('[$fingerprint/$originPath]$privateKeyXprv/1/*');
       } else {
-        // Use public key for other participants
         final keyDesc = key.fingerprint != null && key.originPath != null
             ? '[${key.fingerprint}/${key.originPath}]${key.xpub}'
             : key.xpub;
@@ -112,14 +102,12 @@ class MultisigDescriptorBuilder {
     return [receiveDesc, changeDesc];
   }
   
-  /// Sort keys by BIP67 order (lexicographic order of xpubs)
   static List<MultisigKey> _sortKeysByBIP67(List<MultisigKey> keys) {
     final sortedKeys = List<MultisigKey>.from(keys);
     sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
     return sortedKeys;
   }
   
-  /// Add checksum to descriptor using Bitcoin Core's getdescriptorinfo
   static Future<String> _addChecksum(String descriptor) async {
     try {
       if (descriptor.contains('#')) {
@@ -140,7 +128,6 @@ class MultisigDescriptorBuilder {
   }
 }
 
-/// Container for multisig descriptors
 class MultisigDescriptors {
   final String receive;
   final String change;
@@ -151,7 +138,6 @@ class MultisigDescriptors {
   });
 }
 
-/// Result of PSBT signing operation
 class SigningResult {
   final String signedPsbt;
   final bool isComplete;
@@ -166,12 +152,10 @@ class SigningResult {
   });
 }
 
-/// Handles PSBT signing for multisig wallets using descriptorprocesspsbt
 class MultisigRPCSigner {
   final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
 
-  /// Signs a PSBT using Bitcoin Core descriptorprocesspsbt RPC
   Future<SigningResult> signPSBT({
     required String psbtBase64,
     required MultisigGroup group,
@@ -179,7 +163,6 @@ class MultisigRPCSigner {
     required List<MultisigKey> walletKeys,
     bool isMainnet = false,
   }) async {
-    MultisigLogger.info('Signing PSBT for group ${group.name} (${group.m}-of-${group.n}) with ${walletKeys.length} wallet keys');
     
     final errors = <String>[];
     
@@ -235,7 +218,6 @@ class MultisigRPCSigner {
       final isComplete = await _checkPsbtComplete(finalPsbt, group.m);
       
       
-      MultisigLogger.info('PSBT signing complete: ${participantPSBTs.length}/${walletKeys.length} participants signed, $totalSignaturesAdded signatures added, transaction complete: $isComplete');
       
       // Only return success if we actually added signatures
       if (totalSignaturesAdded == 0 && participantPSBTs.isNotEmpty) {
@@ -248,8 +230,6 @@ class MultisigRPCSigner {
         throw Exception('No wallet keys were able to sign this transaction. Check that the keys match the multisig configuration.');
       }
       
-      // Log detailed results for debugging
-      MultisigLogger.info('Final signing result: $totalSignaturesAdded signatures from ${participantPSBTs.length} keys, complete: $isComplete');
       
       return SigningResult(
         signedPsbt: finalPsbt,
@@ -264,7 +244,6 @@ class MultisigRPCSigner {
     }
   }
   
-  /// Sign PSBT with a single participant using descriptorprocesspsbt
   Future<SigningResult?> _signWithParticipant({
     required MultisigKey walletKey,
     required String mnemonic,
@@ -273,7 +252,6 @@ class MultisigRPCSigner {
     required bool isMainnet,
   }) async {
     try {
-      // Step 1: Derive private key for this participant
       final keyInfo = await _hdWallet.deriveExtendedKeyInfo(mnemonic, walletKey.derivationPath, isMainnet);
       final xprv = keyInfo['xprv'];
       final fingerprint = keyInfo['fingerprint'];
@@ -283,13 +261,10 @@ class MultisigRPCSigner {
       }
       
       
-      // Step 2: Build descriptors with private keys for this participant
       final descriptors = await MultisigDescriptorBuilder.buildSigningDescriptors(
         group, walletKey, xprv, fingerprint!,
       );
       
-      
-      // Step 3: Use descriptorprocesspsbt to sign directly
       
       final result = await _rpc.callRAW('descriptorprocesspsbt', [
         psbtBase64,
@@ -325,7 +300,6 @@ class MultisigRPCSigner {
   
   
   
-  /// Count new signatures added to PSBT
   Future<int> _countNewSignatures(String psbtBefore, String psbtAfter) async {
     try {
       // If PSBTs are identical, no signatures were added
@@ -367,7 +341,6 @@ class MultisigRPCSigner {
   
   
   
-  /// Check if PSBT has enough signatures
   Future<bool> _checkPsbtComplete(String psbt, int requiredSigs) async {
     try {
       final analysis = await _rpc.callRAW('analyzepsbt', [psbt]);
@@ -401,12 +374,10 @@ class MultisigRPCSigner {
   }
 }
 
-/// Service for managing multisig transaction storage in transactions.json
 class TransactionStorage {
   static const String _fileName = 'transactions.json';
   static final _notifier = MultisigTransactionNotifier();
 
-  /// Get the path to the transactions.json file
   static Future<String> _getTransactionsFilePath() async {
     final appDir = await Environment.datadir();
     final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
@@ -419,7 +390,6 @@ class TransactionStorage {
     return path.join(bitdriveDir.path, _fileName);
   }
 
-  /// Load all transactions from transactions.json
   static Future<List<MultisigTransaction>> loadTransactions() async {
     try {
       final filePath = await _getTransactionsFilePath();
@@ -444,7 +414,6 @@ class TransactionStorage {
     }
   }
 
-  /// Save all transactions to transactions.json
   static Future<void> saveTransactions(List<MultisigTransaction> transactions) async {
     try {
       final filePath = await _getTransactionsFilePath();
@@ -462,7 +431,6 @@ class TransactionStorage {
     }
   }
 
-  /// Add or update a single transaction
   static Future<void> saveTransaction(MultisigTransaction transaction) async {
     final transactions = await loadTransactions();
     
@@ -480,13 +448,10 @@ class TransactionStorage {
     await saveTransactions(transactions);
   }
   
-  /// Get the transaction notifier for listening to changes
   static MultisigTransactionNotifier get notifier => _notifier;
   
-  /// Get the path to the transactions.json file (for checksum calculation)
-  static Future<String> getTransactionFilePath() => _getTransactionsFilePath();
+    static Future<String> getTransactionFilePath() => _getTransactionsFilePath();
 
-  /// Get a specific transaction by ID
   static Future<MultisigTransaction?> getTransaction(String transactionId) async {
     final transactions = await loadTransactions();
     try {
@@ -496,20 +461,17 @@ class TransactionStorage {
     }
   }
 
-  /// Get all transactions for a specific multisig group
   static Future<List<MultisigTransaction>> getTransactionsForGroup(String groupId) async {
     final transactions = await loadTransactions();
     return transactions.where((tx) => tx.groupId == groupId).toList();
   }
 
-  /// Delete a transaction
   static Future<void> deleteTransaction(String transactionId) async {
     final transactions = await loadTransactions();
     transactions.removeWhere((tx) => tx.id == transactionId);
     await saveTransactions(transactions);
   }
 
-  /// Update transaction status and related fields
   static Future<void> updateTransactionStatus(
     String transactionId,
     TxStatus status, {
@@ -536,7 +498,6 @@ class TransactionStorage {
     await saveTransaction(updatedTransaction);
   }
 
-  /// Update a key's PSBT signing status
   static Future<void> updateKeyPSBT(
     String transactionId,
     String keyId,
@@ -589,7 +550,6 @@ class TransactionStorage {
     }
   }
 
-  /// Store PSBT data in multisig.json for wallet restoration
   static Future<void> _storePSBTInMultisigFile(
     String transactionId,
     String keyId,
@@ -630,7 +590,6 @@ class TransactionStorage {
       
       if (groupUpdated) {
         await MultisigStorage.saveGroups(updatedGroups);
-        MultisigLogger.info('Stored PSBT data for transaction $transactionId in multisig.json');
       }
     } catch (e) {
       MultisigLogger.error('Failed to store PSBT data in multisig.json: $e');
@@ -638,7 +597,6 @@ class TransactionStorage {
     }
   }
 
-  /// Clean up PSBT data from multisig.json when transaction is broadcasted
   static Future<void> cleanupPSBTFromMultisigFile(String transactionId) async {
     try {
       final groups = await MultisigStorage.loadGroups();
@@ -674,7 +632,6 @@ class TransactionStorage {
       
       if (groupUpdated) {
         await MultisigStorage.saveGroups(updatedGroups);
-        MultisigLogger.info('Cleaned up PSBT data for broadcasted transaction $transactionId');
       }
     } catch (e) {
       MultisigLogger.error('Failed to cleanup PSBT data from multisig.json: $e');
@@ -682,7 +639,6 @@ class TransactionStorage {
     }
   }
 
-  /// Get transactions that need confirmation updates (broadcasted but not confirmed)
   static Future<List<MultisigTransaction>> getTransactionsNeedingConfirmationUpdate() async {
     final transactions = await loadTransactions();
     return transactions.where((tx) => 
@@ -690,7 +646,6 @@ class TransactionStorage {
     ).toList();
   }
 
-  /// Update transaction with combined PSBT
   static Future<void> updateCombinedPSBT(
     String transactionId,
     String combinedPSBT,
@@ -708,7 +663,6 @@ class TransactionStorage {
     await saveTransaction(updatedTransaction);
   }
 
-  /// Update transaction with finalized hex for broadcasting
   static Future<void> updateFinalHex(
     String transactionId,
     String finalHex,
@@ -726,7 +680,6 @@ class TransactionStorage {
     await saveTransaction(updatedTransaction);
   }
 
-  /// Add or update a key PSBT status (for import flow)
   static Future<void> addOrUpdateKeyPSBT(
     String transactionId,
     String keyId,
@@ -779,7 +732,6 @@ class WalletRPCManager {
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   String? _currentlyLoadedWallet;
 
-  /// Execute wallet-specific operations on an existing wallet
   Future<T> withWallet<T>(
     String walletName,
     Future<T> Function() operation,
@@ -797,7 +749,6 @@ class WalletRPCManager {
     return await operation();
   }
 
-  /// Load a specific wallet
   Future<void> loadWallet(String walletName) async {
     try {
       // Check if wallet is already loaded
@@ -816,7 +767,6 @@ class WalletRPCManager {
     }
   }
 
-  /// Unload a specific wallet
   Future<void> unloadWallet(String walletName) async {
     try {
       await _rpc.callRAW('unloadwallet', [walletName]);
@@ -996,7 +946,6 @@ class WalletRPCManager {
   /// Rescan wallet from a specific block height or timestamp
   Future<void> rescanWallet(String walletName, {int? startHeight, int? startTime}) async {
     return await withWallet<void>(walletName, () async {
-      MultisigLogger.info('Starting rescan for wallet: $walletName');
       
       // Use rescanblockchain to rescan from a specific point
       if (startHeight != null) {
@@ -1007,7 +956,6 @@ class WalletRPCManager {
         // Rescan from the beginning (genesis block)
         await callWalletRPC<dynamic>(walletName, 'rescanblockchain', []);
       }
-      MultisigLogger.info('Wallet $walletName rescanned successfully');
     });
   }
 
@@ -1028,7 +976,6 @@ class WalletRPCManager {
       final startHeight = (currentHeight - blocksBack).clamp(0, currentHeight);
       
       await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
-      MultisigLogger.info('Recent rescan completed for wallet $walletName');
     });
   }
 

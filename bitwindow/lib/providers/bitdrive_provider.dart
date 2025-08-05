@@ -164,7 +164,6 @@ class BitDriveProvider extends ChangeNotifier {
       result.setAll(0, encrypted);
       result.setAll(encrypted.length, tag);
 
-      log.d('BitDrive: Encrypted ${content.length} bytes to ${result.length} bytes');
       return result;
     } catch (e) {
       log.e('BitDrive: Encryption error: $e');
@@ -402,7 +401,6 @@ class BitDriveProvider extends ChangeNotifier {
 
       // Combine and store
       final opReturnData = '$metadataStr|$contentStr';
-      log.d('BitDrive: OP_RETURN size: ${opReturnData.length} bytes');
 
       final address = await bitwindowd.wallet.getNewAddress();
       final txid = await bitwindowd.wallet.sendTransaction(
@@ -411,7 +409,6 @@ class BitDriveProvider extends ChangeNotifier {
         opReturnMessage: opReturnData,
       );
 
-      log.d('BitDrive: Stored in tx: $txid');
       notifyListeners();
     } catch (e) {
       error = e.toString();
@@ -567,7 +564,6 @@ class BitDriveProvider extends ChangeNotifier {
               final contentBytes = base64.decode(parts[1]);
               final content = isEncrypted ? await _decryptContent(contentBytes, timestamp, fileType) : contentBytes;
               await _processMultisigTransaction(content, tx.txid);
-              log.i('BitDrive: Processed multisig transaction ${tx.txid} during scan');
             } catch (e) {
               log.e('BitDrive: Error processing multisig tx ${tx.txid} during scan: $e');
             }
@@ -592,7 +588,6 @@ class BitDriveProvider extends ChangeNotifier {
         }
       }
 
-      log.i('BitDrive: Found ${_pendingDownloads.length} files to download');
     } catch (e) {
       log.e('BitDrive: Scan error: $e');
       error = e.toString();
@@ -628,7 +623,6 @@ class BitDriveProvider extends ChangeNotifier {
       }
 
       _pendingDownloads.removeWhere((pending) => downloaded.contains(pending));
-      log.i('BitDrive: Downloaded $downloadedCount files');
     } catch (e) {
       log.e('BitDrive: Download error: $e');
       error = e.toString();
@@ -656,7 +650,6 @@ class BitDriveProvider extends ChangeNotifier {
         multisigData['txid'] = txid;
       }
       
-      log.i('BitDrive: Processing multisig group "$name" (ID: $id, $n-of-$m, TXID: $txid)');
       
       // Save to local multisig.json file (single source of truth)
       await _saveMultisigToLocalFile(multisigData);
@@ -706,11 +699,9 @@ class BitDriveProvider extends ChangeNotifier {
         if (existingIndex != -1) {
           // Update existing group (prevents duplicates from multiple restoration runs)
           groups[existingIndex] = multisigData;
-          log.i('BitDrive: Updated existing multisig group "$groupName" (ID: $groupId)');
         } else {
           // Add new group
           groups.add(multisigData);
-          log.i('BitDrive: Added new multisig group "$groupName" (ID: $groupId)');
         }
       } else {
         // No fallback to name-based checking - require ID
