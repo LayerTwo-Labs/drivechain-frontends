@@ -14,21 +14,6 @@ import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:sail_ui/config/sidechains.dart';
 
-// Helper function to log multisig debugging information to file
-Future<void> _logToFile(String message) async {
-  try {
-    final dir = Directory(path.dirname(path.current));
-    final file = File(path.join(dir.path, 'bitwindow', 'multisig_output.txt'));
-    
-    // Ensure parent directory exists
-    await file.parent.create(recursive: true);
-    
-    final timestamp = DateTime.now().toIso8601String();
-    await file.writeAsString('[$timestamp] HD_WALLET: $message\n', mode: FileMode.append);
-  } catch (e) {
-    print('Failed to write to multisig_output.txt: $e');
-  }
-}
 
 class HDWalletProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
@@ -423,27 +408,19 @@ class HDWalletProvider extends ChangeNotifier {
 
   // Generate wallet xPub with origin info
   Future<Map<String, String>> generateWalletXpub(int accountIndex, [bool isMainnet = false]) async {
-    await _logToFile('generateWalletXpub called with accountIndex=$accountIndex, isMainnet=$isMainnet');
-    
     final coinType = isMainnet ? "0'" : "1'";
     final path = "m/84'/$coinType/$accountIndex'";
     
-    await _logToFile('Deriving key at path: $path');
     final info = await deriveExtendedKeyInfo(_mnemonic ?? '', path, isMainnet);
     
     if (info.isEmpty) {
-      await _logToFile('Failed to derive key info for path: $path');
       return {};
     }
-    
-    await _logToFile('Successfully derived key info: xpub=${info['xpub']?.substring(0, 20)}..., fingerprint=${info['fingerprint']}');
     
     // Add origin info to xpub
     final originPath = path.replaceFirst('m/', '');
     info['xpub_with_origin'] = "[${info['fingerprint']}/$originPath]${info['xpub']}";
     info['derivation_path'] = path;
-    
-    await _logToFile('Added derivation_path=$path to key info');
     
     return info;
   }

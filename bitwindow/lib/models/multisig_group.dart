@@ -1,6 +1,5 @@
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 
-/// MultisigGroup with full Bitcoin Core integration support
 class MultisigGroup {
   final String id;
   final String name;
@@ -10,7 +9,6 @@ class MultisigGroup {
   final int created;
   final String? txid;
   
-  // New fields for Bitcoin Core integration
   final String? descriptor;  // Full descriptor with checksum (legacy, single address)
   final String? descriptorReceive;  // Ranged descriptor for receive addresses
   final String? descriptorChange;   // Ranged descriptor for change addresses
@@ -124,7 +122,6 @@ class MultisigGroup {
 
   String get participantNames => keys.map((k) => k.owner).join(', ');
   
-  /// Get all addresses (both receive and change)
   List<String> get allAddresses {
     final List<String> all = [];
     addresses['receive']?.forEach((a) => all.add(a.address));
@@ -132,12 +129,9 @@ class MultisigGroup {
     return all;
   }
   
-  /// Check if this group has a valid descriptor (legacy or ranged)
   bool get hasDescriptor => (descriptor != null && descriptor!.isNotEmpty) ||
       (descriptorReceive != null && descriptorReceive!.isNotEmpty);
   
-  /// Check if this group uses ranged descriptors (xPub-based)
-  /// Since we've moved to xpub-only model, all groups are now xpub-based
   bool get hasRangedDescriptors => true;
 
   MultisigGroup copyWith({
@@ -183,7 +177,6 @@ class MultisigGroup {
   }
 }
 
-/// Address information with index
 class AddressInfo {
   final int index;
   final String address;
@@ -208,7 +201,6 @@ class AddressInfo {
       };
 }
 
-/// UTXO information from Bitcoin Core
 class UtxoInfo {
   final String txid;
   final int vout;
@@ -256,7 +248,6 @@ class UtxoInfo {
         'safe': safe,
       };
   
-  /// Get outpoint for PSBT creation
   Map<String, dynamic> get outpoint => {
         'txid': txid,
         'vout': vout,

@@ -228,7 +228,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
             : keyInfoResult['derivation_path'],
       };
       
-      _logger.i('Generated multisig key: accountIndex=$accountIndex, relativeIndex=$relativeIndex, path=${keyInfo!['path']}');
       
     } catch (e) {
       _logger.e('Error generating multisig key: $e');
@@ -254,7 +253,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       // Add to solo_keys section
       await MultisigStorage.addSoloKey(soloKeyData);
       
-      _logger.i('Added solo key $keyIndex to multisig.json for tracking');
       
     } catch (e) {
       _logger.e('Failed to write key to multisig.json: $e');
@@ -297,7 +295,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       final prettyJson = encoder.convert(configData);
       await file.writeAsString(prettyJson);
 
-      _logger.i('Saved key configuration to: $filePath');
 
       // Show success message
       if (context.mounted) {
