@@ -75,8 +75,7 @@ class LogRouteArgs {
 /// generated route for
 /// [_i2.ParentChainPage]
 class ParentChainRoute extends _i5.PageRouteInfo<void> {
-  const ParentChainRoute({List<_i5.PageRouteInfo>? children})
-      : super(ParentChainRoute.name, initialChildren: children);
+  const ParentChainRoute({List<_i5.PageRouteInfo>? children}) : super(ParentChainRoute.name, initialChildren: children);
 
   static const String name = 'ParentChainRoute';
 
@@ -149,10 +148,7 @@ class ShuttingDownRouteArgs {
   }
 
   @override
-  int get hashCode =>
-      key.hashCode ^
-      const _i8.ListEquality().hash(binaries) ^
-      onComplete.hashCode;
+  int get hashCode => key.hashCode ^ const _i8.ListEquality().hash(binaries) ^ onComplete.hashCode;
 }
 
 /// generated route for
