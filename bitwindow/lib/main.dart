@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
@@ -142,6 +143,9 @@ void main(List<String> args) async {
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+
+  // Initialize auto updater
+  await initAutoUpdater(log);
 
   unawaited(bootBinaries(log));
   await setupSignalHandlers(log);
@@ -548,4 +552,19 @@ class SubWindowTypes {
     defaultSize: Size(double.maxFinite / 2, double.maxFinite),
     defaultPosition: Offset(double.maxFinite / 2, 0),
   );
+}
+
+Future<void> initAutoUpdater(Logger log) async {
+  try {
+    const feedURL = 'https://releases.drivechain.info/bitwindow-appcast.xml';
+    log.i('Initializing auto updater with feed URL: $feedURL');
+    
+    await autoUpdater.setFeedURL(feedURL);
+    await autoUpdater.checkForUpdates();
+    await autoUpdater.setScheduledCheckInterval(3600); // Check every hour
+    
+    log.i('Auto updater initialized successfully');
+  } catch (e) {
+    log.w('Failed to initialize auto updater: $e');
+  }
 }
