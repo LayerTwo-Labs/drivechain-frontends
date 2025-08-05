@@ -123,14 +123,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               members: [
                 PlatformMenuItem(
                   label: 'Create New Wallet',
-                  onSelected: () {
-                    GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.initial));
+                  onSelected: () async {
+                    await GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.initial));
                   },
                 ),
                 PlatformMenuItem(
                   label: 'Restore My Wallet',
-                  onSelected: () {
-                    GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.restore));
+                  onSelected: () async {
+                    await GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.restore));
                   },
                 ),
               ],

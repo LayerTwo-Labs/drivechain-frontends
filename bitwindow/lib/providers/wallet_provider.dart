@@ -26,7 +26,7 @@ class WalletProvider extends ChangeNotifier {
     required this.appDir,
   });
 
-  final _logger = Logger();
+  final _logger = GetIt.I.get<Logger>();
   static const String defaultBip32Path = "m/44'/0'/0'";
 
   Future<bool> hasExistingWallet() async {
@@ -81,33 +81,59 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
-    return _genWallet(customMnemonic: customMnemonic, passphrase: passphrase);
+    _logger.i('generateWallet: Starting wallet generation');
+
+    final walletData = await _genWallet(customMnemonic: customMnemonic, passphrase: passphrase);
+
+    _logger.i('generateWallet: Wallet data generated, restarting enforcer');
+
+    // Restart enforcer to pick up the new wallet
+    unawaited(restartEnforcer());
+
+    _logger.i('generateWallet: Complete');
+    return walletData;
+  }
+
+  Future<void> restartEnforcer() async {
+    try {
+      final enforcerBinary = binaryProvider.binaries.whereType<Enforcer>().firstOrNull;
+      if (enforcerBinary != null) {
+        // Stop the enforcer
+        await binaryProvider.stop(enforcerBinary);
+        // Wait for 3 seconds to ensure enforcer is fully stopped
+        await Future.delayed(const Duration(seconds: 3));
+
+        // Restart the enforcer with the new wallet
+        await binaryProvider.start(enforcerBinary);
+
+        _logger.i('Restarted enforcer after wallet generation');
+      }
+    } catch (e) {
+      _logger.e('Failed to restart enforcer after wallet generation: $e');
+    }
   }
 
   Future<Map<String, dynamic>> _genWallet({String? customMnemonic, String? passphrase}) async {
-    final Mnemonic mnemonicObj = customMnemonic != null
-        ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
-        : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
+    _logger.i('_genWallet: Starting');
 
-    final seedHex = hex.encode(mnemonicObj.seed);
+    // Run heavy crypto operations in isolate to prevent UI blocking
+    final walletData = await compute(_generateWalletInIsolate, {
+      'customMnemonic': customMnemonic,
+      'passphrase': passphrase,
+    });
 
-    // Create chain from seed
-    final chain = Chain.seed(seedHex);
-    final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+    _logger.i('_genWallet: Wallet data generated from isolate');
 
-    final walletData = {
-      'mnemonic': mnemonicObj.sentence,
-      'seed_hex': seedHex,
-      'master_key': masterKey.privateKeyHex(),
-      'chain_code': hex.encode(masterKey.chainCode!),
-      'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
-      'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
-      'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
-    };
-
+    _logger.i('_genWallet: About to save master wallet');
     await saveMasterWallet(walletData);
+
+    _logger.i('_genWallet: Master wallet saved, generating starters for chains');
     await generateStartersForDownloadedChains();
 
+    _logger.i('_genWallet: Notifying listeners once after all wallets generated');
+    notifyListeners();
+
+    _logger.i('_genWallet: Complete');
     return walletData;
   }
 
@@ -150,11 +176,11 @@ class WalletProvider extends ChangeNotifier {
     return wallet;
   }
 
-  String _bytesToBinary(List<int> bytes) {
+  static String _bytesToBinary(List<int> bytes) {
     return bytes.map((byte) => byte.toRadixString(2).padLeft(8, '0')).join('');
   }
 
-  String _calculateChecksumBits(List<int> entropy) {
+  static String _calculateChecksumBits(List<int> entropy) {
     final entropyBits = entropy.length * 8;
     final checksumSize = entropyBits ~/ 32;
 
@@ -163,7 +189,64 @@ class WalletProvider extends ChangeNotifier {
     return hashBits.substring(0, checksumSize);
   }
 
+  // Static method to run in isolate
+  static Map<String, dynamic> _generateWalletInIsolate(Map<String, dynamic> params) {
+    final customMnemonic = params['customMnemonic'] as String?;
+    final passphrase = params['passphrase'] as String?;
+
+    final Mnemonic mnemonicObj = customMnemonic != null
+        ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
+        : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
+
+    final seedHex = hex.encode(mnemonicObj.seed);
+
+    // Create chain from seed
+    final chain = Chain.seed(seedHex);
+    final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+
+    return {
+      'mnemonic': mnemonicObj.sentence,
+      'seed_hex': seedHex,
+      'master_key': masterKey.privateKeyHex(),
+      'chain_code': hex.encode(masterKey.chainCode!),
+      'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
+      'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
+      'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
+    };
+  }
+
+  // Static method to derive starter in isolate
+  static Map<String, dynamic> _deriveStarter(Map<String, dynamic> params) {
+    final seedHex = params['seedHex'] as String;
+    final derivationPath = params['derivationPath'] as String;
+    final name = params['name'] as String?;
+
+    // Create chain from seed hex and derive key
+    final chain = Chain.seed(seedHex);
+    final derivedKey = chain.forPath(derivationPath) as ExtendedPrivateKey;
+
+    // Generate new entropy from derived key
+    final privateKeyBytes = hex.decode(derivedKey.privateKeyHex());
+    final hashedKey = sha256.convert(privateKeyBytes).bytes;
+    final entropy = hashedKey.sublist(0, 16);
+
+    // Create new mnemonic from entropy
+    final mnemonic = Mnemonic(entropy, Language.english);
+    final seedHexResult = hex.encode(mnemonic.seed);
+
+    return {
+      'mnemonic': mnemonic.sentence,
+      'seed_hex': seedHexResult,
+      'master_key': derivedKey.privateKeyHex(),
+      'chain_code': hex.encode(derivedKey.chainCode!),
+      'derivation_path': derivationPath,
+      if (name != null) 'name': name,
+    };
+  }
+
   Future<void> saveMasterWallet(Map<String, dynamic> walletData) async {
+    _logger.i('saveMasterWallet: Starting');
+
     walletData['name'] = 'Master';
 
     final requiredFields = ['mnemonic', 'seed_hex', 'master_key'];
@@ -173,13 +256,24 @@ class WalletProvider extends ChangeNotifier {
       }
     }
 
+    _logger.i('saveMasterWallet: About to ensure wallet dir');
     await _ensureWalletDir();
+
+    _logger.i('saveMasterWallet: Getting wallet file');
     final walletFile = await _getWalletFile('master_starter.json');
+
     if (walletFile == null) {
+      _logger.e('saveMasterWallet: Wallet file is null!');
       throw Exception('Could not find wallet file, even after ensured');
     }
+
+    _logger.i('saveMasterWallet: Writing wallet data to file');
     await walletFile.writeAsString(jsonEncode(walletData));
-    notifyListeners();
+
+    // Don't notify listeners here - will be done after all wallets are generated
+    _logger.i('saveMasterWallet: Complete (skipping notification)');
+
+    _logger.i('saveMasterWallet: Complete');
   }
 
   Future<void> deleteWallet() async {
@@ -202,88 +296,6 @@ class WalletProvider extends ChangeNotifier {
     }
 
     return walletData;
-  }
-
-  /// Derive a starter from the master wallet using a specific derivation path
-  Future<Map<String, dynamic>> _deriveStarter(String derivationPath, {String? name}) async {
-    try {
-      // Load and validate master wallet
-      final masterWallet = await loadMasterStarter();
-      if (masterWallet == null) {
-        throw Exception('Master starter not found');
-      }
-      if (!masterWallet.containsKey('seed_hex')) {
-        throw Exception('Master starter is missing required field: seed_hex');
-      }
-
-      // Create chain from seed hex and derive key
-      final chain = Chain.seed(masterWallet['seed_hex']);
-      final derivedKey = chain.forPath(derivationPath) as ExtendedPrivateKey;
-
-      // Generate new entropy from derived key
-      final privateKeyBytes = hex.decode(derivedKey.privateKeyHex());
-      final hashedKey = sha256.convert(privateKeyBytes).bytes;
-      final entropy = hashedKey.sublist(0, 16);
-
-      // Create new mnemonic from entropy
-      final mnemonic = Mnemonic(entropy, Language.english);
-      final seedHex = hex.encode(mnemonic.seed);
-
-      return {
-        'mnemonic': mnemonic.sentence,
-        'seed_hex': seedHex,
-        'master_key': derivedKey.privateKeyHex(),
-        'chain_code': hex.encode(derivedKey.chainCode!),
-        'parent_master_key': masterWallet['master_key'],
-        'derivation_path': derivationPath,
-        if (name != null) 'name': name,
-      };
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>?> deriveSidechainStarter(int sidechainSlot) async {
-    try {
-      final binary =
-          binaryProvider.binaries.where((binary) => binary is Sidechain && binary.slot == sidechainSlot).firstOrNull;
-      if (binary == null) {
-        throw Exception('Could not find chain config for sidechain slot $sidechainSlot');
-      }
-
-      final starterData = await _deriveStarter(
-        "m/44'/0'/$sidechainSlot'",
-        name: binary.name,
-      );
-
-      // Save to sidechain-specific file
-      await _saveMnemonicStarter('sidechain_${sidechainSlot}_starter.txt', starterData['mnemonic']);
-
-      return starterData;
-    } catch (e, stackTrace) {
-      _logger.e('Error deriving sidechain starter: $e\n$stackTrace');
-      rethrow;
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  Future<Map<String, dynamic>?> deriveL1Starter() async {
-    try {
-      final starterData = await _deriveStarter(
-        "m/44'/0'/256'",
-        name: 'Bitcoin Core (Patched)',
-      );
-      starterData['chain_layer'] = 1;
-
-      // Save to L1-specific file
-      await _saveMnemonicStarter('l1_starter.txt', starterData['mnemonic']);
-
-      return starterData;
-    } catch (e, stackTrace) {
-      _logger.e('Error deriving L1 starter: $e\n$stackTrace');
-      rethrow;
-    }
   }
 
   Future<String?> getL1Starter() async {
@@ -309,56 +321,103 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<void> _saveMnemonicStarter(String fileName, String mnemonic) async {
+    _logger.i('_saveMnemonicStarter: Starting for $fileName');
+
     try {
       await _ensureWalletDir();
+
+      _logger.i('_saveMnemonicStarter: Getting wallet file for $fileName');
       final file = await _getWalletFile(fileName);
+
       if (file == null) {
+        _logger.e('_saveMnemonicStarter: File is null for $fileName!');
         throw Exception('Could not find wallet file, even after ensured');
       }
+
+      _logger.i('_saveMnemonicStarter: Writing mnemonic to ${file.path}');
       await file.writeAsString(mnemonic);
-      notifyListeners();
+
+      // Don't notify listeners here - will be done after all wallets are generated
+
+      _logger.i('_saveMnemonicStarter: Complete for $fileName');
     } catch (e, stackTrace) {
-      _logger.e('Error saving starter $fileName: $e\n$stackTrace');
+      _logger.e('_saveMnemonicStarter: Error saving $fileName: $e\n$stackTrace');
       rethrow;
     }
   }
 
   Future<File?> _getWalletFile(String fileName) async {
+    _logger.i('_getWalletFile: Getting file $fileName');
+
     final walletDir = getWalletDir(appDir);
     if (walletDir == null) {
+      _logger.e('_getWalletFile: walletDir is null for $fileName');
       return null;
     }
 
-    return File(path.join(walletDir.path, fileName));
+    final file = File(path.join(walletDir.path, fileName));
+    _logger.i('_getWalletFile: Returning file at ${file.path}');
+    return file;
   }
 
   Future<void> _ensureWalletDir() async {
+    _logger.i('_ensureWalletDir: Starting');
+
     var walletDir = getBitwindowWalletDir(appDir);
     if (walletDir == null) {
-      _logger.e('Could not find wallet dir, creating new one');
+      _logger.e('_ensureWalletDir: Could not find wallet dir, creating new one');
       walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
     } else {
-      _logger.i('Found wallet dir: ${walletDir.path}');
+      _logger.i('_ensureWalletDir: Found wallet dir: ${walletDir.path}');
+      return;
     }
 
+    _logger.i('_ensureWalletDir: Creating directory at ${walletDir.path}');
     await walletDir.create(recursive: true);
+
+    _logger.i('_ensureWalletDir: Directory created');
   }
 
   Future<void> generateStartersForDownloadedChains() async {
+    _logger.i('generateStartersForDownloadedChains: Starting');
+
     try {
-      // first derive for L1
-      await deriveL1Starter();
+      // Load master wallet once for all derivations
+      final masterWallet = await loadMasterStarter();
+      if (masterWallet == null) {
+        throw Exception('Master starter not found');
+      }
+      if (!masterWallet.containsKey('seed_hex')) {
+        throw Exception('Master starter is missing required field: seed_hex');
+      }
+
+      // first derive for L1 in isolate
+      _logger.i('generateStartersForDownloadedChains: Deriving L1 starter');
+      final l1StarterData = await compute(_deriveStarter, {
+        'seedHex': masterWallet['seed_hex'],
+        'derivationPath': "m/44'/0'/256'",
+        'name': 'Bitcoin Core (Patched)',
+      });
+      l1StarterData['chain_layer'] = 1;
+      await _saveMnemonicStarter('l1_starter.txt', l1StarterData['mnemonic']);
 
       // For each L2 chain in binaries
       final l2Chains = binaryProvider.binaries.where((b) => b.chainLayer == 2);
+      _logger.i('generateStartersForDownloadedChains: Found ${l2Chains.length} L2 chains');
 
-      // then derive for L2s in parallel
+      // then derive for L2s in parallel using isolates
       final derivationFutures = l2Chains
           .whereType<Sidechain>()
           .map(
             (chain) => () async {
               try {
-                await deriveSidechainStarter(chain.slot);
+                _logger.i('generateStartersForDownloadedChains: Deriving starter for ${chain.name}');
+                final starterData = await compute(_deriveStarter, {
+                  'seedHex': masterWallet['seed_hex'],
+                  'derivationPath': "m/44'/0'/${chain.slot}'",
+                  'name': chain.name,
+                });
+                await _saveMnemonicStarter('sidechain_${chain.slot}_starter.txt', starterData['mnemonic']);
               } catch (e) {
                 _logger.e('could not derive starter for ${chain.name}: $e');
               }
@@ -366,12 +425,14 @@ class WalletProvider extends ChangeNotifier {
           )
           .toList();
 
+      _logger.i('generateStartersForDownloadedChains: Waiting for ${derivationFutures.length} futures');
       await Future.wait(derivationFutures);
 
-      // Notify listeners after all starters are generated
-      notifyListeners();
+      // Don't notify listeners here anymore - moved to _genWallet
+
+      _logger.i('generateStartersForDownloadedChains: Complete');
     } catch (e, stack) {
-      _logger.e('Error generating starters for downloaded chains: $e\n$stack');
+      _logger.e('generateStartersForDownloadedChains: Error: $e\n$stack');
     }
   }
 
@@ -396,7 +457,7 @@ class WalletProvider extends ChangeNotifier {
       await binaryProvider.stop(binary);
     }
 
-    await Future.delayed(const Duration(seconds: 5));
+    await Future.delayed(const Duration(seconds: 3));
 
     for (final binary in binaryProvider.binaries) {
       // wipe all wallets

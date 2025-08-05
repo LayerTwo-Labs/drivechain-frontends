@@ -134,7 +134,7 @@ class MockZSideRPC extends ZSideRPC {
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    await Future.delayed(const Duration(seconds: 5));
+    await Future.delayed(const Duration(seconds: 3));
     return BlockchainInfo(
       chain: 'mocknet',
       blocks: 100,

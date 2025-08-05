@@ -288,8 +288,8 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           // After all binaries are asked nicely to stop, kill any lingering processes
           await binaryProvider.stopAll();
 
-          // wait for 5 seconds to ensure all processes are killed
-          await Future.delayed(const Duration(seconds: 5));
+          // wait for 3 seconds to ensure all processes are killed
+          await Future.delayed(const Duration(seconds: 3));
 
           // wipe all chain data
           for (final binary in binaries) {

@@ -18,6 +18,7 @@ class SailButton extends StatefulWidget {
   final Future<void> Function()? onPressed;
   final ButtonVariant variant;
   final bool loading;
+  final String? loadingLabel;
   final bool disabled;
   final SailSVGAsset? icon;
   final SailSVGAsset? endIcon;
@@ -34,6 +35,7 @@ class SailButton extends StatefulWidget {
     required this.onPressed,
     this.variant = ButtonVariant.primary,
     this.loading = false,
+    this.loadingLabel,
     this.disabled = false,
     this.icon,
     this.endIcon,
@@ -150,13 +152,13 @@ class _SailButtonState extends State<SailButton> {
         if (widget.label != null)
           widget.small || widget.insideTable
               ? SailText.primary10(
-                  _isLoading ? 'Please wait' : widget.label!,
+                  _isLoading ? widget.loadingLabel ?? 'Please wait' : widget.label!,
                   color: foregroundColor,
                   bold: true,
                   decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
                 )
               : SailText.primary12(
-                  _isLoading ? 'Please wait' : widget.label!,
+                  _isLoading ? widget.loadingLabel ?? 'Please wait' : widget.label!,
                   color: foregroundColor,
                   bold: true,
                   decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
