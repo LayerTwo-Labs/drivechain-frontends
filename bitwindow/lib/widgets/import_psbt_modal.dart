@@ -86,6 +86,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                 walletKey.xpub, 
                 cleanPsbt,
                 signatureThreshold: group.m,
+                isOwnedKey: false, // Imported PSBTs are from external sources
               );
               break;
             }

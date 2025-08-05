@@ -24,6 +24,10 @@ class MultisigKey {
   final String? fingerprint;
   final String? originPath;
   final bool isWallet;
+  
+  // PSBT storage for wallet restoration - only stored for wallet-owned keys
+  final Map<String, String>? activePSBTs; // Map<transactionId, signedPSBT>
+  final Map<String, String>? initialPSBTs; // Map<transactionId, initialPSBT>
 
   MultisigKey({
     required this.owner,
@@ -32,6 +36,8 @@ class MultisigKey {
     this.fingerprint,
     this.originPath,
     required this.isWallet,
+    this.activePSBTs,
+    this.initialPSBTs,
   });
 
   Map<String, dynamic> toJson() => {
@@ -42,6 +48,8 @@ class MultisigKey {
         'fingerprint': fingerprint,
         'origin_path': originPath,
         'is_wallet': isWallet,
+        if (activePSBTs != null) 'active_psbts': activePSBTs,
+        if (initialPSBTs != null) 'initial_psbts': initialPSBTs,
       };
 
   factory MultisigKey.fromJson(Map<String, dynamic> json) => MultisigKey(
@@ -51,7 +59,31 @@ class MultisigKey {
         fingerprint: json['fingerprint'],
         originPath: json['origin_path'],
         isWallet: json['is_wallet'] ?? false,
+        activePSBTs: json['active_psbts'] != null ? Map<String, String>.from(json['active_psbts']) : null,
+        initialPSBTs: json['initial_psbts'] != null ? Map<String, String>.from(json['initial_psbts']) : null,
       );
+
+  MultisigKey copyWith({
+    String? owner,
+    String? xpub,
+    String? derivationPath,
+    String? fingerprint,
+    String? originPath,
+    bool? isWallet,
+    Map<String, String>? activePSBTs,
+    Map<String, String>? initialPSBTs,
+  }) {
+    return MultisigKey(
+      owner: owner ?? this.owner,
+      xpub: xpub ?? this.xpub,
+      derivationPath: derivationPath ?? this.derivationPath,
+      fingerprint: fingerprint ?? this.fingerprint,
+      originPath: originPath ?? this.originPath,
+      isWallet: isWallet ?? this.isWallet,
+      activePSBTs: activePSBTs ?? this.activePSBTs,
+      initialPSBTs: initialPSBTs ?? this.initialPSBTs,
+    );
+  }
 }
 
 class CreateMultisigModal extends StatelessWidget {
@@ -245,6 +277,11 @@ class CreateMultisigModal extends StatelessWidget {
                                  SailButton(
                                    label: 'Paste xPub',
                                    onPressed: viewModel.keys.length < viewModel.n ? () async => await viewModel.pastePublicKey() : null,
+                                   variant: ButtonVariant.secondary,
+                                 ),
+                                 SailButton(
+                                   label: 'Import Key',
+                                   onPressed: viewModel.keys.length < viewModel.n ? () async => await viewModel.importKeyFromFile(context) : null,
                                    variant: ButtonVariant.secondary,
                                  ),
                               ],
@@ -465,6 +502,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   String? parameterError;
   List<MultisigKey> keys = [];
   bool shouldEncrypt = false; // Default to false (base64 only)
+  bool _lastKeyWasGenerated = false; // Track if the last key operation was wallet generation
   
   // Constants
   static const int MULTISIG_DERIVATION_INDEX = 8000;
@@ -485,7 +523,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   bool get canGenerateKey => 
       ownerController.text.isNotEmpty && 
-      pathController.text.isNotEmpty;
+      pathController.text.isNotEmpty &&
+      _hdWallet.isInitialized &&
+      _hdWallet.mnemonic != null;
 
   bool get canSaveKey => 
       ownerController.text.isNotEmpty && 
@@ -561,7 +601,14 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         return false; // Empty file, name is available
       }
       
-      final List<dynamic> existingGroups = json.decode(content);
+      final jsonData = json.decode(content);
+      
+      // Expect new format only
+      if (jsonData is! Map<String, dynamic>) {
+        throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
+      }
+      
+      final existingGroups = jsonData['groups'] as List<dynamic>? ?? [];
       
       // Check if any existing group has the same name (case-insensitive)
       return existingGroups.any((group) => 
@@ -611,80 +658,24 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
 
 
-  Future<int> _getNextWalletKeyIndex() async {
-    try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final dir = Directory(bitdriveDir);
-      
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      
-      final jsonFile = File(path.join(bitdriveDir, 'multisig.json'));
-      
-      // Collect all used wallet key indices
-      Set<int> usedIndices = {};
-      
-      // Check existing saved groups
-      if (await jsonFile.exists()) {
-        final content = await jsonFile.readAsString();
-        final List<dynamic> existingGroups = json.decode(content);
-        
-        // Look through all groups and their wallet keys
-        for (final group in existingGroups) {
-          final keys = group['keys'] as List<dynamic>;
-          for (final keyData in keys) {
-            final isWallet = keyData['is_wallet'] ?? false;
-            if (isWallet) {
-              final keyPath = keyData['path'] as String;
-              // Extract index from path like "m/84'/1'/0'/0/8005"
-              final pathParts = keyPath.split('/');
-              if (pathParts.length == 6 && keyPath.startsWith(MULTISIG_DERIVATION_BASE)) {
-                final index = int.tryParse(pathParts[5]);
-                if (index != null && index >= MULTISIG_DERIVATION_INDEX) {
-                  usedIndices.add(index);
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      // Also check keys already added to the current group
-      for (final key in keys) {
-        if (key.isWallet) {
-          final pathParts = key.derivationPath.split('/');
-          if (pathParts.length == 6 && key.derivationPath.startsWith(MULTISIG_DERIVATION_BASE)) {
-            final index = int.tryParse(pathParts[5]);
-            if (index != null && index >= MULTISIG_DERIVATION_INDEX) {
-              usedIndices.add(index);
-            }
-          }
-        }
-      }
-      
-      // Find the first available index starting from MULTISIG_DERIVATION_INDEX
-      int nextIndex = MULTISIG_DERIVATION_INDEX;
-      while (usedIndices.contains(nextIndex)) {
-        nextIndex++;
-      }
-      
-      return nextIndex;
-      
-    } catch (e) {
-      modalError = 'Failed to get next key index: $e';
-      notifyListeners();
-      return MULTISIG_DERIVATION_INDEX;
-    }
-  }
 
   Future<void> generatePublicKey() async {
-    if (!canGenerateKey) return;
-
     try {
       modalError = null;
       setBusy(true);
+      
+      // Ensure HD wallet is initialized before proceeding
+      if (!_hdWallet.isInitialized) {
+        await _hdWallet.init();
+      }
+      
+      // Check if initialization was successful
+      if (!_hdWallet.isInitialized || _hdWallet.mnemonic == null) {
+        throw Exception('HD Wallet not properly initialized. Please ensure wallet is set up.');
+      }
+      
+      // Now check if we can generate the key
+      if (!canGenerateKey) return;
       
       // Get the next available account index (considering session usage)
       final accountIndex = await _hdWallet.getNextAccountIndex(_sessionUsedAccountIndices);
@@ -709,6 +700,8 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final relativeIndex = accountIndex - 8000;
       ownerController.text = 'MyKey$relativeIndex';
       
+      // Mark that this was a wallet-generated key
+      _lastKeyWasGenerated = true;
       
     } catch (e) {
       MultisigLogger.error('Failed to generate key: $e');
@@ -740,12 +733,139 @@ class CreateMultisigModalViewModel extends BaseViewModel {
           fingerprintController.clear();
         }
         
+        // Mark that this was NOT a wallet-generated key
+        _lastKeyWasGenerated = false;
+        
         notifyListeners();
       }
     } catch (e) {
       modalError = 'Failed to paste from clipboard: $e';
       notifyListeners();
     }
+  }
+
+  Future<void> importKeyFromFile(BuildContext context) async {
+    try {
+      // Get available key files from bitdrive directory
+      final keyFiles = await _getAvailableKeyFiles();
+      
+      if (keyFiles.isEmpty) {
+        modalError = 'No .conf key files found in bitdrive directory. Use "Get Key" to generate keys first.';
+        notifyListeners();
+        return;
+      }
+
+      // Show dialog to select key file
+      final selectedFile = await showDialog<String>(
+        context: context,
+        builder: (context) => _buildKeyFileSelectionDialog(context, keyFiles),
+      );
+
+      if (selectedFile == null) return;
+
+      // Load and parse the selected key file
+      final keyData = await _loadKeyFile(selectedFile);
+      
+      // Populate the form fields with the imported data
+      ownerController.text = keyData['owner'] ?? '';
+      pubkeyController.text = keyData['xpub'] ?? keyData['pubkey'] ?? '';
+      pathController.text = keyData['path'] ?? '';
+      fingerprintController.text = keyData['fingerprint'] ?? '';
+
+      // Mark that this was NOT a wallet-generated key (imported from file)
+      _lastKeyWasGenerated = false;
+
+      modalError = null;
+      notifyListeners();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Key imported from ${path.basename(selectedFile)}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+    } catch (e) {
+      modalError = 'Failed to import key: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<List<String>> _getAvailableKeyFiles() async {
+    try {
+      final appDir = await Environment.datadir();
+      final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
+      
+      if (!await bitdriveDir.exists()) {
+        return [];
+      }
+
+      final files = await bitdriveDir.list().toList();
+      return files
+          .where((file) => file is File && file.path.endsWith('.conf'))
+          .map((file) => file.path)
+          .toList();
+    } catch (e) {
+      log.e('Failed to scan for key files: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> _loadKeyFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      final content = await file.readAsString();
+      final jsonData = jsonDecode(content) as Map<String, dynamic>;
+      
+      // Validate that it has the required fields
+      if (jsonData['xpub'] == null && jsonData['pubkey'] == null) {
+        throw Exception('Key file missing xpub/pubkey field');
+      }
+      
+      return jsonData;
+    } catch (e) {
+      throw Exception('Failed to load key file: $e');
+    }
+  }
+
+  Widget _buildKeyFileSelectionDialog(BuildContext context, List<String> keyFiles) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 400),
+        child: SailCard(
+          title: 'Select Key File to Import',
+          subtitle: 'Choose a .conf file from the bitdrive directory',
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              children: [
+                ...keyFiles.map((filePath) {
+                  final fileName = path.basename(filePath);
+                  return SailCard(
+                    shadowSize: ShadowSize.none,
+                    child: ListTile(
+                      title: Text(fileName),
+                      subtitle: Text(filePath),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => Navigator.of(context).pop(filePath),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 16),
+                SailButton(
+                  label: 'Cancel',
+                  onPressed: () async => Navigator.of(context).pop(),
+                  variant: ButtonVariant.secondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> saveKey() async {
@@ -774,8 +894,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
 
     // Determine if this is a wallet-generated key
+    // ONLY mark as wallet key if it was generated by the wallet in this session
     final currentPath = pathController.text;
-    final isWalletKey = _isWalletGeneratedPath(currentPath);
+    final isWalletKey = _lastKeyWasGenerated;
+
+    // Validate wallet-generated keys have proper path
+    if (isWalletKey && !_isWalletGeneratedPath(currentPath)) {
+      modalError = 'Invalid wallet key: path does not match wallet generation pattern';
+      notifyListeners();
+      return;
+    }
 
     // Extract origin path (remove 'm/')
     final originPath = currentPath.startsWith('m/') ? currentPath.substring(2) : currentPath;
@@ -808,6 +936,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       pathController.clear();
       fingerprintController.clear();
     }
+    
+    // Reset the flag for next key
+    _lastKeyWasGenerated = false;
     
     modalError = null;
     notifyListeners();
@@ -940,18 +1071,28 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       
       final file = File(path.join(bitdriveDir, 'multisig.json'));
       
-      // Load existing data or create new
-      List<dynamic> existingGroups = [];
+      // Load existing data or create new structure
+      Map<String, dynamic> jsonData = {
+        'groups': [],
+        'solo_keys': [],
+      };
+      
       if (await file.exists()) {
         final content = await file.readAsString();
-        existingGroups = json.decode(content);
+        final decoded = json.decode(content);
+        if (decoded is Map<String, dynamic>) {
+          jsonData = decoded;
+        } else {
+          throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
+        }
       }
       
-      // Add new group
-      existingGroups.add(multisigData);
+      // Add new group to groups array
+      final groups = jsonData['groups'] as List<dynamic>;
+      groups.add(multisigData);
       
       // Save updated data
-      await file.writeAsString(json.encode(existingGroups));
+      await file.writeAsString(json.encode(jsonData));
       
     } catch (e) {
       throw Exception('Failed to save to local file: $e');
@@ -1446,29 +1587,39 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       
       final file = File(path.join(bitdriveDir, 'multisig.json'));
       
-      // Load existing data or create new
-      List<dynamic> existingGroups = [];
+      // Load existing data or create new structure
+      Map<String, dynamic> jsonData = {
+        'groups': [],
+        'solo_keys': [],
+      };
+      
       if (await file.exists()) {
         final content = await file.readAsString();
         if (content.trim().isNotEmpty) {
-          existingGroups = json.decode(content);
+          final decoded = json.decode(content);
+          if (decoded is Map<String, dynamic>) {
+            jsonData = decoded;
+          } else {
+            throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
+          }
         }
       }
       
       // Check if this multisig group already exists (by ID)
+      final groups = jsonData['groups'] as List<dynamic>;
       final groupId = multisigData['id'] as String;
-      final existingIndex = existingGroups.indexWhere((group) => group['id'] == groupId);
+      final existingIndex = groups.indexWhere((group) => group['id'] == groupId);
       
       if (existingIndex != -1) {
         // Update existing group
-        existingGroups[existingIndex] = multisigData;
+        groups[existingIndex] = multisigData;
       } else {
         // Add new group
-        existingGroups.add(multisigData);
+        groups.add(multisigData);
       }
       
       // Save updated data
-      await file.writeAsString(json.encode(existingGroups));
+      await file.writeAsString(json.encode(jsonData));
       
     } catch (e) {
       throw Exception('Failed to save to local file: $e');

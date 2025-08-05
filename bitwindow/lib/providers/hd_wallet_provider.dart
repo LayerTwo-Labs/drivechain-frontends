@@ -459,37 +459,52 @@ class HDWalletProvider extends ChangeNotifier {
       
       if (await file.exists()) {
         final content = await file.readAsString();
-        final List<dynamic> jsonGroups = json.decode(content);
+        final jsonData = json.decode(content);
         
-        log.d('Found ${jsonGroups.length} groups in multisig.json');
+        // Expect new format only: object with groups and solo_keys
+        if (jsonData is! Map<String, dynamic>) {
+          throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
+        }
         
-        // Find all wallet-generated keys and track their account indices
-        for (final jsonGroup in jsonGroups) {
+        // Check groups for wallet keys
+        final groups = jsonData['groups'] as List<dynamic>? ?? [];
+        log.d('Found ${groups.length} groups in multisig.json');
+        
+        for (final jsonGroup in groups) {
           final groupName = jsonGroup['name'] ?? 'unnamed';
           final List<dynamic> keys = jsonGroup['keys'] ?? [];
           log.d('Group "$groupName" has ${keys.length} keys');
           
           for (final keyData in keys) {
-            log.d('Key data: ${keyData.toString()}');
-            // Use snake_case field names consistently
             final isWallet = keyData['is_wallet'] == true;
             final derivationPath = keyData['path'] as String?;
-            log.d('isWallet: $isWallet, derivationPath: $derivationPath');
             
             if (isWallet && derivationPath != null) {
-              log.d('Found wallet key with path: $derivationPath');
-              
-              // Extract account index from path like "m/84'/1'/8000'"
               final match = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(derivationPath);
               if (match != null) {
                 final accountIndex = int.parse(match.group(1)!);
-                log.d('Extracted account index: $accountIndex');
                 if (accountIndex > maxAccountIndex) {
                   maxAccountIndex = accountIndex;
-                  log.d('Updated max account index to: $maxAccountIndex');
                 }
-              } else {
-                log.w('Could not extract account index from path: $derivationPath');
+              }
+            }
+          }
+        }
+        
+        // Check solo_keys
+        final soloKeys = jsonData['solo_keys'] as List<dynamic>? ?? [];
+        log.d('Found ${soloKeys.length} solo keys in multisig.json');
+        
+        for (final keyData in soloKeys) {
+          final derivationPath = keyData['path'] as String?;
+          
+          if (derivationPath != null) {
+            final match = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(derivationPath);
+            if (match != null) {
+              final accountIndex = int.parse(match.group(1)!);
+              if (accountIndex > maxAccountIndex) {
+                maxAccountIndex = accountIndex;
+                log.d('Updated max account index from solo_keys to: $maxAccountIndex');
               }
             }
           }

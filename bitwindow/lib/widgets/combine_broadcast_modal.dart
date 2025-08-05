@@ -27,6 +27,7 @@ class CombineBroadcastModal extends StatefulWidget {
 class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
   MultisigTransaction? _selectedTransaction;
   bool _isBroadcasting = false;
+  String? _error;
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
 
   @override
@@ -151,6 +152,9 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         combinedPSBT: combined,
       );
       
+      // Clean up PSBT data from multisig.json since transaction is now broadcast
+      await TransactionStorage.cleanupPSBTFromMultisigFile(tx.id);
+      
       widget.onBroadcastSuccess();
       
       if (mounted) {
@@ -164,12 +168,13 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to broadcast: $e')),
-        );
+        setState(() {
+          _error = e.toString();
+          _isBroadcasting = false;
+        });
       }
     } finally {
-      if (mounted) {
+      if (mounted && _error == null) {
         setState(() => _isBroadcasting = false);
       }
     }
@@ -177,106 +182,155 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.eligibleTransactions.isEmpty) {
-      return AlertDialog(
-        title: const Text('No Transactions Available'),
-        content: const Text('No transactions are available for combine and broadcast.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      );
-    }
-
-    if (widget.eligibleTransactions.length == 1) {
-      return AlertDialog(
-        title: const Text('Combine and Broadcast'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Ready to broadcast transaction:'),
-            const SizedBox(height: 8),
-            Text('Transaction ID: ${_selectedTransaction!.shortId}'),
-            Text('Amount: ${_selectedTransaction!.amount.toStringAsFixed(8)} BTC'),
-            Text('Signatures: ${_selectedTransaction!.signatureCount}/${widget.multisigGroups.firstWhere((g) => g.id == _selectedTransaction!.groupId).m}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isBroadcasting ? null : () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: _isBroadcasting ? null : _combineAndBroadcast,
-            child: _isBroadcasting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Broadcast'),
-          ),
-        ],
-      );
-    }
-
-    return AlertDialog(
-      title: const Text('Select Transaction to Broadcast'),
-      content: SizedBox(
-        width: 400,
-        height: 300,
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                itemCount: widget.eligibleTransactions.length,
-                itemBuilder: (context, index) {
-                  final tx = widget.eligibleTransactions[index];
-                  final group = widget.multisigGroups.firstWhere(
-                    (g) => g.id == tx.groupId,
-                    orElse: () => MultisigGroup(
-                      id: tx.groupId, 
-                      name: 'Unknown', 
-                      n: 0, 
-                      m: 0, 
-                      keys: [], 
-                      created: 0,
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+        child: SailCard(
+          title: 'Combine and Broadcast',
+          subtitle: widget.eligibleTransactions.isEmpty 
+              ? 'No transactions available'
+              : 'Select a transaction to broadcast',
+          error: _error,
+          withCloseButton: true,
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.eligibleTransactions.isEmpty) ...[
+                SailText.secondary13('No transactions are ready for broadcast.'),
+                SailText.secondary12('Transactions must have enough signatures before they can be broadcast.'),
+              ] else if (widget.eligibleTransactions.length == 1) ...[
+                _buildTransactionDetails(_selectedTransaction!),
+              ] else ...[
+                SailText.primary13('Select Transaction'),
+                SailSpacing(SailStyleValues.padding08),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: widget.eligibleTransactions.length,
+                    itemBuilder: (context, index) {
+                      final tx = widget.eligibleTransactions[index];
+                      final group = widget.multisigGroups.firstWhere(
+                        (g) => g.id == tx.groupId,
+                        orElse: () => MultisigGroup(
+                          id: tx.groupId, 
+                          name: 'Unknown', 
+                          n: 0, 
+                          m: 0, 
+                          keys: [], 
+                          created: 0,
+                        ),
+                      );
+                      
+                      final isSelected = _selectedTransaction?.id == tx.id;
+                      
+                      return SailCard(
+                        shadowSize: ShadowSize.none,
+                        child: ListTile(
+                          selected: isSelected,
+                          selectedTileColor: context.sailTheme.colors.primary.withValues(alpha: 0.1),
+                          title: SailText.primary13('${tx.shortId} - ${group.name}'),
+                          subtitle: SailColumn(
+                            spacing: SailStyleValues.padding04,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SailText.secondary12('Amount: ${tx.amount.toStringAsFixed(8)} BTC'),
+                              SailText.secondary12('Signatures: ${tx.signatureCount}/${group.m}'),
+                            ],
+                          ),
+                          trailing: isSelected 
+                              ? Icon(Icons.check_circle, color: context.sailTheme.colors.primary)
+                              : null,
+                          onTap: () => setState(() => _selectedTransaction = tx),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                if (_selectedTransaction != null)
+                  _buildTransactionDetails(_selectedTransaction!),
+              ],
+              
+              // Action buttons
+              SailRow(
+                spacing: SailStyleValues.padding12,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SailButton(
+                    label: 'Cancel',
+                    onPressed: _isBroadcasting ? null : () async => Navigator.of(context).pop(),
+                    variant: ButtonVariant.ghost,
+                  ),
+                  if (widget.eligibleTransactions.isNotEmpty)
+                    SailButton(
+                      label: 'Broadcast',
+                      onPressed: _isBroadcasting || _selectedTransaction == null ? null : _combineAndBroadcast,
+                      loading: _isBroadcasting,
+                      variant: ButtonVariant.primary,
                     ),
-                  );
-                  
-                  final isSelected = _selectedTransaction?.id == tx.id;
-                  
-                  return ListTile(
-                    selected: isSelected,
-                    title: Text('${tx.shortId} (${group.name})'),
-                    subtitle: Text('${tx.signatureCount}/${group.m} signatures - ${tx.status.displayName}'),
-                    onTap: () => setState(() => _selectedTransaction = tx),
-                  );
-                },
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isBroadcasting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isBroadcasting || _selectedTransaction == null ? null : _combineAndBroadcast,
-          child: _isBroadcasting
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Broadcast'),
-        ),
-      ],
+    );
+  }
+  
+  Widget _buildTransactionDetails(MultisigTransaction tx) {
+    final group = widget.multisigGroups.firstWhere(
+      (g) => g.id == tx.groupId,
+      orElse: () => MultisigGroup(
+        id: tx.groupId, 
+        name: 'Unknown', 
+        n: 0, 
+        m: 0, 
+        keys: [], 
+        created: 0,
+      ),
+    );
+    
+    return SailCard(
+      shadowSize: ShadowSize.none,
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.primary13('Transaction Details'),
+          SailSpacing(SailStyleValues.padding04),
+          SailRow(
+            spacing: SailStyleValues.padding16,
+            children: [
+              SailColumn(
+                spacing: SailStyleValues.padding04,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.secondary12('Transaction ID:'),
+                  SailText.primary13(tx.shortId),
+                ],
+              ),
+              SailColumn(
+                spacing: SailStyleValues.padding04,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.secondary12('Amount:'),
+                  SailText.primary13('${tx.amount.toStringAsFixed(8)} BTC'),
+                ],
+              ),
+              SailColumn(
+                spacing: SailStyleValues.padding04,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.secondary12('Signatures:'),
+                  SailText.primary13('${tx.signatureCount}/${group.m}'),
+                ],
+              ),
+            ],
+          ),
+          SailText.secondary12('Destination: ${tx.destination}'),
+          SailText.secondary12('Fee: ${tx.fee.toStringAsFixed(8)} BTC'),
+        ],
+      ),
     );
   }
 }

@@ -450,12 +450,14 @@ class CreateTransactionViewModel extends BaseViewModel {
       
       if (transactionId != null) {
         // Update transaction storage for each wallet key that signed
-        for (final key in walletKeys) {
+        final ownedKeys = walletKeys.where((key) => key.isWallet).toList();
+        for (final key in ownedKeys) {
           await TransactionStorage.updateKeyPSBT(
             transactionId!,
             key.xpub,
             signedPSBT,
             signatureThreshold: group.m,
+            isOwnedKey: true,
           );
         }
         

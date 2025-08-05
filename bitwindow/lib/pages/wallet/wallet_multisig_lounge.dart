@@ -1,16 +1,22 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
+import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bitwindow/widgets/combine_broadcast_modal.dart';
 import 'package:bitwindow/widgets/fund_group_modal.dart';
 import 'package:bitwindow/widgets/import_psbt_modal.dart';
+import 'package:bitwindow/widgets/import_txid_modal.dart';
+import 'package:bitwindow/widgets/multisig_key_modal.dart';
 import 'package:bitwindow/widgets/psbt_coordinator_modal.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:crypto/crypto.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -43,24 +49,15 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _viewModel?.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _viewModel != null) {
-      _viewModel!.onPageResumed();
-    } else if (state == AppLifecycleState.paused && _viewModel != null) {
-      _viewModel!.onPagePaused();
-    }
-  }
+  // No longer need app lifecycle management with event-driven updates
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +66,6 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
       onViewModelReady: (model) {
         _viewModel = model;
         model.initialize();
-        model.onPageResumed(); // Start listening when page is ready
       },
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
@@ -89,7 +85,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
                   SailText.secondary12(viewModel.errorMessage!),
                   SailButton(
                     label: 'Retry',
-                    onPressed: viewModel.refreshData,
+                    onPressed: () => viewModel.refreshData(),
                   ),
                 ],
               ),
@@ -102,17 +98,6 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
             child: SailColumn(
               spacing: SailStyleValues.padding16,
               children: [
-                // Refresh button at the top
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SailButton(
-                      label: 'Refresh Data',
-                      onPressed: () => viewModel.refreshData(),
-                      variant: ButtonVariant.secondary,
-                    ),
-                  ],
-                ),
                 _buildGroupsSection(context, viewModel),
                 _buildTransactionsSection(context, viewModel),
               ],
@@ -164,15 +149,14 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
                     onPressed: () => viewModel.importFromTxid(context),
                     variant: ButtonVariant.secondary,
                   ),
+                  SailButton(
+                    label: 'Get Key',
+                    onPressed: () => viewModel.getMultisigKey(context),
+                    variant: ButtonVariant.secondary,
+                  ),
                   if (viewModel.selectedGroup != null) ...[
                     SailSpacing(SailStyleValues.padding16),
                     SailText.primary13('Selected Group'),
-                    SailSpacing(SailStyleValues.padding08),
-                    SailButton(
-                      label: 'Reimport Descriptors',
-                      onPressed: () => viewModel.reimportDescriptors(context, viewModel.selectedGroup!),
-                      variant: ButtonVariant.secondary,
-                    ),
                   ],
                 ],
               ),
@@ -193,6 +177,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
+              flex: 5, // Give more space to the table
               child: MultisigTransactionsTable(
                 transactionRows: viewModel.transactionRows,
                 groups: viewModel.multisigGroups,
@@ -203,32 +188,35 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
               ),
             ),
             const SizedBox(width: SailStyleValues.padding16),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SailText.primary13('Transaction Tools'),
-                SailSpacing(SailStyleValues.padding08),
-                SailButton(
-                  label: 'Create Transaction',
-                  onPressed: viewModel.multisigGroups.any((g) => g.balance > 0)
-                      ? () => viewModel.createTransaction(context, null)
-                      : null,
-                  variant: ButtonVariant.primary,
-                ),
-                SailButton(
-                  label: 'Import PSBT',
-                  onPressed: () => viewModel.importPSBT(context),
-                  variant: ButtonVariant.secondary,
-                ),
-                SailButton(
-                  label: 'Combine & Broadcast',
-                  onPressed: viewModel.hasReadyTransactions
-                      ? () => viewModel.openCombineAndBroadcastModal(context)
-                      : null,
-                  variant: ButtonVariant.secondary,
-                ),
-              ],
+            SizedBox(
+              width: 180, // Fixed width for the sidebar
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SailText.primary13('Transaction Tools'),
+                  SailSpacing(SailStyleValues.padding08),
+                  SailButton(
+                    label: 'Create Transaction',
+                    onPressed: viewModel.multisigGroups.any((g) => g.balance > 0)
+                        ? () => viewModel.createTransaction(context, null)
+                        : null,
+                    variant: ButtonVariant.primary,
+                  ),
+                  SailButton(
+                    label: 'Import PSBT',
+                    onPressed: () => viewModel.importPSBT(context),
+                    variant: ButtonVariant.secondary,
+                  ),
+                  SailButton(
+                    label: 'Combine & Broadcast',
+                    onPressed: viewModel.hasReadyTransactions
+                        ? () => viewModel.openCombineAndBroadcastModal(context)
+                        : null,
+                    variant: ButtonVariant.secondary,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -531,34 +519,43 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
   }
 
   Widget _buildActionCell(TransactionRow txRow, MultisigTransaction tx, MultisigGroup group) {
-    if (txRow.hasWalletKeys && !txRow.walletHasSigned && tx.status == TxStatus.needsSignatures) {
+    if (txRow.hasWalletKeys && !txRow.walletHasSigned && (tx.status == TxStatus.needsSignatures || tx.status == TxStatus.awaitingSignedPSBTs)) {
       return SailTableCell(
-        value: '',
-        child: SailButton(
-          label: 'Sign',
-          variant: ButtonVariant.primary,
-          insideTable: true,
-          onPressed: () => widget.onSign(tx, group),
+        value: 'Sign Button',
+        alignment: Alignment.center,
+        child: Center(
+          child: SailButton(
+            label: 'Sign',
+            variant: ButtonVariant.primary,
+            insideTable: true,
+            onPressed: () => widget.onSign(tx, group),
+          ),
         ),
       );
     } else if (tx.status == TxStatus.readyForBroadcast) {
       return SailTableCell(
-        value: '',
-        child: SailButton(
-          label: 'Broadcast',
-          variant: ButtonVariant.secondary,
-          insideTable: true,
-          onPressed: () async => widget.onBroadcast(),
+        value: 'Broadcast Button',
+        alignment: Alignment.center,
+        child: Center(
+          child: SailButton(
+            label: 'Broadcast',
+            variant: ButtonVariant.secondary,
+            insideTable: true,
+            onPressed: () async => widget.onBroadcast(),
+          ),
         ),
       );
     } else {
       return SailTableCell(
-        value: '',
-        child: SailButton(
-          label: 'View',
-          variant: ButtonVariant.secondary,
-          insideTable: true,
-          onPressed: () => widget.onView(tx),
+        value: 'View Button',
+        alignment: Alignment.center,
+        child: Center(
+          child: SailButton(
+            label: 'View',
+            variant: ButtonVariant.secondary,
+            insideTable: true,
+            onPressed: () => widget.onView(tx),
+          ),
         ),
       );
     }
@@ -569,15 +566,21 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
 class MultisigLoungeViewModel extends BaseViewModel {
   final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+  final BlockchainProvider _blockchainProvider = GetIt.I.get<BlockchainProvider>();
   final _walletManager = WalletRPCManager();
   final _logger = Logger();
 
   List<MultisigGroup> _multisigGroups = [];
   List<MultisigTransaction> _transactions = [];
   MultisigGroup? selectedGroup;
-  Timer? _refreshTimer;
-  int _lastKnownBlockHeight = 0;
-  bool _isPageActive = false;
+  
+  // File checksums for change detection
+  String? _lastMultisigFileHash;
+  String? _lastTransactionFileHash;
+  
+  // Listen to transaction and blockchain changes
+  late final VoidCallback _transactionListener;
+  late final VoidCallback _blockchainListener;
 
   List<MultisigGroup> get multisigGroups => _multisigGroups;
   List<MultisigTransaction> get transactions => _transactions;
@@ -587,34 +590,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   MultisigLoungeViewModel();
 
-  void onPageResumed() {
-    if (!_isPageActive) {
-      _isPageActive = true;
-      _startRefreshTimer();
-    }
-  }
 
-  void onPagePaused() {
-    if (_isPageActive) {
-      _isPageActive = false;
-      _stopRefreshTimer();
-    }
-  }
-
-  void _startRefreshTimer() {
-    _stopRefreshTimer(); // Ensure no duplicate timers
-    // Set up periodic refresh every 10 seconds to catch file changes and new blocks
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (!isLoading && _isPageActive) {
-        _checkForNewBlocksAndRefresh();
-      }
-    });
-  }
-
-  void _stopRefreshTimer() {
-    _refreshTimer?.cancel();
-    _refreshTimer = null;
-  }
 
 
   // Helper method to find a group by ID with fallback
@@ -633,88 +609,55 @@ class MultisigLoungeViewModel extends BaseViewModel {
   }
 
   Future<void> initialize() async {
-    // Get initial block height
-    try {
-      final blockchainInfo = await _rpc.callRAW('getblockchaininfo', []);
-      if (blockchainInfo is Map && blockchainInfo['blocks'] is int) {
-        _lastKnownBlockHeight = blockchainInfo['blocks'] as int;
+    // Set up listener for transaction changes (immediate file updates)
+    _transactionListener = () async {
+      final hasChanges = await _haveFilesChanged();
+      if (hasChanges) {
+        await _loadDataFromFiles();
+        notifyListeners();
+        _logger.d('UI updated due to file changes');
+      } else {
+        _logger.d('No file changes detected, skipping UI update');
       }
-    } catch (e) {
-      _logger.d('Failed to get initial block height: $e');
-    }
+    };
+    TransactionStorage.notifier.addListener(_transactionListener);
+    
+    // Set up listener for blockchain changes (new blocks)
+    _blockchainListener = () async {
+      _logger.d('New block detected, checking for balance/confirmation changes');
+      
+      // For blockchain changes, we need to update balances which may change files
+      // So we check both file hashes and balance updates
+      final hasFileChanges = await _haveFilesChanged();
+      if (hasFileChanges) {
+        await _loadDataFromFiles();
+        notifyListeners();
+        _logger.d('UI updated due to blockchain-triggered file changes');
+      } else {
+        // Even if files haven't changed, we should update balances for display
+        await _updateAllGroupBalances();
+        notifyListeners();
+        _logger.d('Updated balances only (no file changes)');
+      }
+    };
+    _blockchainProvider.addListener(_blockchainListener);
+    
+    // Initialize file checksums
+    await _haveFilesChanged();
     
     await refreshData();
   }
 
-  // Check for new blocks and refresh data if blocks have been confirmed
-  Future<void> _checkForNewBlocksAndRefresh() async {
-    try {
-      // First check for new blocks
-      final blockchainInfo = await _rpc.callRAW('getblockchaininfo', []);
-      if (blockchainInfo is Map && blockchainInfo['blocks'] is int) {
-        final currentHeight = blockchainInfo['blocks'] as int;
-        
-        if (currentHeight > _lastKnownBlockHeight) {
-          _logger.d('New block detected: $currentHeight (was $_lastKnownBlockHeight)');
-          _lastKnownBlockHeight = currentHeight;
-          
-          // Force a full refresh when new blocks are detected
-          await refreshData();
-          return;
-        }
-      }
-      
-      // If no new blocks, just check for file changes
-      await _checkAndRefreshData();
-    } catch (e) {
-      // Silently fail for background checks, fall back to file check
-      _logger.d('Block check failed, falling back to file check: $e');
-      await _checkAndRefreshData();
-    }
-  }
-
-  // Check if data has changed and refresh if needed
-  Future<void> _checkAndRefreshData() async {
-    try {
-      final newGroups = await MultisigStorage.loadGroups();
-      final newTransactions = await TransactionStorage.loadTransactions();
-      
-      // Check if data has changed
-      bool hasChanges = false;
-      
-      if (newGroups.length != _multisigGroups.length ||
-          newTransactions.length != _transactions.length) {
-        hasChanges = true;
-      } else {
-        // Check for changes in group IDs or transaction IDs
-        final currentGroupIds = _multisigGroups.map((g) => g.id).toSet();
-        final newGroupIds = newGroups.map((g) => g.id).toSet();
-        final currentTxIds = _transactions.map((t) => t.id).toSet();
-        final newTxIds = newTransactions.map((t) => t.id).toSet();
-        
-        if (!currentGroupIds.containsAll(newGroupIds) ||
-            !newGroupIds.containsAll(currentGroupIds) ||
-            !currentTxIds.containsAll(newTxIds) ||
-            !newTxIds.containsAll(currentTxIds)) {
-          hasChanges = true;
-        }
-      }
-      
-      if (hasChanges) {
-        _multisigGroups = newGroups;
-        _transactions = newTransactions;
-        notifyListeners();
-      }
-    } catch (e) {
-      // Silently fail for background checks
-      _logger.d('Background data check failed: $e');
-    }
-  }
 
   Future<void> refreshData() async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
+    // Only show loading for initial load, not for background updates
+    final wasInitialLoad = _multisigGroups.isEmpty && _transactions.isEmpty;
+    
+    if (wasInitialLoad) {
+      isLoading = true;
+      errorMessage = null;
+      notifyListeners();
+    }
 
     try {
       // Load multisig groups and transactions from storage
@@ -733,7 +676,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
       errorMessage = e.toString();
       _logger.e('Error refreshing multisig data', error: e);
     } finally {
-      isLoading = false;
+      if (wasInitialLoad) {
+        isLoading = false;
+      }
       notifyListeners();
     }
   }
@@ -879,35 +824,39 @@ class MultisigLoungeViewModel extends BaseViewModel {
       builder: (context) => const CreateMultisigModal(),
     );
     
-    // Always refresh data after modal is closed, regardless of result
-    // because the modal might have created a group
-    if (context.mounted) {
+    // No manual refresh needed - blockchain provider will detect the new group
+  }
+
+  Future<void> importFromTxid(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => const ImportTxidModal(),
+    );
+    
+    if (result == true) {
+      // Refresh data after successful import
       await refreshData();
     }
   }
 
-  Future<void> importFromTxid(BuildContext context) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Import from TXID not yet implemented')),
+  Future<void> getMultisigKey(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => const MultisigKeyModal(),
     );
   }
 
   Future<void> importPSBT(BuildContext context) async {
-    final result = await showDialog<bool>(
+    await showDialog<bool>(
       context: context,
       builder: (context) => ImportPSBTModal(
         availableGroups: multisigGroups,
-        onImportSuccess: () async {
-          await _refreshTransactions();
-          notifyListeners();
+        onImportSuccess: () {
+          // The notifier will automatically trigger the update
         },
       ),
     );
-    
-    if (result == true && context.mounted) {
-      await _refreshTransactions();
-      notifyListeners();
-    }
+    // No need to manually refresh - the notifier will trigger the update
   }
 
   Future<void> fundGroup(BuildContext context, MultisigGroup group) async {
@@ -922,9 +871,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
         ),
       );
       
-      if (result == true && context.mounted) {
-        await refreshData();
-      }
+      // No manual refresh needed - blockchain provider handles balance updates
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -943,9 +890,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
         ),
       );
       
-      if (result == true && context.mounted) {
-        await refreshData();
-      }
+      // No manual refresh needed - blockchain provider handles balance updates
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1003,11 +948,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
         ),
       );
       
-      if (result == true && context.mounted) {
-        // Immediately refresh transactions list
-        await _refreshTransactions();
-        notifyListeners();
-      }
+      // No need to manually refresh - the notifier will trigger the update automatically
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1017,13 +958,71 @@ class MultisigLoungeViewModel extends BaseViewModel {
     }
   }
 
-  /// Refresh just the transactions without updating balances (faster)
-  Future<void> _refreshTransactions() async {
+  
+  
+  /// Calculate SHA256 hash of a file's contents
+  Future<String?> _getFileHash(String filePath) async {
     try {
-      _transactions = await TransactionStorage.loadTransactions();
-      _logger.d('Refreshed transactions: ${_transactions.length} loaded');
+      final file = File(filePath);
+      if (!await file.exists()) {
+        return null;
+      }
+      
+      final contents = await file.readAsBytes();
+      final digest = sha256.convert(contents);
+      return digest.toString();
     } catch (e) {
-      _logger.e('Failed to refresh transactions: $e');
+      _logger.e('Failed to calculate file hash for $filePath: $e');
+      return null;
+    }
+  }
+  
+  /// Check if multisig files have changed using checksums
+  Future<bool> _haveFilesChanged() async {
+    try {
+      // Get file paths
+      final multisigPath = await MultisigStorage.getMultisigFilePath();
+      final transactionPath = await TransactionStorage.getTransactionFilePath();
+      
+      // Calculate current hashes
+      final currentMultisigHash = await _getFileHash(multisigPath);
+      final currentTransactionHash = await _getFileHash(transactionPath);
+      
+      // Check if hashes changed
+      final multisigChanged = _lastMultisigFileHash != currentMultisigHash;
+      final transactionChanged = _lastTransactionFileHash != currentTransactionHash;
+      
+      if (multisigChanged || transactionChanged) {
+        _logger.d('File changes detected: multisig=$multisigChanged, transactions=$transactionChanged');
+        
+        // Update stored hashes
+        _lastMultisigFileHash = currentMultisigHash;
+        _lastTransactionFileHash = currentTransactionHash;
+        
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      _logger.e('Error checking file changes: $e');
+      return true; // Assume changed on error to be safe
+    }
+  }
+  
+  /// Load data from files without any change detection
+  Future<void> _loadDataFromFiles() async {
+    _multisigGroups = await MultisigStorage.loadGroups();
+    _transactions = await TransactionStorage.loadTransactions();
+  }
+  
+  /// Update balances for all groups (for blockchain updates)
+  Future<void> _updateAllGroupBalances() async {
+    for (final group in _multisigGroups) {
+      try {
+        await _updateGroupBalance(group);
+      } catch (e) {
+        _logger.e('Failed to update balance for group ${group.name}', error: e);
+      }
     }
   }
 
@@ -1035,17 +1034,13 @@ class MultisigLoungeViewModel extends BaseViewModel {
           tx.status == TxStatus.readyForBroadcast,
         ).toList(),
         multisigGroups: multisigGroups,
-        onBroadcastSuccess: () async {
-          await _refreshTransactions();
-          notifyListeners();
+        onBroadcastSuccess: () {
+          // Transaction notifier will handle the update automatically
         },
       ),
     );
     
-    if (result == true && context.mounted) {
-      await _refreshTransactions();
-      notifyListeners();
-    }
+    // Transaction notifier will handle updates automatically
   }
 
   Future<void> openTransactionModal(BuildContext context, MultisigTransaction transaction) async {
@@ -1075,9 +1070,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
               children: [
                 // Transaction Status
                 SailRow(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     SailText.primary15('Status:'),
+                    const SizedBox(width: 16),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -1112,7 +1107,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                   _buildDetailRow('Broadcasted:', _formatDateTime(transaction.broadcastTime!)),
                 
                 // Signing Status
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
                 SailText.primary15('Signing Status:'),
                 const SizedBox(height: 8),
                 Container(
@@ -1140,9 +1135,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
                         ).owner;
                         
                         return SailRow(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             SailText.secondary12(keyName),
+                            const SizedBox(width: 16),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -1153,6 +1148,92 @@ class MultisigLoungeViewModel extends BaseViewModel {
                                 keyPSBT.isSigned ? 'Signed' : 'Pending',
                                 color: Colors.white,
                               ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                
+                // PSBT Export Section
+                const SizedBox(height: 32),
+                SailText.primary15('Export PSBTs:'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Initial PSBT
+                      SailRow(
+                        children: [
+                          Expanded(
+                            child: SailText.secondary12('Initial PSBT (unsigned)'),
+                          ),
+                          const SizedBox(width: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: SailText.primary10(
+                              'Unsigned',
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SailButton(
+                            label: 'Copy',
+                            variant: ButtonVariant.ghost,
+                            small: true,
+                            onPressed: () async => _copySpecificPSBT(context, transaction.initialPSBT, 'Initial PSBT'),
+                          ),
+                        ],
+                      ),
+                      // Individual key PSBTs
+                      ...transaction.keyPSBTs.map((keyPSBT) {
+                        final keyName = group.keys.firstWhere(
+                          (k) => k.xpub == keyPSBT.keyId,
+                          orElse: () => MultisigKey(
+                            xpub: keyPSBT.keyId,
+                            owner: 'Unknown',
+                            derivationPath: '',
+                            isWallet: false,
+                          ),
+                        ).owner;
+                        
+                        return SailRow(
+                          children: [
+                            Expanded(
+                              child: SailText.secondary12('$keyName PSBT'),
+                            ),
+                            const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: keyPSBT.isSigned ? Colors.green : Colors.grey,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: SailText.primary10(
+                                keyPSBT.isSigned ? 'Signed' : 'Unsigned',
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SailButton(
+                              label: 'Copy',
+                              variant: ButtonVariant.ghost,
+                              small: true,
+                              onPressed: (keyPSBT.psbt?.isNotEmpty ?? false)
+                                ? () async => _copySpecificPSBT(context, keyPSBT.psbt!, '$keyName PSBT')
+                                : null,
                             ),
                           ],
                         );
@@ -1197,6 +1278,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
     switch (status) {
       case TxStatus.needsSignatures:
         return Colors.orange;
+      case TxStatus.awaitingSignedPSBTs:
+        return Colors.amber;
       case TxStatus.readyForBroadcast:
         return Colors.blue;
       case TxStatus.broadcasted:
@@ -1214,6 +1297,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
     switch (status) {
       case TxStatus.needsSignatures:
         return 'Needs Signatures';
+      case TxStatus.awaitingSignedPSBTs:
+        return 'Awaiting Signed PSBTs';
       case TxStatus.readyForBroadcast:
         return 'Ready to Broadcast';
       case TxStatus.broadcasted:
@@ -1235,6 +1320,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
   Future<void> handleTransactionAction(BuildContext context, MultisigTransaction tx, MultisigGroup group) async {
     switch (tx.status) {
       case TxStatus.needsSignatures:
+      case TxStatus.awaitingSignedPSBTs:
         final walletKeys = group.keys.where((k) => k.isWallet).toList();
         final hasWalletSigned = tx.keyPSBTs.any((kp) => 
           walletKeys.any((wk) => wk.xpub == kp.keyId) && kp.isSigned,
@@ -1309,18 +1395,19 @@ class MultisigLoungeViewModel extends BaseViewModel {
         MultisigLogger.error('Signing warnings: ${signingResult.errors.join(', ')}');
       }
       
-      for (final key in walletKeys) {
+      // Only update keys that are owned by this wallet (generated, not imported)
+      final ownedKeys = walletKeys.where((key) => key.isWallet).toList();
+      for (final key in ownedKeys) {
         await TransactionStorage.updateKeyPSBT(
           tx.id, 
           key.xpub, 
           signingResult.signedPsbt,
           signatureThreshold: group.m,
+          isOwnedKey: true,
         );
       }
       
-      // Immediately refresh transactions to show updated signing status
-      await _refreshTransactions();
-      notifyListeners(); // Ensure UI updates with new transaction status
+      // Transaction notifier will handle the signing status update automatically
       
       if (context.mounted) {
         if (signingResult.signaturesAdded > 0) {
@@ -1360,9 +1447,50 @@ class MultisigLoungeViewModel extends BaseViewModel {
     }
   }
 
+  Future<void> _copySpecificPSBT(BuildContext context, String psbtData, String psbtName) async {
+    try {
+      if (psbtData.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$psbtName is empty'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      
+      await Clipboard.setData(ClipboardData(text: psbtData));
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$psbtName copied to clipboard'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      _logger.e('Failed to copy $psbtName to clipboard: $e');
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy $psbtName: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
-    _stopRefreshTimer();
+    // Remove listeners
+    TransactionStorage.notifier.removeListener(_transactionListener);
+    _blockchainProvider.removeListener(_blockchainListener);
+    
     super.dispose();
   }
 }
