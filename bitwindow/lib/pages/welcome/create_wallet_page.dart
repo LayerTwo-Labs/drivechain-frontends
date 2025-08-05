@@ -73,7 +73,6 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('CreateWalletPage rebuild - screen: $_currentScreen, isGenerating: $_isGenerating');
     return Scaffold(
       backgroundColor: SailTheme.of(context).colors.background,
       appBar: AppBar(
@@ -84,7 +83,6 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
       body: SafeArea(
         child: Builder(
           builder: (context) {
-            print('CreateWalletPage body builder - screen: $_currentScreen');
             switch (_currentScreen) {
               case WelcomeScreen.initial:
                 return _buildInitialScreen();
@@ -560,7 +558,6 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   }
 
   Widget _buildInitialScreen() {
-    print('_buildInitialScreen - isGenerating: $_isGenerating');
     final theme = SailTheme.of(context);
     return Center(
       child: Padding(
@@ -602,13 +599,15 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                     ],
                   ),
                   child: TextButton(
-                    onPressed: _isGenerating ? null : () {
-                      setState(() => _isGenerating = true);
-                      // Schedule the wallet generation to run after this frame
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _handleFastMode();
-                      });
-                    },
+                    onPressed: _isGenerating
+                        ? null
+                        : () {
+                            setState(() => _isGenerating = true);
+                            // Schedule the wallet generation to run after this frame
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _handleFastMode();
+                            });
+                          },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
@@ -740,7 +739,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
         await _showErrorDialog('Failed to generate wallet: $e');
       }
     }
-    
+
     if (mounted) {
       setState(() => _isGenerating = false);
     }
