@@ -469,6 +469,56 @@ jobs:
           echo "Final versions.json:"
           cat versions.json | jq . || echo "Failed to parse versions.json"
 
+      - name: Generate BitWindow appcast for auto-updater
+        continue-on-error: true
+        run: |
+          # Look for BitWindow files (.exe for Windows, .zip for macOS)
+          windows_file=$(ls BitWindow-*.exe 2>/dev/null | head -1 || echo "")
+          macos_file=$(ls BitWindow-*-apple-darwin.zip 2>/dev/null | head -1 || echo "")
+          
+          echo "Windows file: $windows_file"
+          echo "macOS file: $macos_file"
+          
+          if [ -n "$windows_file" ] || [ -n "$macos_file" ]; then
+            echo "Generating BitWindow appcast"
+            
+            # Create signing keys from secrets
+            echo "${{ secrets.WINDOWS_DSA_PRIVATE_KEY }}" > dsa_priv.pem
+            echo "${{ secrets.MACOS_ED25519_PRIVATE_KEY }}" > id_ed25519
+            
+            # Create temp bitwindow directory structure
+            mkdir -p bitwindow/release
+            
+            # Copy files to bitwindow release directory and generate individual fragments
+            if [ -n "$windows_file" ]; then
+              cp "$windows_file" bitwindow/release/
+              echo "Generating Windows appcast fragment"
+              ./scripts/appcast/generate-windows.sh bitwindow dsa_priv.pem $(basename "$windows_file") || echo "Failed to generate Windows fragment"
+            fi
+            
+            if [ -n "$macos_file" ]; then
+              cp "$macos_file" bitwindow/release/
+              echo "Generating macOS appcast fragment"  
+              ./scripts/appcast/generate-macos.sh bitwindow id_ed25519 $(basename "$macos_file") || echo "Failed to generate macOS fragment"
+            fi
+            
+            # Merge fragments into final appcast
+            echo "Merging appcast fragments"
+            ./scripts/appcast/merge.sh bitwindow || echo "Failed to merge appcast fragments"
+            
+            # Copy generated appcast to upload directory
+            if [ -f "bitwindow/release/bitwindow-appcast.xml" ]; then
+              cp bitwindow/release/bitwindow-appcast.xml .
+              echo "Generated bitwindow-appcast.xml"
+              cat bitwindow-appcast.xml
+            fi
+            
+            # Clean up key files
+            rm -f dsa_priv.pem id_ed25519
+          else
+            echo "No BitWindow files found, skipping appcast generation"
+          fi
+
       - name: Upload artifacts to releases.drivechain.info
         uses: yitianyigexiangfa/ssh-scp-ssh-pipelines@v1.1.5
         continue-on-error: true
@@ -485,3 +535,4 @@ jobs:
             'test-*.msix' => '/var/www/html/'
             'test-*.AppImage' => '/var/www/html/'
             'versions.json' => '/var/www/html/'
+            'bitwindow-appcast.xml' => '/var/www/html/'
