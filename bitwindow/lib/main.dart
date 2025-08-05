@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
@@ -141,6 +142,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   });
 
   await setupSignalHandlers(log);
+
+  // Initialize auto updater
+  await initAutoUpdater(log);
 
   unawaited(bootBinaries(log));
 
@@ -420,4 +424,19 @@ List<Binary> initalBinaries() {
     Thunder(),
     ZSide(),
   ];
+}
+
+Future<void> initAutoUpdater(Logger log) async {
+  try {
+    const feedURL = 'https://releases.drivechain.info/bitwindow-appcast.xml';
+    log.i('Initializing auto updater with feed URL: $feedURL');
+
+    await autoUpdater.setFeedURL(feedURL);
+    await autoUpdater.checkForUpdates();
+    await autoUpdater.setScheduledCheckInterval(3600); // Check every hour
+
+    log.i('Auto updater initialized successfully');
+  } catch (e) {
+    log.w('Failed to initialize auto updater: $e');
+  }
 }
