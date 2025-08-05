@@ -3,6 +3,7 @@ import 'package:bitwindow/models/multisig_group.dart';
 /// Transaction status for multisig PSBT workflow
 enum TxStatus {
   needsSignatures,
+  awaitingSignedPSBTs,
   readyForBroadcast,
   broadcasted,
   confirmed,
@@ -15,6 +16,8 @@ extension TxStatusExtension on TxStatus {
     switch (this) {
       case TxStatus.needsSignatures:
         return 'Needs Signatures';
+      case TxStatus.awaitingSignedPSBTs:
+        return 'Awaiting Signed PSBTs';
       case TxStatus.readyForBroadcast:
         return 'Ready to Broadcast';
       case TxStatus.broadcasted:
@@ -32,6 +35,8 @@ extension TxStatusExtension on TxStatus {
     switch (status) {
       case 'needsSignatures':
         return TxStatus.needsSignatures;
+      case 'awaitingSignedPSBTs':
+        return TxStatus.awaitingSignedPSBTs;
       case 'readyForBroadcast':
         return TxStatus.readyForBroadcast;
       case 'broadcasted':
@@ -225,12 +230,12 @@ class MultisigTransaction {
 
   /// Check if transaction needs more signatures
   bool get needsMoreSignatures {
-    return status == TxStatus.needsSignatures && signedPSBTs.isEmpty;
+    return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isEmpty;
   }
 
   /// Check if transaction is ready to combine
   bool get readyToCombine {
-    return status == TxStatus.needsSignatures && signedPSBTs.isNotEmpty;
+    return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isNotEmpty;
   }
 
   /// Check if transaction can be broadcasted

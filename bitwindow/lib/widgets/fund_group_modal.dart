@@ -31,30 +31,32 @@ class FundGroupModal extends StatelessWidget {
           // Show address like wallet receive page - immediately after group selection
           return Dialog(
             backgroundColor: Colors.transparent,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 400),
-              child: SailCard(
-                title: 'Fund ${viewModel.selectedGroup!.name}',
-                subtitle: 'Send Bitcoin to this address to fund the multisig group',
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SailTextField(
-                      label: 'Funding Address',
-                      hintText: 'Funding address',
-                      controller: TextEditingController(text: viewModel.currentAddress),
-                      readOnly: true,
-                      suffixWidget: CopyButton(
-                        text: viewModel.currentAddress,
+            insetPadding: const EdgeInsets.all(24),
+            child: IntrinsicHeight(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: SailCard(
+                  title: 'Fund ${viewModel.selectedGroup!.name}',
+                  subtitle: 'Send Bitcoin to this address to fund the multisig group',
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    children: [
+                      SailTextField(
+                        label: 'Funding Address',
+                        hintText: 'Funding address',
+                        controller: TextEditingController(text: viewModel.currentAddress),
+                        readOnly: true,
+                        suffixWidget: CopyButton(
+                          text: viewModel.currentAddress,
+                        ),
                       ),
-                    ),
-                    SailButton(
-                      label: 'Close',
-                      onPressed: () async => Navigator.of(context).pop(),
-                      variant: ButtonVariant.secondary,
-                    ),
-                  ],
+                      SailButton(
+                        label: 'Close',
+                        onPressed: () async => Navigator.of(context).pop(),
+                        variant: ButtonVariant.secondary,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -182,7 +184,14 @@ class FundGroupModalViewModel extends BaseViewModel {
       }
       
       final content = await file.readAsString();
-      final jsonGroups = json.decode(content) as List<dynamic>;
+      final jsonData = json.decode(content);
+      
+      // Expect new format only
+      if (jsonData is! Map<String, dynamic>) {
+        throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
+      }
+      
+      final jsonGroups = jsonData['groups'] as List<dynamic>;
       
       // Find the group
       final groupIndex = jsonGroups.indexWhere((g) => g['id'] == group.id);
@@ -327,8 +336,9 @@ class FundGroupModalViewModel extends BaseViewModel {
       // Increment index for next address
       groupData['next_receive_index'] = addressIndex + 1;
       
-      // Save updated data back to file
-      await file.writeAsString(json.encode(jsonGroups));
+      // Update the groups in the full structure and save
+      jsonData['groups'] = jsonGroups;
+      await file.writeAsString(json.encode(jsonData));
       
       return newAddress;
       
