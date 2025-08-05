@@ -177,10 +177,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   // Start a binary, and set starter seeds (if set)
-  Future<void> start(
-    Binary binary, {
-    bool useStarter = false,
-  }) async {
+  Future<void> start(Binary binary) async {
     await _downloadManager.downloadIfMissing(binary);
 
     if (binary is Thunder || binary is Bitnames || binary is BitAssets) {
@@ -443,15 +440,10 @@ class BinaryProvider extends ChangeNotifier {
 
     if (bootExtraBinaryImmediately) {
       log.i('[T+${getElapsed()}ms] STARTUP: Starting ${binaryToBoot.name}');
-      unawaited(
-        start(
-          binaryToBoot,
-          useStarter: false,
-        ),
-      );
+      unawaited(start(binaryToBoot));
     }
 
-    await start(bitcoinCore, useStarter: false);
+    await start(bitcoinCore);
     log.i('[T+${getElapsed()}ms] STARTUP: Started bitcoin core...');
 
     // if in launcher mode, we must await in a loop here UNTIL
@@ -471,17 +463,11 @@ class BinaryProvider extends ChangeNotifier {
       }
     }
 
-    await start(
-      enforcer,
-      useStarter: false,
-    );
+    await start(enforcer);
     log.i('[T+${getElapsed()}ms] STARTUP: Started enforcer');
 
     if (!bootExtraBinaryImmediately) {
-      await start(
-        binaryToBoot,
-        useStarter: false,
-      );
+      await start(binaryToBoot);
       log.i('[T+${getElapsed()}ms] STARTUP: Started ${binaryToBoot.name}');
     }
 

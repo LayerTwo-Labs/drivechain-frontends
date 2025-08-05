@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert' show utf8;
 import 'dart:math';
 import 'package:auto_route/auto_route.dart';
@@ -40,6 +41,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   Map<String, dynamic> _currentWalletData = {};
 
   bool hasExistingWallet = false;
+  bool _isGenerating = false;
 
   @override
   void initState() {
@@ -71,6 +73,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
 
   @override
   Widget build(BuildContext context) {
+    print('CreateWalletPage rebuild - screen: $_currentScreen, isGenerating: $_isGenerating');
     return Scaffold(
       backgroundColor: SailTheme.of(context).colors.background,
       appBar: AppBar(
@@ -81,6 +84,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
       body: SafeArea(
         child: Builder(
           builder: (context) {
+            print('CreateWalletPage body builder - screen: $_currentScreen');
             switch (_currentScreen) {
               case WelcomeScreen.initial:
                 return _buildInitialScreen();
@@ -556,6 +560,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   }
 
   Widget _buildInitialScreen() {
+    print('_buildInitialScreen - isGenerating: $_isGenerating');
     final theme = SailTheme.of(context);
     return Center(
       child: Padding(
@@ -597,7 +602,13 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                     ],
                   ),
                   child: TextButton(
-                    onPressed: _handleFastMode,
+                    onPressed: _isGenerating ? null : () {
+                      setState(() => _isGenerating = true);
+                      // Schedule the wallet generation to run after this frame
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _handleFastMode();
+                      });
+                    },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
@@ -609,11 +620,21 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: SailText.primary15(
-                            hasExistingWallet ? 'Create New Wallet' : 'Generate Wallet',
+                            _isGenerating
+                                ? 'Generating Your Wallet'
+                                : hasExistingWallet
+                                    ? 'Create New Wallet'
+                                    : 'Generate Wallet',
                             color: Colors.white,
                             bold: true,
                           ),
                         ),
+                        if (_isGenerating)
+                          SizedBox(
+                            width: 15,
+                            height: 15,
+                            child: LoadingIndicator.insideButton(Colors.white),
+                          ),
                       ],
                     ),
                   ),
@@ -695,6 +716,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                     label: 'Restore',
                     variant: ButtonVariant.primary,
                     onPressed: _handleRestore,
+                    loadingLabel: 'Restoring your wallet',
                   ),
                 ],
               ),
@@ -707,13 +729,20 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   }
 
   Future<void> _handleFastMode() async {
+    // setState is already called in the button's onPressed
     try {
       await _walletProvider.generateWallet();
       if (mounted) {
         setState(() => _currentScreen = WelcomeScreen.success);
       }
     } catch (e) {
-      await _showErrorDialog('Failed to generate wallet: $e');
+      if (mounted) {
+        await _showErrorDialog('Failed to generate wallet: $e');
+      }
+    }
+    
+    if (mounted) {
+      setState(() => _isGenerating = false);
     }
   }
 
@@ -742,6 +771,10 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
 
   Widget _buildSuccessScreen() {
     final theme = SailTheme.of(context);
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final runningSidechains = binaryProvider.runningBinaries.whereType<Sidechain>().toList();
+    final hasRunningSidechains = runningSidechains.isNotEmpty;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -754,20 +787,58 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
             children: [
               BootTitle(
                 title: 'Wallet Created',
-                subtitle: 'Your wallet was created successfully. You can now continue to the world of Drivechain.',
+                subtitle: hasRunningSidechains
+                    ? 'Your wallet was created successfully.\r\n\r\nI can see you have some sidechains running. Do you want to restart them to apply the new wallet?'
+                    : 'Your wallet was created successfully. You can now continue to the world of Drivechain.',
               ),
-              SailSVG.icon(SailSVGAsset.iconSuccess, width: 64, height: 64, color: theme.colors.success),
+              SailSVG.icon(
+                SailSVGAsset.iconSuccess,
+                width: 64,
+                height: 64,
+                color: hasRunningSidechains ? theme.colors.orange : theme.colors.success,
+              ),
               const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SailButton(
-                    label: 'Continue',
-                    variant: ButtonVariant.primary,
-                    onPressed: () async => GetIt.I.get<AppRouter>().pop(),
-                  ),
-                ],
-              ),
+              if (hasRunningSidechains)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailButton(
+                      label: 'Continue without restart',
+                      variant: ButtonVariant.secondary,
+                      onPressed: () async => GetIt.I.get<AppRouter>().pop(),
+                    ),
+                    SailButton(
+                      label: 'Restart and Continue',
+                      variant: ButtonVariant.primary,
+                      loadingLabel: 'Restarting ${runningSidechains.length} sidechains',
+                      onPressed: () async {
+                        // Restart all running sidechains
+                        await Future.wait(
+                          runningSidechains.map((sidechain) => binaryProvider.stop(sidechain)),
+                        );
+                        await Future.delayed(const Duration(seconds: 3));
+                        for (final sidechain in runningSidechains) {
+                          unawaited(binaryProvider.start(sidechain));
+                        }
+                        if (mounted) {
+                          GetIt.I.get<AppRouter>().pop();
+                        }
+                      },
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SailButton(
+                      label: 'Continue',
+                      variant: ButtonVariant.primary,
+                      onPressed: () async => GetIt.I.get<AppRouter>().pop(),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 32),
             ],
           ),
