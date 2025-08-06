@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>BitWindow</title>
+    <link>https://releases.drivechain.info/</link>
+    <description>BitWindow - A frontend for interacting with a Drivechain-enabled layer 1 bitcoin network</description>
+    <language>en</language>
+    
+    <!-- Windows Release -->
+    <item>
+      <title>Version {{VERSION}}</title>
+      <description>Latest version of BitWindow for Windows</description>
+      <pubDate>{{PUB_DATE}}</pubDate>
+      <enclosure 
+        url="https://releases.drivechain.info/{{WINDOWS_FILENAME}}" 
+        sparkle:version="{{VERSION}}" 
+        sparkle:shortVersionString="{{VERSION}}" 
+        sparkle:dsaSignature="{{WINDOWS_DSA_SIGNATURE}}" 
+        length="{{WINDOWS_FILE_SIZE}}" 
+        type="application/octet-stream" 
+        sparkle:os="windows" />
+    </item>
+    
+    <!-- macOS Release -->
+    <item>
+      <title>Version {{VERSION}}</title>
+      <description>Latest version of BitWindow for macOS</description>
+      <pubDate>{{PUB_DATE}}</pubDate>
+      <enclosure 
+        url="https://releases.drivechain.info/{{MACOS_FILENAME}}" 
+        sparkle:version="{{VERSION}}" 
+        sparkle:shortVersionString="{{VERSION}}" 
+        sparkle:dsaSignature="{{MACOS_DSA_SIGNATURE}}" 
+        length="{{MACOS_FILE_SIZE}}" 
+        type="application/zip" 
+        sparkle:os="macos" />
+    </item>
+    
+  </channel>
+</rss>
