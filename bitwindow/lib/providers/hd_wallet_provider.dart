@@ -430,18 +430,13 @@ class HDWalletProvider extends ChangeNotifier {
     try {
       final appDir = await Environment.datadir();
       final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final file = File(path.join(bitdriveDir, 'multisig.json'));
+      final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
       
       int maxAccountIndex = 7999; // Start before 8000
       
       if (await file.exists()) {
         final content = await file.readAsString();
-        final jsonData = json.decode(content);
-        
-        // Expect new format only: object with groups and solo_keys
-        if (jsonData is! Map<String, dynamic>) {
-          throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
-        }
+        final jsonData = json.decode(content) as Map<String, dynamic>;
         
         // Check groups for wallet keys
         final groups = jsonData['groups'] as List<dynamic>? ?? [];
@@ -468,17 +463,20 @@ class HDWalletProvider extends ChangeNotifier {
           }
         }
         
-        // Check solo_keys
+        // Check solo_keys (only count keys that belong to current wallet)
         final soloKeys = jsonData['solo_keys'] as List<dynamic>? ?? [];
         log.d('Found ${soloKeys.length} solo keys in multisig.json');
         
         for (final keyData in soloKeys) {
           final derivationPath = keyData['path'] as String?;
+          final expectedXpub = keyData['xpub'] as String?;
           
-          if (derivationPath != null) {
+          if (derivationPath != null && expectedXpub != null) {
             final match = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(derivationPath);
             if (match != null) {
               final accountIndex = int.parse(match.group(1)!);
+              
+              // Count all keys regardless of wallet ownership
               if (accountIndex > maxAccountIndex) {
                 maxAccountIndex = accountIndex;
                 log.d('Updated max account index from solo_keys to: $maxAccountIndex');

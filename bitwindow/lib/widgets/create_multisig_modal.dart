@@ -206,13 +206,14 @@ class CreateMultisigModal extends StatelessWidget {
                         ),
                       ),
                       
-                      SailCard(
-                        shadowSize: ShadowSize.none,
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding12,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary15('Add Public Key'),
+                      if (viewModel.keys.length != viewModel.n)
+                        SailCard(
+                          shadowSize: ShadowSize.none,
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding12,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SailText.primary15('Add Public Key'),
                             SailRow(
                               spacing: SailStyleValues.padding08,
                               children: [
@@ -587,7 +588,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     try {
       final appDir = await Environment.datadir();
       final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final jsonFile = File(path.join(bitdriveDir, 'multisig.json'));
+      final jsonFile = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
       
       if (!await jsonFile.exists()) {
         return false; // No existing groups, name is available
@@ -598,12 +599,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         return false; // Empty file, name is available
       }
       
-      final jsonData = json.decode(content);
-      
-      // Expect new format only
-      if (jsonData is! Map<String, dynamic>) {
-        throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
-      }
+      final jsonData = json.decode(content) as Map<String, dynamic>;
       
       final existingGroups = jsonData['groups'] as List<dynamic>? ?? [];
       
@@ -747,7 +743,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final keyFiles = await _getAvailableKeyFiles();
       
       if (keyFiles.isEmpty) {
-        modalError = 'No .conf key files found in bitdrive directory. Use "Get Key" to generate keys first.';
+        modalError = 'No .conf key files found in bitdrive/multisig or bitdrive/multisig/imported_keys directories. Use "Get Key" to generate keys first.';
         notifyListeners();
         return;
       }
@@ -772,13 +768,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       // Mark that this was NOT a wallet-generated key (imported from file)
       _lastKeyWasGenerated = false;
 
+      // Copy the imported key to imported_keys directory
+      await _copyKeyToImportedKeys(selectedFile, keyData);
+
       modalError = null;
       notifyListeners();
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Key imported from ${path.basename(selectedFile)}'),
+            content: Text('Key imported from ${path.basename(selectedFile)} and copied to imported_keys'),
             backgroundColor: Colors.green,
           ),
         );
@@ -791,23 +790,29 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   }
 
   Future<List<String>> _getAvailableKeyFiles() async {
-    try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-      
-      if (!await bitdriveDir.exists()) {
-        return [];
-      }
-
-      final files = await bitdriveDir.list().toList();
-      return files
-          .where((file) => file is File && file.path.endsWith('.conf'))
-          .map((file) => file.path)
-          .toList();
-    } catch (e) {
-      log.e('Failed to scan for key files: $e');
-      return [];
-    }
+    final appDir = await Environment.datadir();
+    final multisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
+    final importedKeysDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig', 'imported_keys'));
+    
+    List<String> allKeyFiles = [];
+    
+    // Wallet-generated keys in multisig directory
+    final multisigFiles = await multisigDir.list().toList();
+    final walletKeys = multisigFiles
+        .where((file) => file is File && file.path.endsWith('.conf'))
+        .map((file) => file.path)
+        .toList();
+    allKeyFiles.addAll(walletKeys);
+    
+    // Imported keys in imported_keys subdirectory
+    final importedFiles = await importedKeysDir.list().toList();
+    final importedKeys = importedFiles
+        .where((file) => file is File && file.path.endsWith('.conf'))
+        .map((file) => file.path)
+        .toList();
+    allKeyFiles.addAll(importedKeys);
+    
+    return allKeyFiles;
   }
 
   Future<Map<String, dynamic>> _loadKeyFile(String filePath) async {
@@ -827,6 +832,24 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
   }
 
+  Future<void> _copyKeyToImportedKeys(String sourceFilePath, Map<String, dynamic> keyData) async {
+    final appDir = await Environment.datadir();
+    final importedKeysDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig', 'imported_keys'));
+    
+    // Create imported_keys directory
+    await importedKeysDir.create(recursive: true);
+    
+    // Generate a unique filename for the imported key
+    final originalFileName = path.basename(sourceFilePath);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final newFileName = '${path.basenameWithoutExtension(originalFileName)}_imported_$timestamp.conf';
+    final destinationPath = path.join(importedKeysDir.path, newFileName);
+    
+    // Write the key data to the new location
+    final destinationFile = File(destinationPath);
+    await destinationFile.writeAsString(jsonEncode(keyData));
+  }
+
   Widget _buildKeyFileSelectionDialog(BuildContext context, List<String> keyFiles) {
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -834,7 +857,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 400),
         child: SailCard(
           title: 'Select Key File to Import',
-          subtitle: 'Choose a .conf file from the bitdrive directory',
+          subtitle: 'Choose a .conf file from the bitdrive/multisig directories',
           child: SingleChildScrollView(
             child: SailColumn(
               spacing: SailStyleValues.padding12,
@@ -844,7 +867,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
                   return SailCard(
                     shadowSize: ShadowSize.none,
                     child: ListTile(
-                      title: Text(fileName),
+                      title: Text(fileName, style: TextStyle(color: Colors.white)),
                       subtitle: Text(filePath),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () => Navigator.of(context).pop(filePath),
@@ -1062,7 +1085,11 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         await dir.create(recursive: true);
       }
       
-      final file = File(path.join(bitdriveDir, 'multisig.json'));
+      final multisigDir = Directory(path.join(bitdriveDir, 'multisig'));
+      if (!await multisigDir.exists()) {
+        await multisigDir.create(recursive: true);
+      }
+      final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
       
       // Load existing data or create new structure
       Map<String, dynamic> jsonData = {
@@ -1072,12 +1099,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       
       if (await file.exists()) {
         final content = await file.readAsString();
-        final decoded = json.decode(content);
-        if (decoded is Map<String, dynamic>) {
-          jsonData = decoded;
-        } else {
-          throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
-        }
+        jsonData = json.decode(content) as Map<String, dynamic>;
       }
       
       // Add new group to groups array
@@ -1576,7 +1598,11 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         await dir.create(recursive: true);
       }
       
-      final file = File(path.join(bitdriveDir, 'multisig.json'));
+      final multisigDir = Directory(path.join(bitdriveDir, 'multisig'));
+      if (!await multisigDir.exists()) {
+        await multisigDir.create(recursive: true);
+      }
+      final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
       
       // Load existing data or create new structure
       Map<String, dynamic> jsonData = {
@@ -1587,12 +1613,7 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       if (await file.exists()) {
         final content = await file.readAsString();
         if (content.trim().isNotEmpty) {
-          final decoded = json.decode(content);
-          if (decoded is Map<String, dynamic>) {
-            jsonData = decoded;
-          } else {
-            throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
-          }
+          jsonData = json.decode(content) as Map<String, dynamic>;
         }
       }
       

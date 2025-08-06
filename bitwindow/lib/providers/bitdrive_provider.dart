@@ -673,31 +673,23 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> _saveMultisigToLocalFile(Map<String, dynamic> multisigData) async {
-    try {
-      final file = File(path.join(_bitdriveDir!, 'multisig.json'));
-      
-      // Load existing data or create new structure
-      Map<String, dynamic> jsonData = {
-        'groups': [],
-        'solo_keys': [],
-      };
-      
-      if (await file.exists()) {
-        try {
-          final content = await file.readAsString();
-          if (content.trim().isNotEmpty) {
-            final decoded = json.decode(content);
-            if (decoded is Map<String, dynamic>) {
-              jsonData = decoded;
-            } else {
-              throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
-            }
-          }
-        } catch (e) {
-          log.e('BitDrive: Error reading existing multisig.json: $e');
-          throw Exception('Invalid multisig.json format');
-        }
+    final multisigDir = Directory(path.join(_bitdriveDir!, 'multisig'));
+    await multisigDir.create(recursive: true);
+    final file = File(path.join(_bitdriveDir!, 'multisig', 'multisig.json'));
+    
+    // Load existing data or create new structure
+    Map<String, dynamic> jsonData = {
+      'groups': [],
+      'solo_keys': [],
+    };
+    
+    if (await file.exists()) {
+      final content = await file.readAsString();
+      if (content.trim().isNotEmpty) {
+        final decoded = json.decode(content);
+        jsonData = decoded as Map<String, dynamic>;
       }
+    }
       
       // Get groups array
       final groups = jsonData['groups'] as List<dynamic>;
@@ -723,10 +715,6 @@ class BitDriveProvider extends ChangeNotifier {
       
       // Save updated data - this is the single source of truth for multisig groups
       await file.writeAsString(json.encode(jsonData));
-      
-    } catch (e) {
-      log.e('BitDrive: Error saving multisig to local file: $e');
-    }
   }
 
 }

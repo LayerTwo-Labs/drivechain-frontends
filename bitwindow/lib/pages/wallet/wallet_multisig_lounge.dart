@@ -95,12 +95,17 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
 
         return SailPage(
           body: SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              children: [
-                _buildGroupsSection(context, viewModel),
-                _buildTransactionsSection(context, viewModel),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SailColumn(
+                  spacing: SailStyleValues.padding16,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildGroupsSection(context, viewModel, constraints),
+                    _buildTransactionsSection(context, viewModel, constraints),
+                  ],
+                );
+              },
             ),
           ),
         );
@@ -108,76 +113,102 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
     );
   }
 
-  Widget _buildGroupsSection(BuildContext context, MultisigLoungeViewModel viewModel) {
-    return SailCard(
-      title: 'Multisig Groups',
-      subtitle: '${viewModel.multisigGroups.length} group(s)',
-      child: SizedBox(
-        height: kTableHeight,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
+  Widget _buildGroupsSection(BuildContext context, MultisigLoungeViewModel viewModel, BoxConstraints constraints) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SailCard(
+            title: 'Multisig Groups',
+            subtitle: '${viewModel.multisigGroups.length} group(s)',
+            bottomPadding: false,
+            child: SizedBox(
+              height: kTableHeight,
               child: MultisigGroupsTable(
                 groups: viewModel.multisigGroups,
                 selectedGroup: viewModel.selectedGroup,
                 onSelectGroup: viewModel.selectGroup,
               ),
             ),
-            const SizedBox(width: SailStyleValues.padding16),
-            Center(
-              child: SailColumn(
-                spacing: SailStyleValues.padding08,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SailText.primary13('Group Tools'),
-                  SailSpacing(SailStyleValues.padding08),
-                  SailButton(
-                    label: 'Create New Group',
-                    onPressed: () => viewModel.createNewGroup(context),
-                    variant: ButtonVariant.primary,
+          ),
+        ),
+        const SizedBox(width: SailStyleValues.padding16),
+        SizedBox(
+          width: 240, // Slightly wider for tools
+          child: SailCard(
+            title: 'Group Tools',
+            subtitle: 'Manage multisig groups',
+            bottomPadding: false,
+            child: SizedBox(
+              height: kTableHeight,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SailButton(
+                        label: 'Create New Group',
+                        onPressed: () => viewModel.createNewGroup(context),
+                        variant: ButtonVariant.primary,
+                      ),
+                      const SizedBox(height: SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Fund Group',
+                        onPressed: viewModel.multisigGroups.isNotEmpty
+                            ? () => viewModel.fundGroupWithSelection(context)
+                            : null,
+                        variant: ButtonVariant.secondary,
+                      ),
+                      const SizedBox(height: SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Import from TXID',
+                        onPressed: () => viewModel.importFromTxid(context),
+                        variant: ButtonVariant.secondary,
+                      ),
+                      const SizedBox(height: SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Get Key',
+                        onPressed: () => viewModel.getMultisigKey(context),
+                        variant: ButtonVariant.secondary,
+                      ),
+                      if (viewModel.selectedGroup != null) ...[
+                        const SizedBox(height: SailStyleValues.padding08),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: SailText.primary12(
+                            'Selected: ${viewModel.selectedGroup!.name}',
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  SailButton(
-                    label: 'Fund Group',
-                    onPressed: viewModel.multisigGroups.isNotEmpty
-                        ? () => viewModel.fundGroupWithSelection(context)
-                        : null,
-                    variant: ButtonVariant.secondary,
-                  ),
-                  SailButton(
-                    label: 'Import from TXID',
-                    onPressed: () => viewModel.importFromTxid(context),
-                    variant: ButtonVariant.secondary,
-                  ),
-                  SailButton(
-                    label: 'Get Key',
-                    onPressed: () => viewModel.getMultisigKey(context),
-                    variant: ButtonVariant.secondary,
-                  ),
-                  if (viewModel.selectedGroup != null) ...[
-                    SailSpacing(SailStyleValues.padding16),
-                    SailText.primary13('Selected Group'),
-                  ],
-                ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildTransactionsSection(BuildContext context, MultisigLoungeViewModel viewModel) {
-    return SailCard(
-      title: 'Multisig Transactions',
-      subtitle: '${viewModel.transactionRows.length} transaction(s)',
-      child: SizedBox(
-        height: kTableHeight,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 5, // Give more space to the table
+  Widget _buildTransactionsSection(BuildContext context, MultisigLoungeViewModel viewModel, BoxConstraints constraints) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SailCard(
+            title: 'Multisig Transactions',
+            subtitle: '${viewModel.transactionRows.length} transaction(s)',
+            bottomPadding: false,
+            child: SizedBox(
+              height: kTableHeight,
               child: MultisigTransactionsTable(
                 transactionRows: viewModel.transactionRows,
                 groups: viewModel.multisigGroups,
@@ -187,40 +218,53 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
                 onSign: (tx, group) => viewModel.signTransaction(context, tx, group),
               ),
             ),
-            const SizedBox(width: SailStyleValues.padding16),
-            SizedBox(
-              width: 180, // Fixed width for the sidebar
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SailText.primary13('Transaction Tools'),
-                  SailSpacing(SailStyleValues.padding08),
-                  SailButton(
-                    label: 'Create Transaction',
-                    onPressed: viewModel.multisigGroups.any((g) => g.balance > 0)
-                        ? () => viewModel.createTransaction(context, null)
-                        : null,
-                    variant: ButtonVariant.primary,
+          ),
+        ),
+        const SizedBox(width: SailStyleValues.padding16),
+        SizedBox(
+          width: 240, // Slightly wider for tools
+          child: SailCard(
+            title: 'Transaction Tools',
+            subtitle: 'Create and manage transactions',
+            bottomPadding: false,
+            child: SizedBox(
+              height: kTableHeight,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SailButton(
+                        label: 'Create Transaction',
+                        onPressed: viewModel.multisigGroups.any((g) => g.balance > 0)
+                            ? () => viewModel.createTransaction(context, null)
+                            : null,
+                        variant: ButtonVariant.primary,
+                      ),
+                      const SizedBox(height: SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Import PSBT',
+                        onPressed: () => viewModel.importPSBT(context),
+                        variant: ButtonVariant.secondary,
+                      ),
+                      const SizedBox(height: SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Combine & Broadcast',
+                        onPressed: viewModel.hasReadyTransactions
+                            ? () => viewModel.openCombineAndBroadcastModal(context)
+                            : null,
+                        variant: ButtonVariant.secondary,
+                      ),
+                    ],
                   ),
-                  SailButton(
-                    label: 'Import PSBT',
-                    onPressed: () => viewModel.importPSBT(context),
-                    variant: ButtonVariant.secondary,
-                  ),
-                  SailButton(
-                    label: 'Combine & Broadcast',
-                    onPressed: viewModel.hasReadyTransactions
-                        ? () => viewModel.openCombineAndBroadcastModal(context)
-                        : null,
-                    variant: ButtonVariant.secondary,
-                  ),
-                ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -989,8 +1033,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       final transactionChanged = _lastTransactionFileHash != currentTransactionHash;
       
       if (multisigChanged || transactionChanged) {
-        _logger.d('File changes detected: multisig=$multisigChanged, transactions=$transactionChanged');
-        
         // Update stored hashes
         _lastMultisigFileHash = currentMultisigHash;
         _lastTransactionFileHash = currentTransactionHash;
