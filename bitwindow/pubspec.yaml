@@ -140,7 +140,7 @@ msix_config:
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
   publisher: CN=CB6BF331-C832-4005-970F-B880295700CA
-  publisher_display_name: LayerTwo Labs, Inc.
+  publisher_display_name: LayerTwo Labs
   identity_name: LayerTwoLabs.BitWindow
   msix_version: 1.0.0.0
   logo_path: windows/runner/resources/app_icon.ico
