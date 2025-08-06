@@ -805,7 +805,9 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                     SailButton(
                       label: 'Continue without restart',
                       variant: ButtonVariant.secondary,
-                      onPressed: () async => GetIt.I.get<AppRouter>().pop(),
+                      onPressed: () async {
+                        await GetIt.I.get<AppRouter>().navigate(RootRoute());
+                      },
                     ),
                     SailButton(
                       label: 'Restart and Continue',
@@ -821,7 +823,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                           unawaited(binaryProvider.start(sidechain));
                         }
                         if (mounted) {
-                          GetIt.I.get<AppRouter>().pop();
+                          await GetIt.I.get<AppRouter>().navigate(RootRoute());
                         }
                       },
                     ),
@@ -834,7 +836,9 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                     SailButton(
                       label: 'Continue',
                       variant: ButtonVariant.primary,
-                      onPressed: () async => GetIt.I.get<AppRouter>().pop(),
+                      onPressed: () async {
+                        await GetIt.I.get<AppRouter>().navigate(RootRoute());
+                      },
                     ),
                   ],
                 ),
