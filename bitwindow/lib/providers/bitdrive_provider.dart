@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -12,16 +13,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
-
-class BitDriveContent {
-  final String fileName;
-  final Uint8List content;
-
-  BitDriveContent({
-    required this.fileName,
-    required this.content,
-  });
-}
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 
 // Class to store information about pending downloads
 class PendingDownload {
@@ -45,12 +37,15 @@ class BitDriveProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   HDWalletProvider get hdWallet => GetIt.I.get<HDWalletProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
+  EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
 
   bool initialized = false;
   String? error;
   bool _isStoring = false;
   bool _isRestoring = false;
   bool _hasRestoredFiles = false;
+  bool _hasLoggedWaitingForSync = false;
+  bool _hasLoggedWaitingForEnforcer = false;
 
   // Scan and download state
   bool _isScanning = false;
@@ -81,12 +76,18 @@ class BitDriveProvider extends ChangeNotifier {
   BitDriveProvider() {
     // Listen for blockchain sync status changes
     blockchainProvider.addListener(_onSyncStatusChanged);
+<<<<<<< HEAD
     init();
+=======
+    // Listen for enforcer connection changes
+    enforcer.addListener(_onSyncStatusChanged);
+>>>>>>> f99c4d2e (bitwindow: add reset wallet functionality that does not touch chain state and a little cleanup of multisig file)
   }
 
   @override
   void dispose() {
     blockchainProvider.removeListener(_onSyncStatusChanged);
+    enforcer.removeListener(_onSyncStatusChanged);
     super.dispose();
   }
 
@@ -95,10 +96,21 @@ class BitDriveProvider extends ChangeNotifier {
       return;
     }
 
-    if (!_hasRestoredFiles && blockchainProvider.syncProvider.mainchainSyncInfo!.isSynced) {
-      log.i('BitDrive: Starting file restoration on sync');
+    final isSynced = blockchainProvider.syncProvider.mainchainSyncInfo!.isSynced;
+    final isEnforcerConnected = enforcer.connected;
+
+    if (!_hasRestoredFiles && isSynced && isEnforcerConnected) {
+      log.i('BitDrive: Starting file restoration on sync complete and enforcer connected');
       await autoRestoreFiles();
       _hasRestoredFiles = true;
+      _hasLoggedWaitingForSync = false;
+      _hasLoggedWaitingForEnforcer = false;
+    } else if (!isSynced && !_hasLoggedWaitingForSync) {
+      log.d('BitDrive: Waiting for blockchain sync to complete');
+      _hasLoggedWaitingForSync = true;
+    } else if (!isEnforcerConnected && isSynced && !_hasLoggedWaitingForEnforcer) {
+      log.d('BitDrive: Waiting for enforcer connection');
+      _hasLoggedWaitingForEnforcer = true;
     }
   }
 
@@ -717,22 +729,4 @@ class BitDriveProvider extends ChangeNotifier {
     }
   }
 
-  // Helper function
-  int min(int a, int b) => a < b ? a : b;
-}
-
-class StoredContent {
-  final String fileName;
-  final String mimeType;
-  final Uint8List content;
-  final bool encrypted;
-  final DateTime timestamp;
-
-  StoredContent({
-    required this.fileName,
-    required this.mimeType,
-    required this.content,
-    required this.encrypted,
-    required this.timestamp,
-  });
 }
