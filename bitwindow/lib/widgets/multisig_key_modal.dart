@@ -127,8 +127,8 @@ class MultisigKeyModal extends StatelessWidget {
                       children: [
                         if (viewModel.keyInfo != null)
                           SailButton(
-                            label: 'Save .conf File',
-                            onPressed: () async => viewModel.saveConfigFile(context),
+                            label: 'Save Key',
+                            onPressed: () async => viewModel.saveKey(context),
                             variant: ButtonVariant.primary,
                           )
                         else
@@ -179,9 +179,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       
       // Generate the next available multisig key
       await _generateNextMultisigKey();
-      
-      // Write key to multisig.json for tracking
-      await _writeKeyToMultisigJson();
       
     } catch (e) {
       modalError = 'Failed to generate multisig key: $e';
@@ -260,65 +257,80 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> saveConfigFile(BuildContext context) async {
+  Future<void> saveKey(BuildContext context) async {
     if (keyInfo == null) return;
 
     try {
-      // Get the bitdrive directory
-      final appDir = await Environment.datadir();
-      final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
+      // First, write key to multisig.json for tracking
+      await _writeKeyToMultisigJson();
       
-      // Ensure bitdrive directory exists
-      if (!await bitdriveDir.exists()) {
-        await bitdriveDir.create(recursive: true);
-      }
+      // Then, save the .conf file to bitdrive/multisig directory
+      await _saveConfigFile(context);
 
-      // Create filename based on key index
-      final keyIndex = keyInfo!['index'];
-      final filename = 'key$keyIndex.conf';
-      final filePath = path.join(bitdriveDir.path, filename);
-
-      // Create the configuration data in the same format as MultisigKey.toJson()
-      final configData = {
-        'owner': 'MyKey$keyIndex',
-        'xpub': keyInfo!['xpub'],
-        'pubkey': keyInfo!['xpub'], // Legacy compatibility field
-        'path': keyInfo!['path'],
-        'fingerprint': keyInfo!['fingerprint'],
-        'origin_path': keyInfo!['originPath'],
-        'is_wallet': true,
-      };
-
-      // Write to file with pretty JSON formatting
-      final file = File(filePath);
-      const encoder = JsonEncoder.withIndent('  ');
-      final prettyJson = encoder.convert(configData);
-      await file.writeAsString(prettyJson);
-
-
-      // Show success message
+      // Show success message and close modal
       if (context.mounted) {
+        final keyIndex = keyInfo!['index'];
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Key configuration saved to $filename'),
+            content: Text('Key saved to multisig.json and key$keyIndex.conf'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
         );
+        Navigator.of(context).pop();
       }
 
     } catch (e) {
-      _logger.e('Failed to save key configuration: $e');
+      _logger.e('Failed to save key: $e');
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save key configuration: $e'),
+            content: Text('Failed to save key: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
         );
       }
     }
+  }
+
+  Future<void> _saveConfigFile(BuildContext context) async {
+    if (keyInfo == null) return;
+
+    // Get the bitdrive directory
+    final appDir = await Environment.datadir();
+    final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
+    
+    // Ensure bitdrive directory exists
+    if (!await bitdriveDir.exists()) {
+      await bitdriveDir.create(recursive: true);
+    }
+
+    // Create filename based on key index
+    final keyIndex = keyInfo!['index'];
+    final filename = 'key$keyIndex.conf';
+    final multisigDir = Directory(path.join(bitdriveDir.path, 'multisig'));
+    if (!await multisigDir.exists()) {
+      await multisigDir.create(recursive: true);
+    }
+    final filePath = path.join(multisigDir.path, filename);
+
+    // Create the configuration data in the same format as MultisigKey.toJson()
+    final configData = {
+      'owner': 'MyKey$keyIndex',
+      'xpub': keyInfo!['xpub'],
+      'pubkey': keyInfo!['xpub'], // Legacy compatibility field
+      'path': keyInfo!['path'],
+      'fingerprint': keyInfo!['fingerprint'],
+      'origin_path': keyInfo!['originPath'],
+      'is_wallet': true,
+    };
+
+    // Write to file with pretty JSON formatting
+    final file = File(filePath);
+    const encoder = JsonEncoder.withIndent('  ');
+    final prettyJson = encoder.convert(configData);
+    await file.writeAsString(prettyJson);
   }
 }

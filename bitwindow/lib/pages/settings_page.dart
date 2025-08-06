@@ -362,6 +362,12 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               await enforcerWalletDir.delete(recursive: true);
             }
 
+            // Clean up bitdrive directory containing multisig data
+            final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
+            if (await bitdriveDir.exists()) {
+              await bitdriveDir.delete(recursive: true);
+            }
+
             if (context.mounted) Navigator.of(context).pop();
 
             if (context.mounted) {

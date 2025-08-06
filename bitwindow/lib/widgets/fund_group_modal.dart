@@ -177,19 +177,14 @@ class FundGroupModalViewModel extends BaseViewModel {
       
       // Load group data from JSON
       final appDir = await Environment.datadir();
-      final file = File(path.join(appDir.path, 'bitdrive', 'multisig.json'));
+      final file = File(path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'));
       
       if (!await file.exists()) {
         throw Exception('Multisig data file not found');
       }
       
       final content = await file.readAsString();
-      final jsonData = json.decode(content);
-      
-      // Expect new format only
-      if (jsonData is! Map<String, dynamic>) {
-        throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
-      }
+      final jsonData = json.decode(content) as Map<String, dynamic>;
       
       final jsonGroups = jsonData['groups'] as List<dynamic>;
       
