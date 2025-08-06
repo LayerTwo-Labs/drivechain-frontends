@@ -85,7 +85,7 @@ jobs:
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
               for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
                 # Skip macOS and linux for PRs
-                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "ubuntu-latest" ]]; then
+                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "windows-latest" ]]; then
                   continue
                 fi
                 
