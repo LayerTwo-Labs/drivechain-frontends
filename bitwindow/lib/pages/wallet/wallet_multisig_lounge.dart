@@ -624,20 +624,16 @@ class MultisigLoungeViewModel extends BaseViewModel {
     
     // Set up listener for blockchain changes (new blocks)
     _blockchainListener = () async {
-      _logger.d('New block detected, checking for balance/confirmation changes');
-      
       // For blockchain changes, we need to update balances which may change files
       // So we check both file hashes and balance updates
       final hasFileChanges = await _haveFilesChanged();
       if (hasFileChanges) {
         await _loadDataFromFiles();
         notifyListeners();
-        _logger.d('UI updated due to blockchain-triggered file changes');
       } else {
         // Even if files haven't changed, we should update balances for display
         await _updateAllGroupBalances();
         notifyListeners();
-        _logger.d('Updated balances only (no file changes)');
       }
     };
     _blockchainProvider.addListener(_blockchainListener);

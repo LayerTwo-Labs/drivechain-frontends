@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
@@ -8,6 +10,7 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -311,6 +314,80 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
     );
   }
 
+  Future<void> _onResetWallet() async {
+    await showDialog(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Reset Wallet?',
+        subtitle:
+            'Are you sure you want to reset all wallet data? This will:\n\n'
+            '• Permanently delete all wallet files from BitWindow\n'
+            '• Permanently delete all wallet files from the Enforcer\n'
+            '• Stop all running processes\n'
+            '• Return you to the wallet creation screen\n\n'
+            'Make sure to backup your seed phrase before proceeding. This action cannot be undone.',
+        confirmButtonVariant: ButtonVariant.destructive,
+        onConfirm: () async {
+          final binaryProvider = GetIt.I.get<BinaryProvider>();
+          final logger = GetIt.I.get<Logger>();
+
+          try {
+            final binaries = [
+              BitcoinCore(),
+              Enforcer(),
+              BitWindow(),
+            ];
+
+            final futures = <Future>[];
+            for (final binary in binaries) {
+              futures.add(binaryProvider.stop(binary));
+            }
+
+            await Future.wait(futures);
+            await binaryProvider.stopAll();
+            await Future.delayed(const Duration(seconds: 3));
+
+            final appDir = await Environment.datadir();
+
+            final walletDir = getBitwindowWalletDir(appDir);
+            if (walletDir != null && await walletDir.exists()) {
+              await walletDir.delete(recursive: true);
+            }
+
+            final enforcer = Enforcer();
+            final enforcerDataDirPath = enforcer.datadir();
+            final enforcerWalletDir = Directory(path.join(enforcerDataDirPath, 'wallet'));
+            
+            if (await enforcerWalletDir.exists()) {
+              await enforcerWalletDir.delete(recursive: true);
+            }
+
+            if (context.mounted) Navigator.of(context).pop();
+
+            if (context.mounted) {
+              await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
+              unawaited(bootBinaries(GetIt.I.get<Logger>()));
+            }
+
+          } catch (e) {
+            logger.e('Error during wallet reset: $e');
+            
+            if (context.mounted) Navigator.of(context).pop();
+            
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error resetting wallet: $e'),
+                  backgroundColor: SailTheme.of(context).colors.error,
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SailColumn(
@@ -318,11 +395,21 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary20('Reset'),
-        SailText.secondary13('Reset all chain data to default.'),
-        SailButton(
-          label: 'Reset All Chains',
-          variant: ButtonVariant.destructive,
-          onPressed: _onResetAllChains,
+        SailText.secondary13('Reset all chain data and wallet data.'),
+        Row(
+          spacing: SailStyleValues.padding12,
+          children: [
+            SailButton(
+              label: 'Reset All Chains',
+              variant: ButtonVariant.destructive,
+              onPressed: _onResetAllChains,
+            ),
+            SailButton(
+              label: 'Reset Wallet',
+              variant: ButtonVariant.destructive,
+              onPressed: _onResetWallet,
+            ),
+          ],
         ),
       ],
     );
