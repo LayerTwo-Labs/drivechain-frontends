@@ -1006,8 +1006,9 @@ class MultisigStorage {
   /// Get the path to the multisig.json file
   static Future<String> _getGroupsFilePath() async {
     final appDir = await Environment.datadir();
-    final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-    return path.join(bitdriveDir.path, _fileName);
+    final multisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
+    await multisigDir.create(recursive: true);
+    return path.join(multisigDir.path, _fileName);
   }
 
   /// Load all groups from multisig.json
@@ -1017,17 +1018,11 @@ class MultisigStorage {
       final file = File(filePath);
       
       if (!await file.exists()) {
-        // Return empty list if file doesn't exist yet
         return [];
       }
       
       final content = await file.readAsString();
-      final jsonData = json.decode(content);
-      
-      // Expect new format only: object with groups/solo_keys
-      if (jsonData is! Map<String, dynamic>) {
-        throw Exception('Invalid multisig.json format: expected object with groups and solo_keys');
-      }
+      final jsonData = json.decode(content) as Map<String, dynamic>;
       
       final groupsList = jsonData['groups'] as List<dynamic>? ?? [];
       return groupsList
