@@ -331,10 +331,10 @@ jobs:
           echo "Content of created file:"
           cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
 
-      # Publish snap
+      # Publish snap (bitwindoww doesn't exist, never publish!)
       - name: Publish snap
         if:
-          runner.os == 'Linux' && matrix.client == 'bitwindow' &&
+          runner.os == 'Linux' && matrix.client == 'bitwindoww' &&
           github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           # Decode the base64 credentials and export to environment
