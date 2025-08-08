@@ -25,7 +25,7 @@ if [ -n "$certificate_path" ] && [ -f "$certificate_path" ]; then
 fi
 
 # Build Flutter app
-git config core.longpaths true
+git config --system core.longpaths true
 clean_cmd="flutter clean"
 mkdir -p release
 build_cmd="flutter build windows --dart-define-from-file=build-vars.env"

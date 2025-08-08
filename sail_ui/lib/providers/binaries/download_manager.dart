@@ -108,6 +108,10 @@ class DownloadManager extends ChangeNotifier {
 
     // 2. Download the binary
     final zipName = binary.metadata.files[OS.current]!;
+    if (zipName.isEmpty) {
+      log.w('No zip name found for ${binary.name}');
+      return;
+    }
     final zipPath = path.join(downloadsDir.path, zipName);
     final downloadUrl = Uri.parse(binary.metadata.baseUrl).resolve(zipName).toString();
     await _downloadFile(downloadUrl, zipPath, binary.name);
@@ -247,20 +251,35 @@ class DownloadManager extends ChangeNotifier {
       // Helper function to safely move files/directories
       Future<void> safeMove(FileSystemEntity entity, String newPath) async {
         log.d('Moving ${entity.path} to $newPath');
-        try {
-          await entity.rename(newPath);
-        } on FileSystemException catch (e) {
-          if (e.message.contains('Directory not empty') || e.message.contains('Rename failed')) {
-            if (entity is File) {
-              await File(newPath).delete();
-              await entity.rename(newPath);
+
+        int retries = 0;
+        final maxRetries = Platform.isWindows ? 5 : 1;
+
+        while (retries < maxRetries) {
+          try {
+            await entity.rename(newPath);
+            return; // Success! Exit function
+          } on FileSystemException catch (e) {
+            if (e.message.contains('Directory not empty') || e.message.contains('Rename failed')) {
+              if (entity is File) {
+                await File(newPath).delete();
+                await entity.rename(newPath);
+                return; // Success! Exit function
+              } else {
+                await Directory(newPath).delete(recursive: true);
+                await entity.rename(newPath);
+                return; // Success! Exit function
+              }
             } else {
-              await Directory(newPath).delete(recursive: true);
-              await entity.rename(newPath);
+              retries++;
+              if (retries < maxRetries) {
+                log.i('Rename failed, retry $retries/$maxRetries after delay...');
+                await Future.delayed(Duration(milliseconds: 500 * retries));
+              } else {
+                log.e('Failed to move: ${e.message}');
+                rethrow;
+              }
             }
-          } else {
-            log.e('Failed to move: ${e.message}');
-            rethrow;
           }
         }
       }

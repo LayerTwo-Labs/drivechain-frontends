@@ -624,9 +624,10 @@ class BitWindow extends Binary {
               MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
-                  OS.linux: 'BitWindow-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'BitWindow-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'BitWindow-latest-x86_64-pc-windows-msvc.zip',
+                  // should not be downloaded from any platform
+                  OS.linux: '',
+                  OS.macos: '',
+                  OS.windows: '',
                 },
                 remoteTimestamp: null,
                 downloadedTimestamp: null,
