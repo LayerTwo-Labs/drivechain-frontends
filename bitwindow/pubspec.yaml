@@ -148,7 +148,6 @@ msix_config:
   os_min_version: 10.0.17763.0
   store: false
   install_certificate: false
-  certificate_path: mycert.pfx
   sign_msix: true
 
 sentry:
