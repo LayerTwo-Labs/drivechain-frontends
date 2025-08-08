@@ -34,151 +34,192 @@ void main(List<String> args) async {
   await findSystemLocale();
   await initializeDateFormatting();
 
-  Directory? applicationDir;
-  File? logFile;
-
-  if (args.contains('multi_window')) {
-    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
-
-    if (arguments['application_dir'] != null) {
-      applicationDir = Directory(arguments['application_dir']);
-    }
-    if (arguments['log_file'] != null) {
-      logFile = File(arguments['log_file']);
-    }
-
-    if (logFile == null || applicationDir == null) {
-      throw ArgumentError('Missing required arguments for multi-window mode: application_dir, log_file');
-    }
-  }
-
-  // Fall back to filesystem if not provided in args
-  applicationDir ??= await Environment.datadir();
-  logFile ??= await getLogFile();
-
-  final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
-  log.i('starting bitwindow, writing logs to $logFile');
-
-  await initDependencies(
-    log,
-    logFile,
-    applicationDir: applicationDir,
-  );
-
-  Environment.validateAtRuntime();
-
-  if (args.contains('multi_window')) {
-    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
-    final windowType = arguments['window_type'] as String?;
-    final windowTitle = arguments['window_title'] as String?;
-
-    if (windowTitle == null) {
-      throw ArgumentError('Missing required arguments for multi-window mode: window_title');
-    }
-
-    Widget child = SailCard(
-      title: 'Unknown window type: $windowType',
-      child: SailText.primary15('Programmers messed up, and supplied an unknown window type: $windowType'),
-    );
-
-    // Map string identifiers to window types
-    switch (windowType) {
-      case SubWindowTypes.debugId:
-        child = DebugWindow();
-        break;
-
-      case SubWindowTypes.logsId:
-        child = LogPage(
-          logPath: logFile.path,
-          title: 'Bitwindow Logs',
-        );
-        break;
-
-      case SubWindowTypes.deniabilityId:
-        child = DeniabilityTab(newWindowButton: null);
-        break;
-
-      case SubWindowTypes.blockExplorerId:
-        child = const BlockExplorerDialog();
-        break;
-
-      case SubWindowTypes.addressbookId:
-        child = AddressBookTable();
-        break;
-
-      case SubWindowTypes.messageSignerId:
-        child = const MessageSigner();
-        break;
-
-      case SubWindowTypes.hashCalculatorId:
-        child = const HashCalculator();
-        break;
-    }
-
-    return runApp(
-      buildSailWindowApp(
-        log,
-        '$windowTitle | Bitwindow',
-        child,
-        const Color.fromARGB(255, 255, 153, 0),
-      ),
-    );
-  }
-
-  await windowManager.ensureInitialized();
-
-  const windowOptions = WindowOptions(
-    minimumSize: Size(400, 400),
-    size: Size(1200, 600),
-    titleBarStyle: TitleBarStyle.normal,
-    title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
-  );
-
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
-
-  // Initialize WindowProvider for the main window
-  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
-
-  unawaited(bootBinaries(log));
-  await setupSignalHandlers(log);
-
-  // Get client settings to check debug mode
-  final clientSettings = GetIt.I<ClientSettings>();
-  var debugMode = false;
   try {
-    final debugModeSetting = await clientSettings.getValue(DebugModeSetting());
-    debugMode = debugModeSetting.value;
-    log.i('Debug mode setting loaded: $debugMode');
-  } catch (error) {
-    log.w('Failed to load debug mode setting, defaulting to false', error: error);
-    // do absolutely nothing, probably no debug mode setting
-  }
+    Directory? applicationDir;
+    File? logFile;
 
-  if (debugMode) {
-    log.i('Initializing Sentry in debug mode');
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = 'https://fb54f18383071d144bd00f6159827dc5@o1053156.ingest.us.sentry.io/4509152512180224';
-        options.tracesSampleRate = 0.0;
-        options.profilesSampleRate = 0.0;
-        options.recordHttpBreadcrumbs = false;
-        options.sampleRate = 1.0;
-        options.attachStacktrace = true;
-        options.enablePrintBreadcrumbs = false;
-        options.debug = false;
-      },
-      appRunner: () {
-        log.i('Starting app with Sentry monitoring');
-        return runApp(SentryWidget(child: BitwindowApp(log: log)));
-      },
+    if (args.contains('multi_window')) {
+      final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+
+      if (arguments['application_dir'] != null) {
+        applicationDir = Directory(arguments['application_dir']);
+      }
+      if (arguments['log_file'] != null) {
+        logFile = File(arguments['log_file']);
+      }
+
+      if (logFile == null || applicationDir == null) {
+        throw ArgumentError('Missing required arguments for multi-window mode: application_dir, log_file');
+      }
+    }
+
+    // Fall back to filesystem if not provided in args
+    applicationDir ??= await Environment.datadir();
+    logFile ??= await getLogFile();
+
+    final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
+    log.i('starting bitwindow, writing logs to $logFile');
+
+    await initDependencies(
+      log,
+      logFile,
+      applicationDir: applicationDir,
     );
-  } else {
-    log.i('Starting app without Sentry monitoring');
-    runApp(BitwindowApp(log: log));
+
+    Environment.validateAtRuntime();
+
+    if (args.contains('multi_window')) {
+      final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+      final windowType = arguments['window_type'] as String?;
+      final windowTitle = arguments['window_title'] as String?;
+
+      if (windowTitle == null) {
+        throw ArgumentError('Missing required arguments for multi-window mode: window_title');
+      }
+
+      Widget child = SailCard(
+        title: 'Unknown window type: $windowType',
+        child: SailText.primary15('Programmers messed up, and supplied an unknown window type: $windowType'),
+      );
+
+      // Map string identifiers to window types
+      switch (windowType) {
+        case SubWindowTypes.debugId:
+          child = DebugWindow();
+          break;
+
+        case SubWindowTypes.logsId:
+          child = LogPage(
+            logPath: logFile.path,
+            title: 'Bitwindow Logs',
+          );
+          break;
+
+        case SubWindowTypes.deniabilityId:
+          child = DeniabilityTab(newWindowButton: null);
+          break;
+
+        case SubWindowTypes.blockExplorerId:
+          child = const BlockExplorerDialog();
+          break;
+
+        case SubWindowTypes.addressbookId:
+          child = AddressBookTable();
+          break;
+
+        case SubWindowTypes.messageSignerId:
+          child = const MessageSigner();
+          break;
+
+        case SubWindowTypes.hashCalculatorId:
+          child = const HashCalculator();
+          break;
+      }
+
+      return runApp(
+        buildSailWindowApp(
+          log,
+          '$windowTitle | Bitwindow',
+          child,
+          const Color.fromARGB(255, 255, 153, 0),
+        ),
+      );
+    }
+
+    await windowManager.ensureInitialized();
+
+    const windowOptions = WindowOptions(
+      minimumSize: Size(400, 400),
+      size: Size(1200, 600),
+      titleBarStyle: TitleBarStyle.normal,
+      title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
+    );
+
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+
+    // Initialize WindowProvider for the main window
+    final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+
+    unawaited(bootBinaries(log));
+    await setupSignalHandlers(log);
+
+    // Get client settings to check debug mode
+    final clientSettings = GetIt.I<ClientSettings>();
+    var debugMode = false;
+    try {
+      final debugModeSetting = await clientSettings.getValue(DebugModeSetting());
+      debugMode = debugModeSetting.value;
+      log.i('Debug mode setting loaded: $debugMode');
+    } catch (error) {
+      log.w('Failed to load debug mode setting, defaulting to false', error: error);
+      // do absolutely nothing, probably no debug mode setting
+    }
+
+    if (!debugMode) {
+      log.i('Starting app with Sentry monitoring');
+      await SentryFlutter.init(
+        (options) {
+          options.dsn = 'https://fb54f18383071d144bd00f6159827dc5@o1053156.ingest.us.sentry.io/4509152512180224';
+          options.tracesSampleRate = 0.0;
+          options.profilesSampleRate = 0.0;
+          options.recordHttpBreadcrumbs = false;
+          options.sampleRate = 1.0;
+          options.attachStacktrace = true;
+          options.enablePrintBreadcrumbs = false;
+          options.debug = false;
+        },
+        appRunner: () {
+          return runApp(SentryWidget(child: BitwindowApp(log: log)));
+        },
+      );
+    } else {
+      log.i('Starting app without Sentry monitoring');
+      runApp(BitwindowApp(log: log));
+    }
+  } catch (e, stackTrace) {
+    // If initialization failed, show error screen
+    final initError = 'Initialization failed:\n\n$e\n\n$stackTrace';
+    
+    runApp(MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Initialization Failed',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      initError,
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),);
   }
 }
 
@@ -455,39 +496,22 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
 }
 
 Future<void> setupSignalHandlers(Logger log) async {
+  // SIGINT and SIGTERM are not properly supported on Windows
+  if (Platform.isWindows) {
+    return;
+  }
+
   ProcessSignal.sigint.watch().listen((signal) async {
     log.i('Received SIGINT, shutting down...');
     await GetIt.I.get<BinaryProvider>().onShutdown();
     exit(0);
   });
 
-  // SIGTERM is not supported on Windows
-  if (!Platform.isWindows) {
-    ProcessSignal.sigterm.watch().listen((signal) async {
-      log.i('Received SIGTERM, shutting down...');
-      await GetIt.I.get<BinaryProvider>().onShutdown();
-      exit(0);
-    });
-  }
-
-  if (Platform.isWindows) {
-    // Handle shutdown via stdin (for Windows)
-    stdin.transform(utf8.decoder).listen(
-      (line) async {
-        if (line.trim() == 'shutdown') {
-          log.i('Received shutdown command via stdin');
-          await GetIt.I.get<BinaryProvider>().onShutdown();
-          exit(0);
-        }
-      },
-      onDone: () async {
-        // Triggered if stdin is closed
-        log.i('STDIN closed, shutting down...');
-        await GetIt.I.get<BinaryProvider>().onShutdown();
-        exit(0);
-      },
-    );
-  }
+  ProcessSignal.sigterm.watch().listen((signal) async {
+    log.i('Received SIGTERM, shutting down...');
+    await GetIt.I.get<BinaryProvider>().onShutdown();
+    exit(0);
+  });
 }
 
 // BitWindow window types
