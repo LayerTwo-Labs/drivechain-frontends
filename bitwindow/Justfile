@@ -23,6 +23,7 @@ clean:
 
 download:
     bash scripts/download-binaries.sh
+    flutter pub get
 
 run: download
     #!/usr/bin/env bash
