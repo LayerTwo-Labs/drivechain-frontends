@@ -22,7 +22,6 @@ echo Building $app_name
 cd "$client_dir"
 
 flutter clean
-export SENTRY_NATIVE_BACKEND=breakpad
 flutter build macos --dart-define-from-file=build-vars.env
 
 old_cwd=$PWD
