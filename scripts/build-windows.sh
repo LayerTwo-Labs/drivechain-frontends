@@ -24,22 +24,18 @@ if [ -n "$certificate_path" ] && [ -f "$certificate_path" ]; then
     cp "$certificate_path" windows/certificate.pfx
 fi
 
-# Build Flutter app
-git config --system core.longpaths true
-clean_cmd="flutter clean"
-mkdir -p release
-build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
-
 # Create signed MSIX
 if [ -n "$certificate_path" ] && [ -n "$certificate_password" ]; then
     echo "Building signed MSIX with certificate $certificate_path and identity $certificate_identity"
-    msix_cmd="dart run msix:create --certificate-path windows/certificate.pfx --certificate-password $certificate_password"
+    msix_cmd="dart run msix:create --store false --certificate-path windows/certificate.pfx --certificate-password $certificate_password --signtool-options=\"/d Use Drivechains /n LayerTwo Labs /tr http://timestamp.comodoca.com/rfc3161 /td sha256\""
 else
     echo "Building unsigned MSIX (no certificate or password provided)"
     msix_cmd="dart run msix:create"
 fi
 
-powershell.exe -Command "& {$clean_cmd; $build_cmd; $msix_cmd; exit}"
+powershell.exe -Command "& {$msix_cmd; exit}"
+
+mkdir -p release
 
 # Copy MSIX to release directory
 powershell.exe -Command "Copy-Item build\windows\x64\runner\Release\\$lower_app_name.msix release\\$lower_app_name.msix"
