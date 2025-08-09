@@ -1,4 +1,4 @@
-name: bitwindow
+name: bitwindows
 description:
   "A frontend for interacting with a Drivechain-enabled layer 1 bitcoin network."
 publish_to: "none"
