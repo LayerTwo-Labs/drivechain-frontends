@@ -40,7 +40,7 @@ dependencies:
   web: ^1.1.1
   thirds: ^0.2.0-alpha.1
 
-  http: 1.4.0
+  http: 1.5.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
