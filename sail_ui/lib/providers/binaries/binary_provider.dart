@@ -18,14 +18,72 @@ class BinaryProvider extends ChangeNotifier {
   late final Directory bitwindowAppDir;
 
   final settings = GetIt.I.get<SettingsProvider>();
-  final mainchainRPC = GetIt.I.get<MainchainRPC>();
-  final enforcerRPC = GetIt.I.get<EnforcerRPC>();
 
-  late final BitwindowRPC? bitwindowRPC;
-  late final ThunderRPC? thunderRPC;
-  late final BitnamesRPC? bitnamesRPC;
-  late final BitAssetsRPC? bitassetsRPC;
-  late final ZSideRPC? zsideRPC;
+  MainchainRPC? _mainchainRPC;
+  EnforcerRPC? _enforcerRPC;
+
+  MainchainRPC? get mainchainRPC {
+    if (_mainchainRPC == null && GetIt.I.isRegistered<MainchainRPC>()) {
+      _mainchainRPC = GetIt.I.get<MainchainRPC>();
+      _mainchainRPC!.addListener(notifyListeners);
+    }
+    return _mainchainRPC;
+  }
+
+  EnforcerRPC? get enforcerRPC {
+    if (_enforcerRPC == null && GetIt.I.isRegistered<EnforcerRPC>()) {
+      _enforcerRPC = GetIt.I.get<EnforcerRPC>();
+      _enforcerRPC!.addListener(notifyListeners);
+    }
+    return _enforcerRPC;
+  }
+
+  BitwindowRPC? _bitwindowRPC;
+  ThunderRPC? _thunderRPC;
+  BitnamesRPC? _bitnamesRPC;
+  BitAssetsRPC? _bitassetsRPC;
+  ZSideRPC? _zsideRPC;
+
+  BitwindowRPC? get bitwindowRPC {
+    if (_bitwindowRPC == null && GetIt.I.isRegistered<BitwindowRPC>()) {
+      _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+      _bitwindowRPC!.addListener(notifyListeners);
+    }
+    return _bitwindowRPC;
+  }
+
+  ThunderRPC? get thunderRPC {
+    if (_thunderRPC == null && GetIt.I.isRegistered<ThunderRPC>()) {
+      _thunderRPC = GetIt.I.get<ThunderRPC>();
+      _thunderRPC!.addListener(notifyListeners);
+    }
+    return _thunderRPC;
+  }
+
+  BitnamesRPC? get bitnamesRPC {
+    if (_bitnamesRPC == null && GetIt.I.isRegistered<BitnamesRPC>()) {
+      _bitnamesRPC = GetIt.I.get<BitnamesRPC>();
+      _bitnamesRPC!.addListener(notifyListeners);
+    }
+    return _bitnamesRPC;
+  }
+
+  BitAssetsRPC? get bitassetsRPC {
+    if (_bitassetsRPC == null && GetIt.I.isRegistered<BitAssetsRPC>()) {
+      _bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
+      _bitassetsRPC!.addListener(notifyListeners);
+    }
+    return _bitassetsRPC;
+  }
+
+  ZSideRPC? get zsideRPC {
+    if (_zsideRPC == null && GetIt.I.isRegistered<ZSideRPC>()) {
+      _zsideRPC = GetIt.I.get<ZSideRPC>();
+      _zsideRPC!.addListener(notifyListeners);
+    }
+    return _zsideRPC;
+  }
+
   late final DownloadManager _downloadManager;
   late final ProcessManager _processManager;
 
@@ -33,24 +91,24 @@ class BinaryProvider extends ChangeNotifier {
   Timer? _releaseCheckTimer;
 
   // Connection status getters
-  bool get mainchainConnected => mainchainRPC.connected;
-  bool get enforcerConnected => enforcerRPC.connected;
+  bool get mainchainConnected => mainchainRPC?.connected ?? false;
+  bool get enforcerConnected => enforcerRPC?.connected ?? false;
   bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
   bool get thunderConnected => thunderRPC?.connected ?? false;
   bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
   bool get bitassetsConnected => bitassetsRPC?.connected ?? false;
   bool get zsideConnected => zsideRPC?.connected ?? false;
 
-  bool get mainchainInitializing => mainchainRPC.initializingBinary;
-  bool get enforcerInitializing => enforcerRPC.initializingBinary;
+  bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
+  bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
   bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
   bool get bitassetsInitializing => bitassetsRPC?.initializingBinary ?? false;
   bool get zsideInitializing => zsideRPC?.initializingBinary ?? false;
 
-  bool get mainchainStopping => mainchainRPC.stoppingBinary;
-  bool get enforcerStopping => enforcerRPC.stoppingBinary;
+  bool get mainchainStopping => mainchainRPC?.stoppingBinary ?? false;
+  bool get enforcerStopping => enforcerRPC?.stoppingBinary ?? false;
   bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
   bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
   bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
@@ -58,8 +116,8 @@ class BinaryProvider extends ChangeNotifier {
   bool get zsideStopping => zsideRPC?.stoppingBinary ?? false;
 
   // Only show errors for explicitly launched binaries
-  String? get mainchainError => mainchainRPC.connectionError;
-  String? get enforcerError => enforcerRPC.connectionError;
+  String? get mainchainError => mainchainRPC?.connectionError;
+  String? get enforcerError => enforcerRPC?.connectionError;
   String? get bitwindowError => bitwindowRPC?.connectionError;
   String? get thunderError => thunderRPC?.connectionError;
   String? get bitnamesError => bitnamesRPC?.connectionError;
@@ -67,8 +125,8 @@ class BinaryProvider extends ChangeNotifier {
   String? get zsideError => zsideRPC?.connectionError;
 
   // Only show errors for explicitly launched binaries
-  String? get mainchainStartupError => mainchainRPC.startupError;
-  String? get enforcerStartupError => enforcerRPC.startupError;
+  String? get mainchainStartupError => mainchainRPC?.startupError;
+  String? get enforcerStartupError => enforcerRPC?.startupError;
   String? get bitwindowStartupError => bitwindowRPC?.startupError;
   String? get thunderStartupError => thunderRPC?.startupError;
   String? get bitnamesStartupError => bitnamesRPC?.startupError;
@@ -103,46 +161,12 @@ class BinaryProvider extends ChangeNotifier {
       ),
     );
 
+    // RPC clients will be lazily initialized when first accessed
+
     // Forward DownloadManager notifications to BinaryProvider listeners
     _processManager.addListener(notifyListeners);
-    mainchainRPC.addListener(notifyListeners);
-    enforcerRPC.addListener(notifyListeners);
 
-    // Then try to register optional RPCs
-    try {
-      bitwindowRPC = GetIt.I.get<BitwindowRPC>();
-      bitwindowRPC?.addListener(notifyListeners);
-    } catch (_) {
-      bitwindowRPC = null;
-    }
-
-    try {
-      thunderRPC = GetIt.I.get<ThunderRPC>();
-      thunderRPC?.addListener(notifyListeners);
-    } catch (_) {
-      thunderRPC = null;
-    }
-
-    try {
-      bitnamesRPC = GetIt.I.get<BitnamesRPC>();
-      bitnamesRPC?.addListener(notifyListeners);
-    } catch (_) {
-      bitnamesRPC = null;
-    }
-
-    try {
-      bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
-      bitassetsRPC?.addListener(notifyListeners);
-    } catch (_) {
-      bitassetsRPC = null;
-    }
-
-    try {
-      zsideRPC = GetIt.I.get<ZSideRPC>();
-      zsideRPC?.addListener(notifyListeners);
-    } catch (_) {
-      zsideRPC = null;
-    }
+    // Optional RPCs will be lazily initialized when first accessed
 
     _init();
   }
@@ -330,9 +354,9 @@ class BinaryProvider extends ChangeNotifier {
     try {
       switch (binary) {
         case BitcoinCore():
-          await mainchainRPC.stop();
+          await mainchainRPC?.stop();
         case Enforcer():
-          await enforcerRPC.stop();
+          await enforcerRPC?.stop();
         case BitWindow():
           await bitwindowRPC?.stop();
         case Thunder():
@@ -620,8 +644,8 @@ class BinaryProvider extends ChangeNotifier {
     _releaseCheckTimer?.cancel();
     _dirWatcher?.cancel();
     _downloadManager.removeListener(notifyListeners);
-    mainchainRPC.removeListener(notifyListeners);
-    enforcerRPC.removeListener(notifyListeners);
+    mainchainRPC?.removeListener(notifyListeners);
+    enforcerRPC?.removeListener(notifyListeners);
     bitwindowRPC?.removeListener(notifyListeners);
     thunderRPC?.removeListener(notifyListeners);
     bitnamesRPC?.removeListener(notifyListeners);
