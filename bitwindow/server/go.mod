@@ -13,7 +13,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	go.uber.org/mock v0.5.2
 	golang.org/x/net v0.42.0
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.7
 )
 
 require github.com/kr/text v0.2.0 // indirect
