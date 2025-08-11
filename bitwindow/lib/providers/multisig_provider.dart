@@ -510,14 +510,87 @@ class TransactionStorage {
       throw Exception('Transaction not found: $transactionId');
     }
 
+    // Get the multisig group for proper validation
+    final groups = await MultisigStorage.loadGroups();
+    final group = groups.firstWhere(
+      (g) => g.id == transaction.groupId,
+      orElse: () => throw Exception('Group not found: ${transaction.groupId}'),
+    );
+
+    // Validate PSBT signature status using analyzepsbt RPC
+    bool isActuallySigned = false;
+    try {
+      final MainchainRPC rpc = GetIt.I.get<MainchainRPC>();
+      final cleanPsbt = signedPSBT.replaceAll(RegExp(r'\s'), '');
+      final analyzePsbt = await rpc.callRAW('analyzepsbt', [cleanPsbt]);
+      
+      if (analyzePsbt is Map) {
+        final inputs = analyzePsbt['inputs'] as List<dynamic>? ?? [];
+        for (final input in inputs) {
+          if (input is Map<String, dynamic>) {
+            final isInputFinal = input['is_final'] as bool? ?? false;
+            final missing = input['missing'] as Map<String, dynamic>?;
+            final missingSignatures = missing?['signatures'] as List<dynamic>? ?? [];
+            
+            // According to Bitcoin Core analyzepsbt docs, we need to check:
+            // - is_final: input is completely signed
+            // - missing.signatures: list of missing signature hashes
+            // 
+            // For multisig, if we have fewer missing signatures than total required,
+            // then some signatures are present
+            final totalMissing = missingSignatures.length;
+            
+            // Look for evidence this is a multisig input
+            final hasRedeemScript = missing?.containsKey('redeemscript') == true;
+            final hasWitnessScript = missing?.containsKey('witnessscript') == true;
+            
+            // For multisig detection, we need to consider:
+            // 1. Traditional multisig (has redeemscript/witnessscript)
+            // 2. Native segwit multisig (can have any number of missing signatures)
+            // Since we know this is a multisig group, assume all inputs are multisig
+            final isMultisig = hasRedeemScript || hasWitnessScript || group.n > 1;
+            
+            // For any m-of-n multisig setup:
+            // - If unsigned: missing m signatures (all required signatures missing)
+            // - If partially signed: missing < m signatures (some signatures present)
+            // - If fully signed: missing 0 signatures (and is_final=true)
+            bool hasSomeSignatures = false;
+            
+            if (isMultisig) {
+              // This is a multisig - check if we have partial signatures
+              // For m-of-n: if missing fewer than m signatures, then some signatures are present
+              final requiredSignatures = group.m;
+              hasSomeSignatures = totalMissing < requiredSignatures;
+              MultisigLogger.debug('Multisig validation: required=$requiredSignatures, missing=$totalMissing, has_some=$hasSomeSignatures');
+            } else {
+              // Single sig - either fully signed or not
+              hasSomeSignatures = totalMissing == 0;
+            }
+            
+            MultisigLogger.debug('PSBT input analysis: is_final=$isInputFinal, missing_count=$totalMissing, has_redeem=$hasRedeemScript, has_witness=$hasWitnessScript, has_some_sigs=$hasSomeSignatures');
+            
+            if (isInputFinal || hasSomeSignatures) {
+              isActuallySigned = true;
+              break;
+            }
+          }
+        }
+        MultisigLogger.debug('PSBT validation for key $keyId: isActuallySigned=$isActuallySigned');
+      }
+    } catch (e) {
+      MultisigLogger.error('Failed to validate PSBT for key $keyId: $e');
+      // Don't throw - assume unsigned if validation fails
+      isActuallySigned = false;
+    }
+
     // Find and update the specific key's PSBT status
     final updatedKeyPSBTs = transaction.keyPSBTs.map((keyPSBT) {
       if (keyPSBT.keyId == keyId) {
         return KeyPSBTStatus(
           keyId: keyId,
           psbt: signedPSBT,
-          isSigned: true,
-          signedAt: DateTime.now(),
+          isSigned: isActuallySigned, // Use RPC validation result instead of hardcoded true
+          signedAt: isActuallySigned ? DateTime.now() : null,
         );
       }
       return keyPSBT;
@@ -692,14 +765,91 @@ class TransactionStorage {
       throw Exception('Transaction not found: $transactionId');
     }
 
+    // Get the multisig group for proper validation
+    final groups = await MultisigStorage.loadGroups();
+    final group = groups.firstWhere(
+      (g) => g.id == transaction.groupId,
+      orElse: () => throw Exception('Group not found: ${transaction.groupId}'),
+    );
+
+    // If caller claims the PSBT is signed, validate it with analyzepsbt RPC
+    bool actualSignedStatus = isSigned;
+    if (isSigned) {
+      try {
+        final MainchainRPC rpc = GetIt.I.get<MainchainRPC>();
+        final cleanPsbt = psbt.replaceAll(RegExp(r'\s'), '');
+        final analyzePsbt = await rpc.callRAW('analyzepsbt', [cleanPsbt]);
+        
+        if (analyzePsbt is Map) {
+          actualSignedStatus = false; // Start with false and check inputs
+          final inputs = analyzePsbt['inputs'] as List<dynamic>? ?? [];
+          for (final input in inputs) {
+            if (input is Map<String, dynamic>) {
+              final isInputFinal = input['is_final'] as bool? ?? false;
+              final missing = input['missing'] as Map<String, dynamic>?;
+              final missingSignatures = missing?['signatures'] as List<dynamic>? ?? [];
+              
+              // According to Bitcoin Core analyzepsbt docs, we need to check:
+              // - is_final: input is completely signed
+              // - missing.signatures: list of missing signature hashes
+              final totalMissing = missingSignatures.length;
+              
+              // Look for evidence this is a multisig input
+              final hasRedeemScript = missing?.containsKey('redeemscript') == true;
+              final hasWitnessScript = missing?.containsKey('witnessscript') == true;
+              
+              // For multisig detection, we need to consider:
+              // 1. Traditional multisig (has redeemscript/witnessscript)
+              // 2. Native segwit multisig (can have any number of missing signatures)
+              // Since we know this is a multisig group, assume all inputs are multisig
+              final isMultisig = hasRedeemScript || hasWitnessScript || group.n > 1;
+              
+              // For any m-of-n multisig setup:
+              // - If unsigned: missing m signatures (all required signatures missing)
+              // - If partially signed: missing < m signatures (some signatures present)
+              // - If fully signed: missing 0 signatures (and is_final=true)
+              bool hasSomeSignatures = false;
+              
+              if (isMultisig) {
+                // This is a multisig - check if we have partial signatures
+                // For m-of-n: if missing fewer than m signatures, then some signatures are present
+                final requiredSignatures = group.m;
+                hasSomeSignatures = totalMissing < requiredSignatures;
+                MultisigLogger.debug('Multisig validation (addOrUpdate): required=$requiredSignatures, missing=$totalMissing, has_some=$hasSomeSignatures');
+              } else {
+                // Single sig - either fully signed or not
+                hasSomeSignatures = totalMissing == 0;
+              }
+              
+              MultisigLogger.debug('PSBT input analysis (addOrUpdate): is_final=$isInputFinal, missing_count=$totalMissing, has_redeem=$hasRedeemScript, has_witness=$hasWitnessScript, has_some_sigs=$hasSomeSignatures');
+              
+              if (isInputFinal || hasSomeSignatures) {
+                actualSignedStatus = true;
+                break;
+              }
+            }
+          }
+          
+          if (isSigned != actualSignedStatus) {
+            MultisigLogger.error('PSBT validation mismatch for key $keyId: claimed=$isSigned, actual=$actualSignedStatus');
+          }
+          MultisigLogger.debug('PSBT validation for key $keyId: actualSignedStatus=$actualSignedStatus');
+        }
+      } catch (e) {
+        MultisigLogger.error('Failed to validate PSBT for key $keyId: $e');
+        // If validation fails, assume the claimed status is wrong and mark as unsigned
+        actualSignedStatus = false;
+      }
+    }
+
     final keyPSBTs = List<KeyPSBTStatus>.from(transaction.keyPSBTs);
     final existingIndex = keyPSBTs.indexWhere((k) => k.keyId == keyId);
     
     final newKeyPSBT = KeyPSBTStatus(
       keyId: keyId,
       psbt: psbt,
-      isSigned: isSigned,
-      signedAt: isSigned ? DateTime.now() : null,
+      isSigned: actualSignedStatus, // Use validated status instead of claimed status
+      signedAt: actualSignedStatus ? DateTime.now() : null,
     );
 
     if (existingIndex != -1) {
@@ -1174,5 +1324,125 @@ class MultisigStorage {
     } catch (e) {
       throw Exception('Failed to add solo key: $e');
     }
+  }
+  
+  /// Restore transaction history for a multisig group from blockchain data
+  static Future<void> restoreTransactionHistory(MultisigGroup group) async {
+    try {
+      MultisigLogger.info('Restoring transaction history for group: ${group.name}');
+      
+      if (group.watchWalletName == null) {
+        MultisigLogger.info('No watch wallet name - skipping transaction restoration');
+        return;
+      }
+      
+      final walletManager = WalletRPCManager();
+      final rpc = GetIt.I.get<MainchainRPC>();
+      
+      // Get wallet transactions
+      final transactions = await walletManager.callWalletRPC<List<dynamic>>(
+        group.watchWalletName!,
+        'listtransactions',
+        ['*', 1000, 0, true], // label, count, skip, include_watchonly
+      );
+      
+      MultisigLogger.info('Found ${transactions.length} transactions for group ${group.name}');
+      
+      // Filter for relevant transactions (multisig inputs/outputs)
+      final relevantTxs = <Map<String, dynamic>>[];
+      for (final tx in transactions) {
+        if (tx is Map<String, dynamic>) {
+          final txid = tx['txid'] as String?;
+          final confirmations = tx['confirmations'] as int? ?? 0;
+          
+          // Only process confirmed transactions
+          if (txid != null && confirmations > 0) {
+            relevantTxs.add(tx);
+          }
+        }
+      }
+      
+      MultisigLogger.info('Processing ${relevantTxs.length} confirmed transactions');
+      
+      // Process each transaction
+      for (final walletTx in relevantTxs) {
+        try {
+          await _processHistoricalTransaction(group, walletTx, rpc);
+        } catch (e) {
+          MultisigLogger.error('Failed to process transaction ${walletTx['txid']}: $e');
+          // Continue processing other transactions
+        }
+      }
+      
+      MultisigLogger.info('Completed transaction history restoration for group: ${group.name}');
+      
+    } catch (e) {
+      MultisigLogger.error('Failed to restore transaction history for group ${group.name}: $e');
+    }
+  }
+  
+  /// Process a single historical transaction and add it to transactions.json
+  static Future<void> _processHistoricalTransaction(
+    MultisigGroup group,
+    Map<String, dynamic> walletTx,
+    MainchainRPC rpc,
+  ) async {
+    final txid = walletTx['txid'] as String;
+    final amount = (walletTx['amount'] as num?)?.abs().toDouble() ?? 0.0;
+    final confirmations = walletTx['confirmations'] as int? ?? 0;
+    
+    // Check if transaction already exists
+    final existingTx = await TransactionStorage.getTransaction(txid);
+    if (existingTx != null) {
+      MultisigLogger.debug('Transaction $txid already exists - skipping');
+      return;
+    }
+    
+    // Get detailed transaction info
+    final txDetails = await rpc.callRAW('gettransaction', [txid, true]) as Map<String, dynamic>;
+    final decoded = txDetails['decoded'] as Map<String, dynamic>?;
+    
+    if (decoded == null) {
+      MultisigLogger.error('Could not decode transaction $txid');
+      return;
+    }
+    
+    // Extract transaction details
+    final outputs = decoded['vout'] as List<dynamic>? ?? [];
+    final inputs = decoded['vin'] as List<dynamic>? ?? [];
+    
+    String destination = 'Unknown';
+    if (outputs.isNotEmpty) {
+      final firstOutput = outputs.first as Map<String, dynamic>;
+      final scriptPubKey = firstOutput['scriptPubKey'] as Map<String, dynamic>?;
+      destination = scriptPubKey?['address'] as String? ?? 'Unknown';
+    }
+    
+    // Create transaction record
+    final historicalTx = MultisigTransaction(
+      id: txid,
+      groupId: group.id,
+      initialPSBT: '', // Historical transactions don't have PSBTs
+      keyPSBTs: [], // Historical transactions are already confirmed
+      inputs: inputs.map((input) => UtxoInfo(
+        txid: input['txid'] ?? '',
+        vout: input['vout'] ?? 0,
+        amount: 0.0, // We don't have input amounts easily accessible
+        confirmations: confirmations,
+        address: '',
+      )).toList(),
+      destination: destination,
+      amount: amount,
+      status: TxStatus.broadcasted,
+      created: DateTime.fromMillisecondsSinceEpoch((walletTx['time'] as int? ?? 0) * 1000),
+      fee: 0.0, // Fee calculation for historical txs is complex
+      confirmations: confirmations,
+      broadcastTime: DateTime.fromMillisecondsSinceEpoch((walletTx['time'] as int? ?? 0) * 1000),
+      finalHex: txDetails['hex'] as String?,
+    );
+    
+    // Save the historical transaction
+    await TransactionStorage.saveTransaction(historicalTx);
+    MultisigLogger.info('Restored historical transaction: $txid (${amount.toStringAsFixed(8)} BTC)');
   }
 }

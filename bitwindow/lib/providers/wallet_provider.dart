@@ -17,6 +17,7 @@ import 'package:pointycastle/macs/hmac.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
 class WalletProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
@@ -89,6 +90,16 @@ class WalletProvider extends ChangeNotifier {
 
     // Restart enforcer to pick up the new wallet
     unawaited(restartEnforcer());
+
+    // Reset HD wallet provider to pick up new wallet data
+    try {
+      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+      await hdWalletProvider.reset();
+      await hdWalletProvider.init();
+      _logger.i('generateWallet: HD wallet provider reset and re-initialized');
+    } catch (e) {
+      _logger.e('generateWallet: Failed to reset HD wallet provider: $e');
+    }
 
     _logger.i('generateWallet: Complete');
     return walletData;
@@ -171,6 +182,16 @@ class WalletProvider extends ChangeNotifier {
     if (!doNotSave) {
       await saveMasterWallet(wallet);
       await generateStartersForDownloadedChains();
+      
+      // Reset HD wallet provider to pick up new wallet data
+      try {
+        final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+        await hdWalletProvider.reset();
+        await hdWalletProvider.init();
+        _logger.i('generateWalletFromEntropy: HD wallet provider reset and re-initialized');
+      } catch (e) {
+        _logger.e('generateWalletFromEntropy: Failed to reset HD wallet provider: $e');
+      }
     }
 
     return wallet;

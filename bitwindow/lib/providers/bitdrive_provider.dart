@@ -13,7 +13,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 
 // Class to store information about pending downloads
 class PendingDownload {
@@ -666,6 +665,22 @@ class BitDriveProvider extends ChangeNotifier {
       
       // Save to local multisig.json file (single source of truth)
       await _saveMultisigToLocalFile(multisigData);
+      
+      // Restore transaction history for this group
+      try {
+        final groups = await MultisigStorage.loadGroups();
+        final group = groups.firstWhere(
+          (g) => g.id == multisigData['id'],
+          orElse: () => throw Exception('Group not found after restoration'),
+        );
+        
+        log.i('BitDrive: Restoring transaction history for group: ${group.name}');
+        await MultisigStorage.restoreTransactionHistory(group);
+        log.i('BitDrive: Transaction history restoration completed for group: ${group.name}');
+      } catch (e) {
+        log.e('BitDrive: Failed to restore transaction history: $e');
+        // Don't fail the whole restoration process if transaction history fails
+      }
       
     } catch (e) {
       log.e('BitDrive: Error processing multisig transaction: $e');
