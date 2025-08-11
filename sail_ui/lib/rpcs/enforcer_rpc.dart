@@ -1,10 +1,8 @@
 import 'dart:io';
 
-import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
-import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -14,7 +12,7 @@ import 'package:sail_ui/sail_ui.dart';
 abstract class EnforcerRPC extends RPCConnection {
   EnforcerRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 
@@ -28,23 +26,19 @@ class EnforcerLive extends EnforcerRPC {
   @override
   late final ValidatorServiceClient validator;
 
-  // Private constructor
-  EnforcerLive._create({
-    required super.conf,
-    required super.binary,
-    required super.restartOnFailure,
-  });
+  EnforcerLive()
+      : super(
+          conf: readConf(),
+          binaryType: BinaryType.enforcer,
+          restartOnFailure: true,
+        ) {
+    _init();
+  }
 
-  // Async factory
-  static Future<EnforcerLive> create({
-    required String host,
-    required int port,
-    required Binary binary,
-  }) async {
+  void _init() async {
     final httpClient = createHttpClient();
-    final conf = await readConf();
 
-    final baseUrl = 'http://$host:$port';
+    final baseUrl = 'http://127.0.0.1:${binary.port}';
     final transport = grpc.Transport(
       baseUrl: baseUrl,
       codec: const ProtoCodec(),
@@ -52,26 +46,12 @@ class EnforcerLive extends EnforcerRPC {
       statusParser: const StatusParser(),
     );
 
-    final liveInstance = EnforcerLive._create(
-      conf: conf,
-      binary: binary,
-      restartOnFailure: true,
-    );
-    // must test connection before moving on, in case it is already running!
-    await liveInstance._init(transport);
-    return liveInstance;
-  }
-
-  Future<void> _init(Transport transport) async {
     validator = ValidatorServiceClient(transport);
     await startConnectionTimer();
   }
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final enforcerBinary = binaryProvider.binaries.where((b) => b.name == binary.name).first;
-
     var host = mainchainConf.host;
 
     if (host == 'localhost' && !Platform.isWindows) {
@@ -87,7 +67,7 @@ class EnforcerLive extends EnforcerRPC {
     final walletDir = getWalletDir(appDir);
 
     // Remove any existing wallet arguments before setting new ones
-    enforcerBinary.extraBootArgs = enforcerBinary.extraBootArgs
+    binary.extraBootArgs = binary.extraBootArgs
         .where((arg) => !arg.startsWith('--wallet-auto-create') && !arg.startsWith('--wallet-seed-file'))
         .toList();
 
@@ -103,14 +83,14 @@ class EnforcerLive extends EnforcerRPC {
       }
     }
 
-    enforcerBinary.addBootArg(walletArg);
+    binary.addBootArg(walletArg);
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',
       '--node-rpc-user=${mainchainConf.username}',
       '--node-rpc-addr=$host:${mainchainConf.port}',
       '--enable-wallet',
-      if (enforcerBinary.extraBootArgs.isNotEmpty) ...enforcerBinary.extraBootArgs,
+      if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
     ];
   }
 

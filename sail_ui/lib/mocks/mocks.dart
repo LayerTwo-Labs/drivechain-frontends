@@ -7,7 +7,7 @@ class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
       : super(
           conf: NodeConnectionSettings.empty(),
-          binary: BitcoinCore(),
+          binaryType: BinaryType.bitcoinCore,
           restartOnFailure: false,
         );
 
@@ -153,7 +153,7 @@ class MockEnforcerRPC extends EnforcerRPC {
   MockEnforcerRPC()
       : super(
           conf: NodeConnectionSettings.empty(),
-          binary: Enforcer(),
+          binaryType: BinaryType.enforcer,
           restartOnFailure: true,
         );
 
@@ -237,7 +237,7 @@ class MockBitwindowRPC extends BitwindowRPC {
   MockBitwindowRPC()
       : super(
           conf: NodeConnectionSettings.empty(),
-          binary: BitWindow(),
+          binaryType: BinaryType.bitWindow,
           restartOnFailure: true,
         );
 
@@ -331,7 +331,7 @@ class MockThunderRPC extends ThunderRPC {
   MockThunderRPC()
       : super(
           conf: NodeConnectionSettings.empty(),
-          binary: Thunder(),
+          binaryType: BinaryType.thunder,
           restartOnFailure: true,
         );
 
@@ -522,7 +522,7 @@ class MockBitnamesRPC extends BitnamesRPC {
   MockBitnamesRPC()
       : super(
           conf: NodeConnectionSettings.empty(),
-          binary: Bitnames(),
+          binaryType: BinaryType.bitnames,
           restartOnFailure: true,
         );
 

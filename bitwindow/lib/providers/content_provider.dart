@@ -15,6 +15,11 @@ extension StringExtension on String {
 
 class ContentProvider extends ChangeNotifier {
   List<ArticleGroup> groups = [];
+
+  ContentProvider() {
+    unawaited(load());
+  }
+
   Future<void> load() async {
     try {
       groups = await loadArticleGroups();

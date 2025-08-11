@@ -26,14 +26,14 @@ class Config {
 // 2. Inspect cookie
 // 3. Defaults
 //
-Future<NodeConnectionSettings> readRPCConfig(
+NodeConnectionSettings readRPCConfig(
   String datadir,
   String confFile,
   Binary chain,
   String network, {
   // if set, will force this network, irregardless of runtime argument
   bool useCookieAuth = true,
-}) async {
+}) {
   final log = GetIt.I.get<Logger>();
 
   final conf = File(filePath([datadir, confFile]));
@@ -51,9 +51,9 @@ Future<NodeConnectionSettings> readRPCConfig(
     network == 'regtest',
   );
 
-  if (await conf.exists()) {
+  if (conf.existsSync()) {
     log.i('rpc: reading conf file at $conf');
-    final confContent = await conf.readAsString();
+    final confContent = conf.readAsStringSync();
     final lines = confContent.split('\n').map((e) => e.trim()).toList();
 
     // Read all config values, overwrite
@@ -63,8 +63,8 @@ Future<NodeConnectionSettings> readRPCConfig(
     return settings;
   }
 
-  if (useCookieAuth && await cookie.exists()) {
-    final data = await cookie.readAsString();
+  if (useCookieAuth && cookie.existsSync()) {
+    final data = cookie.readAsStringSync();
     final parts = data.split(':');
     if (parts.length != 2) {
       throw 'unexpected cookie file: $data';

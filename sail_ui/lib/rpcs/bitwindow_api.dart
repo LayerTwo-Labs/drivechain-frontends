@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
@@ -31,7 +30,7 @@ import 'package:sail_ui/providers/binaries/binary_provider.dart';
 abstract class BitwindowRPC extends RPCConnection {
   BitwindowRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 
@@ -60,18 +59,23 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   late final HealthAPI health;
 
-  // Private constructor
-  BitwindowRPCLive._create({
-    required super.conf,
-    required super.binary,
-    required super.restartOnFailure,
-  });
-
-  // Async factory
-  static Future<BitwindowRPCLive> create({
+  BitwindowRPCLive({
     required String host,
     required int port,
-    required Binary binary,
+  }) : super(
+          conf: readConf(),
+          binaryType: BinaryType.bitWindow,
+          restartOnFailure: true,
+        ) {
+    _init(
+      host: host,
+      port: port,
+    );
+  }
+
+  void _init({
+    required String host,
+    required int port,
   }) async {
     final httpClient = createHttpClient();
     final baseUrl = 'http://$host:$port';
@@ -81,19 +85,6 @@ class BitwindowRPCLive extends BitwindowRPC {
       httpClient: httpClient,
     );
 
-    final conf = await readConf();
-
-    final liveInstance = BitwindowRPCLive._create(
-      conf: conf,
-      binary: binary,
-      restartOnFailure: true,
-    );
-
-    await liveInstance._init(transport);
-    return liveInstance;
-  }
-
-  Future<void> _init(Transport transport) async {
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
     bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));

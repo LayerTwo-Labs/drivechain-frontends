@@ -97,7 +97,7 @@ class NodeConnectionSettings extends ChangeNotifier {
       String confFile = parts.$2;
       readError = null;
 
-      final config = await readRPCConfig(dataDir, confFile, chain, network);
+      final config = readRPCConfig(dataDir, confFile, chain, network);
       configPathController.text = config.confPath;
       hostController.text = config.host;
       portController.text = config.port.toString();
@@ -215,7 +215,7 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
   switch (chain) {
     case TestSidechain():
       try {
-        conf = await readRPCConfig(
+        conf = readRPCConfig(
           TestSidechain().datadir(),
           TestSidechain().confFile(),
           TestSidechain(),
@@ -227,7 +227,7 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
       break;
     case ZSide():
       try {
-        conf = await readRPCConfig(
+        conf = readRPCConfig(
           ZSide().datadir(),
           ZSide().confFile(),
           ZSide(),
@@ -247,13 +247,13 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
   return conf;
 }
 
-Future<NodeConnectionSettings> readConf() async {
+NodeConnectionSettings readConf() {
   final log = GetIt.I.get<Logger>();
 
   NodeConnectionSettings conf = NodeConnectionSettings.empty();
   try {
     final network = 'signet';
-    conf = await readRPCConfig(
+    conf = readRPCConfig(
       BitcoinCore().datadir(),
       'bitcoin.conf',
       BitcoinCore(),

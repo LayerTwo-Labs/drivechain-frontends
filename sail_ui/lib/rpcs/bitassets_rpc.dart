@@ -9,7 +9,7 @@ import 'package:sail_ui/sail_ui.dart';
 abstract class BitAssetsRPC extends SidechainRPC {
   BitAssetsRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 
@@ -174,30 +174,16 @@ class BitAssetsLive extends BitAssetsRPC {
     return client;
   }
 
-  // Private constructor
-  BitAssetsLive._create({
-    required super.conf,
-    required super.binary,
-    required super.restartOnFailure,
-  });
-
-  // Async factory
-  static Future<BitAssetsLive> create({
-    required Binary binary,
-  }) async {
-    final conf = await readConf();
-
-    final instance = BitAssetsLive._create(
-      conf: conf,
-      binary: binary,
-      restartOnFailure: true,
-    );
-
-    await instance._init();
-    return instance;
+  BitAssetsLive()
+      : super(
+          conf: readConf(),
+          binaryType: BinaryType.bitAssets,
+          restartOnFailure: true,
+        ) {
+    _init();
   }
 
-  Future<void> _init() async {
+  void _init() async {
     await startConnectionTimer();
   }
 

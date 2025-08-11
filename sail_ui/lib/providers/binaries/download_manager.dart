@@ -5,9 +5,7 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/binaries/binary_provider.dart';
-import 'package:sail_ui/utils/file_utils.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 /// Manager responsible for downloading and extracting binaries to
 /// the right place
@@ -15,12 +13,31 @@ class DownloadManager extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final Directory appDir;
   late List<Binary> binaries;
-  void Function(String name, Binary Function(Binary) updater) updateBinary;
 
-  DownloadManager({
+  // Private constructor
+  DownloadManager._create({
     required this.appDir,
     required this.binaries,
-    required this.updateBinary,
+  });
+
+  // Async factory
+  static Future<DownloadManager> create({
+    required Directory appDir,
+    required List<Binary> initialBinaries,
+  }) async {
+    final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, appDir);
+
+    return DownloadManager._create(
+      appDir: appDir,
+      binaries: binariesWithTimestamps,
+    );
+  }
+
+  // Test constructor (visible for mocking)
+  @visibleForTesting
+  DownloadManager.test({
+    required this.appDir,
+    required this.binaries,
   });
 
   DownloadInfo getProgress(String binaryName) {
@@ -83,7 +100,10 @@ class DownloadManager extends ChangeNotifier {
   }
 
   void _updateBinary(String name, Binary Function(Binary) updater) {
-    updateBinary(name, updater);
+    final index = binaries.indexWhere((b) => b.name == name);
+    if (index >= 0) {
+      binaries[index] = updater(binaries[index]);
+    }
     notifyListeners();
   }
 

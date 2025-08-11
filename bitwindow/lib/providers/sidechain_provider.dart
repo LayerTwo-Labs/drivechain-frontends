@@ -26,6 +26,7 @@ class SidechainProvider extends ChangeNotifier {
 
   SidechainProvider() {
     blockchainProvider.addListener(fetch);
+    fetch();
   }
 
   // call this function from anywhere to refetch sidechain info

@@ -1,12 +1,10 @@
 import 'package:sail_ui/sail_ui.dart';
 
-import 'mock_binary.dart';
-
 class MockZSideRPC extends ZSideRPC {
   MockZSideRPC()
       : super(
           conf: NodeConnectionSettings('./mocked.conf', 'mock mock', 1337, '', '', true),
-          binary: MockBinary(),
+          binaryType: BinaryType.testSidechain,
           restartOnFailure: false,
         );
 

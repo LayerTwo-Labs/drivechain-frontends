@@ -88,30 +88,19 @@ class BinaryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  BinaryProvider({
+  // Private constructor
+  BinaryProvider._create({
     required this.appDir,
-    required List<Binary> initialBinaries,
-  }) {
+    required DownloadManager downloadManager,
+    required ProcessManager processManager,
+  })  : _downloadManager = downloadManager,
+        _processManager = processManager {
     bitwindowAppDir = Directory(
       path.join(
         appDir.path,
         '..',
         'bitwindow',
       ),
-    );
-
-    _downloadManager = DownloadManager(
-      appDir: appDir,
-      binaries: initialBinaries,
-      updateBinary: (name, updater) {
-        final index = binaries.indexWhere((b) => b.name == name);
-        if (index >= 0) {
-          binaries[index] = updater(binaries[index]);
-        }
-      },
-    );
-    _processManager = ProcessManager(
-      appDir: appDir,
     );
 
     // Forward DownloadManager notifications to BinaryProvider listeners
@@ -156,6 +145,41 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     _init();
+  }
+
+  // Test constructor (visible for mocking)
+  @visibleForTesting
+  BinaryProvider.test({
+    required this.appDir,
+    required DownloadManager downloadManager,
+    required ProcessManager processManager,
+  })  : _downloadManager = downloadManager,
+        _processManager = processManager {
+    // Skip GetIt registration for tests
+    bitwindowAppDir = Directory('/tmp');
+  }
+
+  // Async factory
+  static Future<BinaryProvider> create({
+    required Directory appDir,
+    required List<Binary> initialBinaries,
+  }) async {
+    final downloadManager = await DownloadManager.create(
+      appDir: appDir,
+      initialBinaries: initialBinaries,
+    );
+
+    final processManager = ProcessManager(
+      appDir: appDir,
+    );
+
+    final provider = BinaryProvider._create(
+      appDir: appDir,
+      downloadManager: downloadManager,
+      processManager: processManager,
+    );
+
+    return provider;
   }
 
   Future<void> _init() async {

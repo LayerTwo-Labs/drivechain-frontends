@@ -33,6 +33,7 @@ class BalanceProvider extends ChangeNotifier {
       _balances[rpc] = (0.0, 0.0);
     }
     _startFetchTimer();
+    fetch();
   }
 
   void _onConnectionChange() {

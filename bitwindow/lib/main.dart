@@ -30,367 +30,218 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main(List<String> args) async {
+  try {
+    final (applicationDir, logFile, log) = await init(args);
+
+    if (args.contains('multi_window')) {
+      return runMultiWindow(args, log, applicationDir, logFile);
+    }
+
+    await runMainWindow(log, applicationDir, logFile);
+  } catch (e, stackTrace) {
+    runErrorScreen(e, stackTrace);
+  }
+}
+
+Future<(Directory, File, Logger)> init(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   await findSystemLocale();
   await initializeDateFormatting();
 
-  try {
-    Directory? applicationDir;
-    File? logFile;
+  Directory? applicationDir;
+  File? logFile;
 
-    if (args.contains('multi_window')) {
-      final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+  if (args.contains('multi_window')) {
+    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
 
-      if (arguments['application_dir'] != null) {
-        applicationDir = Directory(arguments['application_dir']);
-      }
-      if (arguments['log_file'] != null) {
-        logFile = File(arguments['log_file']);
-      }
-
-      if (logFile == null || applicationDir == null) {
-        throw ArgumentError('Missing required arguments for multi-window mode: application_dir, log_file');
-      }
+    if (arguments['application_dir'] != null) {
+      applicationDir = Directory(arguments['application_dir']);
+    }
+    if (arguments['log_file'] != null) {
+      logFile = File(arguments['log_file']);
     }
 
-    // Fall back to filesystem if not provided in args
-    applicationDir ??= await Environment.datadir();
-    logFile ??= await getLogFile();
-
-    final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
-    log.i('starting bitwindow, writing logs to $logFile');
-
-    await initDependencies(
-      log,
-      logFile,
-      applicationDir: applicationDir,
-    );
-
-    Environment.validateAtRuntime();
-
-    if (args.contains('multi_window')) {
-      final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
-      final windowType = arguments['window_type'] as String?;
-      final windowTitle = arguments['window_title'] as String?;
-
-      if (windowTitle == null) {
-        throw ArgumentError('Missing required arguments for multi-window mode: window_title');
-      }
-
-      Widget child = SailCard(
-        title: 'Unknown window type: $windowType',
-        child: SailText.primary15('Programmers messed up, and supplied an unknown window type: $windowType'),
-      );
-
-      // Map string identifiers to window types
-      switch (windowType) {
-        case SubWindowTypes.debugId:
-          child = DebugWindow();
-          break;
-
-        case SubWindowTypes.logsId:
-          child = LogPage(
-            logPath: logFile.path,
-            title: 'Bitwindow Logs',
-          );
-          break;
-
-        case SubWindowTypes.deniabilityId:
-          child = DeniabilityTab(newWindowButton: null);
-          break;
-
-        case SubWindowTypes.blockExplorerId:
-          child = const BlockExplorerDialog();
-          break;
-
-        case SubWindowTypes.addressbookId:
-          child = AddressBookTable();
-          break;
-
-        case SubWindowTypes.messageSignerId:
-          child = const MessageSigner();
-          break;
-
-        case SubWindowTypes.hashCalculatorId:
-          child = const HashCalculator();
-          break;
-      }
-
-      return runApp(
-        buildSailWindowApp(
-          log,
-          '$windowTitle | Bitwindow',
-          child,
-          const Color.fromARGB(255, 255, 153, 0),
-        ),
-      );
+    if (logFile == null || applicationDir == null) {
+      throw ArgumentError('Missing required arguments for multi-window mode: application_dir, log_file');
     }
-
-    await windowManager.ensureInitialized();
-
-    const windowOptions = WindowOptions(
-      minimumSize: Size(400, 400),
-      size: Size(1200, 600),
-      titleBarStyle: TitleBarStyle.normal,
-      title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
-    );
-
-    await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
-
-    // Initialize WindowProvider for the main window
-    final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
-    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
-
-    unawaited(bootBinaries(log));
-    await setupSignalHandlers(log);
-
-    // Get client settings to check debug mode
-    final clientSettings = GetIt.I<ClientSettings>();
-    var debugMode = false;
-    try {
-      final debugModeSetting = await clientSettings.getValue(DebugModeSetting());
-      debugMode = debugModeSetting.value;
-      log.i('Debug mode setting loaded: $debugMode');
-    } catch (error) {
-      log.w('Failed to load debug mode setting, defaulting to false', error: error);
-      // do absolutely nothing, probably no debug mode setting
-    }
-
-    if (!debugMode) {
-      log.i('Starting app with Sentry monitoring');
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = 'https://fb54f18383071d144bd00f6159827dc5@o1053156.ingest.us.sentry.io/4509152512180224';
-          options.tracesSampleRate = 0.0;
-          options.profilesSampleRate = 0.0;
-          options.recordHttpBreadcrumbs = false;
-          options.sampleRate = 1.0;
-          options.attachStacktrace = true;
-          options.enablePrintBreadcrumbs = false;
-          options.debug = false;
-        },
-        appRunner: () {
-          return runApp(SentryWidget(child: BitwindowApp(log: log)));
-        },
-      );
-    } else {
-      log.i('Starting app without Sentry monitoring');
-      runApp(BitwindowApp(log: log));
-    }
-  } catch (e, stackTrace) {
-    // If initialization failed, show error screen
-    final initError = 'Initialization failed:\n\n$e\n\n$stackTrace';
-    
-    runApp(MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Initialization Failed',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: SelectableText(
-                      initError,
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),);
   }
+
+  // Fall back to filesystem if not provided in args
+  applicationDir ??= await Environment.datadir();
+  logFile ??= await getLogFile();
+
+  final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
+  log.i('starting bitwindow, writing logs to $logFile');
+
+  Environment.validateAtRuntime();
+
+  final storage = await KeyValueStore.create(dir: applicationDir);
+
+  // Register the logger
+  GetIt.I.registerLazySingleton<Logger>(() => log);
+  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
+  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
+  GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: storage, log: log));
+  final settingsProvider = await SettingsProvider.create();
+  GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
+  GetIt.I.registerLazySingleton<ContentProvider>(() => ContentProvider());
+  GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
+
+  // Load initial binary states
+  final binaryProvider = await BinaryProvider.create(
+    appDir: applicationDir,
+    initialBinaries: initalBinaries(),
+  );
+  GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
+
+  GetIt.I.registerLazySingleton<MainchainRPC>(() => MainchainRPCLive());
+  GetIt.I.registerLazySingleton<EnforcerRPC>(() => EnforcerLive());
+
+  final bitwindow = BitwindowRPCLive(
+    host: Environment.bitwindowdHost.value,
+    port: Environment.bitwindowdPort.value,
+  );
+  GetIt.I.registerLazySingleton<BitwindowRPC>(() => bitwindow);
+
+  // now register all sidedchains
+  GetIt.I.registerLazySingleton<BitAssetsRPC>(() => BitAssetsLive());
+  GetIt.I.registerLazySingleton<BitnamesRPC>(() => BitnamesLive());
+  GetIt.I.registerLazySingleton<ThunderRPC>(() => ThunderLive());
+  GetIt.I.registerLazySingleton<ZSideRPC>(() => ZSideLive());
+
+  GetIt.I.registerLazySingleton<WalletProvider>(() => WalletProvider(appDir: applicationDir!));
+  GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [bitwindow]));
+  GetIt.I.registerLazySingleton<SyncProvider>(
+    () => SyncProvider(additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name)),
+  );
+  GetIt.I.registerLazySingleton<BlockchainProvider>(() => BlockchainProvider());
+  GetIt.I.registerLazySingleton<TransactionProvider>(() => TransactionProvider());
+  GetIt.I.registerLazySingleton<NewsProvider>(() => NewsProvider());
+  GetIt.I.registerLazySingleton<SidechainProvider>(() => SidechainProvider());
+  GetIt.I.registerLazySingleton<AddressBookProvider>(() => AddressBookProvider());
+  GetIt.I.registerLazySingleton<HDWalletProvider>(() => HDWalletProvider(applicationDir!));
+  GetIt.I.registerLazySingleton<BitDriveProvider>(() => BitDriveProvider());
+
+  return (applicationDir, logFile, log);
+}
+
+Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
+  const windowOptions = WindowOptions(
+    minimumSize: Size(400, 400),
+    size: Size(1200, 600),
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
+  );
+
+  await windowManager.ensureInitialized();
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  await setupSignalHandlers(log);
+
+  unawaited(bootBinaries(log));
+
+  // Get client settings to check debug mode
+  final clientSettings = GetIt.I<ClientSettings>();
+  var debugMode = false;
+  try {
+    final debugModeSetting = await clientSettings.getValue(DebugModeSetting());
+    debugMode = debugModeSetting.value;
+    log.i('Debug mode setting loaded: $debugMode');
+  } catch (error) {
+    log.w('Failed to load debug mode setting, defaulting to false', error: error);
+    // do absolutely nothing, probably no debug mode setting
+  }
+
+  if (debugMode) {
+    log.i('Starting app with Sentry monitoring');
+    return await SentryFlutter.init(
+      (options) {
+        options.dsn = 'https://fb54f18383071d144bd00f6159827dc5@o1053156.ingest.us.sentry.io/4509152512180224';
+        options.tracesSampleRate = 0.0;
+        options.profilesSampleRate = 0.0;
+        options.recordHttpBreadcrumbs = false;
+        options.sampleRate = 1.0;
+        options.attachStacktrace = true;
+        options.enablePrintBreadcrumbs = false;
+        options.debug = false;
+      },
+      appRunner: () {
+        return runApp(SentryWidget(child: BitwindowApp(log: log)));
+      },
+    );
+  }
+
+  log.i('Starting app without Sentry monitoring');
+  return runApp(BitwindowApp(log: log));
+}
+
+void runMultiWindow(List<String> args, Logger log, Directory applicationDir, File logFile) {
+  final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+  final windowType = arguments['window_type'] as String?;
+  final windowTitle = arguments['window_title'] as String?;
+
+  if (windowTitle == null) {
+    throw ArgumentError('Missing required arguments for multi-window mode: window_title');
+  }
+
+  Widget child = SailCard(
+    title: 'Unknown window type: $windowType',
+    child: SailText.primary15('Programmers messed up, and supplied an unknown window type: $windowType'),
+  );
+
+  // Map string identifiers to window types
+  switch (windowType) {
+    case SubWindowTypes.debugId:
+      child = DebugWindow();
+      break;
+
+    case SubWindowTypes.logsId:
+      child = LogPage(
+        logPath: logFile.path,
+        title: 'Bitwindow Logs',
+      );
+      break;
+
+    case SubWindowTypes.deniabilityId:
+      child = DeniabilityTab(newWindowButton: null);
+      break;
+
+    case SubWindowTypes.blockExplorerId:
+      child = const BlockExplorerDialog();
+      break;
+
+    case SubWindowTypes.addressbookId:
+      child = AddressBookTable();
+      break;
+
+    case SubWindowTypes.messageSignerId:
+      child = const MessageSigner();
+      break;
+
+    case SubWindowTypes.hashCalculatorId:
+      child = const HashCalculator();
+      break;
+  }
+
+  return runApp(
+    buildSailWindowApp(
+      log,
+      '$windowTitle | Bitwindow',
+      child,
+      const Color.fromARGB(255, 255, 153, 0),
+    ),
+  );
 }
 
 Future<void> initDependencies(
   Logger log,
   File logFile, {
   required Directory applicationDir,
-}) async {
-  // Create platform-appropriate storage
-  final storage = await KeyValueStore.create(dir: applicationDir);
-
-  // Register the logger
-  GetIt.I.registerLazySingleton<Logger>(() => log);
-
-  // Register the router
-  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
-
-  GetIt.I.registerLazySingleton<ClientSettings>(
-    () => ClientSettings(
-      store: storage,
-      log: log,
-    ),
-  );
-  final settingsProvider = await SettingsProvider.create();
-  GetIt.I.registerLazySingleton<SettingsProvider>(
-    () => settingsProvider,
-  );
-
-  final contentProvider = ContentProvider();
-  GetIt.I.registerLazySingleton<ContentProvider>(
-    () => contentProvider,
-  );
-  unawaited(contentProvider.load());
-
-  PriceProvider priceProvider = PriceProvider();
-  GetIt.I.registerLazySingleton<PriceProvider>(
-    () => priceProvider,
-  );
-  unawaited(priceProvider.fetch());
-
-  // Load initial binary states
-  final binaries = await _loadBinaries(applicationDir);
-
-  final mainchain = await MainchainRPCLive.create(
-    binaries.firstWhere((b) => b is BitcoinCore),
-  );
-  GetIt.I.registerLazySingleton<MainchainRPC>(
-    () => mainchain,
-  );
-
-  final enforcer = await EnforcerLive.create(
-    host: '127.0.0.1',
-    port: binaries[1].port,
-    binary: binaries.firstWhere((b) => b is Enforcer),
-  );
-  GetIt.I.registerLazySingleton<EnforcerRPC>(
-    () => enforcer,
-  );
-
-  final bitwindow = await BitwindowRPCLive.create(
-    host: Environment.bitwindowdHost.value,
-    port: Environment.bitwindowdPort.value,
-    binary: binaries.firstWhere((b) => b is BitWindow),
-  );
-  GetIt.I.registerLazySingleton<BitwindowRPC>(
-    () => bitwindow,
-  );
-
-  // now register all sidedchains
-  final bitassetsBinary = binaries.firstWhere((b) => b is BitAssets);
-  final bitassets = await BitAssetsLive.create(
-    binary: bitassetsBinary,
-  );
-  GetIt.I.registerLazySingleton<BitAssetsRPC>(
-    () => bitassets,
-  );
-
-  final bitnamesBinary = binaries.firstWhere((b) => b is Bitnames);
-  final bitnames = await BitnamesLive.create(
-    binary: bitnamesBinary,
-  );
-  GetIt.I.registerLazySingleton<BitnamesRPC>(
-    () => bitnames,
-  );
-
-  final thunderBinary = binaries.firstWhere((b) => b is Thunder);
-  final thunder = await ThunderLive.create(
-    binary: thunderBinary,
-  );
-  GetIt.I.registerLazySingleton<ThunderRPC>(
-    () => thunder,
-  );
-
-  // After RPCs have been registered, register the binary provider
-  final binaryProvider = BinaryProvider(
-    appDir: applicationDir,
-    initialBinaries: binaries,
-  );
-  GetIt.I.registerSingleton<BinaryProvider>(
-    binaryProvider,
-  );
-
-  final walletProvider = WalletProvider(
-    appDir: applicationDir,
-  );
-  GetIt.I.registerLazySingleton<WalletProvider>(
-    () => walletProvider,
-  );
-
-  // Register all the providers
-  final balanceProvider = BalanceProvider(
-    connections: [bitwindow],
-  );
-  GetIt.I.registerLazySingleton<BalanceProvider>(
-    () => balanceProvider,
-  );
-  unawaited(balanceProvider.fetch());
-
-  final syncProvider = SyncProvider(
-    additionalConnection: SyncConnection(
-      rpc: bitwindow,
-      name: bitwindow.binary.name,
-    ),
-  );
-  GetIt.I.registerLazySingleton<SyncProvider>(
-    () => syncProvider,
-  );
-  unawaited(syncProvider.fetch());
-
-  final blockchainProvider = BlockchainProvider();
-  GetIt.I.registerLazySingleton<BlockchainProvider>(
-    () => blockchainProvider,
-  );
-  unawaited(blockchainProvider.fetch());
-
-  final txProvider = TransactionProvider();
-  GetIt.I.registerLazySingleton<TransactionProvider>(
-    () => txProvider,
-  );
-  unawaited(txProvider.fetch());
-
-  final newsProvider = NewsProvider();
-  GetIt.I.registerLazySingleton<NewsProvider>(
-    () => newsProvider,
-  );
-  unawaited(newsProvider.fetch());
-
-  final sidechainProvider = SidechainProvider();
-  GetIt.I.registerLazySingleton<SidechainProvider>(
-    () => sidechainProvider,
-  );
-  unawaited(sidechainProvider.fetch());
-
-  final addressBookProvider = AddressBookProvider();
-  GetIt.I.registerLazySingleton<AddressBookProvider>(
-    () => addressBookProvider,
-  );
-  unawaited(addressBookProvider.fetch());
-
-  final hdWalletProvider = HDWalletProvider(applicationDir);
-  GetIt.I.registerLazySingleton<HDWalletProvider>(
-    () => hdWalletProvider,
-  );
-  unawaited(hdWalletProvider.init());
-
-  final bitdriveProvider = BitDriveProvider();
-  GetIt.I.registerLazySingleton<BitDriveProvider>(
-    () => bitdriveProvider,
-  );
-  unawaited(bitdriveProvider.init());
-}
+}) async {}
 
 void ignoreOverflowErrors(
   FlutterErrorDetails details, {
@@ -480,21 +331,6 @@ Future<void> bootBinaries(Logger log) async {
   );
 }
 
-Future<List<Binary>> _loadBinaries(Directory appDir) async {
-  // Register all binaries
-  final binaries = [
-    BitcoinCore(),
-    Enforcer(),
-    BitWindow(),
-    BitAssets(),
-    Bitnames(),
-    Thunder(),
-    ZSide(),
-  ];
-
-  return await loadBinaryCreationTimestamp(binaries, appDir);
-}
-
 Future<void> setupSignalHandlers(Logger log) async {
   // SIGINT and SIGTERM are not properly supported on Windows
   if (Platform.isWindows) {
@@ -572,4 +408,16 @@ class SubWindowTypes {
     defaultSize: Size(double.maxFinite / 2, double.maxFinite),
     defaultPosition: Offset(double.maxFinite / 2, 0),
   );
+}
+
+List<Binary> initalBinaries() {
+  return [
+    BitcoinCore(),
+    Enforcer(),
+    BitWindow(),
+    BitAssets(),
+    Bitnames(),
+    Thunder(),
+    ZSide(),
+  ];
 }

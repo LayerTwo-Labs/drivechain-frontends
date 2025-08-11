@@ -79,6 +79,7 @@ class BitDriveProvider extends ChangeNotifier {
   BitDriveProvider() {
     // Listen for blockchain sync status changes
     blockchainProvider.addListener(_onSyncStatusChanged);
+    init();
   }
 
   @override

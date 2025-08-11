@@ -16,7 +16,21 @@ import 'package:thunder/storage/sail_settings/font_settings.dart';
 import 'package:thunder/widgets/containers/dropdownactions/console.dart';
 import 'package:window_manager/window_manager.dart';
 
-Future<void> start(List<String> args) async {
+void main(List<String> args) async {
+  try {
+    final (applicationDir, logFile, log) = await init(args);
+
+    if (args.contains('multi_window')) {
+      return runMultiWindow(args, log, applicationDir, logFile);
+    }
+
+    await runMainWindow(log, applicationDir, logFile);
+  } catch (e, stackTrace) {
+    runErrorScreen(e, stackTrace);
+  }
+}
+
+Future<(Directory, File, Logger)> init(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   Directory? applicationDir;
@@ -48,9 +62,7 @@ Future<void> start(List<String> args) async {
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
   Future<SidechainRPC> createSidechainConnection(Binary binary) async {
-    final thunder = await ThunderLive.create(
-      binary: binary,
-    );
+    final thunder = ThunderLive();
     GetIt.I.registerSingleton<ThunderRPC>(thunder);
 
     return thunder;
@@ -64,76 +76,85 @@ Future<void> start(List<String> args) async {
     log: log,
   );
 
-  log.i('starting thunder');
-  final thunder = GetIt.I.get<ThunderRPC>();
+  return (applicationDir, logFile, log);
+}
 
-  if (args.contains('multi_window')) {
-    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+Future<void> runMultiWindow(
+  List<String> args,
+  Logger log,
+  Directory applicationDir,
+  File logFile,
+) async {
+  final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
 
-    Widget child = SailCard(
-      child: SailText.primary15('no window type provided, the programmers messed up'),
-    );
+  Widget child = SailCard(
+    child: SailText.primary15('no window type provided, the programmers messed up'),
+  );
 
-    switch (arguments['window_type']) {
-      case SubWindowTypes.consoleId:
-        child = const ConsoleWindow();
-        break;
-      case SubWindowTypes.logsId:
-        child = LogPage(
-          logPath: logFile.path,
-          title: 'Thunder Logs',
-        );
-        break;
-    }
-
-    // Get client settings to check debug mode
-    final clientSettings = GetIt.I<ClientSettings>();
-    var debugMode = false;
-    try {
-      final debugModeSetting = await clientSettings.getValue(DebugModeSetting());
-      debugMode = debugModeSetting.value;
-      log.i('Debug mode setting loaded: $debugMode');
-    } catch (error) {
-      log.w('Failed to load debug mode setting, defaulting to false', error: error);
-      // do absolutely nothing, probably no debug mode setting
-    }
-
-    final sailApp = buildSailWindowApp(
-      log,
-      '${arguments['window_title'] as String} | Thunder',
-      child,
-      thunder.chain.color,
-    );
-
-    if (debugMode) {
-      log.i('Initializing Sentry in debug mode');
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = 'https://fb54f18383071d144bd00f6159827dc5@o1053156.ingest.us.sentry.io/4509152512180224';
-          options.tracesSampleRate = 0.0;
-          options.profilesSampleRate = 0.0;
-          options.recordHttpBreadcrumbs = false;
-          options.sampleRate = 1.0;
-          options.attachStacktrace = true;
-          options.enablePrintBreadcrumbs = false;
-          options.debug = false;
-        },
-        appRunner: () {
-          log.i('Starting app with Sentry monitoring');
-          return runApp(
-            SentryWidget(
-              child: sailApp,
-            ),
-          );
-        },
+  switch (arguments['window_type']) {
+    case SubWindowTypes.consoleId:
+      child = const ConsoleWindow();
+      break;
+    case SubWindowTypes.logsId:
+      child = LogPage(
+        logPath: logFile.path,
+        title: 'Thunder Logs',
       );
-    } else {
-      return runApp(
-        sailApp,
-      );
-    }
+      break;
   }
 
+  // Get client settings to check debug mode
+  final clientSettings = GetIt.I<ClientSettings>();
+  var debugMode = false;
+  try {
+    final debugModeSetting = await clientSettings.getValue(DebugModeSetting());
+    debugMode = debugModeSetting.value;
+    log.i('Debug mode setting loaded: $debugMode');
+  } catch (error) {
+    log.w('Failed to load debug mode setting, defaulting to false', error: error);
+    // do absolutely nothing, probably no debug mode setting
+  }
+
+  log.i('starting thunder in multi window');
+  final thunder = GetIt.I.get<ThunderRPC>();
+
+  final sailApp = buildSailWindowApp(
+    log,
+    '${arguments['window_title'] as String} | Thunder',
+    child,
+    thunder.chain.color,
+  );
+
+  if (debugMode) {
+    log.i('Initializing Sentry in debug mode');
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = 'https://fb54f18383071d144bd00f6159827dc5@o1053156.ingest.us.sentry.io/4509152512180224';
+        options.tracesSampleRate = 0.0;
+        options.profilesSampleRate = 0.0;
+        options.recordHttpBreadcrumbs = false;
+        options.sampleRate = 1.0;
+        options.attachStacktrace = true;
+        options.enablePrintBreadcrumbs = false;
+        options.debug = false;
+      },
+      appRunner: () {
+        log.i('Starting app with Sentry monitoring');
+        return runApp(
+          SentryWidget(
+            child: sailApp,
+          ),
+        );
+      },
+    );
+  } else {
+    return runApp(
+      sailApp,
+    );
+  }
+}
+
+Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
     minimumSize: Size(400, 400),
@@ -154,6 +175,10 @@ Future<void> start(List<String> args) async {
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
   final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
+
+  log.i('starting thunder');
+  final thunder = GetIt.I.get<ThunderRPC>();
+  final router = GetIt.I.get<AppRouter>();
 
   runApp(
     SailApp(
@@ -180,12 +205,6 @@ bool isCurrentChainActive({
 }) {
   final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
   return foundMatch != null;
-}
-
-void main(List<String> args) async {
-  // the application is launched function because some startup things
-  // are async
-  await start(args);
 }
 
 Future<File> getLogFile(Directory datadir) async {

@@ -65,6 +65,7 @@ export 'gen/misc/v1/misc.pbjson.dart';
 export 'gen/misc/v1/misc.pbserver.dart';
 export 'logger.dart';
 export 'mocks/mocks.dart';
+export 'pages/error_screen.dart';
 export 'pages/log_page.dart';
 export 'pages/shutdown_page.dart';
 export 'pages/sidechains/parent_chain_page.dart';
