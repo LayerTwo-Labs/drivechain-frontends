@@ -19,7 +19,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 abstract class BitnamesRPC extends SidechainRPC {
   BitnamesRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 
@@ -136,30 +136,16 @@ class BitnamesLive extends BitnamesRPC {
     return client;
   }
 
-  // Private constructor
-  BitnamesLive._create({
-    required super.conf,
-    required super.binary,
-    required super.restartOnFailure,
-  });
-
-  // Async factory
-  static Future<BitnamesLive> create({
-    required Binary binary,
-  }) async {
-    final conf = await readConf();
-
-    final instance = BitnamesLive._create(
-      conf: conf,
-      binary: binary,
-      restartOnFailure: true,
-    );
-
-    await instance._init();
-    return instance;
+  BitnamesLive()
+      : super(
+          conf: readConf(),
+          binaryType: BinaryType.bitnames,
+          restartOnFailure: true,
+        ) {
+    _init();
   }
 
-  Future<void> _init() async {
+  void _init() async {
     await startConnectionTimer();
   }
 

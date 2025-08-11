@@ -89,6 +89,8 @@ class BlockchainProvider extends ChangeNotifier {
   }
 
   void _startFetchTimer() {
+    fetch();
+
     if (Environment.isInTest) {
       return;
     }

@@ -24,6 +24,7 @@ class NewsProvider extends ChangeNotifier {
 
   NewsProvider() {
     blockchainProvider.addListener(fetch);
+    fetch();
   }
 
   // call this function from anywhere to refetch news and topics

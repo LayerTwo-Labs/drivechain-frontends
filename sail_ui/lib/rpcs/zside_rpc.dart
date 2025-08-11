@@ -51,7 +51,7 @@ final zsideRPCMethods = [
 abstract class ZSideRPC extends SidechainRPC {
   ZSideRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 
@@ -103,30 +103,16 @@ class ZSideLive extends ZSideRPC {
     return client;
   }
 
-  // Private constructor
-  ZSideLive._create({
-    required super.conf,
-    required super.binary,
-    required super.restartOnFailure,
-  });
-
-  // Async factory
-  static Future<ZSideLive> create({
-    required Binary binary,
-  }) async {
-    final conf = await readConf();
-
-    final instance = ZSideLive._create(
-      conf: conf,
-      binary: binary,
-      restartOnFailure: false,
-    );
-
-    await instance._init();
-    return instance;
+  ZSideLive()
+      : super(
+          conf: readConf(),
+          binaryType: BinaryType.zSide,
+          restartOnFailure: false,
+        ) {
+    _init();
   }
 
-  Future<void> _init() async {
+  void _init() async {
     await startConnectionTimer();
   }
 

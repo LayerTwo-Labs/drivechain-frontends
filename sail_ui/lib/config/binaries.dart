@@ -7,10 +7,20 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
+
+enum BinaryType {
+  bitcoinCore,
+  bitWindow,
+  enforcer,
+  testSidechain,
+  zSide,
+  thunder,
+  bitnames,
+  bitAssets,
+}
 
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
@@ -42,6 +52,7 @@ abstract class Binary {
   });
 
   // Runtime properties
+  BinaryType get type;
   Color get color;
   String get ticker => '';
   String get binaryName => binary;
@@ -58,44 +69,6 @@ abstract class Binary {
 
   @override
   int get hashCode => Object.hash(name, version);
-
-  static Binary? fromBinaryName(String binary) {
-    final name = binary.toLowerCase();
-
-    if (BitcoinCore().name.toLowerCase() == name) {
-      return BitcoinCore();
-    }
-
-    if (Enforcer().name.toLowerCase() == name) {
-      return Enforcer();
-    }
-
-    if (BitWindow().name.toLowerCase() == name) {
-      return BitWindow();
-    }
-
-    if (Thunder().name.toLowerCase() == name) {
-      return Thunder();
-    }
-
-    if (Bitnames().name.toLowerCase() == name) {
-      return Bitnames();
-    }
-
-    if (BitAssets().name.toLowerCase() == name) {
-      return BitAssets();
-    }
-
-    if (TestSidechain().name.toLowerCase() == name) {
-      return TestSidechain();
-    }
-
-    if (ZSide().name.toLowerCase() == name) {
-      return ZSide();
-    }
-
-    return null;
-  }
 
   Binary copyWith({
     String? version,
@@ -114,8 +87,8 @@ abstract class Binary {
 
     final dir = datadir();
 
-    switch (this) {
-      case BitcoinCore():
+    switch (type) {
+      case BinaryType.bitcoinCore:
         final signetDir = path.join(dir, 'signet');
         await _deleteFilesInDir(signetDir, [
           'anchors.dat',
@@ -130,25 +103,25 @@ abstract class Binary {
           'settings.json',
         ]);
 
-      case Enforcer():
+      case BinaryType.enforcer:
         await _deleteFilesInDir(dir, ['validator']);
 
-      case BitWindow():
+      case BinaryType.bitWindow:
         await _deleteFilesInDir(dir, ['bitwindow.db', 'bitdrive']);
 
-      case Bitnames():
+      case BinaryType.bitnames:
         await _deleteFilesInDir(dir, [
           'data.mdb',
           'logs',
         ]);
 
-      case BitAssets():
+      case BinaryType.bitAssets:
         await _deleteFilesInDir(dir, [
           'data.mdb',
           'logs',
         ]);
 
-      case Thunder():
+      case BinaryType.thunder:
         await _deleteFilesInDir(dir, [
           'data.mdb',
           'logs',
@@ -157,6 +130,11 @@ abstract class Binary {
           'thunder.zip',
           'thunder_app',
         ]);
+
+      case BinaryType.testSidechain:
+      case BinaryType.zSide:
+        // No specific cleanup for these types yet
+        break;
     }
   }
 
@@ -165,21 +143,27 @@ abstract class Binary {
 
     final dir = datadir();
 
-    switch (this) {
-      case Enforcer():
+    switch (type) {
+      case BinaryType.enforcer:
         await _renameWalletDir(dir, 'wallet');
 
-      case Bitnames():
+      case BinaryType.bitnames:
         await _renameWalletDir(dir, 'wallet.mdb');
 
-      case BitAssets():
+      case BinaryType.bitAssets:
         await _renameWalletDir(dir, 'wallet.mdb');
 
-      case Thunder():
+      case BinaryType.thunder:
         await _renameWalletDir(dir, 'wallet.mdb');
 
-      case ZSide():
+      case BinaryType.zSide:
         await _renameWalletDir(dir, 'wallet.mdb');
+
+      case BinaryType.bitcoinCore:
+      case BinaryType.bitWindow:
+      case BinaryType.testSidechain:
+        // No wallet for these types
+        break;
     }
   }
 
@@ -237,8 +221,8 @@ abstract class Binary {
     ]);
 
     // then any extra files for that specific chain
-    switch (this) {
-      case BitcoinCore():
+    switch (type) {
+      case BinaryType.bitcoinCore:
         await _deleteFilesInDir(dir, [
           'bitcoin-cli',
           'bitcoin-util',
@@ -247,10 +231,11 @@ abstract class Binary {
           'qt', // a directory!
         ]);
 
-      case Enforcer():
-      // nothing extra
+      case BinaryType.enforcer:
+        // nothing extra
+        break;
 
-      case BitWindow():
+      case BinaryType.bitWindow:
         await _deleteFilesInDir(dir, [
           'data',
           'lib',
@@ -262,22 +247,27 @@ abstract class Binary {
           'window_manager_plugin.dll',
         ]);
 
-      case Bitnames():
+      case BinaryType.bitnames:
         await _deleteFilesInDir(dir, [
           'bitnames-cli',
           'logs',
         ]);
 
-      case BitAssets():
+      case BinaryType.bitAssets:
         await _deleteFilesInDir(dir, [
           'bitassets-cli',
           'logs',
         ]);
 
-      case Thunder():
+      case BinaryType.thunder:
         await _deleteFilesInDir(dir, [
           'thunder-cli',
         ]);
+
+      case BinaryType.testSidechain:
+      case BinaryType.zSide:
+        // No extra files for these types
+        break;
     }
   }
 
@@ -388,7 +378,7 @@ abstract class Binary {
 
     // Add launcher download paths based on binary type and platform
     if (home != null) {
-      if (BitcoinCore().name == name) {
+      if (type == BinaryType.bitcoinCore) {
         switch (Platform.operatingSystem) {
           case 'linux':
             paths.add(
@@ -425,7 +415,7 @@ abstract class Binary {
               ),
             );
         }
-      } else if (Enforcer().name == name) {
+      } else if (type == BinaryType.enforcer) {
         switch (Platform.operatingSystem) {
           case 'linux':
             final binaryName = 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu';
@@ -569,6 +559,9 @@ class BitcoinCore extends Binary {
         );
 
   @override
+  BinaryType get type => BinaryType.bitcoinCore;
+
+  @override
   Color get color => SailColorScheme.green;
 
   @override
@@ -636,6 +629,9 @@ class BitWindow extends Binary {
               ),
           port: port ?? 8080,
         );
+
+  @override
+  BinaryType get type => BinaryType.bitWindow;
 
   @override
   Color get color => SailColorScheme.green;
@@ -706,6 +702,9 @@ class Enforcer extends Binary {
         );
 
   @override
+  BinaryType get type => BinaryType.enforcer;
+
+  @override
   Color get color => SailColorScheme.green;
 
   @override
@@ -737,23 +736,22 @@ class Enforcer extends Binary {
 
 extension BinaryPaths on Binary {
   String confFile() {
-    return switch (this) {
-      var b when b is TestSidechain => 'testchain.conf',
-      var b when b is ZSide => 'zside.conf',
-      var b when b is BitcoinCore => 'bitcoin.conf',
-      _ => throw 'unsupported binary type: $runtimeType',
+    return switch (type) {
+      BinaryType.testSidechain => 'testchain.conf',
+      BinaryType.zSide => 'zside.conf',
+      BinaryType.bitcoinCore => 'bitcoin.conf',
+      _ => throw 'unsupported binary type: $type',
     };
   }
 
   String logPath() {
-    return switch (this) {
-      var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
-      var b when b is ZSide => filePath([datadir(), 'regtest', 'debug.log']),
-      var b when b is Thunder || b is Bitnames || b is BitAssets => _findLatestVersionedLog(),
-      var b when b is BitcoinCore => filePath([datadir(), 'debug.log']),
-      var b when b is BitWindow => filePath([datadir(), 'server.log']),
-      var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
-      _ => throw 'unsupported binary type: $runtimeType',
+    return switch (type) {
+      BinaryType.testSidechain => filePath([datadir(), 'debug.log']),
+      BinaryType.zSide => filePath([datadir(), 'regtest', 'debug.log']),
+      BinaryType.thunder || BinaryType.bitnames || BinaryType.bitAssets => _findLatestVersionedLog(),
+      BinaryType.bitcoinCore => filePath([datadir(), 'debug.log']),
+      BinaryType.bitWindow => filePath([datadir(), 'server.log']),
+      BinaryType.enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
     };
   }
 
@@ -826,7 +824,7 @@ extension BinaryPaths on Binary {
 
     switch (OS.current) {
       case OS.linux:
-        if (name == BitcoinCore().name) {
+        if (type == BinaryType.bitcoinCore) {
           // in good style, this is different than all the others
           return filePath([home, subdir]);
         }

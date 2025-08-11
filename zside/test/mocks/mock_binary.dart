@@ -36,6 +36,9 @@ class MockBinary extends Binary {
         );
 
   @override
+  BinaryType get type => BinaryType.testSidechain;
+
+  @override
   Color get color => SailColorScheme.orange;
 
   @override

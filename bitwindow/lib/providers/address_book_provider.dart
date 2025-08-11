@@ -19,6 +19,7 @@ class AddressBookProvider extends ChangeNotifier {
 
   AddressBookProvider() {
     bitwindowd.addListener(fetch);
+    fetch();
   }
 
   Future<void> fetch() async {

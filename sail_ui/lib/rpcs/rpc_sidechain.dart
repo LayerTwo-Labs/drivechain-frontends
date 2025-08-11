@@ -8,7 +8,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 abstract class SidechainRPC extends RPCConnection {
   SidechainRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 

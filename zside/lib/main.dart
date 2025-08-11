@@ -17,7 +17,21 @@ import 'package:zside/rpc/models/active_sidechains.dart';
 import 'package:zside/storage/sail_settings/font_settings.dart';
 import 'package:zside/widgets/containers/dropdownactions/console.dart';
 
-Future<void> start(List<String> args) async {
+void main(List<String> args) async {
+  try {
+    final (applicationDir, logFile, log) = await init(args);
+
+    if (args.contains('multi_window')) {
+      return runMultiWindow(args, log, applicationDir, logFile);
+    }
+
+    await runMainWindow(log, applicationDir, logFile);
+  } catch (e, stackTrace) {
+    runErrorScreen(e, stackTrace);
+  }
+}
+
+Future<(Directory, File, Logger)> init(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   Directory? applicationDir;
@@ -49,9 +63,7 @@ Future<void> start(List<String> args) async {
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
   Future<SidechainRPC> createSidechainConnection(Binary binary) async {
-    final zside = await ZSideLive.create(
-      binary: binary,
-    );
+    final zside = ZSideLive();
     GetIt.I.registerSingleton<ZSideRPC>(zside);
 
     return zside;
@@ -73,32 +85,35 @@ Future<void> start(List<String> args) async {
     () => CastProvider(),
   );
 
-  log.i('starting zside');
+  return (applicationDir, logFile, log);
+}
+
+void runMultiWindow(List<String> args, Logger log, Directory applicationDir, File logFile) {
+  final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+  log.i('starting zside in multi window');
   final zside = GetIt.I.get<ZSideRPC>();
 
-  if (args.contains('multi_window')) {
-    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+  Widget child = SailCard(
+    child: SailText.primary15('no window type provided, the programmers messed up'),
+  );
 
-    Widget child = SailCard(
-      child: SailText.primary15('no window type provided, the programmers messed up'),
-    );
-
-    switch (arguments['window_type']) {
-      case 'console':
-        child = const ConsoleWindow();
-        break;
-    }
-
-    return runApp(
-      buildSailWindowApp(
-        log,
-        '${arguments['window_title'] as String} | ZSide',
-        child,
-        zside.chain.color,
-      ),
-    );
+  switch (arguments['window_type']) {
+    case 'console':
+      child = const ConsoleWindow();
+      break;
   }
 
+  return runApp(
+    buildSailWindowApp(
+      log,
+      '${arguments['window_title'] as String} | ZSide',
+      child,
+      zside.chain.color,
+    ),
+  );
+}
+
+Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
     minimumSize: Size(400, 400),
@@ -119,6 +134,10 @@ Future<void> start(List<String> args) async {
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
   final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
+
+  log.i('starting zside');
+  final zside = GetIt.I.get<ZSideRPC>();
+  final router = GetIt.I.get<AppRouter>();
 
   runApp(
     SailApp(
@@ -145,12 +164,6 @@ bool isCurrentChainActive({
 }) {
   final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
   return foundMatch != null;
-}
-
-void main(List<String> args) async {
-  // the application is launched function because some startup things
-  // are async
-  await start(args);
 }
 
 Future<File> getLogFile(Directory datadir) async {

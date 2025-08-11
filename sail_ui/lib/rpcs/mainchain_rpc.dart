@@ -10,7 +10,7 @@ import 'package:sail_ui/sail_ui.dart';
 abstract class MainchainRPC extends RPCConnection {
   MainchainRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 
@@ -48,28 +48,16 @@ class MainchainRPCLive extends MainchainRPC {
     return client;
   }
 
-  // hacky way to create an async class
-  // https://stackoverflow.com/a/59304510
-  MainchainRPCLive._create({
-    required super.conf,
-    required super.binary,
-    required super.restartOnFailure,
-  });
-  static Future<MainchainRPCLive> create(
-    Binary binary,
-  ) async {
-    final conf = await readConf();
-
-    final container = MainchainRPCLive._create(
-      conf: conf,
-      binary: binary,
-      restartOnFailure: false,
-    );
-    await container.init();
-    return container;
+  MainchainRPCLive()
+      : super(
+          conf: readConf(),
+          binaryType: BinaryType.bitcoinCore,
+          restartOnFailure: false,
+        ) {
+    _init();
   }
 
-  Future<void> init() async {
+  void _init() async {
     if (Environment.isInTest) {
       return;
     }

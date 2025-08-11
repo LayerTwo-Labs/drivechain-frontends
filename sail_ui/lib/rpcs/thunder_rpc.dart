@@ -15,7 +15,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 abstract class ThunderRPC extends SidechainRPC {
   ThunderRPC({
     required super.conf,
-    required super.binary,
+    required super.binaryType,
     required super.restartOnFailure,
   });
 
@@ -73,30 +73,16 @@ class ThunderLive extends ThunderRPC {
     return client;
   }
 
-  // Private constructor
-  ThunderLive._create({
-    required super.conf,
-    required super.binary,
-    required super.restartOnFailure,
-  });
-
-  // Async factory
-  static Future<ThunderLive> create({
-    required Binary binary,
-  }) async {
-    final conf = await readConf();
-
-    final instance = ThunderLive._create(
-      conf: conf,
-      binary: binary,
-      restartOnFailure: false,
-    );
-
-    await instance._init();
-    return instance;
+  ThunderLive()
+      : super(
+          conf: readConf(),
+          binaryType: BinaryType.thunder,
+          restartOnFailure: false,
+        ) {
+    _init();
   }
 
-  Future<void> _init() async {
+  void _init() async {
     await startConnectionTimer();
   }
 

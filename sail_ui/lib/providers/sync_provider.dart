@@ -99,6 +99,7 @@ class SyncProvider extends ChangeNotifier {
     if (startTimer && !Environment.isInTest) {
       _startAllTimers();
     }
+    fetch();
   }
 
   // opts into the provider also notifying of download progress

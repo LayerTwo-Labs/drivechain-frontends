@@ -35,6 +35,8 @@ class TransactionProvider extends ChangeNotifier {
   // Fetch transactions every 5 seconds, just in case something happens
   // automatically behind the scenes
   void _startFetchingTimer() {
+    fetch();
+
     if (Environment.isInTest) {
       return;
     }

@@ -33,20 +33,13 @@ Future<void> initSidechainDependencies({
   );
 
   // Load initial binary states
-  final binaries = await _loadBinaries(applicationDir, sidechain);
-  final mainchainRPC = await MainchainRPCLive.create(
-    binaries.firstWhere((b) => b is BitcoinCore),
-  );
+  final binaries = _initialBinaries(sidechain);
+  final mainchainRPC = MainchainRPCLive();
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
   );
 
-  final enforcerBinary = binaries.firstWhere((b) => b is Enforcer);
-  final enforcer = await EnforcerLive.create(
-    host: '127.0.0.1',
-    port: enforcerBinary.port,
-    binary: enforcerBinary,
-  );
+  final enforcer = EnforcerLive();
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
   final binary = binaries.firstWhere((b) => b.name == sidechain.name);
@@ -55,13 +48,11 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
   // After RPCs including sidechain rpcs have been registered, register the binary provider
-  final binaryProvider = BinaryProvider(
+  final binaryProvider = await BinaryProvider.create(
     appDir: applicationDir,
     initialBinaries: binaries,
   );
-  GetIt.I.registerSingleton<BinaryProvider>(
-    binaryProvider,
-  );
+  GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   bootBinaries(log, sidechain);
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
@@ -83,7 +74,7 @@ Future<void> initSidechainDependencies({
   final syncProvider = SyncProvider(
     additionalConnection: SyncConnection(
       rpc: sidechainConnection,
-      name: sidechainConnection.binary.name,
+      name: sidechainConnection.chain.name,
     ),
   );
   GetIt.I.registerLazySingleton<SyncProvider>(
@@ -117,7 +108,7 @@ void bootBinaries(Logger log, Binary sidechain) async {
   );
 }
 
-Future<List<Binary>> _loadBinaries(Directory appDir, Binary sidechain) async {
+List<Binary> _initialBinaries(Binary sidechain) {
   // Register all binaries
   var binaries = [
     BitcoinCore(),
@@ -125,8 +116,8 @@ Future<List<Binary>> _loadBinaries(Directory appDir, Binary sidechain) async {
     sidechain,
   ];
 
-  // make bitassets boot in headless-mode
+  // make sidechain boot in headless-mode
   binaries[2].addBootArg('--headless');
 
-  return await loadBinaryCreationTimestamp(binaries, appDir);
+  return binaries;
 }

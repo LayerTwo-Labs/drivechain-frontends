@@ -17,15 +17,16 @@ import 'package:sail_ui/sail_ui.dart';
 // YourClass extends ChangeNotifier implements RPCConnection
 abstract class RPCConnection extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
+  Binary get binary => GetIt.I.get<BinaryProvider>().binaries.firstWhere((b) => b.type == binaryType);
 
   NodeConnectionSettings conf;
-  final Binary binary;
+  BinaryType binaryType;
   // if set to true, the process will be restarted when exiting with a non-zero exit code
   final bool restartOnFailure;
 
   RPCConnection({
     required this.conf,
-    required this.binary,
+    required this.binaryType,
     required this.restartOnFailure,
   });
 
@@ -265,6 +266,14 @@ abstract class RPCConnection extends ChangeNotifier {
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
   Timer? connectionTimer;
+
+  /// Waits for the connection to be established
+  Future<void> waitForConnected() async {
+    while (!connected) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
   Future<void> startConnectionTimer() async {
     if (Environment.isInTest) {
       return;

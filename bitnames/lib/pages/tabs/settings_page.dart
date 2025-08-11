@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/gen/version.dart';
-import 'package:bitnames/main.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -214,7 +214,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           await binary.wipeAppDir();
 
           // finally, boot the binaries
-          bootBinaries(GetIt.I.get<Logger>());
+          bootBinaries(GetIt.I.get<Logger>(), binaryProvider.binaries.firstWhere((b) => b is Bitnames));
 
           final rpc = GetIt.I.get<BitnamesRPC>();
           while (!rpc.connected) {

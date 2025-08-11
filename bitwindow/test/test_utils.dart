@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/providers/binaries/download_manager.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'mocks/api_mock.dart';
@@ -78,7 +79,7 @@ Future<void> registerTestDependencies() async {
 
   if (!GetIt.I.isRegistered<BinaryProvider>()) {
     GetIt.I.registerLazySingleton<BinaryProvider>(
-      () => BinaryProvider(appDir: Directory('/'), initialBinaries: []),
+      () => MockBinaryProvider(),
     );
   }
 
@@ -92,7 +93,7 @@ Future<void> registerTestDependencies() async {
     GetIt.I.registerLazySingleton<BitwindowRPC>(
       () => MockAPI(
         conf: NodeConnectionSettings.empty(),
-        binary: MockBinary(),
+        binaryType: BinaryType.bitWindow,
         restartOnFailure: true,
       ),
     );
@@ -102,7 +103,7 @@ Future<void> registerTestDependencies() async {
     connections: [
       MockAPI(
         conf: NodeConnectionSettings.empty(),
-        binary: MockBinary(),
+        binaryType: BinaryType.bitWindow,
         restartOnFailure: true,
       ),
     ],
@@ -160,6 +161,9 @@ class MockBinary extends Binary {
         );
 
   @override
+  BinaryType get type => BinaryType.testSidechain;
+
+  @override
   Color get color => SailColorScheme.orange;
 
   @override
@@ -177,4 +181,157 @@ class MockBinary extends Binary {
   }) {
     return MockBinary();
   }
+}
+
+class MockBinaryProvider extends BinaryProvider {
+  MockBinaryProvider()
+      : super.test(
+          appDir: Directory('/tmp'),
+          downloadManager: MockDownloadManager(),
+          processManager: MockProcessManager(),
+        );
+
+  @override
+  List<Binary> get binaries => [MockBinary()];
+
+  @override
+  Directory get appDir => Directory('/tmp');
+
+  @override
+  bool get mainchainConnected => true;
+
+  @override
+  bool get enforcerConnected => true;
+
+  @override
+  bool get bitwindowConnected => true;
+
+  @override
+  bool get thunderConnected => false;
+
+  @override
+  bool get bitnamesConnected => false;
+
+  @override
+  bool get bitassetsConnected => false;
+
+  @override
+  bool get zsideConnected => false;
+
+  @override
+  bool get mainchainInitializing => false;
+
+  @override
+  bool get enforcerInitializing => false;
+
+  @override
+  bool get bitwindowInitializing => false;
+
+  @override
+  bool get thunderInitializing => false;
+
+  @override
+  bool get bitnamesInitializing => false;
+
+  @override
+  bool get bitassetsInitializing => false;
+
+  @override
+  bool get zsideInitializing => false;
+
+  @override
+  bool get mainchainStopping => false;
+
+  @override
+  bool get enforcerStopping => false;
+
+  @override
+  bool get bitwindowStopping => false;
+
+  @override
+  bool get thunderStopping => false;
+
+  @override
+  bool get bitnamesStopping => false;
+
+  @override
+  bool get bitassetsStopping => false;
+
+  @override
+  bool get zsideStopping => false;
+
+  @override
+  String? get mainchainError => null;
+
+  @override
+  String? get enforcerError => null;
+
+  @override
+  String? get bitwindowError => null;
+
+  @override
+  String? get thunderError => null;
+
+  @override
+  String? get bitnamesError => null;
+
+  @override
+  String? get bitassetsError => null;
+
+  @override
+  String? get zsideError => null;
+
+  @override
+  String? get mainchainStartupError => null;
+
+  @override
+  String? get enforcerStartupError => null;
+
+  @override
+  String? get bitwindowStartupError => null;
+
+  @override
+  String? get thunderStartupError => null;
+
+  @override
+  String? get bitnamesStartupError => null;
+
+  @override
+  String? get bitassetsStartupError => null;
+
+  @override
+  String? get zsideStartupError => null;
+
+  @override
+  ExitTuple? exited(Binary binary) => null;
+
+  @override
+  Stream<String> stderr(Binary binary) => Stream.empty();
+
+  @override
+  void setUseStarter(Binary binary, bool value) {}
+
+  @override
+  void addListener(listener) {}
+
+  @override
+  void removeListener(listener) {}
+
+  @override
+  void notifyListeners() {}
+
+  @override
+  bool get hasListeners => false;
+}
+
+class MockDownloadManager extends DownloadManager {
+  MockDownloadManager()
+      : super.test(
+          appDir: Directory('/tmp'),
+          binaries: [MockBinary()],
+        );
+}
+
+class MockProcessManager extends ProcessManager {
+  MockProcessManager() : super(appDir: Directory('/tmp'));
 }
