@@ -3,15 +3,11 @@ import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
-import 'package:bs58/bs58.dart';
-import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
-import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:pointycastle/digests/sha256.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -140,24 +136,33 @@ class PSBTCoordinatorModal extends StatelessWidget {
                       final group = fundedGroups[index];
                       return SailCard(
                         shadowSize: ShadowSize.none,
-                        child: ListTile(
-                          title: SailText.primary13(group.name),
-                          subtitle: SailColumn(
-                            spacing: SailStyleValues.padding04,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SailText.secondary12('${group.m} of ${group.n} multisig'),
-                              SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
-                              SailText.secondary12('UTXOs: ${group.utxos}'),
-                            ],
-                          ),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            showDialog(
-                              context: context,
-                              builder: (context) => PSBTCoordinatorModal(group: group),
-                            );
-                          },
+                        child: SailRow(
+                          children: [
+                            Expanded(
+                              child: SailColumn(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                spacing: SailStyleValues.padding04,
+                                children: [
+                                  SailText.primary13(group.name),
+                                  SailText.secondary12('${group.m} of ${group.n} multisig'),
+                                  SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
+                                  SailText.secondary12('UTXOs: ${group.utxos}'),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: SailStyleValues.padding16),
+                            SailButton(
+                              label: 'Select Group',
+                              onPressed: () async {
+                                Navigator.of(context).pop();
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) => PSBTCoordinatorModal(group: group),
+                                );
+                              },
+                              variant: ButtonVariant.primary,
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -327,35 +332,15 @@ class CreateTransactionViewModel extends BaseViewModel {
   Future<void> signWithWalletKeys(BuildContext context) async {
     if (createdPSBT == null || !hasWalletKeys) return;
     
-    String? tempWalletName;
     try {
       _error = null;
       isSigning = true;
       notifyListeners();
       
-      final walletManager = WalletRPCManager();
       final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-      final api = GetIt.I.get<MainchainRPC>();
       
-      if (hdWalletProvider.seedHex == null) {
-        throw Exception('Wallet seed not available - please ensure wallet is unlocked');
-      }
-      
-      // Create a temporary wallet for signing
-      tempWalletName = 'temp_sign_${DateTime.now().millisecondsSinceEpoch}';
-      
-      GetIt.I.get<Logger>().d('Creating temporary wallet: $tempWalletName');
-      
-      // Create temp wallet with private keys enabled
-      try {
-        await walletManager.createWallet(
-          tempWalletName,
-          disablePrivateKeys: false,
-          blank: true,
-        );
-        GetIt.I.get<Logger>().d('Temporary wallet created successfully');
-      } catch (e) {
-        throw Exception('Failed to create temporary wallet: $e');
+      if (hdWalletProvider.mnemonic == null) {
+        throw Exception('Wallet mnemonic not available - please ensure wallet is unlocked');
       }
       
       // Get wallet keys that we can sign with
@@ -366,109 +351,49 @@ class CreateTransactionViewModel extends BaseViewModel {
         throw Exception('No wallet keys found in this multisig group');
       }
       
-      // Import private keys for each wallet key
-      int importedCount = 0;
-      for (final key in walletKeys) {
-        if (key.fingerprint != null && key.originPath != null) {
-          try {
-            GetIt.I.get<Logger>().d('Processing wallet key: ${key.xpub.substring(0, 20)}...');
-            
-            // Use the origin path to derive the private key
-            final derivationPath = key.originPath!.startsWith('m/') 
-                ? key.originPath!
-                : 'm/${key.originPath!}';
-            
-            GetIt.I.get<Logger>().d('Deriving key at path: $derivationPath');
-            
-            // Derive the private key using HD wallet
-            final chain = Chain.seed(hdWalletProvider.seedHex!);
-            final derivedKey = chain.forPath(derivationPath);
-            final privateKeyHex = derivedKey.privateKeyHex();
-            
-            // Convert to WIF format for testnet (0xef prefix for testnet)
-            final privateKeyBytes = [0xef, ...hex.decode(privateKeyHex), 0x01];
-            final sha256_1 = SHA256Digest().process(Uint8List.fromList(privateKeyBytes));
-            final sha256_2 = SHA256Digest().process(sha256_1);
-            final checksum = sha256_2.sublist(0, 4);
-            final privateKeyWIF = base58.encode(Uint8List.fromList([...privateKeyBytes, ...checksum]));
-            
-            GetIt.I.get<Logger>().d('Importing private key to temp wallet');
-            
-            // Import private key to temp wallet
-            await walletManager.callWalletRPC<dynamic>(
-              tempWalletName,
-              'importprivkey',
-              [privateKeyWIF, '', false], // No label, no rescan
-            );
-            
-            importedCount++;
-            GetIt.I.get<Logger>().d('Successfully imported private key $importedCount/${walletKeys.length}');
-            
-          } catch (e) {
-            GetIt.I.get<Logger>().w('Failed to import private key for key ${key.xpub.substring(0, 20)}: $e');
-            throw Exception('Failed to import private key for wallet key: $e');
-          }
-        } else {
-          throw Exception('Wallet key missing required fingerprint or origin path');
-        }
-      }
+      // Use MultisigRPCSigner for proper descriptor-based signing
+      final rpcSigner = MultisigRPCSigner();
+      const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
       
-      if (importedCount == 0) {
-        throw Exception('No private keys were successfully imported to temp wallet');
-      }
+      final signingResult = await rpcSigner.signPSBT(
+        psbtBase64: createdPSBT!,
+        group: group,
+        mnemonic: hdWalletProvider.mnemonic!,
+        walletKeys: walletKeys,
+        isMainnet: isMainnet,
+      );
       
-      GetIt.I.get<Logger>().d('Processing PSBT with temp wallet (imported $importedCount keys)');
-      
-      // Process PSBT with temp wallet to add signatures
-      Map<String, dynamic> processResult;
-      try {
-        processResult = await walletManager.callWalletRPC<Map<String, dynamic>>(
-          tempWalletName,
-          'walletprocesspsbt',
-          [createdPSBT!],
-        );
-      } catch (e) {
-        throw Exception('walletprocesspsbt RPC call failed: $e');
-      }
-      
-      final signedPSBT = processResult['psbt'] as String?;
-      final isComplete = processResult['complete'] as bool? ?? false;
-      
-      if (signedPSBT == null) {
-        throw Exception('walletprocesspsbt returned null PSBT');
-      }
-      
-      if (signedPSBT == createdPSBT) {
-        throw Exception('No signatures were added to the PSBT - wallet may not have the correct private keys for this transaction');
-      }
-      
-      GetIt.I.get<Logger>().i('Successfully signed PSBT${isComplete ? ' (complete)' : ' (partial)'}');
+      GetIt.I.get<Logger>().i('Successfully signed PSBT - ${signingResult.signaturesAdded} signatures added${signingResult.isComplete ? ' (complete)' : ' (partial)'}');
       
       // Update the stored PSBT and transaction
-      createdPSBT = signedPSBT;
-      await Clipboard.setData(ClipboardData(text: signedPSBT));
+      createdPSBT = signingResult.signedPsbt;
+      await Clipboard.setData(ClipboardData(text: signingResult.signedPsbt));
       
       if (transactionId != null) {
         // Update transaction storage for each wallet key that signed
-        final ownedKeys = walletKeys.where((key) => key.isWallet).toList();
-        for (final key in ownedKeys) {
+        for (final key in walletKeys) {
           await TransactionStorage.updateKeyPSBT(
             transactionId!,
             key.xpub,
-            signedPSBT,
+            signingResult.signedPsbt,
             signatureThreshold: group.m,
             isOwnedKey: true,
           );
         }
         
         // Update transaction status if complete
-        if (isComplete) {
+        if (signingResult.isComplete) {
           await TransactionStorage.updateTransactionStatus(
             transactionId!,
             TxStatus.readyForBroadcast,
-            combinedPSBT: signedPSBT,
+            combinedPSBT: signingResult.signedPsbt,
           );
         }
+      }
+      
+      // Report any warnings
+      if (signingResult.errors.isNotEmpty) {
+        GetIt.I.get<Logger>().w('Signing completed with warnings: ${signingResult.errors.join(', ')}');
       }
       
       GetIt.I.get<Logger>().i('Signed PSBT copied to clipboard');
@@ -482,18 +407,6 @@ class CreateTransactionViewModel extends BaseViewModel {
       _error = 'Failed to sign with wallet keys: $e';
       GetIt.I.get<Logger>().e('Error signing with wallet keys: $e');
     } finally {
-      // Always clean up temp wallet
-      if (tempWalletName != null) {
-        try {
-          GetIt.I.get<Logger>().d('Cleaning up temporary wallet: $tempWalletName');
-          final api = GetIt.I.get<MainchainRPC>();
-          await api.callRAW('unloadwallet', [tempWalletName]);
-          GetIt.I.get<Logger>().d('Temporary wallet unloaded successfully');
-        } catch (e) {
-          GetIt.I.get<Logger>().w('Failed to unload temp wallet $tempWalletName: $e');
-        }
-      }
-      
       isSigning = false;
       notifyListeners();
     }

@@ -66,20 +66,30 @@ class HDWalletProvider extends ChangeNotifier {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
-      final txtPath = path.join(walletDir.path, 'l1_starter.txt');
-      final file = File(txtPath);
+      // Load from master_starter.json, NOT l1_starter.txt
+      // l1_starter.txt is only for the enforcer wallet, not for HD key derivation
+      final masterPath = path.join(walletDir.path, 'master_starter.json');
+      final file = File(masterPath);
       if (!await file.exists()) {
-        throw Exception('could not find l1_starter.txt');
+        throw Exception('could not find master_starter.json');
       }
 
       final fileContent = await file.readAsString();
-      _mnemonic = fileContent.trim();
+      final masterData = json.decode(fileContent) as Map<String, dynamic>;
+      
+      _mnemonic = masterData['mnemonic'] as String?;
       if (_mnemonic == null || _mnemonic!.isEmpty) {
-        throw Exception('l1_starter.txt is empty or contains no mnemonic');
+        throw Exception('master_starter.json does not contain mnemonic');
       }
 
-      final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
-      _seedHex = hex.encode(mnemonicObj.seed);
+      // Use the seed_hex directly from master_starter.json if available
+      if (masterData.containsKey('seed_hex')) {
+        _seedHex = masterData['seed_hex'] as String;
+      } else {
+        // Fallback to generating from mnemonic
+        final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
+        _seedHex = hex.encode(mnemonicObj.seed);
+      }
 
       final chain = Chain.seed(_seedHex!);
       final masterKey = chain.forPath('m');
@@ -92,6 +102,16 @@ class HDWalletProvider extends ChangeNotifier {
       _seedHex = _masterKey = _mnemonic = null;
       _initialized = false;
     }
+  }
+
+  /// Reset the provider state to allow re-initialization with new wallet data
+  Future<void> reset() async {
+    _initialized = false;
+    _seedHex = null;
+    _masterKey = null;
+    _mnemonic = null;
+    _error = null;
+    notifyListeners();
   }
 
   Future<bool> validateMnemonic(String mnemonic) async {
@@ -212,8 +232,15 @@ class HDWalletProvider extends ChangeNotifier {
   Future<Map<String, String>> deriveExtendedKeyInfo(String mnemonic, String path, [bool isMainnet = false]) async {
     try {
       // Adjust path for network-specific coin type
-      final coinType = isMainnet ? "0'" : "1'";
-      final adjustedPath = path.replaceAll("'0'", coinType).replaceAll("'1'", coinType);
+      // Only replace if the path doesn't already have the correct coin type
+      String adjustedPath = path;
+      if (isMainnet && path.contains("'1'/")) {
+        adjustedPath = path.replaceAll("'1'/", "'0'/");
+      } else if (!isMainnet && path.contains("'0'/")) {
+        adjustedPath = path.replaceAll("'0'/", "'1'/");
+      }
+      
+      log.d('deriveExtendedKeyInfo: original path=$path, adjusted path=$adjustedPath, isMainnet=$isMainnet');
       
       final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
       final seedHex = hex.encode(mnemonicObj.seed);

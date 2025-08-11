@@ -320,7 +320,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     final configData = {
       'owner': 'MyKey$keyIndex',
       'xpub': keyInfo!['xpub'],
-      'pubkey': keyInfo!['xpub'], // Legacy compatibility field
       'path': keyInfo!['path'],
       'fingerprint': keyInfo!['fingerprint'],
       'origin_path': keyInfo!['originPath'],

@@ -8,6 +8,7 @@ import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -42,7 +43,6 @@ class MultisigKey {
   Map<String, dynamic> toJson() => {
         'owner': owner,
         'xpub': xpub,
-        'pubkey': xpub,
         'path': derivationPath,
         'fingerprint': fingerprint,
         'origin_path': originPath,
@@ -53,7 +53,7 @@ class MultisigKey {
 
   factory MultisigKey.fromJson(Map<String, dynamic> json) => MultisigKey(
         owner: json['owner'],
-        xpub: json['xpub'] ?? json['pubkey'], // Support legacy pubkey field
+        xpub: json['xpub'] ?? json['pubkey'], // Still support legacy pubkey field for old data
         derivationPath: json['path'],
         fingerprint: json['fingerprint'],
         originPath: json['origin_path'],
@@ -483,6 +483,20 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     return false;
   }
 
+  // Generate a unique key name that doesn't conflict with existing keys
+  String _generateUniqueKeyName({String baseName = 'MyKey'}) {
+    int index = 0;
+    String proposedName = '$baseName$index';
+    
+    // Keep incrementing until we find a unique name
+    while (keys.any((key) => key.owner == proposedName)) {
+      index++;
+      proposedName = '$baseName$index';
+    }
+    
+    return proposedName;
+  }
+
 
   // Controllers
   final TextEditingController nameController = TextEditingController();
@@ -501,6 +515,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   List<MultisigKey> keys = [];
   bool shouldEncrypt = false; // Default to false (base64 only)
   bool _lastKeyWasGenerated = false; // Track if the last key operation was wallet generation
+  String? _importedOriginPath; // Store origin_path from imported key file
   
   // Constants
   static const int MULTISIG_DERIVATION_INDEX = 8000;
@@ -633,7 +648,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     // Reset session tracking when starting key creation
     _sessionUsedAccountIndices.clear();
     
-    ownerController.text = 'MyKey0';
+    ownerController.text = _generateUniqueKeyName();
     // Set default path for manual entry (external keys) to match enforcer pattern
     pathController.text = "m/84'/1'/0'/0/0";
     notifyListeners();
@@ -689,9 +704,8 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       pathController.text = keyInfo['derivation_path'] ?? '';
       fingerprintController.text = keyInfo['fingerprint'] ?? '';
       
-      // Update the owner name to show relative index
-      final relativeIndex = accountIndex - 8000;
-      ownerController.text = 'MyKey$relativeIndex';
+      // Generate a unique owner name
+      ownerController.text = _generateUniqueKeyName();
       
       // Mark that this was a wallet-generated key
       _lastKeyWasGenerated = true;
@@ -739,37 +753,40 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<void> importKeyFromFile(BuildContext context) async {
     try {
-      // Get available key files from bitdrive directory
-      final keyFiles = await _getAvailableKeyFiles();
-      
-      if (keyFiles.isEmpty) {
-        modalError = 'No .conf key files found in bitdrive/multisig or bitdrive/multisig/imported_keys directories. Use "Get Key" to generate keys first.';
+      // Use file picker to let user choose any JSON/conf file from their file system
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json', 'conf'],
+        dialogTitle: 'Select Key File to Import',
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.path == null) {
+        modalError = 'Could not access file path';
         notifyListeners();
         return;
       }
 
-      // Show dialog to select key file
-      final selectedFile = await showDialog<String>(
-        context: context,
-        builder: (context) => _buildKeyFileSelectionDialog(context, keyFiles),
-      );
-
-      if (selectedFile == null) return;
-
       // Load and parse the selected key file
-      final keyData = await _loadKeyFile(selectedFile);
+      final keyData = await _loadKeyFile(file.path!);
       
       // Populate the form fields with the imported data
-      ownerController.text = keyData['owner'] ?? '';
-      pubkeyController.text = keyData['xpub'] ?? keyData['pubkey'] ?? '';
-      pathController.text = keyData['path'] ?? '';
-      fingerprintController.text = keyData['fingerprint'] ?? '';
+      // Handle various naming conventions for key files
+      ownerController.text = keyData['owner'] ?? keyData['name'] ?? '';
+      pubkeyController.text = keyData['xpub'] ?? keyData['extended_public_key'] ?? keyData['pubkey'] ?? ''; // pubkey is legacy fallback
+      pathController.text = keyData['path'] ?? keyData['derivation_path'] ?? keyData['bip32_path'] ?? '';
+      fingerprintController.text = keyData['fingerprint'] ?? keyData['master_fingerprint'] ?? '';
+
+      // Store the imported origin_path separately to preserve it
+      _importedOriginPath = keyData['origin_path'] ?? keyData['origin'];
 
       // Mark that this was NOT a wallet-generated key (imported from file)
       _lastKeyWasGenerated = false;
 
-      // Copy the imported key to imported_keys directory
-      await _copyKeyToImportedKeys(selectedFile, keyData);
+      // Copy the imported key to imported_keys directory for record keeping
+      await _copyKeyToImportedKeys(file.path!, keyData);
 
       modalError = null;
       notifyListeners();
@@ -777,7 +794,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Key imported from ${path.basename(selectedFile)} and copied to imported_keys'),
+            content: Text('Key imported from ${file.name}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -789,45 +806,26 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
   }
 
-  Future<List<String>> _getAvailableKeyFiles() async {
-    final appDir = await Environment.datadir();
-    final multisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
-    final importedKeysDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig', 'imported_keys'));
-    
-    List<String> allKeyFiles = [];
-    
-    // Wallet-generated keys in multisig directory
-    final multisigFiles = await multisigDir.list().toList();
-    final walletKeys = multisigFiles
-        .where((file) => file is File && file.path.endsWith('.conf'))
-        .map((file) => file.path)
-        .toList();
-    allKeyFiles.addAll(walletKeys);
-    
-    // Imported keys in imported_keys subdirectory
-    final importedFiles = await importedKeysDir.list().toList();
-    final importedKeys = importedFiles
-        .where((file) => file is File && file.path.endsWith('.conf'))
-        .map((file) => file.path)
-        .toList();
-    allKeyFiles.addAll(importedKeys);
-    
-    return allKeyFiles;
-  }
 
   Future<Map<String, dynamic>> _loadKeyFile(String filePath) async {
     try {
       final file = File(filePath);
       final content = await file.readAsString();
+      
+      // Parse JSON - will throw if not valid JSON format
       final jsonData = jsonDecode(content) as Map<String, dynamic>;
       
-      // Validate that it has the required fields
-      if (jsonData['xpub'] == null && jsonData['pubkey'] == null) {
-        throw Exception('Key file missing xpub/pubkey field');
+      // Validate that it has the required fields (xpub is primary, others are legacy/alternatives)
+      if (jsonData['xpub'] == null && jsonData['extended_public_key'] == null && jsonData['pubkey'] == null) {
+        throw Exception('Key file missing required field: must contain xpub, extended_public_key, or pubkey');
       }
       
+      // No fallback derivation - return exact data from file
       return jsonData;
     } catch (e) {
+      if (e is FormatException) {
+        throw Exception('Invalid conf file format: File must be valid JSON');
+      }
       throw Exception('Failed to load key file: $e');
     }
   }
@@ -850,43 +848,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     await destinationFile.writeAsString(jsonEncode(keyData));
   }
 
-  Widget _buildKeyFileSelectionDialog(BuildContext context, List<String> keyFiles) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 400),
-        child: SailCard(
-          title: 'Select Key File to Import',
-          subtitle: 'Choose a .conf file from the bitdrive/multisig directories',
-          child: SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding12,
-              children: [
-                ...keyFiles.map((filePath) {
-                  final fileName = path.basename(filePath);
-                  return SailCard(
-                    shadowSize: ShadowSize.none,
-                    child: ListTile(
-                      title: Text(fileName, style: TextStyle(color: Colors.white)),
-                      subtitle: Text(filePath),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () => Navigator.of(context).pop(filePath),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 16),
-                SailButton(
-                  label: 'Cancel',
-                  onPressed: () async => Navigator.of(context).pop(),
-                  variant: ButtonVariant.secondary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Future<void> saveKey() async {
     if (!canSaveKey) return;
@@ -894,6 +855,13 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     // Check if we've reached the maximum number of keys
     if (keys.length >= n) {
       modalError = 'Cannot add more than $n keys to this multisig group';
+      notifyListeners();
+      return;
+    }
+
+    // Check for duplicate key owners
+    if (keys.any((key) => key.owner == ownerController.text)) {
+      modalError = 'Key owner name "${ownerController.text}" is already used. Each key must have a unique owner name.';
       notifyListeners();
       return;
     }
@@ -914,8 +882,11 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
 
     // Determine if this is a wallet-generated key
-    // ONLY mark as wallet key if it was generated by the wallet in this session
     final currentPath = pathController.text;
+    // ONLY mark as wallet key if it was generated by the wallet in this session
+    // Imported keys should NEVER be marked as wallet keys, even if they have wallet paths
+    // This prevents incorrect signing attempts when the imported key doesn't actually
+    // belong to the current wallet
     final isWalletKey = _lastKeyWasGenerated;
 
     // Validate wallet-generated keys have proper path
@@ -925,8 +896,15 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       return;
     }
 
-    // Extract origin path (remove 'm/')
-    final originPath = currentPath.startsWith('m/') ? currentPath.substring(2) : currentPath;
+    // For imported keys, use exact data from file. For wallet keys, derive as needed.
+    String? originPath;
+    if (_lastKeyWasGenerated) {
+      // Wallet-generated key in this session: derive origin path from derivation path
+      originPath = currentPath.startsWith('m/') ? currentPath.substring(2) : currentPath;
+    } else {
+      // Imported key: use exactly what was in the file (may be null)
+      originPath = _importedOriginPath;
+    }
 
     final key = MultisigKey(
       owner: ownerController.text,
@@ -943,7 +921,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     
     // Clear form and prepare for next key (only if we haven't reached the limit)
     if (keys.length < n) {
-      ownerController.text = 'External Key ${keys.length + 1}';
+      ownerController.text = _generateUniqueKeyName(baseName: 'ExtKey');
       pubkeyController.clear();
       fingerprintController.clear();
       
@@ -957,8 +935,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       fingerprintController.clear();
     }
     
-    // Reset the flag for next key
+    // Reset the flags and imported data for next key
     _lastKeyWasGenerated = false;
+    _importedOriginPath = null;
     
     modalError = null;
     notifyListeners();
@@ -1376,14 +1355,14 @@ class ImportMultisigModal extends StatelessWidget {
                         loading: viewModel.isBusy,
                       ),
                     ] else ...[
-                      SailText.primary15('Select Your Keys'),
+                      SailText.primary15('Detected Keys'),
                       SailText.secondary12(
-                        'Check the keys that belong to you. This helps the wallet know which keys it can use for signing.',
+                        'The wallet has automatically detected which keys belong to you.',
                       ),
                       SailSpacing(SailStyleValues.padding08),
                       
-                      if (viewModel.importedGroup != null)
-                        ...viewModel.importedGroup!.keys.asMap().entries.map((entry) {
+                      if (viewModel.processedKeys != null)
+                        ...viewModel.processedKeys!.asMap().entries.map((entry) {
                           final index = entry.key;
                           final key = entry.value;
                           return SailCard(
@@ -1392,10 +1371,26 @@ class ImportMultisigModal extends StatelessWidget {
                               spacing: SailStyleValues.padding08,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SailCheckbox(
-                                  label: key.owner,
-                                  value: viewModel.selectedKeys.contains(index),
-                                  onChanged: (value) => viewModel.toggleKeySelection(index),
+                                SailRow(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SailText.primary13('${index + 1}. ${key.owner}'),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: key.isWallet 
+                                            ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
+                                            : context.sailTheme.colors.text.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: SailText.secondary12(
+                                        key.isWallet ? 'Wallet Key' : 'External Key',
+                                        color: key.isWallet 
+                                            ? context.sailTheme.colors.primary
+                                            : context.sailTheme.colors.text,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 SailText.secondary12('Path: ${key.derivationPath}'),
                                 SailText.secondary12('xPub: ${key.xpub.substring(0, 20)}...'),
@@ -1409,6 +1404,10 @@ class ImportMultisigModal extends StatelessWidget {
                       SailText.secondary12('Name: ${viewModel.importedGroup?.name}'),
                       SailText.secondary12('ID: ${viewModel.importedGroup?.id.toUpperCase()}'),
                       SailText.secondary12('Required: ${viewModel.importedGroup?.m} of ${viewModel.importedGroup?.n}'),
+                      if (viewModel.processedKeys != null)
+                        SailText.secondary12(
+                          'Wallet controls ${viewModel.processedKeys!.where((k) => k.isWallet).length} of ${viewModel.processedKeys!.length} keys',
+                        ),
                     ],
                     
                     // Navigation buttons
@@ -1461,7 +1460,7 @@ class ImportMultisigModalViewModel extends BaseViewModel {
   
   String? modalError;
   MultisigGroup? importedGroup;
-  Set<int> selectedKeys = {};
+  List<MultisigKey>? processedKeys; // Keys with is_wallet flags set automatically
   bool hasFoundGroup = false;
   
   bool get canFetch => txidController.text.trim().isNotEmpty;
@@ -1515,6 +1514,10 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       
       // Convert to MultisigGroup
       importedGroup = MultisigGroup.fromJson(multisigData);
+      
+      // Automatically detect which keys belong to this wallet
+      await _detectWalletKeys();
+      
       hasFoundGroup = true;
       
     } catch (e) {
@@ -1525,50 +1528,100 @@ class ImportMultisigModalViewModel extends BaseViewModel {
     }
   }
   
-  void toggleKeySelection(int index) {
-    if (selectedKeys.contains(index)) {
-      selectedKeys.remove(index);
-    } else {
-      selectedKeys.add(index);
-    }
-    notifyListeners();
-  }
-  
-  void goBack() {
-    hasFoundGroup = false;
-    importedGroup = null;
-    selectedKeys.clear();
-    modalError = null;
-    notifyListeners();
-  }
-  
-  Future<void> importGroup(BuildContext context) async {
+  Future<void> _detectWalletKeys() async {
     if (importedGroup == null) return;
     
     try {
-      modalError = null;
-      setBusy(true);
+      // Initialize HD wallet if needed
+      if (!_hdWallet.isInitialized) {
+        await _hdWallet.init();
+      }
       
-      // Create updated multisig data with proper is_wallet flags
-      final updatedKeys = importedGroup!.keys.asMap().entries.map((entry) {
-        final index = entry.key;
-        final key = entry.value;
-        return MultisigKey(
+      if (_hdWallet.mnemonic == null) {
+        // No wallet mnemonic available, mark all keys as external
+        processedKeys = importedGroup!.keys.map((key) => 
+          MultisigKey(
+            owner: key.owner,
+            xpub: key.xpub,
+            derivationPath: key.derivationPath,
+            fingerprint: key.fingerprint,
+            originPath: key.originPath,
+            isWallet: false, // No wallet available, all keys are external
+          ),
+        ).toList();
+        return;
+      }
+      
+      // Process each key to check if it matches a wallet-derived key
+      processedKeys = [];
+      for (final key in importedGroup!.keys) {
+        bool isWalletKey = false;
+        
+        try {
+          // Derive the xpub at this path from our wallet
+          final keyInfo = await _hdWallet.deriveKeyInfo(_hdWallet.mnemonic!, key.derivationPath);
+          final derivedXpub = keyInfo['xpub'] ?? '';
+          
+          // Check if the derived xpub matches the imported one
+          if (derivedXpub.isNotEmpty && derivedXpub == key.xpub) {
+            isWalletKey = true;
+            MultisigLogger.info('Found wallet key at path ${key.derivationPath}');
+          }
+        } catch (e) {
+          // Failed to derive at this path, not a wallet key
+          MultisigLogger.debug('Could not derive key at path ${key.derivationPath}: $e');
+        }
+        
+        processedKeys!.add(MultisigKey(
           owner: key.owner,
           xpub: key.xpub,
           derivationPath: key.derivationPath,
           fingerprint: key.fingerprint,
           originPath: key.originPath,
-          isWallet: selectedKeys.contains(index), // Set based on user selection
-        );
-      }).toList();
+          isWallet: isWalletKey,
+        ),);
+      }
       
+      MultisigLogger.info('Detected ${processedKeys!.where((k) => k.isWallet).length} wallet keys out of ${processedKeys!.length} total keys');
+      
+    } catch (e) {
+      MultisigLogger.error('Error detecting wallet keys: $e');
+      // On error, mark all keys as external
+      processedKeys = importedGroup!.keys.map((key) => 
+        MultisigKey(
+          owner: key.owner,
+          xpub: key.xpub,
+          derivationPath: key.derivationPath,
+          fingerprint: key.fingerprint,
+          originPath: key.originPath,
+          isWallet: false,
+        ),
+      ).toList();
+    }
+  }
+  
+  void goBack() {
+    hasFoundGroup = false;
+    importedGroup = null;
+    processedKeys = null;
+    modalError = null;
+    notifyListeners();
+  }
+  
+  Future<void> importGroup(BuildContext context) async {
+    if (importedGroup == null || processedKeys == null) return;
+    
+    try {
+      modalError = null;
+      setBusy(true);
+      
+      // Use the automatically processed keys with wallet detection
       final updatedGroup = {
         'id': importedGroup!.id,
         'name': importedGroup!.name,
         'n': importedGroup!.n,
         'm': importedGroup!.m,
-        'keys': updatedKeys.map((key) => key.toJson()).toList(),
+        'keys': processedKeys!.map((key) => key.toJson()).toList(),
         'created': importedGroup!.created,
         'txid': txidController.text.trim(), // Include the TXID from import
       };
