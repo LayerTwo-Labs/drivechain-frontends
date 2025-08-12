@@ -196,7 +196,7 @@ class WalletProvider extends ChangeNotifier {
 
     final Mnemonic mnemonicObj = customMnemonic != null
         ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
-        : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
+        : Mnemonic.generate(Language.english, length: MnemonicLength.words12, passphrase: passphrase ?? '');
 
     final seedHex = hex.encode(mnemonicObj.seed);
 

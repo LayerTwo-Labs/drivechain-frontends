@@ -107,7 +107,7 @@ class HDWalletProvider extends ChangeNotifier {
     try {
       final mnemonic = Mnemonic.generate(
         Language.english,
-        entropyLength: 128,
+        length: MnemonicLength.words12,
         passphrase: 'layertwolabs',
       );
       return mnemonic.sentence;
