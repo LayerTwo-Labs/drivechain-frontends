@@ -10,6 +10,11 @@ enum TxStatus {
   voided,
 }
 
+enum TxType {
+  deposit,
+  withdrawal,
+}
+
 extension TxStatusExtension on TxStatus {
   String get displayName {
     switch (this) {
@@ -54,20 +59,42 @@ extension TxStatusExtension on TxStatus {
   String toJson() => toString().split('.').last;
 }
 
+extension TxTypeExtension on TxType {
+  String get displayName {
+    switch (this) {
+      case TxType.deposit:
+        return 'Deposit';
+      case TxType.withdrawal:
+        return 'Withdrawal';
+    }
+  }
+
+  static TxType fromString(String type) {
+    switch (type) {
+      case 'deposit':
+        return TxType.deposit;
+      case 'withdrawal':
+        return TxType.withdrawal;
+      default:
+        throw ArgumentError('Unknown TxType: $type');
+    }
+  }
+
+  String toJson() => toString().split('.').last;
+}
+
 
 class KeyPSBTStatus {
-  final String keyId; // xpub or key identifier
-  final String? psbt; // The PSBT for this key
+  final String keyId;
+  final String? psbt;
   final bool isSigned;
   final DateTime? signedAt;
-  
   const KeyPSBTStatus({
     required this.keyId,
     this.psbt,
     required this.isSigned,
     this.signedAt,
   });
-  
   factory KeyPSBTStatus.fromJson(Map<String, dynamic> json) {
     return KeyPSBTStatus(
       keyId: json['keyId'] as String,
@@ -78,7 +105,6 @@ class KeyPSBTStatus {
         : null,
     );
   }
-  
   Map<String, dynamic> toJson() => {
     'keyId': keyId,
     'psbt': psbt,
@@ -88,14 +114,15 @@ class KeyPSBTStatus {
 }
 
 class MultisigTransaction {
-  final String id; // MuSIG_TXID
+  final String id;
   final String groupId;
   final String initialPSBT;
-  final List<KeyPSBTStatus> keyPSBTs; // Track each key's PSBT status
+  final List<KeyPSBTStatus> keyPSBTs;
   final String? combinedPSBT;
   final String? finalHex;
   final String? txid;
   final TxStatus status;
+  final TxType type;
   final DateTime created;
   final DateTime? broadcastTime;
   final double amount;
@@ -113,6 +140,7 @@ class MultisigTransaction {
     this.finalHex,
     this.txid,
     this.status = TxStatus.needsSignatures,
+    required this.type,
     required this.created,
     this.broadcastTime,
     required this.amount,
@@ -122,17 +150,12 @@ class MultisigTransaction {
     this.confirmations = 0,
   });
   
-  // Helper getters
   List<String> get signedPSBTs => keyPSBTs
     .where((k) => k.isSigned && k.psbt != null)
     .map((k) => k.psbt!)
     .toList();
-    
   int get signatureCount => keyPSBTs.where((k) => k.isSigned).length;
-  
-  // Note: This should be the threshold (m), not total keys (n)
-  // The actual threshold is passed via TransactionStorage.updateKeyPSBT
-  int get requiredSignatures => keyPSBTs.length; // This is wrong, but kept for compatibility
+  int get requiredSignatures => keyPSBTs.length;
 
   factory MultisigTransaction.fromJson(Map<String, dynamic> json) {
     return MultisigTransaction(
@@ -146,6 +169,7 @@ class MultisigTransaction {
       finalHex: json['finalHex'] as String?,
       txid: json['txid'] as String?,
       status: TxStatusExtension.fromString(json['status'] as String),
+      type: TxTypeExtension.fromString(json['type'] as String),
       created: DateTime.parse(json['created'] as String),
       broadcastTime: json['broadcastTime'] != null
           ? DateTime.parse(json['broadcastTime'] as String)
@@ -170,6 +194,7 @@ class MultisigTransaction {
       if (finalHex != null) 'finalHex': finalHex,
       if (txid != null) 'txid': txid,
       'status': status.toJson(),
+      'type': type.toJson(),
       'created': created.toIso8601String(),
       if (broadcastTime != null) 'broadcastTime': broadcastTime!.toIso8601String(),
       'amount': amount,
@@ -189,6 +214,7 @@ class MultisigTransaction {
     String? finalHex,
     String? txid,
     TxStatus? status,
+    TxType? type,
     DateTime? created,
     DateTime? broadcastTime,
     double? amount,
@@ -206,6 +232,7 @@ class MultisigTransaction {
       finalHex: finalHex ?? this.finalHex,
       txid: txid ?? this.txid,
       status: status ?? this.status,
+      type: type ?? this.type,
       created: created ?? this.created,
       broadcastTime: broadcastTime ?? this.broadcastTime,
       amount: amount ?? this.amount,
@@ -225,11 +252,9 @@ class MultisigTransaction {
   bool get needsMoreSignatures {
     return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isEmpty;
   }
-
   bool get readyToCombine {
     return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isNotEmpty;
   }
-
   bool get canBroadcast {
     return status == TxStatus.readyForBroadcast && finalHex != null;
   }

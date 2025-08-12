@@ -12,7 +12,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
-import 'package:sail_ui/config/sidechains.dart';
+import 'package:bitwindow/providers/wallet_provider.dart' as wallet_utils;
 
 
 class HDWalletProvider extends ChangeNotifier {
@@ -61,7 +61,7 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<void> _loadMnemonic() async {
     try {
-      final walletDir = getWalletDir(appDir);
+      final walletDir = wallet_utils.getWalletDir(appDir);
       if (walletDir == null) {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }

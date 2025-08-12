@@ -349,8 +349,8 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
 
             final appDir = await Environment.datadir();
 
-            final walletDir = getBitwindowWalletDir(appDir);
-            if (walletDir != null && await walletDir.exists()) {
+            final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+            if (await walletDir.exists()) {
               await walletDir.delete(recursive: true);
             }
 
@@ -366,6 +366,53 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
             final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
             if (await bitdriveDir.exists()) {
               await bitdriveDir.delete(recursive: true);
+            }
+
+            // Clean up Bitcoin Core wallet directories (both bitcoin and Drivechain)
+            final bitcoinCoreDirs = [
+              Directory(path.join(appDir.path, 'bitcoin')),
+              Directory(path.join(appDir.path, 'Drivechain', 'signet')),
+              Directory(path.join(appDir.path, 'Drivechain', 'mainnet')),
+            ];
+
+            for (final bitcoinCoreDir in bitcoinCoreDirs) {
+              if (await bitcoinCoreDir.exists()) {
+                // Clean up multisig wallets directly in the network directory
+                final rootWalletFiles = bitcoinCoreDir.listSync();
+                for (final walletFile in rootWalletFiles) {
+                  if (walletFile is Directory) {
+                    final walletDirName = path.basename(walletFile.path);
+                    if (walletDirName.startsWith('multisig_')) {
+                      try {
+                        await walletFile.delete(recursive: true);
+                        logger.i('Cleaned up Bitcoin Core wallet: ${bitcoinCoreDir.path}/$walletDirName');
+                      } catch (e) {
+                        logger.w('Could not delete Bitcoin Core wallet (root) $walletDirName: $e');
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            // Clean up any additional wallet directories that might have been created
+            // Look for wallet-related directories in the main app directory
+            final appDirContents = appDir.listSync();
+            for (final entity in appDirContents) {
+              if (entity is Directory) {
+                final dirName = path.basename(entity.path);
+                // Clean up any directories that look like wallet directories
+                if (dirName.contains('wallet') || 
+                    dirName.contains('multisig') ||
+                    dirName.startsWith('wallet_starters-')) {
+                  try {
+                    await entity.delete(recursive: true);
+                    logger.i('Cleaned up additional wallet directory: $dirName');
+                  } catch (e) {
+                    logger.w('Could not delete directory $dirName: $e');
+                  }
+                }
+              }
             }
 
             if (context.mounted) Navigator.of(context).pop();

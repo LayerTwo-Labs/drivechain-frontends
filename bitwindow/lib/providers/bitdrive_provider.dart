@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -666,7 +667,7 @@ class BitDriveProvider extends ChangeNotifier {
       // Save to local multisig.json file (single source of truth)
       await _saveMultisigToLocalFile(multisigData);
       
-      // Restore transaction history for this group
+      // Create watch wallet and restore transaction history
       try {
         final groups = await MultisigStorage.loadGroups();
         final group = groups.firstWhere(
@@ -674,9 +675,25 @@ class BitDriveProvider extends ChangeNotifier {
           orElse: () => throw Exception('Group not found after restoration'),
         );
         
+        // Create watch wallet if it has descriptors
+        if (group.descriptorReceive != null && group.descriptorChange != null && group.watchWalletName != null) {
+          log.i('BitDrive: Creating watch wallet: ${group.watchWalletName}');
+          await MultisigStorage.createMultisigWallet(group.watchWalletName!, group.descriptorReceive!, group.descriptorChange!);
+          log.i('BitDrive: Watch wallet created successfully');
+        }
+        
         log.i('BitDrive: Restoring transaction history for group: ${group.name}');
         await MultisigStorage.restoreTransactionHistory(group);
         log.i('BitDrive: Transaction history restoration completed for group: ${group.name}');
+        
+        // Update wallet balance and address state
+        log.i('BitDrive: Updating group balance and wallet state');
+        await BalanceManager.updateGroupBalance(group);
+        log.i('BitDrive: Balance and wallet state updated successfully');
+        
+        // Notify UI that transactions and groups may have changed
+        TransactionStorage.notifier.notifyTransactionChange();
+        MultisigFileWatcher().notifyListeners();
       } catch (e) {
         log.e('BitDrive: Failed to restore transaction history: $e');
         // Don't fail the whole restoration process if transaction history fails
@@ -731,5 +748,6 @@ class BitDriveProvider extends ChangeNotifier {
       // Save updated data - this is the single source of truth for multisig groups
       await file.writeAsString(json.encode(jsonData));
   }
+
 
 }

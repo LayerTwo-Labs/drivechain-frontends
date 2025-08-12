@@ -38,8 +38,6 @@ class MultisigKeyModal extends StatelessWidget {
                     else if (viewModel.keyInfo != null) ...[
                       SailText.primary15('Your Multisig Key Information:'),
                       const SizedBox(height: 16),
-                      
-                      // Key Index
                       SailTextField(
                         label: 'Key Index',
                         hintText: 'Key index',
@@ -49,8 +47,6 @@ class MultisigKeyModal extends StatelessWidget {
                           text: viewModel.keyInfo!['index'].toString(),
                         ),
                       ),
-                      
-                      // Derivation Path
                       SailTextField(
                         label: 'Derivation Path',
                         hintText: 'Derivation path',
@@ -60,8 +56,6 @@ class MultisigKeyModal extends StatelessWidget {
                           text: viewModel.keyInfo!['path'],
                         ),
                       ),
-                      
-                      // Extended Public Key
                       SailTextField(
                         label: 'Extended Public Key (xpub)',
                         hintText: 'Extended public key',
@@ -71,8 +65,6 @@ class MultisigKeyModal extends StatelessWidget {
                           text: viewModel.keyInfo!['xpub'],
                         ),
                       ),
-                      
-                      // Fingerprint
                       if (viewModel.keyInfo!['fingerprint'] != null)
                         SailTextField(
                           label: 'Key Fingerprint',
@@ -83,8 +75,6 @@ class MultisigKeyModal extends StatelessWidget {
                             text: viewModel.keyInfo!['fingerprint'],
                           ),
                         ),
-                      
-                      // Origin Path
                       if (viewModel.keyInfo!['originPath'] != null)
                         SailTextField(
                           label: 'Origin Path',
@@ -95,7 +85,6 @@ class MultisigKeyModal extends StatelessWidget {
                             text: viewModel.keyInfo!['originPath'],
                           ),
                         ),
-                      
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -120,7 +109,6 @@ class MultisigKeyModal extends StatelessWidget {
                         ),
                       ),
                     ],
-                    
                     const SizedBox(height: 16),
                     SailRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -153,7 +141,7 @@ class MultisigKeyModal extends StatelessWidget {
 
 class MultisigKeyModalViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-  final Logger _logger = GetIt.I.get<Logger>();
+  Logger get _logger => GetIt.I.get<Logger>();
   
   String? modalError;
   Map<String, dynamic>? keyInfo;
@@ -162,7 +150,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     setBusy(true);
     
     try {
-      // Ensure HD wallet is initialized
       if (!_hdWalletProvider.isInitialized) {
         await _hdWalletProvider.init();
       }
@@ -177,7 +164,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
         return;
       }
       
-      // Generate the next available multisig key
       await _generateNextMultisigKey();
       
     } catch (e) {
@@ -191,27 +177,22 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   
   Future<void> _generateNextMultisigKey() async {
     try {
-      // Ensure HD wallet is initialized before proceeding
       if (!_hdWalletProvider.isInitialized) {
         await _hdWalletProvider.init();
       }
       
-      // Check if initialization was successful
       if (!_hdWalletProvider.isInitialized || _hdWalletProvider.mnemonic == null) {
         throw Exception('HD Wallet not properly initialized. Please ensure wallet is set up.');
       }
       
-      // Get the next available account index (matches create_multisig_modal.dart logic)
       final accountIndex = await _hdWalletProvider.getNextAccountIndex(<int>{});
       
-      // Generate wallet xPub using the same method as create multisig modal
-      final keyInfoResult = await _hdWalletProvider.generateWalletXpub(accountIndex, false); // testnet
+      final keyInfoResult = await _hdWalletProvider.generateWalletXpub(accountIndex, false);
       
       if (keyInfoResult.isEmpty) {
         throw Exception('Failed to generate xPub');
       }
       
-      // Calculate relative index for display (same as create modal)
       final relativeIndex = accountIndex - 8000;
       
       keyInfo = {
@@ -238,7 +219,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     try {
       final keyIndex = keyInfo!['index'];
       
-      // Create minimal solo key data
       final soloKeyData = {
         'xpub': keyInfo!['xpub'],
         'owner': 'MyKey$keyIndex',
@@ -247,13 +227,9 @@ class MultisigKeyModalViewModel extends BaseViewModel {
         'origin_path': keyInfo!['originPath'],
       };
       
-      // Add to solo_keys section
       await MultisigStorage.addSoloKey(soloKeyData);
-      
-      
     } catch (e) {
       _logger.e('Failed to write key to multisig.json: $e');
-      // Don't throw - this is supplementary functionality
     }
   }
 
@@ -261,13 +237,9 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     if (keyInfo == null) return;
 
     try {
-      // First, write key to multisig.json for tracking
       await _writeKeyToMultisigJson();
-      
-      // Then, save the .conf file to bitdrive/multisig directory
       await _saveConfigFile(context);
 
-      // Show success message and close modal
       if (context.mounted) {
         final keyIndex = keyInfo!['index'];
         ScaffoldMessenger.of(context).showSnackBar(
@@ -298,16 +270,13 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   Future<void> _saveConfigFile(BuildContext context) async {
     if (keyInfo == null) return;
 
-    // Get the bitdrive directory
     final appDir = await Environment.datadir();
     final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
     
-    // Ensure bitdrive directory exists
     if (!await bitdriveDir.exists()) {
       await bitdriveDir.create(recursive: true);
     }
 
-    // Create filename based on key index
     final keyIndex = keyInfo!['index'];
     final filename = 'key$keyIndex.conf';
     final multisigDir = Directory(path.join(bitdriveDir.path, 'multisig'));
@@ -316,7 +285,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     }
     final filePath = path.join(multisigDir.path, filename);
 
-    // Create the configuration data in the same format as MultisigKey.toJson()
     final configData = {
       'owner': 'MyKey$keyIndex',
       'xpub': keyInfo!['xpub'],
@@ -326,7 +294,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       'is_wallet': true,
     };
 
-    // Write to file with pretty JSON formatting
     final file = File(filePath);
     const encoder = JsonEncoder.withIndent('  ');
     final prettyJson = encoder.convert(configData);

@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:bitwindow/env.dart';
+import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -139,8 +139,8 @@ class ImportTxidModal extends StatelessWidget {
 
 class ImportTxidModalViewModel extends BaseViewModel {
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
-  final Logger _logger = GetIt.I.get<Logger>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
+  Logger get _logger => GetIt.I.get<Logger>();
   
   final txidController = TextEditingController();
   String? modalError;
@@ -148,6 +148,15 @@ class ImportTxidModalViewModel extends BaseViewModel {
   
   // File logging for import debug output
   File? _importLogFile;
+  
+  Future<void> _createWatchWallet(String walletName, String descriptorReceive, String descriptorChange) async {
+    try {
+      await MultisigStorage.createMultisigWallet(walletName, descriptorReceive, descriptorChange);
+    } catch (e) {
+      await _logToFile('Failed to create watch wallet: $e');
+      throw Exception('Failed to create watch wallet: $e');
+    }
+  }
   
   @override
   void dispose() {
@@ -306,9 +315,9 @@ class ImportTxidModalViewModel extends BaseViewModel {
       // Save directly to multisig.json file like BitDrive provider does
       await _saveMultisigToLocalFile(multisigData);
       
-      // Restore transaction history for this group
+      // Create watch wallet and restore transaction history
       try {
-        loadingStatus = 'Restoring transaction history...';
+        loadingStatus = 'Setting up watch wallet...';
         notifyListeners();
         
         final groups = await MultisigStorage.loadGroups();
@@ -317,9 +326,26 @@ class ImportTxidModalViewModel extends BaseViewModel {
           orElse: () => throw Exception('Group not found after import'),
         );
         
-        await _logToFile('Restoring transaction history for group: ${group.name}');
+        // Create watch wallet if it has descriptors
+        if (group.descriptorReceive != null && group.descriptorChange != null && group.watchWalletName != null) {
+          await _logToFile('Creating watch wallet: ${group.watchWalletName}');
+          await _createWatchWallet(group.watchWalletName!, group.descriptorReceive!, group.descriptorChange!);
+          await _logToFile('Watch wallet created successfully');
+        }
+        
+        loadingStatus = 'Restoring transaction history...';
+        notifyListeners();
+        
+        await _logToFile('Restoring transaction history for group: ${group.name} (watchWallet: ${group.watchWalletName})');
         await MultisigStorage.restoreTransactionHistory(group);
         await _logToFile('Transaction history restoration completed for group: ${group.name}');
+        
+        // Update wallet balance and address state
+        loadingStatus = 'Syncing wallet balance and addresses...';
+        notifyListeners();
+        await _logToFile('Updating group balance and wallet state');
+        await BalanceManager.updateGroupBalance(group);
+        await _logToFile('Balance and wallet state updated successfully');
       } catch (e) {
         await _logToFile('Failed to restore transaction history: $e');
         // Don't fail the whole import process if transaction history fails
@@ -433,48 +459,31 @@ class ImportTxidModalViewModel extends BaseViewModel {
   }
   
   Future<void> _saveMultisigToLocalFile(Map<String, dynamic> multisigData) async {
-    final appDir = await Environment.datadir();
-    final bitdriveDir = path.join(appDir.path, 'bitdrive');
-    final multisigDir = Directory(path.join(bitdriveDir, 'multisig'));
-    await multisigDir.create(recursive: true);
-    final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
+    await _logToFile('Using atomic MultisigStorage operations for safe file writing');
     
-    // Load existing data or create new structure
-    Map<String, dynamic> jsonData = {
-      'groups': [],
-      'solo_keys': [],
-    };
+    // Convert the multisig data to a MultisigGroup object
+    final importedGroup = MultisigGroup.fromJson(multisigData);
     
-    if (await file.exists()) {
-      final content = await file.readAsString();
-      if (content.trim().isNotEmpty) {
-        final decoded = json.decode(content);
-        jsonData = decoded as Map<String, dynamic>;
-      }
-    }
+    // Load existing groups using atomic operation
+    final existingGroups = await MultisigStorage.loadGroups();
     
-    // Get groups array
-    final groups = jsonData['groups'] as List<dynamic>;
+    // Check if this group already exists (by ID)
+    final existingIndex = existingGroups.indexWhere((g) => g.id == importedGroup.id);
     
-    // Check if this multisig group already exists (by ID - the unique identifier)
-    final groupId = multisigData['id'] as String?;
-    
-    if (groupId != null && groupId.isNotEmpty) {
-      final existingIndex = groups.indexWhere((group) => group['id'] == groupId);
-      
-      if (existingIndex != -1) {
-        // Update existing group (prevents duplicates from multiple restoration runs)
-        groups[existingIndex] = multisigData;
-      } else {
-        // Add new group
-        groups.add(multisigData);
-      }
+    List<MultisigGroup> updatedGroups;
+    if (existingIndex != -1) {
+      // Update existing group (prevents duplicates)
+      await _logToFile('Updating existing group: ${importedGroup.name}');
+      updatedGroups = List<MultisigGroup>.from(existingGroups);
+      updatedGroups[existingIndex] = importedGroup;
     } else {
-      // No fallback to name-based checking - require ID
-      throw Exception('Multisig group must have an ID');
+      // Add new group
+      await _logToFile('Adding new group: ${importedGroup.name}');
+      updatedGroups = [...existingGroups, importedGroup];
     }
     
-    // Save updated data - this is the single source of truth for multisig groups
-    await file.writeAsString(json.encode(jsonData));
+    // Save using atomic operation with proper locking
+    await MultisigStorage.saveGroups(updatedGroups);
+    await _logToFile('Successfully saved group using atomic MultisigStorage operation');
   }
 }

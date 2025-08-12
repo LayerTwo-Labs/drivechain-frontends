@@ -137,7 +137,12 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                     ),
                   ],
                 ),
-                const Divider(height: 16),
+                const SizedBox(height: SailStyleValues.padding08),
+                Container(
+                  height: 1,
+                  color: context.sailTheme.colors.divider,
+                ),
+                const SizedBox(height: SailStyleValues.padding08),
                 SailRow(
                   spacing: SailStyleValues.padding16,
                   children: [

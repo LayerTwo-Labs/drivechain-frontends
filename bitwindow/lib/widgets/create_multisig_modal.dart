@@ -20,7 +20,7 @@ import 'package:stacked/stacked.dart';
 
 class MultisigKey {
   final String owner;
-  final String xpub;  // Changed from pubkey to xpub
+  final String xpub;
   final String derivationPath;
   final String? fingerprint;
   final String? originPath;
@@ -53,7 +53,7 @@ class MultisigKey {
 
   factory MultisigKey.fromJson(Map<String, dynamic> json) => MultisigKey(
         owner: json['owner'],
-        xpub: json['xpub'] ?? json['pubkey'], // Still support legacy pubkey field for old data
+        xpub: json['xpub'] ?? json['pubkey'],
         derivationPath: json['path'],
         fingerprint: json['fingerprint'],
         originPath: json['origin_path'],
@@ -109,7 +109,6 @@ class CreateMultisigModal extends StatelessWidget {
                   spacing: SailStyleValues.padding16,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    
                     if (viewModel.currentStep == 0) ...[
                       SailTextField(
                         label: 'Multisig Group Name',
@@ -145,8 +144,6 @@ class CreateMultisigModal extends StatelessWidget {
                           viewModel.parameterError!,
                           color: context.sailTheme.colors.error,
                         ),
-                      
-                      // Encryption option
                       SailCheckbox(
                         label: 'Encrypt multisig data',
                         value: viewModel.shouldEncrypt,
@@ -205,7 +202,6 @@ class CreateMultisigModal extends StatelessWidget {
                           ],
                         ),
                       ),
-                      
                       if (viewModel.keys.length != viewModel.n)
                         SailCard(
                           shadowSize: ShadowSize.none,
@@ -382,7 +378,6 @@ class CreateMultisigModal extends StatelessWidget {
                       ],
                     ],
                     
-                    // Navigation Buttons
                     SailRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -442,28 +437,19 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
   final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
   
-  // Session tracking for in-progress key generation
   final Set<int> _sessionUsedAccountIndices = <int>{};
 
-  // Network configuration (simplified)
   final bool isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
   
-  // Network utility methods
   String get coinType => isMainnet ? "0'" : "1'";
   String get xpubPrefix => isMainnet ? 'xpub' : 'tpub';
   String get bech32HRP => isMainnet ? 'bc' : 'tb';
   
-  // Validate xPub format
   bool _isValidXpub(String xpub) {
     if (xpub.isEmpty) return false;
     
-    // Check prefix
     if (!xpub.startsWith(xpubPrefix)) return false;
-    
-    // Check length (xpubs are typically 111 characters, but allow some flexibility)
     if (xpub.length < 100 || xpub.length > 120) return false;
-    
-    // Check if it's valid base58
     try {
       base58.decode(xpub);
       return true;
@@ -472,9 +458,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
   }
 
-  // Check if a derivation path represents a wallet-generated key
   bool _isWalletGeneratedPath(String path) {
-    // Extract account index from path like "m/84'/1'/8000'"
     final match = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(path);
     if (match != null) {
       final accountIndex = int.tryParse(match.group(1)!);
@@ -483,12 +467,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     return false;
   }
 
-  // Generate a unique key name that doesn't conflict with existing keys
   String _generateUniqueKeyName({String baseName = 'MyKey'}) {
     int index = 0;
     String proposedName = '$baseName$index';
     
-    // Keep incrementing until we find a unique name
     while (keys.any((key) => key.owner == proposedName)) {
       index++;
       proposedName = '$baseName$index';
@@ -498,7 +480,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   }
 
 
-  // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController mController = TextEditingController(text: '2');
   final TextEditingController nController = TextEditingController(text: '2');
@@ -508,21 +489,18 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   final TextEditingController feeController = TextEditingController(text: '0.001');
   final TextEditingController fingerprintController = TextEditingController();
 
-  // State
   int currentStep = 0;
   String? modalError;
   String? parameterError;
   List<MultisigKey> keys = [];
-  bool shouldEncrypt = false; // Default to false (base64 only)
-  bool _lastKeyWasGenerated = false; // Track if the last key operation was wallet generation
-  String? _importedOriginPath; // Store origin_path from imported key file
+  bool shouldEncrypt = false;
+  bool _lastKeyWasGenerated = false;
+  String? _importedOriginPath;
   
-  // Constants
   static const int MULTISIG_DERIVATION_INDEX = 8000;
   static const String MULTISIG_DERIVATION_BASE = "m/84'/1'/0'/0/";
-  static const int MULTISIG_FLAG = 0x02; // Flag to identify multisig transactions
+  static const int MULTISIG_FLAG = 0x02;
 
-  // Getters
   int get m => int.tryParse(mController.text) ?? 0;
   int get n => int.tryParse(nController.text) ?? 0;
   double get fee => double.tryParse(feeController.text) ?? 0.001;
@@ -544,30 +522,23 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       ownerController.text.isNotEmpty && 
       pubkeyController.text.isNotEmpty && 
       pathController.text.isNotEmpty &&
-      keys.length < n; // Don't allow more than n keys
+      keys.length < n;
 
-  bool get canSaveGroup => keys.length == n; // Need all n keys to save group
+  bool get canSaveGroup => keys.length == n;
 
   void init() {
-    // Listen for parameter changes
     mController.addListener(_validateParameters);
     nController.addListener(_validateParameters);
-    
-    // Listen for name changes to clear error state
     nameController.addListener(_clearNameError);
-    
-    // Run initial validation to recognize default values
     _validateParameters();
     
     notifyListeners();
   }
 
   void _clearNameError() {
-    // Clear name-related errors when user types in the name field
     if (parameterError != null && parameterError!.contains('already exists')) {
       parameterError = null;
     }
-    // Always notify listeners when name changes to update canProceed state
     notifyListeners();
   }
 
@@ -575,7 +546,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     final mValue = int.tryParse(mController.text);
     final nValue = int.tryParse(nController.text);
     
-    // Clear name-related errors when user modifies parameters
     if (parameterError != null && parameterError!.contains('already exists')) {
       parameterError = null;
     }
@@ -606,26 +576,22 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final jsonFile = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
       
       if (!await jsonFile.exists()) {
-        return false; // No existing groups, name is available
+        return false;
       }
       
       final content = await jsonFile.readAsString();
       if (content.trim().isEmpty) {
-        return false; // Empty file, name is available
+        return false;
       }
       
       final jsonData = json.decode(content) as Map<String, dynamic>;
       
       final existingGroups = jsonData['groups'] as List<dynamic>? ?? [];
-      
-      // Check if any existing group has the same name (case-insensitive)
       return existingGroups.any((group) => 
         (group['name'] as String?)?.toLowerCase() == name.toLowerCase(),
       );
       
     } catch (e) {
-      // If there's an error reading the file, assume name is available
-      GetIt.I.get<Logger>().w('Error checking existing group names: $e');
       return false;
     }
   }
@@ -633,7 +599,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   Future<void> nextStep() async {
     if (!canProceed) return;
     
-    // Check if the name is already used
     final nameAlreadyUsed = await _isNameAlreadyUsed(nameController.text.trim());
     if (nameAlreadyUsed) {
       parameterError = 'A multisig group with this name already exists';
@@ -641,19 +606,13 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       return;
     }
     
-    // Clear any previous errors and proceed
     parameterError = null;
     currentStep = 1;
-    
-    // Reset session tracking when starting key creation
     _sessionUsedAccountIndices.clear();
     
     ownerController.text = _generateUniqueKeyName();
-    // Set default path for manual entry (external keys) to match enforcer pattern
     pathController.text = "m/84'/1'/0'/0/0";
     notifyListeners();
-    
-    // Auto-generate the first wallet key
     generatePublicKey();
   }
 
@@ -672,26 +631,18 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       modalError = null;
       setBusy(true);
       
-      // Ensure HD wallet is initialized before proceeding
       if (!_hdWallet.isInitialized) {
         await _hdWallet.init();
       }
       
-      // Check if initialization was successful
       if (!_hdWallet.isInitialized || _hdWallet.mnemonic == null) {
         throw Exception('HD Wallet not properly initialized. Please ensure wallet is set up.');
       }
       
-      // Now check if we can generate the key
       if (!canGenerateKey) return;
       
-      // Get the next available account index (considering session usage)
       final accountIndex = await _hdWallet.getNextAccountIndex(_sessionUsedAccountIndices);
-      
-      // Track this index in the session
       _sessionUsedAccountIndices.add(accountIndex);
-      
-      // Generate wallet xPub
       final keyInfo = await _hdWallet.generateWalletXpub(accountIndex, isMainnet);
       
       if (keyInfo.isEmpty) {
@@ -699,19 +650,13 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       }
       
       
-      // Update controllers
       pubkeyController.text = keyInfo['xpub'] ?? '';
       pathController.text = keyInfo['derivation_path'] ?? '';
       fingerprintController.text = keyInfo['fingerprint'] ?? '';
-      
-      // Generate a unique owner name
       ownerController.text = _generateUniqueKeyName();
-      
-      // Mark that this was a wallet-generated key
       _lastKeyWasGenerated = true;
       
     } catch (e) {
-      MultisigLogger.error('Failed to generate key: $e');
       modalError = 'Failed to generate xPub: $e';
     } finally {
       setBusy(false);
@@ -725,7 +670,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       if (clipboardData?.text != null) {
         final xpub = clipboardData!.text!.trim();
         
-        // Validate xPub format
         if (!_isValidXpub(xpub)) {
           modalError = 'Invalid xPub format. Expected valid $xpubPrefix format.';
           notifyListeners();
@@ -734,13 +678,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         
         pubkeyController.text = xpub;
         
-        // For external keys, prompt for fingerprint if not provided
         if (!pathController.text.contains("8000'")) {
-          // This is an external key, clear fingerprint
           fingerprintController.clear();
         }
         
-        // Mark that this was NOT a wallet-generated key
         _lastKeyWasGenerated = false;
         
         notifyListeners();
@@ -753,7 +694,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<void> importKeyFromFile(BuildContext context) async {
     try {
-      // Use file picker to let user choose any JSON/conf file from their file system
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json', 'conf'],
@@ -769,23 +709,17 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         return;
       }
 
-      // Load and parse the selected key file
       final keyData = await _loadKeyFile(file.path!);
       
-      // Populate the form fields with the imported data
-      // Handle various naming conventions for key files
       ownerController.text = keyData['owner'] ?? keyData['name'] ?? '';
       pubkeyController.text = keyData['xpub'] ?? keyData['extended_public_key'] ?? keyData['pubkey'] ?? ''; // pubkey is legacy fallback
       pathController.text = keyData['path'] ?? keyData['derivation_path'] ?? keyData['bip32_path'] ?? '';
       fingerprintController.text = keyData['fingerprint'] ?? keyData['master_fingerprint'] ?? '';
 
-      // Store the imported origin_path separately to preserve it
       _importedOriginPath = keyData['origin_path'] ?? keyData['origin'];
 
-      // Mark that this was NOT a wallet-generated key (imported from file)
       _lastKeyWasGenerated = false;
 
-      // Copy the imported key to imported_keys directory for record keeping
       await _copyKeyToImportedKeys(file.path!, keyData);
 
       modalError = null;
@@ -812,15 +746,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final file = File(filePath);
       final content = await file.readAsString();
       
-      // Parse JSON - will throw if not valid JSON format
       final jsonData = jsonDecode(content) as Map<String, dynamic>;
       
-      // Validate that it has the required fields (xpub is primary, others are legacy/alternatives)
       if (jsonData['xpub'] == null && jsonData['extended_public_key'] == null && jsonData['pubkey'] == null) {
         throw Exception('Key file missing required field: must contain xpub, extended_public_key, or pubkey');
       }
       
-      // No fallback derivation - return exact data from file
       return jsonData;
     } catch (e) {
       if (e is FormatException) {
@@ -834,16 +765,13 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     final appDir = await Environment.datadir();
     final importedKeysDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig', 'imported_keys'));
     
-    // Create imported_keys directory
     await importedKeysDir.create(recursive: true);
     
-    // Generate a unique filename for the imported key
     final originalFileName = path.basename(sourceFilePath);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final newFileName = '${path.basenameWithoutExtension(originalFileName)}_imported_$timestamp.conf';
     final destinationPath = path.join(importedKeysDir.path, newFileName);
     
-    // Write the key data to the new location
     final destinationFile = File(destinationPath);
     await destinationFile.writeAsString(jsonEncode(keyData));
   }
@@ -852,28 +780,24 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   Future<void> saveKey() async {
     if (!canSaveKey) return;
 
-    // Check if we've reached the maximum number of keys
     if (keys.length >= n) {
       modalError = 'Cannot add more than $n keys to this multisig group';
       notifyListeners();
       return;
     }
 
-    // Check for duplicate key owners
     if (keys.any((key) => key.owner == ownerController.text)) {
       modalError = 'Key owner name "${ownerController.text}" is already used. Each key must have a unique owner name.';
       notifyListeners();
       return;
     }
 
-    // Check for duplicate xPubs
     if (keys.any((key) => key.xpub == pubkeyController.text)) {
       modalError = 'This xPub has already been added';
       notifyListeners();
       return;
     }
     
-    // Validate xPub
     final xpub = pubkeyController.text;
     if (!_isValidXpub(xpub)) {
       modalError = 'Invalid xPub format';
@@ -881,28 +805,19 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       return;
     }
 
-    // Determine if this is a wallet-generated key
     final currentPath = pathController.text;
-    // ONLY mark as wallet key if it was generated by the wallet in this session
-    // Imported keys should NEVER be marked as wallet keys, even if they have wallet paths
-    // This prevents incorrect signing attempts when the imported key doesn't actually
-    // belong to the current wallet
     final isWalletKey = _lastKeyWasGenerated;
 
-    // Validate wallet-generated keys have proper path
     if (isWalletKey && !_isWalletGeneratedPath(currentPath)) {
       modalError = 'Invalid wallet key: path does not match wallet generation pattern';
       notifyListeners();
       return;
     }
 
-    // For imported keys, use exact data from file. For wallet keys, derive as needed.
     String? originPath;
     if (_lastKeyWasGenerated) {
-      // Wallet-generated key in this session: derive origin path from derivation path
       originPath = currentPath.startsWith('m/') ? currentPath.substring(2) : currentPath;
     } else {
-      // Imported key: use exactly what was in the file (may be null)
       originPath = _importedOriginPath;
     }
 
@@ -919,23 +834,19 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     keys.add(key);
     
     
-    // Clear form and prepare for next key (only if we haven't reached the limit)
     if (keys.length < n) {
       ownerController.text = _generateUniqueKeyName(baseName: 'ExtKey');
       pubkeyController.clear();
       fingerprintController.clear();
       
-      // Reset path to the default manual entry format for external keys
       pathController.text = "m/84'/$coinType/0'";
     } else {
-      // Clear form but don't set defaults since we're at the limit
       ownerController.clear();
       pubkeyController.clear();
       pathController.clear();
       fingerprintController.clear();
     }
     
-    // Reset the flags and imported data for next key
     _lastKeyWasGenerated = false;
     _importedOriginPath = null;
     
@@ -952,15 +863,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   String _computeMultisigId(List<MultisigKey> sortedKeys) {
     try {
-      // Concatenate all xpubs in order
       final concatenatedXpubs = sortedKeys.map((key) => key.xpub).join('');
       final xpubBytes = utf8.encode(concatenatedXpubs);
       
-      // Compute SHA256d (double SHA256)
       final firstHash = sha256.convert(xpubBytes).bytes;
       final secondHash = sha256.convert(firstHash).bytes;
       
-      // Take first 3 bytes and convert to hex
       final idBytes = secondHash.sublist(0, 3);
       return hex.encode(idBytes);
     } catch (e) {
@@ -976,19 +884,15 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       setBusy(true);
 
 
-      // Sort keys by BIP67 order (lexicographic order of xpubs)
       final sortedKeys = List<MultisigKey>.from(keys);
       sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
 
 
-      // Compute multisig ID
       final multisigId = _computeMultisigId(sortedKeys);
 
-      // Build descriptors for the multisig using centralized builder
       late MultisigDescriptors descriptors;
       
       try {
-        // Create a temporary MultisigGroup object with the sorted keys
         final tempGroup = MultisigGroup(
           id: multisigId,
           name: nameController.text,
@@ -1001,11 +905,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         descriptors = await MultisigDescriptorBuilder.buildWatchOnlyDescriptors(tempGroup);
         
       } catch (e) {
-        MultisigLogger.error('Failed to build descriptors: $e');
+        GetIt.I.get<Logger>().e('Failed to build descriptors: $e');
         throw Exception('Failed to build multisig descriptors: $e');
       }
 
-      // Create multisig JSON with all required data including descriptors
       final multisigData = {
         'id': multisigId,
         'name': nameController.text,
@@ -1019,34 +922,26 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       };
 
 
-      // Create the Bitcoin Core watch-only wallet
       
       try {
-        // Create the multisig wallet in Bitcoin Core with private keys enabled
         await _createMultisigWallet('multisig_$multisigId', descriptors.receive, descriptors.change);
         
       } catch (e) {
-        MultisigLogger.error('Failed to create multisig wallet (continuing anyway): $e');
-        // Don't fail the entire process if wallet creation fails
-        // The wallet can be created later when needed
+        GetIt.I.get<Logger>().w('Failed to create multisig wallet: $e');
       }
 
-      // Broadcast via BitDrive with multisig flag and capture TXID
       final txid = await _broadcastMultisigGroup(multisigData);
       
-      // Add TXID to the data before saving locally
       multisigData['txid'] = txid;
 
-      // Save to local file
       await _saveToLocalFile(multisigData);
 
-      // Close dialog on success
       if (context.mounted) {
         Navigator.of(context).pop(true); // Return true to indicate success
       }
       
     } catch (e) {
-      MultisigLogger.error('Failed to save multisig group: $e');
+      GetIt.I.get<Logger>().e('Failed to save multisig group: $e');
       modalError = 'Failed to save multisig group: $e';
     } finally {
       setBusy(false);
@@ -1070,7 +965,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       }
       final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
       
-      // Load existing data or create new structure
       Map<String, dynamic> jsonData = {
         'groups': [],
         'solo_keys': [],
@@ -1081,11 +975,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         jsonData = json.decode(content) as Map<String, dynamic>;
       }
       
-      // Add new group to groups array
       final groups = jsonData['groups'] as List<dynamic>;
       groups.add(multisigData);
       
-      // Save updated data
       await file.writeAsString(json.encode(jsonData));
       
     } catch (e) {
@@ -1095,20 +987,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<String> _broadcastMultisigGroup(Map<String, dynamic> multisigData) async {
     try {
-      // Convert to JSON bytes
       final jsonBytes = Uint8List.fromList(utf8.encode(json.encode(multisigData)));
       
-      // Use BitDrive's storage system with multisig flag
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       const fileType = 'json';
       
-      // Create metadata with multisig flag (bit 1) + optional encryption flag (bit 0)
       final metadata = ByteData(9);
       final flags = MULTISIG_FLAG | (shouldEncrypt ? 0x01 : 0x00);
       metadata.setUint8(0, flags);
       metadata.setUint32(1, timestamp);
       
-      // Set file type as 'json'
       final typeBytes = utf8.encode(fileType.padRight(4, ' '));
       for (var i = 0; i < 4; i++) {
         metadata.setUint8(5 + i, typeBytes[i]);
@@ -1116,20 +1004,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       
       final metadataStr = base64.encode(metadata.buffer.asUint8List());
       
-      // Encrypt or encode based on user choice
       final String contentStr;
       if (shouldEncrypt) {
         final encryptedContent = await _encryptContent(jsonBytes, timestamp, fileType);
         contentStr = base64.encode(encryptedContent);
       } else {
-        // Just base64 encode for interoperability
         contentStr = base64.encode(jsonBytes);
       }
       
-      // Combine and broadcast
       final opReturnData = '$metadataStr|$contentStr';
       
-      // Convert fee to satoshis
       final feeSats = (fee * 100000000).toInt();
       
       final address = await _api.wallet.getNewAddress();
@@ -1146,7 +1030,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
   }
 
-  // BitDrive encryption methods (uses BitDrive's derivation paths)
   Future<Uint8List> _deriveKeyStream(int timestamp, String fileType, int length) async {
     const bitdriveDerivationPath = "m/84'/1'/0'/0/4000"; // BitDrive's encryption key path (enforcer pattern)
     final keyInfo = await _hdWallet.deriveKeyInfo(_hdWallet.mnemonic ?? '', bitdriveDerivationPath);
@@ -1187,7 +1070,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<Uint8List> _encryptContent(Uint8List content, int timestamp, String fileType) async {
     try {
-      // Generate key stream and perform XOR encryption
       final keyStream = await _deriveKeyStream(timestamp, fileType, content.length);
       final encrypted = Uint8List(content.length);
 
@@ -1195,12 +1077,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         encrypted[i] = content[i] ^ keyStream[i];
       }
 
-      // Generate truncated authentication tag
       final authKey = await _deriveAuthKey();
       const authTagSize = 8;
       final tag = Uint8List.fromList(Hmac(sha256, authKey).convert(encrypted).bytes.sublist(0, authTagSize));
 
-      // Combine encrypted content with tag
       final result = Uint8List(encrypted.length + tag.length);
       result.setAll(0, encrypted);
       result.setAll(encrypted.length, tag);
@@ -1218,94 +1098,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
 
   Future<void> _createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {
-    try {
-      
-      // Create wallet as watch-only (no private keys) for multisig tracking
-      // Bitcoin Core automatically places wallets in the wallets subdirectory when using createwallet
-      final createResult = await _rpc.callRAW('createwallet', [
-        walletName,
-        true,   // disable_private_keys - DISABLE private keys (watch-only)
-        true,   // blank (start empty)
-        '',     // passphrase (empty)
-        false,  // avoid_reuse 
-        true,   // descriptors (modern descriptor wallet format)
-        false,  // load_on_startup
-      ]);
-      
-      
-      // Import descriptors using direct wallet RPC call
-      
-      // Load the wallet first to make sure it's active
-      try {
-        await _rpc.callRAW('loadwallet', [walletName]);
-      } catch (e) {
-        // Wallet might already be loaded, continue
-      }
-      
-      // Import descriptors to enable UTXO tracking
-      
-      final descriptorsToImport = [
-        {
-          'desc': descriptorReceive,
-          'active': true,
-          'internal': false,
-          'timestamp': 'now',
-          'range': [0, 999],
-          // Don't specify watchonly - let Bitcoin Core handle it based on available keys
-        },
-        {
-          'desc': descriptorChange,
-          'active': true,
-          'internal': true,
-          'timestamp': 'now',
-          'range': [0, 999],
-          // Don't specify watchonly - let Bitcoin Core handle it based on available keys
-        },
-      ];
-      
-      try {
-        // Use WalletRPCManager to import descriptors
-        final walletManager = WalletRPCManager();
-        final importResult = await walletManager.importDescriptors(walletName, descriptorsToImport);
-        
-        // Check if import was successful
-        for (int i = 0; i < importResult.length; i++) {
-          final result = importResult[i] as Map<String, dynamic>;
-          final success = result['success'] as bool? ?? false;
-          final desc = i == 0 ? 'receive' : 'change';
-          
-          if (success) {
-          } else {
-            final error = result['error'] ?? 'Unknown error';
-            MultisigLogger.error('Failed to import $desc descriptor: $error');
-            throw Exception('Failed to import $desc descriptor: $error');
-          }
-        }
-        
-        // Skip rescan here - wallet is just created and has no UTXOs yet
-        // Rescan will be done when funding the wallet
-        
-      } catch (e) {
-        MultisigLogger.error('Failed to import descriptors: $e');
-        throw Exception('Failed to import descriptors for wallet $walletName: $e');
-      }
-      
-    } catch (e) {
-      
-      // Check if it's just a "wallet already exists" error
-      if (e.toString().contains('already exists') || e.toString().contains('Database already exists')) {
-        return; // Not a fatal error
-      }
-      
-      // Re-throw for other errors
-      throw Exception('Failed to create multisig wallet in wallets directory: $e');
-    }
+    await MultisigStorage.createMultisigWallet(walletName, descriptorReceive, descriptorChange);
   }
 
 
   @override
   void dispose() {
-    // Clean up session tracking when modal is disposed
     _sessionUsedAccountIndices.clear();
     
     nameController.removeListener(_clearNameError);
@@ -1410,7 +1208,6 @@ class ImportMultisigModal extends StatelessWidget {
                         ),
                     ],
                     
-                    // Navigation buttons
                     SailRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1472,7 +1269,6 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       
       final txid = txidController.text.trim();
       
-      // Get OP_RETURN data for this specific transaction
       final opReturns = await _api.misc.listOPReturns();
       final opReturn = opReturns.firstWhere(
         (op) => op.txid == txid,
@@ -1488,7 +1284,6 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         throw Exception('Invalid OP_RETURN data structure');
       }
       
-      // Parse metadata
       final metadataBytes = base64.decode(parts[0]);
       if (metadataBytes.length != 9) {
         throw Exception('Invalid metadata length');
@@ -1507,15 +1302,12 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         throw Exception('This multisig group is encrypted and cannot be imported via TXID');
       }
       
-      // Decode the content (should be base64 encoded JSON)
       final contentBytes = base64.decode(parts[1]);
       final jsonString = utf8.decode(contentBytes);
       final multisigData = json.decode(jsonString) as Map<String, dynamic>;
       
-      // Convert to MultisigGroup
       importedGroup = MultisigGroup.fromJson(multisigData);
       
-      // Automatically detect which keys belong to this wallet
       await _detectWalletKeys();
       
       hasFoundGroup = true;
@@ -1532,13 +1324,11 @@ class ImportMultisigModalViewModel extends BaseViewModel {
     if (importedGroup == null) return;
     
     try {
-      // Initialize HD wallet if needed
       if (!_hdWallet.isInitialized) {
         await _hdWallet.init();
       }
       
       if (_hdWallet.mnemonic == null) {
-        // No wallet mnemonic available, mark all keys as external
         processedKeys = importedGroup!.keys.map((key) => 
           MultisigKey(
             owner: key.owner,
@@ -1552,24 +1342,18 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         return;
       }
       
-      // Process each key to check if it matches a wallet-derived key
       processedKeys = [];
       for (final key in importedGroup!.keys) {
         bool isWalletKey = false;
         
         try {
-          // Derive the xpub at this path from our wallet
           final keyInfo = await _hdWallet.deriveKeyInfo(_hdWallet.mnemonic!, key.derivationPath);
           final derivedXpub = keyInfo['xpub'] ?? '';
           
-          // Check if the derived xpub matches the imported one
           if (derivedXpub.isNotEmpty && derivedXpub == key.xpub) {
             isWalletKey = true;
-            MultisigLogger.info('Found wallet key at path ${key.derivationPath}');
           }
         } catch (e) {
-          // Failed to derive at this path, not a wallet key
-          MultisigLogger.debug('Could not derive key at path ${key.derivationPath}: $e');
         }
         
         processedKeys!.add(MultisigKey(
@@ -1582,11 +1366,8 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         ),);
       }
       
-      MultisigLogger.info('Detected ${processedKeys!.where((k) => k.isWallet).length} wallet keys out of ${processedKeys!.length} total keys');
       
     } catch (e) {
-      MultisigLogger.error('Error detecting wallet keys: $e');
-      // On error, mark all keys as external
       processedKeys = importedGroup!.keys.map((key) => 
         MultisigKey(
           owner: key.owner,
@@ -1615,7 +1396,6 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       modalError = null;
       setBusy(true);
       
-      // Use the automatically processed keys with wallet detection
       final updatedGroup = {
         'id': importedGroup!.id,
         'name': importedGroup!.name,
@@ -1626,7 +1406,6 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         'txid': txidController.text.trim(), // Include the TXID from import
       };
       
-      // Save to local file
       await _saveToLocalFile(updatedGroup);
       
       if (context.mounted) {
@@ -1657,7 +1436,6 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       }
       final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
       
-      // Load existing data or create new structure
       Map<String, dynamic> jsonData = {
         'groups': [],
         'solo_keys': [],
@@ -1670,20 +1448,16 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         }
       }
       
-      // Check if this multisig group already exists (by ID)
       final groups = jsonData['groups'] as List<dynamic>;
       final groupId = multisigData['id'] as String;
       final existingIndex = groups.indexWhere((group) => group['id'] == groupId);
       
       if (existingIndex != -1) {
-        // Update existing group
         groups[existingIndex] = multisigData;
       } else {
-        // Add new group
         groups.add(multisigData);
       }
       
-      // Save updated data
       await file.writeAsString(json.encode(jsonData));
       
     } catch (e) {

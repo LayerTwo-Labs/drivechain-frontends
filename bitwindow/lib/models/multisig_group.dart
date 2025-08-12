@@ -9,17 +9,17 @@ class MultisigGroup {
   final int created;
   final String? txid;
   
-  final String? descriptor;  // Full descriptor with checksum (legacy, single address)
-  final String? descriptorReceive;  // Ranged descriptor for receive addresses
-  final String? descriptorChange;   // Ranged descriptor for change addresses
-  final String? watchWalletName;    // Name of watch-only wallet in Core
-  final Map<String, List<AddressInfo>> addresses;  // receive/change addresses
-  final List<UtxoInfo> utxoDetails;  // Detailed UTXO information
-  final double balance;  // Total balance in BTC
-  final int utxos;  // UTXO count
-  final int nextReceiveIndex;  // For address generation
-  final int nextChangeIndex;   // For change addresses
-  final List<String> transactionIds;  // References to transactions in transactions.json
+  final String? descriptor;
+  final String? descriptorReceive;
+  final String? descriptorChange;
+  final String? watchWalletName;
+  final Map<String, List<AddressInfo>> addresses;
+  final List<UtxoInfo> utxoDetails;
+  final double balance;
+  final int utxos;
+  final int nextReceiveIndex;
+  final int nextChangeIndex;
+  final List<String> transactionIds;
   
   MultisigGroup({
     required this.id,
@@ -56,17 +56,17 @@ class MultisigGroup {
           [],
       created: json['created'] ?? 0,
       txid: json['txid'],
-      descriptor: json['descriptor'], // Legacy field, may be null
-      descriptorReceive: json['descriptorReceive'] ?? json['descriptor_receive'], // Support both naming conventions
-      descriptorChange: json['descriptorChange'] ?? json['descriptor_change'], // Support both naming conventions
-      watchWalletName: json['watch_wallet_name'] ?? 'multisig_${json['id']}', // Generate default
-      addresses: _parseAddresses(json['addresses']), // May be null
-      utxoDetails: _parseUtxos(json['utxo_details']), // May be null
-      balance: (json['balance'] ?? 0.0).toDouble(), // Default to 0
-      utxos: json['utxos'] ?? 0, // Default to 0
-      nextReceiveIndex: json['next_receive_index'] ?? 0, // Default to 0
-      nextChangeIndex: json['next_change_index'] ?? 0, // Default to 0
-      transactionIds: List<String>.from(json['transaction_ids'] ?? []), // Default to empty list
+      descriptor: json['descriptor'],
+      descriptorReceive: json['descriptorReceive'] ?? json['descriptor_receive'],
+      descriptorChange: json['descriptorChange'] ?? json['descriptor_change'],
+      watchWalletName: json['watch_wallet_name'] ?? 'multisig_${json['id']}',
+      addresses: _parseAddresses(json['addresses']),
+      utxoDetails: _parseUtxos(json['utxo_details']),
+      balance: (json['balance'] ?? 0.0).toDouble(),
+      utxos: json['utxos'] ?? 0,
+      nextReceiveIndex: json['next_receive_index'] ?? 0,
+      nextChangeIndex: json['next_change_index'] ?? 0,
+      transactionIds: List<String>.from(json['transaction_ids'] ?? []),
     );
   }
 
@@ -96,9 +96,7 @@ class MultisigGroup {
 
   static Map<String, List<AddressInfo>> _parseAddresses(dynamic json) {
     if (json == null) return {'receive': [], 'change': []};
-    
     final Map<String, List<AddressInfo>> result = {'receive': [], 'change': []};
-    
     if (json is Map) {
       if (json['receive'] is List) {
         result['receive'] = (json['receive'] as List)
@@ -111,7 +109,6 @@ class MultisigGroup {
             .toList();
       }
     }
-    
     return result;
   }
 
@@ -128,10 +125,8 @@ class MultisigGroup {
     addresses['change']?.forEach((a) => all.add(a.address));
     return all;
   }
-  
   bool get hasDescriptor => (descriptor != null && descriptor!.isNotEmpty) ||
       (descriptorReceive != null && descriptorReceive!.isNotEmpty);
-  
   bool get hasRangedDescriptors => true;
 
   MultisigGroup copyWith({
@@ -180,20 +175,17 @@ class MultisigGroup {
 class AddressInfo {
   final int index;
   final String address;
-  final bool used;  // Has received funds
-  
+  final bool used;
   AddressInfo({
     required this.index,
     required this.address,
     this.used = false,
   });
-  
   factory AddressInfo.fromJson(Map<String, dynamic> json) => AddressInfo(
         index: json['index'] ?? 0,
         address: json['address'] ?? '',
         used: json['used'] ?? false,
       );
-  
   Map<String, dynamic> toJson() => {
         'index': index,
         'address': address,
@@ -235,7 +227,6 @@ class UtxoInfo {
         solvable: json['solvable'] ?? true,
         safe: json['safe'] ?? true,
       );
-  
   Map<String, dynamic> toJson() => {
         'txid': txid,
         'vout': vout,
@@ -247,7 +238,6 @@ class UtxoInfo {
         'solvable': solvable,
         'safe': safe,
       };
-  
   Map<String, dynamic> get outpoint => {
         'txid': txid,
         'vout': vout,
