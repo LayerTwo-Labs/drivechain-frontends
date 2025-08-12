@@ -136,8 +136,7 @@ class BinaryProvider extends ChangeNotifier {
   // let the download manager handle all binary stuff. Only it does updates!
   List<Binary> get binaries => _downloadManager.binaries;
   ExitTuple? exited(Binary binary) => _processManager.exited(binary);
-
-  Stream<String> stderr(Binary binary) => _processManager.stderr(binary);
+  Stream<String>? stderr(Binary binary) => _processManager.stderr(binary);
 
   // Track starter usage for L2 chains
   final Map<String, bool> _useStarter = {};
@@ -326,13 +325,13 @@ class BinaryProvider extends ChangeNotifier {
 
         // We've quit! Assuming there's error logs, somewhere.
         if (!isRunning(binary) && connectionError(binary) == null) {
-          final logs = await stderr(binary).toList();
+          final logs = await stderr(binary)?.toList();
           log.e('$binary exited before we could connect, dumping logs');
-          for (var line in logs) {
+          for (var line in logs ?? []) {
             log.e('$binary: $line');
           }
 
-          var lastLine = _stripFromString(logs.last, ': ');
+          var lastLine = _stripFromString(logs?.last ?? '', ': ');
           error = lastLine;
         } else {
           error ??= err.toString();
@@ -702,15 +701,6 @@ String _stripFromString(String input, String whatToStrip) {
 
 Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
   final log = GetIt.I.get<Logger>();
-
-  // rewrite bundled assets in this build. things get updated!
-  try {
-    await Future.wait([
-      for (final binary in binaries) binary.writeBinaryFromAssetsBundle(appDir),
-    ]);
-  } catch (_) {
-    // is oke to not be able to write the binaries
-  }
 
   // now that assets are written, we can check stuff in parallel
   await Future.wait(

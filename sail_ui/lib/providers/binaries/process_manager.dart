@@ -23,9 +23,10 @@ class ProcessManager extends ChangeNotifier {
 
   final Map<String, Stream<String>> _stdoutStreams = {};
   final Map<String, Stream<String>> _stderrStreams = {};
+  final Map<String, String> _finalErr = {};
 
-  Stream<String> stdout(Binary binary) => _stdoutStreams[binary.name] ?? const Stream.empty();
-  Stream<String> stderr(Binary binary) => _stderrStreams[binary.name] ?? const Stream.empty();
+  Stream<String>? stdout(Binary binary) => _stdoutStreams[binary.name];
+  Stream<String>? stderr(Binary binary) => _stderrStreams[binary.name];
   bool running(Binary binary) => runningProcesses.containsKey(binary.name);
 
   Future<int> start(
@@ -69,6 +70,7 @@ class ProcessManager extends ChangeNotifier {
     process.stdout.transform(systemEncoding.decoder).listen(
       (data) {
         stdoutController.add(data);
+        _finalErr[binary.name] = data;
         if (!isSpam(data)) {
           log.d('${file.path.split(Platform.pathSeparator).last}: $data');
         }
@@ -116,11 +118,11 @@ class ProcessManager extends ChangeNotifier {
           var message = '';
           if (code != 0) {
             // exit code bad, it crashed!
-            final errLogs = await (_stderrStreams[binary.name] ?? const Stream<String>.empty()).take(1).toList();
+            final finalErr = _finalErr[binary.name];
             final outLogs = await (_stdoutStreams[binary.name] ?? const Stream<String>.empty()).take(1).toList();
-            if (errLogs.isNotEmpty) {
-              log.i('errlogs present, using last message from stderr: ${errLogs.last}');
-              message = errLogs.last;
+            if (finalErr != null) {
+              log.i('finalerr present, using last message from stderr: $finalErr');
+              message = finalErr;
             } else {
               log.i('no errlogs present, using last message from stdout: ${outLogs.last}');
               message = outLogs.last;
@@ -141,6 +143,9 @@ class ProcessManager extends ChangeNotifier {
           // Close the stream controllers
           await stdoutController.close();
           await stderrController.close();
+          _stderrStreams.remove(binary.name);
+          _stdoutStreams.remove(binary.name);
+          _finalErr.remove(binary.name);
         } finally {
           notifyListeners();
         }
