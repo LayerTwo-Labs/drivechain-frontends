@@ -37,8 +37,6 @@ class FileOperationLock {
 }
 
 class TransactionStatusManager {
-  static final MultisigTransactionNotifier _notifier = MultisigTransactionNotifier();
-  
   static Future<void> updateTransactionStatus({
     required String transactionId,
     required TxStatus newStatus,
@@ -49,35 +47,26 @@ class TransactionStatusManager {
     String? finalHex,
     String? reason,
   }) async {
-    return await FileOperationLock.withLock('transactions.json', () async {
-      final transactions = await _loadTransactionsDirect();
-      MultisigTransaction? transaction;
-      try {
-        transaction = transactions.firstWhere((tx) => tx.id == transactionId);
-      } catch (e) {
-        transaction = null;
-      }
-      
-      if (transaction == null) {
-        throw Exception('Transaction not found: $transactionId');
-      }
-      
-      if (!_isValidStatusTransition(transaction.status, newStatus)) {
-        throw Exception('Invalid status transition from ${transaction.status} to $newStatus');
-      }
-      
-      final updatedTransaction = transaction.copyWith(
-        status: newStatus,
-        txid: txid ?? transaction.txid,
-        broadcastTime: broadcastTime ?? transaction.broadcastTime,
-        confirmations: confirmations ?? transaction.confirmations,
-        combinedPSBT: combinedPSBT ?? transaction.combinedPSBT,
-        finalHex: finalHex ?? transaction.finalHex,
-      );
-      
-      await _saveTransactionDirect(updatedTransaction);
-      _notifier.notifyTransactionChange();
-    });
+    final transaction = await TransactionStorage.getTransaction(transactionId);
+    
+    if (transaction == null) {
+      throw Exception('Transaction not found: $transactionId');
+    }
+    
+    if (!_isValidStatusTransition(transaction.status, newStatus)) {
+      throw Exception('Invalid status transition from ${transaction.status} to $newStatus');
+    }
+    
+    final updatedTransaction = transaction.copyWith(
+      status: newStatus,
+      txid: txid ?? transaction.txid,
+      broadcastTime: broadcastTime ?? transaction.broadcastTime,
+      confirmations: confirmations ?? transaction.confirmations,
+      combinedPSBT: combinedPSBT ?? transaction.combinedPSBT,
+      finalHex: finalHex ?? transaction.finalHex,
+    );
+    
+    await TransactionStorage.saveTransaction(updatedTransaction);
   }
   
   static bool _isValidStatusTransition(TxStatus from, TxStatus to) {
@@ -93,67 +82,6 @@ class TransactionStatusManager {
     return validTransitions[from]?.contains(to) ?? false;
   }
   
-  static Future<void> _saveTransactionDirect(MultisigTransaction transaction) async {
-    final transactions = await _loadTransactionsDirect();
-    
-    final existingIndex = transactions.indexWhere((tx) => tx.id == transaction.id);
-    if (existingIndex != -1) {
-      transactions[existingIndex] = transaction;
-    } else {
-      transactions.add(transaction);
-    }
-    
-    await _saveTransactionsDirect(transactions);
-  }
-  
-  static Future<List<MultisigTransaction>> _loadTransactionsDirect() async {
-    try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-      if (!await bitdriveDir.exists()) {
-        await bitdriveDir.create(recursive: true);
-      }
-      
-      final filePath = path.join(bitdriveDir.path, 'transactions.json');
-      final file = File(filePath);
-      
-      if (!await file.exists()) {
-        return [];
-      }
-      
-      final content = await file.readAsString();
-      if (content.trim().isEmpty) {
-        return [];
-      }
-      
-      final jsonList = json.decode(content) as List<dynamic>;
-      return jsonList
-          .map((txJson) => MultisigTransaction.fromJson(txJson as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      throw Exception('Failed to load transactions: $e');
-    }
-  }
-  
-  static Future<void> _saveTransactionsDirect(List<MultisigTransaction> transactions) async {
-    try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-      if (!await bitdriveDir.exists()) {
-        await bitdriveDir.create(recursive: true);
-      }
-      
-      final filePath = path.join(bitdriveDir.path, 'transactions.json');
-      final file = File(filePath);
-      
-      final jsonList = transactions.map((tx) => tx.toJson()).toList();
-      final content = json.encode(jsonList);
-      
-      await file.writeAsString(content);
-    } catch (e) {
-      throw Exception('Failed to save transactions: $e');
-    }
-  }
 }
 
 class PSBTValidationResult {
@@ -247,6 +175,64 @@ class PSBTValidator {
     }
 
     return totalSigs;
+  }
+
+  static Future<bool> isComplete(String psbtBase64, int requiredSigs) async {
+    try {
+      final analysis = await _rpc.callRAW('analyzepsbt', [psbtBase64]);
+      
+      if (analysis is Map) {
+        final next = analysis['next'] as String?;
+        final isComplete = next == 'finalizer' || next == 'extractor';
+        
+        final inputs = analysis['inputs'] as List? ?? [];
+        bool allInputsReady = true;
+        
+        for (final input in inputs) {
+          if (input is Map) {
+            final sigs = (input['partial_signatures'] as Map?)?.length ?? 0;
+            if (sigs < requiredSigs) {
+              allInputsReady = false;
+            }
+          }
+        }
+        
+        return isComplete && allInputsReady;
+      }
+      
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<int> countSignatureDifference(String psbtBefore, String psbtAfter) async {
+    try {
+      if (psbtBefore == psbtAfter) {
+        return 0;
+      }
+      
+      final beforeAnalysis = await _rpc.callRAW('analyzepsbt', [psbtBefore]);
+      final afterAnalysis = await _rpc.callRAW('analyzepsbt', [psbtAfter]);
+      
+      if (beforeAnalysis is Map && afterAnalysis is Map) {
+        final beforeInputs = beforeAnalysis['inputs'] as List? ?? [];
+        final afterInputs = afterAnalysis['inputs'] as List? ?? [];
+        
+        int signaturesAdded = 0;
+        for (int i = 0; i < beforeInputs.length && i < afterInputs.length; i++) {
+          final beforeSigs = (beforeInputs[i]['partial_signatures'] as Map?)?.length ?? 0;
+          final afterSigs = (afterInputs[i]['partial_signatures'] as Map?)?.length ?? 0;
+          signaturesAdded += afterSigs - beforeSigs;
+        }
+        
+        return signaturesAdded > 0 ? signaturesAdded : 1;
+      }
+      
+      return 1;
+    } catch (e) {
+      return psbtBefore != psbtAfter ? 1 : 0;
+    }
   }
 }
 
@@ -390,11 +376,8 @@ class MultisigStateManager extends ChangeNotifier {
       try {
         _groups = await MultisigStorage.loadGroups();
         _transactions = await TransactionStorage.loadTransactions();
-
         await BalanceManager.updateAllGroupBalances(_groups);
-        
         _groups = await MultisigStorage.loadGroups();
-
       } catch (e) {
         _setError(e.toString());
       } finally {
@@ -675,7 +658,7 @@ class MultisigRPCSigner {
         finalPsbt = participantPSBTs[0];
       }
       
-      final isComplete = await _checkPsbtComplete(finalPsbt, group.m);
+      final isComplete = await PSBTValidator.isComplete(finalPsbt, group.m);
       
       
       
@@ -733,7 +716,7 @@ class MultisigRPCSigner {
       if (result is Map) {
         final signedPsbt = result['psbt'] as String;
         final isComplete = result['complete'] as bool? ?? false;
-        final signaturesAdded = await _countNewSignatures(psbtBase64, signedPsbt);
+        final signaturesAdded = await PSBTValidator.countSignatureDifference(psbtBase64, signedPsbt);
         
         return SigningResult(
           signedPsbt: signedPsbt,
@@ -750,70 +733,6 @@ class MultisigRPCSigner {
     }
   }
   
-  Future<int> _countNewSignatures(String psbtBefore, String psbtAfter) async {
-    try {
-      if (psbtBefore == psbtAfter) {
-        return 0;
-      }
-      
-      final beforeAnalysis = await _rpc.callRAW('analyzepsbt', [psbtBefore]);
-      final afterAnalysis = await _rpc.callRAW('analyzepsbt', [psbtAfter]);
-      
-      if (beforeAnalysis is Map && afterAnalysis is Map) {
-        final beforeInputs = beforeAnalysis['inputs'] as List? ?? [];
-        final afterInputs = afterAnalysis['inputs'] as List? ?? [];
-        
-        int signaturesAdded = 0;
-        
-        for (int i = 0; i < beforeInputs.length && i < afterInputs.length; i++) {
-          final beforeInput = beforeInputs[i] as Map;
-          final afterInput = afterInputs[i] as Map;
-          
-          final beforeSigs = (beforeInput['partial_signatures'] as Map?)?.length ?? 0;
-          final afterSigs = (afterInput['partial_signatures'] as Map?)?.length ?? 0;
-          
-          signaturesAdded += afterSigs - beforeSigs;
-        }
-        
-        return signaturesAdded > 0 ? signaturesAdded : 1;
-      }
-      
-      return 1;
-    } catch (e) {
-      return psbtBefore != psbtAfter ? 1 : 0;
-    }
-  }
-  
-  Future<bool> _checkPsbtComplete(String psbt, int requiredSigs) async {
-    try {
-      final analysis = await _rpc.callRAW('analyzepsbt', [psbt]);
-      
-      if (analysis is Map) {
-        final next = analysis['next'] as String?;
-        final isComplete = next == 'finalizer' || next == 'extractor';
-        
-        final inputs = analysis['inputs'] as List? ?? [];
-        bool allInputsReady = true;
-        
-        for (int i = 0; i < inputs.length; i++) {
-          final input = inputs[i] as Map?;
-          if (input != null) {
-            final sigs = (input['partial_signatures'] as Map?)?.length ?? 0;
-            
-            if (sigs < requiredSigs) {
-              allInputsReady = false;
-            }
-          }
-        }
-        
-        return isComplete && allInputsReady;
-      }
-      
-      return false;
-    } catch (e) {
-      return false;
-    }
-  }
 }
 
 class TransactionStorage {
@@ -906,11 +825,6 @@ class TransactionStorage {
     return transactions.where((tx) => tx.groupId == groupId).toList();
   }
 
-  static Future<void> deleteTransaction(String transactionId) async {
-    final transactions = await loadTransactions();
-    transactions.removeWhere((tx) => tx.id == transactionId);
-    await saveTransactions(transactions);
-  }
 
 
   static Future<void> updateKeyPSBT(
@@ -1058,12 +972,6 @@ class TransactionStorage {
     }
   }
 
-  static Future<List<MultisigTransaction>> getTransactionsNeedingConfirmationUpdate() async {
-    final transactions = await loadTransactions();
-    return transactions.where((tx) => 
-      tx.status == TxStatus.broadcasted && tx.txid != null,
-    ).toList();
-  }
 
 
   static Future<void> addOrUpdateKeyPSBT(
@@ -1409,50 +1317,38 @@ class MultisigStorage {
 
   static Future<void> saveGroups(List<MultisigGroup> groups) async {
     return await FileOperationLock.withLock('multisig.json', () async {
-      try {
-        final filePath = await _getGroupsFilePath();
-        final file = File(filePath);
-        
-        await file.parent.create(recursive: true);
-        
-        List<Map<String, dynamic>> soloKeys = [];
-        if (await file.exists()) {
-          try {
-            final existingContent = await file.readAsString();
-            final existingData = json.decode(existingContent);
-            if (existingData is Map<String, dynamic> && existingData['solo_keys'] is List) {
-              soloKeys = List<Map<String, dynamic>>.from(existingData['solo_keys']);
-            }
-          } catch (e) {
-          }
-        }
-        
-        final jsonData = {
-          'groups': groups.map((group) => group.toJson()).toList(),
-          'solo_keys': soloKeys,
-        };
-        
-        final content = json.encode(jsonData);
-        await file.writeAsString(content);
-      } catch (e) {
-        throw Exception('Failed to save groups: $e');
-      }
+      final filePath = await _getGroupsFilePath();
+      final file = File(filePath);
+      
+      await file.parent.create(recursive: true);
+      
+      // Preserve existing solo_keys if file exists and is valid
+      final soloKeys = await _loadExistingSoloKeys(file);
+      
+      final jsonData = {
+        'groups': groups.map((group) => group.toJson()).toList(),
+        'solo_keys': soloKeys,
+      };
+      
+      final content = json.encode(jsonData);
+      await file.writeAsString(content);
     });
   }
 
-  static Future<void> saveGroup(MultisigGroup group) async {
-    final groups = await loadGroups();
+  static Future<List<Map<String, dynamic>>> _loadExistingSoloKeys(File file) async {
+    if (!await file.exists()) return [];
     
-    final existingIndex = groups.indexWhere((g) => g.id == group.id);
+    final existingContent = await file.readAsString();
+    if (existingContent.trim().isEmpty) return [];
     
-    if (existingIndex != -1) {
-      groups[existingIndex] = group;
-    } else {
-      groups.add(group);
+    final existingData = json.decode(existingContent);
+    if (existingData is Map<String, dynamic> && existingData['solo_keys'] is List) {
+      return List<Map<String, dynamic>>.from(existingData['solo_keys']);
     }
     
-    await saveGroups(groups);
+    return [];
   }
+
 
 
   static Future<void> updateGroupBalance(String groupId, double balance, int utxoCount) async {

@@ -76,12 +76,9 @@ class BitDriveProvider extends ChangeNotifier {
   BitDriveProvider() {
     // Listen for blockchain sync status changes
     blockchainProvider.addListener(_onSyncStatusChanged);
-<<<<<<< HEAD
-    init();
-=======
     // Listen for enforcer connection changes
     enforcer.addListener(_onSyncStatusChanged);
->>>>>>> f99c4d2e (bitwindow: add reset wallet functionality that does not touch chain state and a little cleanup of multisig file)
+    init();
   }
 
   @override
@@ -416,7 +413,7 @@ class BitDriveProvider extends ChangeNotifier {
       final opReturnData = '$metadataStr|$contentStr';
 
       final address = await bitwindowd.wallet.getNewAddress();
-      final txid = await bitwindowd.wallet.sendTransaction(
+      await bitwindowd.wallet.sendTransaction(
         {address: 10000}, // 0.0001 BTC
         fixedFeeSats: 1000,
         opReturnMessage: opReturnData,
@@ -618,7 +615,6 @@ class BitDriveProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      int downloadedCount = 0;
       List<PendingDownload> downloaded = [];
 
       for (final pendingFile in _pendingDownloads) {
@@ -627,7 +623,6 @@ class BitDriveProvider extends ChangeNotifier {
           final file = File(path.join(_bitdriveDir!, pendingFile.fileName));
           await file.writeAsBytes(content);
 
-          downloadedCount++;
           downloaded.add(pendingFile);
         } catch (e) {
           log.e('BitDrive: Error downloading ${pendingFile.fileName}: $e');
@@ -651,12 +646,6 @@ class BitDriveProvider extends ChangeNotifier {
       // For non-encrypted groups, this will be the raw JSON bytes
       final jsonString = utf8.decode(content);
       final multisigData = json.decode(jsonString) as Map<String, dynamic>;
-      
-      // Extract multisig information
-      final name = multisigData['name'] as String? ?? 'Unknown';
-      final id = multisigData['id'] as String? ?? '';
-      final n = multisigData['n'] as int? ?? 0;
-      final m = multisigData['m'] as int? ?? 0;
       
       // Add the TXID to the data if not already present
       if (multisigData['txid'] == null) {
@@ -728,7 +717,6 @@ class BitDriveProvider extends ChangeNotifier {
       
       // Check if this multisig group already exists (by ID - the unique identifier)
       final groupId = multisigData['id'] as String?;
-      final groupName = multisigData['name'] as String? ?? 'Unknown';
       
       if (groupId != null && groupId.isNotEmpty) {
         final existingIndex = groups.indexWhere((group) => group['id'] == groupId);

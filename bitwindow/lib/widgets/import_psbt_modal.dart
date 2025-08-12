@@ -330,7 +330,16 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         }
       }
 
-      await MultisigStorage.saveGroup(group);
+      final allGroups = await MultisigStorage.loadGroups();
+      final existingIndex = allGroups.indexWhere((g) => g.id == group.id);
+      
+      if (existingIndex != -1) {
+        allGroups[existingIndex] = group;
+      } else {
+        allGroups.add(group);
+      }
+      
+      await MultisigStorage.saveGroups(allGroups);
       
       widget.onImportSuccess();
 
@@ -378,9 +387,9 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: SailRow(
                       children: [
@@ -412,12 +421,12 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: _selectedFileName != null 
-                            ? Colors.green.withOpacity(0.5)
-                            : Colors.grey.withOpacity(0.3),
+                            ? Colors.green.withValues(alpha: 0.5)
+                            : Colors.grey.withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(8),
                       color: _selectedFileName != null
-                          ? Colors.green.withOpacity(0.05)
+                          ? Colors.green.withValues(alpha: 0.05)
                           : null,
                     ),
                     child: SailColumn(
@@ -482,9 +491,9 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.05),
+                        color: Colors.blue.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
                       ),
                       child: SailColumn(
                         spacing: SailStyleValues.padding08,

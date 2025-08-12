@@ -127,7 +127,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab>
               child: MultisigGroupsTable(
                 groups: viewModel.multisigGroups,
                 selectedGroup: viewModel.selectedGroup,
-                onSelectGroup: viewModel.selectGroup,
+                onSelectGroup: viewModel._stateManager.setSelectedGroup,
               ),
             ),
           ),
@@ -772,13 +772,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
   bool get hasReadyTransactions =>
       transactions.any((tx) => tx.status == TxStatus.readyForBroadcast);
 
-  void selectGroup(MultisigGroup? group) {
-    selectedGroup = group;
-    notifyListeners();
-  }
 
   Future<void> createNewGroup(BuildContext context) async {
-    final result = await showDialog(
+    await showDialog(
       context: context,
       builder: (context) => const CreateMultisigModal(),
     );
@@ -817,12 +813,14 @@ class MultisigLoungeViewModel extends BaseViewModel {
       final address = await _getNewAddress(group);
       _logger.d('Got funding address for group ${group.name}: $address');
 
-      final result = await showDialog<bool>(
-        context: context,
-        builder: (context) => FundGroupModal(
-          groups: [group],
-        ),
-      );
+      if (context.mounted) {
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => FundGroupModal(
+            groups: [group],
+          ),
+        );
+      }
 
     } catch (e) {
       if (context.mounted) {
@@ -835,7 +833,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   Future<void> fundGroupWithSelection(BuildContext context) async {
     try {
-      final result = await showDialog<bool>(
+      await showDialog<bool>(
         context: context,
         builder: (context) => FundGroupModal(
           groups: multisigGroups,
@@ -863,54 +861,11 @@ class MultisigLoungeViewModel extends BaseViewModel {
     return await _walletManager.getNewAddress(walletName);
   }
 
-  Future<void> reimportDescriptors(
-      BuildContext context, MultisigGroup group,) async {
-    try {
-      final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-
-      final descriptors = await MultisigDescriptorBuilder.buildWatchOnlyDescriptors(group);
-      
-      await _walletManager.importDescriptors(walletName, [
-        {
-          'desc': descriptors.receive,
-          'active': true,
-          'internal': false,
-          'timestamp': 0,
-          'range': [0, kDescriptorAddressRange],
-        },
-        {
-          'desc': descriptors.change,
-          'active': true,
-          'internal': true,
-          'timestamp': 0,
-          'range': [0, kDescriptorAddressRange],
-        },
-      ]);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Descriptors reimported for ${group.name}. Rescanning blockchain...'),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to reimport descriptors: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 
   Future<void> createTransaction(
       BuildContext context, MultisigGroup? group,) async {
     try {
-      final result = await showDialog<bool>(
+      await showDialog<bool>(
         context: context,
         builder: (context) => PSBTCoordinatorModal(
           group: group,
@@ -1061,7 +1016,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       final matches = derivedXpub == targetKey.xpub;
 
       if (matches) {
-        _logger.i('Key match found at account index $accountIndex: ${targetKey.owner} (network: ${isMainnet ? 'mainnet' : 'testnet'})');
+        _logger.i('Key match found at account index $accountIndex: ${targetKey.owner} (network: testnet)');
         return keyInfo;
       }
 
@@ -1073,7 +1028,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
   }
 
   Future<void> openCombineAndBroadcastModal(BuildContext context) async {
-    final result = await showDialog<bool>(
+    await showDialog<bool>(
       context: context,
       builder: (context) => CombineBroadcastModal(
         eligibleTransactions: transactions
@@ -1082,8 +1037,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
             )
             .toList(),
         multisigGroups: multisigGroups,
-        onBroadcastSuccess: () {
-        },
+        onBroadcastSuccess: () {},
       ),
     );
   }
@@ -1527,7 +1481,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       MultisigLogger.info('Transaction signing completed successfully');
       
       await _stateManager.refreshData();
-      notifyListeners();
     } catch (e) {
       MultisigLogger.error('Error in transaction signing: $e');
 
@@ -1541,7 +1494,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
       
       await _stateManager.refreshData();
-      notifyListeners();
     }
   }
 
