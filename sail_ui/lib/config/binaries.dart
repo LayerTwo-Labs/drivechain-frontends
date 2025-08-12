@@ -376,6 +376,13 @@ abstract class Binary {
       ]);
     }
 
+    if (appDir != null) {
+      // In release mode, check the folder where binaries are downloaded to first
+      paths.addAll([
+        path.join(binDir(appDir.path).path, baseBinary),
+      ]);
+    }
+
     // Add launcher download paths based on binary type and platform
     if (home != null) {
       if (type == BinaryType.bitcoinCore) {
@@ -457,13 +464,6 @@ abstract class Binary {
       }
     }
 
-    if (appDir != null) {
-      // In release mode, check the folder where binaries are downloaded to
-      paths.addAll([
-        path.join(binDir(appDir.path).path, baseBinary),
-      ]);
-    }
-
     log.i('found possible paths $paths');
 
     return paths;
@@ -474,7 +474,7 @@ abstract class Binary {
     try {
       final os = getOS();
       final fileName = metadata.files[os];
-      if (fileName == null) {
+      if (fileName == null || fileName.isEmpty) {
         log.w('Warning: No file name for $name on $os');
         return null;
       }
