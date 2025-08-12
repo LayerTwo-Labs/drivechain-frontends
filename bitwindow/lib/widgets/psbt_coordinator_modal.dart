@@ -7,7 +7,6 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -23,7 +22,6 @@ class PSBTCoordinatorModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // If no group is provided, show group selection first
     if (group == null) {
       return _buildGroupSelectionModal(context);
     }
@@ -44,12 +42,10 @@ class PSBTCoordinatorModal extends StatelessWidget {
                 spacing: SailStyleValues.padding16,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Available balance
                   SailText.primary13(
                     'Available Balance: ${group!.balance.toStringAsFixed(8)} BTC (${group!.utxos} UTXOs)',
                   ),
                   
-                  // Destination
                   SailTextField(
                     label: 'Destination Address',
                     controller: viewModel.destinationController,
@@ -57,7 +53,6 @@ class PSBTCoordinatorModal extends StatelessWidget {
                     size: TextFieldSize.small,
                   ),
                   
-                  // Amount
                   NumericField(
                     label: 'Amount (BTC)',
                     controller: viewModel.amountController,
@@ -73,7 +68,6 @@ class PSBTCoordinatorModal extends StatelessWidget {
                     'Transaction fee will be automatically calculated and deducted from the amount.',
                   ),
                   
-                  // Action buttons
                   SailRow(
                     spacing: SailStyleValues.padding12,
                     children: [
@@ -180,11 +174,9 @@ class PSBTCoordinatorModal extends StatelessWidget {
 class CreateTransactionViewModel extends BaseViewModel {
   final MultisigGroup group;
   
-  // Controllers
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   
-  // State
   String? _error;
   String? createdPSBT;
   String? transactionId;
@@ -196,7 +188,6 @@ class CreateTransactionViewModel extends BaseViewModel {
     amountController.addListener(notifyListeners);
   }
   
-  // Getters
   bool get canCreateTransaction {
     if (destinationController.text.isEmpty || amountController.text.isEmpty) {
       return false;
@@ -207,7 +198,6 @@ class CreateTransactionViewModel extends BaseViewModel {
       return false;
     }
     
-    // Check against group balance (wallet will automatically deduct fee)
     return amount <= group.balance;
   }
   
@@ -215,28 +205,23 @@ class CreateTransactionViewModel extends BaseViewModel {
   
   String? get modalError => _error;
   
-  // Actions
   Future<void> useMaxAmount() async {
-    // Use full group balance (fee will be deducted automatically by wallet)
     amountController.text = group.balance.toStringAsFixed(8);
     notifyListeners();
   }
   
   String _generateTransactionId(String psbt, String destination) {
     try {
-      // Create unique ID based on PSBT + destination
       final data = utf8.encode(psbt + destination);
       final hash = sha256.convert(data);
       final doubleHash = sha256.convert(hash.bytes);
       
-      // Take first 4 bytes as hex
       final id = doubleHash.bytes.take(4)
           .map((b) => b.toRadixString(16).padLeft(2, '0'))
           .join()
           .toUpperCase();
       return id;
     } catch (e) {
-      // Fallback to timestamp-based ID
       return DateTime.now().millisecondsSinceEpoch.toRadixString(16).toUpperCase();
     }
   }
@@ -252,24 +237,20 @@ class CreateTransactionViewModel extends BaseViewModel {
       final amount = double.parse(amountController.text);
       final outputs = {destinationController.text: amount};
       
-      // Use wallet-specific RPC call to create funded PSBT
       final walletManager = WalletRPCManager();
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
       
-      GetIt.I.get<Logger>().d('Creating PSBT for wallet: $walletName');
-      GetIt.I.get<Logger>().d('Outputs: $outputs');
       
-      // Create the PSBT using walletcreatefundedpsbt
       final psbtResult = await walletManager.callWalletRPC<Map<String, dynamic>>(
         walletName,
         'walletcreatefundedpsbt',
         [
-          [], // empty inputs - let wallet choose UTXOs
+          [],
           outputs,
-          0, // locktime
+          0,
           {
             'includeWatching': true,
-            'changePosition': 1, // Put change output at position 1
+            'changePosition': 1,
           },
         ],
       );
@@ -277,17 +258,13 @@ class CreateTransactionViewModel extends BaseViewModel {
       final psbt = psbtResult['psbt'] as String;
       final fee = (psbtResult['fee'] as num?)?.toDouble() ?? 0.0;
       
-      GetIt.I.get<Logger>().i('Created PSBT with fee: ${fee.toStringAsFixed(8)} BTC');
       
-      // Store PSBT and copy to clipboard
       createdPSBT = psbt;
       await Clipboard.setData(ClipboardData(text: psbt));
       
-      // Generate transaction ID
       final txId = _generateTransactionId(psbt, destinationController.text);
       transactionId = txId;
       
-      // Create KeyPSBTStatus for each key in the group
       final keyPSBTs = group.keys.map((key) => KeyPSBTStatus(
         keyId: key.xpub,
         psbt: psbt,
@@ -295,16 +272,16 @@ class CreateTransactionViewModel extends BaseViewModel {
         signedAt: null,
       ),).toList();
       
-      // Create and save transaction
       final transaction = MultisigTransaction(
         id: txId,
         groupId: group.id,
         initialPSBT: psbt,
         keyPSBTs: keyPSBTs,
-        inputs: [], // UTXOs are selected automatically by wallet
+        inputs: [],
         destination: destinationController.text,
         amount: amount,
         status: TxStatus.needsSignatures,
+        type: TxType.withdrawal,
         created: DateTime.now(),
         fee: fee,
         confirmations: 0,
@@ -312,17 +289,13 @@ class CreateTransactionViewModel extends BaseViewModel {
       
       await TransactionStorage.saveTransaction(transaction);
       
-      GetIt.I.get<Logger>().i('Created transaction $txId - needs ${group.m} of ${group.n} signatures');
-      GetIt.I.get<Logger>().i('PSBT copied to clipboard');
       
-      // Close modal immediately after successful creation
       if (context.mounted) {
         Navigator.of(context).pop(true);
       }
       
     } catch (e) {
       _error = 'Failed to create transaction: $e';
-      GetIt.I.get<Logger>().e('Error creating transaction: $e');
     } finally {
       isCreating = false;
       notifyListeners();
@@ -343,15 +316,12 @@ class CreateTransactionViewModel extends BaseViewModel {
         throw Exception('Wallet mnemonic not available - please ensure wallet is unlocked');
       }
       
-      // Get wallet keys that we can sign with
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
-      GetIt.I.get<Logger>().d('Found ${walletKeys.length} wallet keys in group');
       
       if (walletKeys.isEmpty) {
         throw Exception('No wallet keys found in this multisig group');
       }
       
-      // Use MultisigRPCSigner for proper descriptor-based signing
       final rpcSigner = MultisigRPCSigner();
       const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
       
@@ -363,14 +333,11 @@ class CreateTransactionViewModel extends BaseViewModel {
         isMainnet: isMainnet,
       );
       
-      GetIt.I.get<Logger>().i('Successfully signed PSBT - ${signingResult.signaturesAdded} signatures added${signingResult.isComplete ? ' (complete)' : ' (partial)'}');
       
-      // Update the stored PSBT and transaction
       createdPSBT = signingResult.signedPsbt;
       await Clipboard.setData(ClipboardData(text: signingResult.signedPsbt));
       
       if (transactionId != null) {
-        // Update transaction storage for each wallet key that signed
         for (final key in walletKeys) {
           await TransactionStorage.updateKeyPSBT(
             transactionId!,
@@ -381,31 +348,26 @@ class CreateTransactionViewModel extends BaseViewModel {
           );
         }
         
-        // Update transaction status if complete
         if (signingResult.isComplete) {
-          await TransactionStorage.updateTransactionStatus(
-            transactionId!,
-            TxStatus.readyForBroadcast,
+          await TransactionStatusManager.updateTransactionStatus(
+            transactionId: transactionId!,
+            newStatus: TxStatus.readyForBroadcast,
             combinedPSBT: signingResult.signedPsbt,
+            reason: 'PSBT coordinator signing complete',
           );
         }
       }
       
-      // Report any warnings
       if (signingResult.errors.isNotEmpty) {
-        GetIt.I.get<Logger>().w('Signing completed with warnings: ${signingResult.errors.join(', ')}');
       }
       
-      GetIt.I.get<Logger>().i('Signed PSBT copied to clipboard');
       
-      // Close modal after successful signing
       if (context.mounted) {
         Navigator.of(context).pop(true);
       }
       
     } catch (e) {
       _error = 'Failed to sign with wallet keys: $e';
-      GetIt.I.get<Logger>().e('Error signing with wallet keys: $e');
     } finally {
       isSigning = false;
       notifyListeners();

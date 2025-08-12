@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
@@ -33,91 +32,51 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   Logger get _logger => GetIt.I.get<Logger>();
   
-  // File logging for broadcast debug output
-  File? _broadcastLogFile;
-
   @override
   void initState() {
     super.initState();
-    _initBroadcastLogging();
     if (widget.eligibleTransactions.length == 1) {
       _selectedTransaction = widget.eligibleTransactions.first;
     }
   }
-  
-  Future<void> _initBroadcastLogging() async {
-    try {
-      // Create broadcast_debug.txt file in the project root directory (where we know we have write access)
-      _broadcastLogFile = File('/Users/marcplatt/Desktop/l2l-projects/drivechain-frontends/bitwindow/broadcast_debug.txt');
-      
-      // Append to existing content with header
-      final timestamp = DateTime.now().toIso8601String();
-      await _broadcastLogFile!.writeAsString(
-        '\n=== Broadcast Debug Log - $timestamp ===\n\n',
-        mode: FileMode.append,
-      );
-      
-      await _logToFile('Broadcast logging initialized successfully');
-    } catch (e) {
-      // Can't log to file if initialization failed, use console
-      print('Failed to initialize broadcast logging: $e');
-    }
-  }
-  
-  Future<void> _logToFile(String message) async {
-    if (_broadcastLogFile != null) {
-      try {
-        final timestamp = DateTime.now().toIso8601String();
-        await _broadcastLogFile!.writeAsString(
-          '[$timestamp] $message\n',
-          mode: FileMode.append,
-        );
-      } catch (e) {
-        // If file logging fails, at least print to console
-        print('Failed to write to broadcast log file: $e');
-      }
-    }
-    // Also log to console for development
-    print('[BROADCAST] $message');
-  }
 
   Future<void> _combineAndBroadcast() async {
     if (_selectedTransaction == null) {
-      await _logToFile('ERROR: No transaction selected for broadcast');
+      _logger.e('ERROR: No transaction selected for broadcast');
       return;
     }
 
     setState(() => _isBroadcasting = true);
-    await _logToFile('Starting broadcast process for transaction: ${_selectedTransaction!.id}');
+    // 'Starting broadcast process for transaction: ${_selectedTransaction!.id}');
 
     try {
       final tx = _selectedTransaction!;
-      await _logToFile('Transaction details: ID=${tx.id}, GroupID=${tx.groupId}, Status=${tx.status}');
-      await _logToFile('Transaction has ${tx.keyPSBTs.length} keyPSBT entries');
+      // 'Transaction details: ID=${tx.id}, GroupID=${tx.groupId}, Status=${tx.status}');
+      // 'Transaction has ${tx.keyPSBTs.length} keyPSBT entries');
       
       final group = widget.multisigGroups.firstWhere(
         (g) => g.id == tx.groupId,
         orElse: () => throw Exception('Group not found'),
       );
-      await _logToFile('Found group: ${group.name} (${group.m} of ${group.n} multisig)');
+      // 'Found group: ${group.name} (${group.m} of ${group.n} multisig)');
       
       // Log all keyPSBTs and their status
       for (int i = 0; i < tx.keyPSBTs.length; i++) {
         final kp = tx.keyPSBTs[i];
         final keyName = group.keys.where((k) => k.xpub == kp.keyId).firstOrNull?.owner ?? 'Unknown';
-        await _logToFile('KeyPSBT $i: $keyName - isSigned=${kp.isSigned} - hasData=${kp.psbt != null}');
+        // 'KeyPSBT $i: $keyName - isSigned=${kp.isSigned} - hasData=${kp.psbt != null}');
       }
 
       // Validate existing signed PSBTs
-      await _logToFile('Validating existing signed PSBTs...');
+      // 'Validating existing signed PSBTs...');
       int validatedCount = 0;
       for (final kp in tx.keyPSBTs) {
         if (kp.isSigned && kp.psbt != null) {
           try {
             final keyName = group.keys.where((k) => k.xpub == kp.keyId).firstOrNull?.owner ?? 'Unknown';
-            await _logToFile('Validating PSBT for $keyName...');
+            // 'Validating PSBT for $keyName...');
             final storedAnalysis = await _rpc.callRAW('analyzepsbt', [kp.psbt!]);
-            await _logToFile('PSBT analysis for $keyName: $storedAnalysis');
+            // 'PSBT analysis for $keyName: $storedAnalysis');
             if (storedAnalysis is Map) {
               final inputs = storedAnalysis['inputs'] as List<dynamic>? ?? [];
               bool actuallyHasSignatures = false;
@@ -139,13 +98,13 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                   // Since we know this is a multisig group, assume all inputs are multisig
                   final isMultisig = hasRedeemScript || hasWitnessScript || group.n > 1;
                   
-                  await _logToFile('Input analysis: is_final=$isInputFinal, missing_count=$totalMissing, is_multisig=$isMultisig');
+                  // 'Input analysis: is_final=$isInputFinal, missing_count=$totalMissing, is_multisig=$isMultisig');
                   
                   if (isMultisig) {
                     // For m-of-n multisig: if missing fewer than m signatures, then some signatures are present
                     final requiredSignatures = group.m;
                     actuallyHasSignatures = totalMissing < requiredSignatures || isInputFinal;
-                    await _logToFile('Multisig validation: required=$requiredSignatures, missing=$totalMissing, has_some=$actuallyHasSignatures');
+                    // 'Multisig validation: required=$requiredSignatures, missing=$totalMissing, has_some=$actuallyHasSignatures');
                   } else {
                     // Single sig - either fully signed or not
                     actuallyHasSignatures = totalMissing == 0 || isInputFinal;
@@ -158,8 +117,8 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
               }
               
               if (kp.isSigned && !actuallyHasSignatures) {
-                await _logToFile('WARNING: PSBT for $keyName marked as signed but RPC analysis shows no signatures');
-                await _logToFile('Resetting transaction status due to invalid signatures');
+                        _logger.w('WARNING: PSBT marked as signed but RPC analysis shows no signatures');
+                _logger.w('Resetting transaction status due to invalid signatures');
                   
                 final updatedKeyPSBTs = tx.keyPSBTs.map((keyPSBT) => KeyPSBTStatus(
                   keyId: keyPSBT.keyId,
@@ -187,16 +146,16 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                 }
                 return;
               } else {
-                await _logToFile('PSBT for $keyName validated successfully');
+                // 'PSBT for $keyName validated successfully');
                 validatedCount++;
               }
             }
           } catch (e) {
-            await _logToFile('Error validating PSBT: $e');
+            _logger.e('Error validating PSBT: $e');
           }
         }
       }
-      await _logToFile('Validated $validatedCount signed PSBTs');
+      // 'Validated $validatedCount signed PSBTs');
       
       // Collect signed PSBTs for combination
       final signedPSBTs = tx.keyPSBTs
@@ -204,78 +163,79 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         .map((k) => k.psbt!)
         .toList();
       
-      await _logToFile('Collected ${signedPSBTs.length} signed PSBTs for combination');
+      // 'Collected ${signedPSBTs.length} signed PSBTs for combination');
       
       if (signedPSBTs.isEmpty) {
-        await _logToFile('ERROR: No signed PSBTs found - cannot broadcast');
+        _logger.e('ERROR: No signed PSBTs found - cannot broadcast');
         throw Exception('No signed PSBTs found');
       }
       
-      await _logToFile('Signature count check: ${tx.signatureCount}/${group.m} required');
+      // 'Signature count check: ${tx.signatureCount}/${group.m} required');
       if (tx.signatureCount < group.m) {
-        await _logToFile('ERROR: Insufficient signatures for broadcast');
+        _logger.e('ERROR: Insufficient signatures for broadcast');
         throw Exception('Insufficient signatures: ${tx.signatureCount}/${group.m} required');
       }
       
       // Remove duplicates for combination
       final uniquePSBTs = signedPSBTs.toSet().toList();
-      await _logToFile('Unique PSBTs for combination: ${uniquePSBTs.length}');
+      // 'Unique PSBTs for combination: ${uniquePSBTs.length}');
       
       // Use first PSBT if only one, otherwise combine
       String combined;
       if (uniquePSBTs.length == 1) {
         combined = uniquePSBTs.first;
-        await _logToFile('Using single PSBT directly: ${combined.substring(0, 50)}...');
+        // 'Using single PSBT directly: ${combined.substring(0, 50)}...');
       } else {
-        await _logToFile('PSBTs to combine: ${uniquePSBTs.map((p) => '${p.substring(0, 20)}...').toList()}');
+        // 'PSBTs to combine: ${uniquePSBTs.map((p) => '${p.substring(0, 20)}...').toList()}');
         final combineResult = await _rpc.callRAW('combinepsbt', [signedPSBTs]);
         combined = combineResult as String;
-        await _logToFile('Combined PSBT: ${combined.substring(0, 50)}...');
+        // 'Combined PSBT: ${combined.substring(0, 50)}...');
       }
       
       // Analyze the combined PSBT
-      await _logToFile('Analyzing combined PSBT...');
+      // 'Analyzing combined PSBT...');
       final analyzeResult = await _rpc.callRAW('analyzepsbt', [combined]);
-      await _logToFile('Analysis result: $analyzeResult');
+      // 'Analysis result: $analyzeResult');
       
       // Finalize the PSBT
-      await _logToFile('Finalizing PSBT...');
+      // 'Finalizing PSBT...');
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [combined]);
       
       if (finalizeResult is! Map) {
-        await _logToFile('ERROR: PSBT finalization returned invalid result type');
+        _logger.e('ERROR: PSBT finalization returned invalid result type');
         throw Exception('PSBT finalization returned invalid result type');
       }
       
-      await _logToFile('Finalization result: $finalizeResult');
+      // 'Finalization result: $finalizeResult');
       final complete = finalizeResult['complete'] as bool? ?? false;
-      await _logToFile('Transaction complete status: $complete');
+      // 'Transaction complete status: $complete');
       
       if (!complete) {
         final errors = finalizeResult['errors'] as List<dynamic>? ?? [];
-        await _logToFile('ERROR: PSBT finalization failed - errors: $errors');
+        _logger.e('ERROR: PSBT finalization failed - errors: $errors');
         throw Exception('PSBT finalization failed - transaction not complete. Errors: $errors');
       }
       
       final hex = finalizeResult['hex'] as String?;
       if (hex == null) {
-        await _logToFile('ERROR: No transaction hex returned from finalization');
+        _logger.e('ERROR: No transaction hex returned from finalization');
         throw Exception('No transaction hex returned from finalization');
       }
       
-      await _logToFile('Transaction finalized successfully');
-      await _logToFile('Transaction hex (first 50 chars): ${hex.substring(0, 50)}...');
-      await _logToFile('Broadcasting transaction...');
+      // 'Transaction finalized successfully');
+      // 'Transaction hex (first 50 chars): ${hex.substring(0, 50)}...');
+      // 'Broadcasting transaction...');
       
       // Broadcast the transaction
       final txid = await _rpc.callRAW('sendrawtransaction', [hex]) as String;
-      await _logToFile('Transaction broadcast successfully! TXID: $txid');
+      // 'Transaction broadcast successfully! TXID: $txid');
       
       // Update transaction status
-      await TransactionStorage.updateTransactionStatus(
-        tx.id,
-        TxStatus.broadcasted,
+      await TransactionStatusManager.updateTransactionStatus(
+        transactionId: tx.id,
+        newStatus: TxStatus.broadcasted,
         finalHex: hex,
+        reason: 'Transaction broadcast',
       );
       
       // Clean up multisig PSBTs
@@ -293,7 +253,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         );
       }
     } catch (e) {
-      await _logToFile('ERROR during broadcast: $e');
+      _logger.e('Broadcast failed: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();

@@ -7,7 +7,6 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -28,7 +27,6 @@ class FundGroupModal extends StatelessWidget {
       onViewModelReady: (model) => model.init(),
       builder: (context, viewModel, child) {
         if (viewModel.selectedGroup != null && viewModel.currentAddress.isNotEmpty) {
-          // Show address like wallet receive page - immediately after group selection
           return Dialog(
             backgroundColor: Colors.transparent,
             insetPadding: const EdgeInsets.all(24),
@@ -63,7 +61,6 @@ class FundGroupModal extends StatelessWidget {
           );
         }
 
-        // Show group selection
         return Dialog(
           backgroundColor: Colors.transparent,
           child: ConstrainedBox(
@@ -160,11 +157,9 @@ class FundGroupModalViewModel extends BaseViewModel {
     notifyListeners();
     
     try {
-      // Generate address immediately when group is selected
       currentAddress = await _generateMultisigAddress(group);
     } catch (e) {
       modalError = 'Failed to generate address: $e';
-      GetIt.I.get<Logger>().e('Error generating multisig address: $e');
     } finally {
       setBusy(false);
       notifyListeners();
@@ -175,7 +170,6 @@ class FundGroupModalViewModel extends BaseViewModel {
     try {
       final api = GetIt.I.get<MainchainRPC>();
       
-      // Load group data from JSON
       final appDir = await Environment.datadir();
       final file = File(path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'));
       
@@ -188,7 +182,6 @@ class FundGroupModalViewModel extends BaseViewModel {
       
       final jsonGroups = jsonData['groups'] as List<dynamic>;
       
-      // Find the group
       final groupIndex = jsonGroups.indexWhere((g) => g['id'] == group.id);
       if (groupIndex == -1) {
         throw Exception('Group not found in data file');
@@ -197,15 +190,12 @@ class FundGroupModalViewModel extends BaseViewModel {
       final groupData = jsonGroups[groupIndex];
       final enhancedGroup = MultisigGroup.fromJson(groupData);
       
-      // Use wallet manager to work with the watch-only wallet
       final walletManager = WalletRPCManager();
       final walletName = enhancedGroup.watchWalletName ?? 'multisig_${enhancedGroup.id}';
       
-      // Ensure wallet exists and has descriptors
       String? descriptor;
       
       try {
-        // Try to get descriptor from wallet
         final walletDescriptors = await walletManager.callWalletRPC<Map<String, dynamic>>(
           walletName,
           'listdescriptors',
@@ -221,13 +211,10 @@ class FundGroupModalViewModel extends BaseViewModel {
           }
         }
       } catch (e) {
-        // Wallet might not exist
       }
       
-      // If no descriptor found, create/recreate the wallet
       if (descriptor == null) {
         try {
-          // Create multisig wallet as descriptor wallet
           await walletManager.createWallet(
             walletName,
             disablePrivateKeys: true,
@@ -241,7 +228,6 @@ class FundGroupModalViewModel extends BaseViewModel {
           }
         }
         
-        // Build and import descriptors
         final sortedKeys = List<dynamic>.from(enhancedGroup.keys);
         sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
         
@@ -256,7 +242,6 @@ class FundGroupModalViewModel extends BaseViewModel {
         final receiveDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/0/*))';
         final changeDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/1/*))';
         
-        // Add checksums
         final receiveResult = await api.callRAW('getdescriptorinfo', [receiveDesc]);
         final receiveWithChecksum = receiveResult is Map && receiveResult['descriptor'] != null
             ? receiveResult['descriptor'] as String
@@ -288,19 +273,15 @@ class FundGroupModalViewModel extends BaseViewModel {
         
         MultisigLogger.info('Descriptors imported successfully to wallet: $walletName');
         
-        // Set descriptor for address generation
         descriptor = receiveWithChecksum;
         
-        // Update the group data with descriptors for future use
         groupData['descriptorReceive'] = receiveWithChecksum;
         groupData['descriptorChange'] = changeWithChecksum;
         groupData['watchWalletName'] = walletName;
       }
       
-      // Get current address index
       int nextIndex = enhancedGroup.nextReceiveIndex;
       
-      // Derive address using the descriptor from wallet
       final addresses = await api.callRAW(
         'deriveaddresses',
         [descriptor, [nextIndex, nextIndex]],
@@ -313,7 +294,6 @@ class FundGroupModalViewModel extends BaseViewModel {
       final newAddress = addresses.first as String;
       final addressIndex = nextIndex;
       
-      // Update the group data with new address
       final updatedAddresses = Map<String, dynamic>.from(groupData['addresses'] ?? {});
       final receiveAddresses = List<Map<String, dynamic>>.from(
         updatedAddresses['receive'] ?? [],
@@ -328,17 +308,14 @@ class FundGroupModalViewModel extends BaseViewModel {
       updatedAddresses['receive'] = receiveAddresses;
       groupData['addresses'] = updatedAddresses;
       
-      // Increment index for next address
       groupData['next_receive_index'] = addressIndex + 1;
       
-      // Update the groups in the full structure and save
       jsonData['groups'] = jsonGroups;
       await file.writeAsString(json.encode(jsonData));
       
       return newAddress;
       
     } catch (e) {
-      GetIt.I.get<Logger>().e('Error generating multisig address: $e');
       rethrow;
     }
   }
