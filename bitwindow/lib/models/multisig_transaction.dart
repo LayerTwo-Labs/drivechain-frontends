@@ -3,6 +3,7 @@ import 'package:bitwindow/models/multisig_group.dart';
 enum TxStatus {
   needsSignatures,
   awaitingSignedPSBTs,
+  readyToCombine,
   readyForBroadcast,
   broadcasted,
   confirmed,
@@ -22,6 +23,8 @@ extension TxStatusExtension on TxStatus {
         return 'Needs Signatures';
       case TxStatus.awaitingSignedPSBTs:
         return 'Awaiting Signed PSBTs';
+      case TxStatus.readyToCombine:
+        return 'Ready to Combine';
       case TxStatus.readyForBroadcast:
         return 'Ready to Broadcast';
       case TxStatus.broadcasted:
@@ -41,6 +44,8 @@ extension TxStatusExtension on TxStatus {
         return TxStatus.needsSignatures;
       case 'awaitingSignedPSBTs':
         return TxStatus.awaitingSignedPSBTs;
+      case 'readyToCombine':
+        return TxStatus.readyToCombine;
       case 'readyForBroadcast':
         return TxStatus.readyForBroadcast;
       case 'broadcasted':

@@ -262,6 +262,69 @@ class _ResetSettingsContent extends StatefulWidget {
 }
 
 class _ResetSettingsContentState extends State<_ResetSettingsContent> {
+  
+  /// Get platform-specific Bitcoin Core data directories
+  List<Directory> _getBitcoinCoreDataDirs(Directory appDir) {
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '';
+    final List<Directory> dirs = [];
+    
+    switch (OS.current) {
+      case OS.linux:
+        // Linux: ~/.bitcoin
+        dirs.addAll([
+          Directory(path.join(home, '.bitcoin')),
+          Directory(path.join(appDir.path, 'bitcoin')),
+          Directory(path.join(appDir.path, '.drivechain')),
+        ]);
+        break;
+        
+      case OS.macos:
+        // macOS: ~/Library/Application Support/Drivechain
+        dirs.addAll([
+          Directory(path.join(home, 'Library', 'Application Support', 'Drivechain', 'signet')),
+          Directory(path.join(home, 'Library', 'Application Support', 'Drivechain', 'mainnet')),
+          Directory(path.join(home, 'Library', 'Application Support', 'bitcoin')),
+          Directory(path.join(appDir.path, 'bitcoin')),
+          Directory(path.join(appDir.path, 'Drivechain', 'signet')),
+          Directory(path.join(appDir.path, 'Drivechain', 'mainnet')),
+        ]);
+        break;
+        
+      case OS.windows:
+        // Windows: %APPDATA%\Drivechain
+        dirs.addAll([
+          Directory(path.join(home, 'AppData', 'Roaming', 'Drivechain', 'signet')),
+          Directory(path.join(home, 'AppData', 'Roaming', 'Drivechain', 'mainnet')),
+          Directory(path.join(home, 'AppData', 'Roaming', 'bitcoin')),
+          Directory(path.join(appDir.path, 'bitcoin')),
+          Directory(path.join(appDir.path, 'Drivechain', 'signet')),
+          Directory(path.join(appDir.path, 'Drivechain', 'mainnet')),
+        ]);
+        break;
+    }
+    
+    return dirs;
+  }
+  
+  Future<void> _deleteMultisigWallets(Directory dir, Logger logger) async {
+    try {
+      final entities = await dir.list(recursive: false).toList();
+      
+      for (final entity in entities) {
+        if (entity is Directory && path.basename(entity.path).startsWith('multisig_')) {
+          try {
+            await entity.delete(recursive: true);
+            logger.i('Deleted multisig wallet: ${entity.path}');
+          } catch (e) {
+            logger.w('Could not delete multisig wallet ${entity.path}: $e');
+          }
+        }
+      }
+    } catch (e) {
+      logger.e('Error cleaning multisig wallets in ${dir.path}: $e');
+    }
+  }
+  
   Future<void> _onResetAllChains() async {
     await showDialog(
       context: context,
@@ -368,46 +431,23 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               await bitdriveDir.delete(recursive: true);
             }
 
-            // Clean up Bitcoin Core wallet directories (both bitcoin and Drivechain)
-            final bitcoinCoreDirs = [
-              Directory(path.join(appDir.path, 'bitcoin')),
-              Directory(path.join(appDir.path, 'Drivechain', 'signet')),
-              Directory(path.join(appDir.path, 'Drivechain', 'mainnet')),
-            ];
+            // Clean up Bitcoin Core wallet directories across all platforms
+            final bitcoinCoreDirs = _getBitcoinCoreDataDirs(appDir);
 
             for (final bitcoinCoreDir in bitcoinCoreDirs) {
               if (await bitcoinCoreDir.exists()) {
-                // Clean up multisig wallets directly in the network directory
-                final rootWalletFiles = bitcoinCoreDir.listSync();
-                for (final walletFile in rootWalletFiles) {
-                  if (walletFile is Directory) {
-                    final walletDirName = path.basename(walletFile.path);
-                    if (walletDirName.startsWith('multisig_')) {
-                      try {
-                        await walletFile.delete(recursive: true);
-                        logger.i('Cleaned up Bitcoin Core wallet: ${bitcoinCoreDir.path}/$walletDirName');
-                      } catch (e) {
-                        logger.w('Could not delete Bitcoin Core wallet (root) $walletDirName: $e');
-                      }
-                    }
-                  }
-                }
+                await _deleteMultisigWallets(bitcoinCoreDir, logger);
               }
             }
 
-            // Clean up any additional wallet directories that might have been created
-            // Look for wallet-related directories in the main app directory
+            // Clean up any additional wallet directories in app directory
             final appDirContents = appDir.listSync();
             for (final entity in appDirContents) {
               if (entity is Directory) {
                 final dirName = path.basename(entity.path);
-                // Clean up any directories that look like wallet directories
-                if (dirName.contains('wallet') || 
-                    dirName.contains('multisig') ||
-                    dirName.startsWith('wallet_starters-')) {
+                if (dirName.contains('wallet') || dirName.startsWith('wallet_starters-')) {
                   try {
                     await entity.delete(recursive: true);
-                    logger.i('Cleaned up additional wallet directory: $dirName');
                   } catch (e) {
                     logger.w('Could not delete directory $dirName: $e');
                   }

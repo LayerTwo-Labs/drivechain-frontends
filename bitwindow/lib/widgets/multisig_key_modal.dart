@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -86,6 +86,12 @@ class MultisigKeyModal extends StatelessWidget {
                           ),
                         ),
                       const SizedBox(height: 16),
+                      SailTextField(
+                        label: 'Key Name',
+                        hintText: 'Enter a name for this key (e.g., "Alice-Key1", "MyWalletKey")',
+                        controller: viewModel.keyNameController,
+                      ),
+                      const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -99,10 +105,11 @@ class MultisigKeyModal extends StatelessWidget {
                           children: [
                             SailText.primary13('Instructions:', color: Colors.blue.shade800),
                             SailText.secondary12(
-                              '1. Share this information with other multisig participants\n'
-                              '2. Use the derivation path when creating the multisig wallet\n'
-                              '3. Each participant needs their own unique key and path\n'
-                              '4. Keep your private keys secure - never share them!',
+                              '1. Give your key a meaningful name above\n'
+                              '2. Share this information with other multisig participants\n'
+                              '3. Use the derivation path when creating the multisig wallet\n'
+                              '4. Each participant needs their own unique key and path\n'
+                              '5. Keep your private keys secure - never share them!',
                               color: Colors.blue.shade700,
                             ),
                           ],
@@ -145,6 +152,7 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   
   String? modalError;
   Map<String, dynamic>? keyInfo;
+  final TextEditingController keyNameController = TextEditingController();
   
   Future<void> init() async {
     setBusy(true);
@@ -206,6 +214,9 @@ class MultisigKeyModalViewModel extends BaseViewModel {
             : keyInfoResult['derivation_path'],
       };
       
+      // Set default key name
+      keyNameController.text = 'MyKey$relativeIndex';
+      
       
     } catch (e) {
       _logger.e('Error generating multisig key: $e');
@@ -217,11 +228,11 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     if (keyInfo == null) return;
     
     try {
-      final keyIndex = keyInfo!['index'];
+      final keyName = keyNameController.text.trim();
       
       final soloKeyData = {
         'xpub': keyInfo!['xpub'],
-        'owner': 'MyKey$keyIndex',
+        'owner': keyName,
         'path': keyInfo!['path'],
         'fingerprint': keyInfo!['fingerprint'],
         'origin_path': keyInfo!['originPath'],
@@ -236,15 +247,29 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   Future<void> saveKey(BuildContext context) async {
     if (keyInfo == null) return;
 
+    // Validate key name
+    final keyName = keyNameController.text.trim();
+    if (keyName.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a key name'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       await _writeKeyToMultisigJson();
-      await _saveConfigFile(context);
+      final savedFilePath = await _saveConfigFileWithPicker();
 
-      if (context.mounted) {
-        final keyIndex = keyInfo!['index'];
+      if (savedFilePath != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Key saved to multisig.json and key$keyIndex.conf'),
+            content: Text('Key saved to multisig.json and ${path.basename(savedFilePath)}'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
@@ -267,36 +292,49 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> _saveConfigFile(BuildContext context) async {
-    if (keyInfo == null) return;
+  Future<String?> _saveConfigFileWithPicker() async {
+    if (keyInfo == null) return null;
 
-    final appDir = await Environment.datadir();
-    final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-    
-    if (!await bitdriveDir.exists()) {
-      await bitdriveDir.create(recursive: true);
+    final keyName = keyNameController.text.trim();
+    final filename = '$keyName.conf';
+
+    try {
+      // Use file picker to let user choose save location
+      final result = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Multisig Key Configuration',
+        fileName: filename,
+        type: FileType.custom,
+        allowedExtensions: ['conf'],
+      );
+
+      if (result != null) {
+        final configData = {
+          'owner': keyName,
+          'xpub': keyInfo!['xpub'],
+          'path': keyInfo!['path'],
+          'fingerprint': keyInfo!['fingerprint'],
+          'origin_path': keyInfo!['originPath'],
+          'is_wallet': true,
+        };
+
+        final file = File(result);
+        const encoder = JsonEncoder.withIndent('  ');
+        final prettyJson = encoder.convert(configData);
+        await file.writeAsString(prettyJson);
+        
+        return result;
+      }
+      
+      return null;
+    } catch (e) {
+      _logger.e('Failed to save config file: $e');
+      rethrow;
     }
+  }
 
-    final keyIndex = keyInfo!['index'];
-    final filename = 'key$keyIndex.conf';
-    final multisigDir = Directory(path.join(bitdriveDir.path, 'multisig'));
-    if (!await multisigDir.exists()) {
-      await multisigDir.create(recursive: true);
-    }
-    final filePath = path.join(multisigDir.path, filename);
-
-    final configData = {
-      'owner': 'MyKey$keyIndex',
-      'xpub': keyInfo!['xpub'],
-      'path': keyInfo!['path'],
-      'fingerprint': keyInfo!['fingerprint'],
-      'origin_path': keyInfo!['originPath'],
-      'is_wallet': true,
-    };
-
-    final file = File(filePath);
-    const encoder = JsonEncoder.withIndent('  ');
-    final prettyJson = encoder.convert(configData);
-    await file.writeAsString(prettyJson);
+  @override
+  void dispose() {
+    keyNameController.dispose();
+    super.dispose();
   }
 }

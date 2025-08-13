@@ -10,15 +10,11 @@ import 'package:sail_ui/sail_ui.dart';
 // MultisigGroup is now imported directly
 
 class CombineBroadcastModal extends StatefulWidget {
-  final List<MultisigTransaction> eligibleTransactions;
-  final List<MultisigGroup> multisigGroups;
-  final Function() onBroadcastSuccess;
+  final Function() onSuccess;
 
   const CombineBroadcastModal({
     super.key,
-    required this.eligibleTransactions,
-    required this.multisigGroups,
-    required this.onBroadcastSuccess,
+    required this.onSuccess,
   });
 
   @override
@@ -27,26 +23,59 @@ class CombineBroadcastModal extends StatefulWidget {
 
 class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
   MultisigTransaction? _selectedTransaction;
-  bool _isBroadcasting = false;
+  bool _isProcessing = false;
+  bool _isLoading = true;
   String? _error;
+  List<MultisigTransaction> _eligibleTransactions = [];
+  List<MultisigGroup> _multisigGroups = [];
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   Logger get _logger => GetIt.I.get<Logger>();
   
   @override
   void initState() {
     super.initState();
-    if (widget.eligibleTransactions.length == 1) {
-      _selectedTransaction = widget.eligibleTransactions.first;
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      // Load all transactions and filter for eligible ones
+      final allTransactions = await TransactionStorage.loadTransactions();
+      _eligibleTransactions = allTransactions
+          .where((tx) => tx.status == TxStatus.readyToCombine || tx.status == TxStatus.readyForBroadcast)
+          .toList();
+
+      // Load all multisig groups
+      _multisigGroups = await MultisigStorage.loadGroups();
+
+      // Select first transaction if available
+      if (_eligibleTransactions.isNotEmpty) {
+        _selectedTransaction = _eligibleTransactions.first;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load transactions: $e';
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _combineAndBroadcast() async {
+  Future<void> _combineTransaction() async {
     if (_selectedTransaction == null) {
       _logger.e('ERROR: No transaction selected for broadcast');
       return;
     }
 
-    setState(() => _isBroadcasting = true);
+    setState(() => _isProcessing = true);
     // 'Starting broadcast process for transaction: ${_selectedTransaction!.id}');
 
     try {
@@ -54,114 +83,29 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       // 'Transaction details: ID=${tx.id}, GroupID=${tx.groupId}, Status=${tx.status}');
       // 'Transaction has ${tx.keyPSBTs.length} keyPSBT entries');
       
-      final group = widget.multisigGroups.firstWhere(
+      final group = _multisigGroups.firstWhere(
         (g) => g.id == tx.groupId,
         orElse: () => throw Exception('Group not found'),
       );
       // 'Found group: ${group.name} (${group.m} of ${group.n} multisig)');
       
       // Log all keyPSBTs and their status
-      for (int i = 0; i < tx.keyPSBTs.length; i++) {
-        final kp = tx.keyPSBTs[i];
-        final keyName = group.keys.where((k) => k.xpub == kp.keyId).firstOrNull?.owner ?? 'Unknown';
-        // 'KeyPSBT $i: $keyName - isSigned=${kp.isSigned} - hasData=${kp.psbt != null}');
-      }
 
-      // Validate existing signed PSBTs
-      // 'Validating existing signed PSBTs...');
-      int validatedCount = 0;
+      // Collect signed PSBTs - only those marked as signed
+      final signedPSBTs = <String>[];
+      
+      _logger.i('Collecting signed PSBTs for transaction ${tx.id}:');
       for (final kp in tx.keyPSBTs) {
         if (kp.isSigned && kp.psbt != null) {
-          try {
-            final keyName = group.keys.where((k) => k.xpub == kp.keyId).firstOrNull?.owner ?? 'Unknown';
-            // 'Validating PSBT for $keyName...');
-            final storedAnalysis = await _rpc.callRAW('analyzepsbt', [kp.psbt!]);
-            // 'PSBT analysis for $keyName: $storedAnalysis');
-            if (storedAnalysis is Map) {
-              final inputs = storedAnalysis['inputs'] as List<dynamic>? ?? [];
-              bool actuallyHasSignatures = false;
-              
-              for (final input in inputs) {
-                if (input is Map<String, dynamic>) {
-                  final isInputFinal = input['is_final'] as bool? ?? false;
-                  final missing = input['missing'] as Map<String, dynamic>?;
-                  final missingSignatures = missing?['signatures'] as List<dynamic>? ?? [];
-                  final totalMissing = missingSignatures.length;
-                  
-                  // Look for evidence this is a multisig input
-                  final hasRedeemScript = missing?.containsKey('redeemscript') == true;
-                  final hasWitnessScript = missing?.containsKey('witnessscript') == true;
-                  
-                  // For multisig detection, we need to consider:
-                  // 1. Traditional multisig (has redeemscript/witnessscript)
-                  // 2. Native segwit multisig (can have any number of missing signatures)
-                  // Since we know this is a multisig group, assume all inputs are multisig
-                  final isMultisig = hasRedeemScript || hasWitnessScript || group.n > 1;
-                  
-                  // 'Input analysis: is_final=$isInputFinal, missing_count=$totalMissing, is_multisig=$isMultisig');
-                  
-                  if (isMultisig) {
-                    // For m-of-n multisig: if missing fewer than m signatures, then some signatures are present
-                    final requiredSignatures = group.m;
-                    actuallyHasSignatures = totalMissing < requiredSignatures || isInputFinal;
-                    // 'Multisig validation: required=$requiredSignatures, missing=$totalMissing, has_some=$actuallyHasSignatures');
-                  } else {
-                    // Single sig - either fully signed or not
-                    actuallyHasSignatures = totalMissing == 0 || isInputFinal;
-                  }
-                  
-                  if (actuallyHasSignatures) {
-                    break; // Found at least one input with signatures
-                  }
-                }
-              }
-              
-              if (kp.isSigned && !actuallyHasSignatures) {
-                        _logger.w('WARNING: PSBT marked as signed but RPC analysis shows no signatures');
-                _logger.w('Resetting transaction status due to invalid signatures');
-                  
-                final updatedKeyPSBTs = tx.keyPSBTs.map((keyPSBT) => KeyPSBTStatus(
-                  keyId: keyPSBT.keyId,
-                  psbt: keyPSBT.psbt,
-                  isSigned: false,
-                  signedAt: null,
-                ),).toList();
-                
-                final updatedTx = tx.copyWith(
-                  keyPSBTs: updatedKeyPSBTs,
-                  status: TxStatus.needsSignatures,
-                );
-                
-                await TransactionStorage.saveTransaction(updatedTx);
-                widget.onBroadcastSuccess();
-                
-                if (mounted) {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Invalid signatures detected - transaction status reset'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                }
-                return;
-              } else {
-                // 'PSBT for $keyName validated successfully');
-                validatedCount++;
-              }
-            }
-          } catch (e) {
-            _logger.e('Error validating PSBT: $e');
-          }
+          // Trust the isSigned flag - it should have been validated during import/signing
+          signedPSBTs.add(kp.psbt!);
+          _logger.i('  Key ${kp.keyId}: ${kp.psbt!.substring(0, 50)}...');
+        } else {
+          _logger.i('  Key ${kp.keyId}: isSigned=${kp.isSigned}, haspsbt=${kp.psbt != null}');
         }
       }
-      // 'Validated $validatedCount signed PSBTs');
       
-      // Collect signed PSBTs for combination
-      final signedPSBTs = tx.keyPSBTs
-        .where((k) => k.isSigned && k.psbt != null)
-        .map((k) => k.psbt!)
-        .toList();
+      _logger.i('Total PSBTs collected: ${signedPSBTs.length} (need ${group.m} signatures for ${group.m}-of-${group.n} multisig)');
       
       // 'Collected ${signedPSBTs.length} signed PSBTs for combination');
       
@@ -178,27 +122,42 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       
       // Remove duplicates for combination
       final uniquePSBTs = signedPSBTs.toSet().toList();
-      // 'Unique PSBTs for combination: ${uniquePSBTs.length}');
+      _logger.i('Unique PSBTs for combination: ${uniquePSBTs.length}');
+      
+      // Before combining, let's analyze each PSBT to see what signatures they contain
+      for (int i = 0; i < uniquePSBTs.length; i++) {
+        _logger.i('Analyzing PSBT $i before combination:');
+        try {
+          final analysis = await _rpc.callRAW('analyzepsbt', [uniquePSBTs[i]]);
+          if (analysis is Map) {
+            final inputs = analysis['inputs'] as List<dynamic>? ?? [];
+            for (int j = 0; j < inputs.length; j++) {
+              final input = inputs[j];
+              if (input is Map<String, dynamic>) {
+                final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
+                _logger.i('  Input $j: ${partialSigs.length} partial signatures');
+              }
+            }
+          }
+        } catch (e) {
+          _logger.e('Failed to analyze PSBT $i: $e');
+        }
+      }
       
       // Use first PSBT if only one, otherwise combine
       String combined;
       if (uniquePSBTs.length == 1) {
         combined = uniquePSBTs.first;
-        // 'Using single PSBT directly: ${combined.substring(0, 50)}...');
+        _logger.i('Using single PSBT directly');
       } else {
-        // 'PSBTs to combine: ${uniquePSBTs.map((p) => '${p.substring(0, 20)}...').toList()}');
-        final combineResult = await _rpc.callRAW('combinepsbt', [signedPSBTs]);
+        _logger.i('Combining ${uniquePSBTs.length} PSBTs...');
+        final combineResult = await _rpc.callRAW('combinepsbt', [uniquePSBTs]);
         combined = combineResult as String;
-        // 'Combined PSBT: ${combined.substring(0, 50)}...');
+        _logger.i('Combined PSBT successfully');
       }
       
-      // Analyze the combined PSBT
-      // 'Analyzing combined PSBT...');
-      final analyzeResult = await _rpc.callRAW('analyzepsbt', [combined]);
-      // 'Analysis result: $analyzeResult');
-      
-      // Finalize the PSBT
-      // 'Finalizing PSBT...');
+      // Finalize the PSBT (this validates signatures internally)
+      _logger.i('Finalizing combined PSBT...');
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [combined]);
       
       if (finalizeResult is! Map) {
@@ -206,14 +165,38 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         throw Exception('PSBT finalization returned invalid result type');
       }
       
-      // 'Finalization result: $finalizeResult');
+      _logger.d('Finalization result: $finalizeResult');
       final complete = finalizeResult['complete'] as bool? ?? false;
-      // 'Transaction complete status: $complete');
+      final resultPsbt = finalizeResult['psbt'] as String?;
+      _logger.i('Transaction complete status: $complete');
       
       if (!complete) {
+        // Analyze what we actually got to understand why it's incomplete
+        if (resultPsbt != null) {
+          _logger.i('Analyzing incomplete PSBT to understand missing signatures...');
+          final analysis = await _rpc.callRAW('analyzepsbt', [resultPsbt]);
+          _logger.d('Analysis of combined PSBT: $analysis');
+          
+          if (analysis is Map) {
+            final inputs = analysis['inputs'] as List<dynamic>? ?? [];
+            for (int i = 0; i < inputs.length; i++) {
+              final input = inputs[i];
+              if (input is Map<String, dynamic>) {
+                final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
+                final missing = input['missing'] as Map<String, dynamic>?;
+                final missingSignatures = missing?['signatures'] as List<dynamic>? ?? [];
+                
+                _logger.i('Input $i: ${partialSigs.length} partial signatures, ${missingSignatures.length} missing signatures');
+                _logger.d('  Partial sigs: ${partialSigs.keys.toList()}');
+                _logger.d('  Missing sigs: $missingSignatures');
+              }
+            }
+          }
+        }
+        
         final errors = finalizeResult['errors'] as List<dynamic>? ?? [];
-        _logger.e('ERROR: PSBT finalization failed - errors: $errors');
-        throw Exception('PSBT finalization failed - transaction not complete. Errors: $errors');
+        _logger.e('ERROR: PSBT finalization failed - transaction incomplete despite having ${group.m}-of-${group.n} signatures. Errors: $errors');
+        throw Exception('PSBT finalization failed - transaction not complete. Expected ${group.m}-of-${group.n} but finalization failed. Errors: $errors');
       }
       
       final hex = finalizeResult['hex'] as String?;
@@ -222,26 +205,79 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         throw Exception('No transaction hex returned from finalization');
       }
       
-      // 'Transaction finalized successfully');
-      // 'Transaction hex (first 50 chars): ${hex.substring(0, 50)}...');
-      // 'Broadcasting transaction...');
+      _logger.i('Transaction finalized successfully');
+      _logger.d('Transaction hex (first 50 chars): ${hex.substring(0, 50)}...');
+      
+      // Update transaction status to ready for broadcast
+      await TransactionStatusManager.updateTransactionStatus(
+        transactionId: tx.id,
+        newStatus: TxStatus.readyForBroadcast,
+        combinedPSBT: combined,
+        finalHex: hex,
+        reason: 'PSBT combined and finalized',
+      );
+      
+      widget.onSuccess();
+      
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transaction combined and finalized successfully! Ready for broadcast.'),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      _logger.e('Combine failed: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isProcessing = false;
+        });
+      }
+    } finally {
+      if (mounted && _error == null) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  Future<void> _broadcastTransaction() async {
+    if (_selectedTransaction == null) {
+      _logger.e('ERROR: No transaction selected for broadcast');
+      return;
+    }
+
+    setState(() => _isProcessing = true);
+
+    try {
+      final tx = _selectedTransaction!;
+      
+      if (tx.finalHex == null) {
+        throw Exception('Transaction not finalized - cannot broadcast');
+      }
+      
+      _logger.i('Broadcasting transaction: ${tx.id}');
       
       // Broadcast the transaction
-      final txid = await _rpc.callRAW('sendrawtransaction', [hex]) as String;
-      // 'Transaction broadcast successfully! TXID: $txid');
+      final txid = await _rpc.callRAW('sendrawtransaction', [tx.finalHex!]) as String;
+      _logger.i('Transaction broadcast successfully! TXID: $txid');
       
       // Update transaction status
       await TransactionStatusManager.updateTransactionStatus(
         transactionId: tx.id,
         newStatus: TxStatus.broadcasted,
-        finalHex: hex,
+        txid: txid,
+        broadcastTime: DateTime.now(),
         reason: 'Transaction broadcast',
       );
       
       // Clean up multisig PSBTs
       await TransactionStorage.cleanupPSBTFromMultisigFile(tx.id);
       
-      widget.onBroadcastSuccess();
+      widget.onSuccess();
       
       if (mounted) {
         Navigator.of(context).pop();
@@ -249,6 +285,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
           SnackBar(
             content: Text('Transaction broadcast successfully!\nTXID: ${txid.substring(0, 16)}...'),
             duration: const Duration(seconds: 5),
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -257,13 +294,30 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       if (mounted) {
         setState(() {
           _error = e.toString();
-          _isBroadcasting = false;
+          _isProcessing = false;
         });
       }
     } finally {
       if (mounted && _error == null) {
-        setState(() => _isBroadcasting = false);
+        setState(() => _isProcessing = false);
       }
+    }
+  }
+
+  String get _actionButtonLabel {
+    if (_selectedTransaction?.status == TxStatus.readyToCombine) {
+      return 'Combine';
+    } else if (_selectedTransaction?.status == TxStatus.readyForBroadcast) {
+      return 'Broadcast';
+    }
+    return 'Process';
+  }
+
+  Future<void> _processTransaction() async {
+    if (_selectedTransaction?.status == TxStatus.readyToCombine) {
+      await _combineTransaction();
+    } else if (_selectedTransaction?.status == TxStatus.readyForBroadcast) {
+      await _broadcastTransaction();
     }
   }
 
@@ -275,28 +329,44 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
         child: SailCard(
           title: 'Combine & Broadcast',
-          subtitle: widget.eligibleTransactions.isEmpty 
-            ? 'No transactions ready for broadcast'
-            : 'Select transaction to combine PSBTs and broadcast',
+          subtitle: _isLoading 
+            ? 'Loading transactions...'
+            : _eligibleTransactions.isEmpty 
+              ? 'No transactions ready for processing'
+              : 'Select transaction to combine PSBTs and broadcast',
           error: _error,
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.eligibleTransactions.isEmpty) ...[
-                SailText.secondary13('No transactions with sufficient signatures found.'),
-                SailText.secondary12('Complete signing for transactions before broadcasting.'),
-              ] else if (widget.eligibleTransactions.length == 1) ...[
+          widgetHeaderEnd: !_isLoading 
+            ? IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadData,
+                tooltip: 'Refresh transactions',
+              )
+            : null,
+          child: _isLoading 
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(48.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            : SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_eligibleTransactions.isEmpty) ...[
+                    SailText.secondary13('No transactions ready for processing found.'),
+                    SailText.secondary12('Complete signing for transactions before processing.'),
+              ] else if (_eligibleTransactions.length == 1) ...[
                 _buildTransactionDetails(_selectedTransaction!),
               ] else ...[
-                SailText.primary13('Available Transactions (${widget.eligibleTransactions.length})'),
+                SailText.primary13('Available Transactions (${_eligibleTransactions.length})'),
                 SailSpacing(SailStyleValues.padding08),
                 Expanded(
                   child: ListView.builder(
-                    itemCount: widget.eligibleTransactions.length,
+                    itemCount: _eligibleTransactions.length,
                     itemBuilder: (context, index) {
-                      final tx = widget.eligibleTransactions[index];
-                      final group = widget.multisigGroups.firstWhere(
+                      final tx = _eligibleTransactions[index];
+                      final group = _multisigGroups.firstWhere(
                         (g) => g.id == tx.groupId,
                         orElse: () => throw Exception('Group not found'),
                       );
@@ -312,7 +382,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                                 Radio<String>(
                                   value: tx.id,
                                   groupValue: _selectedTransaction?.id,
-                                  onChanged: _isBroadcasting ? null : (value) {
+                                  onChanged: _isProcessing ? null : (value) {
                                     setState(() => _selectedTransaction = tx);
                                   },
                                 ),
@@ -335,31 +405,26 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                 children: [
                   SailButton(
                     label: 'Cancel',
-                    onPressed: _isBroadcasting ? null : () async => Navigator.of(context).pop(),
+                    onPressed: _isProcessing ? null : () async => Navigator.of(context).pop(),
                     variant: ButtonVariant.secondary,
                   ),
-                  if (widget.eligibleTransactions.isNotEmpty)
+                  if (_eligibleTransactions.isNotEmpty)
                     SailButton(
-                      label: 'Combine & Broadcast',
-                      onPressed: _isBroadcasting || _selectedTransaction == null ? null : _combineAndBroadcast,
-                      loading: _isBroadcasting,
+                      label: _actionButtonLabel,
+                      onPressed: _isProcessing || _selectedTransaction == null ? null : _processTransaction,
+                      loading: _isProcessing,
                       variant: ButtonVariant.primary,
                     ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                ),
+              ],
+            ),
         ),
       ),
     );
   }
 
   Widget _buildTransactionSummary(MultisigTransaction tx, MultisigGroup group) {
-    final group = widget.multisigGroups.firstWhere(
-      (g) => g.id == tx.groupId,
-      orElse: () => throw Exception('Group not found'),
-    );
-
     return SailColumn(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: SailStyleValues.padding04,
@@ -372,7 +437,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
   }
 
   Widget _buildTransactionDetails(MultisigTransaction tx) {
-    final group = widget.multisigGroups.firstWhere(
+    final group = _multisigGroups.firstWhere(
       (g) => g.id == tx.groupId,
       orElse: () => throw Exception('Group not found'),
     );
@@ -380,9 +445,9 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.05),
+        color: Colors.blue.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
       ),
       child: SailColumn(
         spacing: SailStyleValues.padding08,

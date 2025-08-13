@@ -128,6 +128,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab>
                 groups: viewModel.multisigGroups,
                 selectedGroup: viewModel.selectedGroup,
                 onSelectGroup: viewModel._stateManager.setSelectedGroup,
+                isLoading: viewModel.isLoadingGroups,
               ),
             ),
           ),
@@ -206,6 +207,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab>
                 onView: (tx) => viewModel.openTransactionModal(context, tx),
                 onSign: (tx, group) =>
                     viewModel.signTransaction(context, tx, group),
+                isLoading: viewModel.isLoadingTransactions,
               ),
             ),
           ),
@@ -243,10 +245,8 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab>
                       const SizedBox(height: SailStyleValues.padding08),
                       SailButton(
                         label: 'Combine & Broadcast',
-                        onPressed: viewModel.hasReadyTransactions
-                            ? () =>
-                                viewModel.openCombineAndBroadcastModal(context)
-                            : null,
+                        onPressed: () =>
+                            viewModel.openCombineAndBroadcastModal(context),
                         variant: ButtonVariant.secondary,
                       ),
                     ],
@@ -265,12 +265,14 @@ class MultisigGroupsTable extends StatefulWidget {
   final List<MultisigGroup> groups;
   final MultisigGroup? selectedGroup;
   final Function(MultisigGroup?) onSelectGroup;
+  final bool isLoading;
 
   const MultisigGroupsTable({
     super.key,
     required this.groups,
     required this.selectedGroup,
     required this.onSelectGroup,
+    this.isLoading = false,
   });
 
   @override
@@ -344,6 +346,59 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isLoading) {
+      return SailSkeletonizer(
+        enabled: true,
+        description: 'Loading multisig groups...',
+        child: SailTable(
+          getRowId: (index) => 'skeleton$index',
+          headerBuilder: (context) => [
+            SailTableHeaderCell(name: 'Name', onSort: () => onSort('name')),
+            const SailTableHeaderCell(name: 'ID'),
+            SailTableHeaderCell(
+                name: 'Balance (BTC)', onSort: () => onSort('balance'),),
+            SailTableHeaderCell(name: 'UTXOs', onSort: () => onSort('utxos')),
+            SailTableHeaderCell(name: 'Total Keys', onSort: () => onSort('total')),
+            SailTableHeaderCell(
+                name: 'Keys Required', onSort: () => onSort('required'),),
+            const SailTableHeaderCell(name: 'Type'),
+          ],
+          rowBuilder: (context, row, selected) => [
+            const SailTableCell(value: 'Loading Group Name'),
+            const SailTableCell(value: 'LOADING123'),
+            const SailTableCell(value: '0.00000000'),
+            const SailTableCell(value: '0'),
+            const SailTableCell(value: '3'),
+            const SailTableCell(value: '2'),
+            const SailTableCell(value: 'xPub'),
+          ],
+          rowCount: 3,
+          drawGrid: true,
+          sortColumnIndex: [
+            'name',
+            'id',
+            'balance',
+            'utxos',
+            'total',
+            'required',
+            'type',
+          ].indexOf(sortColumn),
+          sortAscending: sortAscending,
+          onSort: (columnIndex, ascending) {
+            onSort([
+              'name',
+              'id',
+              'balance',
+              'utxos',
+              'total',
+              'required',
+              'type',
+            ][columnIndex],);
+          },
+        ),
+      );
+    }
+
     return SailTable(
       getRowId: (index) =>
           _sortedGroups.isNotEmpty ? _sortedGroups[index].id : 'empty$index',
@@ -425,6 +480,7 @@ class MultisigTransactionsTable extends StatefulWidget {
   final VoidCallback onBroadcast;
   final Function(MultisigTransaction) onView;
   final Function(MultisigTransaction, MultisigGroup) onSign;
+  final bool isLoading;
 
   const MultisigTransactionsTable({
     super.key,
@@ -434,6 +490,7 @@ class MultisigTransactionsTable extends StatefulWidget {
     required this.onBroadcast,
     required this.onView,
     required this.onSign,
+    this.isLoading = false,
   });
 
   @override
@@ -554,6 +611,79 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isLoading) {
+      return SailSkeletonizer(
+        enabled: true,
+        description: 'Loading multisig transactions...',
+        child: SailTable(
+          getRowId: (index) => 'skeleton$index',
+          headerBuilder: (context) => [
+            SailTableHeaderCell(name: 'Group', onSort: () => onSort('group')),
+            const SailTableHeaderCell(name: 'MuSIG ID'),
+            SailTableHeaderCell(
+                name: 'Amount (BTC)', onSort: () => onSort('amount'),),
+            SailTableHeaderCell(
+                name: 'Signatures', onSort: () => onSort('signatures'),),
+            SailTableHeaderCell(name: 'Status', onSort: () => onSort('status')),
+            SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
+            const SailTableHeaderCell(name: 'TXID'),
+            SailTableHeaderCell(
+                name: 'Confirmations', onSort: () => onSort('confirmations'),),
+            const SailTableHeaderCell(name: 'Action'),
+          ],
+          rowBuilder: (context, row, selected) => [
+            const SailTableCell(value: 'Loading Group'),
+            const SailTableCell(value: 'abc123'),
+            const SailTableCell(value: '0.00100000'),
+            const SailTableCell(value: '1/2'),
+            const SailTableCell(value: 'Needs Signatures'),
+            const SailTableCell(value: 'Withdrawal'),
+            const SailTableCell(value: 'abc123...'),
+            const SailTableCell(value: '-'),
+            SailTableCell(
+              value: 'Action Button',
+              alignment: Alignment.center,
+              child: Center(
+                child: SailButton(
+                  label: 'Loading',
+                  variant: ButtonVariant.secondary,
+                  insideTable: true,
+                  onPressed: null,
+                ),
+              ),
+            ),
+          ],
+          rowCount: 3,
+          drawGrid: true,
+          sortColumnIndex: [
+            'group',
+            'id',
+            'amount',
+            'signatures',
+            'status',
+            'type',
+            'txid',
+            'confirmations',
+            'action',
+          ].indexOf(sortColumn),
+          sortAscending: sortAscending,
+          onSort: (columnIndex, ascending) {
+            onSort([
+              'group',
+              'id',
+              'amount',
+              'signatures',
+              'status',
+              'type',
+              'txid',
+              'confirmations',
+              'action',
+            ][columnIndex],);
+          },
+        ),
+      );
+    }
+
     return SailTable(
       getRowId: (index) => widget.transactionRows.isNotEmpty
           ? widget.transactionRows[index].transaction.id
@@ -605,7 +735,7 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
           SailTableCell(value: group.name),
           SailTableCell(value: tx.shortId),
           SailTableCell(value: tx.amount.toStringAsFixed(8)),
-          SailTableCell(value: tx.type == TxType.deposit ? '-' : '${tx.signatureCount}/${group.m}'),
+          SailTableCell(value: tx.type == TxType.deposit ? '-' : '${tx.signatureCount > group.m ? group.m : tx.signatureCount}/${group.m}'),
           SailTableCell(value: tx.status.displayName),
           SailTableCell(value: tx.type.displayName),
           SailTableCell(value: tx.shortTxid ?? '-'),
@@ -715,11 +845,17 @@ class MultisigLoungeViewModel extends BaseViewModel {
   late final VoidCallback _blockchainListener;
 
   bool isLoading = false;
+  bool isLoadingGroups = false;
+  bool isLoadingTransactions = false;
   String? errorMessage;
 
   MultisigLoungeViewModel();
 
   Future<void> initialize() async {
+    isLoadingGroups = true;
+    isLoadingTransactions = true;
+    notifyListeners();
+    
     _transactionListener = () async {
       await _stateManager.refreshData();
       notifyListeners();
@@ -734,12 +870,23 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
     await _stateManager.refreshData();
     await _validateAndFixWalletFlags();
+    
+    isLoadingGroups = false;
+    isLoadingTransactions = false;
+    notifyListeners();
   }
 
   Future<void> refreshData() async {
+    isLoadingGroups = true;
+    isLoadingTransactions = true;
+    notifyListeners();
+    
     await _stateManager.refreshData();
     isLoading = _stateManager.isLoading;
     errorMessage = _stateManager.errorMessage;
+    
+    isLoadingGroups = false;
+    isLoadingTransactions = false;
     notifyListeners();
   }
 
@@ -1031,13 +1178,11 @@ class MultisigLoungeViewModel extends BaseViewModel {
     await showDialog<bool>(
       context: context,
       builder: (context) => CombineBroadcastModal(
-        eligibleTransactions: transactions
-            .where(
-              (tx) => tx.status == TxStatus.readyForBroadcast,
-            )
-            .toList(),
-        multisigGroups: multisigGroups,
-        onBroadcastSuccess: () {},
+        onSuccess: () async {
+          // Refresh data after successful combine/broadcast
+          await _stateManager.refreshData();
+          notifyListeners();
+        },
       ),
     );
   }
@@ -1303,6 +1448,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
         return Colors.orange;
       case TxStatus.awaitingSignedPSBTs:
         return Colors.amber;
+      case TxStatus.readyToCombine:
+        return Colors.lightBlue;
       case TxStatus.readyForBroadcast:
         return Colors.blue;
       case TxStatus.broadcasted:
@@ -1322,6 +1469,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
         return 'Needs Signatures';
       case TxStatus.awaitingSignedPSBTs:
         return 'Awaiting Signed PSBTs';
+      case TxStatus.readyToCombine:
+        return 'Ready to Combine';
       case TxStatus.readyForBroadcast:
         return 'Ready to Broadcast';
       case TxStatus.broadcasted:
@@ -1358,6 +1507,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
           await openTransactionModal(context, tx);
         }
         break;
+      case TxStatus.readyToCombine:
       case TxStatus.readyForBroadcast:
       case TxStatus.broadcasted:
       case TxStatus.confirmed:
@@ -1390,6 +1540,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
     try {
       final rpcSigner = MultisigRPCSigner();
 
+      // Capture initial signature count for success validation
+      final initialSignedCount = tx.keyPSBTs.where((kp) => kp.isSigned).length;
+
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
       if (walletKeys.isEmpty) {
         throw Exception('No wallet keys found in group');
@@ -1413,7 +1566,12 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
 
       if (_hdWalletProvider.mnemonic == null) {
-        throw Exception('HD wallet not initialized - no mnemonic available');
+        // Try to reinitialize HD wallet provider with new l1_starter.txt logic
+        await _hdWalletProvider.reinitialize();
+        
+        if (_hdWalletProvider.mnemonic == null) {
+          throw Exception('HD wallet not initialized - no mnemonic available');
+        }
       }
 
       final mnemonic = _hdWalletProvider.mnemonic!;
@@ -1457,10 +1615,15 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
 
       if (context.mounted) {
-        if (signingResult.signaturesAdded > 0) {
+        // Check if signing was actually successful by looking at the updated transaction
+        final updatedTx = await TransactionStorage.getTransaction(tx.id);
+        final signedCount = updatedTx?.keyPSBTs.where((kp) => kp.isSigned).length ?? 0;
+        final wasSuccessful = signedCount > initialSignedCount;
+        
+        if (wasSuccessful) {
           final message = signingResult.isComplete
               ? 'Transaction signed and completed successfully!'
-              : 'Transaction signed successfully (${signingResult.signaturesAdded} signatures added)';
+              : 'Transaction signed successfully ($signedCount/${group.m} signatures)';
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1481,6 +1644,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       MultisigLogger.info('Transaction signing completed successfully');
       
       await _stateManager.refreshData();
+      notifyListeners(); // Ensure UI updates after signing
     } catch (e) {
       MultisigLogger.error('Error in transaction signing: $e');
 
