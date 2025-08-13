@@ -73,8 +73,9 @@ class TransactionStatusManager {
     if (from == to) return true;
     
     const validTransitions = {
-      TxStatus.needsSignatures: [TxStatus.awaitingSignedPSBTs, TxStatus.readyForBroadcast, TxStatus.voided],
-      TxStatus.awaitingSignedPSBTs: [TxStatus.readyForBroadcast, TxStatus.voided],
+      TxStatus.needsSignatures: [TxStatus.awaitingSignedPSBTs, TxStatus.readyToCombine, TxStatus.voided],
+      TxStatus.awaitingSignedPSBTs: [TxStatus.readyToCombine, TxStatus.voided],
+      TxStatus.readyToCombine: [TxStatus.readyForBroadcast, TxStatus.voided],
       TxStatus.readyForBroadcast: [TxStatus.broadcasted, TxStatus.voided],
       TxStatus.broadcasted: [TxStatus.confirmed, TxStatus.voided],
       TxStatus.confirmed: [TxStatus.completed],
@@ -84,154 +85,175 @@ class TransactionStatusManager {
   
 }
 
-class PSBTValidationResult {
-  final bool isValid;
-  final bool isSigned;
-  final bool isComplete;
-  final int signatureCount;
-  final List<String> errors;
-
-  PSBTValidationResult({
-    required this.isValid,
-    required this.isSigned,
-    required this.isComplete,
-    required this.signatureCount,
-    required this.errors,
-  });
-}
-
 class PSBTValidator {
   static final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
 
-  static Future<PSBTValidationResult> validatePSBT({
-    required String psbtBase64,
-    required MultisigGroup group,
-    required String keyId,
-  }) async {
+
+  /// Checks if any signatures have been added to the PSBT using finalizepsbt as source of truth
+  static Future<bool> hasAnySignatures(String psbtBase64, int totalKeysInGroup) async {
     try {
-      final cleanPsbt = psbtBase64.replaceAll(RegExp(r'\s'), '');
-
-      final analyzePsbt = await _rpc.callRAW('analyzepsbt', [cleanPsbt]);
-
-      if (analyzePsbt is! Map) {
-        throw Exception('Invalid PSBT format');
-      }
-
-      bool isActuallySigned = false;
-      bool isComplete = false;
-
-      final inputs = analyzePsbt['inputs'] as List<dynamic>? ?? [];
-      for (final input in inputs) {
-        if (input is Map<String, dynamic>) {
-          final isInputFinal = input['is_final'] as bool? ?? false;
-          final missing = input['missing'] as Map<String, dynamic>?;
-          final missingSignatures = missing?['signatures'] as List<dynamic>? ?? [];
-
-          final totalMissing = missingSignatures.length;
-          final totalKeys = group.n; // Total number of keys in the multisig
-
-          final hasSomeSignatures = totalMissing < totalKeys;
-
-          if (isInputFinal || hasSomeSignatures) {
-            isActuallySigned = true;
-            break;
-          }
-        }
-      }
-
-      final nextRole = analyzePsbt['next'] as String?;
-      isComplete = (nextRole == 'extractor' || nextRole == null);
-
-      return PSBTValidationResult(
-        isValid: true,
-        isSigned: isActuallySigned,
-        isComplete: isComplete,
-        signatureCount: _calculateSignatureCount(analyzePsbt as Map<String, dynamic>, group.n),
-        errors: [],
-      );
-
-    } catch (e) {
-      return PSBTValidationResult(
-        isValid: false,
-        isSigned: false,
-        isComplete: false,
-        signatureCount: 0,
-        errors: [e.toString()],
-      );
-    }
-  }
-
-  static int _calculateSignatureCount(Map<String, dynamic> analyzePsbt, int totalKeys) {
-    final inputs = analyzePsbt['inputs'] as List<dynamic>? ?? [];
-    int totalSigs = 0;
-
-    for (final input in inputs) {
-      if (input is Map<String, dynamic>) {
-        final missing = input['missing'] as Map<String, dynamic>?;
-        final missingSignatures = missing?['signatures'] as List<dynamic>? ?? [];
-        final currentSigs = totalKeys - missingSignatures.length;
-        totalSigs += currentSigs > 0 ? currentSigs : 0;
-      }
-    }
-
-    return totalSigs;
-  }
-
-  static Future<bool> isComplete(String psbtBase64, int requiredSigs) async {
-    try {
-      final analysis = await _rpc.callRAW('analyzepsbt', [psbtBase64]);
+      final logger = GetIt.I.get<Logger>();
       
-      if (analysis is Map) {
-        final next = analysis['next'] as String?;
-        final isComplete = next == 'finalizer' || next == 'extractor';
+      // Use finalizepsbt as the ultimate source of truth
+      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      
+      if (finalizeResult is! Map) {
+        logger.w('finalizepsbt returned non-map result');
+        return false;
+      }
+      
+      final complete = finalizeResult['complete'] as bool? ?? false;
+      final resultPsbt = finalizeResult['psbt'] as String?;
+      
+      logger.d('finalizepsbt result: complete=$complete, has result PSBT=${resultPsbt != null}');
+      
+      if (complete) {
+        logger.i('PSBT is complete (has all required signatures)');
+        return true;
+      }
+      
+      // If not complete, check if any signatures were added by analyzing the result
+      if (resultPsbt != null) {
+        final analysis = await _rpc.callRAW('analyzepsbt', [resultPsbt]);
         
-        final inputs = analysis['inputs'] as List? ?? [];
-        bool allInputsReady = true;
-        
-        for (final input in inputs) {
-          if (input is Map) {
-            final sigs = (input['partial_signatures'] as Map?)?.length ?? 0;
-            if (sigs < requiredSigs) {
-              allInputsReady = false;
+        if (analysis is Map) {
+          final inputs = analysis['inputs'] as List<dynamic>? ?? [];
+          
+          for (int i = 0; i < inputs.length; i++) {
+            final input = inputs[i];
+            if (input is Map<String, dynamic>) {
+              // Check for partial signatures
+              final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
+              if (partialSigs.isNotEmpty) {
+                logger.i('Found ${partialSigs.length} partial signatures in input $i');
+                return true;
+              }
+              
+              // Check missing signatures vs total keys
+              final missing = input['missing'] as Map<String, dynamic>?;
+              if (missing != null) {
+                final missingSignatures = missing['signatures'] as List<dynamic>? ?? [];
+                if (missingSignatures.length < totalKeysInGroup) {
+                  final presentSigs = totalKeysInGroup - missingSignatures.length;
+                  logger.i('Found $presentSigs signatures in input $i (${missingSignatures.length} missing out of $totalKeysInGroup)');
+                  return true;
+                }
+              }
             }
           }
         }
-        
-        return isComplete && allInputsReady;
       }
       
+      logger.d('No signatures found in PSBT');
       return false;
+    } catch (e) {
+      GetIt.I.get<Logger>().e('Error in hasAnySignatures: $e');
+      return false;
+    }
+  }
+
+  /// Checks if the PSBT has enough signatures (at least requiredSigs) using finalizepsbt
+  static Future<bool> hasValidSignatures(String psbtBase64, int requiredSigs, {int? totalKeys}) async {
+    try {
+      final logger = GetIt.I.get<Logger>();
+      
+      // Use finalizepsbt to check if we have sufficient signatures
+      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      
+      if (finalizeResult is! Map) {
+        return false;
+      }
+      
+      final complete = finalizeResult['complete'] as bool? ?? false;
+      
+      if (complete) {
+        logger.d('PSBT is complete (has all $requiredSigs+ required signatures)');
+        return true;
+      }
+      
+      // If not complete, try to count signatures to see if we at least have some
+      final sigCount = await countSignatures(psbtBase64, totalKeys: totalKeys);
+      final hasEnough = sigCount >= requiredSigs;
+      
+      logger.d('PSBT signature check: $sigCount/$requiredSigs (sufficient: $hasEnough)');
+      return hasEnough;
+    } catch (e) {
+      GetIt.I.get<Logger>().e('Error checking valid signatures: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> isReadyForBroadcast(String psbtBase64, int requiredSigs) async {
+    try {
+      // Simply check if finalizepsbt says it's complete
+      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      
+      if (finalizeResult is! Map) return false;
+      
+      final complete = finalizeResult['complete'] as bool? ?? false;
+      return complete;
     } catch (e) {
       return false;
     }
   }
 
-  static Future<int> countSignatureDifference(String psbtBefore, String psbtAfter) async {
+  static Future<int> countSignatures(String psbtBase64, {int? totalKeys}) async {
     try {
-      if (psbtBefore == psbtAfter) {
-        return 0;
+      final logger = GetIt.I.get<Logger>();
+      
+      // Use finalizepsbt to get a reliable view of the PSBT
+      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      
+      if (finalizeResult is! Map) return 0;
+      
+      final complete = finalizeResult['complete'] as bool? ?? false;
+      final resultPsbt = finalizeResult['psbt'] as String?;
+      
+      if (complete && totalKeys != null) {
+        // If complete, we have all required signatures
+        logger.d('PSBT is complete - assuming all $totalKeys signatures present');
+        return totalKeys;
       }
       
-      final beforeAnalysis = await _rpc.callRAW('analyzepsbt', [psbtBefore]);
-      final afterAnalysis = await _rpc.callRAW('analyzepsbt', [psbtAfter]);
+      // Analyze the finalized PSBT to count signatures
+      final psbtToAnalyze = resultPsbt ?? psbtBase64;
+      final analysis = await _rpc.callRAW('analyzepsbt', [psbtToAnalyze]);
       
-      if (beforeAnalysis is Map && afterAnalysis is Map) {
-        final beforeInputs = beforeAnalysis['inputs'] as List? ?? [];
-        final afterInputs = afterAnalysis['inputs'] as List? ?? [];
-        
-        int signaturesAdded = 0;
-        for (int i = 0; i < beforeInputs.length && i < afterInputs.length; i++) {
-          final beforeSigs = (beforeInputs[i]['partial_signatures'] as Map?)?.length ?? 0;
-          final afterSigs = (afterInputs[i]['partial_signatures'] as Map?)?.length ?? 0;
-          signaturesAdded += afterSigs - beforeSigs;
+      if (analysis is! Map) return 0;
+      
+      final inputs = analysis['inputs'] as List<dynamic>? ?? [];
+      int maxSigs = 0;
+      
+      logger.d('Counting signatures in ${inputs.length} inputs (using ${resultPsbt != null ? 'finalized' : 'original'} PSBT)');
+      
+      for (int i = 0; i < inputs.length; i++) {
+        final input = inputs[i];
+        if (input is Map<String, dynamic>) {
+          int inputSigs = 0;
+          
+          // Count partial signatures
+          final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
+          inputSigs += partialSigs.length;
+          
+          // If no partial signatures but we have missing info, calculate from missing count
+          if (inputSigs == 0 && totalKeys != null) {
+            final missing = input['missing'] as Map<String, dynamic>?;
+            if (missing != null) {
+              final missingSignatures = missing['signatures'] as List<dynamic>? ?? [];
+              inputSigs = totalKeys - missingSignatures.length;
+            }
+          }
+          
+          logger.d('Input $i: $inputSigs signatures');
+          maxSigs = maxSigs > inputSigs ? maxSigs : inputSigs;
         }
-        
-        return signaturesAdded > 0 ? signaturesAdded : 1;
       }
       
-      return 1;
+      logger.d('Total signature count: $maxSigs');
+      return maxSigs;
     } catch (e) {
-      return psbtBefore != psbtAfter ? 1 : 0;
+      GetIt.I.get<Logger>().e('Error counting signatures: $e');
+      return 0;
     }
   }
 }
@@ -273,8 +295,8 @@ class BalanceManager {
           if (walletTx is Map<String, dynamic>) {
             final txid = walletTx['txid'] as String?;
             if (txid != null) {
-              // Check if transaction already exists
-              final existingTx = await TransactionStorage.getTransaction(txid);
+              // Check if transaction already exists by blockchain txid
+              final existingTx = await TransactionStorage.getTransactionByTxid(txid);
               if (existingTx == null) {
                 // Process new transaction
                 logger.i('Found new transaction: $txid');
@@ -658,7 +680,7 @@ class MultisigRPCSigner {
         finalPsbt = participantPSBTs[0];
       }
       
-      final isComplete = await PSBTValidator.isComplete(finalPsbt, group.m);
+      final isComplete = await PSBTValidator.isReadyForBroadcast(finalPsbt, group.m);
       
       
       
@@ -716,7 +738,7 @@ class MultisigRPCSigner {
       if (result is Map) {
         final signedPsbt = result['psbt'] as String;
         final isComplete = result['complete'] as bool? ?? false;
-        final signaturesAdded = await PSBTValidator.countSignatureDifference(psbtBase64, signedPsbt);
+        final signaturesAdded = await PSBTValidator.countSignatures(signedPsbt) - await PSBTValidator.countSignatures(psbtBase64);
         
         return SigningResult(
           signedPsbt: signedPsbt,
@@ -825,6 +847,14 @@ class TransactionStorage {
     return transactions.where((tx) => tx.groupId == groupId).toList();
   }
 
+  static Future<MultisigTransaction?> getTransactionByTxid(String txid) async {
+    final transactions = await loadTransactions();
+    try {
+      return transactions.firstWhere((tx) => tx.txid == txid);
+    } catch (e) {
+      return null;
+    }
+  }
 
 
   static Future<void> updateKeyPSBT(
@@ -845,13 +875,7 @@ class TransactionStorage {
       orElse: () => throw Exception('Group not found: ${transaction.groupId}'),
     );
 
-    final validationResult = await PSBTValidator.validatePSBT(
-      psbtBase64: signedPSBT,
-      group: group,
-      keyId: keyId,
-    );
-    
-    final isActuallySigned = validationResult.isSigned;
+    final isActuallySigned = await PSBTValidator.hasAnySignatures(signedPSBT, group.n);
 
     final updatedKeyPSBTs = transaction.keyPSBTs.map((keyPSBT) {
       if (keyPSBT.keyId == keyId) {
@@ -870,7 +894,7 @@ class TransactionStorage {
     
     TxStatus newStatus;
     if (signedCount >= threshold) {
-      newStatus = TxStatus.readyForBroadcast;
+      newStatus = TxStatus.readyToCombine;
     } else if (isOwnedKey == true && signedCount > 0) {
       newStatus = TxStatus.awaitingSignedPSBTs;
     } else {
@@ -992,16 +1016,7 @@ class TransactionStorage {
       orElse: () => throw Exception('Group not found: ${transaction.groupId}'),
     );
 
-    final validationResult = await PSBTValidator.validatePSBT(
-      psbtBase64: psbt,
-      group: group,
-      keyId: keyId,
-    );
-    
-    final actualSignedStatus = validationResult.isSigned;
-    
-    if (isSigned != actualSignedStatus) {
-    }
+    final actualSignedStatus = await PSBTValidator.hasAnySignatures(psbt, group.n);
 
     final keyPSBTs = List<KeyPSBTStatus>.from(transaction.keyPSBTs);
     final existingIndex = keyPSBTs.indexWhere((k) => k.keyId == keyId);
@@ -1022,7 +1037,7 @@ class TransactionStorage {
     final signedCount = keyPSBTs.where((k) => k.isSigned).length;
     final threshold = signatureThreshold ?? transaction.requiredSignatures;
     final newStatus = signedCount >= threshold
-      ? TxStatus.readyForBroadcast
+      ? TxStatus.readyToCombine
       : TxStatus.needsSignatures;
 
     final updatedTransaction = transaction.copyWith(
@@ -1515,7 +1530,7 @@ class MultisigStorage {
     
     logger.d('Processing transaction $txid: amount=$amount, confirmations=$confirmations');
     
-    final existingTx = await TransactionStorage.getTransaction(txid);
+    final existingTx = await TransactionStorage.getTransactionByTxid(txid);
     if (existingTx != null) {
       logger.d('Transaction $txid already exists in storage, skipping');
       return;

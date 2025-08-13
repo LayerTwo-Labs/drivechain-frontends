@@ -147,7 +147,7 @@ class CreateMultisigModal extends StatelessWidget {
                       SailCheckbox(
                         label: 'Encrypt multisig data',
                         value: viewModel.shouldEncrypt,
-                        onChanged: (value) => viewModel.setShouldEncrypt(value ?? false),
+                        onChanged: (value) => viewModel.setShouldEncrypt(value),
                       ),
                       
                       if (viewModel.shouldEncrypt)
@@ -435,7 +435,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
-  final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
   
   final Set<int> _sessionUsedAccountIndices = <int>{};
 
@@ -613,7 +612,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     ownerController.text = _generateUniqueKeyName();
     pathController.text = "m/84'/1'/0'/0/0";
     notifyListeners();
-    generatePublicKey();
+    await generatePublicKey();
   }
 
   void goBack() {
@@ -1354,6 +1353,7 @@ class ImportMultisigModalViewModel extends BaseViewModel {
             isWalletKey = true;
           }
         } catch (e) {
+          // Key derivation failed, treat as external key
         }
         
         processedKeys!.add(MultisigKey(

@@ -59,6 +59,16 @@ class HDWalletProvider extends ChangeNotifier {
     }
   }
 
+  /// Force reinitialize the HD wallet provider
+  Future<void> reinitialize() async {
+    _initialized = false;
+    _mnemonic = null;
+    _seedHex = null;
+    _masterKey = null;
+    _error = null;
+    await init();
+  }
+
   Future<void> _loadMnemonic() async {
     try {
       final walletDir = wallet_utils.getWalletDir(appDir);
@@ -66,30 +76,23 @@ class HDWalletProvider extends ChangeNotifier {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
-      // Load from master_starter.json, NOT l1_starter.txt
-      // l1_starter.txt is only for the enforcer wallet, not for HD key derivation
-      final masterPath = path.join(walletDir.path, 'master_starter.json');
-      final file = File(masterPath);
+      // Load from l1_starter.txt for the enforcer wallet mnemonic
+      // This is the correct mnemonic for deriving signing keys in multisig
+      final l1Path = path.join(walletDir.path, 'l1_starter.txt');
+      final file = File(l1Path);
       if (!await file.exists()) {
-        throw Exception('could not find master_starter.json');
+        throw Exception('could not find l1_starter.txt');
       }
 
       final fileContent = await file.readAsString();
-      final masterData = json.decode(fileContent) as Map<String, dynamic>;
-      
-      _mnemonic = masterData['mnemonic'] as String?;
+      _mnemonic = fileContent.trim();
       if (_mnemonic == null || _mnemonic!.isEmpty) {
-        throw Exception('master_starter.json does not contain mnemonic');
+        throw Exception('l1_starter.txt does not contain mnemonic');
       }
 
-      // Use the seed_hex directly from master_starter.json if available
-      if (masterData.containsKey('seed_hex')) {
-        _seedHex = masterData['seed_hex'] as String;
-      } else {
-        // Fallback to generating from mnemonic
-        final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
-        _seedHex = hex.encode(mnemonicObj.seed);
-      }
+      // Generate seed from mnemonic
+      final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
+      _seedHex = hex.encode(mnemonicObj.seed);
 
       final chain = Chain.seed(_seedHex!);
       final masterKey = chain.forPath('m');

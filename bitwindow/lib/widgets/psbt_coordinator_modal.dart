@@ -325,6 +325,15 @@ class CreateTransactionViewModel extends BaseViewModel {
       final rpcSigner = MultisigRPCSigner();
       const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
       
+      // Debug: Log the signing attempt
+      print('🔑 PSBT SIGNING DEBUG:');
+      print('  Group: ${group.name} (${group.m}-of-${group.n})');
+      print('  Wallet keys being used: ${walletKeys.length}');
+      for (final key in walletKeys) {
+        print('    Key: ${key.owner} - ${key.xpub.substring(0, 20)}... (isWallet: ${key.isWallet})');
+      }
+      print('  Input PSBT: ${createdPSBT!.substring(0, 50)}...');
+      
       final signingResult = await rpcSigner.signPSBT(
         psbtBase64: createdPSBT!,
         group: group,
@@ -332,6 +341,10 @@ class CreateTransactionViewModel extends BaseViewModel {
         walletKeys: walletKeys,
         isMainnet: isMainnet,
       );
+      
+      print('  Output PSBT: ${signingResult.signedPsbt.substring(0, 50)}...');
+      print('  Signing complete: ${signingResult.isComplete}');
+      print('  Errors: ${signingResult.errors}');
       
       
       createdPSBT = signingResult.signedPsbt;

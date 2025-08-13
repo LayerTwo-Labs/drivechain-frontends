@@ -197,17 +197,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         orElse: () => throw Exception('Group not found'),
       );
 
-      final validationResult = await PSBTValidator.validatePSBT(
-        psbtBase64: cleanPsbt,
-        group: group,
-        keyId: 'import_validation',
-      );
-      
-      if (!validationResult.isValid) {
-        throw Exception('PSBT validation failed: ${validationResult.errors.join(', ')}');
-      }
-      
-      final isSigned = validationResult.isSigned;
+      final isSigned = await PSBTValidator.hasAnySignatures(cleanPsbt, group.n);
 
       String? keyOwner = _importedData?['key_owner'];
       int? derivationIndex = _importedData?['derivation_index'];
@@ -271,6 +261,14 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       }
 
       if (isSigned) {
+        // Debug: Log the signed PSBT import
+        _logger.i('📦 IMPORTING SIGNED PSBT:');
+        _logger.i('  Transaction ID: $txId');
+        _logger.i('  Group: ${group.name} (${group.m}-of-${group.n})');
+        _logger.i('  Target key: ${targetKey.owner} - ${targetKey.xpub.substring(0, 20)}...');
+        _logger.i('  PSBT content: ${cleanPsbt.substring(0, 50)}...');
+        _logger.i('  Is marked as signed: $isSigned');
+        
         await TransactionStorage.addOrUpdateKeyPSBT(
           txId,
           targetKey.xpub,
@@ -290,16 +288,28 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         
         final existingTx = await TransactionStorage.getTransaction(txId);
         
+        // Debug: Log the unsigned PSBT storage process
+        _logger.i('📦 STORING UNSIGNED PSBT FOR MULTIPLE KEYS:');
+        _logger.i('  Transaction ID: $txId');
+        _logger.i('  Group: ${group.name} (${group.m}-of-${group.n})');
+        _logger.i('  PSBT content: ${cleanPsbt.substring(0, 50)}...');
+        _logger.i('  All relevant keys (${allRelevantKeys.length}):');
+        for (final key in allRelevantKeys) {
+          _logger.i('    Key: ${key.owner} - ${key.xpub.substring(0, 20)}... (isWallet: ${key.isWallet})');
+        }
+        
         for (final key in allRelevantKeys) {
           bool shouldSkip = false;
           if (existingTx != null) {
             final existingKeyPSBT = existingTx.keyPSBTs.where((kp) => kp.keyId == key.xpub).firstOrNull;
             if (existingKeyPSBT != null && existingKeyPSBT.isSigned) {
               shouldSkip = true;
+              _logger.i('    Skipping ${key.owner} - already signed');
             }
           }
           
           if (!shouldSkip) {
+            _logger.i('    Storing unsigned PSBT for ${key.owner}');
             await TransactionStorage.addOrUpdateKeyPSBT(
               txId,
               key.xpub,
@@ -318,7 +328,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         if (signedCount >= group.m) {
           await TransactionStatusManager.updateTransactionStatus(
             transactionId: txId,
-            newStatus: TxStatus.readyForBroadcast,
+            newStatus: TxStatus.readyToCombine,
             reason: 'Sufficient signatures imported',
           );
         } else {
