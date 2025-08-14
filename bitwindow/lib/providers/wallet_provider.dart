@@ -194,7 +194,7 @@ class WalletProvider extends ChangeNotifier {
     if (!doNotSave) {
       await saveMasterWallet(wallet);
       await generateStartersForDownloadedChains();
-      
+
       // Reset HD wallet provider to pick up new wallet data
       try {
         final hdWalletProvider = GetIt.I.get<HDWalletProvider>();

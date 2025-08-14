@@ -597,7 +597,6 @@ class BitDriveProvider extends ChangeNotifier {
           continue;
         }
       }
-
     } catch (e) {
       log.e('BitDrive: Scan error: $e');
       error = e.toString();
@@ -646,16 +645,15 @@ class BitDriveProvider extends ChangeNotifier {
       // For non-encrypted groups, this will be the raw JSON bytes
       final jsonString = utf8.decode(content);
       final multisigData = json.decode(jsonString) as Map<String, dynamic>;
-      
+
       // Add the TXID to the data if not already present
       if (multisigData['txid'] == null) {
         multisigData['txid'] = txid;
       }
-      
-      
+
       // Save to local multisig.json file (single source of truth)
       await _saveMultisigToLocalFile(multisigData);
-      
+
       // Create watch wallet and restore transaction history
       try {
         final groups = await MultisigStorage.loadGroups();
@@ -663,23 +661,27 @@ class BitDriveProvider extends ChangeNotifier {
           (g) => g.id == multisigData['id'],
           orElse: () => throw Exception('Group not found after restoration'),
         );
-        
+
         // Create watch wallet if it has descriptors
         if (group.descriptorReceive != null && group.descriptorChange != null && group.watchWalletName != null) {
           log.i('BitDrive: Creating watch wallet: ${group.watchWalletName}');
-          await MultisigStorage.createMultisigWallet(group.watchWalletName!, group.descriptorReceive!, group.descriptorChange!);
+          await MultisigStorage.createMultisigWallet(
+            group.watchWalletName!,
+            group.descriptorReceive!,
+            group.descriptorChange!,
+          );
           log.i('BitDrive: Watch wallet created successfully');
         }
-        
+
         log.i('BitDrive: Restoring transaction history for group: ${group.name}');
         await MultisigStorage.restoreTransactionHistory(group);
         log.i('BitDrive: Transaction history restoration completed for group: ${group.name}');
-        
+
         // Update wallet balance and address state
         log.i('BitDrive: Updating group balance and wallet state');
         await BalanceManager.updateGroupBalance(group);
         log.i('BitDrive: Balance and wallet state updated successfully');
-        
+
         // Notify UI that transactions and groups may have changed
         TransactionStorage.notifier.notifyTransactionChange();
         MultisigFileWatcher().notifyListeners();
@@ -687,7 +689,6 @@ class BitDriveProvider extends ChangeNotifier {
         log.e('BitDrive: Failed to restore transaction history: $e');
         // Don't fail the whole restoration process if transaction history fails
       }
-      
     } catch (e) {
       log.e('BitDrive: Error processing multisig transaction: $e');
     }
@@ -697,13 +698,13 @@ class BitDriveProvider extends ChangeNotifier {
     final multisigDir = Directory(path.join(_bitdriveDir!, 'multisig'));
     await multisigDir.create(recursive: true);
     final file = File(path.join(_bitdriveDir!, 'multisig', 'multisig.json'));
-    
+
     // Load existing data or create new structure
     Map<String, dynamic> jsonData = {
       'groups': [],
       'solo_keys': [],
     };
-    
+
     if (await file.exists()) {
       final content = await file.readAsString();
       if (content.trim().isNotEmpty) {
@@ -711,31 +712,29 @@ class BitDriveProvider extends ChangeNotifier {
         jsonData = decoded as Map<String, dynamic>;
       }
     }
-      
-      // Get groups array
-      final groups = jsonData['groups'] as List<dynamic>;
-      
-      // Check if this multisig group already exists (by ID - the unique identifier)
-      final groupId = multisigData['id'] as String?;
-      
-      if (groupId != null && groupId.isNotEmpty) {
-        final existingIndex = groups.indexWhere((group) => group['id'] == groupId);
-        
-        if (existingIndex != -1) {
-          // Update existing group (prevents duplicates from multiple restoration runs)
-          groups[existingIndex] = multisigData;
-        } else {
-          // Add new group
-          groups.add(multisigData);
-        }
+
+    // Get groups array
+    final groups = jsonData['groups'] as List<dynamic>;
+
+    // Check if this multisig group already exists (by ID - the unique identifier)
+    final groupId = multisigData['id'] as String?;
+
+    if (groupId != null && groupId.isNotEmpty) {
+      final existingIndex = groups.indexWhere((group) => group['id'] == groupId);
+
+      if (existingIndex != -1) {
+        // Update existing group (prevents duplicates from multiple restoration runs)
+        groups[existingIndex] = multisigData;
       } else {
-        // No fallback to name-based checking - require ID
-        throw Exception('Multisig group must have an ID');
+        // Add new group
+        groups.add(multisigData);
       }
-      
-      // Save updated data - this is the single source of truth for multisig groups
-      await file.writeAsString(json.encode(jsonData));
+    } else {
+      // No fallback to name-based checking - require ID
+      throw Exception('Multisig group must have an ID');
+    }
+
+    // Save updated data - this is the single source of truth for multisig groups
+    await file.writeAsString(json.encode(jsonData));
   }
-
-
 }

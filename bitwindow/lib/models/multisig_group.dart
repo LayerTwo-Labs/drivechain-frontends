@@ -8,7 +8,7 @@ class MultisigGroup {
   final List<MultisigKey> keys;
   final int created;
   final String? txid;
-  
+
   final String? descriptor;
   final String? descriptorReceive;
   final String? descriptorChange;
@@ -20,7 +20,7 @@ class MultisigGroup {
   final int nextReceiveIndex;
   final int nextChangeIndex;
   final List<String> transactionIds;
-  
+
   MultisigGroup({
     required this.id,
     required this.name,
@@ -40,9 +40,9 @@ class MultisigGroup {
     this.nextReceiveIndex = 0,
     this.nextChangeIndex = 0,
     List<String>? transactionIds,
-  }) : addresses = addresses ?? {'receive': [], 'change': []},
-       utxoDetails = utxoDetails ?? [],
-       transactionIds = transactionIds ?? [];
+  })  : addresses = addresses ?? {'receive': [], 'change': []},
+        utxoDetails = utxoDetails ?? [],
+        transactionIds = transactionIds ?? [];
 
   factory MultisigGroup.fromJson(Map<String, dynamic> json) {
     return MultisigGroup(
@@ -50,10 +50,7 @@ class MultisigGroup {
       name: json['name'] ?? '',
       n: json['n'] ?? 0,
       m: json['m'] ?? 0,
-      keys: (json['keys'] as List<dynamic>?)
-              ?.map((k) => MultisigKey.fromJson(k))
-              .toList() ??
-          [],
+      keys: (json['keys'] as List<dynamic>?)?.map((k) => MultisigKey.fromJson(k)).toList() ?? [],
       created: json['created'] ?? 0,
       txid: json['txid'],
       descriptor: json['descriptor'],
@@ -99,14 +96,10 @@ class MultisigGroup {
     final Map<String, List<AddressInfo>> result = {'receive': [], 'change': []};
     if (json is Map) {
       if (json['receive'] is List) {
-        result['receive'] = (json['receive'] as List)
-            .map((a) => AddressInfo.fromJson(a))
-            .toList();
+        result['receive'] = (json['receive'] as List).map((a) => AddressInfo.fromJson(a)).toList();
       }
       if (json['change'] is List) {
-        result['change'] = (json['change'] as List)
-            .map((a) => AddressInfo.fromJson(a))
-            .toList();
+        result['change'] = (json['change'] as List).map((a) => AddressInfo.fromJson(a)).toList();
       }
     }
     return result;
@@ -118,15 +111,16 @@ class MultisigGroup {
   }
 
   String get participantNames => keys.map((k) => k.owner).join(', ');
-  
+
   List<String> get allAddresses {
     final List<String> all = [];
     addresses['receive']?.forEach((a) => all.add(a.address));
     addresses['change']?.forEach((a) => all.add(a.address));
     return all;
   }
-  bool get hasDescriptor => (descriptor != null && descriptor!.isNotEmpty) ||
-      (descriptorReceive != null && descriptorReceive!.isNotEmpty);
+
+  bool get hasDescriptor =>
+      (descriptor != null && descriptor!.isNotEmpty) || (descriptorReceive != null && descriptorReceive!.isNotEmpty);
   bool get hasRangedDescriptors => true;
 
   MultisigGroup copyWith({
@@ -203,7 +197,7 @@ class UtxoInfo {
   final bool spendable;
   final bool solvable;
   final bool safe;
-  
+
   UtxoInfo({
     required this.txid,
     required this.vout,
@@ -215,7 +209,7 @@ class UtxoInfo {
     this.solvable = true,
     this.safe = true,
   });
-  
+
   factory UtxoInfo.fromJson(Map<String, dynamic> json) => UtxoInfo(
         txid: json['txid'] ?? '',
         vout: json['vout'] ?? 0,

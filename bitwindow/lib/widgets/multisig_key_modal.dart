@@ -147,31 +147,30 @@ class MultisigKeyModal extends StatelessWidget {
 
 class MultisigKeyModalViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-  
+
   String? modalError;
   Map<String, dynamic>? keyInfo;
   final TextEditingController keyNameController = TextEditingController();
-  
+
   Future<void> init() async {
     setBusy(true);
-    
+
     try {
       if (!_hdWalletProvider.isInitialized) {
         await _hdWalletProvider.init();
       }
-      
+
       if (_hdWalletProvider.error != null) {
         modalError = 'Failed to load wallet: ${_hdWalletProvider.error}';
         return;
       }
-      
+
       if (_hdWalletProvider.mnemonic == null) {
         modalError = 'Wallet mnemonic not available';
         return;
       }
-      
+
       await _generateNextMultisigKey();
-      
     } catch (e) {
       modalError = 'Failed to generate multisig key: $e';
     } finally {
@@ -179,52 +178,50 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       notifyListeners();
     }
   }
-  
+
   Future<void> _generateNextMultisigKey() async {
     try {
       if (!_hdWalletProvider.isInitialized) {
         await _hdWalletProvider.init();
       }
-      
+
       if (!_hdWalletProvider.isInitialized || _hdWalletProvider.mnemonic == null) {
         throw Exception('HD Wallet not properly initialized. Please ensure wallet is set up.');
       }
-      
+
       final accountIndex = await _hdWalletProvider.getNextAccountIndex(<int>{});
-      
+
       final keyInfoResult = await _hdWalletProvider.generateWalletXpub(accountIndex, false);
-      
+
       if (keyInfoResult.isEmpty) {
         throw Exception('Failed to generate xPub');
       }
-      
+
       final relativeIndex = accountIndex - 8000;
-      
+
       keyInfo = {
         'index': relativeIndex,
         'accountIndex': accountIndex,
         'path': keyInfoResult['derivation_path'] ?? '',
         'xpub': keyInfoResult['xpub'] ?? '',
         'fingerprint': keyInfoResult['fingerprint'] ?? '',
-        'originPath': keyInfoResult['derivation_path']?.toString().startsWith('m/') == true 
-            ? keyInfoResult['derivation_path']?.substring(2) 
+        'originPath': keyInfoResult['derivation_path']?.toString().startsWith('m/') == true
+            ? keyInfoResult['derivation_path']?.substring(2)
             : keyInfoResult['derivation_path'],
       };
-      
+
       keyNameController.text = 'MyKey$relativeIndex';
-      
-      
     } catch (e) {
       rethrow;
     }
   }
-  
+
   Future<void> _writeKeyToMultisigJson() async {
     if (keyInfo == null) return;
-    
+
     try {
       final keyName = keyNameController.text.trim();
-      
+
       final soloKeyData = {
         'xpub': keyInfo!['xpub'],
         'owner': keyName,
@@ -232,7 +229,7 @@ class MultisigKeyModalViewModel extends BaseViewModel {
         'fingerprint': keyInfo!['fingerprint'],
         'origin_path': keyInfo!['originPath'],
       };
-      
+
       await MultisigStorage.addSoloKey(soloKeyData);
     } catch (e) {
       // Failed to save key to storage - not critical
@@ -270,7 +267,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
         );
         Navigator.of(context).pop();
       }
-
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -312,10 +308,10 @@ class MultisigKeyModalViewModel extends BaseViewModel {
         const encoder = JsonEncoder.withIndent('  ');
         final prettyJson = encoder.convert(configData);
         await file.writeAsString(prettyJson);
-        
+
         return result;
       }
-      
+
       return null;
     } catch (e) {
       rethrow;
