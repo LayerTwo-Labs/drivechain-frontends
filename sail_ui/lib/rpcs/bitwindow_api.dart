@@ -111,8 +111,21 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<int> ping() async {
-    final syncInfo = await bitwindowd.getSyncInfo();
-    return syncInfo.tipBlockHeight.toInt();
+    try {
+      final healthResponse = await health.check();
+      // Check if any service is serving
+      final hasServingService = healthResponse.serviceStatuses.any(
+        (status) => status.status == CheckResponse_Status.STATUS_SERVING,
+      );
+
+      if (hasServingService) {
+        return healthResponse.serviceStatuses.length;
+      } else {
+        throw Exception('No services are currently serving');
+      }
+    } catch (e) {
+      throw Exception('Health check failed: $e');
+    }
   }
 
   @override
