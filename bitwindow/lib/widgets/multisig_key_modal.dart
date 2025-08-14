@@ -176,7 +176,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       
     } catch (e) {
       modalError = 'Failed to generate multisig key: $e';
-      _logger.e('Error generating multisig key: $e');
     } finally {
       setBusy(false);
       notifyListeners();
@@ -218,7 +217,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       
       
     } catch (e) {
-      _logger.e('Error generating multisig key: $e');
       rethrow;
     }
   }
@@ -238,9 +236,7 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       };
       
       await MultisigStorage.addSoloKey(soloKeyData);
-    } catch (e) {
-      _logger.e('Failed to write key to multisig.json: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> saveKey(BuildContext context) async {
@@ -276,8 +272,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       }
 
     } catch (e) {
-      _logger.e('Failed to save key: $e');
-      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -324,7 +318,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       
       return null;
     } catch (e) {
-      _logger.e('Failed to save config file: $e');
       rethrow;
     }
   }

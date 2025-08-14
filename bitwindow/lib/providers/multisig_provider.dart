@@ -98,17 +98,13 @@ class PSBTValidator {
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
       
       if (finalizeResult is! Map) {
-        logger.w('finalizepsbt returned non-map result');
         return false;
       }
       
       final complete = finalizeResult['complete'] as bool? ?? false;
       final resultPsbt = finalizeResult['psbt'] as String?;
       
-      logger.d('finalizepsbt result: complete=$complete, has result PSBT=${resultPsbt != null}');
-      
       if (complete) {
-        logger.i('PSBT is complete (has all required signatures)');
         return true;
       }
       
@@ -125,7 +121,6 @@ class PSBTValidator {
               // Check for partial signatures
               final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
               if (partialSigs.isNotEmpty) {
-                logger.i('Found ${partialSigs.length} partial signatures in input $i');
                 return true;
               }
               
@@ -134,8 +129,6 @@ class PSBTValidator {
               if (missing != null) {
                 final missingSignatures = missing['signatures'] as List<dynamic>? ?? [];
                 if (missingSignatures.length < totalKeysInGroup) {
-                  final presentSigs = totalKeysInGroup - missingSignatures.length;
-                  logger.i('Found $presentSigs signatures in input $i (${missingSignatures.length} missing out of $totalKeysInGroup)');
                   return true;
                 }
               }
@@ -144,7 +137,6 @@ class PSBTValidator {
         }
       }
       
-      logger.d('No signatures found in PSBT');
       return false;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error in hasAnySignatures: $e');
@@ -167,7 +159,6 @@ class PSBTValidator {
       final complete = finalizeResult['complete'] as bool? ?? false;
       
       if (complete) {
-        logger.d('PSBT is complete (has all $requiredSigs+ required signatures)');
         return true;
       }
       
@@ -175,7 +166,6 @@ class PSBTValidator {
       final sigCount = await countSignatures(psbtBase64, totalKeys: totalKeys);
       final hasEnough = sigCount >= requiredSigs;
       
-      logger.d('PSBT signature check: $sigCount/$requiredSigs (sufficient: $hasEnough)');
       return hasEnough;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error checking valid signatures: $e');
@@ -211,7 +201,6 @@ class PSBTValidator {
       
       if (complete && totalKeys != null) {
         // If complete, we have all required signatures
-        logger.d('PSBT is complete - assuming all $totalKeys signatures present');
         return totalKeys;
       }
       
@@ -223,8 +212,6 @@ class PSBTValidator {
       
       final inputs = analysis['inputs'] as List<dynamic>? ?? [];
       int maxSigs = 0;
-      
-      logger.d('Counting signatures in ${inputs.length} inputs (using ${resultPsbt != null ? 'finalized' : 'original'} PSBT)');
       
       for (int i = 0; i < inputs.length; i++) {
         final input = inputs[i];
@@ -244,12 +231,10 @@ class PSBTValidator {
             }
           }
           
-          logger.d('Input $i: $inputSigs signatures');
           maxSigs = maxSigs > inputSigs ? maxSigs : inputSigs;
         }
       }
       
-      logger.d('Total signature count: $maxSigs');
       return maxSigs;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error counting signatures: $e');
@@ -281,7 +266,6 @@ class BalanceManager {
       
       // Check for new transactions when balance updates
       try {
-        logger.d('Checking for new transactions in wallet: $walletName');
         final transactions = await walletManager.callWalletRPC<List<dynamic>>(
           walletName,
           'listtransactions',
@@ -299,7 +283,6 @@ class BalanceManager {
               final existingTx = await TransactionStorage.getTransactionByTxid(txid);
               if (existingTx == null) {
                 // Process new transaction
-                logger.i('Found new transaction: $txid');
                 await MultisigStorage._processHistoricalTransaction(group, walletTx, rpc);
                 newTxCount++;
               }
@@ -308,13 +291,10 @@ class BalanceManager {
         }
         
         if (newTxCount > 0) {
-          logger.i('Added $newTxCount new transaction(s) for group: ${group.name}');
           // Notify UI of new transactions
           TransactionStorage.notifier.notifyTransactionChange();
         }
-      } catch (e) {
-        logger.e('Error checking for new transactions: $e');
-      }
+      } catch (e) {}
     });
   }
   
@@ -501,16 +481,8 @@ class MultisigTransactionNotifier extends ChangeNotifier {
 class MultisigLogger {
   static final Logger _logger = GetIt.I.get<Logger>();
   
-  static void info(String message) {
-    _logger.i('[MULTISIG] $message');
-  }
-  
   static void error(String message) {
     _logger.e('[MULTISIG] $message');
-  }
-  
-  static void debug(String message) {
-    _logger.d('[MULTISIG] $message');
   }
 }
 
@@ -1451,26 +1423,17 @@ class MultisigStorage {
     final logger = GetIt.I.get<Logger>();
     
     try {
-      logger.i('Restoring transaction history for group: ${group.name} (ID: ${group.id})');
-      
       if (group.watchWalletName == null) {
-        logger.w('No watch wallet name found for group: ${group.name}, skipping transaction restoration');
         return;
       }
       
-      logger.d('Using watch wallet: ${group.watchWalletName}');
-      
       final walletManager = WalletRPCManager();
       final rpc = GetIt.I.get<MainchainRPC>();
-      
-      logger.d('Calling listtransactions on wallet: ${group.watchWalletName}');
       final transactions = await walletManager.callWalletRPC<List<dynamic>>(
         group.watchWalletName!,
         'listtransactions',
         ['*', 1000, 0, true], // label, count, skip, include_watchonly
       );
-      
-      logger.i('Found ${transactions.length} total transactions from wallet RPC');
       
       final relevantTxs = <Map<String, dynamic>>[];
       final allTxs = <Map<String, dynamic>>[];
@@ -1482,7 +1445,6 @@ class MultisigStorage {
           final amount = tx['amount'] as num? ?? 0;
           
           allTxs.add(tx);
-          logger.d('TX: $txid, confirmations: $confirmations, amount: $amount');
           
           // Include transactions with 0 confirmations too (recently broadcasted)
           if (txid != null && confirmations >= 0) {
@@ -1491,27 +1453,20 @@ class MultisigStorage {
         }
       }
       
-      logger.i('Found ${relevantTxs.length} relevant transactions (including 0-conf)');
-      
       int processedCount = 0;
       int errorCount = 0;
       
       for (final walletTx in relevantTxs) {
         try {
           final txid = walletTx['txid'] as String;
-          logger.d('Processing historical transaction: $txid');
           await _processHistoricalTransaction(group, walletTx, rpc);
           processedCount++;
         } catch (e) {
           errorCount++;
-          logger.e('Error processing historical transaction: $e');
         }
       }
       
-      logger.i('Transaction restoration completed: $processedCount processed, $errorCount errors');
-      
     } catch (e) {
-      logger.e('Failed to restore transaction history for group ${group.name}: $e');
       throw Exception('Transaction history restoration failed: $e');
     }
   }
@@ -1528,26 +1483,18 @@ class MultisigStorage {
     final isDeposit = originalAmount > 0;
     final confirmations = walletTx['confirmations'] as int? ?? 0;
     
-    logger.d('Processing transaction $txid: amount=$amount, confirmations=$confirmations');
-    
     final existingTx = await TransactionStorage.getTransactionByTxid(txid);
     if (existingTx != null) {
-      logger.d('Transaction $txid already exists in storage, skipping');
       return;
     }
-    
-    logger.d('Fetching raw transaction details for $txid');
     final txDetails = await rpc.callRAW('getrawtransaction', [txid, true]) as Map<String, dynamic>;
     
     if (txDetails.isEmpty) {
-      logger.w('No transaction data for $txid, skipping');
       return;
     }
     
     final outputs = txDetails['vout'] as List<dynamic>? ?? [];
     final inputs = txDetails['vin'] as List<dynamic>? ?? [];
-    
-    logger.d('Transaction $txid has ${inputs.length} inputs and ${outputs.length} outputs');
     
     String destination = 'Unknown';
     if (outputs.isNotEmpty) {
@@ -1558,7 +1505,6 @@ class MultisigStorage {
     
     // Count signatures in the transaction
     int signatureCount = _countSignaturesInTransaction(inputs, group);
-    logger.d('Transaction $txid has $signatureCount signatures out of ${group.m} required');
     
     // Create keyPSBTs to properly represent the signature status
     final keyPSBTs = group.keys.map((key) {
@@ -1607,9 +1553,7 @@ class MultisigStorage {
       txid: txid, // Set the actual transaction ID
     );
     
-    logger.i('Saving historical transaction $txid to storage (status: ${status.displayName}, confirmations: $confirmations)');
     await TransactionStorage.saveTransaction(historicalTx);
-    logger.d('Successfully saved transaction $txid');
   }
 
   static int _countSignaturesInTransaction(List<dynamic> inputs, MultisigGroup group) {
@@ -1658,7 +1602,6 @@ class MultisigStorage {
     final logger = GetIt.I.get<Logger>();
     
     try {
-      logger.d('Creating multisig wallet: $walletName');
       
       // Create wallet directly in network folder, no wallets/ subdirectory
       await rpc.callRAW('createwallet', [
@@ -1704,20 +1647,15 @@ class MultisigStorage {
         
         if (!success) {
           final error = result['error'] ?? 'Unknown error';
-          logger.e('Failed to import $desc descriptor: $error');
           throw Exception('Failed to import $desc descriptor: $error');
         }
       }
       
-      logger.i('Successfully created multisig wallet: $walletName');
-      
     } catch (e) {
       if (e.toString().contains('already exists') || e.toString().contains('Database already exists')) {
-        logger.d('Wallet $walletName already exists, skipping creation');
         return; // Not a fatal error
       }
       
-      logger.e('Failed to create multisig wallet $walletName: $e');
       throw Exception('Failed to create multisig wallet: $e');
     }
   }

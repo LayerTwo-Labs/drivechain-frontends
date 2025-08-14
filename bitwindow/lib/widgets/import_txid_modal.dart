@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
@@ -145,13 +144,11 @@ class ImportTxidModalViewModel extends BaseViewModel {
   String? modalError;
   String? loadingStatus;
   
-  File? _importLogFile;
   
   Future<void> _createWatchWallet(String walletName, String descriptorReceive, String descriptorChange) async {
     try {
       await MultisigStorage.createMultisigWallet(walletName, descriptorReceive, descriptorChange);
     } catch (e) {
-      await _logToFile('Failed to create watch wallet: $e');
       throw Exception('Failed to create watch wallet: $e');
     }
   }
@@ -162,36 +159,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
     super.dispose();
   }
   
-  Future<void> _initImportLogging() async {
-    try {
-      _importLogFile = File('/Users/marcplatt/Desktop/l2l-projects/drivechain-frontends/bitwindow/import_error.txt');
-      
-      final timestamp = DateTime.now().toIso8601String();
-      await _importLogFile!.writeAsString(
-        '=== Import Debug Log - $timestamp ===\n\n',
-        mode: FileMode.write,
-      );
-      
-      await _logToFile('Import logging initialized successfully');
-    } catch (e) {
-      _logger.e('Failed to initialize import logging: $e');
-    }
-  }
-  
-  Future<void> _logToFile(String message) async {
-    if (_importLogFile != null) {
-      try {
-        final timestamp = DateTime.now().toIso8601String();
-        await _importLogFile!.writeAsString(
-          '[$timestamp] $message\n',
-          mode: FileMode.append,
-        );
-      } catch (e) {
-        _logger.e('Failed to write to import log file: $e');
-      }
-    }
-    _logger.d(message);
-  }
   
   Future<void> pasteFromClipboard() async {
     try {
@@ -201,7 +168,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
         notifyListeners();
       }
     } catch (e) {
-      _logger.e('Failed to paste from clipboard: $e');
       modalError = 'Failed to paste from clipboard';
       notifyListeners();
     }
@@ -212,7 +178,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
     modalError = null;
     loadingStatus = null;
     
-    await _initImportLogging();
     
     try {
       final txid = txidController.text.trim();
@@ -225,8 +190,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
         modalError = 'Invalid transaction ID format';
         return;
       }
-      
-      await _logToFile('Importing multisig from TXID: $txid');
       
       loadingStatus = 'Fetching transaction data...';
       notifyListeners();
@@ -286,11 +249,8 @@ class ImportTxidModalViewModel extends BaseViewModel {
       final totalKeys = (multisigData['keys'] as List<dynamic>?)?.length ?? 0;
       if (walletKeyCount == 0) {
         modalError = 'Cannot import multisig: this wallet cannot derive any of the $totalKeys keys in the group. Import is only allowed if this wallet owns at least one key.';
-        await _logToFile('IMPORT REJECTED: Wallet owns 0 out of $totalKeys keys');
         return;
       }
-      
-      await _logToFile('IMPORT APPROVED: Wallet can derive $walletKeyCount out of $totalKeys keys in this multisig group');
       
       loadingStatus = 'Saving multisig group...';
       notifyListeners();
@@ -308,29 +268,20 @@ class ImportTxidModalViewModel extends BaseViewModel {
         );
         
         if (group.descriptorReceive != null && group.descriptorChange != null && group.watchWalletName != null) {
-          await _logToFile('Creating watch wallet: ${group.watchWalletName}');
           await _createWatchWallet(group.watchWalletName!, group.descriptorReceive!, group.descriptorChange!);
-          await _logToFile('Watch wallet created successfully');
         }
         
         loadingStatus = 'Restoring transaction history...';
         notifyListeners();
         
-        await _logToFile('Restoring transaction history for group: ${group.name} (watchWallet: ${group.watchWalletName})');
         await MultisigStorage.restoreTransactionHistory(group);
-        await _logToFile('Transaction history restoration completed for group: ${group.name}');
         
         loadingStatus = 'Syncing wallet balance and addresses...';
         notifyListeners();
-        await _logToFile('Updating group balance and wallet state');
         await BalanceManager.updateGroupBalance(group);
-        await _logToFile('Balance and wallet state updated successfully');
-      } catch (e) {
-        await _logToFile('Failed to restore transaction history: $e');
-      }
+      } catch (e) {}
       
       loadingStatus = null;
-      await _logToFile('Successfully imported multisig group');
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -343,8 +294,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
       }
       
     } catch (e) {
-      await _logToFile('Failed to import from TXID: $e');
-      _logger.e('Failed to import from TXID: $e');
       loadingStatus = null; // Clear loading status on error
       modalError = e.toString().contains('Multisig group must have an ID') 
           ? 'Invalid multisig data - missing group ID'
@@ -360,17 +309,13 @@ class ImportTxidModalViewModel extends BaseViewModel {
     int walletKeyCount = 0;
     
     try {
-      await _logToFile('Updating is_wallet state for imported multisig keys');
-      
       final keys = multisigData['keys'] as List<dynamic>? ?? [];
       
       if (keys.isEmpty) {
-        await _logToFile('No keys found in multisig data');
         return 0;
       }
       
       const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
-      await _logToFile('Using ${isMainnet ? 'mainnet' : 'testnet/signet'} for key derivation');
       
       for (int i = 0; i < keys.length; i++) {
         final keyData = keys[i];
@@ -388,11 +333,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
           
           if (xpubFromPayload != null && derivationPath != null) {
             try {
-              await _logToFile('Processing key validation for ${keyData['owner']}');
-              await _logToFile('Key xpub from TXID: $xpubFromPayload');
-              await _logToFile('Key derivation path: $derivationPath');
-              
-              await _logToFile('Deriving key at exact path: $derivationPath');
               final derivedKeyInfo = await _hdWallet.deriveExtendedKeyInfo(_hdWallet.mnemonic ?? '', derivationPath, isMainnet);
               
               if (derivedKeyInfo.isNotEmpty) {
@@ -401,28 +341,14 @@ class ImportTxidModalViewModel extends BaseViewModel {
                 if (derivedXpub == xpubFromPayload) {
                   keyData['is_wallet'] = true;
                   walletKeyCount++;
-                  await _logToFile('✅ Key ${keyData['owner']} MATCHES - marked as wallet key');
-                } else {
-                  await _logToFile('❌ Key ${keyData['owner']} does not match - not a wallet key');
-                  await _logToFile('  Expected: $xpubFromPayload');
-                  await _logToFile('  Derived:  $derivedXpub');
                 }
-              } else {
-                await _logToFile('❌ Failed to derive key info for ${keyData['owner']}');
               }
-            } catch (e) {
-              await _logToFile('❌ Failed to derive key for ${keyData['owner']}: $e');
-            }
-          } else {
-            await _logToFile('❌ Key ${keyData['owner']} missing xpub or path data');
+            } catch (e) {}
           }
         }
       }
       
-      await _logToFile('Validation complete: $walletKeyCount out of ${keys.length} keys belong to this wallet');
-      
     } catch (e) {
-      await _logToFile('Error updating wallet key states: $e');
       return 0;
     }
     
@@ -430,7 +356,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
   }
   
   Future<void> _saveMultisigToLocalFile(Map<String, dynamic> multisigData) async {
-    await _logToFile('Using atomic MultisigStorage operations for safe file writing');
     
     final importedGroup = MultisigGroup.fromJson(multisigData);
     
@@ -440,15 +365,15 @@ class ImportTxidModalViewModel extends BaseViewModel {
     
     List<MultisigGroup> updatedGroups;
     if (existingIndex != -1) {
-      await _logToFile('Updating existing group: ${importedGroup.name}');
+      _logger.d('Updating existing group: ${importedGroup.name}');
       updatedGroups = List<MultisigGroup>.from(existingGroups);
       updatedGroups[existingIndex] = importedGroup;
     } else {
-      await _logToFile('Adding new group: ${importedGroup.name}');
+      _logger.d('Adding new group: ${importedGroup.name}');
       updatedGroups = [...existingGroups, importedGroup];
     }
     
     await MultisigStorage.saveGroups(updatedGroups);
-    await _logToFile('Successfully saved group using atomic MultisigStorage operation');
+    _logger.d('Successfully saved group using atomic MultisigStorage operation');
   }
 }
