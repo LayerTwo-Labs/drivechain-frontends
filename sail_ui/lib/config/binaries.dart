@@ -313,10 +313,10 @@ abstract class Binary {
       }
     }
 
-    throw Exception('Process: could not find binary $binary in any location.');
+    return await loadAndWriteBinaryFromAssetsBundle(appDir);
   }
 
-  Future<File> writeBinaryFromAssetsBundle(Directory? appDir) async {
+  Future<File> loadAndWriteBinaryFromAssetsBundle(Directory? appDir) async {
     log.d('loading binary from assets bundle: $binary');
     ByteData? binResource;
 
@@ -337,9 +337,9 @@ abstract class Binary {
     File file;
     if (appDir != null) {
       final fileDir = binDir(appDir.path);
-      await Directory(fileDir.path).create(recursive: true);
-      file = File(filePath([fileDir.path, binaryName]));
-      log.d('Writing binary to bin: ${file.path}');
+      await fileDir.create(recursive: true);
+      file = File(path.join(fileDir.path, binaryName));
+      log.d('Writing binary to assets/bin: ${file.path}');
     } else {
       // Create temp file
       final temp = await getTemporaryDirectory();
@@ -379,7 +379,7 @@ abstract class Binary {
     if (appDir != null) {
       // In release mode, check the folder where binaries are downloaded to first
       paths.addAll([
-        path.join(binDir(appDir.path).path, baseBinary),
+        path.join(appDir.path, 'assets', 'bin', baseBinary),
       ]);
     }
 
@@ -474,8 +474,8 @@ abstract class Binary {
     try {
       final os = getOS();
       final fileName = metadata.files[os];
-      if (fileName == null || fileName.isEmpty) {
-        log.w('Warning: No file name for $name on $os');
+      if (fileName == null || fileName.isEmpty || metadata.baseUrl.isEmpty) {
+        log.w('Warning: No file name or baseUrl for $name on $os');
         return null;
       }
 
@@ -615,7 +615,7 @@ class BitWindow extends Binary {
               ),
           metadata: metadata ??
               MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
+                baseUrl: '',
                 files: {
                   // should not be downloaded from any platform
                   OS.linux: '',

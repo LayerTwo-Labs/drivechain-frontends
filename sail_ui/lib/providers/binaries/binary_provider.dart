@@ -711,7 +711,13 @@ Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Director
         // Load metadata from bin/ in parallel
         final (lastModified, binaryFile) = await binary.getCreationDate(appDir);
         final updateableBinary = binaryFile?.path.contains(appDir.path) ?? false;
-        final serverReleaseDate = await binary.checkReleaseDate();
+
+        DateTime? serverReleaseDate;
+        try {
+          serverReleaseDate = await binary.checkReleaseDate();
+        } catch (e) {
+          log.e('could not check release date: $e');
+        }
 
         log.w('Loaded binary state for ${binary.name}: $lastModified $binaryFile $updateableBinary');
 
