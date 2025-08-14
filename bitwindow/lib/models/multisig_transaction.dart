@@ -88,7 +88,6 @@ extension TxTypeExtension on TxType {
   String toJson() => toString().split('.').last;
 }
 
-
 class KeyPSBTStatus {
   final String keyId;
   final String? psbt;
@@ -105,17 +104,15 @@ class KeyPSBTStatus {
       keyId: json['keyId'] as String,
       psbt: json['psbt'] as String?,
       isSigned: json['isSigned'] as bool,
-      signedAt: json['signedAt'] != null 
-        ? DateTime.parse(json['signedAt'] as String)
-        : null,
+      signedAt: json['signedAt'] != null ? DateTime.parse(json['signedAt'] as String) : null,
     );
   }
   Map<String, dynamic> toJson() => {
-    'keyId': keyId,
-    'psbt': psbt,
-    'isSigned': isSigned,
-    'signedAt': signedAt?.toIso8601String(),
-  };
+        'keyId': keyId,
+        'psbt': psbt,
+        'isSigned': isSigned,
+        'signedAt': signedAt?.toIso8601String(),
+      };
 }
 
 class MultisigTransaction {
@@ -154,11 +151,8 @@ class MultisigTransaction {
     required this.inputs,
     this.confirmations = 0,
   });
-  
-  List<String> get signedPSBTs => keyPSBTs
-    .where((k) => k.isSigned && k.psbt != null)
-    .map((k) => k.psbt!)
-    .toList();
+
+  List<String> get signedPSBTs => keyPSBTs.where((k) => k.isSigned && k.psbt != null).map((k) => k.psbt!).toList();
   int get signatureCount => keyPSBTs.where((k) => k.isSigned).length;
   int get requiredSignatures => keyPSBTs.length;
 
@@ -168,23 +162,21 @@ class MultisigTransaction {
       groupId: json['groupId'] as String,
       initialPSBT: json['initialPSBT'] as String,
       keyPSBTs: (json['keyPSBTs'] as List<dynamic>?)
-        ?.map((k) => KeyPSBTStatus.fromJson(k as Map<String, dynamic>))
-        .toList() ?? [],
+              ?.map((k) => KeyPSBTStatus.fromJson(k as Map<String, dynamic>))
+              .toList() ??
+          [],
       combinedPSBT: json['combinedPSBT'] as String?,
       finalHex: json['finalHex'] as String?,
       txid: json['txid'] as String?,
       status: TxStatusExtension.fromString(json['status'] as String),
       type: TxTypeExtension.fromString(json['type'] as String),
       created: DateTime.parse(json['created'] as String),
-      broadcastTime: json['broadcastTime'] != null
-          ? DateTime.parse(json['broadcastTime'] as String)
-          : null,
+      broadcastTime: json['broadcastTime'] != null ? DateTime.parse(json['broadcastTime'] as String) : null,
       amount: (json['amount'] as num).toDouble(),
       destination: json['destination'] as String,
       fee: (json['fee'] as num).toDouble(),
-      inputs: (json['inputs'] as List<dynamic>)
-          .map((input) => UtxoInfo.fromJson(input as Map<String, dynamic>))
-          .toList(),
+      inputs:
+          (json['inputs'] as List<dynamic>).map((input) => UtxoInfo.fromJson(input as Map<String, dynamic>)).toList(),
       confirmations: json['confirmations'] as int? ?? 0,
     );
   }
@@ -250,16 +242,16 @@ class MultisigTransaction {
 
   String get shortId => id.length > 8 ? '${id.substring(0, 8)}...' : id;
 
-  String? get shortTxid => txid != null && txid!.length > 8 
-      ? '${txid!.substring(0, 8)}...' 
-      : txid;
+  String? get shortTxid => txid != null && txid!.length > 8 ? '${txid!.substring(0, 8)}...' : txid;
 
   bool get needsMoreSignatures {
     return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isEmpty;
   }
+
   bool get readyToCombine {
     return (status == TxStatus.needsSignatures || status == TxStatus.awaitingSignedPSBTs) && signedPSBTs.isNotEmpty;
   }
+
   bool get canBroadcast {
     return status == TxStatus.readyForBroadcast && finalHex != null;
   }

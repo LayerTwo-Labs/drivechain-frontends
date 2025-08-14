@@ -33,7 +33,6 @@ class ImportTxidModal extends StatelessWidget {
                   children: [
                     SailText.primary13('Enter the transaction ID containing the multisig data:'),
                     const SizedBox(height: 8),
-                    
                     SailTextField(
                       label: 'Transaction ID (TXID)',
                       hintText: 'Enter or paste transaction ID',
@@ -43,12 +42,13 @@ class ImportTxidModal extends StatelessWidget {
                         label: 'Paste',
                         variant: ButtonVariant.ghost,
                         small: true,
-                        onPressed: viewModel.isBusy ? null : () async {
-                          await viewModel.pasteFromClipboard();
-                        },
+                        onPressed: viewModel.isBusy
+                            ? null
+                            : () async {
+                                await viewModel.pasteFromClipboard();
+                              },
                       ),
                     ),
-                    
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -71,7 +71,6 @@ class ImportTxidModal extends StatelessWidget {
                         ],
                       ),
                     ),
-                    
                     if (viewModel.loadingStatus != null) ...[
                       const SizedBox(height: 16),
                       Container(
@@ -102,18 +101,17 @@ class ImportTxidModal extends StatelessWidget {
                         ),
                       ),
                     ],
-                    
                     const SizedBox(height: 16),
                     SailRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         SailButton(
                           label: 'Import',
-                          onPressed: viewModel.isBusy || viewModel.txidController.text.trim().isEmpty 
-                              ? null 
+                          onPressed: viewModel.isBusy || viewModel.txidController.text.trim().isEmpty
+                              ? null
                               : () async {
-                                await viewModel.importFromTxid(context);
-                              },
+                                  await viewModel.importFromTxid(context);
+                                },
                           variant: ButtonVariant.primary,
                           loading: viewModel.isBusy,
                         ),
@@ -139,12 +137,11 @@ class ImportTxidModalViewModel extends BaseViewModel {
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
   Logger get _logger => GetIt.I.get<Logger>();
-  
+
   final txidController = TextEditingController();
   String? modalError;
   String? loadingStatus;
-  
-  
+
   Future<void> _createWatchWallet(String walletName, String descriptorReceive, String descriptorChange) async {
     try {
       await MultisigStorage.createMultisigWallet(walletName, descriptorReceive, descriptorChange);
@@ -152,14 +149,13 @@ class ImportTxidModalViewModel extends BaseViewModel {
       throw Exception('Failed to create watch wallet: $e');
     }
   }
-  
+
   @override
   void dispose() {
     txidController.dispose();
     super.dispose();
   }
-  
-  
+
   Future<void> pasteFromClipboard() async {
     try {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -172,119 +168,119 @@ class ImportTxidModalViewModel extends BaseViewModel {
       notifyListeners();
     }
   }
-  
+
   Future<void> importFromTxid(BuildContext context) async {
     setBusy(true);
     modalError = null;
     loadingStatus = null;
-    
-    
+
     try {
       final txid = txidController.text.trim();
       if (txid.isEmpty) {
         modalError = 'Please enter a transaction ID';
         return;
       }
-      
+
       if (txid.length != 64 || !RegExp(r'^[0-9a-fA-F]+$').hasMatch(txid)) {
         modalError = 'Invalid transaction ID format';
         return;
       }
-      
+
       loadingStatus = 'Fetching transaction data...';
       notifyListeners();
-      
+
       final opReturns = await _api.misc.listOPReturns();
       final opReturn = opReturns.firstWhere(
         (op) => op.txid == txid,
         orElse: () => throw Exception('No OP_RETURN data found for transaction'),
       );
-      
+
       loadingStatus = 'Parsing transaction data...';
       notifyListeners();
-      
+
       if (!opReturn.message.contains('|')) {
         modalError = 'Invalid OP_RETURN format - not a BitDrive transaction';
         return;
       }
-      
+
       final parts = opReturn.message.split('|');
       if (parts.length != 2) {
         modalError = 'Invalid OP_RETURN format';
         return;
       }
-      
+
       final metadataBytes = base64.decode(parts[0]);
       if (metadataBytes.length != 9) {
         modalError = 'Invalid metadata format';
         return;
       }
-      
+
       final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
       final flags = metadata.getUint8(0);
       final isEncrypted = (flags & 0x01) != 0;
       final isMultisig = (flags & 0x02) != 0; // MULTISIG_FLAG = 0x02
-      
+
       if (!isMultisig) {
         modalError = 'Transaction is not marked as multisig';
         return;
       }
-      
+
       if (isEncrypted) {
         modalError = 'Cannot import encrypted multisig data - encryption key required';
         return;
       }
-      
+
       final contentBytes = base64.decode(parts[1]);
       final jsonString = utf8.decode(contentBytes);
       final multisigData = json.decode(jsonString) as Map<String, dynamic>;
-      
+
       multisigData['txid'] = txid;
-      
+
       loadingStatus = 'Validating wallet keys...';
       notifyListeners();
-      
+
       final walletKeyCount = await _updateWalletKeyStates(multisigData);
-      
+
       final totalKeys = (multisigData['keys'] as List<dynamic>?)?.length ?? 0;
       if (walletKeyCount == 0) {
-        modalError = 'Cannot import multisig: this wallet cannot derive any of the $totalKeys keys in the group. Import is only allowed if this wallet owns at least one key.';
+        modalError =
+            'Cannot import multisig: this wallet cannot derive any of the $totalKeys keys in the group. Import is only allowed if this wallet owns at least one key.';
         return;
       }
-      
+
       loadingStatus = 'Saving multisig group...';
       notifyListeners();
-      
+
       await _saveMultisigToLocalFile(multisigData);
-      
+
       try {
         loadingStatus = 'Setting up watch wallet...';
         notifyListeners();
-        
+
         final groups = await MultisigStorage.loadGroups();
         final group = groups.firstWhere(
           (g) => g.id == multisigData['id'],
           orElse: () => throw Exception('Group not found after import'),
         );
-        
+
         if (group.descriptorReceive != null && group.descriptorChange != null && group.watchWalletName != null) {
           await _createWatchWallet(group.watchWalletName!, group.descriptorReceive!, group.descriptorChange!);
         }
-        
+
         loadingStatus = 'Restoring transaction history...';
         notifyListeners();
-        
+
         await MultisigStorage.restoreTransactionHistory(group);
-        
+
         loadingStatus = 'Syncing wallet balance and addresses...';
         notifyListeners();
         await BalanceManager.updateGroupBalance(group);
       } catch (e) {
         // Failed to restore transaction history - not critical for import
       }
-      
+
       loadingStatus = null;
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -294,10 +290,9 @@ class ImportTxidModalViewModel extends BaseViewModel {
         );
         Navigator.of(context).pop(true);
       }
-      
     } catch (e) {
       loadingStatus = null; // Clear loading status on error
-      modalError = e.toString().contains('Multisig group must have an ID') 
+      modalError = e.toString().contains('Multisig group must have an ID')
           ? 'Invalid multisig data - missing group ID'
           : 'Import failed: ${e.toString()}';
     } finally {
@@ -306,40 +301,41 @@ class ImportTxidModalViewModel extends BaseViewModel {
       notifyListeners();
     }
   }
-  
+
   Future<int> _updateWalletKeyStates(Map<String, dynamic> multisigData) async {
     int walletKeyCount = 0;
-    
+
     try {
       final keys = multisigData['keys'] as List<dynamic>? ?? [];
-      
+
       if (keys.isEmpty) {
         return 0;
       }
-      
+
       const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
-      
+
       for (int i = 0; i < keys.length; i++) {
         final keyData = keys[i];
-        
+
         if (keyData is Map<String, dynamic>) {
           final keyOwner = keyData['owner'] as String? ?? 'Key ${i + 1}';
-          
+
           loadingStatus = 'Validating $keyOwner (${i + 1} of ${keys.length})...';
           notifyListeners();
-          
+
           keyData['is_wallet'] = false;
-          
+
           final xpubFromPayload = keyData['xpub'] as String?;
           final derivationPath = keyData['path'] as String?;
-          
+
           if (xpubFromPayload != null && derivationPath != null) {
             try {
-              final derivedKeyInfo = await _hdWallet.deriveExtendedKeyInfo(_hdWallet.mnemonic ?? '', derivationPath, isMainnet);
-              
+              final derivedKeyInfo =
+                  await _hdWallet.deriveExtendedKeyInfo(_hdWallet.mnemonic ?? '', derivationPath, isMainnet);
+
               if (derivedKeyInfo.isNotEmpty) {
                 final derivedXpub = derivedKeyInfo['xpub'];
-                
+
                 if (derivedXpub == xpubFromPayload) {
                   keyData['is_wallet'] = true;
                   walletKeyCount++;
@@ -351,22 +347,20 @@ class ImportTxidModalViewModel extends BaseViewModel {
           }
         }
       }
-      
     } catch (e) {
       return 0;
     }
-    
+
     return walletKeyCount;
   }
-  
+
   Future<void> _saveMultisigToLocalFile(Map<String, dynamic> multisigData) async {
-    
     final importedGroup = MultisigGroup.fromJson(multisigData);
-    
+
     final existingGroups = await MultisigStorage.loadGroups();
-    
+
     final existingIndex = existingGroups.indexWhere((g) => g.id == importedGroup.id);
-    
+
     List<MultisigGroup> updatedGroups;
     if (existingIndex != -1) {
       _logger.d('Updating existing group: ${importedGroup.name}');
@@ -376,7 +370,7 @@ class ImportTxidModalViewModel extends BaseViewModel {
       _logger.d('Adding new group: ${importedGroup.name}');
       updatedGroups = [...existingGroups, importedGroup];
     }
-    
+
     await MultisigStorage.saveGroups(updatedGroups);
     _logger.d('Successfully saved group using atomic MultisigStorage operation');
   }

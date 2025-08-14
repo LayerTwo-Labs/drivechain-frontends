@@ -18,15 +18,15 @@ import 'package:sail_ui/sail_ui.dart';
 
 class FileOperationLock {
   static final Map<String, Completer<void>> _locks = {};
-  
+
   static Future<T> withLock<T>(String lockKey, Future<T> Function() operation) async {
     while (_locks.containsKey(lockKey)) {
       await _locks[lockKey]!.future;
     }
-    
+
     final completer = Completer<void>();
     _locks[lockKey] = completer;
-    
+
     try {
       return await operation();
     } finally {
@@ -48,15 +48,15 @@ class TransactionStatusManager {
     String? reason,
   }) async {
     final transaction = await TransactionStorage.getTransaction(transactionId);
-    
+
     if (transaction == null) {
       throw Exception('Transaction not found: $transactionId');
     }
-    
+
     if (!_isValidStatusTransition(transaction.status, newStatus)) {
       throw Exception('Invalid status transition from ${transaction.status} to $newStatus');
     }
-    
+
     final updatedTransaction = transaction.copyWith(
       status: newStatus,
       txid: txid ?? transaction.txid,
@@ -65,13 +65,13 @@ class TransactionStatusManager {
       combinedPSBT: combinedPSBT ?? transaction.combinedPSBT,
       finalHex: finalHex ?? transaction.finalHex,
     );
-    
+
     await TransactionStorage.saveTransaction(updatedTransaction);
   }
-  
+
   static bool _isValidStatusTransition(TxStatus from, TxStatus to) {
     if (from == to) return true;
-    
+
     const validTransitions = {
       TxStatus.needsSignatures: [TxStatus.awaitingSignedPSBTs, TxStatus.readyToCombine, TxStatus.voided],
       TxStatus.awaitingSignedPSBTs: [TxStatus.readyToCombine, TxStatus.voided],
@@ -82,37 +82,35 @@ class TransactionStatusManager {
     };
     return validTransitions[from]?.contains(to) ?? false;
   }
-  
 }
 
 class PSBTValidator {
   static final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
-
 
   /// Checks if any signatures have been added to the PSBT using finalizepsbt as source of truth
   static Future<bool> hasAnySignatures(String psbtBase64, int totalKeysInGroup) async {
     try {
       // Use finalizepsbt as the ultimate source of truth
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
-      
+
       if (finalizeResult is! Map) {
         return false;
       }
-      
+
       final complete = finalizeResult['complete'] as bool? ?? false;
       final resultPsbt = finalizeResult['psbt'] as String?;
-      
+
       if (complete) {
         return true;
       }
-      
+
       // If not complete, check if any signatures were added by analyzing the result
       if (resultPsbt != null) {
         final analysis = await _rpc.callRAW('analyzepsbt', [resultPsbt]);
-        
+
         if (analysis is Map) {
           final inputs = analysis['inputs'] as List<dynamic>? ?? [];
-          
+
           for (int i = 0; i < inputs.length; i++) {
             final input = inputs[i];
             if (input is Map<String, dynamic>) {
@@ -121,7 +119,7 @@ class PSBTValidator {
               if (partialSigs.isNotEmpty) {
                 return true;
               }
-              
+
               // Check missing signatures vs total keys
               final missing = input['missing'] as Map<String, dynamic>?;
               if (missing != null) {
@@ -134,7 +132,7 @@ class PSBTValidator {
           }
         }
       }
-      
+
       return false;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error in hasAnySignatures: $e');
@@ -147,21 +145,21 @@ class PSBTValidator {
     try {
       // Use finalizepsbt to check if we have sufficient signatures
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
-      
+
       if (finalizeResult is! Map) {
         return false;
       }
-      
+
       final complete = finalizeResult['complete'] as bool? ?? false;
-      
+
       if (complete) {
         return true;
       }
-      
+
       // If not complete, try to count signatures to see if we at least have some
       final sigCount = await countSignatures(psbtBase64, totalKeys: totalKeys);
       final hasEnough = sigCount >= requiredSigs;
-      
+
       return hasEnough;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error checking valid signatures: $e');
@@ -173,9 +171,9 @@ class PSBTValidator {
     try {
       // Simply check if finalizepsbt says it's complete
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
-      
+
       if (finalizeResult is! Map) return false;
-      
+
       final complete = finalizeResult['complete'] as bool? ?? false;
       return complete;
     } catch (e) {
@@ -187,35 +185,35 @@ class PSBTValidator {
     try {
       // Use finalizepsbt to get a reliable view of the PSBT
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
-      
+
       if (finalizeResult is! Map) return 0;
-      
+
       final complete = finalizeResult['complete'] as bool? ?? false;
       final resultPsbt = finalizeResult['psbt'] as String?;
-      
+
       if (complete && totalKeys != null) {
         // If complete, we have all required signatures
         return totalKeys;
       }
-      
+
       // Analyze the finalized PSBT to count signatures
       final psbtToAnalyze = resultPsbt ?? psbtBase64;
       final analysis = await _rpc.callRAW('analyzepsbt', [psbtToAnalyze]);
-      
+
       if (analysis is! Map) return 0;
-      
+
       final inputs = analysis['inputs'] as List<dynamic>? ?? [];
       int maxSigs = 0;
-      
+
       for (int i = 0; i < inputs.length; i++) {
         final input = inputs[i];
         if (input is Map<String, dynamic>) {
           int inputSigs = 0;
-          
+
           // Count partial signatures
           final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
           inputSigs += partialSigs.length;
-          
+
           // If no partial signatures but we have missing info, calculate from missing count
           if (inputSigs == 0 && totalKeys != null) {
             final missing = input['missing'] as Map<String, dynamic>?;
@@ -224,11 +222,11 @@ class PSBTValidator {
               inputSigs = totalKeys - missingSignatures.length;
             }
           }
-          
+
           maxSigs = maxSigs > inputSigs ? maxSigs : inputSigs;
         }
       }
-      
+
       return maxSigs;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error counting signatures: $e');
@@ -240,23 +238,23 @@ class PSBTValidator {
 class BalanceManager {
   static Future<void> updateGroupBalance(MultisigGroup group) async {
     final lockKey = 'balance_${group.id}';
-    
+
     return await FileOperationLock.withLock(lockKey, () async {
       final walletManager = WalletRPCManager();
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-      
+
       try {
         await walletManager.getWalletInfo(walletName);
       } catch (e) {
         await _createWatchOnlyWallet(group, walletManager);
       }
-      
+
       final balance = await walletManager.getWalletBalance(walletName);
       final utxos = await walletManager.listUnspent(walletName);
       final utxoCount = utxos.length;
-      
+
       await MultisigStorage.updateGroupBalance(group.id, balance, utxoCount);
-      
+
       // Check for new transactions when balance updates
       try {
         final transactions = await walletManager.callWalletRPC<List<dynamic>>(
@@ -264,9 +262,9 @@ class BalanceManager {
           'listtransactions',
           ['*', 100, 0, true], // Get last 100 transactions
         );
-        
+
         final rpc = GetIt.I.get<MainchainRPC>();
-        
+
         for (final walletTx in transactions) {
           if (walletTx is Map<String, dynamic>) {
             final txid = walletTx['txid'] as String?;
@@ -286,24 +284,24 @@ class BalanceManager {
       }
     });
   }
-  
+
   static Future<void> updateAllGroupBalances(List<MultisigGroup> groups) async {
     await Future.wait(
       groups.map((group) => updateGroupBalance(group)),
     );
   }
-  
+
   static Future<void> _createWatchOnlyWallet(MultisigGroup group, WalletRPCManager walletManager) async {
     try {
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-      
+
       await walletManager.createWallet(
         walletName,
         disablePrivateKeys: true,
         blank: true,
         descriptors: true,
       );
-      
+
       if (group.descriptorReceive != null && group.descriptorChange != null) {
         final descriptors = [
           {
@@ -319,10 +317,9 @@ class BalanceManager {
             'timestamp': 'now',
           },
         ];
-        
+
         await walletManager.importDescriptors(walletName, descriptors);
       }
-      
     } catch (e) {
       rethrow;
     }
@@ -445,7 +442,6 @@ class SigningCoordinator extends ChangeNotifier {
         await signFunction();
 
         await MultisigStateManager().refreshData();
-
       } finally {
         _isSigningInProgress = false;
         _currentlySigningTxId = null;
@@ -457,11 +453,11 @@ class SigningCoordinator extends ChangeNotifier {
 
 class MultisigTransactionNotifier extends ChangeNotifier {
   static final MultisigTransactionNotifier _instance = MultisigTransactionNotifier._internal();
-  
+
   factory MultisigTransactionNotifier() => _instance;
-  
+
   MultisigTransactionNotifier._internal();
-  
+
   void notifyTransactionChange() {
     notifyListeners();
   }
@@ -469,11 +465,11 @@ class MultisigTransactionNotifier extends ChangeNotifier {
 
 class MultisigLogger {
   static final Logger _logger = GetIt.I.get<Logger>();
-  
+
   static void info(String message) {
     _logger.i('[MULTISIG] $message');
   }
-  
+
   static void error(String message) {
     _logger.e('[MULTISIG] $message');
   }
@@ -481,10 +477,10 @@ class MultisigLogger {
 
 class MultisigDescriptorBuilder {
   static final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
-  
+
   static Future<MultisigDescriptors> buildWatchOnlyDescriptors(MultisigGroup group) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
-    
+
     final keyDescriptors = sortedKeys.map((key) {
       if (key.isWallet && key.fingerprint != null && key.originPath != null) {
         return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
@@ -492,19 +488,19 @@ class MultisigDescriptorBuilder {
         return key.xpub;
       }
     }).join(',');
-    
+
     final receiveDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/0/*))';
     final changeDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/1/*))';
-    
+
     final receiveWithChecksum = await _addChecksum(receiveDesc);
     final changeWithChecksum = await _addChecksum(changeDesc);
-    
+
     return MultisigDescriptors(
       receive: receiveWithChecksum,
       change: changeWithChecksum,
     );
   }
-  
+
   static Future<List<String>> buildSigningDescriptors(
     MultisigGroup group,
     MultisigKey signingKey,
@@ -512,13 +508,12 @@ class MultisigDescriptorBuilder {
     String fingerprint,
   ) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
-    final originPath = signingKey.derivationPath.startsWith('m/') 
-        ? signingKey.derivationPath.substring(2) 
-        : signingKey.derivationPath;
-    
+    final originPath =
+        signingKey.derivationPath.startsWith('m/') ? signingKey.derivationPath.substring(2) : signingKey.derivationPath;
+
     final receiveKeys = <String>[];
     final changeKeys = <String>[];
-    
+
     for (final key in sortedKeys) {
       if (key == signingKey) {
         receiveKeys.add('[$fingerprint/$originPath]$privateKeyXprv/0/*');
@@ -531,31 +526,31 @@ class MultisigDescriptorBuilder {
         changeKeys.add('$keyDesc/1/*');
       }
     }
-    
+
     final receiveDesc = 'wsh(sortedmulti(${group.m},${receiveKeys.join(',')}))';
     final changeDesc = 'wsh(sortedmulti(${group.m},${changeKeys.join(',')}))';
-    
+
     return [receiveDesc, changeDesc];
   }
-  
+
   static List<MultisigKey> _sortKeysByBIP67(List<MultisigKey> keys) {
     final sortedKeys = List<MultisigKey>.from(keys);
     sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
     return sortedKeys;
   }
-  
+
   static Future<String> _addChecksum(String descriptor) async {
     try {
       if (descriptor.contains('#')) {
         return descriptor;
       }
-      
+
       final result = await _rpc.callRAW('getdescriptorinfo', [descriptor]);
-      
+
       if (result is Map && result['descriptor'] != null) {
         return result['descriptor'] as String;
       }
-      
+
       throw Exception('Bitcoin Core getdescriptorinfo returned invalid response: $result');
     } catch (e) {
       GetIt.I.get<Logger>().e('Failed to add checksum to descriptor: $e');
@@ -567,7 +562,7 @@ class MultisigDescriptorBuilder {
 class MultisigDescriptors {
   final String receive;
   final String change;
-  
+
   const MultisigDescriptors({
     required this.receive,
     required this.change,
@@ -579,7 +574,7 @@ class SigningResult {
   final bool isComplete;
   final int signaturesAdded;
   final List<String> errors;
-  
+
   SigningResult({
     required this.signedPsbt,
     required this.isComplete,
@@ -599,21 +594,19 @@ class MultisigRPCSigner {
     required List<MultisigKey> walletKeys,
     bool isMainnet = false,
   }) async {
-    
     final errors = <String>[];
-    
+
     try {
       if (group.descriptorReceive == null || group.descriptorChange == null) {
         throw Exception('Group missing descriptors - cannot sign');
       }
-      
-      
+
       final participantPSBTs = <String>[];
       int totalSignaturesAdded = 0;
-      
+
       for (int i = 0; i < walletKeys.length; i++) {
         final walletKey = walletKeys[i];
-        
+
         try {
           final result = await _signWithParticipant(
             walletKey: walletKey,
@@ -622,54 +615,51 @@ class MultisigRPCSigner {
             group: group,
             isMainnet: isMainnet,
           );
-          
+
           if (result != null) {
             participantPSBTs.add(result.signedPsbt);
             totalSignaturesAdded += result.signaturesAdded;
           }
-          
         } catch (e) {
           final error = 'Failed to sign with ${walletKey.owner}: $e';
           errors.add(error);
         }
       }
-      
+
       if (participantPSBTs.isEmpty) {
         throw Exception('No participants could sign the PSBT');
       }
-      
+
       String finalPsbt;
       if (participantPSBTs.length > 1) {
         finalPsbt = await _rpc.callRAW('combinepsbt', [participantPSBTs]) as String;
       } else {
         finalPsbt = participantPSBTs[0];
       }
-      
+
       final isComplete = await PSBTValidator.isReadyForBroadcast(finalPsbt, group.m);
-      
-      
-      
+
       if (totalSignaturesAdded == 0 && participantPSBTs.isNotEmpty) {
         errors.add('No signatures were added despite successful processing');
       }
-      
+
       if (totalSignaturesAdded == 0 && participantPSBTs.isEmpty) {
-        throw Exception('No wallet keys were able to sign this transaction. Check that the keys match the multisig configuration.');
+        throw Exception(
+          'No wallet keys were able to sign this transaction. Check that the keys match the multisig configuration.',
+        );
       }
-      
-      
+
       return SigningResult(
         signedPsbt: finalPsbt,
         isComplete: isComplete,
         signaturesAdded: totalSignaturesAdded,
         errors: errors,
       );
-      
     } catch (e) {
       throw Exception('Multisig PSBT signing failed: $e');
     }
   }
-  
+
   Future<SigningResult?> _signWithParticipant({
     required MultisigKey walletKey,
     required String mnemonic,
@@ -681,17 +671,18 @@ class MultisigRPCSigner {
       final keyInfo = await _hdWallet.deriveExtendedKeyInfo(mnemonic, walletKey.derivationPath, isMainnet);
       final xprv = keyInfo['xprv'];
       final fingerprint = keyInfo['fingerprint'];
-      
+
       if (xprv == null || xprv.isEmpty) {
         throw Exception('Failed to derive extended private key for ${walletKey.owner}');
       }
-      
-      
+
       final descriptors = await MultisigDescriptorBuilder.buildSigningDescriptors(
-        group, walletKey, xprv, fingerprint!,
+        group,
+        walletKey,
+        xprv,
+        fingerprint!,
       );
-      
-      
+
       final result = await _rpc.callRAW('descriptorprocesspsbt', [
         psbtBase64,
         descriptors,
@@ -699,12 +690,13 @@ class MultisigRPCSigner {
         true,
         false,
       ]);
-      
+
       if (result is Map) {
         final signedPsbt = result['psbt'] as String;
         final isComplete = result['complete'] as bool? ?? false;
-        final signaturesAdded = await PSBTValidator.countSignatures(signedPsbt) - await PSBTValidator.countSignatures(psbtBase64);
-        
+        final signaturesAdded =
+            await PSBTValidator.countSignatures(signedPsbt) - await PSBTValidator.countSignatures(psbtBase64);
+
         return SigningResult(
           signedPsbt: signedPsbt,
           isComplete: isComplete,
@@ -712,14 +704,12 @@ class MultisigRPCSigner {
           errors: [],
         );
       }
-      
+
       throw Exception('Invalid response from descriptorprocesspsbt');
-      
     } catch (e) {
       rethrow;
     }
   }
-  
 }
 
 class TransactionStorage {
@@ -729,11 +719,11 @@ class TransactionStorage {
   static Future<String> _getTransactionsFilePath() async {
     final appDir = await Environment.datadir();
     final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-    
+
     if (!await bitdriveDir.exists()) {
       await bitdriveDir.create(recursive: true);
     }
-    
+
     return path.join(bitdriveDir.path, _fileName);
   }
 
@@ -742,20 +732,18 @@ class TransactionStorage {
       try {
         final filePath = await _getTransactionsFilePath();
         final file = File(filePath);
-        
+
         if (!await file.exists()) {
           return [];
         }
-        
+
         final content = await file.readAsString();
         if (content.trim().isEmpty) {
           return [];
         }
-        
+
         final jsonList = json.decode(content) as List<dynamic>;
-        return jsonList
-            .map((txJson) => MultisigTransaction.fromJson(txJson as Map<String, dynamic>))
-            .toList();
+        return jsonList.map((txJson) => MultisigTransaction.fromJson(txJson as Map<String, dynamic>)).toList();
       } catch (e) {
         throw Exception('Failed to load transactions: $e');
       }
@@ -767,12 +755,12 @@ class TransactionStorage {
       try {
         final filePath = await _getTransactionsFilePath();
         final file = File(filePath);
-        
+
         final jsonList = transactions.map((tx) => tx.toJson()).toList();
         final content = json.encode(jsonList);
-        
+
         await file.writeAsString(content);
-        
+
         _notifier.notifyTransactionChange();
       } catch (e) {
         throw Exception('Failed to save transactions: $e');
@@ -782,21 +770,21 @@ class TransactionStorage {
 
   static Future<void> saveTransaction(MultisigTransaction transaction) async {
     final transactions = await loadTransactions();
-    
+
     final existingIndex = transactions.indexWhere((tx) => tx.id == transaction.id);
-    
+
     if (existingIndex != -1) {
       transactions[existingIndex] = transaction;
     } else {
       transactions.add(transaction);
     }
-    
+
     await saveTransactions(transactions);
   }
-  
+
   static MultisigTransactionNotifier get notifier => _notifier;
-  
-    static Future<String> getTransactionFilePath() => _getTransactionsFilePath();
+
+  static Future<String> getTransactionFilePath() => _getTransactionsFilePath();
 
   static Future<MultisigTransaction?> getTransaction(String transactionId) async {
     final transactions = await loadTransactions();
@@ -820,7 +808,6 @@ class TransactionStorage {
       return null;
     }
   }
-
 
   static Future<void> updateKeyPSBT(
     String transactionId,
@@ -856,7 +843,7 @@ class TransactionStorage {
 
     final signedCount = updatedKeyPSBTs.where((k) => k.isSigned).length;
     final threshold = signatureThreshold ?? transaction.requiredSignatures;
-    
+
     TxStatus newStatus;
     if (signedCount >= threshold) {
       newStatus = TxStatus.readyToCombine;
@@ -872,7 +859,7 @@ class TransactionStorage {
     );
 
     await saveTransaction(updatedTransaction);
-    
+
     if (isOwnedKey == true) {
       await _storePSBTInMultisigFile(transactionId, keyId, transaction.initialPSBT, signedPSBT);
     }
@@ -887,17 +874,17 @@ class TransactionStorage {
     try {
       final groups = await MultisigStorage.loadGroups();
       bool groupUpdated = false;
-      
+
       final updatedGroups = groups.map((group) {
         if (group.transactionIds.contains(transactionId)) {
           final updatedKeys = group.keys.map((key) {
             if (key.xpub == keyId && key.isWallet) {
               final currentActivePSBTs = Map<String, String>.from(key.activePSBTs ?? {});
               final currentInitialPSBTs = Map<String, String>.from(key.initialPSBTs ?? {});
-              
+
               currentActivePSBTs[transactionId] = signedPSBT;
               currentInitialPSBTs[transactionId] = initialPSBT;
-              
+
               groupUpdated = true;
               return key.copyWith(
                 activePSBTs: currentActivePSBTs,
@@ -906,14 +893,14 @@ class TransactionStorage {
             }
             return key;
           }).toList();
-          
+
           if (groupUpdated) {
             return group.copyWith(keys: updatedKeys);
           }
         }
         return group;
       }).toList();
-      
+
       if (groupUpdated) {
         await MultisigStorage.saveGroups(updatedGroups);
       }
@@ -926,17 +913,19 @@ class TransactionStorage {
     try {
       final groups = await MultisigStorage.loadGroups();
       bool groupUpdated = false;
-      
+
       final updatedGroups = groups.map((group) {
         if (group.transactionIds.contains(transactionId)) {
           final updatedKeys = group.keys.map((key) {
-            if (key.isWallet && (key.activePSBTs?.containsKey(transactionId) == true || key.initialPSBTs?.containsKey(transactionId) == true)) {
+            if (key.isWallet &&
+                (key.activePSBTs?.containsKey(transactionId) == true ||
+                    key.initialPSBTs?.containsKey(transactionId) == true)) {
               final currentActivePSBTs = Map<String, String>.from(key.activePSBTs ?? {});
               final currentInitialPSBTs = Map<String, String>.from(key.initialPSBTs ?? {});
-              
+
               currentActivePSBTs.remove(transactionId);
               currentInitialPSBTs.remove(transactionId);
-              
+
               groupUpdated = true;
               return key.copyWith(
                 activePSBTs: currentActivePSBTs.isEmpty ? null : currentActivePSBTs,
@@ -945,14 +934,14 @@ class TransactionStorage {
             }
             return key;
           }).toList();
-          
+
           if (groupUpdated) {
             return group.copyWith(keys: updatedKeys);
           }
         }
         return group;
       }).toList();
-      
+
       if (groupUpdated) {
         await MultisigStorage.saveGroups(updatedGroups);
       }
@@ -960,8 +949,6 @@ class TransactionStorage {
       GetIt.I.get<Logger>().w('Failed to cleanup PSBT data: $e');
     }
   }
-
-
 
   static Future<void> addOrUpdateKeyPSBT(
     String transactionId,
@@ -985,7 +972,7 @@ class TransactionStorage {
 
     final keyPSBTs = List<KeyPSBTStatus>.from(transaction.keyPSBTs);
     final existingIndex = keyPSBTs.indexWhere((k) => k.keyId == keyId);
-    
+
     final newKeyPSBT = KeyPSBTStatus(
       keyId: keyId,
       psbt: psbt,
@@ -1001,9 +988,7 @@ class TransactionStorage {
 
     final signedCount = keyPSBTs.where((k) => k.isSigned).length;
     final threshold = signatureThreshold ?? transaction.requiredSignatures;
-    final newStatus = signedCount >= threshold
-      ? TxStatus.readyToCombine
-      : TxStatus.needsSignatures;
+    final newStatus = signedCount >= threshold ? TxStatus.readyToCombine : TxStatus.needsSignatures;
 
     final updatedTransaction = transaction.copyWith(
       keyPSBTs: keyPSBTs,
@@ -1058,8 +1043,7 @@ class WalletRPCManager {
     try {
       await _rpc.callRAW('unloadwallet', [walletName]);
     } catch (e) {
-      if (e.toString().contains('not found') || 
-          e.toString().contains('not loaded')) {
+      if (e.toString().contains('not found') || e.toString().contains('not loaded')) {
         return;
       }
     }
@@ -1068,7 +1052,7 @@ class WalletRPCManager {
   Future<T> callWalletRPC<T>(String walletName, String method, List<dynamic> params) async {
     final rpcLive = _rpc as MainchainRPCLive;
     final conf = rpcLive.conf;
-    
+
     final dio = Dio();
     dio.options.baseUrl = 'http://${conf.host}:${conf.port}';
     dio.options.headers = {
@@ -1090,8 +1074,7 @@ class WalletRPCManager {
         '/wallet/$walletName',
         data: payload,
       );
-      
-      
+
       final data = response.data;
       if (data['error'] != null) {
         final error = data['error'];
@@ -1103,7 +1086,8 @@ class WalletRPCManager {
     }
   }
 
-  Future<double> getWalletBalance(String walletName, {
+  Future<double> getWalletBalance(
+    String walletName, {
     int minConf = 0,
     bool includeWatchOnly = true,
   }) async {
@@ -1119,7 +1103,8 @@ class WalletRPCManager {
     });
   }
 
-  Future<List<dynamic>> listUnspent(String walletName, {
+  Future<List<dynamic>> listUnspent(
+    String walletName, {
     int minConf = 0,
     int maxConf = 9999999,
   }) async {
@@ -1133,7 +1118,7 @@ class WalletRPCManager {
       final params = <dynamic>[];
       if (label != null) params.add(label);
       if (addressType != null) params.add(addressType);
-      
+
       return await callWalletRPC<String>(walletName, 'getnewaddress', params);
     });
   }
@@ -1154,7 +1139,7 @@ class WalletRPCManager {
     bool loadOnStartup = false,
   }) async {
     final params = <dynamic>[
-      walletName,  // Create directly in network folder
+      walletName, // Create directly in network folder
       disablePrivateKeys,
       blank,
       passphrase ?? '',
@@ -1216,7 +1201,6 @@ class WalletRPCManager {
 
   Future<void> rescanWallet(String walletName, {int? startHeight, int? startTime}) async {
     return await withWallet<void>(walletName, () async {
-      
       if (startHeight != null) {
         await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
       } else if (startTime != null) {
@@ -1230,16 +1214,16 @@ class WalletRPCManager {
   Future<void> rescanRecentBlocks(String walletName, {int hoursBack = 24}) async {
     return await withWallet<void>(walletName, () async {
       final blockchainInfo = await _rpc.callRAW('getblockchaininfo', []);
-      
+
       if (blockchainInfo is! Map || blockchainInfo['blocks'] is! int) {
         throw Exception('getblockchaininfo returned invalid response: $blockchainInfo');
       }
-      
+
       final currentHeight = blockchainInfo['blocks'] as int;
-      
+
       final blocksBack = hoursBack * 6;
       final startHeight = (currentHeight - blocksBack).clamp(0, currentHeight);
-      
+
       await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
     });
   }
@@ -1248,11 +1232,11 @@ class WalletRPCManager {
     return await withWallet<Map<String, dynamic>>(walletName, () async {
       final balance = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, 0, true]);
       final utxos = await callWalletRPC<List<dynamic>>(walletName, 'listunspent', [0, 9999999, null, true]);
-      
+
       if (balance is! num) {
         throw Exception('getbalance returned invalid type: ${balance.runtimeType} for wallet $walletName');
       }
-      
+
       return {
         'balance': balance.toDouble(),
         'utxos': utxos.length,
@@ -1277,18 +1261,16 @@ class MultisigStorage {
       try {
         final filePath = await _getGroupsFilePath();
         final file = File(filePath);
-        
+
         if (!await file.exists()) {
           return [];
         }
-        
+
         final content = await file.readAsString();
         final jsonData = json.decode(content) as Map<String, dynamic>;
-        
+
         final groupsList = jsonData['groups'] as List<dynamic>? ?? [];
-        return groupsList
-            .map((json) => MultisigGroup.fromJson(json as Map<String, dynamic>))
-            .toList();
+        return groupsList.map((json) => MultisigGroup.fromJson(json as Map<String, dynamic>)).toList();
       } catch (e) {
         throw Exception('Failed to load groups: $e');
       }
@@ -1299,17 +1281,17 @@ class MultisigStorage {
     return await FileOperationLock.withLock('multisig.json', () async {
       final filePath = await _getGroupsFilePath();
       final file = File(filePath);
-      
+
       await file.parent.create(recursive: true);
-      
+
       // Preserve existing solo_keys if file exists and is valid
       final soloKeys = await _loadExistingSoloKeys(file);
-      
+
       final jsonData = {
         'groups': groups.map((group) => group.toJson()).toList(),
         'solo_keys': soloKeys,
       };
-      
+
       final content = json.encode(jsonData);
       await file.writeAsString(content);
     });
@@ -1317,24 +1299,22 @@ class MultisigStorage {
 
   static Future<List<Map<String, dynamic>>> _loadExistingSoloKeys(File file) async {
     if (!await file.exists()) return [];
-    
+
     final existingContent = await file.readAsString();
     if (existingContent.trim().isEmpty) return [];
-    
+
     final existingData = json.decode(existingContent);
     if (existingData is Map<String, dynamic> && existingData['solo_keys'] is List) {
       return List<Map<String, dynamic>>.from(existingData['solo_keys']);
     }
-    
+
     return [];
   }
-
-
 
   static Future<void> updateGroupBalance(String groupId, double balance, int utxoCount) async {
     final groups = await loadGroups();
     final groupIndex = groups.indexWhere((g) => g.id == groupId);
-    
+
     if (groupIndex != -1) {
       final group = groups[groupIndex];
       final updatedGroup = MultisigGroup(
@@ -1354,56 +1334,56 @@ class MultisigStorage {
         utxos: utxoCount,
         utxoDetails: group.utxoDetails,
       );
-      
+
       groups[groupIndex] = updatedGroup;
       await saveGroups(groups);
     }
   }
-  
+
   static Future<String> getMultisigFilePath() => _getGroupsFilePath();
-  
+
   static Future<List<Map<String, dynamic>>> loadSoloKeys() async {
     try {
       final filePath = await _getGroupsFilePath();
       final file = File(filePath);
-      
+
       if (!await file.exists()) {
         return [];
       }
-      
+
       final content = await file.readAsString();
       final jsonData = json.decode(content);
-      
+
       if (jsonData is Map<String, dynamic> && jsonData['solo_keys'] is List) {
         return List<Map<String, dynamic>>.from(jsonData['solo_keys']);
       }
-      
+
       return [];
     } catch (e) {
       return [];
     }
   }
-  
+
   static Future<void> addSoloKey(Map<String, dynamic> keyData) async {
     try {
       final soloKeys = await loadSoloKeys();
-      
+
       final existingIndex = soloKeys.indexWhere((key) => key['xpub'] == keyData['xpub']);
-      
+
       if (existingIndex == -1) {
         soloKeys.add(keyData);
-        
+
         final groups = await loadGroups();
         final filePath = await _getGroupsFilePath();
         final file = File(filePath);
-        
+
         await file.parent.create(recursive: true);
-        
+
         final jsonData = {
           'groups': groups.map((group) => group.toJson()).toList(),
           'solo_keys': soloKeys,
         };
-        
+
         final content = json.encode(jsonData);
         await file.writeAsString(content);
       }
@@ -1411,13 +1391,13 @@ class MultisigStorage {
       throw Exception('Failed to add solo key: $e');
     }
   }
-  
+
   static Future<void> restoreTransactionHistory(MultisigGroup group) async {
     try {
       if (group.watchWalletName == null) {
         return;
       }
-      
+
       final walletManager = WalletRPCManager();
       final rpc = GetIt.I.get<MainchainRPC>();
       final transactions = await walletManager.callWalletRPC<List<dynamic>>(
@@ -1425,24 +1405,24 @@ class MultisigStorage {
         'listtransactions',
         ['*', 1000, 0, true], // label, count, skip, include_watchonly
       );
-      
+
       final relevantTxs = <Map<String, dynamic>>[];
       final allTxs = <Map<String, dynamic>>[];
-      
+
       for (final tx in transactions) {
         if (tx is Map<String, dynamic>) {
           final txid = tx['txid'] as String?;
           final confirmations = tx['confirmations'] as int? ?? 0;
-          
+
           allTxs.add(tx);
-          
+
           // Include transactions with 0 confirmations too (recently broadcasted)
           if (txid != null && confirmations >= 0) {
             relevantTxs.add(tx);
           }
         }
       }
-      
+
       for (final walletTx in relevantTxs) {
         try {
           await _processHistoricalTransaction(group, walletTx, rpc);
@@ -1450,12 +1430,11 @@ class MultisigStorage {
           // Continue processing other transactions
         }
       }
-      
     } catch (e) {
       throw Exception('Transaction history restoration failed: $e');
     }
   }
-  
+
   static Future<void> _processHistoricalTransaction(
     MultisigGroup group,
     Map<String, dynamic> walletTx,
@@ -1466,30 +1445,30 @@ class MultisigStorage {
     final amount = originalAmount.abs();
     final isDeposit = originalAmount > 0;
     final confirmations = walletTx['confirmations'] as int? ?? 0;
-    
+
     final existingTx = await TransactionStorage.getTransactionByTxid(txid);
     if (existingTx != null) {
       return;
     }
     final txDetails = await rpc.callRAW('getrawtransaction', [txid, true]) as Map<String, dynamic>;
-    
+
     if (txDetails.isEmpty) {
       return;
     }
-    
+
     final outputs = txDetails['vout'] as List<dynamic>? ?? [];
     final inputs = txDetails['vin'] as List<dynamic>? ?? [];
-    
+
     String destination = 'Unknown';
     if (outputs.isNotEmpty) {
       final firstOutput = outputs.first as Map<String, dynamic>;
       final scriptPubKey = firstOutput['scriptPubKey'] as Map<String, dynamic>?;
       destination = scriptPubKey?['address'] as String? ?? 'Unknown';
     }
-    
+
     // Count signatures in the transaction
     int signatureCount = _countSignaturesInTransaction(inputs, group);
-    
+
     // Create keyPSBTs to properly represent the signature status
     final keyPSBTs = group.keys.map((key) {
       // For historical transactions, we assume all required signatures are present
@@ -1502,7 +1481,7 @@ class MultisigStorage {
         signedAt: isSigned ? DateTime.fromMillisecondsSinceEpoch((walletTx['time'] as int? ?? 0) * 1000) : null,
       );
     }).toList();
-    
+
     // Determine transaction status based on confirmations and type
     TxStatus status;
     if (confirmations == 0) {
@@ -1512,19 +1491,23 @@ class MultisigStorage {
     } else {
       status = TxStatus.broadcasted; // Has confirmations but not fully confirmed
     }
-    
+
     final historicalTx = MultisigTransaction(
       id: txid,
       groupId: group.id,
       initialPSBT: '', // Historical transactions don't have PSBTs
       keyPSBTs: keyPSBTs,
-      inputs: inputs.map((input) => UtxoInfo(
-        txid: input['txid'] ?? '',
-        vout: input['vout'] ?? 0,
-        amount: 0.0, // We don't have input amounts easily accessible
-        confirmations: confirmations,
-        address: '',
-      ),).toList(),
+      inputs: inputs
+          .map(
+            (input) => UtxoInfo(
+              txid: input['txid'] ?? '',
+              vout: input['vout'] ?? 0,
+              amount: 0.0, // We don't have input amounts easily accessible
+              confirmations: confirmations,
+              address: '',
+            ),
+          )
+          .toList(),
       destination: destination,
       amount: amount,
       status: status,
@@ -1536,13 +1519,13 @@ class MultisigStorage {
       finalHex: txDetails['hex'] as String?,
       txid: txid, // Set the actual transaction ID
     );
-    
+
     await TransactionStorage.saveTransaction(historicalTx);
   }
 
   static int _countSignaturesInTransaction(List<dynamic> inputs, MultisigGroup group) {
     int totalSignatures = 0;
-    
+
     for (final input in inputs) {
       if (input is Map<String, dynamic>) {
         // Check scriptSig for signatures
@@ -1563,7 +1546,7 @@ class MultisigStorage {
             totalSignatures += sigCount;
           }
         }
-        
+
         // Also check witness data for P2WSH multisig
         final txinwitness = input['txinwitness'] as List<dynamic>?;
         if (txinwitness != null) {
@@ -1577,32 +1560,31 @@ class MultisigStorage {
         }
       }
     }
-    
+
     return totalSignatures;
   }
 
   static Future<void> createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {
     final rpc = GetIt.I.get<MainchainRPC>();
-    
+
     try {
-      
       // Create wallet directly in network folder, no wallets/ subdirectory
       await rpc.callRAW('createwallet', [
-        walletName,  // Create directly in network folder
-        true,   // disable_private_keys - DISABLE private keys (watch-only)
-        true,   // blank (start empty)
-        '',     // passphrase (empty)
-        false,  // avoid_reuse 
-        true,   // descriptors (modern descriptor wallet format)
-        false,  // load_on_startup
+        walletName, // Create directly in network folder
+        true, // disable_private_keys - DISABLE private keys (watch-only)
+        true, // blank (start empty)
+        '', // passphrase (empty)
+        false, // avoid_reuse
+        true, // descriptors (modern descriptor wallet format)
+        false, // load_on_startup
       ]);
-      
+
       try {
         await rpc.callRAW('loadwallet', [walletName]);
       } catch (e) {
         // Wallet might already be loaded
       }
-      
+
       final descriptorsToImport = [
         {
           'desc': descriptorReceive,
@@ -1619,26 +1601,25 @@ class MultisigStorage {
           'range': [0, 999],
         },
       ];
-      
+
       final walletManager = WalletRPCManager();
       final importResult = await walletManager.importDescriptors(walletName, descriptorsToImport);
-      
+
       for (int i = 0; i < importResult.length; i++) {
         final result = importResult[i] as Map<String, dynamic>;
         final success = result['success'] as bool? ?? false;
         final desc = i == 0 ? 'receive' : 'change';
-        
+
         if (!success) {
           final error = result['error'] ?? 'Unknown error';
           throw Exception('Failed to import $desc descriptor: $error');
         }
       }
-      
     } catch (e) {
       if (e.toString().contains('already exists') || e.toString().contains('Database already exists')) {
         return; // Not a fatal error
       }
-      
+
       throw Exception('Failed to create multisig wallet: $e');
     }
   }
@@ -1658,7 +1639,7 @@ class MultisigFileWatcher extends ChangeNotifier {
 
   void startWatching() {
     if (_isWatching) return;
-    
+
     _isWatching = true;
     _watchTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       if (await _filesChanged()) {

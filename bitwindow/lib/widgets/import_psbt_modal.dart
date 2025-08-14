@@ -58,21 +58,20 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
         final jsonString = await file.readAsString();
-        
+
         try {
           final data = json.decode(jsonString) as Map<String, dynamic>;
-          
+
           if (!data.containsKey('transaction_id') || !data.containsKey('psbt')) {
             throw Exception('Invalid PSBT export format');
           }
-          
+
           setState(() {
             _importedData = data;
             _selectedFileName = result.files.single.name;
             _txIdController.text = data['transaction_id'] ?? '';
             _psbtController.text = data['psbt'] ?? '';
           });
-          
         } catch (e) {
           setState(() {
             _modalError = 'Invalid JSON format: $e';
@@ -94,7 +93,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         if (matchingKey != null) {
           return matchingKey;
         }
-        
+
         final derivedKey = await _rederiveAndStoreMissingKey(derivationIndex, keyOwner);
         if (derivedKey != null) {
           group.keys.add(derivedKey);
@@ -102,7 +101,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         }
       }
     }
-    
+
     final candidates = group.keys.where((k) => k.owner == keyOwner).toList();
     if (candidates.isNotEmpty) {
       return candidates.firstWhere(
@@ -110,7 +109,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         orElse: () => candidates.first,
       );
     }
-    
+
     return null;
   }
 
@@ -119,10 +118,10 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       if (!_hdWallet.isInitialized) {
         await _hdWallet.init();
       }
-      
+
       bool isMainnet = false;
       final keyInfo = await _hdWallet.generateWalletXpub(derivationIndex, isMainnet);
-      
+
       return keyInfo['xpub'];
     } catch (e) {
       return null;
@@ -134,15 +133,15 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       if (!_hdWallet.isInitialized) {
         await _hdWallet.init();
       }
-      
+
       bool isMainnet = false;
-      
+
       final keyInfo = await _hdWallet.generateWalletXpub(derivationIndex, isMainnet);
-      
+
       if (keyInfo.isEmpty || keyInfo['xpub'] == null) {
         throw Exception('Failed to derive key at index $derivationIndex');
       }
-      
+
       final multisigKey = MultisigKey(
         owner: keyOwner,
         xpub: keyInfo['xpub']!,
@@ -151,25 +150,22 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         originPath: keyInfo['origin_path'],
         isWallet: true,
       );
-      
+
       final soloKeys = await MultisigStorage.loadSoloKeys();
       final existingKeyIndex = soloKeys.indexWhere((key) => key['xpub'] == multisigKey.xpub);
-      
+
       if (existingKeyIndex == -1) {
         await MultisigStorage.addSoloKey(multisigKey.toJson());
       }
-      
+
       return multisigKey;
-      
     } catch (e) {
       return null;
     }
   }
 
   Future<void> _importPSBT() async {
-    if (_selectedGroupId == null ||
-        _txIdController.text.isEmpty ||
-        _psbtController.text.isEmpty) {
+    if (_selectedGroupId == null || _txIdController.text.isEmpty || _psbtController.text.isEmpty) {
       setState(() {
         _modalError = 'Please select a file and choose a group';
       });
@@ -201,13 +197,13 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       int? derivationIndex = _importedData?['derivation_index'];
 
       final txId = _txIdController.text.trim();
-      
+
       var existingTx = await TransactionStorage.getTransaction(txId);
 
       if (keyOwner == null) {
         throw Exception('key_owner is required in PSBT import data');
       }
-      
+
       MultisigKey? targetKey = await _findTargetKey(group, keyOwner, derivationIndex);
       if (targetKey == null) {
         throw Exception('Could not find or derive key for $keyOwner');
@@ -220,7 +216,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
 
         double amount = 0.0;
         String destination = '';
-        
+
         if (outputs.isNotEmpty) {
           final firstOutput = outputs.first as Map<String, dynamic>;
           amount = (firstOutput['value'] as num).toDouble();
@@ -228,13 +224,17 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
           destination = scriptPubKey['address'] as String? ?? 'Unknown';
         }
 
-        final keyPSBTs = group.keys.map((key) => KeyPSBTStatus(
-          keyId: key.xpub,
-          psbt: null,
-          isSigned: false,
-          signedAt: null,
-        ),).toList();
-        
+        final keyPSBTs = group.keys
+            .map(
+              (key) => KeyPSBTStatus(
+                keyId: key.xpub,
+                psbt: null,
+                isSigned: false,
+                signedAt: null,
+              ),
+            )
+            .toList();
+
         final newTx = MultisigTransaction(
           id: txId,
           groupId: _selectedGroupId!,
@@ -245,13 +245,17 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
           amount: amount,
           destination: destination,
           fee: 0.0001,
-          inputs: inputs.map((input) => UtxoInfo(
-            txid: input['txid'] ?? '',
-            vout: input['vout'] ?? 0,
-            amount: 0.0,
-            confirmations: 0,
-            address: '',
-          ),).toList(),
+          inputs: inputs
+              .map(
+                (input) => UtxoInfo(
+                  txid: input['txid'] ?? '',
+                  vout: input['vout'] ?? 0,
+                  amount: 0.0,
+                  confirmations: 0,
+                  address: '',
+                ),
+              )
+              .toList(),
           keyPSBTs: keyPSBTs,
         );
 
@@ -259,7 +263,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       }
 
       if (isSigned) {
-        
         await TransactionStorage.addOrUpdateKeyPSBT(
           txId,
           targetKey.xpub,
@@ -269,16 +272,16 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         );
       } else {
         final allRelevantKeys = <MultisigKey>[];
-        
+
         final walletKeys = group.keys.where((k) => k.isWallet).toList();
         allRelevantKeys.addAll(walletKeys);
-        
+
         if (!targetKey.isWallet && !allRelevantKeys.any((k) => k.xpub == targetKey.xpub)) {
           allRelevantKeys.add(targetKey);
         }
-        
+
         final existingTx = await TransactionStorage.getTransaction(txId);
-        
+
         for (final key in allRelevantKeys) {
           bool shouldSkip = false;
           if (existingTx != null) {
@@ -287,7 +290,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
               shouldSkip = true;
             }
           }
-          
+
           if (!shouldSkip) {
             await TransactionStorage.addOrUpdateKeyPSBT(
               txId,
@@ -303,7 +306,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       final finalTx = await TransactionStorage.getTransaction(txId);
       if (finalTx != null) {
         final signedCount = finalTx.keyPSBTs.where((kp) => kp.isSigned).length;
-        
+
         if (signedCount >= group.m) {
           await TransactionStatusManager.updateTransactionStatus(
             transactionId: txId,
@@ -321,22 +324,23 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
 
       final allGroups = await MultisigStorage.loadGroups();
       final existingIndex = allGroups.indexWhere((g) => g.id == group.id);
-      
+
       if (existingIndex != -1) {
         allGroups[existingIndex] = group;
       } else {
         allGroups.add(group);
       }
-      
+
       await MultisigStorage.saveGroups(allGroups);
-      
+
       widget.onImportSuccess();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'PSBT imported successfully${isSigned ? ' (signed)' : ' (unsigned)'}',),
+              'PSBT imported successfully${isSigned ? ' (signed)' : ' (unsigned)'}',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -356,16 +360,14 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
   @override
   Widget build(BuildContext context) {
     if (_selectedGroupId != null) {
-      final selectedGroup =
-          widget.availableGroups.firstWhere((g) => g.id == _selectedGroupId);
+      final selectedGroup = widget.availableGroups.firstWhere((g) => g.id == _selectedGroupId);
       return Dialog(
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
           child: SailCard(
             title: 'Import PSBT',
-            subtitle:
-                'Import a partially signed Bitcoin transaction for ${selectedGroup.name}',
+            subtitle: 'Import a partially signed Bitcoin transaction for ${selectedGroup.name}',
             error: _modalError,
             child: SingleChildScrollView(
               child: SailColumn(
@@ -387,9 +389,11 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                             spacing: SailStyleValues.padding04,
                             children: [
                               SailText.primary13(
-                                  'Selected Group: ${selectedGroup.name}',),
+                                'Selected Group: ${selectedGroup.name}',
+                              ),
                               SailText.secondary12(
-                                  '${selectedGroup.m} of ${selectedGroup.n} multisig',),
+                                '${selectedGroup.m} of ${selectedGroup.n} multisig',
+                              ),
                             ],
                           ),
                         ),
@@ -408,14 +412,12 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: _selectedFileName != null 
+                        color: _selectedFileName != null
                             ? Colors.green.withValues(alpha: 0.5)
                             : Colors.grey.withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(8),
-                      color: _selectedFileName != null
-                          ? Colors.green.withValues(alpha: 0.05)
-                          : null,
+                      color: _selectedFileName != null ? Colors.green.withValues(alpha: 0.05) : null,
                     ),
                     child: SailColumn(
                       spacing: SailStyleValues.padding12,
@@ -424,10 +426,8 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                         SailRow(
                           children: [
                             Icon(
-                              _selectedFileName != null 
-                                  ? Icons.check_circle
-                                  : Icons.upload_file,
-                              color: _selectedFileName != null 
+                              _selectedFileName != null ? Icons.check_circle : Icons.upload_file,
+                              color: _selectedFileName != null
                                   ? context.sailTheme.colors.success
                                   : context.sailTheme.colors.textSecondary,
                               size: 24,
@@ -463,18 +463,13 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                           ],
                         ),
                         SailButton(
-                          label: _selectedFileName != null 
-                              ? 'Choose Different File'
-                              : 'Choose File',
+                          label: _selectedFileName != null ? 'Choose Different File' : 'Choose File',
                           onPressed: _isImporting ? null : _pickAndLoadPSBTFile,
-                          variant: _selectedFileName != null 
-                              ? ButtonVariant.secondary
-                              : ButtonVariant.primary,
+                          variant: _selectedFileName != null ? ButtonVariant.secondary : ButtonVariant.primary,
                         ),
                       ],
                     ),
                   ),
-                  
                   if (_importedData != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -511,9 +506,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                       ),
                       SailButton(
                         label: 'Import',
-                        onPressed: _isImporting || _importedData == null
-                            ? null
-                            : _importPSBT,
+                        onPressed: _isImporting || _importedData == null ? null : _importPSBT,
                         loading: _isImporting,
                         disabled: _importedData == null,
                       ),
@@ -555,9 +548,11 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                               children: [
                                 SailText.primary13(group.name),
                                 SailText.secondary12(
-                                    '${group.m} of ${group.n} multisig',),
+                                  '${group.m} of ${group.n} multisig',
+                                ),
                                 SailText.secondary12(
-                                    'Balance: ${group.balance.toStringAsFixed(8)} BTC',),
+                                  'Balance: ${group.balance.toStringAsFixed(8)} BTC',
+                                ),
                               ],
                             ),
                           ),

@@ -25,7 +25,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
 
   Future<void> _handleSign() async {
     setState(() => _isSigning = true);
-    
+
     try {
       await widget.onSignConfirm();
       if (mounted) {
@@ -41,10 +41,13 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
   Widget build(BuildContext context) {
     final tx = widget.transaction;
     final group = widget.group;
-    
+
     final walletKeys = group.keys.where((key) => key.isWallet).toList();
-    final unsignedWalletKeys = walletKeys.where((key) =>
-        !tx.keyPSBTs.any((kp) => kp.keyId == key.xpub && kp.isSigned),).toList();
+    final unsignedWalletKeys = walletKeys
+        .where(
+          (key) => !tx.keyPSBTs.any((kp) => kp.keyId == key.xpub && kp.isSigned),
+        )
+        .toList();
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -60,11 +63,8 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildTransactionDetails(tx, group),
-                
                 _buildSigningDetails(tx, group, walletKeys, unsignedWalletKeys),
-                
                 _buildKeyStatus(tx, group),
-                
                 SailRow(
                   spacing: SailStyleValues.padding12,
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -89,7 +89,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
       ),
     );
   }
-  
+
   Widget _buildTransactionDetails(MultisigTransaction tx, MultisigGroup group) {
     return SailCard(
       shadowSize: ShadowSize.none,
@@ -177,8 +177,12 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
     );
   }
 
-  Widget _buildSigningDetails(MultisigTransaction tx, MultisigGroup group, 
-      List<MultisigKey> walletKeys, List<MultisigKey> unsignedWalletKeys,) {
+  Widget _buildSigningDetails(
+    MultisigTransaction tx,
+    MultisigGroup group,
+    List<MultisigKey> walletKeys,
+    List<MultisigKey> unsignedWalletKeys,
+  ) {
     return SailCard(
       shadowSize: ShadowSize.none,
       child: SailColumn(
@@ -221,20 +225,22 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                 if (unsignedWalletKeys.isNotEmpty) ...[
                   const Divider(height: 16),
                   SailText.secondary12('Keys to be signed:'),
-                  ...unsignedWalletKeys.map((key) => Padding(
-                    padding: const EdgeInsets.only(left: 8, top: 4),
-                    child: SailRow(
-                      children: [
-                        Icon(
-                          Icons.key,
-                          size: 16,
-                          color: Colors.orange.shade600,
-                        ),
-                        const SizedBox(width: 8),
-                        SailText.primary12(key.owner),
-                      ],
+                  ...unsignedWalletKeys.map(
+                    (key) => Padding(
+                      padding: const EdgeInsets.only(left: 8, top: 4),
+                      child: SailRow(
+                        children: [
+                          Icon(
+                            Icons.key,
+                            size: 16,
+                            color: Colors.orange.shade600,
+                          ),
+                          const SizedBox(width: 8),
+                          SailText.primary12(key.owner),
+                        ],
+                      ),
                     ),
-                  ),),
+                  ),
                 ],
               ],
             ),
@@ -264,15 +270,15 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                   signedAt: null,
                 ),
               );
-              
+
               final hasUnsignedPSBT = keyPSBT.psbt != null && !keyPSBT.isSigned;
               final isSigned = keyPSBT.isSigned;
               final isWalletKey = key.isWallet;
-              
+
               Color statusColor;
               IconData statusIcon;
               String statusText;
-              
+
               if (isSigned) {
                 statusColor = Colors.green;
                 statusIcon = Icons.check_circle;
@@ -290,7 +296,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                 statusIcon = Icons.help_outline;
                 statusText = 'No PSBT available';
               }
-              
+
               return Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(

@@ -262,12 +262,11 @@ class _ResetSettingsContent extends StatefulWidget {
 }
 
 class _ResetSettingsContentState extends State<_ResetSettingsContent> {
-  
   /// Get platform-specific Bitcoin Core data directories
   List<Directory> _getBitcoinCoreDataDirs(Directory appDir) {
     final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '';
     final List<Directory> dirs = [];
-    
+
     switch (OS.current) {
       case OS.linux:
         // Linux: ~/.bitcoin
@@ -277,7 +276,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           Directory(path.join(appDir.path, '.drivechain')),
         ]);
         break;
-        
+
       case OS.macos:
         // macOS: ~/Library/Application Support/Drivechain
         dirs.addAll([
@@ -289,7 +288,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           Directory(path.join(appDir.path, 'Drivechain', 'mainnet')),
         ]);
         break;
-        
+
       case OS.windows:
         // Windows: %APPDATA%\Drivechain
         dirs.addAll([
@@ -302,14 +301,14 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
         ]);
         break;
     }
-    
+
     return dirs;
   }
-  
+
   Future<void> _deleteMultisigWallets(Directory dir, Logger logger) async {
     try {
       final entities = await dir.list(recursive: false).toList();
-      
+
       for (final entity in entities) {
         if (entity is Directory && path.basename(entity.path).startsWith('multisig_')) {
           try {
@@ -324,7 +323,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       logger.e('Error cleaning multisig wallets in ${dir.path}: $e');
     }
   }
-  
+
   Future<void> _onResetAllChains() async {
     await showDialog(
       context: context,
@@ -382,8 +381,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       context: context,
       builder: (context) => SailAlertCard(
         title: 'Reset Wallet?',
-        subtitle:
-            'Are you sure you want to reset all wallet data? This will:\n\n'
+        subtitle: 'Are you sure you want to reset all wallet data? This will:\n\n'
             '• Permanently delete all wallet files from BitWindow\n'
             '• Permanently delete all wallet files from the Enforcer\n'
             '• Stop all running processes\n'
@@ -420,7 +418,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
             final enforcer = Enforcer();
             final enforcerDataDirPath = enforcer.datadir();
             final enforcerWalletDir = Directory(path.join(enforcerDataDirPath, 'wallet'));
-            
+
             if (await enforcerWalletDir.exists()) {
               await enforcerWalletDir.delete(recursive: true);
             }
@@ -461,12 +459,11 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
               unawaited(bootBinaries(GetIt.I.get<Logger>()));
             }
-
           } catch (e) {
             logger.e('Error during wallet reset: $e');
-            
+
             if (context.mounted) Navigator.of(context).pop();
-            
+
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
