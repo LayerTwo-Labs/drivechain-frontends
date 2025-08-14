@@ -261,12 +261,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       }
 
       if (isSigned) {
-        _logger.i('📦 IMPORTING SIGNED PSBT:');
-        _logger.i('  Transaction ID: $txId');
-        _logger.i('  Group: ${group.name} (${group.m}-of-${group.n})');
-        _logger.i('  Target key: ${targetKey.owner} - ${targetKey.xpub.substring(0, 20)}...');
-        _logger.i('  PSBT content: ${cleanPsbt.substring(0, 50)}...');
-        _logger.i('  Is marked as signed: $isSigned');
         
         await TransactionStorage.addOrUpdateKeyPSBT(
           txId,
@@ -287,27 +281,16 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         
         final existingTx = await TransactionStorage.getTransaction(txId);
         
-        _logger.i('📦 STORING UNSIGNED PSBT FOR MULTIPLE KEYS:');
-        _logger.i('  Transaction ID: $txId');
-        _logger.i('  Group: ${group.name} (${group.m}-of-${group.n})');
-        _logger.i('  PSBT content: ${cleanPsbt.substring(0, 50)}...');
-        _logger.i('  All relevant keys (${allRelevantKeys.length}):');
-        for (final key in allRelevantKeys) {
-          _logger.i('    Key: ${key.owner} - ${key.xpub.substring(0, 20)}... (isWallet: ${key.isWallet})');
-        }
-        
         for (final key in allRelevantKeys) {
           bool shouldSkip = false;
           if (existingTx != null) {
             final existingKeyPSBT = existingTx.keyPSBTs.where((kp) => kp.keyId == key.xpub).firstOrNull;
             if (existingKeyPSBT != null && existingKeyPSBT.isSigned) {
               shouldSkip = true;
-              _logger.i('    Skipping ${key.owner} - already signed');
             }
           }
           
           if (!shouldSkip) {
-            _logger.i('    Storing unsigned PSBT for ${key.owner}');
             await TransactionStorage.addOrUpdateKeyPSBT(
               txId,
               key.xpub,
@@ -362,7 +345,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         Navigator.of(context).pop(true);
       }
     } catch (e) {
-      _logger.e('Failed to import PSBT: $e');
       if (mounted) {
         setState(() => _modalError = 'Failed to import PSBT: $e');
       }

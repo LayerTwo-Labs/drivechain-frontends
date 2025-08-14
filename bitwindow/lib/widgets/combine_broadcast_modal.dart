@@ -67,7 +67,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
   Future<void> _combineTransaction() async {
     if (_selectedTransaction == null) {
-      _logger.e('ERROR: No transaction selected for broadcast');
       return;
     }
 
@@ -84,111 +83,49 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
       final signedPSBTs = <String>[];
       
-      _logger.i('Collecting signed PSBTs for transaction ${tx.id}:');
       for (final kp in tx.keyPSBTs) {
         if (kp.isSigned && kp.psbt != null) {
           signedPSBTs.add(kp.psbt!);
-          _logger.i('  Key ${kp.keyId}: ${kp.psbt!.substring(0, 50)}...');
-        } else {
-          _logger.i('  Key ${kp.keyId}: isSigned=${kp.isSigned}, haspsbt=${kp.psbt != null}');
         }
       }
       
-      _logger.i('Total PSBTs collected: ${signedPSBTs.length} (need ${group.m} signatures for ${group.m}-of-${group.n} multisig)');
-      
       
       if (signedPSBTs.isEmpty) {
-        _logger.e('ERROR: No signed PSBTs found - cannot broadcast');
         throw Exception('No signed PSBTs found');
       }
       
       if (tx.signatureCount < group.m) {
-        _logger.e('ERROR: Insufficient signatures for broadcast');
         throw Exception('Insufficient signatures: ${tx.signatureCount}/${group.m} required');
       }
       
       final uniquePSBTs = signedPSBTs.toSet().toList();
-      _logger.i('Unique PSBTs for combination: ${uniquePSBTs.length}');
-      
-      for (int i = 0; i < uniquePSBTs.length; i++) {
-        _logger.i('Analyzing PSBT $i before combination:');
-        try {
-          final analysis = await _rpc.callRAW('analyzepsbt', [uniquePSBTs[i]]);
-          if (analysis is Map) {
-            final inputs = analysis['inputs'] as List<dynamic>? ?? [];
-            for (int j = 0; j < inputs.length; j++) {
-              final input = inputs[j];
-              if (input is Map<String, dynamic>) {
-                final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
-                _logger.i('  Input $j: ${partialSigs.length} partial signatures');
-              }
-            }
-          }
-        } catch (e) {
-          _logger.e('Failed to analyze PSBT $i: $e');
-        }
-      }
       
       String combined;
       if (uniquePSBTs.length == 1) {
         combined = uniquePSBTs.first;
-        _logger.i('Using single PSBT directly');
       } else {
-        _logger.i('Combining ${uniquePSBTs.length} PSBTs...');
         final combineResult = await _rpc.callRAW('combinepsbt', [uniquePSBTs]);
         combined = combineResult as String;
-        _logger.i('Combined PSBT successfully');
       }
       
-      _logger.i('Finalizing combined PSBT...');
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [combined]);
       
       if (finalizeResult is! Map) {
-        _logger.e('ERROR: PSBT finalization returned invalid result type');
         throw Exception('PSBT finalization returned invalid result type');
       }
       
-      _logger.d('Finalization result: $finalizeResult');
       final complete = finalizeResult['complete'] as bool? ?? false;
       final resultPsbt = finalizeResult['psbt'] as String?;
-      _logger.i('Transaction complete status: $complete');
       
       if (!complete) {
-        if (resultPsbt != null) {
-          _logger.i('Analyzing incomplete PSBT to understand missing signatures...');
-          final analysis = await _rpc.callRAW('analyzepsbt', [resultPsbt]);
-          _logger.d('Analysis of combined PSBT: $analysis');
-          
-          if (analysis is Map) {
-            final inputs = analysis['inputs'] as List<dynamic>? ?? [];
-            for (int i = 0; i < inputs.length; i++) {
-              final input = inputs[i];
-              if (input is Map<String, dynamic>) {
-                final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
-                final missing = input['missing'] as Map<String, dynamic>?;
-                final missingSignatures = missing?['signatures'] as List<dynamic>? ?? [];
-                
-                _logger.i('Input $i: ${partialSigs.length} partial signatures, ${missingSignatures.length} missing signatures');
-                _logger.d('  Partial sigs: ${partialSigs.keys.toList()}');
-                _logger.d('  Missing sigs: $missingSignatures');
-              }
-            }
-          }
-        }
-        
         final errors = finalizeResult['errors'] as List<dynamic>? ?? [];
-        _logger.e('ERROR: PSBT finalization failed - transaction incomplete despite having ${group.m}-of-${group.n} signatures. Errors: $errors');
         throw Exception('PSBT finalization failed - transaction not complete. Expected ${group.m}-of-${group.n} but finalization failed. Errors: $errors');
       }
       
       final hex = finalizeResult['hex'] as String?;
       if (hex == null) {
-        _logger.e('ERROR: No transaction hex returned from finalization');
         throw Exception('No transaction hex returned from finalization');
       }
-      
-      _logger.i('Transaction finalized successfully');
-      _logger.d('Transaction hex (first 50 chars): ${hex.substring(0, 50)}...');
       
       await TransactionStatusManager.updateTransactionStatus(
         transactionId: tx.id,
@@ -211,7 +148,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         );
       }
     } catch (e) {
-      _logger.e('Combine failed: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -227,7 +163,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
   Future<void> _broadcastTransaction() async {
     if (_selectedTransaction == null) {
-      _logger.e('ERROR: No transaction selected for broadcast');
       return;
     }
 
@@ -240,10 +175,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         throw Exception('Transaction not finalized - cannot broadcast');
       }
       
-      _logger.i('Broadcasting transaction: ${tx.id}');
-      
       final txid = await _rpc.callRAW('sendrawtransaction', [tx.finalHex!]) as String;
-      _logger.i('Transaction broadcast successfully! TXID: $txid');
       
       await TransactionStatusManager.updateTransactionStatus(
         transactionId: tx.id,
@@ -268,7 +200,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         );
       }
     } catch (e) {
-      _logger.e('Broadcast failed: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();

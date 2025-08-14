@@ -954,7 +954,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
   Future<void> fundGroup(BuildContext context, MultisigGroup group) async {
     try {
       final address = await _getNewAddress(group);
-      _logger.d('Got funding address for group ${group.name}: $address');
 
       if (context.mounted) {
         await showDialog<bool>(
@@ -1028,13 +1027,11 @@ class MultisigLoungeViewModel extends BaseViewModel {
   Future<void> _validateAndFixWalletFlags() async {
     try {
       if (!_hdWalletProvider.isInitialized) {
-        _logger.d('HD wallet not initialized, skipping isWallet validation');
         return;
       }
 
       final mnemonic = _hdWalletProvider.mnemonic;
       if (mnemonic == null) {
-        _logger.d('No mnemonic available, skipping isWallet validation');
         return;
       }
 
@@ -1054,7 +1051,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
           final walletKeyInfo = await _checkIfKeyBelongsToWallet(key, mnemonic);
           
           if (walletKeyInfo != null) {
-            _logger.i('Found wallet key: ${key.owner} (${key.xpub.substring(0, 10)}...)');
             updatedKeys.add(key.copyWith(
               isWallet: true,
               derivationPath: walletKeyInfo['derivationPath'] ?? key.derivationPath,
@@ -1079,18 +1075,12 @@ class MultisigLoungeViewModel extends BaseViewModel {
       if (groupsUpdated) {
         await MultisigStorage.saveGroups(updatedGroups);
         await _stateManager.refreshData();
-        _logger.i('Updated isWallet flags for restored wallet keys');
         
         for (final group in updatedGroups) {
           if (group.keys.any((k) => k.isWallet)) {
             try {
-              _logger.i('Restoring transaction history for wallet group: ${group.name}');
               await MultisigStorage.restoreTransactionHistory(group);
-              _logger.i('Transaction history restoration completed for group: ${group.name}');
-              
-              _logger.i('Updating group balance and wallet state for: ${group.name}');
               await BalanceManager.updateGroupBalance(group);
-              _logger.i('Balance and wallet state updated for group: ${group.name}');
             } catch (e) {
               _logger.e('Failed to restore transaction history for group ${group.name}: $e');
             }
@@ -1110,7 +1100,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
         final pathMatch = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(key.derivationPath);
         if (pathMatch != null) {
           final accountIndex = int.parse(pathMatch.group(1)!);
-          _logger.d('Found derivation path ${key.derivationPath}, trying account index $accountIndex for key ${key.owner}');
           return await _tryDeriveKeyAtIndex(key, mnemonic, accountIndex);
         }
       }
@@ -1121,7 +1110,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
           final keyNumber = int.tryParse(match.group(1) ?? '');
           if (keyNumber != null) {
             final accountIndex = 8000 + keyNumber;
-            _logger.d('Found owner pattern ${key.owner}, trying account index $accountIndex');
             final result = await _tryDeriveKeyAtIndex(key, mnemonic, accountIndex);
             if (result != null) {
               return result;
@@ -1130,7 +1118,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
         }
       }
 
-      _logger.d('No derivation path or owner pattern match, trying range 8000-8099 for key ${key.owner}');
       for (int accountIndex = 8000; accountIndex < 8100; accountIndex++) {
         final result = await _tryDeriveKeyAtIndex(key, mnemonic, accountIndex);
         if (result != null) {
@@ -1158,7 +1145,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       final matches = derivedXpub == targetKey.xpub;
 
       if (matches) {
-        _logger.i('Key match found at account index $accountIndex: ${targetKey.owner} (network: testnet)');
         return keyInfo;
       }
 
@@ -1528,8 +1514,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   Future<void> signTransaction(
       BuildContext context, MultisigTransaction tx, MultisigGroup group,) async {
-    MultisigLogger.info(
-        'Starting transaction signing for ${tx.id} in group ${group.name}',);
 
     try {
       final rpcSigner = MultisigRPCSigner();
@@ -1548,7 +1532,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       );
 
       if (!canSign) {
-        MultisigLogger.info('No unsigned PSBTs available for wallet keys');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1584,13 +1567,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
         isMainnet: isMainnet,
       );
 
-      MultisigLogger.info(
-          'PSBT signed successfully: ${signingResult.signaturesAdded} signatures added, complete: ${signingResult.isComplete}',);
 
-      if (signingResult.errors.isNotEmpty) {
-        MultisigLogger.error(
-            'Signing warnings: ${signingResult.errors.join(', ')}',);
-      }
 
       final ownedKeys = walletKeys.where((key) => key.isWallet).toList();
       final unsignedOwnedKeys = ownedKeys.where((key) =>
@@ -1610,6 +1587,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
         final updatedTx = await TransactionStorage.getTransaction(tx.id);
         final signedCount = updatedTx?.keyPSBTs.where((kp) => kp.isSigned).length ?? 0;
         final wasSuccessful = signedCount > initialSignedCount;
+        
+        if (!context.mounted) return;
         
         if (wasSuccessful) {
           final message = signingResult.isComplete
@@ -1632,7 +1611,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
         }
       }
 
-      MultisigLogger.info('Transaction signing completed successfully');
       
       await _stateManager.refreshData();
       notifyListeners();
