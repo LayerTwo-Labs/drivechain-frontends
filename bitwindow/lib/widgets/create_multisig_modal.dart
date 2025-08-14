@@ -254,30 +254,21 @@ class CreateMultisigModal extends StatelessWidget {
                             SailRow(
                               spacing: SailStyleValues.padding08,
                               children: [
-                                Expanded(
-                                  child: SailTextField(
-                                    label: 'Fee (BTC)',
-                                    controller: viewModel.feeController,
-                                    hintText: '0.001',
-                                    size: TextFieldSize.small,
-                                    textFieldType: TextFieldType.number,
-                                  ),
+                                SailButton(
+                                  label: 'Generate Wallet xPub',
+                                  onPressed: viewModel.canGenerateKey && viewModel.keys.length < viewModel.n ? () async => await viewModel.generatePublicKey() : null,
+                                  variant: ButtonVariant.secondary,
                                 ),
-                                                                 SailButton(
-                                   label: 'Generate Wallet xPub',
-                                   onPressed: viewModel.canGenerateKey && viewModel.keys.length < viewModel.n ? () async => await viewModel.generatePublicKey() : null,
-                                   variant: ButtonVariant.secondary,
-                                 ),
-                                 SailButton(
-                                   label: 'Paste xPub',
-                                   onPressed: viewModel.keys.length < viewModel.n ? () async => await viewModel.pastePublicKey() : null,
-                                   variant: ButtonVariant.secondary,
-                                 ),
-                                 SailButton(
-                                   label: 'Import Key',
-                                   onPressed: viewModel.keys.length < viewModel.n ? () async => await viewModel.importKeyFromFile(context) : null,
-                                   variant: ButtonVariant.secondary,
-                                 ),
+                                SailButton(
+                                  label: 'Paste xPub',
+                                  onPressed: viewModel.keys.length < viewModel.n ? () async => await viewModel.pastePublicKey() : null,
+                                  variant: ButtonVariant.secondary,
+                                ),
+                                SailButton(
+                                  label: 'Import Key',
+                                  onPressed: viewModel.keys.length < viewModel.n ? () async => await viewModel.importKeyFromFile(context) : null,
+                                  variant: ButtonVariant.secondary,
+                                ),
                               ],
                             ),
                                                          SailButton(
@@ -331,36 +322,39 @@ class CreateMultisigModal extends StatelessWidget {
                                children: [
                                  SailRow(
                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                   crossAxisAlignment: CrossAxisAlignment.center,
                                    children: [
-                                     SailColumn(
-                                       crossAxisAlignment: CrossAxisAlignment.start,
-                                       spacing: SailStyleValues.padding04,
-                                       children: [
-                                         SailText.primary13('${index + 1}. ${key.owner}'),
-                                         SailRow(
-                                           spacing: SailStyleValues.padding04,
-                                           children: [
-                                             Container(
-                                               padding: const EdgeInsets.symmetric(
-                                                 horizontal: 6,
-                                                 vertical: 2,
+                                     Expanded(
+                                       child: SailColumn(
+                                         crossAxisAlignment: CrossAxisAlignment.start,
+                                         spacing: SailStyleValues.padding04,
+                                         children: [
+                                           SailText.primary13('${index + 1}. ${key.owner}'),
+                                           SailRow(
+                                             spacing: SailStyleValues.padding04,
+                                             children: [
+                                               Container(
+                                                 padding: const EdgeInsets.symmetric(
+                                                   horizontal: 6,
+                                                   vertical: 2,
+                                                 ),
+                                                 decoration: BoxDecoration(
+                                                   color: key.isWallet 
+                                                       ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
+                                                       : context.sailTheme.colors.orange.withValues(alpha: 0.1),
+                                                   borderRadius: BorderRadius.circular(4),
+                                                 ),
+                                                 child: SailText.secondary12(
+                                                    key.isWallet ? 'Wallet Key' : 'External Key',
+                                                    color: key.isWallet 
+                                                        ? context.sailTheme.colors.primary
+                                                        : context.sailTheme.colors.orange,
+                                                  ),
                                                ),
-                                               decoration: BoxDecoration(
-                                                 color: key.isWallet 
-                                                     ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
-                                                     : context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                                                 borderRadius: BorderRadius.circular(4),
-                                               ),
-                                                                                               child: SailText.secondary12(
-                                                  key.isWallet ? 'Wallet Key' : 'External Key',
-                                                  color: key.isWallet 
-                                                      ? context.sailTheme.colors.primary
-                                                      : context.sailTheme.colors.orange,
-                                                ),
-                                             ),
-                                           ],
-                                         ),
-                                       ],
+                                             ],
+                                           ),
+                                         ],
+                                       ),
                                      ),
                                      SailButton(
                                        label: 'Remove',
@@ -485,7 +479,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   final TextEditingController ownerController = TextEditingController();
   final TextEditingController pubkeyController = TextEditingController();
   final TextEditingController pathController = TextEditingController(text: "m/84'/1'/8000'");
-  final TextEditingController feeController = TextEditingController(text: '0.001');
   final TextEditingController fingerprintController = TextEditingController();
 
   int currentStep = 0;
@@ -502,7 +495,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   int get m => int.tryParse(mController.text) ?? 0;
   int get n => int.tryParse(nController.text) ?? 0;
-  double get fee => double.tryParse(feeController.text) ?? 0.001;
 
   bool get canProceed => 
       nameController.text.isNotEmpty && 
@@ -1013,12 +1005,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       
       final opReturnData = '$metadataStr|$contentStr';
       
-      final feeSats = (fee * 100000000).toInt();
-      
       final address = await _api.wallet.getNewAddress();
       final txid = await _api.wallet.sendTransaction(
-        {address: 10000}, // 0.0001 BTC
-        fixedFeeSats: feeSats,
+        {address: 10000},
         opReturnMessage: opReturnData,
       );
       
@@ -1112,7 +1101,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     ownerController.dispose();
     pubkeyController.dispose();
     pathController.dispose();
-    feeController.dispose();
     fingerprintController.dispose();
     super.dispose();
   }

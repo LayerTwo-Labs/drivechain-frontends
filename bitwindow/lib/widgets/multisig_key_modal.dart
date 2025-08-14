@@ -214,7 +214,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
             : keyInfoResult['derivation_path'],
       };
       
-      // Set default key name
       keyNameController.text = 'MyKey$relativeIndex';
       
       
@@ -247,7 +246,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   Future<void> saveKey(BuildContext context) async {
     if (keyInfo == null) return;
 
-    // Validate key name
     final keyName = keyNameController.text.trim();
     if (keyName.isEmpty) {
       if (context.mounted) {
@@ -299,7 +297,6 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     final filename = '$keyName.conf';
 
     try {
-      // Use file picker to let user choose save location
       final result = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Multisig Key Configuration',
         fileName: filename,

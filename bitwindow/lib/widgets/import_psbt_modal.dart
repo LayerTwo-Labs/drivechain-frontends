@@ -261,7 +261,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       }
 
       if (isSigned) {
-        // Debug: Log the signed PSBT import
         _logger.i('📦 IMPORTING SIGNED PSBT:');
         _logger.i('  Transaction ID: $txId');
         _logger.i('  Group: ${group.name} (${group.m}-of-${group.n})');
@@ -288,7 +287,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         
         final existingTx = await TransactionStorage.getTransaction(txId);
         
-        // Debug: Log the unsigned PSBT storage process
         _logger.i('📦 STORING UNSIGNED PSBT FOR MULTIPLE KEYS:');
         _logger.i('  Transaction ID: $txId');
         _logger.i('  Group: ${group.name} (${group.m}-of-${group.n})');
