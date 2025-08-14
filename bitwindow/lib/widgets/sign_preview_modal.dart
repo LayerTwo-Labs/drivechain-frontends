@@ -42,7 +42,6 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
     final tx = widget.transaction;
     final group = widget.group;
     
-    // Find wallet keys that can be signed
     final walletKeys = group.keys.where((key) => key.isWallet).toList();
     final unsignedWalletKeys = walletKeys.where((key) =>
         !tx.keyPSBTs.any((kp) => kp.keyId == key.xpub && kp.isSigned),).toList();
@@ -60,16 +59,12 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Transaction Details
                 _buildTransactionDetails(tx, group),
                 
-                // Signing Information
                 _buildSigningDetails(tx, group, walletKeys, unsignedWalletKeys),
                 
-                // Key Status
                 _buildKeyStatus(tx, group),
                 
-                // Action buttons
                 SailRow(
                   spacing: SailStyleValues.padding12,
                   mainAxisAlignment: MainAxisAlignment.end,

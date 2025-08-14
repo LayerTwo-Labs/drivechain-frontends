@@ -211,7 +211,6 @@ class FundGroupModalViewModel extends BaseViewModel {
           }
         }
       } catch (e) {
-        // Failed to get descriptor, will use default
       }
       
       if (descriptor == null) {
@@ -242,7 +241,6 @@ class FundGroupModalViewModel extends BaseViewModel {
         
         final receiveDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/0/*))';
         
-        // Debug: Log the descriptor being created
         MultisigLogger.info('Creating wallet $walletName with ${enhancedGroup.m}-of-${enhancedGroup.n} descriptor:');
         MultisigLogger.info('  Receive descriptor: $receiveDesc');
         MultisigLogger.info('  Keys used (${enhancedGroup.keys.length}): ${enhancedGroup.keys.map((k) => '${k.owner}:${k.isWallet ? "WALLET" : "EXTERNAL"}').join(", ")}');

@@ -7,7 +7,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-// MultisigGroup is now imported directly
 
 class CombineBroadcastModal extends StatefulWidget {
   final Function() onSuccess;
@@ -44,16 +43,13 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         _error = null;
       });
 
-      // Load all transactions and filter for eligible ones
       final allTransactions = await TransactionStorage.loadTransactions();
       _eligibleTransactions = allTransactions
           .where((tx) => tx.status == TxStatus.readyToCombine || tx.status == TxStatus.readyForBroadcast)
           .toList();
 
-      // Load all multisig groups
       _multisigGroups = await MultisigStorage.loadGroups();
 
-      // Select first transaction if available
       if (_eligibleTransactions.isNotEmpty) {
         _selectedTransaction = _eligibleTransactions.first;
       }
@@ -76,28 +72,21 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
     }
 
     setState(() => _isProcessing = true);
-    // 'Starting broadcast process for transaction: ${_selectedTransaction!.id}');
 
     try {
       final tx = _selectedTransaction!;
-      // 'Transaction details: ID=${tx.id}, GroupID=${tx.groupId}, Status=${tx.status}');
-      // 'Transaction has ${tx.keyPSBTs.length} keyPSBT entries');
       
       final group = _multisigGroups.firstWhere(
         (g) => g.id == tx.groupId,
         orElse: () => throw Exception('Group not found'),
       );
-      // 'Found group: ${group.name} (${group.m} of ${group.n} multisig)');
       
-      // Log all keyPSBTs and their status
 
-      // Collect signed PSBTs - only those marked as signed
       final signedPSBTs = <String>[];
       
       _logger.i('Collecting signed PSBTs for transaction ${tx.id}:');
       for (final kp in tx.keyPSBTs) {
         if (kp.isSigned && kp.psbt != null) {
-          // Trust the isSigned flag - it should have been validated during import/signing
           signedPSBTs.add(kp.psbt!);
           _logger.i('  Key ${kp.keyId}: ${kp.psbt!.substring(0, 50)}...');
         } else {
@@ -107,24 +96,20 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       
       _logger.i('Total PSBTs collected: ${signedPSBTs.length} (need ${group.m} signatures for ${group.m}-of-${group.n} multisig)');
       
-      // 'Collected ${signedPSBTs.length} signed PSBTs for combination');
       
       if (signedPSBTs.isEmpty) {
         _logger.e('ERROR: No signed PSBTs found - cannot broadcast');
         throw Exception('No signed PSBTs found');
       }
       
-      // 'Signature count check: ${tx.signatureCount}/${group.m} required');
       if (tx.signatureCount < group.m) {
         _logger.e('ERROR: Insufficient signatures for broadcast');
         throw Exception('Insufficient signatures: ${tx.signatureCount}/${group.m} required');
       }
       
-      // Remove duplicates for combination
       final uniquePSBTs = signedPSBTs.toSet().toList();
       _logger.i('Unique PSBTs for combination: ${uniquePSBTs.length}');
       
-      // Before combining, let's analyze each PSBT to see what signatures they contain
       for (int i = 0; i < uniquePSBTs.length; i++) {
         _logger.i('Analyzing PSBT $i before combination:');
         try {
@@ -144,7 +129,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         }
       }
       
-      // Use first PSBT if only one, otherwise combine
       String combined;
       if (uniquePSBTs.length == 1) {
         combined = uniquePSBTs.first;
@@ -156,7 +140,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         _logger.i('Combined PSBT successfully');
       }
       
-      // Finalize the PSBT (this validates signatures internally)
       _logger.i('Finalizing combined PSBT...');
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [combined]);
       
@@ -171,7 +154,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       _logger.i('Transaction complete status: $complete');
       
       if (!complete) {
-        // Analyze what we actually got to understand why it's incomplete
         if (resultPsbt != null) {
           _logger.i('Analyzing incomplete PSBT to understand missing signatures...');
           final analysis = await _rpc.callRAW('analyzepsbt', [resultPsbt]);
@@ -208,7 +190,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       _logger.i('Transaction finalized successfully');
       _logger.d('Transaction hex (first 50 chars): ${hex.substring(0, 50)}...');
       
-      // Update transaction status to ready for broadcast
       await TransactionStatusManager.updateTransactionStatus(
         transactionId: tx.id,
         newStatus: TxStatus.readyForBroadcast,
@@ -261,11 +242,9 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       
       _logger.i('Broadcasting transaction: ${tx.id}');
       
-      // Broadcast the transaction
       final txid = await _rpc.callRAW('sendrawtransaction', [tx.finalHex!]) as String;
       _logger.i('Transaction broadcast successfully! TXID: $txid');
       
-      // Update transaction status
       await TransactionStatusManager.updateTransactionStatus(
         transactionId: tx.id,
         newStatus: TxStatus.broadcasted,
@@ -274,7 +253,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         reason: 'Transaction broadcast',
       );
       
-      // Clean up multisig PSBTs
       await TransactionStorage.cleanupPSBTFromMultisigFile(tx.id);
       
       widget.onSuccess();
@@ -399,7 +377,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                   _buildTransactionDetails(_selectedTransaction!),
               ],
               
-              // Action buttons
               SailRow(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

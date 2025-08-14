@@ -530,9 +530,7 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
   void _updateSortedTransactions() {
     _sortedTransactionRows = List<TransactionRow>.from(widget.transactionRows);
     
-    // Default sorting: prioritize transactions needing signatures, then newest first
     _sortedTransactionRows.sort((a, b) {
-      // First priority: transactions needing signatures (withdrawals only)
       final aNeedsSignatures = (a.transaction.status == TxStatus.needsSignatures || 
                                a.transaction.status == TxStatus.awaitingSignedPSBTs) &&
                                a.transaction.type != TxType.deposit;
@@ -543,7 +541,6 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
       if (aNeedsSignatures && !bNeedsSignatures) return -1;
       if (!aNeedsSignatures && bNeedsSignatures) return 1;
       
-      // If user clicked a column header, apply that sorting
       if (sortColumn != 'group') {
         dynamic aValue = '';
         dynamic bValue = '';
@@ -603,7 +600,6 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
             : bValue.compareTo(aValue);
       }
       
-      // Default: sort by creation time (newest first)
       return b.transaction.created.compareTo(a.transaction.created);
     });
     setState(() {});
@@ -1092,7 +1088,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
               await MultisigStorage.restoreTransactionHistory(group);
               _logger.i('Transaction history restoration completed for group: ${group.name}');
               
-              // Update wallet balance and address state
               _logger.i('Updating group balance and wallet state for: ${group.name}');
               await BalanceManager.updateGroupBalance(group);
               _logger.i('Balance and wallet state updated for group: ${group.name}');
@@ -1179,7 +1174,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       context: context,
       builder: (context) => CombineBroadcastModal(
         onSuccess: () async {
-          // Refresh data after successful combine/broadcast
           await _stateManager.refreshData();
           notifyListeners();
         },
@@ -1540,7 +1534,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
     try {
       final rpcSigner = MultisigRPCSigner();
 
-      // Capture initial signature count for success validation
       final initialSignedCount = tx.keyPSBTs.where((kp) => kp.isSigned).length;
 
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
@@ -1566,7 +1559,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
 
       if (_hdWalletProvider.mnemonic == null) {
-        // Try to reinitialize HD wallet provider with new l1_starter.txt logic
         await _hdWalletProvider.reinitialize();
         
         if (_hdWalletProvider.mnemonic == null) {
@@ -1615,7 +1607,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
 
       if (context.mounted) {
-        // Check if signing was actually successful by looking at the updated transaction
         final updatedTx = await TransactionStorage.getTransaction(tx.id);
         final signedCount = updatedTx?.keyPSBTs.where((kp) => kp.isSigned).length ?? 0;
         final wasSuccessful = signedCount > initialSignedCount;
@@ -1644,7 +1635,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       MultisigLogger.info('Transaction signing completed successfully');
       
       await _stateManager.refreshData();
-      notifyListeners(); // Ensure UI updates after signing
+      notifyListeners();
     } catch (e) {
       MultisigLogger.error('Error in transaction signing: $e');
 

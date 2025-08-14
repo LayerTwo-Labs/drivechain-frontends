@@ -325,7 +325,6 @@ class CreateTransactionViewModel extends BaseViewModel {
       final rpcSigner = MultisigRPCSigner();
       const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
       
-      // Debug: Log the signing attempt
       print('🔑 PSBT SIGNING DEBUG:');
       print('  Group: ${group.name} (${group.m}-of-${group.n})');
       print('  Wallet keys being used: ${walletKeys.length}');
