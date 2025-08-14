@@ -4,7 +4,6 @@ import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 
@@ -28,7 +27,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
   List<MultisigTransaction> _eligibleTransactions = [];
   List<MultisigGroup> _multisigGroups = [];
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
-  Logger get _logger => GetIt.I.get<Logger>();
   
   @override
   void initState() {
@@ -115,7 +113,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       }
       
       final complete = finalizeResult['complete'] as bool? ?? false;
-      final resultPsbt = finalizeResult['psbt'] as String?;
       
       if (!complete) {
         final errors = finalizeResult['errors'] as List<dynamic>? ?? [];

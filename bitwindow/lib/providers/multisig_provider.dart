@@ -92,8 +92,6 @@ class PSBTValidator {
   /// Checks if any signatures have been added to the PSBT using finalizepsbt as source of truth
   static Future<bool> hasAnySignatures(String psbtBase64, int totalKeysInGroup) async {
     try {
-      final logger = GetIt.I.get<Logger>();
-      
       // Use finalizepsbt as the ultimate source of truth
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
       
@@ -147,8 +145,6 @@ class PSBTValidator {
   /// Checks if the PSBT has enough signatures (at least requiredSigs) using finalizepsbt
   static Future<bool> hasValidSignatures(String psbtBase64, int requiredSigs, {int? totalKeys}) async {
     try {
-      final logger = GetIt.I.get<Logger>();
-      
       // Use finalizepsbt to check if we have sufficient signatures
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
       
@@ -189,8 +185,6 @@ class PSBTValidator {
 
   static Future<int> countSignatures(String psbtBase64, {int? totalKeys}) async {
     try {
-      final logger = GetIt.I.get<Logger>();
-      
       // Use finalizepsbt to get a reliable view of the PSBT
       final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
       
@@ -250,7 +244,6 @@ class BalanceManager {
     return await FileOperationLock.withLock(lockKey, () async {
       final walletManager = WalletRPCManager();
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-      final logger = GetIt.I.get<Logger>();
       
       try {
         await walletManager.getWalletInfo(walletName);
@@ -273,7 +266,6 @@ class BalanceManager {
         );
         
         final rpc = GetIt.I.get<MainchainRPC>();
-        int newTxCount = 0;
         
         for (final walletTx in transactions) {
           if (walletTx is Map<String, dynamic>) {
@@ -284,17 +276,14 @@ class BalanceManager {
               if (existingTx == null) {
                 // Process new transaction
                 await MultisigStorage._processHistoricalTransaction(group, walletTx, rpc);
-                newTxCount++;
+                TransactionStorage.notifier.notifyTransactionChange();
               }
             }
           }
         }
-        
-        if (newTxCount > 0) {
-          // Notify UI of new transactions
-          TransactionStorage.notifier.notifyTransactionChange();
-        }
-      } catch (e) {}
+      } catch (e) {
+        // Failed to check for new transactions - not critical
+      }
     });
   }
   
@@ -480,6 +469,10 @@ class MultisigTransactionNotifier extends ChangeNotifier {
 
 class MultisigLogger {
   static final Logger _logger = GetIt.I.get<Logger>();
+  
+  static void info(String message) {
+    _logger.i('[MULTISIG] $message');
+  }
   
   static void error(String message) {
     _logger.e('[MULTISIG] $message');
@@ -1420,8 +1413,6 @@ class MultisigStorage {
   }
   
   static Future<void> restoreTransactionHistory(MultisigGroup group) async {
-    final logger = GetIt.I.get<Logger>();
-    
     try {
       if (group.watchWalletName == null) {
         return;
@@ -1442,7 +1433,6 @@ class MultisigStorage {
         if (tx is Map<String, dynamic>) {
           final txid = tx['txid'] as String?;
           final confirmations = tx['confirmations'] as int? ?? 0;
-          final amount = tx['amount'] as num? ?? 0;
           
           allTxs.add(tx);
           
@@ -1453,16 +1443,11 @@ class MultisigStorage {
         }
       }
       
-      int processedCount = 0;
-      int errorCount = 0;
-      
       for (final walletTx in relevantTxs) {
         try {
-          final txid = walletTx['txid'] as String;
           await _processHistoricalTransaction(group, walletTx, rpc);
-          processedCount++;
         } catch (e) {
-          errorCount++;
+          // Continue processing other transactions
         }
       }
       
@@ -1476,7 +1461,6 @@ class MultisigStorage {
     Map<String, dynamic> walletTx,
     MainchainRPC rpc,
   ) async {
-    final logger = GetIt.I.get<Logger>();
     final txid = walletTx['txid'] as String;
     final originalAmount = (walletTx['amount'] as num?)?.toDouble() ?? 0.0;
     final amount = originalAmount.abs();
@@ -1599,7 +1583,6 @@ class MultisigStorage {
 
   static Future<void> createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {
     final rpc = GetIt.I.get<MainchainRPC>();
-    final logger = GetIt.I.get<Logger>();
     
     try {
       
