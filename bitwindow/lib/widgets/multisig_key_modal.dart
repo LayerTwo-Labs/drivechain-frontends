@@ -6,7 +6,6 @@ import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -148,7 +147,6 @@ class MultisigKeyModal extends StatelessWidget {
 
 class MultisigKeyModalViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-  Logger get _logger => GetIt.I.get<Logger>();
   
   String? modalError;
   Map<String, dynamic>? keyInfo;
@@ -236,7 +234,9 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       };
       
       await MultisigStorage.addSoloKey(soloKeyData);
-    } catch (e) {}
+    } catch (e) {
+      // Failed to save key to storage - not critical
+    }
   }
 
   Future<void> saveKey(BuildContext context) async {

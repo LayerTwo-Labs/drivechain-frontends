@@ -9,7 +9,6 @@ import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ImportPSBTModal extends StatefulWidget {
@@ -35,7 +34,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
   String? _selectedFileName;
   Map<String, dynamic>? _importedData;
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
-  Logger get _logger => GetIt.I.get<Logger>();
   HDWalletProvider get _hdWallet => GetIt.I.get<HDWalletProvider>();
 
   @override

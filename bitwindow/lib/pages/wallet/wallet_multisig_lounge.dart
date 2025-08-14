@@ -953,7 +953,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   Future<void> fundGroup(BuildContext context, MultisigGroup group) async {
     try {
-      final address = await _getNewAddress(group);
+      await _getNewAddress(group);
 
       if (context.mounted) {
         await showDialog<bool>(

@@ -279,7 +279,9 @@ class ImportTxidModalViewModel extends BaseViewModel {
         loadingStatus = 'Syncing wallet balance and addresses...';
         notifyListeners();
         await BalanceManager.updateGroupBalance(group);
-      } catch (e) {}
+      } catch (e) {
+        // Failed to restore transaction history - not critical for import
+      }
       
       loadingStatus = null;
       
@@ -343,7 +345,9 @@ class ImportTxidModalViewModel extends BaseViewModel {
                   walletKeyCount++;
                 }
               }
-            } catch (e) {}
+            } catch (e) {
+              // Failed to derive key - skip this key
+            }
           }
         }
       }
