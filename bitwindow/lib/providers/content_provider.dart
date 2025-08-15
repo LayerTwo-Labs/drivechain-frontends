@@ -23,7 +23,6 @@ class ContentProvider extends ChangeNotifier {
   Future<void> load() async {
     try {
       groups = await loadArticleGroups();
-
       notifyListeners();
     } catch (error) {
       // ignore

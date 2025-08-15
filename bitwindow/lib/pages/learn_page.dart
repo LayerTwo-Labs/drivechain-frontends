@@ -3,6 +3,7 @@ import 'package:bitwindow/providers/content_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class LearnPage extends StatelessWidget {
@@ -10,23 +11,51 @@ class LearnPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return QtPage(
-      child: SingleChildScrollView(
-        child: SailColumn(
-          spacing: SailStyleValues.padding16,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            ArticleGroupCarousel(),
-          ],
-        ),
-      ),
+    return ViewModelBuilder<LearnPageViewModel>.reactive(
+      viewModelBuilder: () => LearnPageViewModel(),
+      builder: (context, model, child) {
+        return QtPage(
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ArticleGroupCarousel(viewModel: model),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
+class LearnPageViewModel extends BaseViewModel {
+  final ContentProvider _contentProvider = GetIt.I.get<ContentProvider>();
+
+  List<ArticleGroup> get groups => _contentProvider.groups;
+  bool get isLoading => groups.isEmpty;
+
+  LearnPageViewModel() {
+    _contentProvider.addListener(notifyListeners);
+    _contentProvider.load();
+  }
+
+  @override
+  void dispose() {
+    _contentProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
 class ArticleGroupCarousel extends StatefulWidget {
-  const ArticleGroupCarousel({super.key});
+  final LearnPageViewModel viewModel;
+
+  const ArticleGroupCarousel({
+    super.key,
+    required this.viewModel,
+  });
 
   @override
   State<ArticleGroupCarousel> createState() => _ArticleGroupCarouselState();
@@ -35,8 +64,7 @@ class ArticleGroupCarousel extends StatefulWidget {
 class _ArticleGroupCarouselState extends State<ArticleGroupCarousel> {
   @override
   Widget build(BuildContext context) {
-    final articleProvider = GetIt.I.get<ContentProvider>();
-    final groups = articleProvider.groups;
+    final groups = widget.viewModel.groups;
 
     if (groups.isEmpty) {
       return const SizedBox.shrink();
