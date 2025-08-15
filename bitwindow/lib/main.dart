@@ -144,7 +144,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   await setupSignalHandlers(log);
 
   // Initialize auto updater
-  await initAutoUpdater(log);
+  // await initAutoUpdater(log);
 
   unawaited(bootBinaries(log));
 

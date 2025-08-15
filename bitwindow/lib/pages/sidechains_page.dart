@@ -28,22 +28,20 @@ class SidechainsPage extends StatelessWidget {
         viewModelBuilder: () => SidechainsViewModel(),
         builder: (context, model, child) {
           return InlineTabBar(
-            key: ValueKey('sidechains_page${model.launcherMode}'),
+            key: ValueKey('sidechains_page'),
             tabs: [
               TabItem(
                 label: 'Overview',
                 child: SidechainsTab(),
               ),
-              if (model.launcherMode)
-                TabItem(
-                  label: 'Fast Withdrawal',
-                  child: FastWithdrawalTab(),
-                ),
-              if (model.launcherMode)
-                TabItem(
-                  label: 'Starters',
-                  child: StartersTab(),
-                ),
+              TabItem(
+                label: 'Fast Withdrawal',
+                child: FastWithdrawalTab(),
+              ),
+              TabItem(
+                label: 'Starters',
+                child: StartersTab(),
+              ),
             ],
             initialIndex: 0,
           );
@@ -147,7 +145,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
     }
 
     return SailTable(
-      key: ValueKey('sidechains_table_${viewModel.launcherMode}'),
+      key: ValueKey('sidechains_table'),
       getRowId: (index) => filledSlots[index].toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(
@@ -162,16 +160,14 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
           name: 'Balance',
           onSort: () => viewModel.sortSidechains('balance'),
         ),
-        if (viewModel.launcherMode)
-          SailTableHeaderCell(
-            name: 'Action',
-            onSort: () => viewModel.sortSidechains('action'),
-          ),
-        if (viewModel.launcherMode)
-          SailTableHeaderCell(
-            name: 'Settings',
-            onSort: () => viewModel.sortSidechains('update'),
-          ),
+        SailTableHeaderCell(
+          name: 'Action',
+          onSort: () => viewModel.sortSidechains('action'),
+        ),
+        SailTableHeaderCell(
+          name: 'Settings',
+          onSort: () => viewModel.sortSidechains('update'),
+        ),
       ],
       rowBuilder: (context, row, selected) {
         final slot = filledSlots[row]; // Get the actual slot number from filtered list
@@ -190,49 +186,47 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             ),
             textColor: textColor,
           ),
-          if (viewModel.launcherMode)
+          SailTableCell(
+            value: buttonWidget?.toString() ?? '',
+            child: buttonWidget,
+          ),
+          if (binary != null)
             SailTableCell(
-              value: buttonWidget?.toString() ?? '',
-              child: buttonWidget,
-            ),
-          if (viewModel.launcherMode)
-            if (binary != null)
-              SailTableCell(
-                value: '',
-                child: Stack(
-                  children: [
-                    SailButton(
-                      variant: ButtonVariant.outline,
-                      label: '',
-                      icon: SailSVGAsset.settings,
-                      insideTable: true,
-                      onPressed: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => ChainSettingsModal(
-                            binary: binary,
-                          ),
-                        );
-                      },
-                    ),
-                    if (updateAvailable)
-                      Positioned(
-                        top: 4,
-                        right: 6,
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+              value: '',
+              child: Stack(
+                children: [
+                  SailButton(
+                    variant: ButtonVariant.outline,
+                    label: '',
+                    icon: SailSVGAsset.settings,
+                    insideTable: true,
+                    onPressed: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => ChainSettingsModal(
+                          binary: binary,
+                        ),
+                      );
+                    },
+                  ),
+                  if (updateAvailable)
+                    Positioned(
+                      top: 4,
+                      right: 6,
+                      child: Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                  ],
-                ),
-              )
-            else
-              Container(),
+                    ),
+                ],
+              ),
+            )
+          else
+            Container(),
         ];
       },
       rowCount: filledSlots.length, // Only show filled slots
@@ -272,7 +266,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     return SailTable(
-      key: ValueKey('sidechains_table_${viewModel.launcherMode}'),
+      key: ValueKey('sidechains_table'),
       getRowId: (index) => index.toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(
@@ -287,16 +281,14 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
           name: 'Balance',
           onSort: () => viewModel.sortSidechains('balance'),
         ),
-        if (viewModel.launcherMode)
-          SailTableHeaderCell(
-            name: 'Action',
-            onSort: () => viewModel.sortSidechains('action'),
-          ),
-        if (viewModel.launcherMode)
-          SailTableHeaderCell(
-            name: 'Settings',
-            onSort: () => viewModel.sortSidechains('update'),
-          ),
+        SailTableHeaderCell(
+          name: 'Action',
+          onSort: () => viewModel.sortSidechains('action'),
+        ),
+        SailTableHeaderCell(
+          name: 'Settings',
+          onSort: () => viewModel.sortSidechains('update'),
+        ),
       ],
       rowBuilder: (context, row, selected) {
         final slot = row; // This is now the slot number (0-254)
@@ -315,49 +307,47 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             ),
             textColor: textColor,
           ),
-          if (viewModel.launcherMode)
+          SailTableCell(
+            value: buttonWidget?.toString() ?? '',
+            child: buttonWidget,
+          ),
+          if (binary != null)
             SailTableCell(
-              value: buttonWidget?.toString() ?? '',
-              child: buttonWidget,
-            ),
-          if (viewModel.launcherMode)
-            if (binary != null)
-              SailTableCell(
-                value: '',
-                child: Stack(
-                  children: [
-                    SailButton(
-                      variant: ButtonVariant.outline,
-                      label: '',
-                      icon: SailSVGAsset.settings,
-                      insideTable: true,
-                      onPressed: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => ChainSettingsModal(
-                            binary: binary,
-                          ),
-                        );
-                      },
-                    ),
-                    if (updateAvailable)
-                      Positioned(
-                        top: 4,
-                        right: 6,
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+              value: '',
+              child: Stack(
+                children: [
+                  SailButton(
+                    variant: ButtonVariant.outline,
+                    label: '',
+                    icon: SailSVGAsset.settings,
+                    insideTable: true,
+                    onPressed: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => ChainSettingsModal(
+                          binary: binary,
+                        ),
+                      );
+                    },
+                  ),
+                  if (updateAvailable)
+                    Positioned(
+                      top: 4,
+                      right: 6,
+                      child: Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                  ],
-                ),
-              )
-            else
-              Container(),
+                    ),
+                ],
+              ),
+            )
+          else
+            Container(),
         ];
       },
       rowCount: 256, // Show all slots
@@ -432,9 +422,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     showOnlyFilled = value;
     notifyListeners();
   }
-
-  // Get launcher mode from settings provider
-  bool get launcherMode => _settingsProvider.launcherMode;
 
   Sidechain? sidechainForSlot(int slot) {
     return _binaryProvider.binaries.firstWhereOrNull((b) => b is Sidechain && b.slot == slot) as Sidechain?;
@@ -758,7 +745,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('recentDeposits', recentDeposits);
 
     // UI state that affects rendering
-    track('launcherMode', launcherMode);
     track('showOnlyFilled', showOnlyFilled);
     track('selectedIndex', selectedIndex);
 
