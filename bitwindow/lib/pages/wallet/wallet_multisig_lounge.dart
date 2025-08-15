@@ -16,6 +16,7 @@ import 'package:bitwindow/widgets/sign_preview_modal.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -335,6 +336,10 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
           aValue = a.m;
           bValue = b.m;
           break;
+        case 'txid':
+          aValue = a.txid ?? '';
+          bValue = b.txid ?? '';
+          break;
       }
 
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
@@ -364,6 +369,7 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
               onSort: () => onSort('required'),
             ),
             const SailTableHeaderCell(name: 'Type'),
+            const SailTableHeaderCell(name: 'TXID (If Broadcasted)'),
           ],
           rowBuilder: (context, row, selected) => [
             const SailTableCell(value: 'Loading Group Name'),
@@ -373,6 +379,7 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
             const SailTableCell(value: '3'),
             const SailTableCell(value: '2'),
             const SailTableCell(value: 'xPub'),
+            const SailTableCell(value: 'Loading...'),
           ],
           rowCount: 3,
           drawGrid: true,
@@ -396,6 +403,7 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
                 'total',
                 'required',
                 'type',
+                'txid',
               ][columnIndex],
             );
           },
@@ -428,11 +436,13 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
           onSort: () => onSort('required'),
         ),
         const SailTableHeaderCell(name: 'Type'),
+        const SailTableHeaderCell(name: 'TXID (If Broadcasted)'),
       ],
       rowBuilder: (context, row, selected) {
         if (_sortedGroups.isEmpty) {
           return [
             const SailTableCell(value: 'No multisig groups yet'),
+            const SailTableCell(value: ''),
             const SailTableCell(value: ''),
             const SailTableCell(value: ''),
             const SailTableCell(value: ''),
@@ -451,6 +461,7 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
           SailTableCell(value: group.n.toString()),
           SailTableCell(value: group.m.toString()),
           SailTableCell(value: 'xPub'),
+          _buildTxidCell(group),
         ];
       },
       rowCount: _sortedGroups.isEmpty ? 1 : _sortedGroups.length,
@@ -463,6 +474,7 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
         'total',
         'required',
         'type',
+        'txid',
       ].indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
@@ -475,10 +487,43 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
             'total',
             'required',
             'type',
+            'txid',
           ][columnIndex],
         );
       },
     );
+  }
+
+  Widget _buildTxidCell(MultisigGroup group) {
+    if (group.txid != null && group.txid!.isNotEmpty) {
+      return SailTableCell(
+        value: 'Copy TXID',
+        alignment: Alignment.center,
+        child: Center(
+          child: SailButton(
+            label: 'Copy',
+            variant: ButtonVariant.secondary,
+            insideTable: true,
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              await Clipboard.setData(ClipboardData(text: group.txid!));
+              // Show a snackbar to confirm copy
+              if (context.mounted) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('TXID copied to clipboard'),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } else {
+      return const SailTableCell(value: '');
+    }
   }
 }
 
