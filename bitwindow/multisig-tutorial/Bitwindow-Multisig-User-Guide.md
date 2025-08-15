@@ -247,39 +247,11 @@ The system automatically updates transaction status as signatures are collected 
 ### Key Management
 - Never share private keys - only share xpubs and derivation paths
 - Verify public keys through multiple channels
-- Use hardware wallets for high-value groups
 - Backup group configurations and seed phrases
 
 ### Transaction Security
 - Verify amounts and addresses before signing
 - Check fee rates are reasonable
 - Wait for adequate confirmations (6+ for large amounts)
-- Test with small amounts first
 
 ---
-
-## Troubleshooting
-
-### Common Issues
-- **"No wallet keys found"**: Verify correct wallet or import method
-- **"Transaction signing failed"**: Ensure wallet is unlocked and keys match
-- **"PSBT validation failed"**: Re-export PSBT or try different signing method
-- **"Insufficient balance"**: Check available funds and fee amounts
-
-### File Locations
-- Multisig Groups: `bitdrive/multisig/multisig.json`
-- Transactions: `bitdrive/transactions.json`
-
----
-
-## Summary
-
-The Bitwindow Multisig Tool provides a complete workflow for Bitcoin multisig management:
-
-1. **Create Groups**: Set up M-of-N multisig with participant keys
-2. **Fund Groups**: Generate receiving addresses and monitor deposits
-3. **Create Transactions**: Build PSBTs with destination and amount
-4. **Collect Signatures**: Sign locally or import external PSBTs
-5. **Broadcast**: Send finalized transactions to Bitcoin network
-
-Each step uses dedicated modals with clear interfaces and validation. Always test with small amounts and maintain secure backup practices.
