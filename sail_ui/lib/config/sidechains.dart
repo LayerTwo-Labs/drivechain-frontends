@@ -166,62 +166,9 @@ abstract class Sidechain extends Binary {
   }
 }
 
-Directory? getBitwindowWalletDir(Directory bitwindowAppDir) {
-  return _findWalletDir(bitwindowAppDir);
-}
-
-Directory? getLauncherWalletDir(Directory bitwindowAppDir) {
-  // not in bitwindow.. lets look in drivechain-launcher
-  final launcherDir = Directory(
-    path.join(
-      bitwindowAppDir.path,
-      '..',
-      'drivechain-launcher',
-    ),
-  );
-
-  final directory = _findWalletDir(launcherDir);
-
-  if (directory == null) {
-    // not there either.. do one final check in home/.config
-    final launcherDir = Directory(
-      path.join(
-        Platform.environment['HOME']!,
-        '.config',
-        'drivechain-launcher',
-      ),
-    );
-    return _findWalletDir(launcherDir);
-  }
-
-  return null;
-}
-
-Directory? getWalletDir(Directory bitwindowAppDir) {
-  var directory = _findWalletDir(bitwindowAppDir);
-  if (directory == null) {
-    return getLauncherWalletDir(bitwindowAppDir);
-  }
-
-  return directory;
-}
-
-Directory? _findWalletDir(Directory mainDir) {
-  var walletDir = path.join(mainDir.path, 'wallet_starters');
-
-  if (!Directory(walletDir).existsSync()) {
-    if (getOS() != OS.linux) {
-      // on windows and macos, this means we couldn't find it
-      return null;
-    }
-
-    walletDir = path.join(mainDir.path, 'wallet_starters');
-    if (!Directory(walletDir).existsSync()) {
-      return null;
-    }
-  }
-
-  return Directory(walletDir);
+Directory? getWalletDir(Directory appDir) {
+  final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+  return walletDir.existsSync() ? walletDir : null;
 }
 
 class TestSidechain extends Sidechain {

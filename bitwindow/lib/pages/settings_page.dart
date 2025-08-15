@@ -196,49 +196,6 @@ class _ResetSettingsContent extends StatefulWidget {
 }
 
 class _ResetSettingsContentState extends State<_ResetSettingsContent> {
-  /// Get platform-specific Bitcoin Core data directories
-  List<Directory> _getBitcoinCoreDataDirs(Directory appDir) {
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '';
-    final List<Directory> dirs = [];
-
-    switch (OS.current) {
-      case OS.linux:
-        // Linux: ~/.bitcoin
-        dirs.addAll([
-          Directory(path.join(home, '.bitcoin')),
-          Directory(path.join(appDir.path, 'bitcoin')),
-          Directory(path.join(appDir.path, '.drivechain')),
-        ]);
-        break;
-
-      case OS.macos:
-        // macOS: ~/Library/Application Support/Drivechain
-        dirs.addAll([
-          Directory(path.join(home, 'Library', 'Application Support', 'Drivechain', 'signet')),
-          Directory(path.join(home, 'Library', 'Application Support', 'Drivechain', 'mainnet')),
-          Directory(path.join(home, 'Library', 'Application Support', 'bitcoin')),
-          Directory(path.join(appDir.path, 'bitcoin')),
-          Directory(path.join(appDir.path, 'Drivechain', 'signet')),
-          Directory(path.join(appDir.path, 'Drivechain', 'mainnet')),
-        ]);
-        break;
-
-      case OS.windows:
-        // Windows: %APPDATA%\Drivechain
-        dirs.addAll([
-          Directory(path.join(home, 'AppData', 'Roaming', 'Drivechain', 'signet')),
-          Directory(path.join(home, 'AppData', 'Roaming', 'Drivechain', 'mainnet')),
-          Directory(path.join(home, 'AppData', 'Roaming', 'bitcoin')),
-          Directory(path.join(appDir.path, 'bitcoin')),
-          Directory(path.join(appDir.path, 'Drivechain', 'signet')),
-          Directory(path.join(appDir.path, 'Drivechain', 'mainnet')),
-        ]);
-        break;
-    }
-
-    return dirs;
-  }
-
   Future<void> _deleteMultisigWallets(Directory dir, Logger logger) async {
     try {
       final entities = await dir.list(recursive: false).toList();
@@ -363,13 +320,11 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               await bitdriveDir.delete(recursive: true);
             }
 
-            // Clean up Bitcoin Core wallet directories across all platforms
-            final bitcoinCoreDirs = _getBitcoinCoreDataDirs(appDir);
-
-            for (final bitcoinCoreDir in bitcoinCoreDirs) {
-              if (await bitcoinCoreDir.exists()) {
-                await _deleteMultisigWallets(bitcoinCoreDir, logger);
-              }
+            // Clean up Bitcoin Core wallet directories in Drivechain/signet
+            final dataDir = BitcoinCore().datadir();
+            final bitcoinCoreSignetDir = Directory(path.join(dataDir, 'signet'));
+            if (await bitcoinCoreSignetDir.exists()) {
+              await _deleteMultisigWallets(bitcoinCoreSignetDir, logger);
             }
 
             // Clean up any additional wallet directories in app directory
