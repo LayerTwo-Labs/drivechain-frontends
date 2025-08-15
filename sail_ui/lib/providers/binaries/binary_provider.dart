@@ -497,17 +497,15 @@ class BinaryProvider extends ChangeNotifier {
     // the wallet has a starter! This is because we need to pass
     // the l1 mnemonic to the enforcer, to avoid it from generating
     // one itself
-    if (settings.launcherMode) {
-      while (true) {
-        final walletDir = getWalletDir(bitwindowAppDir);
-        if (walletDir != null) {
-          final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
-          if (await mnemonicFile.exists()) {
-            break;
-          }
+    while (true) {
+      final walletDir = getWalletDir(bitwindowAppDir);
+      if (walletDir != null) {
+        final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
+        if (await mnemonicFile.exists()) {
+          break;
         }
-        await Future.delayed(const Duration(seconds: 1));
       }
+      await Future.delayed(const Duration(seconds: 1));
     }
 
     await start(enforcer);

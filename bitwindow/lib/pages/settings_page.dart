@@ -5,7 +5,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart';
-import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -139,37 +138,6 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
     );
   }
 
-  Future<void> _showLauncherModeWarning() async {
-    await showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Enable Launcher Mode?',
-        subtitle:
-            'WARNING: Enabling launcher mode will delete all your current wallets. If you want to restore your wallet, '
-            'make sure to save your master seed from the old launcher BEFORE enabling launcher mode.',
-        onConfirm: () async {
-          final walletProvider = GetIt.I.get<WalletProvider>();
-
-          await walletProvider.deleteAllWallets(() async {
-            // update launcher mode
-            await _settingsProvider.updateLauncherMode(true);
-
-            final hasWallet = await walletProvider.hasExistingWallet();
-            if (!hasWallet) {
-              await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
-            }
-
-            // no new wallet data! That's done automatically
-            return null;
-          });
-
-          if (context.mounted) Navigator.of(context).pop();
-        },
-        confirmButtonVariant: ButtonVariant.destructive,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return SailColumn(
@@ -214,40 +182,6 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             const SailSpacing(4),
             SailText.secondary12(
               'When enabled, detailed error reporting will be collected to fix bugs hastily.',
-            ),
-          ],
-        ),
-
-        // Launcher Mode Dropdown
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Launcher Mode'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<bool>(
-              value: _settingsProvider.launcherMode,
-              items: [
-                SailDropdownItem<bool>(
-                  value: false,
-                  label: 'Disabled',
-                ),
-                SailDropdownItem<bool>(
-                  value: true,
-                  label: 'Enabled',
-                ),
-              ],
-              onChanged: (bool? newValue) async {
-                if (newValue == true) {
-                  final hasLauncherModeDir = await GetIt.I.get<WalletProvider>().hasLauncherModeDir();
-
-                  if (!hasLauncherModeDir) {
-                    // They're going from old launcher to new launcher. Warn them we must delete stuff!
-                    await _showLauncherModeWarning();
-                  } else {}
-                } else if (newValue == false) {
-                  await _settingsProvider.updateLauncherMode(false);
-                }
-              },
             ),
           ],
         ),

@@ -251,7 +251,7 @@ abstract class RPCConnection extends ChangeNotifier {
         final exit = GetIt.I.get<BinaryProvider>().exited(binary);
         if (exit != null && exit.code != 0) {
           // Only attempt restart if the process has exited with non-zero code
-          log.w('Process exited unexpectedly with code ${exit.code}, restarting...');
+          log.w('${binary.name} process exited unexpectedly with code ${exit.code}, restarting...');
           _restartCount++;
           await initBinary(bootProcess);
           if (connected) {

@@ -113,6 +113,19 @@ class DownloadManager extends ChangeNotifier {
 
   /// Internal method to handle the actual download and extraction
   Future<void> _downloadAndExtractBinary(Binary binary) async {
+    if (binary.metadata.baseUrl.isEmpty) {
+      return _updateBinary(
+        binary.name,
+        (b) => b.copyWith(
+          downloadInfo: const DownloadInfo(
+            progress: 0.0,
+            message: 'Programmers messed up. Tried to download non-downloadable binary',
+            isDownloading: true,
+          ),
+        ),
+      );
+    }
+
     _updateBinary(
       binary.name,
       (b) => b.copyWith(

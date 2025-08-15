@@ -13,7 +13,6 @@ class SettingsProvider extends ChangeNotifier {
 
   // Individual setting variables
   bool debugMode = false;
-  bool launcherMode = true;
 
   // Private constructor
   SettingsProvider._create();
@@ -28,7 +27,6 @@ class SettingsProvider extends ChangeNotifier {
   /// Load all settings from storage
   Future<void> _loadAllSettings() async {
     await _loadDebugMode();
-    await _loadLauncherMode();
   }
 
   /// Load debug mode setting
@@ -36,14 +34,6 @@ class SettingsProvider extends ChangeNotifier {
     final setting = DebugModeSetting();
     final loadedSetting = await clientSettings.getValue(setting);
     debugMode = loadedSetting.value;
-    notifyListeners();
-  }
-
-  /// Load launcher mode setting
-  Future<void> _loadLauncherMode() async {
-    final setting = LauncherModeSetting();
-    final loadedSetting = await clientSettings.getValue(setting);
-    launcherMode = loadedSetting.value;
     notifyListeners();
   }
 
@@ -63,26 +53,6 @@ class SettingsProvider extends ChangeNotifier {
       debugMode = !value;
       notifyListeners();
       log.e('Failed to update debug mode', error: e);
-      rethrow;
-    }
-  }
-
-  Future<void> updateLauncherMode(bool value) async {
-    if (launcherMode == value) {
-      return;
-    }
-
-    try {
-      launcherMode = value;
-      notifyListeners();
-
-      final setting = LauncherModeSetting(newValue: value);
-      await clientSettings.setValue(setting);
-    } catch (e) {
-      // Revert on error
-      launcherMode = !value;
-      notifyListeners();
-      log.e('Failed to update launcher mode', error: e);
       rethrow;
     }
   }
