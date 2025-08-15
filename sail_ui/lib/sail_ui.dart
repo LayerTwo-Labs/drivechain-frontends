@@ -91,7 +91,6 @@ export 'rpcs/zside_rpc.dart';
 export 'sail_app.dart';
 export 'settings/client_settings.dart';
 export 'settings/debug_settings.dart';
-export 'settings/launcher_mode_settings.dart';
 export 'settings/hash_plaintext_settings.dart';
 export 'settings/secure_store.dart';
 export 'settings/theme_settings.dart';
