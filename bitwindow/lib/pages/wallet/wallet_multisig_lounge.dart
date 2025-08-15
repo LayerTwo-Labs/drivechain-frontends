@@ -208,7 +208,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
                 onAction: (tx, group) => viewModel.handleTransactionAction(context, tx, group),
                 onBroadcast: () => viewModel.openCombineAndBroadcastModal(context),
                 onView: (tx) => viewModel.openTransactionModal(context, tx),
-                onSign: (tx, group) => viewModel.signTransaction(context, tx, group),
+                onSign: (tx, group) => viewModel.showSignPreview(context, tx, group),
                 isLoading: viewModel.isLoadingTransactions,
               ),
             ),

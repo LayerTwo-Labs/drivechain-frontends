@@ -144,11 +144,11 @@ class CreateMultisigModal extends StatelessWidget {
                           color: context.sailTheme.colors.error,
                         ),
                       SailCheckbox(
-                        label: 'Encrypt multisig data',
-                        value: viewModel.shouldEncrypt,
-                        onChanged: (value) => viewModel.setShouldEncrypt(value),
+                        label: 'Do not broadcast',
+                        value: viewModel.shouldNotBroadcast,
+                        onChanged: (value) => viewModel.setShouldNotBroadcast(value),
                       ),
-                      if (viewModel.shouldEncrypt)
+                      if (viewModel.shouldNotBroadcast)
                         SailCard(
                           shadowSize: ShadowSize.none,
                           child: Container(
@@ -161,13 +161,13 @@ class CreateMultisigModal extends StatelessWidget {
                               spacing: SailStyleValues.padding08,
                               children: [
                                 Icon(
-                                  Icons.warning_outlined,
+                                  Icons.info_outlined,
                                   color: context.sailTheme.colors.orange,
                                   size: 16,
                                 ),
                                 Expanded(
                                   child: SailText.secondary12(
-                                    'Warning: Other participants will not be able to restore this multisig group via TXID if encrypted',
+                                    'Info: The multisig group will be saved locally only and will not be broadcasted to the network',
                                     color: context.sailTheme.colors.orange,
                                   ),
                                 ),
@@ -235,6 +235,14 @@ class CreateMultisigModal extends StatelessWidget {
                                 hintText: 'Paste xPub or generate wallet xPub',
                                 size: TextFieldSize.small,
                                 minLines: 2,
+                                suffixWidget: SailButton(
+                                  label: 'Paste',
+                                  variant: ButtonVariant.ghost,
+                                  small: true,
+                                  onPressed: viewModel.keys.length < viewModel.n
+                                      ? () async => await viewModel.pastePublicKey()
+                                      : null,
+                                ),
                               ),
                               SailRow(
                                 spacing: SailStyleValues.padding08,
@@ -256,13 +264,6 @@ class CreateMultisigModal extends StatelessWidget {
                                     label: 'Generate Wallet xPub',
                                     onPressed: viewModel.canGenerateKey && viewModel.keys.length < viewModel.n
                                         ? () async => await viewModel.generatePublicKey()
-                                        : null,
-                                    variant: ButtonVariant.secondary,
-                                  ),
-                                  SailButton(
-                                    label: 'Paste xPub',
-                                    onPressed: viewModel.keys.length < viewModel.n
-                                        ? () async => await viewModel.pastePublicKey()
                                         : null,
                                     variant: ButtonVariant.secondary,
                                   ),
@@ -485,7 +486,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   String? modalError;
   String? parameterError;
   List<MultisigKey> keys = [];
-  bool shouldEncrypt = false;
+  bool shouldNotBroadcast = false;
   bool _lastKeyWasGenerated = false;
   String? _importedOriginPath;
 
@@ -663,6 +664,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         }
 
         _lastKeyWasGenerated = false;
+        modalError = null;
 
         notifyListeners();
       }
@@ -900,9 +902,11 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         GetIt.I.get<Logger>().w('Failed to create multisig wallet: $e');
       }
 
-      final txid = await _broadcastMultisigGroup(multisigData);
-
-      multisigData['txid'] = txid;
+      String? txid;
+      if (!shouldNotBroadcast) {
+        txid = await _broadcastMultisigGroup(multisigData);
+        multisigData['txid'] = txid;
+      }
 
       await _saveToLocalFile(multisigData);
 
@@ -961,7 +965,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       const fileType = 'json';
 
       final metadata = ByteData(9);
-      final flags = MULTISIG_FLAG | (shouldEncrypt ? 0x01 : 0x00);
+      const flags = MULTISIG_FLAG;
       metadata.setUint8(0, flags);
       metadata.setUint32(1, timestamp);
 
@@ -972,13 +976,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
       final metadataStr = base64.encode(metadata.buffer.asUint8List());
 
-      final String contentStr;
-      if (shouldEncrypt) {
-        final encryptedContent = await _encryptContent(jsonBytes, timestamp, fileType);
-        contentStr = base64.encode(encryptedContent);
-      } else {
-        contentStr = base64.encode(jsonBytes);
-      }
+      final contentStr = base64.encode(jsonBytes);
 
       final opReturnData = '$metadataStr|$contentStr';
 
@@ -994,69 +992,8 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
   }
 
-  Future<Uint8List> _deriveKeyStream(int timestamp, String fileType, int length) async {
-    const bitdriveDerivationPath = "m/84'/1'/0'/0/4000"; // BitDrive's encryption key path (enforcer pattern)
-    final keyInfo = await _hdWallet.deriveKeyInfo(_hdWallet.mnemonic ?? '', bitdriveDerivationPath);
-    final privateKeyHex = keyInfo['privateKey'] ?? '';
-
-    final seedValue = utf8.encode('$privateKeyHex:$timestamp:$fileType');
-    final seed = sha256.convert(seedValue).bytes;
-
-    final result = Uint8List(length);
-    var bytesGenerated = 0;
-    var counter = 0;
-
-    while (bytesGenerated < length) {
-      final counterData = ByteData(4)..setUint32(0, counter);
-      final counterBytes = counterData.buffer.asUint8List();
-
-      final blockInput = Uint8List(seed.length + counterBytes.length);
-      blockInput.setAll(0, seed);
-      blockInput.setAll(seed.length, counterBytes);
-
-      final block = sha256.convert(blockInput).bytes;
-      final bytesToCopy = (block.length < length - bytesGenerated) ? block.length : length - bytesGenerated;
-      result.setRange(bytesGenerated, bytesGenerated + bytesToCopy, block);
-
-      bytesGenerated += bytesToCopy;
-      counter++;
-    }
-
-    return result;
-  }
-
-  Future<Uint8List> _deriveAuthKey() async {
-    const bitdriveAuthPath = "m/84'/1'/0'/1/4000"; // BitDrive's auth key path (enforcer pattern)
-    final keyInfo = await _hdWallet.deriveKeyInfo(_hdWallet.mnemonic ?? '', bitdriveAuthPath);
-    final privateKeyHex = keyInfo['privateKey'] ?? '';
-    return Uint8List.fromList(hex.decode(privateKeyHex));
-  }
-
-  Future<Uint8List> _encryptContent(Uint8List content, int timestamp, String fileType) async {
-    try {
-      final keyStream = await _deriveKeyStream(timestamp, fileType, content.length);
-      final encrypted = Uint8List(content.length);
-
-      for (var i = 0; i < content.length; i++) {
-        encrypted[i] = content[i] ^ keyStream[i];
-      }
-
-      final authKey = await _deriveAuthKey();
-      const authTagSize = 8;
-      final tag = Uint8List.fromList(Hmac(sha256, authKey).convert(encrypted).bytes.sublist(0, authTagSize));
-
-      final result = Uint8List(encrypted.length + tag.length);
-      result.setAll(0, encrypted);
-      result.setAll(encrypted.length, tag);
-
-      return result;
-    } catch (e) {
-      throw Exception('Encryption error: $e');
-    }
-  }
-
-  void setShouldEncrypt(bool value) {
-    shouldEncrypt = value;
+  void setShouldNotBroadcast(bool value) {
+    shouldNotBroadcast = value;
     notifyListeners();
   }
 
@@ -1249,14 +1186,9 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
       final flags = metadata.getUint8(0);
       final isMultisig = (flags & 0x02) != 0; // Check multisig flag
-      final isEncrypted = (flags & 0x01) != 0;
 
       if (!isMultisig) {
         throw Exception('This transaction does not contain multisig data');
-      }
-
-      if (isEncrypted) {
-        throw Exception('This multisig group is encrypted and cannot be imported via TXID');
       }
 
       final contentBytes = base64.decode(parts[1]);
