@@ -19,18 +19,6 @@ import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
-/// Gets the BitWindow wallet directory if it exists
-Directory? getBitwindowWalletDir(Directory appDir) {
-  final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-  return walletDir.existsSync() ? walletDir : null;
-}
-
-/// Gets the wallet directory (same as getBitwindowWalletDir for now)
-Directory? getWalletDir(Directory appDir) {
-  final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-  return walletDir.existsSync() ? walletDir : null;
-}
-
 class WalletProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
   final Directory appDir;
@@ -73,7 +61,7 @@ class WalletProvider extends ChangeNotifier {
 
     final newName = await _findAvailableName(appDir.path, 'wallet_starters');
     final newPath = path.join(appDir.path, newName);
-    await getBitwindowWalletDir(appDir)!.rename(newPath);
+    await getWalletDir(appDir)!.rename(newPath);
     _logger.i('Moved wallet_starters directory to $newName');
   }
 
@@ -396,7 +384,7 @@ class WalletProvider extends ChangeNotifier {
   Future<void> _ensureWalletDir() async {
     _logger.i('_ensureWalletDir: Starting');
 
-    var walletDir = getBitwindowWalletDir(appDir);
+    var walletDir = getWalletDir(appDir);
     if (walletDir == null) {
       _logger.e('_ensureWalletDir: Could not find wallet dir, creating new one');
       walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
