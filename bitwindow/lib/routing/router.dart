@@ -12,8 +12,6 @@ import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
-import 'package:sail_ui/settings/client_settings.dart';
-import 'package:sail_ui/settings/launcher_mode_settings.dart';
 
 part 'router.gr.dart';
 
@@ -90,22 +88,7 @@ class WalletGuard extends AutoRouteGuard {
     if (await GetIt.I.get<WalletProvider>().hasExistingWallet()) {
       resolver.next(true);
     } else {
-      final clientSettings = GetIt.I.get<ClientSettings>();
-
-      // Check if launcher mode is enabled
-      bool launcherModeEnabled = false;
-      try {
-        final launcherModeSetting = await clientSettings.getValue(LauncherModeSetting());
-        launcherModeEnabled = launcherModeSetting.value;
-      } catch (error) {
-        // If there's an error loading the setting, default to false
-        launcherModeEnabled = false;
-      }
-
-      // Only route to welcome if launcher mode is enabled
-      if (launcherModeEnabled) {
-        await router.push(CreateWalletRoute());
-      }
+      await router.push(CreateWalletRoute());
       resolver.next(true);
     }
   }
