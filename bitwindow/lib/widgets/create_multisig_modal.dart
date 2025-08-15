@@ -144,7 +144,7 @@ class CreateMultisigModal extends StatelessWidget {
                           color: context.sailTheme.colors.error,
                         ),
                       SailCheckbox(
-                        label: 'Do not broadcast',
+                        label: 'Do not store on chain (Not recommended)',
                         value: viewModel.shouldNotBroadcast,
                         onChanged: (value) => viewModel.setShouldNotBroadcast(value),
                       ),
@@ -167,7 +167,7 @@ class CreateMultisigModal extends StatelessWidget {
                                 ),
                                 Expanded(
                                   child: SailText.secondary12(
-                                    'Info: The multisig group will be saved locally only and will not be broadcasted to the network',
+                                    'If you check this box, you must manually back up the multisig configuration. This is very risky but in some situations has a privacy benefit',
                                     color: context.sailTheme.colors.orange,
                                   ),
                                 ),

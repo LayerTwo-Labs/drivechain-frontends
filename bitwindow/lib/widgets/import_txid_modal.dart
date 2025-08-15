@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
