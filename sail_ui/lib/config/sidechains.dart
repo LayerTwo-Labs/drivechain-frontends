@@ -251,7 +251,7 @@ class ZSide extends Sidechain {
     super.repoUrl = 'https://github.com/LayerTwo-Labs/thunder-orchard',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'zsided',
+    super.binary = 'thunder-orchard',
     super.port = 6098,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
@@ -267,11 +267,11 @@ class ZSide extends Sidechain {
               ),
           metadata: metadata ??
               MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
+                baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
                 files: {
-                  OS.linux: 'L2-S98-ZSide-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S98-ZSide-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S98-ZSide-latest-x86_64-pc-windows-gnu.zip',
+                  OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
+                  OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
+                  OS.windows: '', // thunder-orchard not available for windows
                 },
                 remoteTimestamp: null,
                 downloadedTimestamp: null,

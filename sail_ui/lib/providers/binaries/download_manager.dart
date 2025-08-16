@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
@@ -139,18 +141,48 @@ class DownloadManager extends ChangeNotifier {
     await downloadsDir.create(recursive: true);
     await extractDir.create(recursive: true);
 
-    // 2. Download the binary
-    final zipName = binary.metadata.files[OS.current]!;
-    if (zipName.isEmpty) {
-      log.w('No zip name found for ${binary.name}');
+    // Check if platform is supported
+    final fileName = binary.metadata.files[OS.current];
+    if (fileName == null || fileName.isEmpty) {
+      log.w('No download file found for ${binary.name} on ${OS.current}');
       return;
     }
-    final zipPath = path.join(downloadsDir.path, zipName);
-    final downloadUrl = Uri.parse(binary.metadata.baseUrl).resolve(zipName).toString();
-    await _downloadFile(downloadUrl, zipPath, binary.name);
 
-    // 3. Extract
-    await _extractBinary(extractDir, zipPath, downloadsDir, binary);
+    String filePath;
+    try {
+      if (binary.metadata.baseUrl.contains('github.com')) {
+        filePath = await _downloadGithubBinary(binary, downloadsDir);
+      } else if (binary.metadata.baseUrl.contains('releases.drivechain.info')) {
+        filePath = await _downloadReleasesBinary(binary, downloadsDir);
+      } else {
+        return _updateBinary(
+          binary.name,
+          (b) => b.copyWith(
+            downloadInfo: DownloadInfo(
+              progress: 0.0,
+              message: 'Programmers messed up. Did not find download strategy for ${binary.metadata.baseUrl}',
+              isDownloading: false,
+            ),
+          ),
+        );
+      }
+
+      // Extract the binary
+      await _extractBinary(extractDir, filePath, downloadsDir, binary);
+    } catch (e) {
+      // Update binary state to show error
+      _updateBinary(
+        binary.name,
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(
+            progress: 0.0,
+            message: 'Download failed: $e',
+            isDownloading: false,
+          ),
+        ),
+      );
+      rethrow;
+    }
 
     final releaseDate = await binary.checkReleaseDate();
     // Update binary metadata
@@ -171,7 +203,7 @@ class DownloadManager extends ChangeNotifier {
 
     try {
       // Delete the zip file
-      await File(zipPath).delete();
+      await File(filePath).delete();
     } catch (e) {
       log.e('could not delete zip file: $e');
     }
@@ -184,6 +216,55 @@ class DownloadManager extends ChangeNotifier {
     );
 
     log.i('Successfully downloaded and extracted ${binary.name}');
+  }
+
+  Future<String> _downloadGithubBinary(Binary binary, Directory downloadsDir) async {
+    // For GitHub-based releases, download binary directly from releases
+    final response = await http.get(Uri.parse(binary.metadata.baseUrl));
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch GitHub release: ${response.statusCode}');
+    }
+
+    // Use the regex pattern from binary configuration
+    final regexPattern = binary.metadata.files[OS.current]!;
+    final platformRegex = RegExp(regexPattern, caseSensitive: false);
+
+    final assets = json.decode(response.body)['assets'] as List;
+    // search for corresponding asset matching the metadata.files regex-pattern
+    final asset = assets.firstWhere(
+      (a) => platformRegex.hasMatch(a['name'].toString()),
+      orElse: () => throw Exception('No matching asset found for platform: ${OS.current}'),
+    );
+
+    // Download the binary using the actual asset name
+    final downloadUrl = asset['browser_download_url'];
+    final fileName = asset['name'].toString();
+    final filePath = path.join(downloadsDir.path, fileName);
+
+    try {
+      await _downloadFile(downloadUrl, filePath, binary.name);
+      return filePath;
+    } catch (e) {
+      // Clean up partial download if it exists
+      try {
+        final partialFile = File(filePath);
+        if (await partialFile.exists()) {
+          await partialFile.delete();
+        }
+      } catch (_) {
+        // Ignore cleanup errors
+      }
+      rethrow;
+    }
+  }
+
+  Future<String> _downloadReleasesBinary(Binary binary, Directory downloadsDir) async {
+    // 2. Download the binary
+    final zipName = binary.metadata.files[OS.current]!;
+    final zipPath = path.join(downloadsDir.path, zipName);
+    final downloadUrl = Uri.parse(binary.metadata.baseUrl).resolve(zipName).toString();
+    await _downloadFile(downloadUrl, zipPath, binary.name);
+    return zipPath;
   }
 
   /// Download a file
@@ -259,8 +340,29 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
-  /// Extract binary archive
+  /// Extract binary archive or process raw binary
   Future<void> _extractBinary(
+    Directory extractDir,
+    String filePath,
+    Directory downloadsDir,
+    Binary binary,
+  ) async {
+    final fileName = path.basename(filePath);
+
+    if (fileName.endsWith('.zip')) {
+      // extract the zip file
+      await _extractZipFile(extractDir, filePath, downloadsDir, binary);
+    } else {
+      // move the raw binary
+      await _processRawBinary(extractDir, filePath, binary);
+    }
+
+    // Apply rename logic
+    await _applyRenameLogic(extractDir);
+  }
+
+  /// Extract zip file (existing logic)
+  Future<void> _extractZipFile(
     Directory extractDir,
     String zipPath,
     Directory downloadsDir,
@@ -280,42 +382,6 @@ class DownloadManager extends ChangeNotifier {
 
     try {
       await extractArchiveToDisk(archive, tempDir.path);
-
-      // Helper function to safely move files/directories
-      Future<void> safeMove(FileSystemEntity entity, String newPath) async {
-        log.d('Moving ${entity.path} to $newPath');
-
-        int retries = 0;
-        final maxRetries = Platform.isWindows ? 5 : 1;
-
-        while (retries < maxRetries) {
-          try {
-            await entity.rename(newPath);
-            return; // Success! Exit function
-          } on FileSystemException catch (e) {
-            if (e.message.contains('Directory not empty') || e.message.contains('Rename failed')) {
-              if (entity is File) {
-                await File(newPath).delete();
-                await entity.rename(newPath);
-                return; // Success! Exit function
-              } else {
-                await Directory(newPath).delete(recursive: true);
-                await entity.rename(newPath);
-                return; // Success! Exit function
-              }
-            } else {
-              retries++;
-              if (retries < maxRetries) {
-                log.i('Rename failed, retry $retries/$maxRetries after delay...');
-                await Future.delayed(Duration(milliseconds: 500 * retries));
-              } else {
-                log.e('Failed to move: ${e.message}');
-                rethrow;
-              }
-            }
-          }
-        }
-      }
 
       log.d('Moving files from temp directory to final location');
       await for (final entity in tempDir.list()) {
@@ -349,46 +415,100 @@ class DownloadManager extends ChangeNotifier {
         }
         await innerDir.delete(recursive: true);
       }
-
-      // Clean up the filename: remove version numbers and platform specifics
-      await for (final entity in extractDir.list(recursive: false)) {
-        if (entity is File) {
-          final fileName = path.basename(entity.path);
-
-          // Skip non-executable files
-          if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
-
-          String targetName = fileName;
-
-          // Remove platform specific parts
-          final platformParts = [
-            '-x86_64-apple-darwin',
-            '-x86_64-linux',
-            '-x86_64.exe',
-            '-x86_64-unknown-linux-gnu',
-            '-x86_64-pc-windows-gnu',
-            'x86_64-unknown-linux-gnu',
-            'x86_64-apple-darwin',
-            'x86_64-pc-windows-gnu',
-            '-latest',
-          ];
-          for (final part in platformParts) {
-            targetName = targetName.replaceAll(part, '');
-          }
-          // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
-          targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
-
-          if (fileName == targetName) {
-            continue;
-          }
-
-          final newPath = path.join(path.dirname(entity.path), targetName);
-          await safeMove(entity, newPath);
-        }
-      }
     } catch (e) {
       log.e('Extraction error: $e\nStack trace: ${StackTrace.current}');
       rethrow;
+    }
+  }
+
+  /// Process raw binary file
+  Future<void> _processRawBinary(
+    Directory extractDir,
+    String binaryPath,
+    Binary binary,
+  ) async {
+    final downloadedFile = File(binaryPath);
+    final fileName = path.basename(binaryPath);
+
+    // Copy to extract directory
+    final finalPath = path.join(extractDir.path, fileName);
+    await downloadedFile.copy(finalPath);
+    await downloadedFile.delete();
+  }
+
+  /// Apply rename logic to all files in extract directory
+  Future<void> _applyRenameLogic(Directory extractDir) async {
+    // Clean up the filename: remove version numbers and platform specifics
+    await for (final entity in extractDir.list(recursive: false)) {
+      if (entity is File) {
+        final fileName = path.basename(entity.path);
+
+        // Skip non-executable files
+        if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
+
+        String targetName = fileName;
+
+        // Remove platform specific parts
+        final platformParts = [
+          '-x86_64-apple-darwin',
+          '-x86_64-linux',
+          '-x86_64.exe',
+          '-x86_64-unknown-linux-gnu',
+          '-x86_64-pc-windows-gnu',
+          'x86_64-unknown-linux-gnu',
+          'x86_64-apple-darwin',
+          'x86_64-pc-windows-gnu',
+          '-latest',
+        ];
+        for (final part in platformParts) {
+          targetName = targetName.replaceAll(part, '');
+        }
+        // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
+        targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
+
+        if (fileName == targetName) {
+          continue;
+        }
+
+        final newPath = path.join(path.dirname(entity.path), targetName);
+        await safeMove(entity, newPath);
+      }
+    }
+  }
+
+  // Helper function to safely move files/directories
+  Future<void> safeMove(FileSystemEntity entity, String newPath) async {
+    log.d('Moving ${entity.path} to $newPath');
+
+    int retries = 0;
+    final maxRetries = Platform.isWindows ? 5 : 1;
+
+    while (retries < maxRetries) {
+      try {
+        await entity.rename(newPath);
+        return; // Success! Exit function
+      } on FileSystemException catch (e) {
+        if (e.message.contains('Directory not empty') || e.message.contains('Rename failed')) {
+          if (entity is File) {
+            await File(newPath).delete();
+            await entity.rename(newPath);
+            return; // Success! Exit function
+          } else {
+            await Directory(newPath).delete(recursive: true);
+            await entity.rename(newPath);
+            return; // Success! Exit function
+          }
+        } else {
+          retries++;
+          if (retries < maxRetries) {
+            log.i('Rename failed, retry $retries/$maxRetries after delay...');
+            await Future.delayed(Duration(milliseconds: 500 * retries));
+          } else {
+            log.e('Failed to move: ${e.message}');
+            rethrow;
+          }
+        }
+      }
     }
   }
 }
