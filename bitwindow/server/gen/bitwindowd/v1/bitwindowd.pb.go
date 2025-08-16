@@ -7,13 +7,14 @@
 package bitwindowdv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -1000,7 +1001,7 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\vGetSyncInfo\x12\x16.google.protobuf.Empty\x1a\".bitwindowd.v1.GetSyncInfoResponse\x12V\n" +
 	"\x12SetTransactionNote\x12(.bitwindowd.v1.SetTransactionNoteRequest\x1a\x16.google.protobuf.Empty\x12U\n" +
 	"\x11GetFireplaceStats\x12\x16.google.protobuf.Empty\x1a(.bitwindowd.v1.GetFireplaceStatsResponseB\xcc\x01\n" +
-	"\x11com.bitwindowd.v1B\x0fBitwindowdProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1;bitwindowdv1\xa2\x02\x03BXX\xaa\x02\rBitwindowd.V1\xca\x02\rBitwindowd\\V1\xe2\x02\x19Bitwindowd\\V1\\GPBMetadata\xea\x02\x0eBitwindowd::V1b\x06proto3"
+	"\x11com.bitwindowd.v1B\x0fBitwindowdProtoP\x01ZQgithub.com/LayerTwo-Labs/bitwindow/server/gen/bitwindowd/v1;bitwindowdv1\xa2\x02\x03BXX\xaa\x02\rBitwindowd.V1\xca\x02\rBitwindowd\\V1\xe2\x02\x19Bitwindowd\\V1\\GPBMetadata\xea\x02\x0eBitwindowd::V1b\x06proto3"
 
 var (
 	file_bitwindowd_v1_bitwindowd_proto_rawDescOnce sync.Once

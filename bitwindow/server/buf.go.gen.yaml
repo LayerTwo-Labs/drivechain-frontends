@@ -8,7 +8,7 @@ managed:
 
   override:
     - file_option: go_package_prefix
-      value: github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen
+      value: github.com/LayerTwo-Labs/bitwindow/server/gen
     - file_option: go_package_prefix
       module: buf.build/bitcoin/bitcoind
       value: "github.com/barebitcoin/btc-buf/gen"

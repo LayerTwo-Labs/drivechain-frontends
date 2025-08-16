@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
-	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	database "github.com/LayerTwo-Labs/bitwindow/server/database"
+	pb "github.com/LayerTwo-Labs/bitwindow/server/gen/bitwindowd/v1"
 )
 
 type Entry struct {
