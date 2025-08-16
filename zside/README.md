@@ -1,4 +1,4 @@
-# SideSail
+# ZSide
 
 A collection of frontends for different Drivechain-based sidechains.
 
