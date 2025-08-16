@@ -7,12 +7,13 @@
 package healthv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -190,7 +191,7 @@ const file_health_v1_health_proto_rawDesc = "" +
 	"\rHealthService\x129\n" +
 	"\x05Check\x12\x16.google.protobuf.Empty\x1a\x18.health.v1.CheckResponse\x12;\n" +
 	"\x05Watch\x12\x16.google.protobuf.Empty\x1a\x18.health.v1.CheckResponse0\x01B\xac\x01\n" +
-	"\rcom.health.v1B\vHealthProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1;healthv1\xa2\x02\x03HXX\xaa\x02\tHealth.V1\xca\x02\tHealth\\V1\xe2\x02\x15Health\\V1\\GPBMetadata\xea\x02\n" +
+	"\rcom.health.v1B\vHealthProtoP\x01ZIgithub.com/LayerTwo-Labs/bitwindow/server/gen/health/v1;healthv1\xa2\x02\x03HXX\xaa\x02\tHealth.V1\xca\x02\tHealth\\V1\xe2\x02\x15Health\\V1\\GPBMetadata\xea\x02\n" +
 	"Health::V1b\x06proto3"
 
 var (

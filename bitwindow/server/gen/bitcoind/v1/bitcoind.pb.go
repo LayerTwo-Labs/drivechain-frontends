@@ -7,13 +7,14 @@
 package bitcoindv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -5232,7 +5233,7 @@ const file_bitcoind_v1_bitcoind_proto_rawDesc = "" +
 	"\x0eUtxoUpdatePsbt\x12\".bitcoind.v1.UtxoUpdatePsbtRequest\x1a#.bitcoind.v1.UtxoUpdatePsbtResponse\x12J\n" +
 	"\tJoinPsbts\x12\x1d.bitcoind.v1.JoinPsbtsRequest\x1a\x1e.bitcoind.v1.JoinPsbtsResponse\x12b\n" +
 	"\x11TestMempoolAccept\x12%.bitcoind.v1.TestMempoolAcceptRequest\x1a&.bitcoind.v1.TestMempoolAcceptResponseB\xbc\x01\n" +
-	"\x0fcom.bitcoind.v1B\rBitcoindProtoP\x01ZMgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1;bitcoindv1\xa2\x02\x03BXX\xaa\x02\vBitcoind.V1\xca\x02\vBitcoind\\V1\xe2\x02\x17Bitcoind\\V1\\GPBMetadata\xea\x02\fBitcoind::V1b\x06proto3"
+	"\x0fcom.bitcoind.v1B\rBitcoindProtoP\x01ZMgithub.com/LayerTwo-Labs/bitwindow/server/gen/bitcoind/v1;bitcoindv1\xa2\x02\x03BXX\xaa\x02\vBitcoind.V1\xca\x02\vBitcoind\\V1\xe2\x02\x17Bitcoind\\V1\\GPBMetadata\xea\x02\fBitcoind::V1b\x06proto3"
 
 var (
 	file_bitcoind_v1_bitcoind_proto_rawDescOnce sync.Once

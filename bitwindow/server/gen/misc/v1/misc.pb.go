@@ -7,13 +7,14 @@
 package miscv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -701,7 +702,7 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\n" +
 	"ListTopics\x12\x16.google.protobuf.Empty\x1a\x1b.misc.v1.ListTopicsResponse\x12K\n" +
 	"\fListCoinNews\x12\x1c.misc.v1.ListCoinNewsRequest\x1a\x1d.misc.v1.ListCoinNewsResponseB\x9c\x01\n" +
-	"\vcom.misc.v1B\tMiscProtoP\x01ZEgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1;miscv1\xa2\x02\x03MXX\xaa\x02\aMisc.V1\xca\x02\aMisc\\V1\xe2\x02\x13Misc\\V1\\GPBMetadata\xea\x02\bMisc::V1b\x06proto3"
+	"\vcom.misc.v1B\tMiscProtoP\x01ZEgithub.com/LayerTwo-Labs/bitwindow/server/gen/misc/v1;miscv1\xa2\x02\x03MXX\xaa\x02\aMisc.V1\xca\x02\aMisc\\V1\xe2\x02\x13Misc\\V1\\GPBMetadata\xea\x02\bMisc::V1b\x06proto3"
 
 var (
 	file_misc_v1_misc_proto_rawDescOnce sync.Once

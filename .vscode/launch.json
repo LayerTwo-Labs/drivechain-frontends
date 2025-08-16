@@ -82,25 +82,5 @@
             "type": "dart",
             "flutterMode": "release"
         },
-        {
-            "name": "sidesail",
-            "cwd": "clients/sidesail",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "sidesail (profile mode)",
-            "cwd": "clients/sidesail",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "sidesail (release mode)",
-            "cwd": "clients/sidesail",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "release"
-        }
     ]
 }

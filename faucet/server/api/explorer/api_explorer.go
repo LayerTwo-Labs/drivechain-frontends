@@ -10,9 +10,9 @@ import (
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 
-	pb "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1/explorerv1connect"
-	"github.com/LayerTwo-Labs/sidesail/faucet/server/jsonrpc"
+	pb "github.com/LayerTwo-Labs/faucet/server/gen/explorer/v1"
+	rpc "github.com/LayerTwo-Labs/faucet/server/gen/explorer/v1/explorerv1connect"
+	"github.com/LayerTwo-Labs/faucet/server/jsonrpc"
 )
 
 var _ rpc.ExplorerServiceHandler = new(Server)

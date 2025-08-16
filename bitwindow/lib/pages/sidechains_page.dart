@@ -442,6 +442,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Thunder => _binaryProvider.thunderConnected,
       var b when b is Bitnames => _binaryProvider.bitnamesConnected,
       var b when b is BitAssets => _binaryProvider.bitassetsConnected,
+      var b when b is ZSide => _binaryProvider.zsideConnected,
       _ => false,
     };
 
@@ -453,6 +454,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Thunder => _binaryProvider.thunderInitializing,
       var b when b is Bitnames => _binaryProvider.bitnamesInitializing,
       var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
+      var b when b is ZSide => _binaryProvider.zsideInitializing,
       _ => false,
     };
 
@@ -463,6 +465,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Thunder => _binaryProvider.thunderStopping,
       var b when b is Bitnames => _binaryProvider.bitnamesStopping,
       var b when b is BitAssets => _binaryProvider.bitassetsStopping,
+      var b when b is ZSide => _binaryProvider.zsideStopping,
       _ => false,
     };
 
@@ -782,18 +785,21 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'thunderConnected': _binaryProvider.thunderConnected,
       'bitnamesConnected': _binaryProvider.bitnamesConnected,
       'bitassetsConnected': _binaryProvider.bitassetsConnected,
+      'zsideConnected': _binaryProvider.zsideConnected,
       'mainchainInitializing': _binaryProvider.mainchainInitializing,
       'enforcerInitializing': _binaryProvider.enforcerInitializing,
       'bitwindowInitializing': _binaryProvider.bitwindowInitializing,
       'thunderInitializing': _binaryProvider.thunderInitializing,
       'bitnamesInitializing': _binaryProvider.bitnamesInitializing,
       'bitassetsInitializing': _binaryProvider.bitassetsInitializing,
+      'zsideInitializing': _binaryProvider.zsideInitializing,
       'mainchainStopping': _binaryProvider.mainchainStopping,
       'enforcerStopping': _binaryProvider.enforcerStopping,
       'bitwindowStopping': _binaryProvider.bitwindowStopping,
       'thunderStopping': _binaryProvider.thunderStopping,
       'bitnamesStopping': _binaryProvider.bitnamesStopping,
       'bitassetsStopping': _binaryProvider.bitassetsStopping,
+      'zsideStopping': _binaryProvider.zsideStopping,
     };
   }
 }

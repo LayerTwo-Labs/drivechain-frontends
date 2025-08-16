@@ -1,4 +1,4 @@
-module github.com/LayerTwo-Labs/sidesail/bitwindow/server
+module github.com/LayerTwo-Labs/bitwindow/server
 
 go 1.24.0
 

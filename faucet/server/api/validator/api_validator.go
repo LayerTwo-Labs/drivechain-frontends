@@ -6,9 +6,9 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/LayerTwo-Labs/sidesail/faucet/server/connector"
-	mainchainv1 "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/cusf/mainchain/v1"
-	mainchainv1connect "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/faucet/server/connector"
+	mainchainv1 "github.com/LayerTwo-Labs/faucet/server/gen/cusf/mainchain/v1"
+	mainchainv1connect "github.com/LayerTwo-Labs/faucet/server/gen/cusf/mainchain/v1/mainchainv1connect"
 )
 
 var _ mainchainv1connect.ValidatorServiceHandler = new(Server)

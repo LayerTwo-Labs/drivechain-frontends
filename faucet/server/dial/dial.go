@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	validatordpb "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/cusf/mainchain/v1"
-	validatordrpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	validatordpb "github.com/LayerTwo-Labs/faucet/server/gen/cusf/mainchain/v1"
+	validatordrpc "github.com/LayerTwo-Labs/faucet/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 )

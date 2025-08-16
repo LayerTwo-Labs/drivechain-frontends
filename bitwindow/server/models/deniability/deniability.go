@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	database "github.com/LayerTwo-Labs/bitwindow/server/database"
 	"github.com/samber/lo"
 )
 

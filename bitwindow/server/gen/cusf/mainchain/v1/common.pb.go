@@ -9,13 +9,14 @@
 package mainchainv1
 
 import (
-	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	v1 "github.com/LayerTwo-Labs/bitwindow/server/gen/cusf/common/v1"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const (
@@ -227,7 +228,7 @@ const file_cusf_mainchain_v1_common_proto_rawDesc = "" +
 	"\thash_id_1\x18\x03 \x01(\v2\x1c.cusf.common.v1.ConsensusHexR\ahashId1\x12/\n" +
 	"\thash_id_2\x18\x04 \x01(\v2\x13.cusf.common.v1.HexR\ahashId2B\x17\n" +
 	"\x15sidechain_declarationB\xe0\x01\n" +
-	"\x15com.cusf.mainchain.v1B\vCommonProtoP\x01ZTgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
+	"\x15com.cusf.mainchain.v1B\vCommonProtoP\x01ZTgithub.com/LayerTwo-Labs/bitwindow/server/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
 
 var (
 	file_cusf_mainchain_v1_common_proto_rawDescOnce sync.Once

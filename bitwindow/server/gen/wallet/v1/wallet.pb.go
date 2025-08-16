@@ -7,14 +7,15 @@
 package walletv1
 
 import (
-	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
+	v1 "github.com/LayerTwo-Labs/bitwindow/server/gen/bitwindowd/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -1377,7 +1378,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\vSignMessage\x12\x1d.wallet.v1.SignMessageRequest\x1a\x1e.wallet.v1.SignMessageResponse\x12R\n" +
 	"\rVerifyMessage\x12\x1f.wallet.v1.VerifyMessageRequest\x1a .wallet.v1.VerifyMessageResponse\x12?\n" +
 	"\bGetStats\x12\x16.google.protobuf.Empty\x1a\x1b.wallet.v1.GetStatsResponseB\xac\x01\n" +
-	"\rcom.wallet.v1B\vWalletProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1;walletv1\xa2\x02\x03WXX\xaa\x02\tWallet.V1\xca\x02\tWallet\\V1\xe2\x02\x15Wallet\\V1\\GPBMetadata\xea\x02\n" +
+	"\rcom.wallet.v1B\vWalletProtoP\x01ZIgithub.com/LayerTwo-Labs/bitwindow/server/gen/wallet/v1;walletv1\xa2\x02\x03WXX\xaa\x02\tWallet.V1\xca\x02\tWallet\\V1\xe2\x02\x15Wallet\\V1\\GPBMetadata\xea\x02\n" +
 	"Wallet::V1b\x06proto3"
 
 var (
