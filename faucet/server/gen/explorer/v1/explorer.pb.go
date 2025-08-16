@@ -213,7 +213,7 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\x05zside\x18\x05 \x01(\v2\x15.explorer.v1.ChainTipR\x05zside2h\n" +
 	"\x0fExplorerService\x12U\n" +
 	"\fGetChainTips\x12 .explorer.v1.GetChainTipsRequest\x1a!.explorer.v1.GetChainTipsResponse\"\x00B\xb9\x01\n" +
-	"\x0fcom.explorer.v1B\rExplorerProtoP\x01ZJgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1;explorerv1\xa2\x02\x03EXX\xaa\x02\vExplorer.V1\xca\x02\vExplorer\\V1\xe2\x02\x17Explorer\\V1\\GPBMetadata\xea\x02\fExplorer::V1b\x06proto3"
+	"\x0fcom.explorer.v1B\rExplorerProtoP\x01ZJgithub.com/LayerTwo-Labs/faucet/server/gen/explorer/v1;explorerv1\xa2\x02\x03EXX\xaa\x02\vExplorer.V1\xca\x02\vExplorer\\V1\xe2\x02\x17Explorer\\V1\\GPBMetadata\xea\x02\fExplorer::V1b\x06proto3"
 
 var (
 	file_explorer_v1_explorer_proto_rawDescOnce sync.Once

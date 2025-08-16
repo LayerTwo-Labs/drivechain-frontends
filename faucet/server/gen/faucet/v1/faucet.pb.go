@@ -7,13 +7,14 @@
 package faucetv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -216,7 +217,7 @@ const file_faucet_v1_faucet_proto_rawDesc = "" +
 	"\rDispenseCoins\x12\x1f.faucet.v1.DispenseCoinsRequest\x1a .faucet.v1.DispenseCoinsResponse\"\x00\x12K\n" +
 	"\n" +
 	"ListClaims\x12\x1c.faucet.v1.ListClaimsRequest\x1a\x1d.faucet.v1.ListClaimsResponse\"\x00B\xa9\x01\n" +
-	"\rcom.faucet.v1B\vFaucetProtoP\x01ZFgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/faucet/v1;faucetv1\xa2\x02\x03FXX\xaa\x02\tFaucet.V1\xca\x02\tFaucet\\V1\xe2\x02\x15Faucet\\V1\\GPBMetadata\xea\x02\n" +
+	"\rcom.faucet.v1B\vFaucetProtoP\x01ZFgithub.com/LayerTwo-Labs/faucet/server/gen/faucet/v1;faucetv1\xa2\x02\x03FXX\xaa\x02\tFaucet.V1\xca\x02\tFaucet\\V1\xe2\x02\x15Faucet\\V1\\GPBMetadata\xea\x02\n" +
 	"Faucet::V1b\x06proto3"
 
 var (

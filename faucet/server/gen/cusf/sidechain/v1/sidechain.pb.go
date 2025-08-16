@@ -9,11 +9,12 @@
 package sidechainv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -842,7 +843,7 @@ const file_cusf_sidechain_v1_sidechain_proto_rawDesc = "" +
 	"\bGetUtxos\x12\".cusf.sidechain.v1.GetUtxosRequest\x1a#.cusf.sidechain.v1.GetUtxosResponse\x12n\n" +
 	"\x11SubmitTransaction\x12+.cusf.sidechain.v1.SubmitTransactionRequest\x1a,.cusf.sidechain.v1.SubmitTransactionResponse\x12j\n" +
 	"\x0fSubscribeEvents\x12).cusf.sidechain.v1.SubscribeEventsRequest\x1a*.cusf.sidechain.v1.SubscribeEventsResponse0\x01B\xe0\x01\n" +
-	"\x15com.cusf.sidechain.v1B\x0eSidechainProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/cusf/sidechain/v1;sidechainv1\xa2\x02\x03CSX\xaa\x02\x11Cusf.Sidechain.V1\xca\x02\x11Cusf\\Sidechain\\V1\xe2\x02\x1dCusf\\Sidechain\\V1\\GPBMetadata\xea\x02\x13Cusf::Sidechain::V1b\x06proto3"
+	"\x15com.cusf.sidechain.v1B\x0eSidechainProtoP\x01ZQgithub.com/LayerTwo-Labs/faucet/server/gen/cusf/sidechain/v1;sidechainv1\xa2\x02\x03CSX\xaa\x02\x11Cusf.Sidechain.V1\xca\x02\x11Cusf\\Sidechain\\V1\xe2\x02\x1dCusf\\Sidechain\\V1\\GPBMetadata\xea\x02\x13Cusf::Sidechain::V1b\x06proto3"
 
 var (
 	file_cusf_sidechain_v1_sidechain_proto_rawDescOnce sync.Once
