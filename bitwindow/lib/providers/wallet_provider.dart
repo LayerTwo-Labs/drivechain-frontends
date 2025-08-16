@@ -139,7 +139,7 @@ class WalletProvider extends ChangeNotifier {
     await saveMasterWallet(walletData);
 
     _logger.i('_genWallet: Master wallet saved, generating starters for chains');
-    await generateStartersForDownloadedChains();
+    await generateStartersForSidechains();
 
     _logger.i('_genWallet: Notifying listeners once after all wallets generated');
     notifyListeners();
@@ -181,7 +181,7 @@ class WalletProvider extends ChangeNotifier {
 
     if (!doNotSave) {
       await saveMasterWallet(wallet);
-      await generateStartersForDownloadedChains();
+      await generateStartersForSidechains();
 
       // Reset HD wallet provider to pick up new wallet data
       try {
@@ -399,7 +399,7 @@ class WalletProvider extends ChangeNotifier {
     _logger.i('_ensureWalletDir: Directory created');
   }
 
-  Future<void> generateStartersForDownloadedChains() async {
+  Future<void> generateStartersForSidechains() async {
     _logger.i('generateStartersForDownloadedChains: Starting');
 
     try {
