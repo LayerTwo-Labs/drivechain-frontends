@@ -177,7 +177,7 @@ class BitAssetsLive extends BitAssetsRPC {
   BitAssetsLive()
       : super(
           conf: readConf(),
-          binaryType: BinaryType.bitAssets,
+          binaryType: BinaryType.bitassets,
           restartOnFailure: true,
         ) {
     _init();

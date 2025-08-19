@@ -42,17 +42,9 @@ class DownloadManager extends ChangeNotifier {
     required this.binaries,
   });
 
-  DownloadInfo getProgress(String binaryName) {
-    final binary = binaries.firstWhere((b) => b.name == binaryName);
+  DownloadInfo getProgress(BinaryType type) {
+    final binary = binaries.firstWhere((b) => b.type == type);
     return binary.downloadInfo;
-  }
-
-  Stream<Map<String, DownloadInfo>> get progressStream {
-    return Stream.periodic(const Duration(milliseconds: 500), (_) {
-      return Map.fromEntries(
-        binaries.map((b) => MapEntry(b.name, b.downloadInfo)),
-      );
-    });
   }
 
   Future<void> downloadIfMissing(Binary binary, {bool shouldUpdate = false}) async {
@@ -77,10 +69,10 @@ class DownloadManager extends ChangeNotifier {
   /// Download and extract a binary
   Future<void> _downloadBinary(Binary binary) async {
     // Check if already downloading
-    if (isDownloading(binary)) {
+    if (isDownloading(binary.type)) {
       log.i('Download already in progress for ${binary.name}, waiting for completion...');
       // Wait for the download to complete
-      while (isDownloading(binary)) {
+      while (isDownloading(binary.type)) {
         await Future.delayed(const Duration(milliseconds: 100));
         log.i('download already in progress for ${binary.name}, waiting for it to finish...');
       }
@@ -93,7 +85,11 @@ class DownloadManager extends ChangeNotifier {
       _updateBinary(
         binary.name,
         (b) => b.copyWith(
-          downloadInfo: DownloadInfo(progress: 0.0, error: 'Download failed: $e', isDownloading: false),
+          downloadInfo: DownloadInfo(
+            progress: 0.0,
+            error: 'Download failed: $e',
+            isDownloading: false,
+          ),
         ),
       );
       log.e('could not download ${binary.name}: $e');
@@ -104,34 +100,41 @@ class DownloadManager extends ChangeNotifier {
   void _updateBinary(String name, Binary Function(Binary) updater) {
     final index = binaries.indexWhere((b) => b.name == name);
     if (index >= 0) {
-      binaries[index] = updater(binaries[index]);
+      final newBinary = updater(binaries[index]);
+      binaries[index] = newBinary;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
-  bool isDownloading(Binary binary) {
-    return binaries.any((b) => b.name == binary.name && b.downloadInfo.isDownloading);
+  bool isDownloading(BinaryType type) {
+    return binaries.any((b) => b.type == type && b.downloadInfo.isDownloading);
   }
 
   /// Internal method to handle the actual download and extraction
   Future<void> _downloadAndExtractBinary(Binary binary) async {
     if (binary.metadata.baseUrl.isEmpty) {
-      return _updateBinary(
+      _updateBinary(
         binary.name,
         (b) => b.copyWith(
           downloadInfo: const DownloadInfo(
             progress: 0.0,
+            total: 0.0,
             message: 'Programmers messed up. Tried to download non-downloadable binary',
-            isDownloading: true,
+            isDownloading: false,
           ),
         ),
       );
+      return;
     }
 
     _updateBinary(
       binary.name,
       (b) => b.copyWith(
-        downloadInfo: const DownloadInfo(progress: 0.0, message: 'Downloading...', isDownloading: true),
+        downloadInfo: const DownloadInfo(
+          progress: 0.0,
+          message: 'Downloading...',
+          isDownloading: true,
+        ),
       ),
     );
 
@@ -155,16 +158,17 @@ class DownloadManager extends ChangeNotifier {
       } else if (binary.metadata.baseUrl.contains('releases.drivechain.info')) {
         filePath = await _downloadReleasesBinary(binary, downloadsDir);
       } else {
-        return _updateBinary(
+        _updateBinary(
           binary.name,
           (b) => b.copyWith(
-            downloadInfo: DownloadInfo(
+            downloadInfo: b.downloadInfo.copyWith(
               progress: 0.0,
               message: 'Programmers messed up. Did not find download strategy for ${binary.metadata.baseUrl}',
               isDownloading: false,
             ),
           ),
         );
+        return;
       }
 
       // Extract the binary
@@ -176,7 +180,7 @@ class DownloadManager extends ChangeNotifier {
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
             progress: 0.0,
-            message: 'Download failed: $e',
+            error: 'Extraction failed: $e',
             isDownloading: false,
           ),
         ),
@@ -184,36 +188,32 @@ class DownloadManager extends ChangeNotifier {
       rethrow;
     }
 
-    final releaseDate = await binary.checkReleaseDate();
-    // Update binary metadata
-    final binaryPath = await binary.resolveBinaryPath(appDir);
-    // only updateable if it is inside the appDir
-    final updateableBinary = binaryPath.path.contains(appDir.path);
-    _updateBinary(
-      binary.name,
-      (b) => b.copyWith(
-        metadata: b.metadata.copyWith(
-          remoteTimestamp: releaseDate,
-          downloadedTimestamp: releaseDate,
-          binaryPath: binaryPath,
-          updateable: updateableBinary,
-        ),
-      ),
-    );
-
     try {
-      // Delete the zip file
+      // Try to clean up (fine if we fail!)
       await File(filePath).delete();
     } catch (e) {
       log.e('could not delete zip file: $e');
     }
 
+    // Update binary metadata
+    // find the updated binary
+    final updatedBinary = await binary.updateMetadata(appDir);
+    log.d('🔄 _updateBinary called from _downloadAndExtractBinary (update metadata) for ${binary.name}');
+
     _updateBinary(
       binary.name,
       (b) => b.copyWith(
-        downloadInfo: const DownloadInfo(progress: 1.0, message: 'Download completed', isDownloading: false),
+        downloadInfo: DownloadInfo(
+          message: 'Downloaded and extracted successfully',
+          isDownloading: false,
+          downloadedAt: DateTime.now(),
+          progress: 1.0,
+          total: 1.0,
+        ),
+        metadata: updatedBinary.metadata,
       ),
     );
+    notifyListeners();
 
     log.i('Successfully downloaded and extracted ${binary.name}');
   }
@@ -290,6 +290,9 @@ class DownloadManager extends ChangeNotifier {
 
       log.i('Download starting: totalBytes=$totalBytes, binaryName=$binaryName');
 
+      double downloadedMB = 0;
+      double totalMB = 0;
+
       await for (final chunk in response) {
         receivedBytes += chunk.length;
         sink.add(chunk);
@@ -300,14 +303,15 @@ class DownloadManager extends ChangeNotifier {
 
           // Only update if the percentage display would change
           if (currentPercentStr != lastPercentStr) {
-            final downloadedMB = (receivedBytes / 1024 / 1024).toStringAsFixed(1);
-            final totalMB = (totalBytes / 1024 / 1024).toStringAsFixed(1);
+            downloadedMB = receivedBytes / 1024 / 1024;
+            totalMB = totalBytes / 1024 / 1024;
 
             _updateBinary(
               binaryName,
               (b) => b.copyWith(
                 downloadInfo: DownloadInfo(
-                  progress: progress,
+                  progress: downloadedMB,
+                  total: totalMB,
                   message: 'Downloaded $downloadedMB MB / $totalMB MB ($currentPercentStr%)',
                   isDownloading: true,
                 ),
@@ -322,6 +326,17 @@ class DownloadManager extends ChangeNotifier {
       await sink.close();
       client.close();
 
+      _updateBinary(
+        binaryName,
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(
+            progress: totalMB,
+            total: totalMB,
+            message: 'Downloaded complete',
+            isDownloading: true, // still downloading, because we need to extract it as well
+          ),
+        ),
+      );
       log.i('Download completed for $binaryName');
     } catch (e) {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
@@ -336,7 +351,7 @@ class DownloadManager extends ChangeNotifier {
           ),
         ),
       );
-      throw Exception(error);
+      rethrow;
     }
   }
 
@@ -347,6 +362,18 @@ class DownloadManager extends ChangeNotifier {
     Directory downloadsDir,
     Binary binary,
   ) async {
+    _updateBinary(
+      binary.name,
+      (b) => b.copyWith(
+        downloadInfo: DownloadInfo(
+          progress: 0.9999,
+          total: 1.0,
+          isDownloading: true,
+          message: 'Extracting...',
+        ),
+      ),
+    );
+
     final fileName = path.basename(filePath);
 
     if (fileName.endsWith('.zip')) {

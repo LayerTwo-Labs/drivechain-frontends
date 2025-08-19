@@ -115,6 +115,14 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitassetsStopping => bitassetsRPC?.stoppingBinary ?? false;
   bool get zsideStopping => zsideRPC?.stoppingBinary ?? false;
 
+  bool get mainchainDownloading => _downloadManager.isDownloading(BinaryType.bitcoinCore);
+  bool get enforcerDownloading => _downloadManager.isDownloading(BinaryType.enforcer);
+  bool get bitwindowDownloading => _downloadManager.isDownloading(BinaryType.bitWindow);
+  bool get thunderDownloading => _downloadManager.isDownloading(BinaryType.thunder);
+  bool get bitnamesDownloading => _downloadManager.isDownloading(BinaryType.bitnames);
+  bool get bitassetsDownloading => _downloadManager.isDownloading(BinaryType.bitassets);
+  bool get zsideDownloading => _downloadManager.isDownloading(BinaryType.zSide);
+
   // Only show errors for explicitly launched binaries
   String? get mainchainError => mainchainRPC?.connectionError;
   String? get enforcerError => enforcerRPC?.connectionError;
@@ -162,8 +170,11 @@ class BinaryProvider extends ChangeNotifier {
 
     // RPC clients will be lazily initialized when first accessed
 
-    // Forward DownloadManager notifications to BinaryProvider listeners
+    // Forward process manager notifications to BinaryProvider listeners
     _processManager.addListener(notifyListeners);
+
+    // Forward download manager notifications to BinaryProvider listeners
+    _downloadManager.addListener(notifyListeners);
 
     // Optional RPCs will be lazily initialized when first accessed
 
@@ -390,7 +401,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   /// Get download progress for a binary
-  DownloadInfo downloadProgress(Binary binary) => _downloadManager.getProgress(binary.name);
+  DownloadInfo downloadProgress(BinaryType type) => _downloadManager.getProgress(type);
 
   List<Binary> get runningBinaries => _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
@@ -519,11 +530,6 @@ class BinaryProvider extends ChangeNotifier {
     log.i('[T+${getElapsed()}ms] STARTUP: All binaries started successfully');
   }
 
-  // Add status stream for download progress
-  Stream<Map<String, DownloadInfo>> get statusStream {
-    return _downloadManager.progressStream;
-  }
-
   Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
     try {
       // Get list of running binaries
@@ -571,30 +577,40 @@ class BinaryProvider extends ChangeNotifier {
     _downloadManager.removeListener(listener);
   }
 
+  bool isChecking = false;
   void _setupDirectoryWatcher() {
     // Watch the assets directory for changes
     _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) async {
       switch (event.type) {
         case FileSystemEvent.create:
         case FileSystemEvent.delete:
-          // Store original binaries to compare for changes
-          final originalBinaries = List<Binary>.from(_downloadManager.binaries);
-
-          // Reload metadata
-          _downloadManager.binaries = await loadBinaryCreationTimestamp(_downloadManager.binaries, appDir);
-
-          // Only notify if any binary metadata actually changed
-          bool hasChanges = false;
-          for (int i = 0; i < originalBinaries.length && i < _downloadManager.binaries.length; i++) {
-            if (originalBinaries[i].metadata != _downloadManager.binaries[i].metadata) {
-              hasChanges = true;
-              break;
+          try {
+            if (isChecking) {
+              return;
             }
+            isChecking = true;
+            // Store original binaries to compare for changes
+            final originalBinaries = List<Binary>.from(_downloadManager.binaries);
+
+            // Reload metadata
+            _downloadManager.binaries = await loadBinaryCreationTimestamp(_downloadManager.binaries, appDir);
+
+            // Only notify if any binary metadata actually changed
+            bool hasChanges = false;
+            for (int i = 0; i < originalBinaries.length && i < _downloadManager.binaries.length; i++) {
+              if (originalBinaries[i] != _downloadManager.binaries[i]) {
+                hasChanges = true;
+                break;
+              }
+            }
+
+            if (hasChanges) {
+              notifyListeners();
+            }
+          } finally {
+            isChecking = false;
           }
 
-          if (hasChanges) {
-            notifyListeners();
-          }
           break;
         default:
           break;
@@ -608,20 +624,12 @@ class BinaryProvider extends ChangeNotifier {
     for (var i = 0; i < binaries.length; i++) {
       try {
         final binary = binaries[i];
-        final serverReleaseDate = await binary.checkReleaseDate();
-        if (serverReleaseDate != null) {
-          final updatedConfig = binary.metadata.copyWith(
-            remoteTimestamp: serverReleaseDate,
-            downloadedTimestamp: binary.metadata.downloadedTimestamp,
-            binaryPath: binary.metadata.binaryPath,
-            updateable: binary.metadata.updateable,
-          );
+        final updatedBinary = await binary.updateMetadata(appDir);
 
-          // Only update and mark as changed if the config actually differs
-          if (updatedConfig != binary.metadata) {
-            binaries[i] = binary.copyWith(metadata: updatedConfig);
-            hasChanges = true;
-          }
+        // Only update and mark as changed if the binary actually differs
+        if (updatedBinary.metadata != binary.metadata) {
+          binaries[i] = updatedBinary;
+          hasChanges = true;
         }
       } catch (e) {
         log.e('Error checking release date: $e');
@@ -698,42 +706,12 @@ String _stripFromString(String input, String whatToStrip) {
 }
 
 Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
-  final log = GetIt.I.get<Logger>();
-
-  // now that assets are written, we can check stuff in parallel
-  await Future.wait(
-    binaries.asMap().entries.map((entry) async {
-      final i = entry.key;
-      final binary = entry.value;
-      try {
-        // Load metadata from bin/ in parallel
-        final (lastModified, binaryFile) = await binary.getCreationDate(appDir);
-        final updateableBinary = binaryFile?.path.contains(appDir.path) ?? false;
-
-        DateTime? serverReleaseDate;
-        try {
-          serverReleaseDate = await binary.checkReleaseDate();
-        } catch (e) {
-          log.e('could not check release date: $e');
-        }
-
-        log.w('Loaded binary state for ${binary.name}: $lastModified $binaryFile $updateableBinary');
-
-        final updatedConfig = binary.metadata.copyWith(
-          remoteTimestamp: serverReleaseDate,
-          downloadedTimestamp: lastModified,
-          binaryPath: binaryFile,
-          updateable: updateableBinary,
-        );
-        binaries[i] = binary.copyWith(metadata: updatedConfig);
-      } catch (e) {
-        // Log error but continue with other binaries
-        GetIt.I.get<Logger>().e('Error loading binary state for ${binary.name}: $e');
-      }
-    }),
+  // Update metadata for all binaries in parallel
+  final updatedBinaries = await Future.wait(
+    binaries.map((binary) => binary.updateMetadata(appDir)),
   );
 
-  return binaries;
+  return updatedBinaries;
 }
 
 Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));

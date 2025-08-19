@@ -59,10 +59,6 @@ func (s *Server) Check(ctx context.Context, _ *connect.Request[emptypb.Empty]) (
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	zerolog.Ctx(ctx).Info().
-		Int("total_services", len(statuses)).
-		Msg("All health checks completed")
-
 	return connect.NewResponse(&healthv1.CheckResponse{
 		ServiceStatuses: statuses,
 	}), nil
