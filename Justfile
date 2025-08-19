@@ -10,6 +10,15 @@ gen-router:
         fi
     done
 
+upgrade:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for dir in sail_ui bitwindow faucet thunder bitnames zside; do
+        if [ -d "$dir" ]; then
+            (cd "$dir" && flutter pub upgrade)
+        fi
+    done
+
 gen-version:
     bash scripts/generate-version.sh bitassets
     scripts/generate-version.sh bitnames
