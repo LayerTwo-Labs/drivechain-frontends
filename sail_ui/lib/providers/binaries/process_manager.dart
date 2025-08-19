@@ -8,7 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 
 class ProcessManager extends ChangeNotifier {
-  final Directory? appDir;
+  final Directory appDir;
 
   ProcessManager({
     required this.appDir,
@@ -232,6 +232,10 @@ bool isSpam(String data) {
   }
 
   if (data.contains('listed') && data.contains('wallet utxos in') && data.contains('bip300301_enforcer')) {
+    return true;
+  }
+
+  if (data.contains(': wallet sync complete in')) {
     return true;
   }
 

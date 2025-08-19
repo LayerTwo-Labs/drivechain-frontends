@@ -187,8 +187,8 @@ class BottomNav extends StatelessWidget {
     }
 
     // Check if we're downloading (downloadProgress < 1)
-    if (syncInfo.downloadInfo.progress < 1) {
-      final progressPercent = (syncInfo.downloadInfo.progress * 100).toStringAsFixed(0);
+    if (syncInfo.downloadInfo.progressPercent < 1) {
+      final progressPercent = (syncInfo.downloadInfo.progressPercent * 100).toStringAsFixed(0);
       if (progressPercent == '100') {
         return null;
       } else {

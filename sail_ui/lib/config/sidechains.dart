@@ -509,7 +509,7 @@ class BitAssets extends Sidechain {
   int slot = 4;
 
   @override
-  BinaryType get type => BinaryType.bitAssets;
+  BinaryType get type => BinaryType.bitassets;
 
   @override
   Color color = SailColorScheme.blue;

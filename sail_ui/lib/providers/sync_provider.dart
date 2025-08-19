@@ -17,8 +17,8 @@ class SyncInfo {
 
   // progress returns the download progress if it's currently downloading, else
   // the blockchain sync progress compared to headers
-  double get progress => downloadInfo.progress < 1
-      ? downloadInfo.progress
+  double get progress => downloadInfo.progressPercent < 1
+      ? downloadInfo.progressPercent
       : progressGoal == 0
           ? 0
           : progressCurrent / progressGoal;
@@ -322,10 +322,9 @@ class SyncProvider extends ChangeNotifier {
   void _checkDownloadProgress() {
     bool hasChanges = false;
 
-    var downloadInfo = binaryProvider.downloadProgress(enforcer.rpc.binary);
+    var downloadInfo = binaryProvider.downloadProgress(enforcer.rpc.binary.type);
     if (downloadInfo.isDownloading || (enforcerSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-      // Extract MB values from download message if available
-      final (currentMB, totalMB) = _extractMBFromMessage(downloadInfo.message ?? '');
+      final (currentMB, totalMB) = (downloadInfo.progress, downloadInfo.total);
 
       enforcerSyncInfo = SyncInfo(
         progressCurrent: currentMB.toDouble(),
@@ -336,10 +335,9 @@ class SyncProvider extends ChangeNotifier {
       hasChanges = true;
     }
 
-    downloadInfo = binaryProvider.downloadProgress(mainchain.rpc.binary);
+    downloadInfo = binaryProvider.downloadProgress(mainchain.rpc.binary.type);
     if (downloadInfo.isDownloading || (mainchainSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-      // Extract MB values from download message if available
-      final (currentMB, totalMB) = _extractMBFromMessage(downloadInfo.message ?? '');
+      final (currentMB, totalMB) = (downloadInfo.progress, downloadInfo.total);
 
       mainchainSyncInfo = SyncInfo(
         progressCurrent: currentMB,
@@ -351,11 +349,10 @@ class SyncProvider extends ChangeNotifier {
     }
 
     if (additionalConnection != null) {
-      downloadInfo = binaryProvider.downloadProgress(additionalConnection!.rpc.binary);
+      downloadInfo = binaryProvider.downloadProgress(additionalConnection!.rpc.binary.type);
       if (downloadInfo.isDownloading ||
           (additionalSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-        // Extract MB values from download message if available
-        final (currentMB, totalMB) = _extractMBFromMessage(downloadInfo.message ?? '');
+        final (currentMB, totalMB) = (downloadInfo.progress, downloadInfo.total);
 
         additionalSyncInfo = SyncInfo(
           progressCurrent: currentMB,
@@ -370,21 +367,6 @@ class SyncProvider extends ChangeNotifier {
     if (hasChanges) {
       notifyListeners();
     }
-  }
-
-  // Helper method to extract MB values from download message
-  // Message format: "Downloaded X.X MB / Y.Y MB (Z.Z%)"
-  (double, double) _extractMBFromMessage(String message) {
-    final regex = RegExp(r'Downloaded ([\d.]+) MB / ([\d.]+) MB');
-    final match = regex.firstMatch(message);
-
-    if (match != null) {
-      final currentMB = double.tryParse(match.group(1) ?? '0') ?? 0;
-      final totalMB = double.tryParse(match.group(2) ?? '0') ?? 0;
-      return (currentMB, totalMB);
-    }
-
-    return (0, 0);
   }
 
   bool _syncInfoHasChanged(SyncInfo? oldInfo, SyncInfo? newInfo) {

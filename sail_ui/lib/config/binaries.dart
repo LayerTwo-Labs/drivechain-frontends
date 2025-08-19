@@ -19,7 +19,7 @@ enum BinaryType {
   zSide,
   thunder,
   bitnames,
-  bitAssets,
+  bitassets,
 }
 
 abstract class Binary {
@@ -65,10 +65,42 @@ abstract class Binary {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is Binary && name == other.name && version == other.version;
+      identical(this, other) ||
+      other is Binary &&
+          name == other.name &&
+          version == other.version &&
+          description == other.description &&
+          repoUrl == other.repoUrl &&
+          binary == other.binary &&
+          port == other.port &&
+          chainLayer == other.chainLayer &&
+          directories == other.directories &&
+          metadata == other.metadata &&
+          _listEquals(extraBootArgs, other.extraBootArgs) &&
+          downloadInfo == other.downloadInfo;
 
   @override
-  int get hashCode => Object.hash(name, version);
+  int get hashCode => Object.hash(
+        name,
+        version,
+        description,
+        repoUrl,
+        binary,
+        port,
+        chainLayer,
+        directories,
+        metadata,
+        extraBootArgs,
+        downloadInfo,
+      );
+
+  bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   Binary copyWith({
     String? version,
@@ -115,7 +147,7 @@ abstract class Binary {
           'logs',
         ]);
 
-      case BinaryType.bitAssets:
+      case BinaryType.bitassets:
         await _deleteFilesInDir(dir, [
           'data.mdb',
           'logs',
@@ -150,7 +182,7 @@ abstract class Binary {
       case BinaryType.bitnames:
         await _renameWalletDir(dir, 'wallet.mdb');
 
-      case BinaryType.bitAssets:
+      case BinaryType.bitassets:
         await _renameWalletDir(dir, 'wallet.mdb');
 
       case BinaryType.thunder:
@@ -253,7 +285,7 @@ abstract class Binary {
           'logs',
         ]);
 
-      case BinaryType.bitAssets:
+      case BinaryType.bitassets:
         await _deleteFilesInDir(dir, [
           'bitassets-cli',
           'logs',
@@ -286,7 +318,7 @@ abstract class Binary {
     }
   }
 
-  Future<File> resolveBinaryPath(Directory? appDir) async {
+  Future<File> resolveBinaryPath(Directory appDir) async {
     // First find all possible paths the binary might be in,
     // such as .exe, .app, /assets/bin, $datadir/assets etc.
     final possiblePaths = _getPossibleBinaryPaths(binary, appDir);
@@ -317,7 +349,6 @@ abstract class Binary {
   }
 
   Future<File> loadAndWriteBinaryFromAssetsBundle(Directory? appDir) async {
-    log.d('loading binary from assets bundle: $binary');
     ByteData? binResource;
 
     final binaryName = binary + (Platform.isWindows && !binary.endsWith('.exe') ? '.exe' : '');
@@ -325,12 +356,10 @@ abstract class Binary {
     try {
       // add .exe if on windows and the binary doesn't already end with .exe
       final assetPath = 'assets/bin/$binaryName';
-      log.d('Attempting to load binary from asset path: $assetPath');
 
       binResource = await rootBundle.load(assetPath);
     } catch (e) {
-      log.e('Failed to load binary $binaryName from assets bundle');
-      throw Exception('Process: could not find binary $binaryName in any location. Error: $e');
+      throw Exception('Process: could not find binary $binaryName in any location: $e');
     }
     log.d('successfully loaded binary from assets: $assetPath');
 
@@ -365,9 +394,8 @@ abstract class Binary {
     return file;
   }
 
-  List<String> _getPossibleBinaryPaths(String baseBinary, Directory? appDir) {
+  List<String> _getPossibleBinaryPaths(String baseBinary, Directory appDir) {
     final paths = <String>[];
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
 
     if (kDebugMode) {
       // In debug mode, check pwd/bin first
@@ -376,106 +404,26 @@ abstract class Binary {
       ]);
     }
 
-    if (appDir != null) {
-      // In release mode, check the folder where binaries are downloaded to first
-      paths.addAll([
-        path.join(appDir.path, 'assets', 'bin', baseBinary),
-      ]);
-    }
+    // Check the folder where binaries are downloaded to first
+    paths.addAll([
+      path.join(appDir.path, 'assets', 'bin', baseBinary),
+    ]);
 
-    // Add launcher download paths based on binary type and platform
-    if (home != null) {
-      if (type == BinaryType.bitcoinCore) {
-        switch (Platform.operatingSystem) {
-          case 'linux':
-            paths.add(
-              path.join(
-                home,
-                '.drivechain-launcher',
-                'binaries',
-                'bitcoin',
-                'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu',
-                'bitcoind',
-              ),
-            );
-          case 'macos':
-            paths.add(
-              path.join(
-                home,
-                'Application Support',
-                'binaries',
-                'bitcoin',
-                'L1-bitcoin-patched-latest-x86_64-apple-darwin',
-                'bitcoind',
-              ),
-            );
-          case 'windows':
-            paths.add(
-              path.join(
-                home,
-                'AppData',
-                'Roaming',
-                'binaries',
-                'bitcoin',
-                'L1-bitcoin-patched-latest-x86_64-w64-msvc',
-                'bitcoind.exe',
-              ),
-            );
-        }
-      } else if (type == BinaryType.enforcer) {
-        switch (Platform.operatingSystem) {
-          case 'linux':
-            final binaryName = 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu';
-            paths.add(
-              path.join(
-                home,
-                'Downloads',
-                'Drivechain-Launcher-Downloads',
-                'enforcer',
-                binaryName,
-                binaryName,
-              ),
-            );
-          case 'macos':
-            final binaryName = 'bip300301-enforcer-latest-x86_64-apple-darwin';
-            paths.add(
-              path.join(
-                home,
-                'Downloads',
-                'Drivechain-Launcher-Downloads',
-                'enforcer',
-                binaryName,
-                binaryName,
-              ),
-            );
-          case 'windows':
-            final binaryName = 'bip300301-enforcer-latest-x86_64-pc-windows-gnu';
-            paths.add(
-              path.join(
-                home,
-                'Downloads',
-                'Drivechain-Launcher-Downloads',
-                'enforcer',
-                binaryName,
-                '$binaryName.exe',
-              ),
-            );
-        }
-      }
-    }
-
-    log.i('found possible paths $paths');
+    // we might be running a sidechain. if that's the case, check if bitwindow has downloaded it
+    final bitwindowAppDir = path.join(appDir.parent.path, 'bitwindow');
+    paths.addAll([
+      path.join(bitwindowAppDir, 'assets', 'bin', baseBinary),
+    ]);
 
     return paths;
   }
 
   /// Check the Last-Modified header for a binary without downloading
-  Future<DateTime?> checkReleaseDate() async {
+  Future<DateTime?> _checkReleaseDate() async {
     try {
       final os = getOS();
       final fileName = metadata.files[os];
       if (fileName == null || fileName.isEmpty || metadata.baseUrl.isEmpty) {
-        log.w('Warning: No file name or baseUrl for $name on $os');
         return null;
       }
 
@@ -748,7 +696,7 @@ extension BinaryPaths on Binary {
     return switch (type) {
       BinaryType.testSidechain => filePath([datadir(), 'debug.log']),
       BinaryType.zSide => filePath([datadir(), 'regtest', 'debug.log']),
-      BinaryType.thunder || BinaryType.bitnames || BinaryType.bitAssets => _findLatestVersionedLog(),
+      BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets => _findLatestVersionedLog(),
       BinaryType.bitcoinCore => filePath([datadir(), 'debug.log']),
       BinaryType.bitWindow => filePath([datadir(), 'server.log']),
       BinaryType.enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
@@ -898,7 +846,7 @@ extension BinaryDownload on Binary {
   }
 
   /// Load when the file was last modified
-  Future<(DateTime?, File?)> getCreationDate(Directory appDir) async {
+  Future<(DateTime?, File?)> _getCreationDate(Directory appDir) async {
     try {
       final binaryFile = await resolveBinaryPath(appDir);
       final stat = await binaryFile.stat();
@@ -907,6 +855,35 @@ extension BinaryDownload on Binary {
       return (lastModified, binaryFile);
     } catch (e) {
       return (null, null);
+    }
+  }
+
+  /// Update metadata with current binary information
+  Future<Binary> updateMetadata(Directory appDir) async {
+    try {
+      // Load metadata from bin/ directory
+      final (lastModified, binaryFile) = await _getCreationDate(appDir);
+      final updateableBinary = binaryFile?.path.contains(appDir.path) ?? false;
+
+      DateTime? serverReleaseDate;
+      try {
+        serverReleaseDate = await _checkReleaseDate();
+      } catch (e) {
+        log.e('could not check release date: $e');
+      }
+
+      final updatedConfig = metadata.copyWith(
+        remoteTimestamp: serverReleaseDate,
+        downloadedTimestamp: lastModified,
+        binaryPath: binaryFile,
+        updateable: updateableBinary,
+      );
+
+      return copyWith(metadata: updatedConfig);
+    } catch (e) {
+      // Log error and return unchanged binary
+      log.e('Error updating metadata for $name: $e');
+      return this;
     }
   }
 }
@@ -918,6 +895,20 @@ class DirectoryConfig {
   const DirectoryConfig({
     required this.base,
   });
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || other is DirectoryConfig && _mapEquals(base, other.base);
+
+  @override
+  int get hashCode => base.hashCode;
+
+  bool _mapEquals(Map<OS, String> a, Map<OS, String> b) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || a[key] != b[key]) return false;
+    }
+    return true;
+  }
 }
 
 /// Configuration for binary downloads
@@ -955,21 +946,54 @@ class MetadataConfig {
       updateable: updateable,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MetadataConfig &&
+          baseUrl == other.baseUrl &&
+          updateable == other.updateable &&
+          remoteTimestamp == other.remoteTimestamp &&
+          downloadedTimestamp == other.downloadedTimestamp &&
+          binaryPath?.path == other.binaryPath?.path &&
+          _mapEquals(files, other.files);
+
+  @override
+  int get hashCode => Object.hash(
+        baseUrl,
+        updateable,
+        remoteTimestamp,
+        downloadedTimestamp,
+        binaryPath?.path,
+        files.hashCode,
+      );
+
+  bool _mapEquals(Map<OS, String> a, Map<OS, String> b) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || a[key] != b[key]) return false;
+    }
+    return true;
+  }
 }
 
 /// Represents the download status and information for a binary
 class DownloadInfo {
   final double progress;
-  final String? message;
+  final double total;
   final String? error;
+  final String? message;
   final String? hash; // SHA256 of the binary
   final DateTime? downloadedAt;
   final bool isDownloading;
 
+  double get progressPercent => progress / total;
+
   const DownloadInfo({
     this.progress = 0.0,
-    this.message,
+    this.total = 0.0,
     this.error,
+    this.message,
     this.hash,
     this.downloadedAt,
     this.isDownloading = false,
@@ -978,19 +1002,43 @@ class DownloadInfo {
   /// Create a copy with updated fields
   DownloadInfo copyWith({
     double? progress,
-    String? message,
+    double? total,
     String? error,
+    String? message,
     String? hash,
     DateTime? downloadedAt,
     bool? isDownloading,
   }) {
     return DownloadInfo(
       progress: progress ?? this.progress,
-      message: message ?? this.message,
+      total: total ?? this.total,
       error: error ?? this.error,
+      message: message ?? this.message,
       hash: hash ?? this.hash,
       downloadedAt: downloadedAt ?? this.downloadedAt,
       isDownloading: isDownloading ?? this.isDownloading,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DownloadInfo &&
+          progress == other.progress &&
+          total == other.total &&
+          error == other.error &&
+          message == other.message &&
+          hash == other.hash &&
+          downloadedAt == other.downloadedAt &&
+          isDownloading == other.isDownloading;
+
+  @override
+  int get hashCode => Object.hash(
+        progress,
+        total,
+        error,
+        hash,
+        downloadedAt,
+        isDownloading,
+      );
 }

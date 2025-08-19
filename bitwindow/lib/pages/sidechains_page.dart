@@ -466,7 +466,34 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       _ => false,
     };
 
+    final downloading = switch (sidechain) {
+      var b when b is BitcoinCore => _binaryProvider.mainchainDownloading,
+      var b when b is Enforcer => _binaryProvider.enforcerDownloading,
+      var b when b is BitWindow => _binaryProvider.bitwindowDownloading,
+      var b when b is Thunder => _binaryProvider.thunderDownloading,
+      var b when b is Bitnames => _binaryProvider.bitnamesDownloading,
+      var b when b is BitAssets => _binaryProvider.bitassetsDownloading,
+      _ => false,
+    };
+
     final isProcessRunning = _binaryProvider.isRunning(sidechain);
+
+    if (downloading) {
+      final downloadInfo = _binaryProvider.downloadProgress(sidechain.type);
+
+      final syncInfo = SyncInfo(
+        progressCurrent: downloadInfo.progress,
+        progressGoal: downloadInfo.total,
+        lastBlockAt: null,
+        downloadInfo: downloadInfo,
+      );
+
+      return ChainLoader(
+        name: sidechain.name,
+        syncInfo: syncInfo,
+        justPercent: true,
+      );
+    }
 
     if (stopping) {
       return SailButton(
