@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart';
-import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -196,25 +193,6 @@ class _ResetSettingsContent extends StatefulWidget {
 }
 
 class _ResetSettingsContentState extends State<_ResetSettingsContent> {
-  Future<void> _deleteMultisigWallets(Directory dir, Logger logger) async {
-    try {
-      final entities = await dir.list(recursive: false).toList();
-
-      for (final entity in entities) {
-        if (entity is Directory && path.basename(entity.path).startsWith('multisig_')) {
-          try {
-            await entity.delete(recursive: true);
-            logger.i('Deleted multisig wallet: ${entity.path}');
-          } catch (e) {
-            logger.w('Could not delete multisig wallet ${entity.path}: $e');
-          }
-        }
-      }
-    } catch (e) {
-      logger.e('Error cleaning multisig wallets in ${dir.path}: $e');
-    }
-  }
-
   Future<void> _onResetAllChains() async {
     await showDialog(
       context: context,
@@ -280,83 +258,21 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
             'Make sure to backup your seed phrase before proceeding. This action cannot be undone.',
         confirmButtonVariant: ButtonVariant.destructive,
         onConfirm: () async {
-          final binaryProvider = GetIt.I.get<BinaryProvider>();
           final logger = GetIt.I.get<Logger>();
 
           try {
-            final binaries = [
-              BitcoinCore(),
-              Enforcer(),
-              BitWindow(),
-            ];
-
-            final futures = <Future>[];
-            for (final binary in binaries) {
-              futures.add(binaryProvider.stop(binary));
-            }
-
-            await Future.wait(futures);
-            await binaryProvider.stopAll();
-            await Future.delayed(const Duration(seconds: 3));
-
-            final appDir = await Environment.datadir();
-
-            final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-            if (await walletDir.exists()) {
-              await walletDir.delete(recursive: true);
-            }
-
-            final enforcer = Enforcer();
-            final enforcerDataDirPath = enforcer.datadir();
-            final enforcerWalletDir = Directory(path.join(enforcerDataDirPath, 'wallet'));
-
-            if (await enforcerWalletDir.exists()) {
-              await enforcerWalletDir.delete(recursive: true);
-            }
-
-            // Clean up bitdrive directory containing multisig data
-            final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-            if (await bitdriveDir.exists()) {
-              await bitdriveDir.delete(recursive: true);
-            }
-
-            // Clean up Bitcoin Core wallet directories in Drivechain/signet
-            final dataDir = BitcoinCore().datadir();
-            final bitcoinCoreSignetDir = Directory(path.join(dataDir, 'signet'));
-            if (await bitcoinCoreSignetDir.exists()) {
-              await _deleteMultisigWallets(bitcoinCoreSignetDir, logger);
-            }
-
-            // Clean up any additional wallet directories in app directory
-            final appDirContents = appDir.listSync();
-            for (final entity in appDirContents) {
-              if (entity is Directory) {
-                final dirName = path.basename(entity.path);
-                if (dirName.contains('wallet') || dirName.startsWith('wallet_starters-')) {
-                  try {
-                    await entity.delete(recursive: true);
-                  } catch (e) {
-                    logger.w('Could not delete directory $dirName: $e');
-                  }
-                }
-              }
-            }
-
-            if (context.mounted) Navigator.of(context).pop();
-
+            await GetIt.I.get<WalletProvider>().deleteAllWallets();
             if (context.mounted) {
-              await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
-              unawaited(bootBinaries(GetIt.I.get<Logger>()));
+              Navigator.of(context).pop();
             }
           } catch (e) {
-            logger.e('Error during wallet reset: $e');
-
-            if (context.mounted) Navigator.of(context).pop();
+            logger.e('could not reset wallet data: $e');
 
             if (context.mounted) {
+              Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Error resetting wallet: $e'),
+                  content: Text('Could not reset wallets: $e'),
                   backgroundColor: SailTheme.of(context).colors.error,
                 ),
               );
@@ -374,17 +290,29 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary20('Reset'),
-        SailText.secondary13('Reset all chain data and wallet data.'),
-        Row(
-          spacing: SailStyleValues.padding12,
+        SailText.secondary13('Start fresh by resetting various data used by different binaries'),
+
+        // Version Information
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding08,
           children: [
+            SailText.primary15('Reset Blockchain Data'),
             SailButton(
               label: 'Reset All Chains',
               variant: ButtonVariant.destructive,
               onPressed: _onResetAllChains,
             ),
+          ],
+        ),
+
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailText.primary15('Delete Wallet Data'),
             SailButton(
-              label: 'Reset Wallet',
+              label: 'Delete Wallet',
               variant: ButtonVariant.destructive,
               onPressed: _onResetWallet,
             ),
