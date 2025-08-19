@@ -737,4 +737,11 @@ class BitDriveProvider extends ChangeNotifier {
     // Save updated data - this is the single source of truth for multisig groups
     await file.writeAsString(json.encode(jsonData));
   }
+
+  Future<void> wipeData(Directory appDir) async {
+    final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
+    if (await bitdriveDir.exists()) {
+      await bitdriveDir.delete(recursive: true);
+    }
+  }
 }

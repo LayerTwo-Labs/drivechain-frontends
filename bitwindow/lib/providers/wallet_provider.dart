@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
+import 'package:bitwindow/main.dart';
+import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -457,7 +459,28 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> deleteAllWallets(Future<Map<String, dynamic>?> Function()? beforeRebootAction) async {
+  // Delete Bitcoin Core wallet directories in Drivechain/signet
+  Future<void> _deleteCoreMultisigWallets(Directory appDir, Logger logger) async {
+    try {
+      final coreDataDir = Directory(path.join(BitcoinCore().datadir(), 'signet'));
+      final entities = await coreDataDir.list(recursive: false).toList();
+
+      for (final maybeMusigWallet in entities) {
+        if (maybeMusigWallet is Directory && path.basename(maybeMusigWallet.path).startsWith('multisig_')) {
+          try {
+            await maybeMusigWallet.delete(recursive: true);
+            logger.i('Deleted multisig wallet: ${maybeMusigWallet.path}');
+          } catch (e) {
+            logger.w('Could not delete multisig wallet ${maybeMusigWallet.path}: $e');
+          }
+        }
+      }
+    } catch (e) {
+      logger.e('Error cleaning multisig wallets in ${appDir.path}: $e');
+    }
+  }
+
+  Future<void> deleteAllWallets() async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     // Store connected and running binaries to reboot them after wallet wipe is complete
     final connected = binaryProvider.binaries.where(binaryProvider.isConnected).toList();
@@ -478,24 +501,24 @@ class WalletProvider extends ChangeNotifier {
       await binaryProvider.stop(binary);
     }
 
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 5));
 
     for (final binary in binaryProvider.binaries) {
-      // wipe all wallets
+      // wipe all wallets, for the enforcer, bitnames, bitassets, thunder etc..
       await binary.deleteWallet();
     }
 
+    await GetIt.I.get<BitDriveProvider>().wipeData(appDir);
+    await _deleteCoreMultisigWallets(appDir, _logger);
+
     await moveMasterWalletDir();
-    final walletData = await beforeRebootAction?.call();
 
     // reboot L1-binaries
-    await binaryProvider.startWithEnforcer(binaryProvider.binaries.where((b) => b.name == BitWindow().name).first);
+    await bootBinaries(_logger);
 
     // then restart all sidechains we stopped
     for (final binary in runningBinaries) {
       unawaited(binaryProvider.start(binary));
     }
-
-    return walletData;
   }
 }
