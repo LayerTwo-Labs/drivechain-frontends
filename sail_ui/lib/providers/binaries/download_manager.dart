@@ -198,8 +198,6 @@ class DownloadManager extends ChangeNotifier {
     // Update binary metadata
     // find the updated binary
     final updatedBinary = await binary.updateMetadata(appDir);
-    log.d('🔄 _updateBinary called from _downloadAndExtractBinary (update metadata) for ${binary.name}');
-
     _updateBinary(
       binary.name,
       (b) => b.copyWith(

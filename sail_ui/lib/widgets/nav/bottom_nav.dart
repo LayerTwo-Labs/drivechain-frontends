@@ -454,28 +454,34 @@ class ChainLoader extends StatelessWidget {
   final String name;
   final SyncInfo syncInfo;
   final bool justPercent;
+  final bool expanded;
 
   const ChainLoader({
     super.key,
     required this.name,
     required this.syncInfo,
     this.justPercent = false,
+    this.expanded = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Tooltip(
-        message: syncInfo.downloadInfo.isDownloading
-            ? 'Downloading $name\nProgress: ${syncInfo.progressCurrent} MB\nSize: ${syncInfo.progressGoal} MB'
-            : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
-        child: ProgressBar(
-          current: syncInfo.progressCurrent,
-          goal: syncInfo.progressGoal,
-          justPercent: justPercent,
-        ),
+    final widget = Tooltip(
+      message: syncInfo.downloadInfo.isDownloading
+          ? 'Downloading $name\n${syncInfo.downloadInfo.message}'
+          : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
+      child: ProgressBar(
+        current: syncInfo.progressCurrent,
+        goal: syncInfo.progressGoal,
+        justPercent: justPercent,
       ),
     );
+
+    if (expanded) {
+      return Expanded(child: widget);
+    }
+
+    return widget;
   }
 }
 
