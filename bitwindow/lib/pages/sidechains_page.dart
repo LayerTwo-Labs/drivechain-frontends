@@ -492,6 +492,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         name: sidechain.name,
         syncInfo: syncInfo,
         justPercent: true,
+        expanded: false,
       );
     }
 
