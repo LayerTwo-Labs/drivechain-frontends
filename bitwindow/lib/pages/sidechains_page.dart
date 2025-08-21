@@ -467,18 +467,19 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     };
 
     final downloading = switch (sidechain) {
-      var b when b is BitcoinCore => _binaryProvider.mainchainDownloading,
-      var b when b is Enforcer => _binaryProvider.enforcerDownloading,
-      var b when b is BitWindow => _binaryProvider.bitwindowDownloading,
-      var b when b is Thunder => _binaryProvider.thunderDownloading,
-      var b when b is Bitnames => _binaryProvider.bitnamesDownloading,
-      var b when b is BitAssets => _binaryProvider.bitassetsDownloading,
+      var b when b is BitcoinCore => _binaryProvider.mainchainDownloadState.isDownloading,
+      var b when b is Enforcer => _binaryProvider.enforcerDownloadState.isDownloading,
+      var b when b is BitWindow => _binaryProvider.bitwindowDownloadState.isDownloading,
+      var b when b is Thunder => _binaryProvider.thunderDownloadState.isDownloading,
+      var b when b is Bitnames => _binaryProvider.bitnamesDownloadState.isDownloading,
+      var b when b is BitAssets => _binaryProvider.bitassetsDownloadState.isDownloading,
       _ => false,
     };
 
     final isProcessRunning = _binaryProvider.isRunning(sidechain);
 
     if (downloading) {
+      // Use the combined state getter for consistency
       final downloadInfo = _binaryProvider.downloadProgress(sidechain.type);
 
       final syncInfo = SyncInfo(
@@ -802,8 +803,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   // Helper method to track binary states efficiently
-  Map<String, bool> _getBinaryStates() {
-    return {
+  Map<String, dynamic> _getBinaryStates() {
+    final states = {
       'mainchainConnected': _binaryProvider.mainchainConnected,
       'enforcerConnected': _binaryProvider.enforcerConnected,
       'bitwindowConnected': _binaryProvider.bitwindowConnected,
@@ -822,7 +823,16 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'thunderStopping': _binaryProvider.thunderStopping,
       'bitnamesStopping': _binaryProvider.bitnamesStopping,
       'bitassetsStopping': _binaryProvider.bitassetsStopping,
+      // Track complete download states for better change detection
+      'bitnamesDownloadState': _binaryProvider.bitnamesDownloadState,
+      'bitassetsDownloadState': _binaryProvider.bitassetsDownloadState,
+      'mainchainDownloadState': _binaryProvider.mainchainDownloadState,
+      'enforcerDownloadState': _binaryProvider.enforcerDownloadState,
+      'bitwindowDownloadState': _binaryProvider.bitwindowDownloadState,
+      'thunderDownloadState': _binaryProvider.thunderDownloadState,
     };
+
+    return states;
   }
 }
 

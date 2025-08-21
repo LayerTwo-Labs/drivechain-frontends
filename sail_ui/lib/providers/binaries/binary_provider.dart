@@ -115,13 +115,13 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitassetsStopping => bitassetsRPC?.stoppingBinary ?? false;
   bool get zsideStopping => zsideRPC?.stoppingBinary ?? false;
 
-  bool get mainchainDownloading => _downloadManager.isDownloading(BinaryType.bitcoinCore);
-  bool get enforcerDownloading => _downloadManager.isDownloading(BinaryType.enforcer);
-  bool get bitwindowDownloading => _downloadManager.isDownloading(BinaryType.bitWindow);
-  bool get thunderDownloading => _downloadManager.isDownloading(BinaryType.thunder);
-  bool get bitnamesDownloading => _downloadManager.isDownloading(BinaryType.bitnames);
-  bool get bitassetsDownloading => _downloadManager.isDownloading(BinaryType.bitassets);
-  bool get zsideDownloading => _downloadManager.isDownloading(BinaryType.zSide);
+  DownloadInfo get mainchainDownloadState => _downloadManager.getProgress(BinaryType.bitcoinCore);
+  DownloadInfo get enforcerDownloadState => _downloadManager.getProgress(BinaryType.enforcer);
+  DownloadInfo get bitwindowDownloadState => _downloadManager.getProgress(BinaryType.bitWindow);
+  DownloadInfo get thunderDownloadState => _downloadManager.getProgress(BinaryType.thunder);
+  DownloadInfo get bitnamesDownloadState => _downloadManager.getProgress(BinaryType.bitnames);
+  DownloadInfo get bitassetsDownloadState => _downloadManager.getProgress(BinaryType.bitassets);
+  DownloadInfo get zsideDownloadState => _downloadManager.getProgress(BinaryType.zSide);
 
   // Only show errors for explicitly launched binaries
   String? get mainchainError => mainchainRPC?.connectionError;
@@ -401,7 +401,9 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   /// Get download progress for a binary
-  DownloadInfo downloadProgress(BinaryType type) => _downloadManager.getProgress(type);
+  DownloadInfo downloadProgress(BinaryType type) {
+    return _downloadManager.getProgress(type);
+  }
 
   List<Binary> get runningBinaries => _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
@@ -592,8 +594,24 @@ class BinaryProvider extends ChangeNotifier {
             // Store original binaries to compare for changes
             final originalBinaries = List<Binary>.from(_downloadManager.binaries);
 
-            // Reload metadata
-            _downloadManager.binaries = await loadBinaryCreationTimestamp(_downloadManager.binaries, appDir);
+            // Reload metadata while preserving download state
+            final reloadedBinaries = await loadBinaryCreationTimestamp(_downloadManager.binaries, appDir);
+
+            // Preserve download state from original binaries
+            final preservedBinaries = <Binary>[];
+            for (int i = 0; i < reloadedBinaries.length; i++) {
+              final reloaded = reloadedBinaries[i];
+              final original = originalBinaries.length > i ? originalBinaries[i] : null;
+
+              // If original exists and has download state, preserve it
+              if (original != null && original.type == reloaded.type) {
+                preservedBinaries.add(reloaded.copyWith(downloadInfo: original.downloadInfo));
+              } else {
+                preservedBinaries.add(reloaded);
+              }
+            }
+
+            _downloadManager.binaries = preservedBinaries;
 
             // Only notify if any binary metadata actually changed
             bool hasChanges = false;
