@@ -14,13 +14,25 @@ import 'package:sail_ui/sail_ui.dart';
 class DownloadManager extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final Directory appDir;
-  late List<Binary> binaries;
+  late Map<BinaryType, Binary> _binariesMap;
+
+  // Public getter returns a List for compatibility
+  List<Binary> get binaries => _binariesMap.values.toList();
+
+  // Setter for compatibility - converts list back to map
+  set binaries(List<Binary> newBinaries) {
+    _binariesMap = {for (var b in newBinaries) b.type: b};
+    notifyListeners();
+  }
 
   // Private constructor
   DownloadManager._create({
     required this.appDir,
-    required this.binaries,
-  });
+    required List<Binary> binaries,
+  }) {
+    // Convert list to map keyed by BinaryType
+    _binariesMap = {for (var b in binaries) b.type: b};
+  }
 
   // Async factory
   static Future<DownloadManager> create({
@@ -39,37 +51,48 @@ class DownloadManager extends ChangeNotifier {
   @visibleForTesting
   DownloadManager.test({
     required this.appDir,
-    required this.binaries,
-  });
+    required List<Binary> binaries,
+  }) {
+    // Convert list to map keyed by BinaryType
+    _binariesMap = {for (var b in binaries) b.type: b};
+  }
 
   DownloadInfo getProgress(BinaryType type) {
-    final binary = binaries.firstWhere((b) => b.type == type);
+    final binary = _binariesMap[type];
+    if (binary == null) {
+      return const DownloadInfo(progress: 0.0, isDownloading: false);
+    }
     return binary.downloadInfo;
   }
 
   Future<void> downloadIfMissing(Binary binary, {bool shouldUpdate = false}) async {
-    if (binary.updateAvailable) {
+    // Always use the current binary state from our internal map to avoid stale metadata
+    final currentBinary = _binariesMap[binary.type] ?? binary;
+
+    if (currentBinary.updateAvailable) {
       if (shouldUpdate) {
         // We have an available update, and the binary we use is in
         // appDir/assets/bin, so we go ahead and update it
-        return await _downloadBinary(binary);
+        await _downloadBinary(currentBinary);
+        return;
       } else {
-        log.w('binary ${binary.name} is not updateable');
+        log.w('binary ${currentBinary.name} is not updateable');
       }
     }
 
-    if (binary.isDownloaded) {
+    if (currentBinary.isDownloaded) {
       // We already have a binary, dont bother
       return;
     }
 
-    await _downloadBinary(binary);
+    await _downloadBinary(currentBinary);
   }
 
   /// Download and extract a binary
   Future<void> _downloadBinary(Binary binary) async {
     // Check if already downloading
-    if (isDownloading(binary.type)) {
+    final currentlyDownloading = isDownloading(binary.type);
+    if (currentlyDownloading) {
       log.i('Download already in progress for ${binary.name}, waiting for completion...');
       // Wait for the download to complete
       while (isDownloading(binary.type)) {
@@ -79,11 +102,21 @@ class DownloadManager extends ChangeNotifier {
       return;
     }
 
+    // Also check if already downloaded (to prevent duplicate extraction after completion)
+    final currentBinary = _binariesMap[binary.type] ?? binary;
+
+    if (currentBinary.isDownloaded) {
+      log.i('Binary ${binary.name} already downloaded, skipping download');
+      return;
+    }
+
+    log.i('Proceeding with download for ${binary.name}');
+
     try {
       await _downloadAndExtractBinary(binary);
     } catch (e) {
       _updateBinary(
-        binary.name,
+        binary.type,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
             progress: 0.0,
@@ -97,24 +130,36 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
-  void _updateBinary(String name, Binary Function(Binary) updater) {
-    final index = binaries.indexWhere((b) => b.name == name);
-    if (index >= 0) {
-      final newBinary = updater(binaries[index]);
-      binaries[index] = newBinary;
-      notifyListeners();
+  void _updateBinary(BinaryType type, Binary Function(Binary) updater) {
+    // Find by name to get the type (for backward compatibility)
+    MapEntry<BinaryType, Binary>? entry;
+    try {
+      entry = _binariesMap.entries.firstWhere(
+        (e) => e.key == type,
+      );
+    } catch (e) {
+      log.w('Binary $type not found for update');
+      return;
     }
+
+    final oldBinary = entry.value;
+    final newBinary = updater(oldBinary);
+
+    // Atomic update using the type as key
+    _binariesMap[type] = newBinary;
+    notifyListeners();
   }
 
   bool isDownloading(BinaryType type) {
-    return binaries.any((b) => b.type == type && b.downloadInfo.isDownloading);
+    final binary = _binariesMap[type];
+    return binary != null && binary.downloadInfo.isDownloading;
   }
 
   /// Internal method to handle the actual download and extraction
   Future<void> _downloadAndExtractBinary(Binary binary) async {
     if (binary.metadata.baseUrl.isEmpty) {
       _updateBinary(
-        binary.name,
+        binary.type,
         (b) => b.copyWith(
           downloadInfo: const DownloadInfo(
             progress: 0.0,
@@ -128,7 +173,7 @@ class DownloadManager extends ChangeNotifier {
     }
 
     _updateBinary(
-      binary.name,
+      binary.type,
       (b) => b.copyWith(
         downloadInfo: const DownloadInfo(
           progress: 0.0,
@@ -159,7 +204,7 @@ class DownloadManager extends ChangeNotifier {
         filePath = await _downloadReleasesBinary(binary, downloadsDir);
       } else {
         _updateBinary(
-          binary.name,
+          binary.type,
           (b) => b.copyWith(
             downloadInfo: b.downloadInfo.copyWith(
               progress: 0.0,
@@ -176,7 +221,7 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       // Update binary state to show error
       _updateBinary(
-        binary.name,
+        binary.type,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
             progress: 0.0,
@@ -199,7 +244,7 @@ class DownloadManager extends ChangeNotifier {
     // find the updated binary
     final updatedBinary = await binary.updateMetadata(appDir);
     _updateBinary(
-      binary.name,
+      binary.type,
       (b) => b.copyWith(
         downloadInfo: DownloadInfo(
           message: 'Downloaded and extracted successfully',
@@ -211,7 +256,6 @@ class DownloadManager extends ChangeNotifier {
         metadata: updatedBinary.metadata,
       ),
     );
-    notifyListeners();
 
     log.i('Successfully downloaded and extracted ${binary.name}');
   }
@@ -240,7 +284,7 @@ class DownloadManager extends ChangeNotifier {
     final filePath = path.join(downloadsDir.path, fileName);
 
     try {
-      await _downloadFile(downloadUrl, filePath, binary.name);
+      await _downloadFile(downloadUrl, filePath, binary.type);
       return filePath;
     } catch (e) {
       // Clean up partial download if it exists
@@ -261,13 +305,13 @@ class DownloadManager extends ChangeNotifier {
     final zipName = binary.metadata.files[OS.current]!;
     final zipPath = path.join(downloadsDir.path, zipName);
     final downloadUrl = Uri.parse(binary.metadata.baseUrl).resolve(zipName).toString();
-    await _downloadFile(downloadUrl, zipPath, binary.name);
+    await _downloadFile(downloadUrl, zipPath, binary.type);
     return zipPath;
   }
 
   /// Download a file
-  Future<void> _downloadFile(String url, String savePath, String binaryName) async {
-    log.i('_downloadFile started for $binaryName from $url');
+  Future<void> _downloadFile(String url, String savePath, BinaryType binaryType) async {
+    log.i('_downloadFile started for $binaryType from $url');
     try {
       final client = HttpClient();
       log.i('Starting download from $url to $savePath');
@@ -286,7 +330,7 @@ class DownloadManager extends ChangeNotifier {
       var receivedBytes = 0;
       String lastPercentStr = '';
 
-      log.i('Download starting: totalBytes=$totalBytes, binaryName=$binaryName');
+      log.i('Download starting: totalBytes=$totalBytes, binaryName=$binaryType');
 
       double downloadedMB = 0;
       double totalMB = 0;
@@ -305,7 +349,7 @@ class DownloadManager extends ChangeNotifier {
             totalMB = totalBytes / 1024 / 1024;
 
             _updateBinary(
-              binaryName,
+              binaryType,
               (b) => b.copyWith(
                 downloadInfo: DownloadInfo(
                   progress: downloadedMB,
@@ -325,7 +369,7 @@ class DownloadManager extends ChangeNotifier {
       client.close();
 
       _updateBinary(
-        binaryName,
+        binaryType,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
             progress: totalMB,
@@ -335,12 +379,12 @@ class DownloadManager extends ChangeNotifier {
           ),
         ),
       );
-      log.i('Download completed for $binaryName');
+      log.i('Download completed for $binaryType');
     } catch (e) {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
       log.e('ERROR: $error');
       _updateBinary(
-        binaryName,
+        binaryType,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
             progress: 0.0,
@@ -361,7 +405,7 @@ class DownloadManager extends ChangeNotifier {
     Binary binary,
   ) async {
     _updateBinary(
-      binary.name,
+      binary.type,
       (b) => b.copyWith(
         downloadInfo: DownloadInfo(
           progress: 0.9999,
