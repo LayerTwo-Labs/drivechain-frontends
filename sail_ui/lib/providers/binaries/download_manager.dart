@@ -17,7 +17,7 @@ class DownloadManager extends ChangeNotifier {
   late Map<BinaryType, Binary> _binariesMap;
 
   // Public getter returns a List for compatibility
-  List<Binary> get binaries => _binariesMap.values.toList();
+  List<Binary> get binaries => List.unmodifiable(_binariesMap.values.toList());
 
   // Setter for compatibility - converts list back to map
   set binaries(List<Binary> newBinaries) {
@@ -115,7 +115,7 @@ class DownloadManager extends ChangeNotifier {
     try {
       await _downloadAndExtractBinary(binary);
     } catch (e) {
-      _updateBinary(
+      updateBinary(
         binary.type,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
@@ -130,7 +130,7 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
-  void _updateBinary(BinaryType type, Binary Function(Binary) updater) {
+  void updateBinary(BinaryType type, Binary Function(Binary) updater) {
     // Find by name to get the type (for backward compatibility)
     MapEntry<BinaryType, Binary>? entry;
     try {
@@ -145,9 +145,11 @@ class DownloadManager extends ChangeNotifier {
     final oldBinary = entry.value;
     final newBinary = updater(oldBinary);
 
-    // Atomic update using the type as key
-    _binariesMap[type] = newBinary;
-    notifyListeners();
+    // Only update and notify if there's an actual change
+    if (oldBinary != newBinary) {
+      _binariesMap[type] = newBinary;
+      notifyListeners();
+    }
   }
 
   bool isDownloading(BinaryType type) {
@@ -158,7 +160,7 @@ class DownloadManager extends ChangeNotifier {
   /// Internal method to handle the actual download and extraction
   Future<void> _downloadAndExtractBinary(Binary binary) async {
     if (binary.metadata.baseUrl.isEmpty) {
-      _updateBinary(
+      updateBinary(
         binary.type,
         (b) => b.copyWith(
           downloadInfo: const DownloadInfo(
@@ -172,7 +174,7 @@ class DownloadManager extends ChangeNotifier {
       return;
     }
 
-    _updateBinary(
+    updateBinary(
       binary.type,
       (b) => b.copyWith(
         downloadInfo: const DownloadInfo(
@@ -203,7 +205,7 @@ class DownloadManager extends ChangeNotifier {
       } else if (binary.metadata.baseUrl.contains('releases.drivechain.info')) {
         filePath = await _downloadReleasesBinary(binary, downloadsDir);
       } else {
-        _updateBinary(
+        updateBinary(
           binary.type,
           (b) => b.copyWith(
             downloadInfo: b.downloadInfo.copyWith(
@@ -220,7 +222,7 @@ class DownloadManager extends ChangeNotifier {
       await _extractBinary(extractDir, filePath, downloadsDir, binary);
     } catch (e) {
       // Update binary state to show error
-      _updateBinary(
+      updateBinary(
         binary.type,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
@@ -243,7 +245,7 @@ class DownloadManager extends ChangeNotifier {
     // Update binary metadata
     // find the updated binary
     final updatedBinary = await binary.updateMetadata(appDir);
-    _updateBinary(
+    updateBinary(
       binary.type,
       (b) => b.copyWith(
         downloadInfo: DownloadInfo(
@@ -345,10 +347,10 @@ class DownloadManager extends ChangeNotifier {
 
           // Only update if the percentage display would change
           if (currentPercentStr != lastPercentStr) {
-            downloadedMB = receivedBytes / 1024 / 1024;
-            totalMB = totalBytes / 1024 / 1024;
+            downloadedMB = double.parse((receivedBytes / 1024 / 1024).toStringAsFixed(2));
+            totalMB = double.parse((totalBytes / 1024 / 1024).toStringAsFixed(2));
 
-            _updateBinary(
+            updateBinary(
               binaryType,
               (b) => b.copyWith(
                 downloadInfo: DownloadInfo(
@@ -368,7 +370,7 @@ class DownloadManager extends ChangeNotifier {
       await sink.close();
       client.close();
 
-      _updateBinary(
+      updateBinary(
         binaryType,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
@@ -383,7 +385,7 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
       log.e('ERROR: $error');
-      _updateBinary(
+      updateBinary(
         binaryType,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(
@@ -404,7 +406,7 @@ class DownloadManager extends ChangeNotifier {
     Directory downloadsDir,
     Binary binary,
   ) async {
-    _updateBinary(
+    updateBinary(
       binary.type,
       (b) => b.copyWith(
         downloadInfo: DownloadInfo(

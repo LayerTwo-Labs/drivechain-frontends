@@ -591,39 +591,16 @@ class BinaryProvider extends ChangeNotifier {
               return;
             }
             isChecking = true;
-            // Store original binaries to compare for changes
-            final originalBinaries = List<Binary>.from(_downloadManager.binaries);
-
             // Reload metadata while preserving download state
             final reloadedBinaries = await loadBinaryCreationTimestamp(_downloadManager.binaries, appDir);
 
-            // Preserve download state from original binaries
-            final preservedBinaries = <Binary>[];
-            for (int i = 0; i < reloadedBinaries.length; i++) {
-              final reloaded = reloadedBinaries[i];
-              final original = originalBinaries.length > i ? originalBinaries[i] : null;
-
-              // If original exists and has download state, preserve it
-              if (original != null && original.type == reloaded.type) {
-                preservedBinaries.add(reloaded.copyWith(downloadInfo: original.downloadInfo));
-              } else {
-                preservedBinaries.add(reloaded);
-              }
-            }
-
-            _downloadManager.binaries = preservedBinaries;
-
-            // Only notify if any binary metadata actually changed
-            bool hasChanges = false;
-            for (int i = 0; i < originalBinaries.length && i < _downloadManager.binaries.length; i++) {
-              if (originalBinaries[i] != _downloadManager.binaries[i]) {
-                hasChanges = true;
-                break;
-              }
-            }
-
-            if (hasChanges) {
-              notifyListeners();
+            for (final binary in reloadedBinaries) {
+              _downloadManager.updateBinary(
+                binary.type,
+                (currentBinary) => currentBinary.copyWith(
+                  metadata: binary.metadata,
+                ),
+              );
             }
           } finally {
             isChecking = false;
@@ -637,8 +614,6 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> _checkReleaseDates() async {
-    bool hasChanges = false;
-
     for (var i = 0; i < binaries.length; i++) {
       try {
         final binary = binaries[i];
@@ -646,19 +621,16 @@ class BinaryProvider extends ChangeNotifier {
 
         // Only update and mark as changed if the binary actually differs
         if (updatedBinary.metadata != binary.metadata) {
-          binaries[i] = updatedBinary;
-          hasChanges = true;
+          _downloadManager.updateBinary(
+            binary.type,
+            (currentBinary) => currentBinary.copyWith(
+              metadata: updatedBinary.metadata,
+            ),
+          );
         }
       } catch (e) {
         log.e('Error checking release date: $e');
-        // Still notify even on error so UI can update error states
-        hasChanges = true;
       }
-    }
-
-    // Only notify if there were actual changes
-    if (hasChanges) {
-      notifyListeners();
     }
   }
 
@@ -725,11 +697,9 @@ String _stripFromString(String input, String whatToStrip) {
 
 Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
   // Update metadata for all binaries in parallel
-  final updatedBinaries = await Future.wait(
+  return await Future.wait(
     binaries.map((binary) => binary.updateMetadata(appDir)),
   );
-
-  return updatedBinaries;
 }
 
 Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));
