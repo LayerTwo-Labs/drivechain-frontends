@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/version.dart';
@@ -193,95 +194,8 @@ class _ResetSettingsContent extends StatefulWidget {
 }
 
 class _ResetSettingsContentState extends State<_ResetSettingsContent> {
-  Future<void> _onResetAllChains() async {
-    await showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Reset All Blockchain Data?',
-        subtitle:
-            'Are you sure you want to reset all blockchain data for bitcoin core, enforcer and bitwindow? This action cannot be undone.',
-        confirmButtonVariant: ButtonVariant.destructive,
-        onConfirm: () async {
-          final binaryProvider = GetIt.I.get<BinaryProvider>();
-
-          final binaries = [
-            BitcoinCore(),
-            Enforcer(),
-            BitWindow(),
-          ];
-
-          final futures = <Future>[];
-          // Only stop binaries that are started by bitwindow
-          for (final binary in binaries) {
-            futures.add(binaryProvider.stop(binary));
-          }
-
-          // Wait for all stop operations to complete
-          await Future.wait(futures);
-
-          // After all binaries are asked nicely to stop, kill any lingering processes
-          await binaryProvider.stopAll();
-
-          // wait for 3 seconds to ensure all processes are killed
-          await Future.delayed(const Duration(seconds: 3));
-
-          // wipe all chain data
-          for (final binary in binaries) {
-            await binary.wipeAppDir();
-          }
-
-          // finally, boot the binaries
-          unawaited(bootBinaries(GetIt.I.get<Logger>()));
-
-          final mainchainRPC = GetIt.I.get<MainchainRPC>();
-          while (!mainchainRPC.connected) {
-            await Future.delayed(const Duration(seconds: 1));
-          }
-
-          // pop the dialog
-          if (context.mounted) Navigator.of(context).pop();
-        },
-      ),
-    );
-  }
-
-  Future<void> _onResetWallet() async {
-    await showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Reset Wallet?',
-        subtitle: 'Are you sure you want to reset all wallet data? This will:\n\n'
-            '• Permanently delete all wallet files from BitWindow\n'
-            '• Permanently delete all wallet files from the Enforcer\n'
-            '• Stop all running processes\n'
-            '• Return you to the wallet creation screen\n\n'
-            'Make sure to backup your seed phrase before proceeding. This action cannot be undone.',
-        confirmButtonVariant: ButtonVariant.destructive,
-        onConfirm: () async {
-          final logger = GetIt.I.get<Logger>();
-
-          try {
-            await GetIt.I.get<WalletProvider>().deleteAllWallets();
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
-          } catch (e) {
-            logger.e('could not reset wallet data: $e');
-
-            if (context.mounted) {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Could not reset wallets: $e'),
-                  backgroundColor: SailTheme.of(context).colors.error,
-                ),
-              );
-            }
-          }
-        },
-      ),
-    );
-  }
+  Logger get log => GetIt.I.get<Logger>();
+  Directory get bitwindowAppDir => GetIt.I.get<BinaryProvider>().bitwindowAppDir;
 
   @override
   Widget build(BuildContext context) {
@@ -290,36 +204,153 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary20('Reset'),
-        SailText.secondary13('Start fresh by resetting various data used by different binaries'),
-
-        // Version Information
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.primary15('Reset Blockchain Data'),
-            SailButton(
-              label: 'Reset All Chains',
-              variant: ButtonVariant.destructive,
-              onPressed: _onResetAllChains,
-            ),
-          ],
+        SailText.secondary13('Start fresh by resetting various data'),
+        SailButton(
+          label: 'Reset Blockchain Data',
+          variant: ButtonVariant.destructive,
+          onPressed: () async {
+            await _resetBlockchainData(context);
+          },
         ),
-
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.primary15('Delete Wallet Data'),
-            SailButton(
-              label: 'Delete Wallet',
-              variant: ButtonVariant.destructive,
-              onPressed: _onResetWallet,
-            ),
-          ],
+        SailButton(
+          label: 'Delete All Wallets',
+          variant: ButtonVariant.destructive,
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (context) => SailAlertCard(
+                title: 'Reset Wallet?',
+                subtitle: 'Are you sure you want to reset all wallet data? This will:\n\n'
+                    '• Permanently delete all wallet files from BitWindow\n'
+                    '• Permanently delete all wallet files from the Enforcer\n'
+                    '• Stop all running processes\n'
+                    '• Return you to the wallet creation screen\n\n'
+                    'Make sure to backup your seed phrase before proceeding. This action cannot be undone.',
+                confirmButtonVariant: ButtonVariant.destructive,
+                onConfirm: () async {
+                  await _resetWallets(context);
+                },
+              ),
+            );
+          },
+        ),
+        SailButton(
+          label: 'Reset Everything',
+          variant: ButtonVariant.destructive,
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (context) => SailAlertCard(
+                title: 'Reset Everything?',
+                subtitle:
+                    'Are you sure you want to reset absolutely everything? Even wallets will be deleted. This action cannot be undone.',
+                confirmButtonVariant: ButtonVariant.destructive,
+                onConfirm: () async {
+                  await _resetEverything(context);
+                },
+              ),
+            );
+          },
         ),
       ],
     );
+  }
+
+  Future<void> _resetBlockchainData(BuildContext context) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+
+    final binaries = [
+      BitcoinCore(),
+      Enforcer(),
+      BitWindow(),
+    ];
+
+    final futures = <Future>[];
+    // Only stop binaries that are started by bitwindow
+    for (final binary in binaries) {
+      futures.add(binaryProvider.stop(binary));
+    }
+
+    // Wait for all stop operations to complete
+    await Future.wait(futures);
+
+    // After all binaries are asked nicely to stop, kill any lingering processes
+    await binaryProvider.stopAll();
+
+    // wait for 3 seconds to ensure all processes are killed
+    await Future.delayed(const Duration(seconds: 3));
+
+    // wipe all chain data
+    for (final binary in binaries) {
+      await binary.wipeAppDir();
+    }
+
+    // finally, boot the binaries
+    unawaited(bootBinaries(GetIt.I.get<Logger>()));
+
+    final mainchainRPC = GetIt.I.get<MainchainRPC>();
+    while (!mainchainRPC.connected) {
+      await Future.delayed(const Duration(seconds: 1));
+    }
+  }
+
+  Future<void> _resetEverything(BuildContext context) async {
+    await _resetWallets(
+      context,
+      beforeBoot: () async {
+        log.i('resetting blockchain data');
+
+        final allBinaries = [
+          BitcoinCore(),
+          Enforcer(),
+          BitWindow(),
+          Thunder(),
+          Bitnames(),
+          BitAssets(),
+          ZSide(),
+        ];
+        // wipe all chain data - don't swallow errors
+        try {
+          await Future.wait(allBinaries.map((binary) => binary.wipeAppDir()));
+          log.i('Successfully wiped all blockchain data');
+        } catch (e) {
+          log.e('could not reset blockchain data: $e');
+        }
+
+        try {
+          await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(bitwindowAppDir.path))));
+          log.i('Successfully wiped all blockchain data');
+        } catch (e) {
+          log.e('could not reset blockchain data: $e');
+        }
+      },
+    );
+
+    // pop the dialog
+    if (context.mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _resetWallets(BuildContext context, {Future<void> Function()? beforeBoot}) async {
+    final logger = GetIt.I.get<Logger>();
+
+    try {
+      await GetIt.I.get<WalletProvider>().deleteAllWallets(beforeBoot: beforeBoot);
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      logger.e('could not reset wallet data: $e');
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not reset wallets: $e'),
+            backgroundColor: SailTheme.of(context).colors.error,
+          ),
+        );
+      }
+    }
   }
 }
 

@@ -240,7 +240,7 @@ abstract class Binary {
     return candidateName;
   }
 
-  Future<void> wipeAssets(Directory assetsDir) async {
+  Future<void> wipeAsset(Directory assetsDir) async {
     _log('Starting asset wipe for $name in ${assetsDir.path}');
 
     final dir = assetsDir.path;
