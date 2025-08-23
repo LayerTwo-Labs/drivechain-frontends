@@ -480,7 +480,7 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteAllWallets() async {
+  Future<void> deleteAllWallets({Future<void> Function()? beforeBoot}) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     // Store connected and running binaries to reboot them after wallet wipe is complete
     final connected = binaryProvider.binaries.where(binaryProvider.isConnected).toList();
@@ -512,6 +512,10 @@ class WalletProvider extends ChangeNotifier {
     await _deleteCoreMultisigWallets(appDir, _logger);
 
     await moveMasterWalletDir();
+
+    if (beforeBoot != null) {
+      await beforeBoot();
+    }
 
     // reboot L1-binaries
     await bootBinaries(_logger);

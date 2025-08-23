@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -16,6 +18,7 @@ class ChainSettingsModal extends StatefulWidget {
 
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+  Directory get bitwindowAppDir => _binaryProvider.bitwindowAppDir;
 
   OS get os => getOS();
 
@@ -111,11 +114,15 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
               ),
               const SizedBox(height: 24),
               SailButton(
-                label: 'Reset Chain Data',
+                label: 'Delete ${widget.binary.name}',
                 onPressed: () async {
+                  await widget.binary.wipeAsset(binDir(bitwindowAppDir.path));
                   await widget.binary.wipeAppDir();
                   if (context.mounted) {
-                    showSnackBar(context, 'Wiped chain data successfully');
+                    Navigator.of(context).pop();
+                  }
+                  if (context.mounted) {
+                    showSnackBar(context, 'Deleted ${widget.binary.name} binary including all blockchain data');
                   }
                 },
                 variant: ButtonVariant.destructive,
