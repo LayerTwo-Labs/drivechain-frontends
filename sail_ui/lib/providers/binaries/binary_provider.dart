@@ -14,8 +14,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// Manages downloads, installations and running of binaries
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
-  final Directory appDir;
-  late final Directory bitwindowAppDir;
+  final Directory bitwindowAppDir;
 
   final settings = GetIt.I.get<SettingsProvider>();
 
@@ -155,19 +154,11 @@ class BinaryProvider extends ChangeNotifier {
 
   // Private constructor
   BinaryProvider._create({
-    required this.appDir,
+    required this.bitwindowAppDir,
     required DownloadManager downloadManager,
     required ProcessManager processManager,
   })  : _downloadManager = downloadManager,
         _processManager = processManager {
-    bitwindowAppDir = Directory(
-      path.join(
-        appDir.path,
-        '..',
-        'bitwindow',
-      ),
-    );
-
     // RPC clients will be lazily initialized when first accessed
 
     // Forward process manager notifications to BinaryProvider listeners
@@ -184,31 +175,30 @@ class BinaryProvider extends ChangeNotifier {
   // Test constructor (visible for mocking)
   @visibleForTesting
   BinaryProvider.test({
-    required this.appDir,
+    required this.bitwindowAppDir,
     required DownloadManager downloadManager,
     required ProcessManager processManager,
   })  : _downloadManager = downloadManager,
         _processManager = processManager {
     // Skip GetIt registration for tests
-    bitwindowAppDir = Directory('/tmp');
   }
 
   // Async factory
   static Future<BinaryProvider> create({
-    required Directory appDir,
+    required Directory bitwindowAppDir,
     required List<Binary> initialBinaries,
   }) async {
     final downloadManager = await DownloadManager.create(
-      appDir: appDir,
+      bitwindowAppDir: bitwindowAppDir,
       initialBinaries: initialBinaries,
     );
 
     final processManager = ProcessManager(
-      appDir: appDir,
+      bitwindowAppDir: bitwindowAppDir,
     );
 
     final provider = BinaryProvider._create(
-      appDir: appDir,
+      bitwindowAppDir: bitwindowAppDir,
       downloadManager: downloadManager,
       processManager: processManager,
     );
@@ -617,7 +607,7 @@ class BinaryProvider extends ChangeNotifier {
     for (var i = 0; i < binaries.length; i++) {
       try {
         final binary = binaries[i];
-        final updatedBinary = await binary.updateMetadata(appDir);
+        final updatedBinary = await binary.updateMetadata(bitwindowAppDir);
 
         // Only update and mark as changed if the binary actually differs
         if (updatedBinary.metadata != binary.metadata) {
@@ -695,10 +685,10 @@ String _stripFromString(String input, String whatToStrip) {
   return input.substring(startIndex, endIndex + 1);
 }
 
-Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
+Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory bitwindowAppDir) async {
   // Update metadata for all binaries in parallel
   return await Future.wait(
-    binaries.map((binary) => binary.updateMetadata(appDir)),
+    binaries.map((binary) => binary.updateMetadata(bitwindowAppDir)),
   );
 }
 

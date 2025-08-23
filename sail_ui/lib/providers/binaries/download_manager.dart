@@ -13,7 +13,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// the right place
 class DownloadManager extends ChangeNotifier {
   final log = Logger(level: Level.info);
-  final Directory appDir;
+  final Directory bitwindowAppDir;
   late Map<BinaryType, Binary> _binariesMap;
 
   // Public getter returns a List for compatibility
@@ -27,7 +27,7 @@ class DownloadManager extends ChangeNotifier {
 
   // Private constructor
   DownloadManager._create({
-    required this.appDir,
+    required this.bitwindowAppDir,
     required List<Binary> binaries,
   }) {
     // Convert list to map keyed by BinaryType
@@ -36,13 +36,13 @@ class DownloadManager extends ChangeNotifier {
 
   // Async factory
   static Future<DownloadManager> create({
-    required Directory appDir,
+    required Directory bitwindowAppDir,
     required List<Binary> initialBinaries,
   }) async {
-    final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, appDir);
+    final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, bitwindowAppDir);
 
     return DownloadManager._create(
-      appDir: appDir,
+      bitwindowAppDir: bitwindowAppDir,
       binaries: binariesWithTimestamps,
     );
   }
@@ -50,7 +50,7 @@ class DownloadManager extends ChangeNotifier {
   // Test constructor (visible for mocking)
   @visibleForTesting
   DownloadManager.test({
-    required this.appDir,
+    required this.bitwindowAppDir,
     required List<Binary> binaries,
   }) {
     // Convert list to map keyed by BinaryType
@@ -186,8 +186,8 @@ class DownloadManager extends ChangeNotifier {
     );
 
     // 1. Setup directories
-    final downloadsDir = Directory(path.join(appDir.path, 'downloads'));
-    final extractDir = binDir(appDir.path);
+    final downloadsDir = Directory(path.join(bitwindowAppDir.path, 'downloads'));
+    final extractDir = binDir(bitwindowAppDir.path);
     await downloadsDir.create(recursive: true);
     await extractDir.create(recursive: true);
 
@@ -244,7 +244,7 @@ class DownloadManager extends ChangeNotifier {
 
     // Update binary metadata
     // find the updated binary
-    final updatedBinary = await binary.updateMetadata(appDir);
+    final updatedBinary = await binary.updateMetadata(bitwindowAppDir);
     updateBinary(
       binary.type,
       (b) => b.copyWith(
