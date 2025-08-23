@@ -5,11 +5,13 @@ import 'package:sail_ui/sail_ui.dart';
 class TopNav extends StatefulWidget implements PreferredSizeWidget {
   final List<TopNavRoute> routes;
   final bool leadingPadding;
+  final Widget? endWidget;
 
   const TopNav({
     super.key,
     required this.routes,
     this.leadingPadding = false,
+    this.endWidget,
   });
 
   @override
@@ -71,6 +73,8 @@ class _TopNavState extends State<TopNav> {
                             ),
                           ),
                         ),
+                    if (widget.endWidget != null) Expanded(child: Container()),
+                    if (widget.endWidget != null) widget.endWidget!,
                   ],
                 ),
               ),

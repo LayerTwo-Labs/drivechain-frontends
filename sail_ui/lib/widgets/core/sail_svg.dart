@@ -75,6 +75,7 @@ enum SailSVGAsset {
 
   dividerDot,
 
+  telegram,
   handHelping,
   iconShield,
   underline,
@@ -1632,6 +1633,8 @@ class SailSVG {
 extension AsAssetPath on SailSVGAsset {
   String toAssetPath() {
     switch (this) {
+      case SailSVGAsset.telegram:
+        return 'assets/svgs/telegram.svg';
       case SailSVGAsset.handHelping:
         return 'assets/svgs/hand-helping.svg';
       case SailSVGAsset.iconShield:

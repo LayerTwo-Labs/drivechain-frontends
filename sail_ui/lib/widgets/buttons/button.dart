@@ -106,7 +106,9 @@ class _SailButtonState extends State<SailButton> {
                     right: 6,
                   )
                 : (widget.variant == ButtonVariant.icon
-                    ? EdgeInsets.all(12)
+                    ? widget.small
+                        ? EdgeInsets.all(8)
+                        : EdgeInsets.all(12)
                     : const EdgeInsets.only(
                         top: 8,
                         bottom: 8,

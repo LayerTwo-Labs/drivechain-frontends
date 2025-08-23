@@ -19,6 +19,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 @RoutePage()
@@ -366,6 +367,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       icon: SailSVGAsset.settings,
                     ),
                   ],
+                  endWidget: SailButton(
+                    onPressed: () async {
+                      await launchUrl(Uri.parse('https://t.me/DcInsiders'));
+                    },
+                    variant: ButtonVariant.icon,
+                    icon: SailSVGAsset.telegram,
+                    small: true,
+                  ),
                 ),
                 body: Column(
                   children: [
