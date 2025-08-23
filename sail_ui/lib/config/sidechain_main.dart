@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -47,9 +48,17 @@ Future<void> initSidechainDependencies({
 
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
+  final bitwindowAppDir = Directory(
+    path.join(
+      applicationDir.path,
+      '..',
+      'bitwindow',
+    ),
+  );
+
   // After RPCs including sidechain rpcs have been registered, register the binary provider
   final binaryProvider = await BinaryProvider.create(
-    appDir: applicationDir,
+    bitwindowAppDir: bitwindowAppDir,
     initialBinaries: binaries,
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);

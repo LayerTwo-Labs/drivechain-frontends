@@ -91,7 +91,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
 
   // Load initial binary states
   final binaryProvider = await BinaryProvider.create(
-    appDir: applicationDir,
+    bitwindowAppDir: applicationDir,
     initialBinaries: initalBinaries(),
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
