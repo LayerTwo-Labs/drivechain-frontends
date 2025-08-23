@@ -102,14 +102,6 @@ class DownloadManager extends ChangeNotifier {
       return;
     }
 
-    // Also check if already downloaded (to prevent duplicate extraction after completion)
-    final currentBinary = _binariesMap[binary.type] ?? binary;
-
-    if (currentBinary.isDownloaded) {
-      log.i('Binary ${binary.name} already downloaded, skipping download');
-      return;
-    }
-
     log.i('Proceeding with download for ${binary.name}');
 
     try {
@@ -242,9 +234,6 @@ class DownloadManager extends ChangeNotifier {
       log.e('could not delete zip file: $e');
     }
 
-    // Update binary metadata
-    // find the updated binary
-    final updatedBinary = await binary.updateMetadata(bitwindowAppDir);
     updateBinary(
       binary.type,
       (b) => b.copyWith(
@@ -255,7 +244,6 @@ class DownloadManager extends ChangeNotifier {
           progress: 1.0,
           total: 1.0,
         ),
-        metadata: updatedBinary.metadata,
       ),
     );
 
