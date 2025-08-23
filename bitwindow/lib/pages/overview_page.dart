@@ -27,107 +27,29 @@ class _OverviewPageState extends State<OverviewPage> {
   Widget build(BuildContext context) {
     return ViewModelBuilder<SidechainsViewModel>.reactive(
       viewModelBuilder: () => SidechainsViewModel(),
-      builder: (context, viewModel, child) => LayoutBuilder(
-        builder: (context, constraints) {
-          final sidechainsWidth = 480.0;
-
-          // Calculate available space after accounting for padding
-          final availableWidth = constraints.maxWidth - SailStyleValues.padding16 - sidechainsWidth;
-
-          // Calculate coinnews width first, respecting max constraint
-          final coinnewsWidth = availableWidth.toDouble();
-
-          return QtPage(
-            child: SingleChildScrollView(
-              child: SailColumn(
+      builder: (context, viewModel, child) => QtPage(
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailColumn(
                 spacing: SailStyleValues.padding16,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  SailColumn(
-                    spacing: SailStyleValues.padding16,
-                    children: [
-                      FireplaceStats(),
-                      ViewModelBuilder<CoinNewsViewModel>.reactive(
-                        viewModelBuilder: () => CoinNewsViewModel(),
-                        builder: (context, newsModel, child) {
-                          final maxHeight = newsModel.coinnewsHeight;
-
-                          return LayoutBuilder(
-                            builder: (context, outerConstraints) {
-                              // Calculate if we'll have 1 column based on the outer width
-                              int crossAxisCount = min(2, (outerConstraints.maxWidth / 800).ceil());
-                              double dynamicMaxHeight =
-                                  crossAxisCount == 1 ? maxHeight * 2 + SailStyleValues.padding08 : maxHeight;
-
-                              return ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxHeight: dynamicMaxHeight,
-                                ),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    // Responsive columns based on width
-                                    double gridSpacing = SailStyleValues.padding08;
-                                    double totalSpacing = gridSpacing * (crossAxisCount - 1);
-                                    double cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
-                                    double desiredCardHeight = maxHeight;
-
-                                    double childAspectRatio = cardWidth / desiredCardHeight;
-
-                                    if (crossAxisCount == 2) {
-                                      return Row(
-                                        children: [
-                                          SizedBox(
-                                            width: sidechainsWidth,
-                                            child: SidechainsList(smallVersion: true),
-                                          ),
-                                          SizedBox(width: gridSpacing),
-                                          SizedBox(
-                                            width: coinnewsWidth,
-                                            child: CoinNewsView(),
-                                          ),
-                                        ],
-                                      );
-                                    } else {
-                                      return GridView.count(
-                                        crossAxisCount: crossAxisCount,
-                                        crossAxisSpacing: gridSpacing,
-                                        mainAxisSpacing: gridSpacing,
-                                        shrinkWrap: true,
-                                        physics: NeverScrollableScrollPhysics(),
-                                        childAspectRatio: childAspectRatio,
-                                        children: crossAxisCount == 2
-                                            ? [
-                                                SizedBox(
-                                                  width: sidechainsWidth,
-                                                  child: SidechainsList(smallVersion: true),
-                                                ),
-                                                SizedBox(
-                                                  width: coinnewsWidth,
-                                                  child: CoinNewsView(),
-                                                ),
-                                              ]
-                                            : [
-                                                CoinNewsView(),
-                                                SidechainsList(smallVersion: true),
-                                              ],
-                                      );
-                                    }
-                                  },
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                      TransactionsView(),
-                    ],
+                  FireplaceStats(),
+                  ViewModelBuilder<CoinNewsViewModel>.reactive(
+                    viewModelBuilder: () => CoinNewsViewModel(),
+                    builder: (context, newsModel, child) {
+                      return CoinNewsView();
+                    },
                   ),
+                  TransactionsView(),
                 ],
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       ),
     );
   }
