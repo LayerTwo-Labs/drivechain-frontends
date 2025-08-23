@@ -228,7 +228,7 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> start(Binary binary) async {
     await _downloadManager.downloadIfMissing(binary);
 
-    if (binary is Thunder || binary is Bitnames || binary is BitAssets) {
+    if (binary.chainLayer == 2) {
       binary = binary as Sidechain;
       log.i('booting sidechain ${binary.name}');
       // We're booting some sort of sidechain. Check the wallet-starter-directory for
