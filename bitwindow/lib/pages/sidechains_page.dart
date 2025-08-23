@@ -442,6 +442,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Thunder => _binaryProvider.thunderConnected,
       var b when b is Bitnames => _binaryProvider.bitnamesConnected,
       var b when b is BitAssets => _binaryProvider.bitassetsConnected,
+      var b when b is ZSide => _binaryProvider.zsideConnected,
       _ => false,
     };
 
@@ -453,6 +454,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Thunder => _binaryProvider.thunderInitializing,
       var b when b is Bitnames => _binaryProvider.bitnamesInitializing,
       var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
+      var b when b is ZSide => _binaryProvider.zsideInitializing,
       _ => false,
     };
 
@@ -463,6 +465,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Thunder => _binaryProvider.thunderStopping,
       var b when b is Bitnames => _binaryProvider.bitnamesStopping,
       var b when b is BitAssets => _binaryProvider.bitassetsStopping,
+      var b when b is ZSide => _binaryProvider.zsideStopping,
       _ => false,
     };
 
@@ -473,6 +476,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is Thunder => _binaryProvider.thunderDownloadState.isDownloading,
       var b when b is Bitnames => _binaryProvider.bitnamesDownloadState.isDownloading,
       var b when b is BitAssets => _binaryProvider.bitassetsDownloadState.isDownloading,
+      var b when b is ZSide => _binaryProvider.zsideDownloadState.isDownloading,
       _ => false,
     };
 
