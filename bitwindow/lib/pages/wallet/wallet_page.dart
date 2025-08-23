@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -92,6 +93,12 @@ class WalletPage extends StatelessWidget {
             key: tabKey,
             tabs: allTabs,
             initialIndex: 0,
+            endWidget: SailButton(
+              onPressed: () async {
+                await launchUrl(Uri.parse('https://node.drivechain.info/#/faucet'));
+              },
+              label: 'Open Faucet',
+            ),
           );
         },
       ),
