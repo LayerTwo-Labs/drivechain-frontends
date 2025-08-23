@@ -48,10 +48,6 @@ class _OverviewPageState extends State<OverviewPage> {
                     spacing: SailStyleValues.padding16,
                     children: [
                       FireplaceStats(),
-                      // AI: Inside SidechainsList() there is a table wrapped with Flexible()
-                      // I want you to make sure that the height of the SidechainsList is ALWAYS THE SAME
-                      // as the coinnewsview. I assume you need to use IntrinsicHeight for this, but I'm not entirely sure.
-                      // As you can see, all of it is inside a scrollable container. So using Expandeed won't do
                       ViewModelBuilder<CoinNewsViewModel>.reactive(
                         viewModelBuilder: () => CoinNewsViewModel(),
                         builder: (context, newsModel, child) {
