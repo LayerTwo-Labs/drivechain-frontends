@@ -837,7 +837,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                       label: 'Continue',
                       variant: ButtonVariant.primary,
                       onPressed: () async {
-                        GetIt.I.get<AppRouter>().popUntilRoot();
+                        GetIt.I.get<AppRouter>().pop();
                       },
                     ),
                   ],
