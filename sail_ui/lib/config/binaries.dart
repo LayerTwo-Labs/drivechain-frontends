@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -436,21 +437,14 @@ abstract class Binary {
 
   Future<DateTime?> _checkGithubReleaseDate() async {
     try {
-      // Fetch GitHub release metadata
-      final client = HttpClient();
-      final request = await client.getUrl(Uri.parse(metadata.baseUrl));
-      final response = await request.close();
-
+      // For GitHub-based releases, download binary directly from releases
+      final response = await http.get(Uri.parse(metadata.baseUrl));
       if (response.statusCode != 200) {
-        log.w('Warning: Could not fetch GitHub release for $name: HTTP ${response.statusCode}');
-        return null;
+        throw Exception('Failed to fetch GitHub release: ${response.statusCode}');
       }
 
-      final responseBody = await response.transform(utf8.decoder).join();
-      final releaseData = json.decode(responseBody);
+      final publishedAt = json.decode(response.body)['published_at'] as String?;
 
-      // GitHub API provides 'published_at' timestamp
-      final publishedAt = releaseData['published_at'] as String?;
       if (publishedAt == null) {
         log.w('Warning: No published_at field in GitHub release for $name');
         return null;

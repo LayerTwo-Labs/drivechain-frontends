@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -10,6 +11,7 @@ import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/providers/binaries/download_manager.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:synchronized/synchronized.dart';
 
 /// Manages downloads, installations and running of binaries
 class BinaryProvider extends ChangeNotifier {
@@ -88,6 +90,9 @@ class BinaryProvider extends ChangeNotifier {
 
   StreamSubscription<FileSystemEvent>? _dirWatcher;
   Timer? _releaseCheckTimer;
+
+  // Per-binary locks to ensure sequential processing
+  final Map<BinaryType, Lock> _updateLocks = {};
 
   // Connection status getters
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
@@ -569,37 +574,55 @@ class BinaryProvider extends ChangeNotifier {
     _downloadManager.removeListener(listener);
   }
 
-  bool isChecking = false;
   void _setupDirectoryWatcher() {
+    final allBinaries = [
+      BitcoinCore(),
+      Enforcer(),
+      BitWindow(),
+      Thunder(),
+      Bitnames(),
+      BitAssets(),
+      ZSide(),
+    ];
+
     // Watch the assets directory for changes
-    _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) async {
-      switch (event.type) {
-        case FileSystemEvent.create:
-        case FileSystemEvent.delete:
-          try {
-            if (isChecking) {
-              return;
-            }
-            isChecking = true;
-            // Reload metadata while preserving download state
-            final reloadedBinaries = await loadBinaryCreationTimestamp(_downloadManager.binaries, appDir);
+    _dirWatcher = binDir(bitwindowAppDir.path).watch(recursive: true).listen((event) {
+      // Find which binary changed
+      final changedBinary = allBinaries.firstWhereOrNull(
+        (binary) => event.path.endsWith(binary.binary),
+      );
 
-            for (final binary in reloadedBinaries) {
-              _downloadManager.updateBinary(
-                binary.type,
-                (currentBinary) => currentBinary.copyWith(
-                  metadata: binary.metadata,
-                ),
-              );
-            }
-          } finally {
-            isChecking = false;
-          }
-
-          break;
-        default:
-          break;
+      // The event is not related to a binary, ignore it
+      if (changedBinary == null) {
+        return;
       }
+
+      log.d('File system event for ${changedBinary.name}: ${event.type}');
+
+      // Get or create lock for this binary
+      final lock = _updateLocks.putIfAbsent(changedBinary.type, () => Lock());
+
+      // Use synchronized to ensure only one update runs at a time. This also ensures
+      // rapid updates always ends with the latest metadata.
+      lock.synchronized(() async {
+        try {
+          log.d('Processing metadata update for ${changedBinary.name}');
+
+          // Only reload metadata for the binary that changed
+          final updatedBinary = await changedBinary.updateMetadata(bitwindowAppDir);
+
+          _downloadManager.updateBinary(
+            updatedBinary.type,
+            (currentBinary) => currentBinary.copyWith(
+              metadata: updatedBinary.metadata,
+            ),
+          );
+
+          log.d('Successfully updated metadata for ${changedBinary.name}');
+        } catch (e) {
+          log.e('Failed to update metadata for ${changedBinary.name}', error: e);
+        }
+      });
     });
   }
 
