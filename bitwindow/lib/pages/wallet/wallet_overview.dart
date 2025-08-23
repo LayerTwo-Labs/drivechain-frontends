@@ -395,6 +395,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     _txProvider.addListener(_debouncedGetStats);
     _balanceProvider.addListener(_onChange);
     _balanceProvider.addListener(_debouncedGetStats);
+    _enforcerRPC.addListener(_onChange);
     getStats();
   }
 
