@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -421,6 +422,50 @@ abstract class Binary {
   /// Check the Last-Modified header for a binary without downloading
   Future<DateTime?> _checkReleaseDate() async {
     try {
+      // Handle GitHub API URLs differently
+      if (metadata.baseUrl.contains('github.com')) {
+        return await _checkGithubReleaseDate();
+      } else {
+        return await _checkDirectReleaseDate();
+      }
+    } catch (e) {
+      log.w('Warning: Failed to check release date for $name: $e');
+      return null;
+    }
+  }
+
+  Future<DateTime?> _checkGithubReleaseDate() async {
+    try {
+      // Fetch GitHub release metadata
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(metadata.baseUrl));
+      final response = await request.close();
+
+      if (response.statusCode != 200) {
+        log.w('Warning: Could not fetch GitHub release for $name: HTTP ${response.statusCode}');
+        return null;
+      }
+
+      final responseBody = await response.transform(utf8.decoder).join();
+      final releaseData = json.decode(responseBody);
+
+      // GitHub API provides 'published_at' timestamp
+      final publishedAt = releaseData['published_at'] as String?;
+      if (publishedAt == null) {
+        log.w('Warning: No published_at field in GitHub release for $name');
+        return null;
+      }
+
+      // Parse ISO 8601 timestamp from GitHub
+      return DateTime.parse(publishedAt);
+    } catch (e) {
+      log.w('Warning: Failed to check GitHub release date for $name: $e');
+      return null;
+    }
+  }
+
+  Future<DateTime?> _checkDirectReleaseDate() async {
+    try {
       final os = getOS();
       final fileName = metadata.files[os];
       if (fileName == null || fileName.isEmpty || metadata.baseUrl.isEmpty) {
@@ -448,7 +493,7 @@ abstract class Binary {
       final releaseDate = HttpDate.parse(lastModified);
       return releaseDate;
     } catch (e) {
-      log.w('Warning: Failed to check release date for $name: $e');
+      log.w('Warning: Failed to check direct release date for $name: $e');
       return null;
     }
   }
