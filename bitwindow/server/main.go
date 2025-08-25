@@ -187,14 +187,22 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 }
 
 func startCoreProxy(ctx context.Context, conf Config) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+	logLevel := zerolog.WarnLevel
+
 	// We don't want info logs from the core proxy because the ReconnectLoop()
 	// makes it spammy
-	warnLogger := zerolog.Ctx(ctx).Level(zerolog.WarnLevel)
+	warnLogger := zerolog.Ctx(ctx).Level(logLevel)
 	ctx = warnLogger.WithContext(ctx)
 
 	core, err := coreproxy.NewBitcoind(
 		ctx, conf.BitcoinCoreHost,
 		conf.BitcoinCoreRpcUser, conf.BitcoinCoreRpcPassword,
+
+		// Also configure the per-request log level
+		coreproxy.WithLogging(func(ctx context.Context) *zerolog.Logger {
+			log := zerolog.Ctx(ctx).Level(logLevel)
+			return &log
+		}),
 	)
 	if err != nil {
 		return nil, err
