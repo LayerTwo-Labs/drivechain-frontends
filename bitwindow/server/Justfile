@@ -2,10 +2,10 @@ build-go:
     # We need CGO due to the go-sqlite3 dependency.
     CGO_ENABLED=1 go build -v -o ./bin/bitwindowd .
 
-build: build-enforcer build-go
+build: download-enforcer build-go
 
-run:
-    ./bin/bitwindowd
+run *args:
+    go run -v . {{args}}
 
 clean:
     rm -rf ./bin
@@ -27,7 +27,7 @@ gen-server:
 gen-enforcer:
     buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
-build-enforcer:
+download-enforcer:
     #!/usr/bin/env bash
     set -euo pipefail
 
