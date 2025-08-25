@@ -180,6 +180,7 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 	logger := zerolog.New(multiWriter).
 		With().
 		Timestamp().
+		Caller().
 		Logger().
 		Level(logLevel)
 
