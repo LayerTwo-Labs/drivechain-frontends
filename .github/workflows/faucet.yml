@@ -4,13 +4,13 @@ on:
   push:
     branches: [master]
     paths:
-      - 'faucet/**'
-      - '.github/workflows/**'
+      - "faucet/**"
+      - ".github/workflows/**"
   pull_request:
     branches: [master]
     paths:
-      - 'faucet/**'
-      - '.github/workflows/**'
+      - "faucet/**"
+      - ".github/workflows/**"
 
 jobs:
   go-lint:
@@ -21,10 +21,10 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.25"
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           working-directory: faucet/server
           version: latest
@@ -38,7 +38,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.25"
 
       - run: just build
         working-directory: faucet/server
@@ -69,7 +69,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
