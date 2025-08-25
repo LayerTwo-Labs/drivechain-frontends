@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"time"
@@ -12,9 +13,9 @@ import (
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	engines "github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	bitcoindrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
@@ -80,8 +81,14 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 	defer database.SafeDefer(ctx, db.Close)
 
-	bitcoindConnector := func(ctx context.Context) (bitcoindrpc.BitcoinServiceClient, error) {
-		return startCoreProxy(ctx, conf)
+	bitcoindConnector := func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+		bitcoind, err := startCoreProxy(ctx, conf)
+		return bitcoind, err
+	}
+
+	coreProxy, err := startCoreProxy(ctx, conf)
+	if err != nil {
+		return fmt.Errorf("init core proxy: %w", err)
 	}
 
 	enforcerConnector := func(ctx context.Context) (rpc.ValidatorServiceClient, error) {
@@ -107,9 +114,20 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		CryptoConnector:   cryptoConnector,
 	}
 
+	// Use this to obtain a random unused port for the core proxy.
+	coreProxyListener, err := net.Listen("tcp", "localhost:")
+	if err != nil {
+		return fmt.Errorf("listen on core proxy: %w", err)
+	}
+
+	if err := coreProxyListener.Close(); err != nil {
+		return fmt.Errorf("close core proxy listener: %w", err)
+	}
+
 	config := api.Config{
-		GUIBootedMainchain: conf.GuiBootedMainchain,
-		GUIBootedEnforcer:  conf.GuiBootedEnforcer,
+		BitcoinCoreProxyHost: coreProxyListener.Addr().String(),
+		GUIBootedMainchain:   conf.GuiBootedMainchain,
+		GUIBootedEnforcer:    conf.GuiBootedEnforcer,
 		OnShutdown: func() {
 			log.Info().Msg("shutting down")
 			cancelCtx()
@@ -135,6 +153,10 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}()
 	go func() {
 		errs <- bitcoinEngine.Run(ctx)
+	}()
+	go func() {
+		log.Info().Msgf("core proxy: listening on %s", coreProxyListener.Addr().String())
+		errs <- coreProxy.Listen(ctx, coreProxyListener.Addr().String())
 	}()
 	go func() {
 		errs <- deniabilityEngine.Run(ctx)
@@ -183,7 +205,7 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 	zerolog.DefaultContextLogger = &logger
 }
 
-func startCoreProxy(ctx context.Context, conf config.Config) (bitcoindrpc.BitcoinServiceClient, error) {
+func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoind, error) {
 	logLevel := zerolog.WarnLevel
 
 	// We don't want info logs from the core proxy because the ReconnectLoop()

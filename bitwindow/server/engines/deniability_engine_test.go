@@ -8,13 +8,13 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -36,7 +36,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
 			return mockWallet, nil
 		})
-		bitcoindService := service.New("bitcoind", func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
 		engine := engines.NewDeniability(walletService, bitcoindService, db)
@@ -83,7 +83,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
 			return mockWallet, nil
 		})
-		bitcoindService := service.New("bitcoind", func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
 		engine := engines.NewDeniability(walletService, bitcoindService, db)
@@ -175,7 +175,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
 			return mockWallet, nil
 		})
-		bitcoindService := service.New("bitcoind", func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
 		engine := engines.NewDeniability(walletService, bitcoindService, db)

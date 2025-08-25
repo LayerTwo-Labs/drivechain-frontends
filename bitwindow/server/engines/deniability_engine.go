@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -22,13 +22,13 @@ import (
 
 type DeniabilityEngine struct {
 	wallet   *service.Service[validatorrpc.WalletServiceClient]
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
+	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	db       *sql.DB
 }
 
 func NewDeniability(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	db *sql.DB,
 ) *DeniabilityEngine {
 	return &DeniabilityEngine{
@@ -64,7 +64,7 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 
 	utxos, denials, err := e.CleanupDenials(ctx)
 	if err != nil {
-		return fmt.Errorf("could not cleanup denials: %w", err)
+		return fmt.Errorf("cleanup denials: %w", err)
 	}
 
 	now := time.Now()
@@ -96,24 +96,24 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 	// all denial checking starts with a list of current utxos
 	utxos, err := e.listWalletUTXOs(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not list utxos: %w", err)
+		return nil, nil, fmt.Errorf("list utxos: %w", err)
 	}
 
 	// then get all active denials
 	denials, err := deniability.List(ctx, e.db, deniability.WithExcludeCancelled())
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not list denials: %w", err)
+		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
 
 	// if any denial tips are missing from the wallet, we must abort them before moving on
 	if err := e.cancelIfUTXOIsGone(ctx, utxos, denials); err != nil {
-		return nil, nil, fmt.Errorf("could not handle aborted denials: %w", err)
+		return nil, nil, fmt.Errorf("handle aborted denials: %w", err)
 	}
 
 	// relist all guaranteed good denials
 	denials, err = deniability.List(ctx, e.db, deniability.WithExcludeCancelled())
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not list denials: %w", err)
+		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
 
 	return utxos, denials, nil
@@ -129,7 +129,7 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, utxos []*pb.
 
 		if !utxoExists {
 			if err := deniability.Cancel(ctx, e.db, denial.ID, "cancelled due to UTXO being moved"); err != nil {
-				return fmt.Errorf("could not cancel denial %d: %w", denial.ID, err)
+				return fmt.Errorf("cancel denial %d: %w", denial.ID, err)
 			}
 
 			logger.Info().
@@ -192,14 +192,14 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		logger.Warn().Msg("cancelling denial due to insufficient UTXO amount")
 
 		if err := deniability.Cancel(ctx, e.db, denial.ID, reason); err != nil {
-			return fmt.Errorf("could not cancel denial: %w", err)
+			return fmt.Errorf("cancel denial: %w", err)
 		}
 		return nil
 	}
 
 	destinations, err := e.chooseDenialStrategy(ctx, denial, utxo, fee)
 	if err != nil {
-		return fmt.Errorf("could not choose denial strategy: %w", err)
+		return fmt.Errorf("choose denial strategy: %w", err)
 	}
 
 	sendResp, err := wallet.SendTransaction(ctx, &connect.Request[pb.SendTransactionRequest]{
@@ -224,12 +224,12 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		logger.Error().
 			Err(err).
 			Msg("failed to send transaction")
-		return fmt.Errorf("could not send transaction: %w", err)
+		return fmt.Errorf("send transaction: %w", err)
 	}
 
 	newUTXOs, err := e.waitForUTXOsToAppear(ctx, sendResp.Msg.Txid.Hex.Value, destinations)
 	if err != nil {
-		return fmt.Errorf("could not wait for tx to appear: %w", err)
+		return fmt.Errorf("wait for tx to appear: %w", err)
 	}
 
 	for _, newUTXO := range newUTXOs {
@@ -247,7 +247,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 				Err(err).
 				Str("to_txid", sendResp.Msg.Txid.Hex.Value).
 				Msg("failed to record execution")
-			return fmt.Errorf("could not record execution: %w", err)
+			return fmt.Errorf("record execution: %w", err)
 		}
 	}
 
@@ -273,7 +273,7 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 		default:
 			utxos, err := e.listWalletUTXOs(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("could not list utxos: %w", err)
+				return nil, fmt.Errorf("list utxos: %w", err)
 			}
 
 			var foundUTXOs []*pb.ListUnspentOutputsResponse_Output
@@ -320,7 +320,7 @@ func (e *DeniabilityEngine) simpleSplit(
 		Msg: &pb.CreateNewAddressRequest{},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not get first new address: %w", err)
+		return nil, fmt.Errorf("get first new address: %w", err)
 	}
 
 	availableAmount := utxo.ValueSats - fee
@@ -359,7 +359,7 @@ func (e *DeniabilityEngine) listWalletUTXOs(ctx context.Context) ([]*pb.ListUnsp
 		Msg: &pb.ListUnspentOutputsRequest{},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
+		return nil, fmt.Errorf("enforcer/wallet: list transactions: %w", err)
 	}
 
 	return resp.Msg.Outputs, nil

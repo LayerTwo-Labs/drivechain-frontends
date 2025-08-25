@@ -13,7 +13,6 @@ import (
 
 	"connectrpc.com/connect"
 	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
@@ -28,6 +27,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -44,7 +44,7 @@ var _ rpc.WalletServiceHandler = new(Server)
 func New(
 	ctx context.Context,
 	database *sql.DB,
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 ) *Server {
@@ -59,7 +59,7 @@ func New(
 
 type Server struct {
 	database *sql.DB
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
+	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	wallet   *service.Service[validatorrpc.WalletServiceClient]
 	crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }

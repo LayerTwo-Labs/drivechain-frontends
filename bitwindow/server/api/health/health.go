@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
@@ -18,6 +17,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -28,7 +28,7 @@ var _ rpc.HealthServiceHandler = new(Server)
 // New creates a new Server and starts the balance update loop
 func New(
 	database *sql.DB,
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
@@ -45,7 +45,7 @@ func New(
 
 type Server struct {
 	database *sql.DB
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
+	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
 	wallet   *service.Service[validatorrpc.WalletServiceClient]
 	crypto   *service.Service[cryptorpc.CryptoServiceClient]
@@ -202,7 +202,7 @@ func (s *Server) getServiceStatuses(ctx context.Context) ([]*healthv1.CheckRespo
 	})
 
 	pool.Go("bitcoind", func(ctx context.Context) (*healthv1.CheckResponse_ServiceStatus, error) {
-		return checkHealth(ctx, "bitcoind", s.bitcoind, func(ctx context.Context, client bitcoindv1alphaconnect.BitcoinServiceClient) error {
+		return checkHealth(ctx, "bitcoind", s.bitcoind, func(ctx context.Context, client corerpc.BitcoinServiceClient) error {
 			_, err := client.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 			return err
 		}), nil

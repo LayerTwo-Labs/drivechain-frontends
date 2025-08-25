@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	connectrpc.com/connect v1.18.1
-	github.com/barebitcoin/btc-buf v0.0.0-20250825120320-6d3de0d2b772
+	github.com/barebitcoin/btc-buf v0.0.0-20250825145656-173624d7f180
 	github.com/brianvoe/gofakeit/v7 v7.3.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
@@ -13,7 +13,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.43.0
-	google.golang.org/protobuf v1.36.7
+	google.golang.org/protobuf v1.36.8
 )
 
 require github.com/kr/text v0.2.0 // indirect

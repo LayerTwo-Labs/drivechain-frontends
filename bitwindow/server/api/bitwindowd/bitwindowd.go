@@ -1,13 +1,14 @@
 package api_bitwindowd
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
@@ -18,9 +19,11 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -33,7 +36,7 @@ func New(
 	db *sql.DB,
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	guiBootedMainchain bool,
 	guiBootedEnforcer bool,
 ) *Server {
@@ -55,7 +58,7 @@ type Server struct {
 	db         *sql.DB
 	validator  *service.Service[validatorrpc.ValidatorServiceClient]
 	wallet     *service.Service[validatorrpc.WalletServiceClient]
-	bitcoind   *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
+	bitcoind   *service.Service[corerpc.BitcoinServiceClient]
 
 	guiBootedMainchain bool
 	guiBootedEnforcer  bool
@@ -463,4 +466,249 @@ func (s *Server) getCoinnewsCount7d(ctx context.Context) (int64, error) {
 	}
 
 	return count, nil
+}
+
+func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlocksRequest]) (*connect.Response[pb.ListBlocksResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
+	}
+
+	// Default to most recent blocks if no pagination
+	startHeight := info.Msg.Blocks
+	if c.Msg.StartHeight > 0 {
+		startHeight = c.Msg.StartHeight
+	}
+
+	// Default page size
+	pageSize := uint32(50)
+	if c.Msg.PageSize > 0 {
+		pageSize = c.Msg.PageSize
+	}
+
+	p := pool.NewWithResults[*pb.Block]().
+		WithContext(ctx).
+		WithCancelOnError().
+		WithFirstError()
+
+	for i := uint32(0); i < pageSize; i++ {
+		p.Go(func(ctx context.Context) (*pb.Block, error) {
+			height := int(startHeight) - int(i)
+			// Stop if we hit genesis block
+			if height < 0 {
+				return nil, nil
+			}
+			hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+				Height: uint32(height),
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("bitcoind: could not get block hash %d: %w", height, err)
+			}
+
+			block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+				Hash:      hash.Msg.Hash,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("bitcoind: could not get block %s: %w", hash.Msg.Hash, err)
+			}
+
+			return &pb.Block{
+				BlockTime:         block.Msg.Time,
+				Height:            block.Msg.Height,
+				Hash:              block.Msg.Hash,
+				Confirmations:     block.Msg.Confirmations,
+				Version:           block.Msg.Version,
+				VersionHex:        block.Msg.VersionHex,
+				MerkleRoot:        block.Msg.MerkleRoot,
+				Nonce:             block.Msg.Nonce,
+				Bits:              block.Msg.Bits,
+				Difficulty:        block.Msg.Difficulty,
+				PreviousBlockHash: block.Msg.PreviousBlockHash,
+				NextBlockHash:     block.Msg.NextBlockHash,
+				StrippedSize:      block.Msg.StrippedSize,
+				Size:              block.Msg.Size,
+				Weight:            block.Msg.Weight,
+				Txids:             block.Msg.Txids,
+			}, nil
+		})
+	}
+
+	blocks, err := p.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter out nil blocks (from hitting genesis)
+	blocks = lo.Filter(blocks, func(b *pb.Block, _ int) bool {
+		return b != nil
+	})
+
+	slices.SortFunc(blocks, func(a, b *pb.Block) int {
+		return -cmp.Compare(a.Height, b.Height)
+	})
+
+	return connect.NewResponse(&pb.ListBlocksResponse{
+		RecentBlocks: blocks,
+		HasMore:      startHeight > uint32(len(blocks)),
+	}), nil
+}
+
+func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[pb.ListRecentTransactionsRequest]) (*connect.Response[pb.ListRecentTransactionsResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// First get mempool transactions
+	mempoolRes, err := bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
+		Verbose: true,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not get mempool: %w", err)
+	}
+
+	var transactions []*pb.RecentTransaction
+
+	// Add mempool transactions
+	for txid, tx := range mempoolRes.Msg.Transactions {
+		fee, err := btcutil.NewAmount(tx.Fees.Base)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse fee: %w", err)
+		}
+
+		transactions = append(transactions, &pb.RecentTransaction{
+			VirtualSize:      tx.VirtualSize,
+			Time:             tx.Time,
+			Txid:             txid,
+			FeeSats:          uint64(fee),
+			ConfirmedInBlock: nil,
+		})
+	}
+	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
+	}
+
+	// Get block at latest height
+	blockHashRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		Hash:      info.Msg.BestBlockHash,
+		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not get block at height %d: %w", info.Msg.Blocks, err)
+	}
+
+	// Extract transactions from the 100 most recent blocks
+	currentHash := blockHashRes.Msg.Hash
+	for i := 0; i < 100 && currentHash != ""; i++ {
+		blockRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+			Hash:      currentHash,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO, // Get full transaction details
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("bitcoind: could not get block: %w", err)
+		}
+		for _, txid := range blockRes.Msg.Txids {
+			// Get full transaction details
+			txRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+				Txid: txid,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("bitcoind: could not get transaction %s: %w", txid, err)
+			}
+
+			recentTx, isCoinbase, err := s.recentTransactionFromRaw(ctx, bitcoind, txRes.Msg.Tx.Data)
+			if err != nil {
+				return nil, fmt.Errorf("could not get recent transaction: %w", err)
+			}
+
+			if isCoinbase {
+				continue
+			}
+
+			transactions = append(transactions, &pb.RecentTransaction{
+				VirtualSize:      recentTx.VirtualSize,
+				Time:             blockRes.Msg.Time,
+				Txid:             txid,
+				FeeSats:          recentTx.FeeSats,
+				ConfirmedInBlock: &blockRes.Msg.Height,
+			})
+		}
+
+		currentHash = blockRes.Msg.PreviousBlockHash
+	}
+
+	// Sort by time, newest first
+	slices.SortFunc(transactions, func(a, b *pb.RecentTransaction) int {
+		return cmp.Compare(b.Time.AsTime().Unix(), a.Time.AsTime().Unix())
+	})
+
+	// Limit to requested count
+	count := int64(100)
+	if c.Msg.Count > 0 {
+		count = c.Msg.Count
+	}
+	if count > int64(len(transactions)) {
+		count = int64(len(transactions))
+	}
+	transactions = transactions[:count]
+
+	return connect.NewResponse(&pb.ListRecentTransactionsResponse{
+		Transactions: transactions,
+	}), nil
+}
+
+func (s *Server) recentTransactionFromRaw(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, data []byte) (*pb.RecentTransaction, bool, error) {
+	tx, err := btcutil.NewTxFromBytes(data)
+	if err != nil {
+		return nil, false, fmt.Errorf("could not decode transaction hex: %w", err)
+	}
+
+	// Check if coinbase, and skip input calculation if so
+	isCoinbase := len(tx.MsgTx().TxIn) > 0 && tx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
+	var fee int64
+	if !isCoinbase {
+		// Calculate total input value by looking up value of each input transaction
+		var totalIn int64
+		for _, txIn := range tx.MsgTx().TxIn {
+			prevTxRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+				Txid:    txIn.PreviousOutPoint.Hash.String(),
+				Verbose: true,
+			}))
+			if err != nil {
+				return nil, false, fmt.Errorf("bitcoind: could not get input transaction %s: %w", txIn.PreviousOutPoint.Hash.String(), err)
+			}
+
+			prevTx, err := btcutil.NewTxFromBytes(prevTxRes.Msg.Tx.Data)
+			if err != nil {
+				return nil, false, fmt.Errorf("could not decode input transaction: %w", err)
+			}
+
+			totalIn += prevTx.MsgTx().TxOut[txIn.PreviousOutPoint.Index].Value
+		}
+
+		// Calculate total output value
+		var totalOut int64
+		for _, txOut := range tx.MsgTx().TxOut {
+			totalOut += txOut.Value
+		}
+
+		// Calculate fee as the difference between inputs and outputs
+		fee = totalIn - totalOut
+		if fee < 0 {
+			return nil, false, fmt.Errorf("could not calculate fee: negative fee %d", fee)
+		}
+	}
+
+	return &pb.RecentTransaction{
+		VirtualSize: uint32(tx.MsgTx().SerializeSize()),
+		Txid:        tx.Hash().String(),
+		FeeSats:     uint64(fee),
+	}, isCoinbase, nil
 }
