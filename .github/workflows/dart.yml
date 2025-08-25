@@ -31,7 +31,7 @@ jobs:
       - uses: dart-lang/setup-dart@v1
 
       - name: Install dependencies for ${{ matrix.package }}
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Create necessary directories
         run: |

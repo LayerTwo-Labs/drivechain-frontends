@@ -146,7 +146,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ env.BUILD_DIR }}/${{ matrix.client }}
-          flutter pub get
+          flutter pub get --enforce-lockfile
 
         # standard macOS sed has subtle differences from gnu
       - name: Install GNU sed on macOS
@@ -475,10 +475,10 @@ jobs:
           # Look for BitWindow files (.exe for Windows, .zip for macOS)
           windows_file=$(ls BitWindow-*.exe 2>/dev/null | head -1 || echo "")
           macos_file=$(ls BitWindow-*-apple-darwin.zip 2>/dev/null | head -1 || echo "")
-          
+
           echo "Windows file: $windows_file"
           echo "macOS file: $macos_file"
-          
+
           if [ -n "$windows_file" ] || [ -n "$macos_file" ]; then
             echo "Generating BitWindow appcast"
             
