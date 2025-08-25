@@ -6,18 +6,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 )
 
 // New creates a new SQLite database and runs all migrations
-func New(ctx context.Context) (*sql.DB, error) {
-	datadir, err := dir.GetDataDir()
-	if err != nil {
-		return nil, fmt.Errorf("could not get data directory: %v", err)
-	}
-	dbpath := filepath.Join(datadir, "bitwindow.db")
+func New(ctx context.Context, conf config.Config) (*sql.DB, error) {
+	dbpath := filepath.Join(conf.Datadir, "bitwindow.db")
 
 	zerolog.Ctx(ctx).Debug().
 		Str("path", dbpath).
@@ -33,7 +29,7 @@ func New(ctx context.Context) (*sql.DB, error) {
 			return nil, fmt.Errorf("could not close database nor run migrations: %v", err)
 		}
 
-		return nil, fmt.Errorf("could not run migrations: %v", err)
+		return nil, fmt.Errorf("run migrations: %v", err)
 	}
 
 	return db, nil

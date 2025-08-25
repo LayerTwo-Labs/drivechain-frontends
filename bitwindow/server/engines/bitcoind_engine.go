@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
@@ -24,10 +25,12 @@ import (
 func NewBitcoind(
 	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
 	db *sql.DB,
+	conf config.Config,
 ) *Parser {
 	return &Parser{
 		bitcoind: bitcoind,
 		db:       db,
+		conf:     conf,
 	}
 }
 
@@ -35,6 +38,7 @@ func NewBitcoind(
 type Parser struct {
 	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
 	db       *sql.DB
+	conf     config.Config
 }
 
 // Run runs the engine. It checks if a new block has been mined,
@@ -73,9 +77,7 @@ func (p *Parser) Run(ctx context.Context) error {
 				Msgf("bitcoind_engine/parser: processing block tick")
 
 			if err := p.handleBlockTick(ctx); err != nil {
-				zerolog.Ctx(ctx).Error().
-					Err(err).
-					Msgf("bitcoind_engine/parser: could not handle tick")
+				return err
 			}
 
 			zerolog.Ctx(ctx).Trace().
@@ -125,10 +127,12 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	zerolog.Ctx(ctx).Trace().
 		Msgf("bitcoind_engine/parser: found last processed tip")
 
-	var lastProcessedHeight int32 = -1
-	var lastProcessedHash string
+	var (
+		lastProcessedHeight uint32
+		lastProcessedHash   string
+	)
 	if lastProcessedBlock != nil {
-		lastProcessedHeight = lastProcessedBlock.Height
+		lastProcessedHeight = uint32(lastProcessedBlock.Height)
 		lastProcessedHash = lastProcessedBlock.Hash
 	}
 
@@ -152,11 +156,17 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			Msgf("bitcoind_engine/parser: detected reorg, processing last 20 blocks")
 	}
 
-	batchSize := 30
-	for batchStart := lastProcessedHeight + 1; batchStart <= currentHeight; batchStart += int32(batchSize) {
-		batchEnd := batchStart + int32(batchSize) - 1
-		if batchEnd > currentHeight {
-			batchEnd = currentHeight
+	const batchSize = 30
+
+	zerolog.Ctx(ctx).Trace().
+		Uint32("last-processed-height", lastProcessedHeight).
+		Uint32("batch-size", batchSize).
+		Msgf("bitcoind_engine/parser: processing blocks")
+
+	for batchStart := lastProcessedHeight + 1; batchStart <= currentHeight; batchStart += batchSize {
+		batchEnd := min(batchStart+batchSize-1, currentHeight)
+		if p.conf.SyncToHeight > 0 {
+			batchEnd = min(batchEnd, p.conf.SyncToHeight)
 		}
 
 		pool := logpool.NewWithResults[*corepb.GetBlockResponse](ctx, "bitcoind_engine/processBlocks").
@@ -218,6 +228,10 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			zerolog.Ctx(ctx).Error().
 				Err(err).
 				Msgf("bitcoind_engine/parser: could not process blocks")
+		}
+
+		if p.conf.SyncToHeight > 0 && batchEnd >= p.conf.SyncToHeight {
+			return fmt.Errorf("reached sync-to-height goal: %d", p.conf.SyncToHeight)
 		}
 	}
 
@@ -332,7 +346,7 @@ func (p *Parser) handleCreateTopics(ctx context.Context, opReturns []opreturns.O
 	return nil
 }
 
-func (p *Parser) currentHeight(ctx context.Context) (int32, string, error) {
+func (p *Parser) currentHeight(ctx context.Context) (uint32, string, error) {
 	bitcoind, err := p.bitcoind.Get(ctx)
 	if err != nil {
 		return 0, "", err
@@ -343,10 +357,10 @@ func (p *Parser) currentHeight(ctx context.Context) (int32, string, error) {
 		return 0, "", fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
 
-	return int32(resp.Msg.Blocks), resp.Msg.BestBlockHash, nil
+	return resp.Msg.Blocks, resp.Msg.BestBlockHash, nil
 }
 
-func (p *Parser) getBlock(ctx context.Context, height int32) (*corepb.GetBlockResponse, error) {
+func (p *Parser) getBlock(ctx context.Context, height uint32) (*corepb.GetBlockResponse, error) {
 	bitcoind, err := p.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -354,7 +368,7 @@ func (p *Parser) getBlock(ctx context.Context, height int32) (*corepb.GetBlockRe
 
 	resp, err := bitcoind.GetBlock(ctx, &connect.Request[corepb.GetBlockRequest]{
 		Msg: &corepb.GetBlockRequest{
-			Height:    &height,
+			Height:    lo.ToPtr(int32(height)),
 			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
 		},
 	})
