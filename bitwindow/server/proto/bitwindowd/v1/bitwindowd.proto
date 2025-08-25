@@ -23,6 +23,14 @@ service BitwindowdService {
   rpc SetTransactionNote(SetTransactionNoteRequest) returns (google.protobuf.Empty);
 
   rpc GetFireplaceStats(google.protobuf.Empty) returns (GetFireplaceStatsResponse);
+
+  // Non-stock Bitcoin Core RPCs
+
+  // Lists the most recent transactions, both confirmed and unconfirmed.
+  rpc ListRecentTransactions(ListRecentTransactionsRequest) returns (ListRecentTransactionsResponse);
+
+  // Lists blocks with pagination support
+  rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse);
 }
 
 message CreateDenialRequest {
@@ -116,4 +124,51 @@ message GetFireplaceStatsResponse {
   int64 transaction_count_24h = 1;
   int64 coinnews_count_7d = 2;
   int64 block_count_24h = 3;
+}
+
+message ListRecentTransactionsRequest {
+  int64 count = 1;
+}
+
+message ListRecentTransactionsResponse {
+  repeated RecentTransaction transactions = 1;
+}
+
+message RecentTransaction {
+  uint32 virtual_size = 1;
+  google.protobuf.Timestamp time = 2;
+  string txid = 3;
+  uint64 fee_sats = 4;
+
+  // Block height of the transaction, if confirmed
+  optional uint32 confirmed_in_block = 5;
+}
+
+message ListBlocksRequest {
+  uint32 start_height = 1; // Start from this height (0 means latest)
+  uint32 page_size = 2; // How many blocks to return (0 means default 50)
+}
+
+message Block {
+  google.protobuf.Timestamp block_time = 1;
+  uint32 height = 2;
+  string hash = 3;
+  int32 confirmations = 4;
+  int32 version = 5;
+  string version_hex = 6;
+  string merkle_root = 7;
+  uint32 nonce = 8;
+  string bits = 9;
+  double difficulty = 10;
+  string previous_block_hash = 11;
+  string next_block_hash = 12;
+  int32 stripped_size = 13;
+  int32 size = 14;
+  int32 weight = 15;
+  repeated string txids = 16;
+}
+
+message ListBlocksResponse {
+  repeated Block recent_blocks = 4;
+  bool has_more = 5; // Whether there are more blocks available
 }

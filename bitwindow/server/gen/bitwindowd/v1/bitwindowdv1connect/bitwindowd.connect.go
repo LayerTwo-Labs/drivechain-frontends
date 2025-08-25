@@ -63,6 +63,12 @@ const (
 	// BitwindowdServiceGetFireplaceStatsProcedure is the fully-qualified name of the
 	// BitwindowdService's GetFireplaceStats RPC.
 	BitwindowdServiceGetFireplaceStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetFireplaceStats"
+	// BitwindowdServiceListRecentTransactionsProcedure is the fully-qualified name of the
+	// BitwindowdService's ListRecentTransactions RPC.
+	BitwindowdServiceListRecentTransactionsProcedure = "/bitwindowd.v1.BitwindowdService/ListRecentTransactions"
+	// BitwindowdServiceListBlocksProcedure is the fully-qualified name of the BitwindowdService's
+	// ListBlocks RPC.
+	BitwindowdServiceListBlocksProcedure = "/bitwindowd.v1.BitwindowdService/ListBlocks"
 )
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
@@ -79,6 +85,10 @@ type BitwindowdServiceClient interface {
 	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
 	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
 	GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error)
+	// Lists the most recent transactions, both confirmed and unconfirmed.
+	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
+	// Lists blocks with pagination support
+	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
@@ -152,6 +162,18 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("GetFireplaceStats")),
 			connect.WithClientOptions(opts...),
 		),
+		listRecentTransactions: connect.NewClient[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceListRecentTransactionsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ListRecentTransactions")),
+			connect.WithClientOptions(opts...),
+		),
+		listBlocks: connect.NewClient[v1.ListBlocksRequest, v1.ListBlocksResponse](
+			httpClient,
+			baseURL+BitwindowdServiceListBlocksProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlocks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -167,6 +189,8 @@ type bitwindowdServiceClient struct {
 	getSyncInfo            *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
 	setTransactionNote     *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
 	getFireplaceStats      *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
+	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
+	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
@@ -219,6 +243,16 @@ func (c *bitwindowdServiceClient) GetFireplaceStats(ctx context.Context, req *co
 	return c.getFireplaceStats.CallUnary(ctx, req)
 }
 
+// ListRecentTransactions calls bitwindowd.v1.BitwindowdService.ListRecentTransactions.
+func (c *bitwindowdServiceClient) ListRecentTransactions(ctx context.Context, req *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error) {
+	return c.listRecentTransactions.CallUnary(ctx, req)
+}
+
+// ListBlocks calls bitwindowd.v1.BitwindowdService.ListBlocks.
+func (c *bitwindowdServiceClient) ListBlocks(ctx context.Context, req *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
+	return c.listBlocks.CallUnary(ctx, req)
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -233,6 +267,10 @@ type BitwindowdServiceHandler interface {
 	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
 	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
 	GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error)
+	// Lists the most recent transactions, both confirmed and unconfirmed.
+	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
+	// Lists blocks with pagination support
+	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 }
 
 // NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -302,6 +340,18 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("GetFireplaceStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceListRecentTransactionsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceListRecentTransactionsProcedure,
+		svc.ListRecentTransactions,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ListRecentTransactions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceListBlocksHandler := connect.NewUnaryHandler(
+		BitwindowdServiceListBlocksProcedure,
+		svc.ListBlocks,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlocks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
@@ -324,6 +374,10 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceSetTransactionNoteHandler.ServeHTTP(w, r)
 		case BitwindowdServiceGetFireplaceStatsProcedure:
 			bitwindowdServiceGetFireplaceStatsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceListRecentTransactionsProcedure:
+			bitwindowdServiceListRecentTransactionsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceListBlocksProcedure:
+			bitwindowdServiceListBlocksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -371,4 +425,12 @@ func (UnimplementedBitwindowdServiceHandler) SetTransactionNote(context.Context,
 
 func (UnimplementedBitwindowdServiceHandler) GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetFireplaceStats is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListRecentTransactions is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListBlocks is not implemented"))
 }

@@ -14,15 +14,12 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
-	api_bitcoind "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitcoind"
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/drivechain"
 	api_enforcer "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/enforcer"
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1/bitcoindv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -31,24 +28,29 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type Services struct {
 	Database          *sql.DB
-	BitcoindConnector service.Connector[bitcoindv1alphaconnect.BitcoinServiceClient]
+	BitcoindConnector service.Connector[corerpc.BitcoinServiceClient]
 	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
 	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
 }
 
 type Config struct {
-	GUIBootedMainchain bool
-	GUIBootedEnforcer  bool
-	OnShutdown         func()
+	BitcoinCoreProxyHost string
+	GUIBootedMainchain   bool
+	GUIBootedEnforcer    bool
+	OnShutdown           func()
 }
 
 // New creates a new Server with interceptors applied.
@@ -81,9 +83,65 @@ func New(
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
 		c.OnShutdown, s.Database, validatorSvc, walletSvc, bitcoindSvc, c.GUIBootedMainchain, c.GUIBootedEnforcer,
 	)))
-	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
-		bitcoindSvc,
-	)))
+
+	// Dynamically forward all Bitcoin Core RPCs to the Bitcoin Core proxy.
+	const bitcoinService = "/bitcoin.bitcoind.v1alpha.BitcoinService/"
+	srv.services = append(srv.services, bitcoinService)
+	srv.mux.Handle(bitcoinService, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, method, ok := strings.Cut(r.URL.Path, bitcoinService)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+
+		schema := corepb.File_bitcoin_bitcoind_v1alpha_bitcoin_proto.Services().
+			ByName("BitcoinService").
+			Methods().
+			ByName(protoreflect.Name(method))
+
+		if schema == nil {
+			zerolog.Ctx(ctx).Error().Msgf("unknown method %s", method)
+			http.Error(w, fmt.Sprintf("unknown method: %s", method), http.StatusNotFound)
+			return
+		}
+
+		initializer := func(spec connect.Spec, msg any) error {
+			dynamic, ok := msg.(*dynamicpb.Message)
+			if !ok {
+				return nil
+			}
+			desc, ok := spec.Schema.(protoreflect.MethodDescriptor)
+			if !ok {
+				return fmt.Errorf("invalid schema type %T for %T message", spec.Schema, dynamic)
+			}
+			if spec.IsClient {
+				*dynamic = *dynamicpb.NewMessage(desc.Output())
+			} else {
+				*dynamic = *dynamicpb.NewMessage(desc.Input())
+			}
+			return nil
+		}
+
+		handler := connect.NewUnaryHandler(
+			r.URL.Path, func(ctx context.Context, cRequest *connect.Request[dynamicpb.Message]) (*connect.Response[dynamicpb.Message], error) {
+				var httpClient http.Client
+
+				fullURL := "http://" + c.BitcoinCoreProxyHost + r.URL.Path
+
+				client := connect.NewClient[dynamicpb.Message, dynamicpb.Message](
+					&httpClient, fullURL,
+					connect.WithSchema(schema),
+					connect.WithResponseInitializer(initializer),
+				)
+				res, err := client.CallUnary(ctx, cRequest)
+				return res, err
+			},
+			connect.WithSchema(schema),
+			connect.WithRequestInitializer(initializer),
+		)
+
+		handler.ServeHTTP(w, r)
+	}))
 
 	drivechainClient := drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
 		validatorSvc,
@@ -118,7 +176,7 @@ type Server struct {
 	server *http.Server
 
 	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
-	Bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
+	Bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	Wallet   *service.Service[validatorrpc.WalletServiceClient]
 	Crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }

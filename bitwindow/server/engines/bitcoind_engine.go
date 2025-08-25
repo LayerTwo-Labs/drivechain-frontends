@@ -10,12 +10,12 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/rs/zerolog"
@@ -23,7 +23,7 @@ import (
 )
 
 func NewBitcoind(
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	db *sql.DB,
 	conf config.Config,
 ) *Parser {
@@ -36,7 +36,7 @@ func NewBitcoind(
 
 // Parser is responsible for parsing blocks from bitcoind and storing OP_RETURN data in SQLite
 type Parser struct {
-	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
+	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	db       *sql.DB
 	conf     config.Config
 }
