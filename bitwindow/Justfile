@@ -33,3 +33,12 @@ run: download
         MINGW*|MSYS*|CYGWIN*)  flutter run -d windows;; # Windows
         *)        echo "Unknown operating system" && exit 1 ;;
     esac
+
+build: 
+    #!/usr/bin/env bash
+    case "$(uname -s)" in
+        Darwin*)  flutter build  macos;;    # macOS
+        Linux*)   flutter build  linux;;    # Linux
+        MINGW*|MSYS*|CYGWIN*)  flutter build windows;; # Windows
+        *)        echo "Unknown operating system" && exit 1 ;;
+    esac
