@@ -65,18 +65,18 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
 
 SPEC CHECKSUMS:
-  auto_updater_macos: 3a42f1a06be6981f1a18be37e6e7bf86aa732118
-  desktop_multi_window: 93667594ccc4b88d91a97972fd3b1b89667fa80a
-  file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
+  auto_updater_macos: 3e3462c418fe4e731917eacd8d28eef7af84086d
+  desktop_multi_window: 566489c048b501134f9d7fb6a2354c60a9126486
+  file_picker: e716a70a9fe5fd9e09ebc922d7541464289443af
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  package_info_plus: f0052d280d17aa382b932f399edf32507174e870
-  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
+  package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  screen_retriever_macos: 776e0fa5d42c6163d2bf772d22478df4b302b161
   Sentry: 2cbbe3592f30050c60e916c63c7f5a2fa584005e
-  sentry_flutter: 9b1e3e6934cb7040ffb71383c95a35f73523180c
+  sentry_flutter: feb376a4d8fd37387898b94e00da2060eeab2a41
   Sparkle: 5f93557176b762f712e8cd80680778bf23c7348c
-  url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
-  window_manager: b729e31d38fb04905235df9ea896128991cad99e
+  url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
+  window_manager: e25faf20d88283a0d46e7b1a759d07261ca27575
 
 PODFILE CHECKSUM: 236401fc2c932af29a9fcf0e97baeeb2d750d367
 
