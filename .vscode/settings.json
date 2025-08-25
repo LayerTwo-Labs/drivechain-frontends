@@ -25,5 +25,6 @@
     "**/*tsconfig.json": true,
     ".cache": true,
     "retool.config.json": true
-  }
+  },
+  "dart.flutterSdkPath": ".fvm/versions/3.32.8"
 }

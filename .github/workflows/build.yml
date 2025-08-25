@@ -122,7 +122,9 @@ jobs:
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+
+      - uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+
       - uses: extractions/setup-just@v1
       # Setup go for building bitwindowd
       - uses: actions/setup-go@v5

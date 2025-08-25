@@ -11,6 +11,9 @@ gen-validator:
 build-client:
     flutter build web
 
+build-docker:
+    docker build --platform linux/amd64 --file Dockerfile ..
+
 run-client: 
     # specify port 3000 for CORS to work properly against the remote server
     # specify base URL for local development
