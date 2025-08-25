@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
-	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
 	engines "github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	bitcoindrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -23,6 +22,8 @@ import (
 )
 
 func main() {
+	start := time.Now()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 
 	if err := realMain(ctx, cancel); err != nil {
@@ -32,30 +33,25 @@ func main() {
 			cancel()
 			os.Exit(1)
 		}
-		// the zerolog logger won't work here, because the file logger is closed.
-		// what we do instead is a simple printf
-		// nolint:forbidigo
-		fmt.Fprintf(os.Stderr, "main: got error: %T - %v\n", err, err)
+
+		if log := zerolog.Ctx(ctx); log != nil {
+			log.Error().Err(err).
+				Msgf("main: finished with error after %s", time.Since(start))
+		}
+
+		fmt.Fprintf(os.Stderr, "main: finished with error after %s: %s (%T)\n", time.Since(start), err, err)
 		cancel()
 		os.Exit(1)
 	}
 }
 
 func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
-	conf, err := readConfig()
+	conf, err := config.Parse()
 	if err != nil {
 		if flags.WroteHelp(err) {
 			return nil
 		}
 		return fmt.Errorf("read config: %w", err)
-	}
-
-	datadir, err := dir.GetDataDir()
-	if err != nil {
-		return fmt.Errorf("get data dir: %w", err)
-	}
-	if conf.LogPath == "" {
-		conf.LogPath = filepath.Join(datadir, "server.log")
 	}
 
 	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -77,14 +73,14 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	log.Debug().
 		Msgf("initiating database")
 
-	db, err := database.New(ctx)
+	db, err := database.New(ctx, conf)
 	if err != nil {
 		log.Error().Err(err).Msg("init database")
 		return fmt.Errorf("init database: %w", err)
 	}
 	defer database.SafeDefer(ctx, db.Close)
 
-	bitcoindConnector := func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+	bitcoindConnector := func(ctx context.Context) (bitcoindrpc.BitcoinServiceClient, error) {
 		return startCoreProxy(ctx, conf)
 	}
 
@@ -128,7 +124,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return err
 	}
 
-	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db)
+	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
 	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
@@ -187,7 +183,7 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 	zerolog.DefaultContextLogger = &logger
 }
 
-func startCoreProxy(ctx context.Context, conf Config) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+func startCoreProxy(ctx context.Context, conf config.Config) (bitcoindrpc.BitcoinServiceClient, error) {
 	logLevel := zerolog.WarnLevel
 
 	// We don't want info logs from the core proxy because the ReconnectLoop()

@@ -7,7 +7,8 @@ import (
 	"runtime"
 )
 
-func GetDataDir() (string, error) {
+func DefaultDataDir() (string, error) {
+
 	var dir string
 	const appName = "bitwindow"
 
@@ -36,12 +37,6 @@ func GetDataDir() (string, error) {
 		dir = filepath.Join(appData, appName)
 	default:
 		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-	}
-
-	// Ensure the directory exists
-	err := os.MkdirAll(dir, 0755)
-	if err != nil && !os.IsExist(err) {
-		return "", err
 	}
 
 	return dir, nil
