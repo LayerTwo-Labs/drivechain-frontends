@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	connectrpc.com/connect v1.18.1
-	github.com/barebitcoin/btc-buf v0.0.0-20250502095110-38e347c4c3dd
+	github.com/barebitcoin/btc-buf v0.0.0-20250825120320-6d3de0d2b772
 	github.com/brianvoe/gofakeit/v7 v7.3.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
