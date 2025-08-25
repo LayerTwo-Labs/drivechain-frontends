@@ -78,10 +78,6 @@ jobs:
         with:
           go-version: "1.23"
 
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-
       - name: Build bitwindowd
         run: |
           # build
