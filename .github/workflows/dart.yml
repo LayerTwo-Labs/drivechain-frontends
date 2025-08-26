@@ -38,8 +38,8 @@ jobs:
 
       - name: Verify formatting for ${{ matrix.package }}
         run:
-          find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l
-          120
+          # prettier-ignore
+          find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120 --set-exit-if-changed
 
       - name: Analyze project source for ${{ matrix.package }}
         run: dart analyze
