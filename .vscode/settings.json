@@ -3,9 +3,9 @@
     "quickfix.insertSemicolon": "always",
     "source.fixAll": "always"
   },
-  "dart.lineLength": 120,
+  "dart.lineLength": 80,
   "[dart]": {
-    "editor.rulers": [120]
+    "editor.rulers": [80]
   },
   "cmake.sourceDirectory": "/Users/bo/code/drivechain-frontends/clients/bitwindow/linux",
   "files.exclude": {

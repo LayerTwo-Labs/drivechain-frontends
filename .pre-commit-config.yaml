@@ -5,8 +5,6 @@ repos:
       # Run format first, quickest operation
       - id: dart-format
         exclude: "lib/gen/.*"
-        args:
-          - "-l 120"
 
       - id: flutter-analyze
         # exclude: "lib/gen/.*"

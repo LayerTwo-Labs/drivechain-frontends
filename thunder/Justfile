@@ -1,10 +1,7 @@
 fix:
     dart fix --apply
 
-format:
-    find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
-
-lint: format fix
+lint: fix
 
 gen-version:
     cd ../ && bash scripts/generate-version.sh thunder

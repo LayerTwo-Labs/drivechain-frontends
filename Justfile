@@ -1,4 +1,9 @@
-lint:
+format:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    find . -name "*.dart" -not -path "*/lib/gen/*" | xargs dart format -l 120
+
+lint: format
     bash scripts/lint.sh
 
 gen-router:
