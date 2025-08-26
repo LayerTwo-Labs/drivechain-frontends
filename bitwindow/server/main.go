@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -15,11 +16,13 @@ import (
 	engines "github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func main() {
@@ -145,6 +148,11 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
 	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db)
 
+	zmqEngine, err := getZmqEngine(ctx, conf)
+	if err != nil {
+		return fmt.Errorf("get zmq engine: %w", err)
+	}
+
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
 	errs := make(chan error)
@@ -161,6 +169,25 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	go func() {
 		errs <- deniabilityEngine.Run(ctx)
 	}()
+
+	// If Bitcoin Core publishes raw transactions, we can use this to handle
+	// pending mempool entries.
+	if zmqEngine != nil {
+		go func() {
+			errs <- zmqEngine.Run(ctx)
+		}()
+
+		go func() {
+			for tx := range zmqEngine.Subscribe() {
+				if err := bitcoinEngine.HandleNewRawTransaction(ctx, tx); err != nil {
+					log.Error().Err(err).Msgf("handle new raw transaction: %s", tx.TxHash())
+				}
+			}
+		}()
+	} else {
+		log.Warn().Msgf("no pubrawtx notification found, skipping ZMQ engine")
+	}
+
 	go func() {
 		<-ctx.Done()
 
@@ -231,4 +258,35 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 	}
 
 	return core, nil
+}
+
+func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
+	btc, err := startCoreProxy(ctx, conf)
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind connector: %w", err)
+	}
+
+	notifs, err := btc.GetZmqNotifications(ctx, connect.NewRequest(&emptypb.Empty{}))
+	switch {
+	// Chug along without erroring
+	case connect.CodeOf(err) == connect.CodeUnavailable:
+		zerolog.Ctx(ctx).Warn().Err(err).
+			Msgf("unable to fetch ZMQ notifications, continuing with nil ZMQ engine")
+
+		return nil, nil
+
+	case err != nil:
+		return nil, fmt.Errorf("get zmq notifications: %w", err)
+	}
+
+	pubRawTxAddress, foundPubRawTx := lo.Find(notifs.Msg.Notifications,
+		func(n *corepb.GetZmqNotificationsResponse_Notification) bool {
+			return n.Type == "pubrawtx"
+		})
+
+	if !foundPubRawTx {
+		return nil, nil
+	}
+
+	return engines.NewZMQ(pubRawTxAddress.Address)
 }

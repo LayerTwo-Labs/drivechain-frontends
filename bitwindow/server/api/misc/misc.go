@@ -57,14 +57,18 @@ func (s *Server) ListOPReturn(ctx context.Context, req *connect.Request[emptypb.
 }
 
 func opReturnToProto(opReturn opreturns.OPReturn, _ int) *miscv1.OPReturn {
+	var height *int32
+	if opReturn.Height != nil {
+		height = lo.ToPtr(int32(*opReturn.Height))
+	}
 	return &miscv1.OPReturn{
 		Id:         opReturn.ID,
 		Message:    opreturns.OPReturnToReadable(opReturn.Data),
 		Txid:       opReturn.TxID,
 		Vout:       opReturn.Vout,
-		Height:     opReturn.Height,
+		Height:     height,
 		FeeSats:    opReturn.FeeSats,
-		CreateTime: timestamppb.New(opReturn.CreatedAt),
+		CreateTime: timestamppb.New(lo.FromPtr(opReturn.CreatedAt)),
 	}
 }
 
@@ -258,7 +262,7 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 
 	// Sort all news by recency (most recent first)
 	sort.Slice(news, func(i, j int) bool {
-		return news[i].CreatedAt.After(news[j].CreatedAt)
+		return lo.FromPtr(news[i].CreatedAt).After(lo.FromPtr(news[j].CreatedAt))
 	})
 
 	// Take up to 100 entries
@@ -278,6 +282,6 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		Headline:   coinNews.Headline,
 		Content:    coinNews.Content,
 		FeeSats:    coinNews.FeeSats,
-		CreateTime: timestamppb.New(coinNews.CreatedAt),
+		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
 	}
 }

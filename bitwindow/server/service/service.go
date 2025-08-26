@@ -46,7 +46,7 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 		return client, nil
 	}
 
-	zerolog.Ctx(ctx).Debug().
+	zerolog.Ctx(ctx).Trace().
 		Msgf("get service: %q is not connected, connecting...", s.name)
 
 	return s.Connect(ctx)
@@ -86,7 +86,9 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if _, err := s.Connect(ctx); err != nil {
+				// Only log if we were connected before
+				connected := s.connected.Load()
+				if _, err := s.Connect(ctx); err != nil && connected {
 					zerolog.Ctx(ctx).Debug().
 						Err(err).
 						Msgf("reconnect loop: could not connect to %q", s.name)
