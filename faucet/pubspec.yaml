@@ -18,7 +18,7 @@ dependencies:
   auto_route: ^10.1.0+1
   fixnum: ^1.1.1
   cupertino_icons: ^1.0.8
-  stacked: ^3.4.3
+  stacked: ^3.5.0
   get_it: ^8.2.0
   logger: ^2.6.0
   http: ^1.4.0
