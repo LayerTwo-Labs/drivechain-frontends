@@ -360,7 +360,7 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 	return connect.NewResponse(&pb.GetSyncInfoResponse{
 		TipBlockHeight:      int64(processedTip.Height),
 		TipBlockTime:        processedTip.ProcessedAt.Unix(),
-		TipBlockHash:        processedTip.Hash,
+		TipBlockHash:        processedTip.Hash.String(),
 		TipBlockProcessedAt: timestamppb.New(processedTip.ProcessedAt),
 		SyncProgress:        float64(processedTip.Height) / float64(tip.Msg.Blocks),
 		HeaderHeight:        int64(tip.Msg.Headers),

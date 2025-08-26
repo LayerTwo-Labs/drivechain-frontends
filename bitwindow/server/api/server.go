@@ -207,7 +207,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
-		return fmt.Errorf("could not listen: %w", err)
+		return fmt.Errorf("listen on %q: %w", address, err)
 	}
 
 	defer func() {

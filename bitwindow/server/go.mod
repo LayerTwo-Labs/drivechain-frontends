@@ -4,10 +4,12 @@ go 1.25
 
 require (
 	connectrpc.com/connect v1.18.1
-	github.com/barebitcoin/btc-buf v0.0.0-20250828175702-83cc992a6d8a
+	github.com/Masterminds/squirrel v1.5.4
+	github.com/barebitcoin/btc-buf v0.0.0-20250829115544-47d67de58011
 	github.com/brianvoe/gofakeit/v7 v7.4.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
+	github.com/pebbe/zmq4 v1.4.0
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.51.0
 	github.com/sourcegraph/conc v0.3.0
@@ -31,6 +33,8 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.32
