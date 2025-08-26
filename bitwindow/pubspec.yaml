@@ -53,8 +53,8 @@ dependencies:
   dart_bip32_bip44: ^0.2.0
   bs58: ^1.0.2
   auto_updater: ^1.0.0
-  bitcoin_base: ^6.8.0
-  blockchain_utils: ^5.1.0
+  bitcoin_base: ^6.7.0
+  blockchain_utils: ^5.2.0
 
 dev_dependencies:
   sentry_dart_plugin: ^3.1.0
