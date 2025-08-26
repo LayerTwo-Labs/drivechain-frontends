@@ -2,11 +2,11 @@ import 'package:sail_ui/sail_ui.dart';
 
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
-      : super(
-          conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
-          binaryType: BinaryType.testSidechain,
-          restartOnFailure: false,
-        );
+    : super(
+        conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
+        binaryType: BinaryType.testSidechain,
+        restartOnFailure: false,
+      );
 
   @override
   Future<(double, double)> balance() async {
@@ -27,9 +27,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<List<String>> binaryArgs(
-    NodeConnectionSettings mainchainConf,
-  ) async {
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     return List.empty();
   }
 
@@ -39,12 +37,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<String> withdraw(
-    String address,
-    int amountSats,
-    int sidechainFeeSats,
-    int mainchainFeeSats,
-  ) async {
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
     return 'txiddeadbeef';
   }
 

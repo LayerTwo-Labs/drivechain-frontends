@@ -17,11 +17,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the bitnames server.
 abstract class BitnamesRPC extends SidechainRPC {
-  BitnamesRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  BitnamesRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   /// Get balance in sats
   Future<BalanceResponse> getBalance();
@@ -136,12 +132,7 @@ class BitnamesLive extends BitnamesRPC {
     return client;
   }
 
-  BitnamesLive()
-      : super(
-          conf: readConf(),
-          binaryType: BinaryType.bitnames,
-          restartOnFailure: true,
-        ) {
+  BitnamesLive() : super(conf: readConf(), binaryType: BinaryType.bitnames, restartOnFailure: true) {
     _init();
   }
 
@@ -268,9 +259,7 @@ class BitnamesLive extends BitnamesRPC {
     Map<String, String>? hashNameMapping;
     try {
       final settingValue = await clientSettings.getValue(HashNameMappingSetting());
-      hashNameMapping = Map.fromEntries(
-        settingValue.value.entries.map((e) => MapEntry(e.key, e.value.name)),
-      );
+      hashNameMapping = Map.fromEntries(settingValue.value.entries.map((e) => MapEntry(e.key, e.value.name)));
     } catch (e) {
       // do nothing
     }
@@ -302,11 +291,7 @@ class BitnamesLive extends BitnamesRPC {
       }
 
       final details = BitnameDetails.fromJson(parsedDetails);
-      return BitnameEntry(
-        hash: hash,
-        details: details,
-        plaintextName: hashNameMapping?[hash],
-      );
+      return BitnameEntry(hash: hash, details: details, plaintextName: hashNameMapping?[hash]);
     }).toList();
   }
 
@@ -323,10 +308,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> registerBitName(String plainName, BitNameData? data) async {
-    final response = await _client().call('register_bitname', [
-      plainName,
-      data?.toJson(),
-    ]);
+    final response = await _client().call('register_bitname', [plainName, data?.toJson()]);
     return response as String;
   }
 
@@ -341,23 +323,14 @@ class BitnamesLive extends BitnamesRPC {
 
   /// Sign an arbitrary message with the specified verifying key
   Future<String> signArbitraryMessage(String message, String verifyingKey) async {
-    final response = await _client().call('sign_arbitrary_msg', {
-      'msg': message,
-      'verifying_key': verifyingKey,
-    });
+    final response = await _client().call('sign_arbitrary_msg', {'msg': message, 'verifying_key': verifyingKey});
     return response as String;
   }
 
   /// Sign a message with the secret key for the specified address
   Future<Map<String, String>> signArbitraryMessageAsAddress(String message, String address) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', {
-      'msg': message,
-      'address': address,
-    });
-    return {
-      'verifying_key': response['verifying_key'] as String,
-      'signature': response['signature'] as String,
-    };
+    final response = await _client().call('sign_arbitrary_msg_as_addr', {'msg': message, 'address': address});
+    return {'verifying_key': response['verifying_key'] as String, 'signature': response['signature'] as String};
   }
 
   /// Get paymail information
@@ -450,11 +423,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
-    final response = await _client().call('decrypt_msg', [
-      encryptionPubkey,
-      ciphertext,
-      true,
-    ]);
+    final response = await _client().call('decrypt_msg', [encryptionPubkey, ciphertext, true]);
     // convert hex to string
     final bytes = hex.decode(response as String);
     final decoded = utf8.decode(bytes);
@@ -463,10 +432,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
-    final response = await _client().call(
-      'encrypt_msg',
-      [encryptionPubkey, msg],
-    );
+    final response = await _client().call('encrypt_msg', [encryptionPubkey, msg]);
     return response as String;
   }
 
@@ -514,23 +480,14 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
-    final response = await _client().call('sign_arbitrary_msg', {
-      'msg': msg,
-      'verifying_key': verifyingKey,
-    });
+    final response = await _client().call('sign_arbitrary_msg', {'msg': msg, 'verifying_key': verifyingKey});
     return response as String;
   }
 
   @override
   Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', {
-      'msg': msg,
-      'address': address,
-    });
-    return {
-      'verifying_key': response['verifying_key'] as String,
-      'signature': response['signature'] as String,
-    };
+    final response = await _client().call('sign_arbitrary_msg_as_addr', {'msg': msg, 'address': address});
+    return {'verifying_key': response['verifying_key'] as String, 'signature': response['signature'] as String};
   }
 
   @override
@@ -541,22 +498,12 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
-    final response = await _client().call('transfer', {
-      'dest': dest,
-      'value': value,
-      'fee': fee,
-      'memo': memo,
-    });
+    final response = await _client().call('transfer', {'dest': dest, 'value': value, 'fee': fee, 'memo': memo});
     return response as String;
   }
 
   @override
-  Future<String> withdraw(
-    String mainchainAddress,
-    int amountSats,
-    int sidechainFeeSats,
-    int mainchainFeeSats,
-  ) async {
+  Future<String> withdraw(String mainchainAddress, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
     final response = await _client().call('withdraw', [
       mainchainAddress,
       amountSats,
@@ -633,52 +580,42 @@ class BitNameData {
   });
 
   Map<String, dynamic> toJson() => {
-        if (commitment != null) 'commitment': commitment,
-        if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
-        if (paymailFeeSats != null) 'paymail_fee_sats': paymailFeeSats,
-        if (signingPubkey != null) 'signing_pubkey': signingPubkey,
-        if (socketAddrV4 != null) 'socket_addr_v4': socketAddrV4,
-        if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
-      };
+    if (commitment != null) 'commitment': commitment,
+    if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
+    if (paymailFeeSats != null) 'paymail_fee_sats': paymailFeeSats,
+    if (signingPubkey != null) 'signing_pubkey': signingPubkey,
+    if (socketAddrV4 != null) 'socket_addr_v4': socketAddrV4,
+    if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
+  };
 
   factory BitNameData.fromJson(Map<String, dynamic> json) => BitNameData(
-        commitment: json['commitment'] as String?,
-        encryptionPubkey: json['encryption_pubkey'] as String?,
-        paymailFeeSats: json['paymail_fee_sats'] as int?,
-        signingPubkey: json['signing_pubkey'] as String?,
-        socketAddrV4: json['socket_addr_v4'] as String?,
-        socketAddrV6: json['socket_addr_v6'] as String?,
-      );
+    commitment: json['commitment'] as String?,
+    encryptionPubkey: json['encryption_pubkey'] as String?,
+    paymailFeeSats: json['paymail_fee_sats'] as int?,
+    signingPubkey: json['signing_pubkey'] as String?,
+    socketAddrV4: json['socket_addr_v4'] as String?,
+    socketAddrV6: json['socket_addr_v6'] as String?,
+  );
 }
 
 class BalanceResponse {
   final int totalSats;
   final int availableSats;
 
-  BalanceResponse({
-    required this.totalSats,
-    required this.availableSats,
-  });
+  BalanceResponse({required this.totalSats, required this.availableSats});
 
-  factory BalanceResponse.fromJson(Map<String, dynamic> json) => BalanceResponse(
-        totalSats: json['total_sats'] as int,
-        availableSats: json['available_sats'] as int,
-      );
+  factory BalanceResponse.fromJson(Map<String, dynamic> json) =>
+      BalanceResponse(totalSats: json['total_sats'] as int, availableSats: json['available_sats'] as int);
 }
 
 class BitnamesPeerInfo {
   final String address;
   final String status;
 
-  BitnamesPeerInfo({
-    required this.address,
-    required this.status,
-  });
+  BitnamesPeerInfo({required this.address, required this.status});
 
-  factory BitnamesPeerInfo.fromJson(Map<String, dynamic> json) => BitnamesPeerInfo(
-        address: json['address'] as String,
-        status: json['status'] as String,
-      );
+  factory BitnamesPeerInfo.fromJson(Map<String, dynamic> json) =>
+      BitnamesPeerInfo(address: json['address'] as String, status: json['status'] as String);
 }
 
 class BitnameEntry {
@@ -686,11 +623,7 @@ class BitnameEntry {
   final String? plaintextName;
   final BitnameDetails details;
 
-  BitnameEntry({
-    required this.hash,
-    required this.details,
-    this.plaintextName,
-  });
+  BitnameEntry({required this.hash, required this.details, this.plaintextName});
 }
 
 class BitnameDetails {
@@ -713,12 +646,12 @@ class BitnameDetails {
   });
 
   factory BitnameDetails.fromJson(Map<String, dynamic> json) => BitnameDetails(
-        seqId: json['seq_id'] as String,
-        commitment: json['commitment'] as String?,
-        socketAddrV4: json['socket_addr_v4'] as String?,
-        socketAddrV6: json['socket_addr_v6'] as String?,
-        encryptionPubkey: json['encryption_pubkey'] as String?,
-        signingPubkey: json['signing_pubkey'] as String?,
-        paymailFeeSats: json['paymail_fee_sats'] as int?,
-      );
+    seqId: json['seq_id'] as String,
+    commitment: json['commitment'] as String?,
+    socketAddrV4: json['socket_addr_v4'] as String?,
+    socketAddrV6: json['socket_addr_v6'] as String?,
+    encryptionPubkey: json['encryption_pubkey'] as String?,
+    signingPubkey: json['signing_pubkey'] as String?,
+    paymailFeeSats: json['paymail_fee_sats'] as int?,
+  );
 }

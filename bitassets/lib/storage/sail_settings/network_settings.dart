@@ -31,15 +31,11 @@ class NetworkSetting extends SettingValue<SailNetworkValues> {
 
   @override
   SailNetworkValues? fromJson(String jsonString) {
-    return SailNetworkValues.values.firstWhereOrNull(
-      (element) => element.name == jsonString,
-    );
+    return SailNetworkValues.values.firstWhereOrNull((element) => element.name == jsonString);
   }
 
   @override
   SettingValue<SailNetworkValues> withValue([SailNetworkValues? value]) {
-    return NetworkSetting(
-      newValue: value,
-    );
+    return NetworkSetting(newValue: value);
   }
 }

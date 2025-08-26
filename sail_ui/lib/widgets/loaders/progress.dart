@@ -83,10 +83,7 @@ class ProgressBar extends StatelessWidget {
           if (!small && !justPercent)
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 50, maxWidth: 50),
-              child: SailText.primary12(
-                '${((progress) * 100).toStringAsFixed(2)}%',
-                textAlign: TextAlign.left,
-              ),
+              child: SailText.primary12('${((progress) * 100).toStringAsFixed(2)}%', textAlign: TextAlign.left),
             ),
         ],
       ),

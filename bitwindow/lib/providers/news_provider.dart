@@ -58,11 +58,7 @@ class NewsProvider extends ChangeNotifier {
     }
   }
 
-  bool _dataHasChanged(
-    List<CoinNews> newNews,
-    List<Topic> newTopics,
-    List<OPReturn> newOPReturns,
-  ) {
+  bool _dataHasChanged(List<CoinNews> newNews, List<Topic> newTopics, List<OPReturn> newOPReturns) {
     return !listEquals(news, newNews) || !listEquals(topics, newTopics) || !listEquals(opReturns, newOPReturns);
   }
 

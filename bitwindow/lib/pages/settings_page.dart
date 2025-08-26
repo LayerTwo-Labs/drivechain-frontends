@@ -33,17 +33,10 @@ class _SettingsPageState extends State<SettingsPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Header
-            SailText.primary24(
-              'Settings',
-              bold: true,
-            ),
+            SailText.primary24('Settings', bold: true),
             SailText.secondary13('Manage your BitWindow settings.'),
             const SailSpacing(SailStyleValues.padding10),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: theme.colors.divider,
-            ),
+            Divider(height: 1, thickness: 1, color: theme.colors.divider),
             const SailSpacing(SailStyleValues.padding10),
 
             // Navigation and Content side by side
@@ -66,9 +59,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SailSpacing(SailStyleValues.padding40),
                 // Right content area
-                Expanded(
-                  child: _buildContent(),
-                ),
+                Expanded(child: _buildContent()),
               ],
             ),
           ],
@@ -145,10 +136,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
         // Profile section header
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('General'),
-            SailText.secondary13('Enable or disable debug mode'),
-          ],
+          children: [SailText.primary20('General'), SailText.secondary13('Enable or disable debug mode')],
         ),
 
         // Debug Mode Dropdown
@@ -160,14 +148,8 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             SailDropdownButton<bool>(
               value: _settingsProvider.debugMode,
               items: [
-                SailDropdownItem<bool>(
-                  value: false,
-                  label: 'Disabled',
-                ),
-                SailDropdownItem<bool>(
-                  value: true,
-                  label: 'Enabled',
-                ),
+                SailDropdownItem<bool>(value: false, label: 'Disabled'),
+                SailDropdownItem<bool>(value: true, label: 'Enabled'),
               ],
               onChanged: (bool? newValue) async {
                 if (newValue == true) {
@@ -178,9 +160,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
               },
             ),
             const SailSpacing(4),
-            SailText.secondary12(
-              'When enabled, detailed error reporting will be collected to fix bugs hastily.',
-            ),
+            SailText.secondary12('When enabled, detailed error reporting will be collected to fix bugs hastily.'),
           ],
         ),
       ],
@@ -220,7 +200,8 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               context: context,
               builder: (context) => SailAlertCard(
                 title: 'Reset Wallet?',
-                subtitle: 'Are you sure you want to reset all wallet data? This will:\n\n'
+                subtitle:
+                    'Are you sure you want to reset all wallet data? This will:\n\n'
                     '• Permanently delete all wallet files from BitWindow\n'
                     '• Permanently delete all wallet files from the Enforcer\n'
                     '• Stop all running processes\n'
@@ -259,11 +240,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
   Future<void> _resetBlockchainData(BuildContext context) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-    final binaries = [
-      BitcoinCore(),
-      Enforcer(),
-      BitWindow(),
-    ];
+    final binaries = [BitcoinCore(), Enforcer(), BitWindow()];
 
     final futures = <Future>[];
     // Only stop binaries that are started by bitwindow
@@ -300,15 +277,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       beforeBoot: () async {
         log.i('resetting blockchain data');
 
-        final allBinaries = [
-          BitcoinCore(),
-          Enforcer(),
-          BitWindow(),
-          Thunder(),
-          Bitnames(),
-          BitAssets(),
-          ZSide(),
-        ];
+        final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), Bitnames(), BitAssets(), ZSide()];
         // wipe all chain data - don't swallow errors
         try {
           await Future.wait(allBinaries.map((binary) => binary.wipeAppDir()));
@@ -344,10 +313,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       if (context.mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not reset wallets: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
+          SnackBar(content: Text('Could not reset wallets: $e'), backgroundColor: SailTheme.of(context).colors.error),
         );
       }
     }

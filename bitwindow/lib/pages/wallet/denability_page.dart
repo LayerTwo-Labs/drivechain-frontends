@@ -11,10 +11,7 @@ import 'package:stacked/stacked.dart';
 class DeniabilityTab extends StatelessWidget {
   final SailWindow? newWindowButton;
 
-  const DeniabilityTab({
-    super.key,
-    required this.newWindowButton,
-  });
+  const DeniabilityTab({super.key, required this.newWindowButton});
 
   @override
   Widget build(BuildContext context) {
@@ -105,9 +102,15 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
           if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
           if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
-          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) return 0;
-          if (!a.denialInfo.hasNextExecutionTime()) return sortAscending ? 1 : -1;
-          if (!b.denialInfo.hasNextExecutionTime()) return sortAscending ? -1 : 1;
+          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) {
+            return 0;
+          }
+          if (!a.denialInfo.hasNextExecutionTime()) {
+            return sortAscending ? 1 : -1;
+          }
+          if (!b.denialInfo.hasNextExecutionTime()) {
+            return sortAscending ? -1 : 1;
+          }
           return sortAscending
               ? a.denialInfo.nextExecutionTime.toDateTime().compareTo(b.denialInfo.nextExecutionTime.toDateTime())
               : b.denialInfo.nextExecutionTime.toDateTime().compareTo(a.denialInfo.nextExecutionTime.toDateTime());
@@ -146,34 +149,13 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   ? '0'
                   : '${widget.utxos[index].output}:${widget.utxos[index].denialInfo.executions.length}',
               headerBuilder: (context) => [
-                SailTableHeaderCell(
-                  name: 'Denial ID',
-                  onSort: () => onSort('id'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Hops',
-                  onSort: () => onSort('hops'),
-                ),
-                SailTableHeaderCell(
-                  name: 'UTXO',
-                  onSort: () => onSort('txid'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Amount',
-                  onSort: () => onSort('amount'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Next Execution',
-                  onSort: () => onSort('next'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Status',
-                  onSort: () => onSort('status'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Timestamp',
-                  onSort: () => onSort('timestamp'),
-                ),
+                SailTableHeaderCell(name: 'Denial ID', onSort: () => onSort('id')),
+                SailTableHeaderCell(name: 'Hops', onSort: () => onSort('hops')),
+                SailTableHeaderCell(name: 'UTXO', onSort: () => onSort('txid')),
+                SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+                SailTableHeaderCell(name: 'Next Execution', onSort: () => onSort('next')),
+                SailTableHeaderCell(name: 'Status', onSort: () => onSort('status')),
+                SailTableHeaderCell(name: 'Timestamp', onSort: () => onSort('timestamp')),
                 const SailTableHeaderCell(name: 'Actions'),
               ],
               cellHeight: 36.0,
@@ -210,8 +192,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   status = utxo.denialInfo.hasCancelTime()
                       ? 'Cancelled'
                       : utxo.denialInfo.nextExecutionTime.toDateTime().second == 0
-                          ? 'Completed'
-                          : 'Ongoing';
+                      ? 'Completed'
+                      : 'Ongoing';
                   nextExecution = utxo.denialInfo.hasNextExecutionTime()
                       ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString()
                       : '-';
@@ -227,29 +209,18 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     value: '${utxo.denialInfo.id == 0 ? '-' : utxo.denialInfo.id}',
                     copyValue: utxo.denialInfo.id.toString(),
                   ),
-                  SailTableCell(
-                    value: hops,
-                  ),
+                  SailTableCell(value: hops),
                   SailTableCell(
                     value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
                     copyValue: utxo.output,
                   ),
-                  SailTableCell(
-                    value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
-                    monospace: true,
-                  ),
-                  SailTableCell(
-                    value: nextExecution,
-                  ),
+                  SailTableCell(value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())), monospace: true),
+                  SailTableCell(value: nextExecution),
                   Tooltip(
                     message: utxo.denialInfo.cancelReason,
-                    child: SailTableCell(
-                      value: status,
-                    ),
+                    child: SailTableCell(value: status),
                   ),
-                  SailTableCell(
-                    value: formatDate(utxo.receivedAt.toDateTime()),
-                  ),
+                  SailTableCell(value: formatDate(utxo.receivedAt.toDateTime())),
                   SailTableCell(
                     value: canCancel ? 'Cancel' : '-',
                     child: canCancel
@@ -268,24 +239,14 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
               },
               rowCount: widget.utxos.isEmpty ? 1 : widget.utxos.length, // Show one row when empty
               drawGrid: true,
-              sortColumnIndex: [
-                'id',
-                'txid',
-                'vout',
-                'amount',
-                'next',
-                'status',
-                'actions',
-              ].indexOf(sortColumn),
+              sortColumnIndex: ['id', 'txid', 'vout', 'amount', 'next', 'status', 'actions'].indexOf(sortColumn),
               sortAscending: sortAscending,
               onSort: (columnIndex, ascending) {
                 onSort(['id', 'txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
               },
               onDoubleTap: (rowId) {
                 if (widget.utxos.isEmpty) return;
-                final utxo = widget.utxos.firstWhere(
-                  (u) => u.output == rowId,
-                );
+                final utxo = widget.utxos.firstWhere((u) => u.output == rowId);
                 _showUtxoDetails(context, utxo);
               },
             ),
@@ -330,10 +291,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                               value: formatDate(utxo.denialInfo.nextExecutionTime.toDateTime()),
                             ),
                           if (utxo.denialInfo.hasCancelTime())
-                            DetailRow(
-                              label: 'Cancel Reason',
-                              value: utxo.denialInfo.cancelReason,
-                            ),
+                            DetailRow(label: 'Cancel Reason', value: utxo.denialInfo.cancelReason),
                         ],
                       ),
                     ),
@@ -367,9 +325,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   void _showTransactionDetails(BuildContext context, String txid) {
     showDialog(
       context: context,
-      builder: (context) => TransactionDetailsDialog(
-        txid: txid,
-      ),
+      builder: (context) => TransactionDetailsDialog(txid: txid),
     );
   }
 
@@ -380,7 +336,9 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     final completedHops = utxo.denialInfo.executions.length;
     final totalHops = utxo.denialInfo.numHops;
 
-    if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) return 'Completed';
+    if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) {
+      return 'Completed';
+    }
     return 'Ongoing ($completedHops/$totalHops hops)';
   }
 }

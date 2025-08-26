@@ -57,9 +57,7 @@ class FastWithdrawalTab extends StatelessWidget {
             label: 'Withdraw amount (BTC)',
             controller: viewModel.amountController,
             hintText: 'How much do you want to withdraw?',
-            suffixWidget: PasteButton(
-              onPaste: (text) => viewModel.amountController.text = text,
-            ),
+            suffixWidget: PasteButton(onPaste: (text) => viewModel.amountController.text = text),
           ),
 
           Column(
@@ -144,9 +142,7 @@ class FastWithdrawalTab extends StatelessWidget {
                 children: [
                   SailText.primary13('Send L2 ${viewModel.layer2Chain} Coins to the info below'),
                   SailTextField(
-                    controller: TextEditingController(
-                      text: viewModel.paymentMessage!['amount'],
-                    ),
+                    controller: TextEditingController(text: viewModel.paymentMessage!['amount']),
                     hintText: 'Amount',
                     readOnly: true,
                     suffixWidget: CopyButton(text: viewModel.paymentMessage!['amount']),
@@ -170,9 +166,7 @@ class FastWithdrawalTab extends StatelessWidget {
                   label: 'Paste the L2 txid here to complete the withdrawal',
                   controller: viewModel.paymentTxIdController,
                   hintText: 'Paste L2 payment txid',
-                  suffixWidget: PasteButton(
-                    onPaste: (text) => viewModel.paymentTxIdController.text = text,
-                  ),
+                  suffixWidget: PasteButton(onPaste: (text) => viewModel.paymentTxIdController.text = text),
                 ),
               ),
               const SizedBox(width: 16),
@@ -199,9 +193,7 @@ class FastWithdrawalTab extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(
-                      child: SailText.primary13(viewModel.withdrawalHash!),
-                    ),
+                    Expanded(child: SailText.primary13(viewModel.withdrawalHash!)),
                     CopyButton(text: viewModel.withdrawalHash!),
                   ],
                 ),
@@ -253,14 +245,8 @@ class FastWithdrawalTabViewModel extends BaseViewModel {
 
   // Fast withdrawal server configuration
   static const List<Map<String, String>> fastWithdrawalServers = [
-    {
-      'name': 'fw1.drivechain.info (L2L #1)',
-      'url': 'https://fw1.drivechain.info',
-    },
-    {
-      'name': 'fw2.drivechain.info (L2L #2)',
-      'url': 'https://fw2.drivechain.info',
-    },
+    {'name': 'fw1.drivechain.info (L2L #1)', 'url': 'https://fw1.drivechain.info'},
+    {'name': 'fw2.drivechain.info (L2L #2)', 'url': 'https://fw2.drivechain.info'},
   ];
 
   static String get defaultServer => fastWithdrawalServers[0]['url']!;
@@ -350,11 +336,7 @@ class FastWithdrawalTabViewModel extends BaseViewModel {
 
       log.i('requesting withdrawal from $url with params: ${jsonEncode(body)}');
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
+      final response = await http.post(url, headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
 
       final responseData = jsonDecode(response.body);
 
@@ -373,10 +355,7 @@ class FastWithdrawalTabViewModel extends BaseViewModel {
 
       withdrawalHash = result['hash'];
       final totalAmount = (amountValue + (result['server_fee_sats'] as int) / 100000000).toString();
-      paymentMessage = {
-        'amount': totalAmount,
-        'address': result['server_l2_address']['info'],
-      };
+      paymentMessage = {'amount': totalAmount, 'address': result['server_l2_address']['info']};
 
       notifyListeners();
     } catch (error) {
@@ -395,16 +374,9 @@ class FastWithdrawalTabViewModel extends BaseViewModel {
 
       // Make actual API call
       final url = Uri.parse('$selectedServer/paid');
-      final body = {
-        'hash': withdrawalHash!,
-        'txid': paymentTxIdController.text.trim(),
-      };
+      final body = {'hash': withdrawalHash!, 'txid': paymentTxIdController.text.trim()};
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
+      final response = await http.post(url, headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
 
       final responseData = jsonDecode(response.body);
 

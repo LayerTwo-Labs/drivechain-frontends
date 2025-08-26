@@ -20,8 +20,8 @@ class SyncInfo {
   double get progress => downloadInfo.progressPercent < 1
       ? downloadInfo.progressPercent
       : progressGoal == 0
-          ? 0
-          : progressCurrent / progressGoal;
+      ? 0
+      : progressCurrent / progressGoal;
   bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
 
   SyncInfo({
@@ -52,10 +52,7 @@ class SyncConnection {
   final RPCConnection rpc;
   final String name;
 
-  SyncConnection({
-    required this.rpc,
-    required this.name,
-  });
+  SyncConnection({required this.rpc, required this.name});
 }
 
 class SyncProvider extends ChangeNotifier {
@@ -90,10 +87,7 @@ class SyncProvider extends ChangeNotifier {
   Timer? _additionalTimer;
   bool _isFetchingAdditional = false;
 
-  SyncProvider({
-    this.additionalConnection,
-    bool startTimer = true,
-  }) {
+  SyncProvider({this.additionalConnection, bool startTimer = true}) {
     binaryProvider.addListener(_checkDownloadProgress);
 
     if (startTimer && !Environment.isInTest) {
@@ -133,10 +127,7 @@ class SyncProvider extends ChangeNotifier {
         if (wasSynced != isSynced) {
           // changed sync status, so we must apply the correct timer
           _mainchainTimer?.cancel();
-          _mainchainTimer = Timer.periodic(
-            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
-            (_) => tick(),
-          );
+          _mainchainTimer = Timer.periodic(isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL, (_) => tick());
         }
       } catch (e) {
         // swallow
@@ -166,10 +157,7 @@ class SyncProvider extends ChangeNotifier {
         if (wasSynced != isSynced) {
           // changed sync status, so we must apply the correct timer
           _enforcerTimer?.cancel();
-          _enforcerTimer = Timer.periodic(
-            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
-            (_) => tick(),
-          );
+          _enforcerTimer = Timer.periodic(isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL, (_) => tick());
         }
       } catch (e) {
         // swallow
@@ -206,10 +194,7 @@ class SyncProvider extends ChangeNotifier {
         if (wasSynced != isSynced) {
           // changed sync status, so we must apply the correct timer
           _additionalTimer?.cancel();
-          _additionalTimer = Timer.periodic(
-            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
-            (_) => tick(),
-          );
+          _additionalTimer = Timer.periodic(isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL, (_) => tick());
         }
       } catch (e) {
         // swallow
@@ -376,11 +361,7 @@ class SyncProvider extends ChangeNotifier {
 
   // For manual fetching of all connections
   Future<void> fetch() async {
-    await Future.wait([
-      _fetchMainchain(),
-      _fetchEnforcer(),
-      if (additionalConnection != null) _fetchAdditional(),
-    ]);
+    await Future.wait([_fetchMainchain(), _fetchEnforcer(), if (additionalConnection != null) _fetchAdditional()]);
   }
 
   @override

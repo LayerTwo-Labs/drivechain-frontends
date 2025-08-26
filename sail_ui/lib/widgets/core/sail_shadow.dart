@@ -7,11 +7,7 @@ class SailShadow extends StatelessWidget {
   final Widget child;
   final ShadowSize shadowSize;
 
-  const SailShadow({
-    super.key,
-    required this.child,
-    this.shadowSize = ShadowSize.regular,
-  });
+  const SailShadow({super.key, required this.child, this.shadowSize = ShadowSize.regular});
 
   @override
   Widget build(BuildContext context) {
@@ -50,12 +46,7 @@ class SailErrorShadow extends StatelessWidget {
   final Widget child;
   final bool small;
 
-  const SailErrorShadow({
-    super.key,
-    required this.enabled,
-    required this.child,
-    this.small = false,
-  });
+  const SailErrorShadow({super.key, required this.enabled, required this.child, this.small = false});
 
   @override
   Widget build(BuildContext context) {
@@ -69,13 +60,7 @@ class SailErrorShadow extends StatelessWidget {
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colors.error,
-                  blurRadius: blurRadius,
-                  spreadRadius: 0,
-                ),
-              ],
+              boxShadow: [BoxShadow(color: theme.colors.error, blurRadius: blurRadius, spreadRadius: 0)],
             ),
           ),
         ),

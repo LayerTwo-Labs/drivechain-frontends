@@ -20,9 +20,7 @@ class _ConsoleTabPageState extends State<ConsoleTabPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Expanded(
-            child: ConsoleWindow(),
-          ),
+          const Expanded(child: ConsoleWindow()),
           const SailSpacing(SailStyleValues.padding40),
         ],
       ),

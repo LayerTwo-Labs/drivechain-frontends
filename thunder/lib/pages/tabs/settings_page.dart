@@ -31,17 +31,10 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Header
-            SailText.primary24(
-              'Settings',
-              bold: true,
-            ),
+            SailText.primary24('Settings', bold: true),
             SailText.secondary13('Manage your Thunder settings.'),
             const SailSpacing(SailStyleValues.padding10),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: theme.colors.divider,
-            ),
+            Divider(height: 1, thickness: 1, color: theme.colors.divider),
             const SailSpacing(SailStyleValues.padding10),
 
             // Navigation and Content side by side
@@ -64,9 +57,7 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
                 ),
                 const SailSpacing(SailStyleValues.padding40),
                 // Right content area
-                Expanded(
-                  child: _buildContent(),
-                ),
+                Expanded(child: _buildContent()),
               ],
             ),
           ],
@@ -140,10 +131,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
         // Profile section header
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('General'),
-            SailText.secondary13('Enable or disable debug mode'),
-          ],
+          children: [SailText.primary20('General'), SailText.secondary13('Enable or disable debug mode')],
         ),
 
         // Debug Mode Dropdown
@@ -155,14 +143,8 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             SailDropdownButton<bool>(
               value: _debugMode,
               items: [
-                SailDropdownItem<bool>(
-                  value: false,
-                  label: 'Disabled',
-                ),
-                SailDropdownItem<bool>(
-                  value: true,
-                  label: 'Enabled',
-                ),
+                SailDropdownItem<bool>(value: false, label: 'Disabled'),
+                SailDropdownItem<bool>(value: true, label: 'Enabled'),
               ],
               onChanged: (bool? newValue) async {
                 if (newValue == true) {
@@ -174,9 +156,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
               },
             ),
             const SailSpacing(4),
-            SailText.secondary12(
-              'When enabled, detailed error reporting will be collected to fix bugs hastily.',
-            ),
+            SailText.secondary12('When enabled, detailed error reporting will be collected to fix bugs hastily.'),
           ],
         ),
       ],
@@ -236,16 +216,9 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('Reset'),
-            SailText.secondary13('Reset blockchain data'),
-          ],
+          children: [SailText.primary20('Reset'), SailText.secondary13('Reset blockchain data')],
         ),
-        SailButton(
-          label: 'Reset Thunder Data',
-          variant: ButtonVariant.destructive,
-          onPressed: _onResetAllChains,
-        ),
+        SailButton(label: 'Reset Thunder Data', variant: ButtonVariant.destructive, onPressed: _onResetAllChains),
       ],
     );
   }
@@ -265,10 +238,7 @@ class _InfoSettingsContentState extends State<_InfoSettingsContent> {
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('Info'),
-            SailText.secondary13('Application version and build information'),
-          ],
+          children: [SailText.primary20('Info'), SailText.secondary13('Application version and build information')],
         ),
 
         // Version Information

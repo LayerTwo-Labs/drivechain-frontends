@@ -24,9 +24,7 @@ class BalanceProvider extends ChangeNotifier {
   // Get balance for specific RPC
   (double confirmed, double pending) balanceFor(RPCConnection rpc) => _balances[rpc] ?? (0.0, 0.0);
 
-  BalanceProvider({
-    required this.connections,
-  }) {
+  BalanceProvider({required this.connections}) {
     // Add listeners for connection changes
     for (final rpc in connections) {
       rpc.addListener(_onConnectionChange);

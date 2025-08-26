@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DashboardActionModal extends StatelessWidget {
-  const DashboardActionModal(
-    this.title, {
-    super.key,
-    required this.children,
-    required this.endActionButton,
-  });
+  const DashboardActionModal(this.title, {super.key, required this.children, required this.endActionButton});
 
   final String title;
   final List<Widget> children;
@@ -32,10 +27,7 @@ class DashboardActionModal extends StatelessWidget {
               trailingSpacing: true,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(
-                    left: SailStyleValues.padding16,
-                    top: SailStyleValues.padding16,
-                  ),
+                  padding: const EdgeInsets.only(left: SailStyleValues.padding16, top: SailStyleValues.padding16),
                   child: ActionHeaderChip(title: title),
                 ),
                 for (final child in children) child,

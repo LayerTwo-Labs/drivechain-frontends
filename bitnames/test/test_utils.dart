@@ -21,9 +21,7 @@ Future<void> loadFonts() async {
 }
 
 extension TestExtension on WidgetTester {
-  Future<void> pumpSailPage(
-    Widget child,
-  ) async {
+  Future<void> pumpSailPage(Widget child) async {
     await _setDeviceSize();
     await loadFonts();
     await registerTestDependencies();
@@ -41,9 +39,7 @@ extension TestExtension on WidgetTester {
             ),
             routeInformationParser: appRouter.defaultRouteParser(),
             title: 'Bitnames',
-            theme: ThemeData(
-              fontFamily: 'Inter',
-            ),
+            theme: ThemeData(fontFamily: 'Inter'),
           );
         },
         initMethod: (_) async => (),
@@ -57,9 +53,7 @@ extension TestExtension on WidgetTester {
 
 Future<void> registerTestDependencies() async {
   if (!GetIt.I.isRegistered<AppRouter>()) {
-    GetIt.I.registerLazySingleton<AppRouter>(
-      () => AppRouter(),
-    );
+    GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
   }
   final log = Logger();
   if (!GetIt.I.isRegistered<Logger>()) {
@@ -67,15 +61,11 @@ Future<void> registerTestDependencies() async {
   }
 
   if (!GetIt.I.isRegistered<ClientSettings>()) {
-    GetIt.I.registerLazySingleton<ClientSettings>(
-      () => ClientSettings(store: MockStore(), log: log),
-    );
+    GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: MockStore(), log: log));
   }
 
   if (!GetIt.I.isRegistered<SettingsProvider>()) {
     final settingsProvider = await SettingsProvider.create();
-    GetIt.I.registerLazySingleton<SettingsProvider>(
-      () => settingsProvider,
-    );
+    GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   }
 }

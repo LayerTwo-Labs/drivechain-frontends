@@ -17,9 +17,7 @@ Future<void> _setDeviceSize() async {
 }
 
 extension TestExtension on WidgetTester {
-  Future<void> pumpSailPage(
-    Widget child,
-  ) async {
+  Future<void> pumpSailPage(Widget child) async {
     await _setDeviceSize();
     await registerTestDependencies();
 
@@ -45,27 +43,19 @@ Future<void> registerTestDependencies() async {
   }
 
   if (!GetIt.I.isRegistered<ClientSettings>()) {
-    GetIt.I.registerLazySingleton<ClientSettings>(
-      () => ClientSettings(store: MockStore(), log: log),
-    );
+    GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: MockStore(), log: log));
   }
 
   if (!GetIt.I.isRegistered<SettingsProvider>()) {
     final settingsProvider = await SettingsProvider.create();
-    GetIt.I.registerLazySingleton<SettingsProvider>(
-      () => settingsProvider,
-    );
+    GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   }
 
   if (!GetIt.I.isRegistered<API>()) {
-    GetIt.I.registerLazySingleton<API>(
-      () => MockAPI(),
-    );
+    GetIt.I.registerLazySingleton<API>(() => MockAPI());
   }
 
   if (!GetIt.I.isRegistered<TransactionsProvider>()) {
-    GetIt.I.registerLazySingleton<TransactionsProvider>(
-      () => MockTransactionsProvider(),
-    );
+    GetIt.I.registerLazySingleton<TransactionsProvider>(() => MockTransactionsProvider());
   }
 }

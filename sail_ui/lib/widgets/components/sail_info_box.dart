@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-enum InfoType {
-  info,
-  warn,
-  error,
-}
+enum InfoType { info, warn, error }
 
 class SailInfoBox extends StatelessWidget {
   final String text;
@@ -30,13 +26,7 @@ class SailInfoBox extends StatelessWidget {
       spacing: SailStyleValues.padding12,
       children: [
         iconFromType(type, context),
-        Expanded(
-          child: onPressed != null
-              ? SailText.primary15(text)
-              : SailText.primary13(
-                  text,
-                ),
-        ),
+        Expanded(child: onPressed != null ? SailText.primary15(text) : SailText.primary13(text)),
         if (onPressed != null) SailSVG.fromAsset(SailSVGAsset.arrowRight, color: theme.colors.text),
       ],
     );
@@ -47,36 +37,18 @@ class SailInfoBox extends StatelessWidget {
         color: secondary ? theme.colors.background : theme.colors.backgroundSecondary,
         borderRadius: SailStyleValues.borderRadius,
       ),
-      child: onPressed != null
-          ? SailButton(
-              onPressed: onPressed,
-              label: text,
-              variant: ButtonVariant.icon,
-            )
-          : content,
+      child: onPressed != null ? SailButton(onPressed: onPressed, label: text, variant: ButtonVariant.icon) : content,
     );
   }
 
   static Widget iconFromType(InfoType type, BuildContext context) {
     switch (type) {
       case InfoType.info:
-        return SailSVG.fromAsset(
-          SailSVGAsset.info,
-          color: SailColorScheme.blue,
-          width: 15,
-        );
+        return SailSVG.fromAsset(SailSVGAsset.info, color: SailColorScheme.blue, width: 15);
       case InfoType.warn:
-        return SailSVG.fromAsset(
-          SailSVGAsset.messageCircleWarning,
-          color: SailColorScheme.orange,
-          width: 15,
-        );
+        return SailSVG.fromAsset(SailSVGAsset.messageCircleWarning, color: SailColorScheme.orange, width: 15);
       case InfoType.error:
-        return SailSVG.fromAsset(
-          SailSVGAsset.x,
-          color: SailColorScheme.red,
-          width: 15,
-        );
+        return SailSVG.fromAsset(SailSVGAsset.x, color: SailColorScheme.red, width: 15);
     }
   }
 }

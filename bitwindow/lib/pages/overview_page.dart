@@ -216,22 +216,12 @@ class TransactionsView extends StatelessWidget {
                 bottomPadding: false,
                 title: 'Latest Transactions',
                 error: model.hasErrorForKey('blockchain') ? model.error('blockchain').toString() : null,
-                child: SizedBox(
-                  height: 300,
-                  child: LatestTransactionTable(
-                    entries: model.recentTransactions,
-                  ),
-                ),
+                child: SizedBox(height: 300, child: LatestTransactionTable(entries: model.recentTransactions)),
               ),
               SailCard(
                 title: 'Latest Blocks',
                 bottomPadding: false,
-                child: SizedBox(
-                  height: 300,
-                  child: LatestBlocksTable(
-                    blocks: model.recentBlocks,
-                  ),
-                ),
+                child: SizedBox(height: 300, child: LatestBlocksTable(blocks: model.recentBlocks)),
               ),
             ];
 
@@ -275,17 +265,12 @@ class TransactionsViewModel extends BaseViewModel {
 class QtSeparator extends StatelessWidget {
   final double width;
 
-  const QtSeparator({
-    super.key,
-    this.width = double.infinity,
-  });
+  const QtSeparator({super.key, this.width = double.infinity});
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: width,
-      ),
+      constraints: BoxConstraints(maxWidth: width),
       child: Container(
         height: 1.5,
         decoration: BoxDecoration(
@@ -293,12 +278,7 @@ class QtSeparator extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             stops: const [0.0, 0.35, 0.36, 1.0],
-            colors: [
-              Colors.grey,
-              Colors.grey.withValues(alpha: 0.3),
-              Colors.white,
-              Colors.white,
-            ],
+            colors: [Colors.grey, Colors.grey.withValues(alpha: 0.3), Colors.white, Colors.white],
           ),
         ),
       ),
@@ -309,10 +289,7 @@ class QtSeparator extends StatelessWidget {
 class LatestTransactionTable extends StatefulWidget {
   final List<RecentTransaction> entries;
 
-  const LatestTransactionTable({
-    super.key,
-    required this.entries,
-  });
+  const LatestTransactionTable({super.key, required this.entries});
 
   @override
   State<LatestTransactionTable> createState() => _LatestTransactionTableState();
@@ -377,26 +354,11 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
     return SailTable(
       getRowId: (index) => widget.entries[index].txid,
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Time',
-          onSort: () => onSort('time'),
-        ),
-        SailTableHeaderCell(
-          name: 'Fee',
-          onSort: () => onSort('fee'),
-        ),
-        SailTableHeaderCell(
-          name: 'TxID',
-          onSort: () => onSort('txid'),
-        ),
-        SailTableHeaderCell(
-          name: 'Size',
-          onSort: () => onSort('size'),
-        ),
-        SailTableHeaderCell(
-          name: 'Height',
-          onSort: () => onSort('block'),
-        ),
+        SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
+        SailTableHeaderCell(name: 'Fee', onSort: () => onSort('fee')),
+        SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
+        SailTableHeaderCell(name: 'Size', onSort: () => onSort('size')),
+        SailTableHeaderCell(name: 'Height', onSort: () => onSort('block')),
       ],
       rowBuilder: (context, row, selected) {
         final entry = widget.entries[row];
@@ -405,9 +367,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           SailTableCell(value: entry.feeSats.toString()),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
-          SailTableCell(
-            value: entry.confirmedInBlock.height == 0 ? '-' : entry.confirmedInBlock.height.toString(),
-          ),
+          SailTableCell(value: entry.confirmedInBlock.height == 0 ? '-' : entry.confirmedInBlock.height.toString()),
         ];
       },
       rowCount: widget.entries.length,
@@ -424,10 +384,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
 class LatestBlocksTable extends StatefulWidget {
   final List<Block> blocks;
 
-  const LatestBlocksTable({
-    super.key,
-    required this.blocks,
-  });
+  const LatestBlocksTable({super.key, required this.blocks});
 
   @override
   State<LatestBlocksTable> createState() => _LatestBlocksTableState();
@@ -549,9 +506,7 @@ Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
 }
 
 class BroadcastNewsView extends StatelessWidget {
-  const BroadcastNewsView({
-    super.key,
-  });
+  const BroadcastNewsView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -566,14 +521,7 @@ class BroadcastNewsView extends StatelessWidget {
             leadingSpacing: true,
             children: [
               SailDropdownButton<Topic>(
-                items: [
-                  ...viewModel.topics.map(
-                    (topic) => SailDropdownItem(
-                      value: topic,
-                      label: topic.name,
-                    ),
-                  ),
-                ],
+                items: [...viewModel.topics.map((topic) => SailDropdownItem(value: topic, label: topic.name))],
                 onChanged: viewModel.setTopic,
                 value: viewModel.topic,
                 hint: 'Select a topic',
@@ -583,9 +531,7 @@ class BroadcastNewsView extends StatelessWidget {
                 controller: viewModel.headlineController,
                 hintText: 'Enter a headline',
                 size: TextFieldSize.small,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(64),
-                ],
+                inputFormatters: [LengthLimitingTextInputFormatter(64)],
               ),
               SailTextField(
                 label: 'Content',
@@ -655,10 +601,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
 
     if (lastUsedTopicId.isNotEmpty) {
       // Try to find the last used topic in the available topics
-      topic = topics.firstWhere(
-        (t) => t.topic == lastUsedTopicId,
-        orElse: () => topics.first,
-      );
+      topic = topics.firstWhere((t) => t.topic == lastUsedTopicId, orElse: () => topics.first);
     } else {
       topic = topics.first;
     }
@@ -709,10 +652,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
 class NewsOverviewView extends StatelessWidget {
   final CoinNews news;
 
-  const NewsOverviewView({
-    super.key,
-    required this.news,
-  });
+  const NewsOverviewView({super.key, required this.news});
 
   @override
   Widget build(BuildContext context) {
@@ -721,9 +661,7 @@ class NewsOverviewView extends StatelessWidget {
 }
 
 class CreateTopicView extends StatelessWidget {
-  const CreateTopicView({
-    super.key,
-  });
+  const CreateTopicView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -751,7 +689,8 @@ class CreateTopicView extends StatelessWidget {
             SailButton(
               label: 'Create',
               onPressed: () => viewModel.createTopic(context),
-              disabled: viewModel.identifierController.text.isEmpty ||
+              disabled:
+                  viewModel.identifierController.text.isEmpty ||
                   viewModel.nameController.text.isEmpty ||
                   viewModel.identifierController.text.length != 8,
             ),
@@ -816,9 +755,7 @@ class CreateTopicViewModel extends BaseViewModel {
 }
 
 class NewGraffitiView extends StatelessWidget {
-  const NewGraffitiView({
-    super.key,
-  });
+  const NewGraffitiView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -889,9 +826,7 @@ class NewGraffitiViewModel extends BaseViewModel {
 }
 
 class GraffitiExplorerView extends StatelessWidget {
-  const GraffitiExplorerView({
-    super.key,
-  });
+  const GraffitiExplorerView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -904,15 +839,9 @@ class GraffitiExplorerView extends StatelessWidget {
           leadingSpacing: true,
           children: [
             // add button here, that opens ANOTHER dialog, where you can enter a message.
-            SailButton(
-              label: 'New Graffiti',
-              onPressed: () => newGraffitiDialog(context),
-            ),
+            SailButton(label: 'New Graffiti', onPressed: () => newGraffitiDialog(context)),
             Expanded(
-              child: GraffitiTable(
-                entries: viewModel.entries,
-                onSort: viewModel.onSort,
-              ),
+              child: GraffitiTable(entries: viewModel.entries, onSort: viewModel.onSort),
             ),
           ],
         );
@@ -992,11 +921,7 @@ class GraffitiTable extends StatelessWidget {
   final List<OPReturn> entries;
   final Function(String) onSort;
 
-  const GraffitiTable({
-    super.key,
-    required this.entries,
-    required this.onSort,
-  });
+  const GraffitiTable({super.key, required this.entries, required this.onSort});
 
   @override
   Widget build(BuildContext context) {

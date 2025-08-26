@@ -13,9 +13,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
-  const CoinNewsView({
-    super.key,
-  });
+  const CoinNewsView({super.key});
 
   @override
   Widget build(BuildContext context, CoinNewsViewModel viewModel) {
@@ -54,20 +52,12 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   mainAxisSize: MainAxisSize.max,
                   children: [
                     Expanded(
-                      child: SailTextField(
-                        hintText: 'Search coin news...',
-                        controller: viewModel.searchController,
-                      ),
+                      child: SailTextField(hintText: 'Search coin news...', controller: viewModel.searchController),
                     ),
                     SailMultiSelectDropdown(
                       selectedCountText: '${viewModel.selectedTopicIds.length} topics',
                       items: viewModel.topics
-                          .map(
-                            (topic) => SailDropdownItem(
-                              value: topic.topic,
-                              label: topic.name,
-                            ),
-                          )
+                          .map((topic) => SailDropdownItem(value: topic.topic, label: topic.name))
                           .toList(),
                       selectedValues: viewModel.selectedTopicIds,
                       onSelected: viewModel.toggleTopic,
@@ -75,16 +65,14 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                     ),
                     SailButton(
                       label: 'Broadcast',
-                      onPressed:
-                          viewModel.selectedTopicIds.isNotEmpty ? () => displayBroadcastNewsDialog(context) : null,
+                      onPressed: viewModel.selectedTopicIds.isNotEmpty
+                          ? () => displayBroadcastNewsDialog(context)
+                          : null,
                     ),
                   ],
                 ),
                 const SailSpacing(16),
-                CoinNewsTable(
-                  entries: viewModel.paginatedEntries,
-                  onSort: viewModel.sortEntries,
-                ),
+                CoinNewsTable(entries: viewModel.paginatedEntries, onSort: viewModel.sortEntries),
                 const SizedBox(height: 16),
                 Pagination(
                   currentPage: viewModel.currentPage,
@@ -385,11 +373,7 @@ class CoinNewsEntry extends StatefulWidget {
   final CoinNews entry;
   final List<Topic> allTopics;
 
-  const CoinNewsEntry({
-    required this.entry,
-    required this.allTopics,
-    super.key,
-  });
+  const CoinNewsEntry({required this.entry, required this.allTopics, super.key});
 
   @override
   State<CoinNewsEntry> createState() => _CoinNewsEntryState();
@@ -431,11 +415,7 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
       onExit: (_) => setState(() => isHovered = false),
       child: GestureDetector(
         onTap: () {
-          final article = Article(
-            title: widget.entry.headline,
-            markdown: widget.entry.content,
-            filename: '',
-          );
+          final article = Article(title: widget.entry.headline, markdown: widget.entry.content, filename: '');
           showArticleDetails(context, article, 'Coin News');
         },
         child: Container(
@@ -478,10 +458,7 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: SailStyleValues.padding04,
                   children: [
-                    SailText.primary15(
-                      widget.entry.headline,
-                      bold: true,
-                    ),
+                    SailText.primary15(widget.entry.headline, bold: true),
                     SailText.secondary12(
                       widget.entry.content.replaceAll('\n', ' '),
                       color: context.sailTheme.colors.textSecondary,
@@ -503,11 +480,7 @@ class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
   final List<CoinNews> entries;
   final Function(String) onSort;
 
-  const CoinNewsTable({
-    super.key,
-    required this.entries,
-    required this.onSort,
-  });
+  const CoinNewsTable({super.key, required this.entries, required this.onSort});
 
   @override
   Widget build(BuildContext context, CoinNewsViewModel viewModel) {
@@ -543,11 +516,7 @@ class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
         onDoubleTap: (rowId) {
           final news = entries[int.parse(rowId)];
 
-          final article = Article(
-            title: news.headline,
-            markdown: news.content,
-            filename: '',
-          );
+          final article = Article(title: news.headline, markdown: news.content, filename: '');
 
           showArticleDetails(context, article, 'Coin News');
         },
@@ -557,11 +526,7 @@ class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
               onSelected: () {
                 final news = entries[int.parse(rowId)];
 
-                final article = Article(
-                  title: news.headline,
-                  markdown: news.content,
-                  filename: '',
-                );
+                final article = Article(title: news.headline, markdown: news.content, filename: '');
 
                 showArticleDetails(context, article, 'Coin News');
               },

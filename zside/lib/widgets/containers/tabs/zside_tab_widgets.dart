@@ -40,26 +40,15 @@ class ShieldUTXOAction extends StatelessWidget {
               bitcoinInput: true,
               autofocus: true,
             ),
-            StaticActionField(
-              label: 'Shield from',
-              value: utxo.address,
-            ),
-            const StaticActionField(
-              label: 'Shield to',
-              value: 'Your Z-address',
-            ),
+            StaticActionField(label: 'Shield from', value: utxo.address),
+            const StaticActionField(label: 'Shield to', value: 'Your Z-address'),
             StaticActionField(
               label: 'Shield fee',
               value: formatBitcoin(model.shieldFee, symbol: model.ticker),
             ),
-            StaticActionField(
-              label: 'Total amount',
-              value: model.totalBitcoinAmount,
-            ),
+            StaticActionField(label: 'Total amount', value: model.totalBitcoinAmount),
             if (utxo.generated)
-              const StaticActionInfo(
-                text: 'This is a coinbase output, and you must shield 100% of the amount',
-              ),
+              const StaticActionInfo(text: 'This is a coinbase output, and you must shield 100% of the amount'),
           ],
         );
       }),
@@ -75,10 +64,8 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   AppRouter get _router => GetIt.I.get<AppRouter>();
 
   final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)),
-        symbol: ticker,
-      );
+  String get totalBitcoinAmount =>
+      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)), symbol: ticker);
 
   double get shieldFee => _zsideProvider.sideFee;
   String get ticker => _rpc.chain.ticker;
@@ -99,8 +86,9 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
 
     if (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount) {
       bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
     } else {
       notifyListeners();
     }
@@ -125,15 +113,10 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
       return;
     }
 
-    log.i(
-      'shielding utxo: $amount $ticker to ${utxo.address} with $shieldFee shield fee',
-    );
+    log.i('shielding utxo: $amount $ticker to ${utxo.address} with $shieldFee shield fee');
 
     try {
-      final shieldID = await _rpc.shield(
-        utxo,
-        amount!,
-      );
+      final shieldID = await _rpc.shield(utxo, amount!);
       log.i('deshield operation ID: $shieldID');
 
       // refresh balance, but don't await, so dialog is showed instantly
@@ -202,22 +185,13 @@ class DeshieldUTXOAction extends StatelessWidget {
               bitcoinInput: true,
               autofocus: true,
             ),
-            const StaticActionField(
-              label: 'Deshield from',
-              value: 'Your Z-address',
-            ),
-            StaticActionField(
-              label: 'Deshield to',
-              value: model.deshieldAddress,
-            ),
+            const StaticActionField(label: 'Deshield from', value: 'Your Z-address'),
+            StaticActionField(label: 'Deshield to', value: model.deshieldAddress),
             StaticActionField(
               label: 'Deshield fee',
               value: formatBitcoin(model.deshieldFee, symbol: model.ticker),
             ),
-            StaticActionField(
-              label: 'Total amount',
-              value: model.totalBitcoinAmount,
-            ),
+            StaticActionField(label: 'Total amount', value: model.totalBitcoinAmount),
           ],
         );
       }),
@@ -255,8 +229,9 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
 
     if (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount) {
       bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
     } else {
       notifyListeners();
     }
@@ -286,15 +261,10 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
       return;
     }
 
-    log.i(
-      'deshielding utxo: $amount $ticker to ${utxo.address} with $deshieldFee deshield fee',
-    );
+    log.i('deshielding utxo: $amount $ticker to ${utxo.address} with $deshieldFee deshield fee');
 
     try {
-      final deshieldID = await _rpc.deshield(
-        utxo,
-        amount!,
-      );
+      final deshieldID = await _rpc.deshield(utxo, amount!);
       log.i('deshield operation ID: $deshieldID');
 
       // refresh balance, but don't await, so dialog is showed instantly
@@ -356,18 +326,9 @@ class CastSingleUTXOAction extends StatelessWidget {
             },
           ),
           children: [
-            const StaticActionField(
-              label: 'Deshield from',
-              value: 'Your Z-address',
-            ),
-            StaticActionField(
-              label: 'Deshield to',
-              value: model.castAddresses.join('\n'),
-            ),
-            StaticActionField(
-              label: 'Cast fee',
-              value: '${model.castFee}',
-            ),
+            const StaticActionField(label: 'Deshield from', value: 'Your Z-address'),
+            StaticActionField(label: 'Deshield to', value: model.castAddresses.join('\n')),
+            StaticActionField(label: 'Cast fee', value: '${model.castFee}'),
             StaticActionField(
               label: 'Castable amount',
               value: formatBitcoin(model.castableAmount, symbol: model.ticker),
@@ -439,15 +400,10 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
       return;
     }
 
-    log.i(
-      'casting utxo: $castableAmount $ticker to $castAddresses with $castFee deshield fee',
-    );
+    log.i('casting utxo: $castableAmount $ticker to $castAddresses with $castFee deshield fee');
 
     try {
-      _castProvider.addPendingUTXO(
-        includedInBills!,
-        utxo: utxo,
-      );
+      _castProvider.addPendingUTXO(includedInBills!, utxo: utxo);
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
@@ -485,10 +441,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
 class MeltAction extends StatelessWidget {
   final bool doEverythingMode;
 
-  const MeltAction({
-    super.key,
-    required this.doEverythingMode,
-  });
+  const MeltAction({super.key, required this.doEverythingMode});
 
   @override
   Widget build(BuildContext context) {
@@ -502,10 +455,7 @@ class MeltAction extends StatelessWidget {
               label: doEverythingMode ? 'Execute melt, then cast' : 'Execute melt',
               loading: model.isBusy,
               onPressed: () async {
-                model.melt(
-                  context,
-                  castAfterCompletion: doEverythingMode,
-                );
+                model.melt(context, castAfterCompletion: doEverythingMode);
               },
             ),
             children: [
@@ -515,10 +465,7 @@ class MeltAction extends StatelessWidget {
                     '"Do everything for me" will first melt all your coins, then cast them. The entire process can take up to 7 days.',
                   ),
                 ),
-              const StaticActionField(
-                label: 'Melt to',
-                value: 'Your Z-address',
-              ),
+              const StaticActionField(label: 'Melt to', value: 'Your Z-address'),
               StaticActionField(
                 label: 'Melt from',
                 value:
@@ -583,15 +530,10 @@ class MeltActionViewModel extends BaseViewModel {
       return;
     }
 
-    log.i(
-      'melting ${meltableUTXOs.length} utxos: $meltAmount $ticker to with $shieldFee shield fee',
-    );
+    log.i('melting ${meltableUTXOs.length} utxos: $meltAmount $ticker to with $shieldFee shield fee');
 
     try {
-      final willMeltAt = await _zsideProvider.melt(
-        meltableUTXOs,
-        0.10,
-      );
+      final willMeltAt = await _zsideProvider.melt(meltableUTXOs, 0.10);
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
@@ -638,10 +580,7 @@ class MeltActionViewModel extends BaseViewModel {
 class MeltSingleUTXOAction extends StatelessWidget {
   final UnshieldedUTXO utxo;
 
-  const MeltSingleUTXOAction({
-    super.key,
-    required this.utxo,
-  });
+  const MeltSingleUTXOAction({super.key, required this.utxo});
 
   @override
   Widget build(BuildContext context) {
@@ -658,26 +597,14 @@ class MeltSingleUTXOAction extends StatelessWidget {
             },
           ),
           children: [
-            StaticActionField(
-              label: 'Shield from',
-              value: utxo.address,
-            ),
-            const StaticActionField(
-              label: 'Shield to',
-              value: 'Your Z-address',
-            ),
+            StaticActionField(label: 'Shield from', value: utxo.address),
+            const StaticActionField(label: 'Shield to', value: 'Your Z-address'),
             StaticActionField(
               label: 'Cast amount',
               value: formatBitcoin(model.castAmount, symbol: model.ticker),
             ),
-            StaticActionField(
-              label: 'Cast fee',
-              value: '${model.shieldFee}',
-            ),
-            StaticActionField(
-              label: 'Total amount',
-              value: model.totalBitcoinAmount,
-            ),
+            StaticActionField(label: 'Cast fee', value: '${model.shieldFee}'),
+            StaticActionField(label: 'Total amount', value: model.totalBitcoinAmount),
           ],
         );
       }),
@@ -706,17 +633,12 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
       return;
     }
 
-    log.i(
-      'melting utxo: $castAmount $ticker to ${utxo.address} with $shieldFee shield fee',
-    );
+    log.i('melting utxo: $castAmount $ticker to ${utxo.address} with $shieldFee shield fee');
 
     try {
       setBusy(true);
 
-      final shieldID = await _rpc.shield(
-        utxo,
-        castAmount,
-      );
+      final shieldID = await _rpc.shield(utxo, castAmount);
       log.i('melt operation ID: $shieldID');
 
       // refresh balance, but don't await, so dialog is showed instantly
@@ -772,10 +694,7 @@ class CastAction extends StatelessWidget {
               },
             ),
             children: [
-              const StaticActionField(
-                label: 'Deshield to',
-                value: 'Various transparent addresses',
-              ),
+              const StaticActionField(label: 'Deshield to', value: 'Various transparent addresses'),
               StaticActionField(
                 label: 'Deshield from (txid)',
                 value:
@@ -849,9 +768,7 @@ class CastActionViewModel extends BaseViewModel {
       return;
     }
 
-    log.i(
-      'casting ${_zsideProvider.shieldedUTXOs.length} utxos: $castAmount $ticker to with $castFee cast fee',
-    );
+    log.i('casting ${_zsideProvider.shieldedUTXOs.length} utxos: $castAmount $ticker to with $castFee cast fee');
 
     try {
       List<PendingDeshield>? bundles = [];
@@ -863,14 +780,9 @@ class CastActionViewModel extends BaseViewModel {
         }
         bundles.addAll(utxoBundle.toList());
 
-        log.i(
-          'casting utxo to bills of power ${utxoBundle.map((e) => e.amount).join(' $ticker, ')}',
-        );
+        log.i('casting utxo to bills of power ${utxoBundle.map((e) => e.amount).join(' $ticker, ')}');
 
-        _castProvider.addPendingUTXO(
-          utxoBundle,
-          utxo: utxo,
-        );
+        _castProvider.addPendingUTXO(utxoBundle, utxo: utxo);
       }
 
       // refresh balance, but don't await, so dialog is showed instantly
@@ -944,21 +856,15 @@ class MeltHelp extends StatelessWidget {
       category: 'Melt help',
       children: [
         QuestionTitle('What is melting?'),
-        QuestionText(
-          'Melting shields your transparent UTXOs, but does it in a way to preserve your privacy.',
-        ),
-        QuestionText(
-          'It does this by making sure there is no change when you shield coins to your z-address.',
-        ),
+        QuestionText('Melting shields your transparent UTXOs, but does it in a way to preserve your privacy.'),
+        QuestionText('It does this by making sure there is no change when you shield coins to your z-address.'),
         QuestionText(
           'Just like cast, melting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
         ),
         QuestionText(
           'You can melt per-UTXO, or all UTXOs at once. Both strategies makes sure to spend the full amount of the UTXO, leaving you with no change, or dust.',
         ),
-        QuestionText(
-          "Together with cast, it's a great way to anonymize your coins.",
-        ),
+        QuestionText("Together with cast, it's a great way to anonymize your coins."),
         QuestionText(
           'When melting all your coins, you set the max time that you want the melt to take. The application automatically selects a timeout per UTXO, and makes sure to shield at that specific time. This furthers your privacy by not pegging you to a specific timezone.',
         ),
@@ -1003,27 +909,18 @@ class MeltAndCastHelp extends StatelessWidget {
           'On this page, you can "melt" and "cast" your UTXOs. The diagram below explains the process.',
         ),
         const SailSpacing(SailStyleValues.padding20),
-        SailSVG.png(
-          SailPNGAsset.meltCastDiagram,
-          width: MediaQuery.of(context).size.width,
-        ),
+        SailSVG.png(SailPNGAsset.meltCastDiagram, width: MediaQuery.of(context).size.width),
         const SailSpacing(SailStyleValues.padding20),
         const QuestionTitle('What is melting?'),
-        const QuestionText(
-          'Melting shields your transparent UTXOs, but does it in a way to preserve your privacy.',
-        ),
-        const QuestionText(
-          'It does this by making sure there is no change when you shield coins to your z-address.',
-        ),
+        const QuestionText('Melting shields your transparent UTXOs, but does it in a way to preserve your privacy.'),
+        const QuestionText('It does this by making sure there is no change when you shield coins to your z-address.'),
         const QuestionText(
           'Just like cast, melting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
         ),
         const QuestionText(
           'You can melt per-UTXO, or all UTXOs at once. Both strategies makes sure to spend the full amount of the UTXO, leaving you with no change, or dust.',
         ),
-        const QuestionText(
-          "Together with cast, it's a great way to anonymize your coins.",
-        ),
+        const QuestionText("Together with cast, it's a great way to anonymize your coins."),
         const QuestionText(
           'When melting all your coins, you set the max time that you want the melt to take. The application automatically selects a timeout per UTXO, and makes sure to shield at that specific time. This furthers your privacy by not pegging you to a specific timezone.',
         ),

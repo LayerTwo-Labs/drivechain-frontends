@@ -33,10 +33,7 @@ Future<void> start() async {
           routerDelegate: router.delegate(),
           routeInformationParser: router.defaultRouteParser(),
           title: 'Faucet',
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-          ),
+          theme: ThemeData(visualDensity: VisualDensity.compact, fontFamily: 'Inter'),
         );
       },
       accentColor: SailColorScheme.orange,
@@ -49,33 +46,18 @@ Future<void> initDependencies() async {
   final log = await logger(false, true, null);
   GetIt.I.registerLazySingleton<Logger>(() => log);
 
-  final storage = SharedPrefsKeyValueStore(
-    await SharedPreferences.getInstance(),
-  );
+  final storage = SharedPrefsKeyValueStore(await SharedPreferences.getInstance());
 
-  GetIt.I.registerLazySingleton<ClientSettings>(
-    () => ClientSettings(
-      store: storage,
-      log: log,
-    ),
-  );
+  GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: storage, log: log));
   final settingsProvider = await SettingsProvider.create();
-  GetIt.I.registerLazySingleton<SettingsProvider>(
-    () => settingsProvider,
-  );
+  GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
 
   // api must be registered first, because other singletons depend on it
-  GetIt.I.registerLazySingleton<API>(
-    () => APILive(),
-  );
+  GetIt.I.registerLazySingleton<API>(() => APILive());
 
-  GetIt.I.registerLazySingleton<TransactionsProvider>(
-    () => TransactionsProvider(),
-  );
+  GetIt.I.registerLazySingleton<TransactionsProvider>(() => TransactionsProvider());
 
-  GetIt.I.registerLazySingleton<ExplorerProvider>(
-    () => ExplorerProvider(),
-  );
+  GetIt.I.registerLazySingleton<ExplorerProvider>(() => ExplorerProvider());
 
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
 }

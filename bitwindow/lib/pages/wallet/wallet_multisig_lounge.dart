@@ -30,11 +30,7 @@ class TransactionRow {
   final bool hasWalletKeys;
   final bool walletHasSigned;
 
-  TransactionRow({
-    required this.transaction,
-    required this.hasWalletKeys,
-    required this.walletHasSigned,
-  });
+  TransactionRow({required this.transaction, required this.hasWalletKeys, required this.walletHasSigned});
 }
 
 class MultisigLoungeTab extends StatefulWidget {
@@ -68,9 +64,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
       },
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
-          return const SailPage(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const SailPage(body: Center(child: CircularProgressIndicator()));
         }
 
         if (viewModel.errorMessage != null) {
@@ -82,10 +76,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
                 children: [
                   SailText.primary13('Error loading multisig data'),
                   SailText.secondary12(viewModel.errorMessage!),
-                  SailButton(
-                    label: 'Retry',
-                    onPressed: () => viewModel.refreshData(),
-                  ),
+                  SailButton(label: 'Retry', onPressed: () => viewModel.refreshData()),
                 ],
               ),
             ),
@@ -112,11 +103,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
     );
   }
 
-  Widget _buildGroupsSection(
-    BuildContext context,
-    MultisigLoungeViewModel viewModel,
-    BoxConstraints constraints,
-  ) {
+  Widget _buildGroupsSection(BuildContext context, MultisigLoungeViewModel viewModel, BoxConstraints constraints) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -358,16 +345,10 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
           headerBuilder: (context) => [
             SailTableHeaderCell(name: 'Name', onSort: () => onSort('name')),
             const SailTableHeaderCell(name: 'ID'),
-            SailTableHeaderCell(
-              name: 'Balance (BTC)',
-              onSort: () => onSort('balance'),
-            ),
+            SailTableHeaderCell(name: 'Balance (BTC)', onSort: () => onSort('balance')),
             SailTableHeaderCell(name: 'UTXOs', onSort: () => onSort('utxos')),
             SailTableHeaderCell(name: 'Total Keys', onSort: () => onSort('total')),
-            SailTableHeaderCell(
-              name: 'Keys Required',
-              onSort: () => onSort('required'),
-            ),
+            SailTableHeaderCell(name: 'Keys Required', onSort: () => onSort('required')),
             const SailTableHeaderCell(name: 'Type'),
             const SailTableHeaderCell(name: 'TXID (If Broadcasted)'),
           ],
@@ -383,29 +364,10 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
           ],
           rowCount: 3,
           drawGrid: true,
-          sortColumnIndex: [
-            'name',
-            'id',
-            'balance',
-            'utxos',
-            'total',
-            'required',
-            'type',
-          ].indexOf(sortColumn),
+          sortColumnIndex: ['name', 'id', 'balance', 'utxos', 'total', 'required', 'type'].indexOf(sortColumn),
           sortAscending: sortAscending,
           onSort: (columnIndex, ascending) {
-            onSort(
-              [
-                'name',
-                'id',
-                'balance',
-                'utxos',
-                'total',
-                'required',
-                'type',
-                'txid',
-              ][columnIndex],
-            );
+            onSort(['name', 'id', 'balance', 'utxos', 'total', 'required', 'type', 'txid'][columnIndex]);
           },
         ),
       );
@@ -415,26 +377,17 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
       getRowId: (index) => _sortedGroups.isNotEmpty ? _sortedGroups[index].id : 'empty$index',
       onSelectedRow: (rowId) {
         if (rowId != null && _sortedGroups.isNotEmpty) {
-          final group = _sortedGroups.firstWhere(
-            (g) => g.id == rowId,
-            orElse: () => _sortedGroups.first,
-          );
+          final group = _sortedGroups.firstWhere((g) => g.id == rowId, orElse: () => _sortedGroups.first);
           widget.onSelectGroup(group);
         }
       },
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Name', onSort: () => onSort('name')),
         const SailTableHeaderCell(name: 'ID'),
-        SailTableHeaderCell(
-          name: 'Balance (BTC)',
-          onSort: () => onSort('balance'),
-        ),
+        SailTableHeaderCell(name: 'Balance (BTC)', onSort: () => onSort('balance')),
         SailTableHeaderCell(name: 'UTXOs', onSort: () => onSort('utxos')),
         SailTableHeaderCell(name: 'Total Keys', onSort: () => onSort('total')),
-        SailTableHeaderCell(
-          name: 'Keys Required',
-          onSort: () => onSort('required'),
-        ),
+        SailTableHeaderCell(name: 'Keys Required', onSort: () => onSort('required')),
         const SailTableHeaderCell(name: 'Type'),
         const SailTableHeaderCell(name: 'TXID (If Broadcasted)'),
       ],
@@ -466,30 +419,10 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
       },
       rowCount: _sortedGroups.isEmpty ? 1 : _sortedGroups.length,
       drawGrid: true,
-      sortColumnIndex: [
-        'name',
-        'id',
-        'balance',
-        'utxos',
-        'total',
-        'required',
-        'type',
-        'txid',
-      ].indexOf(sortColumn),
+      sortColumnIndex: ['name', 'id', 'balance', 'utxos', 'total', 'required', 'type', 'txid'].indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
-        onSort(
-          [
-            'name',
-            'id',
-            'balance',
-            'utxos',
-            'total',
-            'required',
-            'type',
-            'txid',
-          ][columnIndex],
-        );
+        onSort(['name', 'id', 'balance', 'utxos', 'total', 'required', 'type', 'txid'][columnIndex]);
       },
     );
   }
@@ -586,10 +519,10 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
     _sortedTransactionRows.sort((a, b) {
       final aNeedsSignatures =
           (a.transaction.status == TxStatus.needsSignatures || a.transaction.status == TxStatus.awaitingSignedPSBTs) &&
-              a.transaction.type != TxType.deposit;
+          a.transaction.type != TxType.deposit;
       final bNeedsSignatures =
           (b.transaction.status == TxStatus.needsSignatures || b.transaction.status == TxStatus.awaitingSignedPSBTs) &&
-              b.transaction.type != TxType.deposit;
+          b.transaction.type != TxType.deposit;
 
       if (aNeedsSignatures && !bNeedsSignatures) return -1;
       if (!aNeedsSignatures && bNeedsSignatures) return 1;
@@ -600,26 +533,12 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
 
         final aGroup = widget.groups.firstWhere(
           (g) => g.id == a.transaction.groupId,
-          orElse: () => MultisigGroup(
-            id: a.transaction.groupId,
-            name: 'Unknown',
-            n: 0,
-            m: 0,
-            keys: [],
-            created: 0,
-          ),
+          orElse: () => MultisigGroup(id: a.transaction.groupId, name: 'Unknown', n: 0, m: 0, keys: [], created: 0),
         );
 
         final bGroup = widget.groups.firstWhere(
           (g) => g.id == b.transaction.groupId,
-          orElse: () => MultisigGroup(
-            id: b.transaction.groupId,
-            name: 'Unknown',
-            n: 0,
-            m: 0,
-            keys: [],
-            created: 0,
-          ),
+          orElse: () => MultisigGroup(id: b.transaction.groupId, name: 'Unknown', n: 0, m: 0, keys: [], created: 0),
         );
 
         switch (sortColumn) {
@@ -667,21 +586,12 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
           headerBuilder: (context) => [
             SailTableHeaderCell(name: 'Group', onSort: () => onSort('group')),
             const SailTableHeaderCell(name: 'MuSIG ID'),
-            SailTableHeaderCell(
-              name: 'Amount (BTC)',
-              onSort: () => onSort('amount'),
-            ),
-            SailTableHeaderCell(
-              name: 'Signatures',
-              onSort: () => onSort('signatures'),
-            ),
+            SailTableHeaderCell(name: 'Amount (BTC)', onSort: () => onSort('amount')),
+            SailTableHeaderCell(name: 'Signatures', onSort: () => onSort('signatures')),
             SailTableHeaderCell(name: 'Status', onSort: () => onSort('status')),
             SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
             const SailTableHeaderCell(name: 'TXID'),
-            SailTableHeaderCell(
-              name: 'Confirmations',
-              onSort: () => onSort('confirmations'),
-            ),
+            SailTableHeaderCell(name: 'Confirmations', onSort: () => onSort('confirmations')),
             const SailTableHeaderCell(name: 'Action'),
           ],
           rowBuilder: (context, row, selected) => [
@@ -722,17 +632,7 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
           sortAscending: sortAscending,
           onSort: (columnIndex, ascending) {
             onSort(
-              [
-                'group',
-                'id',
-                'amount',
-                'signatures',
-                'status',
-                'type',
-                'txid',
-                'confirmations',
-                'action',
-              ][columnIndex],
+              ['group', 'id', 'amount', 'signatures', 'status', 'type', 'txid', 'confirmations', 'action'][columnIndex],
             );
           },
         ),
@@ -745,21 +645,12 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Group', onSort: () => onSort('group')),
         const SailTableHeaderCell(name: 'MuSIG ID'),
-        SailTableHeaderCell(
-          name: 'Amount (BTC)',
-          onSort: () => onSort('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Signatures',
-          onSort: () => onSort('signatures'),
-        ),
+        SailTableHeaderCell(name: 'Amount (BTC)', onSort: () => onSort('amount')),
+        SailTableHeaderCell(name: 'Signatures', onSort: () => onSort('signatures')),
         SailTableHeaderCell(name: 'Status', onSort: () => onSort('status')),
         SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
         const SailTableHeaderCell(name: 'TXID'),
-        SailTableHeaderCell(
-          name: 'Confirmations',
-          onSort: () => onSort('confirmations'),
-        ),
+        SailTableHeaderCell(name: 'Confirmations', onSort: () => onSort('confirmations')),
         const SailTableHeaderCell(name: 'Action'),
       ],
       rowBuilder: (context, row, selected) {
@@ -781,14 +672,7 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
         final tx = txRow.transaction;
         final group = widget.groups.firstWhere(
           (g) => g.id == tx.groupId,
-          orElse: () => MultisigGroup(
-            id: tx.groupId,
-            name: 'Unknown',
-            n: 0,
-            m: 0,
-            keys: [],
-            created: 0,
-          ),
+          orElse: () => MultisigGroup(id: tx.groupId, name: 'Unknown', n: 0, m: 0, keys: [], created: 0),
         );
 
         return [
@@ -803,9 +687,7 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
           SailTableCell(value: tx.status.displayName),
           SailTableCell(value: tx.type.displayName),
           SailTableCell(value: tx.shortTxid ?? '-'),
-          SailTableCell(
-            value: tx.confirmations > 0 ? tx.confirmations.toString() : '-',
-          ),
+          SailTableCell(value: tx.confirmations > 0 ? tx.confirmations.toString() : '-'),
           _buildActionCell(txRow, tx, group),
         ];
       },
@@ -825,27 +707,13 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
         onSort(
-          [
-            'group',
-            'id',
-            'amount',
-            'signatures',
-            'status',
-            'type',
-            'txid',
-            'confirmations',
-            'action',
-          ][columnIndex],
+          ['group', 'id', 'amount', 'signatures', 'status', 'type', 'txid', 'confirmations', 'action'][columnIndex],
         );
       },
     );
   }
 
-  Widget _buildActionCell(
-    TransactionRow txRow,
-    MultisigTransaction tx,
-    MultisigGroup group,
-  ) {
+  Widget _buildActionCell(TransactionRow txRow, MultisigTransaction tx, MultisigGroup group) {
     if (txRow.hasWalletKeys &&
         !txRow.walletHasSigned &&
         (tx.status == TxStatus.needsSignatures || tx.status == TxStatus.awaitingSignedPSBTs)) {
@@ -967,17 +835,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
       final hasWalletKeys = walletKeys.isNotEmpty;
 
-      final walletHasSigned = tx.keyPSBTs.any(
-        (kp) => walletKeys.any((wk) => wk.xpub == kp.keyId) && kp.isSigned,
-      );
+      final walletHasSigned = tx.keyPSBTs.any((kp) => walletKeys.any((wk) => wk.xpub == kp.keyId) && kp.isSigned);
 
-      rows.add(
-        TransactionRow(
-          transaction: tx,
-          hasWalletKeys: hasWalletKeys,
-          walletHasSigned: walletHasSigned,
-        ),
-      );
+      rows.add(TransactionRow(transaction: tx, hasWalletKeys: hasWalletKeys, walletHasSigned: walletHasSigned));
     }
 
     return rows;
@@ -986,17 +846,11 @@ class MultisigLoungeViewModel extends BaseViewModel {
   bool get hasReadyTransactions => transactions.any((tx) => tx.status == TxStatus.readyForBroadcast);
 
   Future<void> createNewGroup(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder: (context) => const CreateMultisigModal(),
-    );
+    await showDialog(context: context, builder: (context) => const CreateMultisigModal());
   }
 
   Future<void> importFromTxid(BuildContext context) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => const ImportTxidModal(),
-    );
+    final result = await showDialog<bool>(context: context, builder: (context) => const ImportTxidModal());
 
     if (result == true) {
       await refreshData();
@@ -1004,19 +858,13 @@ class MultisigLoungeViewModel extends BaseViewModel {
   }
 
   Future<void> getMultisigKey(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => const MultisigKeyModal(),
-    );
+    await showDialog<void>(context: context, builder: (context) => const MultisigKeyModal());
   }
 
   Future<void> importPSBT(BuildContext context) async {
     await showDialog<bool>(
       context: context,
-      builder: (context) => ImportPSBTModal(
-        availableGroups: multisigGroups,
-        onImportSuccess: () {},
-      ),
+      builder: (context) => ImportPSBTModal(availableGroups: multisigGroups, onImportSuccess: () {}),
     );
   }
 
@@ -1027,16 +875,12 @@ class MultisigLoungeViewModel extends BaseViewModel {
       if (context.mounted) {
         await showDialog<bool>(
           context: context,
-          builder: (context) => FundGroupModal(
-            groups: [group],
-          ),
+          builder: (context) => FundGroupModal(groups: [group]),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to get funding address: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to get funding address: $e')));
       }
     }
   }
@@ -1045,15 +889,11 @@ class MultisigLoungeViewModel extends BaseViewModel {
     try {
       await showDialog<bool>(
         context: context,
-        builder: (context) => FundGroupModal(
-          groups: multisigGroups,
-        ),
+        builder: (context) => FundGroupModal(groups: multisigGroups),
       );
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to open funding modal: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to open funding modal: $e')));
       }
     }
   }
@@ -1070,23 +910,16 @@ class MultisigLoungeViewModel extends BaseViewModel {
     return await _walletManager.getNewAddress(walletName);
   }
 
-  Future<void> createTransaction(
-    BuildContext context,
-    MultisigGroup? group,
-  ) async {
+  Future<void> createTransaction(BuildContext context, MultisigGroup? group) async {
     try {
       await showDialog<bool>(
         context: context,
-        builder: (context) => PSBTCoordinatorModal(
-          group: group,
-          availableGroups: multisigGroups.where((g) => g.balance > 0).toList(),
-        ),
+        builder: (context) =>
+            PSBTCoordinatorModal(group: group, availableGroups: multisigGroups.where((g) => g.balance > 0).toList()),
       );
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create transaction: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create transaction: $e')));
       }
     }
   }
@@ -1236,10 +1069,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
     );
   }
 
-  Future<void> openTransactionModal(
-    BuildContext context,
-    MultisigTransaction transaction,
-  ) async {
+  Future<void> openTransactionModal(BuildContext context, MultisigTransaction transaction) async {
     final group = multisigGroups.firstWhere(
       (g) => g.id == transaction.groupId,
       orElse: () => throw Exception('Group not found for transaction'),
@@ -1251,11 +1081,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
     );
   }
 
-  Widget _buildTransactionDetailsModal(
-    BuildContext context,
-    MultisigTransaction transaction,
-    MultisigGroup group,
-  ) {
+  Widget _buildTransactionDetailsModal(BuildContext context, MultisigTransaction transaction, MultisigGroup group) {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
@@ -1273,46 +1099,25 @@ class MultisigLoungeViewModel extends BaseViewModel {
                     SailText.primary15('Status:'),
                     const SizedBox(width: 16),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _getStatusColor(transaction.status),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: SailText.primary12(
-                        _getStatusText(transaction.status),
-                        color: Colors.white,
-                      ),
+                      child: SailText.primary12(_getStatusText(transaction.status), color: Colors.white),
                     ),
                   ],
                 ),
                 _buildDetailRow('Group:', group.name),
-                _buildDetailRow(
-                  'Amount:',
-                  '${transaction.amount.toStringAsFixed(8)} BTC',
-                ),
-                _buildDetailRow(
-                  'Fee:',
-                  '${transaction.fee.toStringAsFixed(8)} BTC',
-                ),
+                _buildDetailRow('Amount:', '${transaction.amount.toStringAsFixed(8)} BTC'),
+                _buildDetailRow('Fee:', '${transaction.fee.toStringAsFixed(8)} BTC'),
                 _buildDetailRow('Destination:', transaction.destination),
-                _buildDetailRow(
-                  'Created:',
-                  _formatDateTime(transaction.created),
-                ),
+                _buildDetailRow('Created:', _formatDateTime(transaction.created)),
                 if (transaction.txid != null) _buildDetailRow('Transaction ID:', transaction.txid!),
                 if (transaction.confirmations > 0)
-                  _buildDetailRow(
-                    'Confirmations:',
-                    transaction.confirmations.toString(),
-                  ),
+                  _buildDetailRow('Confirmations:', transaction.confirmations.toString()),
                 if (transaction.broadcastTime != null)
-                  _buildDetailRow(
-                    'Broadcasted:',
-                    _formatDateTime(transaction.broadcastTime!),
-                  ),
+                  _buildDetailRow('Broadcasted:', _formatDateTime(transaction.broadcastTime!)),
                 const SizedBox(height: 32),
                 SailText.primary15('Signing Status:'),
                 const SizedBox(height: 8),
@@ -1326,9 +1131,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                     spacing: SailStyleValues.padding08,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SailText.secondary12(
-                        'Required signatures: ${transaction.requiredSignatures}',
-                      ),
+                      SailText.secondary12('Required signatures: ${transaction.requiredSignatures}'),
                       SailText.secondary12(
                         'Current signatures: ${transaction.keyPSBTs.where((k) => k.isSigned).length}',
                       ),
@@ -1351,18 +1154,12 @@ class MultisigLoungeViewModel extends BaseViewModel {
                             SailText.secondary12(keyName),
                             const SizedBox(width: 16),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: keyPSBT.isSigned ? Colors.green : Colors.grey,
                                 borderRadius: BorderRadius.circular(3),
                               ),
-                              child: SailText.primary10(
-                                keyPSBT.isSigned ? 'Signed' : 'Pending',
-                                color: Colors.white,
-                              ),
+                              child: SailText.primary10(keyPSBT.isSigned ? 'Signed' : 'Pending', color: Colors.white),
                             ),
                           ],
                         );
@@ -1385,23 +1182,12 @@ class MultisigLoungeViewModel extends BaseViewModel {
                     children: [
                       SailRow(
                         children: [
-                          Expanded(
-                            child: SailText.secondary12('Initial PSBT (unsigned)'),
-                          ),
+                          Expanded(child: SailText.secondary12('Initial PSBT (unsigned)')),
                           const SizedBox(width: 16),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: SailText.primary10(
-                              'Unsigned',
-                              color: Colors.white,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(3)),
+                            child: SailText.primary10('Unsigned', color: Colors.white),
                           ),
                           const SizedBox(width: 8),
                           SailButton(
@@ -1434,23 +1220,15 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
                         return SailRow(
                           children: [
-                            Expanded(
-                              child: SailText.secondary12('$keyName PSBT'),
-                            ),
+                            Expanded(child: SailText.secondary12('$keyName PSBT')),
                             const SizedBox(width: 16),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: keyPSBT.isSigned ? Colors.green : Colors.grey,
                                 borderRadius: BorderRadius.circular(3),
                               ),
-                              child: SailText.primary10(
-                                keyPSBT.isSigned ? 'Signed' : 'Unsigned',
-                                color: Colors.white,
-                              ),
+                              child: SailText.primary10(keyPSBT.isSigned ? 'Signed' : 'Unsigned', color: Colors.white),
                             ),
                             const SizedBox(width: 8),
                             SailButton(
@@ -1459,13 +1237,13 @@ class MultisigLoungeViewModel extends BaseViewModel {
                               small: true,
                               onPressed: (keyPSBT.psbt?.isNotEmpty ?? false)
                                   ? () async => _exportPSBTToFile(
-                                        context,
-                                        keyPSBT.psbt!,
-                                        transaction,
-                                        group,
-                                        keyName,
-                                        keyPSBT.isSigned,
-                                      )
+                                      context,
+                                      keyPSBT.psbt!,
+                                      transaction,
+                                      group,
+                                      keyName,
+                                      keyPSBT.isSigned,
+                                    )
                                   : null,
                             ),
                           ],
@@ -1495,12 +1273,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       children: [
         SailText.primary13(label),
         const SizedBox(width: 16),
-        Flexible(
-          child: SailText.secondary13(
-            value,
-            textAlign: TextAlign.end,
-          ),
-        ),
+        Flexible(child: SailText.secondary13(value, textAlign: TextAlign.end)),
       ],
     );
   }
@@ -1552,19 +1325,14 @@ class MultisigLoungeViewModel extends BaseViewModel {
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  Future<void> handleTransactionAction(
-    BuildContext context,
-    MultisigTransaction tx,
-    MultisigGroup group,
-  ) async {
+  Future<void> handleTransactionAction(BuildContext context, MultisigTransaction tx, MultisigGroup group) async {
     switch (tx.status) {
       case TxStatus.needsSignatures:
       case TxStatus.awaitingSignedPSBTs:
         final walletKeys = group.keys.where((k) => k.isWallet).toList();
-        final canSign = walletKeys.isNotEmpty &&
-            tx.keyPSBTs.any(
-              (kp) => !kp.isSigned && kp.psbt != null && walletKeys.any((wk) => wk.xpub == kp.keyId),
-            );
+        final canSign =
+            walletKeys.isNotEmpty &&
+            tx.keyPSBTs.any((kp) => !kp.isSigned && kp.psbt != null && walletKeys.any((wk) => wk.xpub == kp.keyId));
 
         if (canSign) {
           await showSignPreview(context, tx, group);
@@ -1583,28 +1351,17 @@ class MultisigLoungeViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> showSignPreview(
-    BuildContext context,
-    MultisigTransaction tx,
-    MultisigGroup group,
-  ) async {
+  Future<void> showSignPreview(BuildContext context, MultisigTransaction tx, MultisigGroup group) async {
     if (!context.mounted) return;
 
     await showDialog(
       context: context,
-      builder: (context) => SignPreviewModal(
-        transaction: tx,
-        group: group,
-        onSignConfirm: () => signTransaction(context, tx, group),
-      ),
+      builder: (context) =>
+          SignPreviewModal(transaction: tx, group: group, onSignConfirm: () => signTransaction(context, tx, group)),
     );
   }
 
-  Future<void> signTransaction(
-    BuildContext context,
-    MultisigTransaction tx,
-    MultisigGroup group,
-  ) async {
+  Future<void> signTransaction(BuildContext context, MultisigTransaction tx, MultisigGroup group) async {
     try {
       final rpcSigner = MultisigRPCSigner();
 
@@ -1615,18 +1372,15 @@ class MultisigLoungeViewModel extends BaseViewModel {
         throw Exception('No wallet keys found in group');
       }
 
-      final canSign = walletKeys.isNotEmpty &&
-          tx.keyPSBTs.any(
-            (kp) => !kp.isSigned && kp.psbt != null && walletKeys.any((wk) => wk.xpub == kp.keyId),
-          );
+      final canSign =
+          walletKeys.isNotEmpty &&
+          tx.keyPSBTs.any((kp) => !kp.isSigned && kp.psbt != null && walletKeys.any((wk) => wk.xpub == kp.keyId));
 
       if (!canSign) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No unsigned PSBTs available to sign'),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No unsigned PSBTs available to sign')));
         }
         return;
       }
@@ -1659,9 +1413,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
       final ownedKeys = walletKeys.where((key) => key.isWallet).toList();
       final unsignedOwnedKeys = ownedKeys
-          .where(
-            (key) => !tx.keyPSBTs.any((kp) => kp.keyId == key.xpub && kp.isSigned),
-          )
+          .where((key) => !tx.keyPSBTs.any((kp) => kp.keyId == key.xpub && kp.isSigned))
           .toList();
 
       for (final key in unsignedOwnedKeys) {
@@ -1686,18 +1438,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
               ? 'Transaction signed and completed successfully!'
               : 'Transaction signed successfully ($signedCount/${group.m} signatures)';
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: Colors.green,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.green));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to add signatures to transaction'),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text('Failed to add signatures to transaction'), backgroundColor: Colors.red),
           );
         }
       }
@@ -1708,12 +1452,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
       MultisigLogger.error('Error in transaction signing: $e');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to sign transaction: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to sign transaction: $e'), backgroundColor: Colors.red));
       }
 
       await _stateManager.refreshData();
@@ -1731,12 +1472,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
     try {
       if (psbtData.isEmpty) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('PSBT data is empty'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('PSBT data is empty'), backgroundColor: Colors.orange));
         }
         return;
       }
@@ -1745,12 +1483,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
         await _rpc.callRAW('decodepsbt', [psbtData]);
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Invalid PSBT format: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Invalid PSBT format: $e'), backgroundColor: Colors.red));
         }
         return;
       }
@@ -1783,9 +1518,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'PSBT exported successfully to ${file.path.split('/').last}',
-              ),
+              content: Text('PSBT exported successfully to ${file.path.split('/').last}'),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
             ),
@@ -1796,12 +1529,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
       _logger.e('Failed to export PSBT to file: $e');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to export PSBT: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to export PSBT: $e'), backgroundColor: Colors.red));
       }
     }
   }

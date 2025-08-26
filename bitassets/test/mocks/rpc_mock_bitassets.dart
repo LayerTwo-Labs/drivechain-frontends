@@ -2,11 +2,11 @@ import 'package:sail_ui/sail_ui.dart';
 
 class MockBitAssetsRPC extends BitAssetsRPC {
   MockBitAssetsRPC()
-      : super(
-          conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
-          binaryType: BinaryType.testSidechain,
-          restartOnFailure: false,
-        );
+    : super(
+        conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
+        binaryType: BinaryType.testSidechain,
+        restartOnFailure: false,
+      );
 
   @override
   Future<String> ammBurn({required String asset0, required String asset1, required int lpTokenAmount}) {
@@ -85,24 +85,12 @@ class MockBitAssetsRPC extends BitAssetsRPC {
 
   @override
   Future<AmmPoolState?> getAmmPoolState({required String asset0, required String asset1}) {
-    return Future.value(
-      AmmPoolState(
-        reserve0: 1,
-        reserve1: 2,
-        outstandingLpTokens: 123,
-        creationTxid: 'mocked',
-      ),
-    );
+    return Future.value(AmmPoolState(reserve0: 1, reserve1: 2, outstandingLpTokens: 123, creationTxid: 'mocked'));
   }
 
   @override
   Future<Map<String, dynamic>?> getAmmPrice({required String base, required String quote}) {
-    return Future.value(
-      {
-        'base': 1,
-        'quote': 2,
-      },
-    );
+    return Future.value({'base': 1, 'quote': 2});
   }
 
   @override
@@ -112,12 +100,7 @@ class MockBitAssetsRPC extends BitAssetsRPC {
 
   @override
   Future<BalanceResponse> getBalance() {
-    return Future.value(
-      BalanceResponse(
-        totalSats: 1,
-        availableSats: 2,
-      ),
-    );
+    return Future.value(BalanceResponse(totalSats: 1, availableSats: 2));
   }
 
   @override
@@ -132,21 +115,12 @@ class MockBitAssetsRPC extends BitAssetsRPC {
 
   @override
   Future<BitAssetRequest?> getBitAssetData(String assetId) {
-    return Future.value(
-      BitAssetRequest(
-        initialSupply: 123,
-      ),
-    );
+    return Future.value(BitAssetRequest(initialSupply: 123));
   }
 
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) {
-    return Future.value(
-      {
-        'hash': 'mocked',
-        'height': 123,
-      },
-    );
+    return Future.value({'hash': 'mocked', 'height': 123});
   }
 
   @override
@@ -317,18 +291,11 @@ class MockBitAssetsRPC extends BitAssetsRPC {
 
   @override
   Future<BmmResult> mine(int feeSats) {
-    return Future.value(
-      BmmResult.empty(),
-    );
+    return Future.value(BmmResult.empty());
   }
 
   @override
-  Future<String> withdraw(
-    String mainchainAddress,
-    int amountSats,
-    int sidechainFeeSats,
-    int mainchainFeeSats,
-  ) {
+  Future<String> withdraw(String mainchainAddress, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
     return Future.value('mocked');
   }
 }

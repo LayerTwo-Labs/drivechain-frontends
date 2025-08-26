@@ -20,10 +20,7 @@ class PendingCastBill {
   num get castAmount => satoshiToBTC(lowestCastValueSats << (powerOf - 1));
   List<PendingDeshield> pendingShields = [];
 
-  PendingCastBill({
-    required this.powerOf,
-    required this.executeAction,
-  }) {
+  PendingCastBill({required this.powerOf, required this.executeAction}) {
     DateTime now = DateTime.now().toUtc();
     executeTime = DateTime.utc(now.year, now.month, now.day + 1);
 
@@ -86,10 +83,7 @@ class PendingDeshield {
     return satoshiToBTC(amountSats);
   }
 
-  PendingDeshield({
-    required this.pow,
-    required this.fromUTXO,
-  });
+  PendingDeshield({required this.pow, required this.fromUTXO});
 }
 
 class CastProvider extends ChangeNotifier {
@@ -102,18 +96,12 @@ class CastProvider extends ChangeNotifier {
 
   List<PendingCastBill> futureCasts = List.filled(
     maxCastFactor + 1,
-    PendingCastBill(
-      powerOf: 1,
-      executeAction: () => {},
-    ),
+    PendingCastBill(powerOf: 1, executeAction: () => {}),
   );
 
   CastProvider() {
     for (int i = 1; i <= maxCastFactor; i++) {
-      final newBill = PendingCastBill(
-        powerOf: i,
-        executeAction: () => _executeCast(i, 0),
-      );
+      final newBill = PendingCastBill(powerOf: i, executeAction: () => _executeCast(i, 0));
 
       futureCasts[i] = newBill;
     }
@@ -157,10 +145,7 @@ class CastProvider extends ChangeNotifier {
         log.i('casted utxo=${pending.fromUTXO.amount} pow=$powerOf opid=$opid');
       }
 
-      final newBill = PendingCastBill(
-        powerOf: bill.powerOf,
-        executeAction: () => _executeCast(powerOf, iteration + 1),
-      );
+      final newBill = PendingCastBill(powerOf: bill.powerOf, executeAction: () => _executeCast(powerOf, iteration + 1));
       futureCasts[bill.powerOf] = newBill;
 
       await _zsideProvider.fetch();
@@ -188,14 +173,9 @@ class CastProvider extends ChangeNotifier {
 
       nextAmountSats = nextAmountSats - billAmount;
 
-      final pending = PendingDeshield(
-        fromUTXO: utxo,
-        pow: powerOf,
-      );
+      final pending = PendingDeshield(fromUTXO: utxo, pow: powerOf);
 
-      log.d(
-        'found fitting bill amount=$billAmount powerOf=$powerOf',
-      );
+      log.d('found fitting bill amount=$billAmount powerOf=$powerOf');
 
       pendingShields.add(pending);
     }
@@ -213,19 +193,13 @@ class CastProvider extends ChangeNotifier {
     return findMaxBill(maxAmountSats, newAmountSats, currentMultiple + 1);
   }
 
-  void addPendingUTXO(
-    List<PendingDeshield> newPendingBills, {
-    required ShieldedUTXO utxo,
-  }) {
+  void addPendingUTXO(List<PendingDeshield> newPendingBills, {required ShieldedUTXO utxo}) {
     for (final newPending in newPendingBills) {
       // extract current bills
       final bill = futureCasts[newPending.pow];
 
       // create new pending deshield
-      final deshield = PendingDeshield(
-        fromUTXO: utxo,
-        pow: newPending.pow,
-      );
+      final deshield = PendingDeshield(fromUTXO: utxo, pow: newPending.pow);
       bill.addPendingShield(deshield);
 
       // add existing+new bundle to future casts

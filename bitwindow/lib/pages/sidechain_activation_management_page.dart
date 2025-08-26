@@ -55,10 +55,7 @@ class SidechainActivationManagementView extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 color: context.sailTheme.colors.background,
-                border: Border.all(
-                  color: context.sailTheme.colors.divider,
-                  width: 1.0,
-                ),
+                border: Border.all(color: context.sailTheme.colors.divider, width: 1.0),
                 borderRadius: SailStyleValues.borderRadius,
               ),
               height: 150,
@@ -71,10 +68,7 @@ class SidechainActivationManagementView extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: context.sailTheme.colors.background,
-                border: Border.all(
-                  color: context.sailTheme.colors.divider,
-                  width: 1.0,
-                ),
+                border: Border.all(color: context.sailTheme.colors.divider, width: 1.0),
                 borderRadius: SailStyleValues.borderRadius,
               ),
               height: 150,
@@ -91,10 +85,7 @@ class SidechainActivationManagementView extends StatelessWidget {
 class ActiveSidechainsTable extends StatefulWidget {
   final List<SidechainOverview?> blocks;
 
-  const ActiveSidechainsTable({
-    super.key,
-    required this.blocks,
-  });
+  const ActiveSidechainsTable({super.key, required this.blocks});
 
   @override
   State<ActiveSidechainsTable> createState() => _ActiveSidechainsTableState();
@@ -207,10 +198,7 @@ Future<void> showSidechainActivationManagementModal(BuildContext context) {
         child: Dialog(
           backgroundColor: Colors.transparent,
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: size.width * 0.8,
-              maxHeight: size.height * 0.8,
-            ),
+            constraints: BoxConstraints(maxWidth: size.width * 0.8, maxHeight: size.height * 0.8),
             child: const SidechainActivationManagementPage(),
           ),
         ),
@@ -222,10 +210,7 @@ Future<void> showSidechainActivationManagementModal(BuildContext context) {
 class PendingSidechainProposalsTable extends StatefulWidget {
   final List<SidechainProposal> proposals;
 
-  const PendingSidechainProposalsTable({
-    super.key,
-    required this.proposals,
-  });
+  const PendingSidechainProposalsTable({super.key, required this.proposals});
 
   @override
   State<PendingSidechainProposalsTable> createState() => _PendingSidechainProposalsTableState();

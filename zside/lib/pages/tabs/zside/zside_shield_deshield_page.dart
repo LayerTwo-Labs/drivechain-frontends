@@ -111,9 +111,7 @@ class ZSideShieldTabViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const MeltAction(
-          doEverythingMode: false,
-        );
+        return const MeltAction(doEverythingMode: false);
       },
     );
   }
@@ -157,11 +155,7 @@ class UnshieldedUTXOTable extends StatefulWidget {
   final List<UnshieldedUTXO> entries;
   final Function(UnshieldedUTXO) onShield;
 
-  const UnshieldedUTXOTable({
-    super.key,
-    required this.entries,
-    required this.onShield,
-  });
+  const UnshieldedUTXOTable({super.key, required this.entries, required this.onShield});
 
   @override
   State<UnshieldedUTXOTable> createState() => _UnshieldedUTXOTableState();
@@ -225,12 +219,7 @@ class _UnshieldedUTXOTableState extends State<UnshieldedUTXOTable> {
             child: SailButton(
               label: 'Shield',
               variant: ButtonVariant.secondary,
-              padding: const EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 2,
-                bottom: 2,
-              ),
+              padding: const EdgeInsets.only(left: 12, right: 12, top: 2, bottom: 2),
               onPressed: () => widget.onShield(entry),
             ),
           ),
@@ -248,11 +237,7 @@ class ShieldedUTXOTable extends StatefulWidget {
   final List<ShieldedUTXO> entries;
   final Function(ShieldedUTXO) onDeshield;
 
-  const ShieldedUTXOTable({
-    super.key,
-    required this.entries,
-    required this.onDeshield,
-  });
+  const ShieldedUTXOTable({super.key, required this.entries, required this.onDeshield});
 
   @override
   State<ShieldedUTXOTable> createState() => _ShieldedUTXOTableState();
@@ -316,12 +301,7 @@ class _ShieldedUTXOTableState extends State<ShieldedUTXOTable> {
             child: SailButton(
               label: 'Deshield',
               variant: ButtonVariant.secondary,
-              padding: const EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 2,
-                bottom: 2,
-              ),
+              padding: const EdgeInsets.only(left: 12, right: 12, top: 2, bottom: 2),
               onPressed: () => widget.onDeshield(entry),
             ),
           ),

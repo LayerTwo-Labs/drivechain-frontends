@@ -206,16 +206,11 @@ class _SailTableState extends State<SailTable> {
     if (widget is SailTableCell) {
       text = widget.value;
       // Use the actual style from SailText.primary12
-      textStyle = SailStyleValues.twelve.copyWith(
-        fontFamily: widget.monospace ? 'SourceCodePro' : 'Inter',
-      );
+      textStyle = SailStyleValues.twelve.copyWith(fontFamily: widget.monospace ? 'SourceCodePro' : 'Inter');
     } else if (widget is SailTableHeaderCell) {
       text = widget.name;
       // Headers might use a different style - adjust as needed
-      textStyle = SailStyleValues.twelve.copyWith(
-        fontFamily: 'Inter',
-        fontWeight: SailStyleValues.boldWeight,
-      );
+      textStyle = SailStyleValues.twelve.copyWith(fontFamily: 'Inter', fontWeight: SailStyleValues.boldWeight);
     }
 
     return _calculateTextWidth(text, textStyle ?? SailStyleValues.twelve);
@@ -224,10 +219,7 @@ class _SailTableState extends State<SailTable> {
   double _calculateTextWidth(String text, TextStyle textStyle) {
     if (text.isNotEmpty) {
       final textPainter = TextPainter(
-        text: TextSpan(
-          text: text,
-          style: textStyle,
-        ),
+        text: TextSpan(text: text, style: textStyle),
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
@@ -260,10 +252,7 @@ class _SailTableState extends State<SailTable> {
     setState(() {
       final minWidth = defaultMinColumnWidth;
       final maxWidth = _currentConstraints!.maxWidth;
-      final newWidth = (_startColumnWidth + delta).clamp(
-        minWidth,
-        maxWidth,
-      );
+      final newWidth = (_startColumnWidth + delta).clamp(minWidth, maxWidth);
 
       _widths[column] = newWidth;
       widget.onColumnWidthsChanged?.call(_widths);
@@ -303,19 +292,19 @@ class _SailTableState extends State<SailTable> {
 
   Widget _buildHeader(BuildContext context) {
     final theme = SailTheme.of(context);
-    final headerCells =
-        widget.headerBuilder(context).asMap().map((i, cell) => MapEntry(i, _wrapHeaderCell(i, cell))).values.toList();
+    final headerCells = widget
+        .headerBuilder(context)
+        .asMap()
+        .map((i, cell) => MapEntry(i, _wrapHeaderCell(i, cell)))
+        .values
+        .toList();
 
     return Container(
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.colors.divider),
-        ),
+        border: Border(bottom: BorderSide(color: theme.colors.divider)),
       ),
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: _addResizeHandles(headerCells),
-      ),
+      child: Row(children: _addResizeHandles(headerCells)),
     );
   }
 
@@ -374,15 +363,9 @@ class _SailTableState extends State<SailTable> {
         child: Container(
           width: 8, // Make it huge
           decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: context.sailTheme.colors.divider,
-              ),
-            ),
+            border: Border(left: BorderSide(color: context.sailTheme.colors.divider)),
           ),
-          child: Text(
-            '',
-          ),
+          child: Text(''),
         ),
       ),
     );
@@ -394,10 +377,7 @@ class _SailTableState extends State<SailTable> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
-        children: List.generate(
-          widget.rowCount,
-          (index) => _buildRow(context, index),
-        ),
+        children: List.generate(widget.rowCount, (index) => _buildRow(context, index)),
       );
     }
 
@@ -488,10 +468,7 @@ class _TableRowState extends State<_TableRow> {
             },
             child: SailText.primary12('Copy value'),
           ),
-          if (widget.contextMenuItems != null)
-            ...widget.contextMenuItems!(rowId).map(
-              (item) => item,
-            ),
+          if (widget.contextMenuItems != null) ...widget.contextMenuItems!(rowId).map((item) => item),
         ],
       ),
     );
@@ -522,12 +499,7 @@ class _TableRowState extends State<_TableRow> {
               child: Container(
                 decoration: widget.grid
                     ? BoxDecoration(
-                        border: Border(
-                          right: BorderSide(
-                            color: theme.colors.divider,
-                            width: 1.0,
-                          ),
-                        ),
+                        border: Border(right: BorderSide(color: theme.colors.divider, width: 1.0)),
                       )
                     : null,
                 width: double.infinity,
@@ -555,18 +527,9 @@ class _TableRowState extends State<_TableRow> {
       contents = DecoratedBox(
         decoration: BoxDecoration(
           color: widget.selected || isHovered ? theme.colors.backgroundSecondary : widget.backgroundColor,
-          border: widget.drawBorder
-              ? Border(
-                  bottom: BorderSide(
-                    color: theme.colors.divider,
-                    width: 1.0,
-                  ),
-                )
-              : null,
+          border: widget.drawBorder ? Border(bottom: BorderSide(color: theme.colors.divider, width: 1.0)) : null,
         ),
-        child: Row(
-          children: cellWidgets,
-        ),
+        child: Row(children: cellWidgets),
       );
     } else {
       contents = DecoratedBox(
@@ -574,9 +537,7 @@ class _TableRowState extends State<_TableRow> {
           borderRadius: const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
           color: widget.selected || isHovered ? theme.colors.backgroundSecondary : widget.backgroundColor,
         ),
-        child: Row(
-          children: cellWidgets,
-        ),
+        child: Row(children: cellWidgets),
       );
     }
 
@@ -629,16 +590,14 @@ class SailTableCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var tableRow = context.findAncestorWidgetOfExactType<_TableRow>();
-    assert(
-      tableRow != null,
-      'Table cell needs to be a child of SailTable',
-    );
+    assert(tableRow != null, 'Table cell needs to be a child of SailTable');
 
     return Container(
       alignment: alignment,
       padding: padding,
       color: backgroundColor,
-      child: child ??
+      child:
+          child ??
           SailText.primary12(
             value,
             color: textColor,

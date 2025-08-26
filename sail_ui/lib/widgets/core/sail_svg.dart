@@ -1560,10 +1560,7 @@ enum SailSVGAsset {
   trendingUp,
 }
 
-enum SailPNGAsset {
-  meltCastDiagram,
-  articleBeginner,
-}
+enum SailPNGAsset { meltCastDiagram, articleBeginner }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
 // useful for svgs that already have a color like red or blue, that are
@@ -1578,13 +1575,7 @@ const coloredAssets = [
 ];
 
 class SailSVG {
-  static Widget icon(
-    SailSVGAsset asset, {
-    bool isHighlighted = false,
-    double? width,
-    double? height,
-    Color? color,
-  }) {
+  static Widget icon(SailSVGAsset asset, {bool isHighlighted = false, double? width, double? height, Color? color}) {
     return Builder(
       builder: (context) {
         final colors = SailTheme.of(context).colors;
@@ -1599,12 +1590,7 @@ class SailSVG {
     );
   }
 
-  static SvgPicture fromAsset(
-    SailSVGAsset asset, {
-    double? height,
-    double? width,
-    Color? color,
-  }) {
+  static SvgPicture fromAsset(SailSVGAsset asset, {double? height, double? width, Color? color}) {
     return SvgPicture.asset(
       asset.toAssetPath(),
       package: 'sail_ui',
@@ -1614,12 +1600,7 @@ class SailSVG {
     );
   }
 
-  static Widget png(
-    SailPNGAsset asset, {
-    double? width,
-    double? height,
-    BoxFit? fit,
-  }) {
+  static Widget png(SailPNGAsset asset, {double? width, double? height, BoxFit? fit}) {
     return Image.asset(
       asset.toAssetPath(),
       package: 'sail_ui',

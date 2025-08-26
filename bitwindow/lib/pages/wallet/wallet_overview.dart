@@ -50,8 +50,10 @@ class OverviewTab extends StatelessWidget {
                       Expanded(
                         child: WalletStats(
                           title: 'Sidechain Deposit Volume',
-                          value:
-                              formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolume.toInt() ?? 0), symbol: ''),
+                          value: formatBitcoin(
+                            satoshiToBTC(model.stats?.sidechainDepositVolume.toInt() ?? 0),
+                            symbol: '',
+                          ),
                           subtitle:
                               '${formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0), symbol: '')} last 30 days',
                           bitcoinAmount: true,
@@ -89,11 +91,7 @@ class TransactionTable extends StatefulWidget {
   final Widget searchWidget;
   final OverviewViewModel model;
 
-  const TransactionTable({
-    super.key,
-    required this.model,
-    required this.searchWidget,
-  });
+  const TransactionTable({super.key, required this.model, required this.searchWidget});
 
   @override
   State<TransactionTable> createState() => _TransactionTableState();
@@ -168,9 +166,7 @@ class _TransactionTableState extends State<TransactionTable> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SailStyleValues.padding16,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding16),
                 child: widget.searchWidget,
               ),
               SizedBox(
@@ -181,26 +177,11 @@ class _TransactionTableState extends State<TransactionTable> {
                   child: SailTable(
                     getRowId: (index) => entries[index].txid,
                     headerBuilder: (context) => [
-                      SailTableHeaderCell(
-                        name: 'Date',
-                        onSort: () => onSort('date'),
-                      ),
-                      SailTableHeaderCell(
-                        name: 'TXID',
-                        onSort: () => onSort('txid'),
-                      ),
-                      SailTableHeaderCell(
-                        name: 'Address',
-                        onSort: () => onSort('address'),
-                      ),
-                      SailTableHeaderCell(
-                        name: 'Note',
-                        onSort: () => onSort('note'),
-                      ),
-                      SailTableHeaderCell(
-                        name: 'Amount',
-                        onSort: () => onSort('amount'),
-                      ),
+                      SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
+                      SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
+                      SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                      SailTableHeaderCell(name: 'Note', onSort: () => onSort('note')),
+                      SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
                     ],
                     rowBuilder: (context, row, selected) {
                       final entry = entries[row];
@@ -208,29 +189,17 @@ class _TransactionTableState extends State<TransactionTable> {
                       // Calculate amount and determine sign
                       final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
                       final sign = amountDiff > 0 ? '+' : '-';
-                      final formattedAmount = '$sign${formatBitcoin(
-                        satoshiToBTC(amountDiff.abs().toInt()),
-                        symbol: '',
-                      )}';
+                      final formattedAmount =
+                          '$sign${formatBitcoin(satoshiToBTC(amountDiff.abs().toInt()), symbol: '')}';
 
                       return [
-                        SailTableCell(
-                          value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
-                        ),
-                        SailTableCell(
-                          value: '${entry.txid.substring(0, 10)}..',
-                          copyValue: entry.txid,
-                        ),
+                        SailTableCell(value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal())),
+                        SailTableCell(value: '${entry.txid.substring(0, 10)}..', copyValue: entry.txid),
                         SailTableCell(
                           value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
                         ),
-                        SailTableCell(
-                          value: entry.note,
-                        ),
-                        SailTableCell(
-                          value: formattedAmount,
-                          monospace: true,
-                        ),
+                        SailTableCell(value: entry.note),
+                        SailTableCell(value: formattedAmount, monospace: true),
                       ];
                     },
                     contextMenuItems: (rowId) {
@@ -260,9 +229,7 @@ class _TransactionTableState extends State<TransactionTable> {
                                       title: entry.note.isEmpty ? 'Add Note' : 'Edit Note',
                                       subtitle:
                                           "${entry.note.isEmpty ? "Set a" : "Update the"} note and click Save when you're done",
-                                      fields: [
-                                        EditField(name: 'Note', currentValue: entry.note),
-                                      ],
+                                      fields: [EditField(name: 'Note', currentValue: entry.note)],
                                       onSave: (updatedFields) async {
                                         final newNote = updatedFields.firstWhere((f) => f.name == 'Note').currentValue;
                                         await widget.model.saveNote(context, entry.txid, newNote);
@@ -280,13 +247,7 @@ class _TransactionTableState extends State<TransactionTable> {
                     },
                     rowCount: entries.length,
                     drawGrid: true,
-                    sortColumnIndex: [
-                      'date',
-                      'txid',
-                      'address',
-                      'note',
-                      'amount',
-                    ].indexOf(sortColumn),
+                    sortColumnIndex: ['date', 'txid', 'address', 'note', 'amount'].indexOf(sortColumn),
                     sortAscending: sortAscending,
                     onSort: (columnIndex, ascending) {
                       onSort(['date', 'txid', 'address', 'note', 'amount'][columnIndex]);
@@ -320,10 +281,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
           address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
           addressLabel: 'Main Wallet',
           note: 'Received payment',
-          confirmationTime: Confirmation(
-            height: 800000,
-            timestamp: Timestamp.fromDateTime(DateTime(2024)),
-          ),
+          confirmationTime: Confirmation(height: 800000, timestamp: Timestamp.fromDateTime(DateTime(2024))),
         ),
         WalletTransaction(
           txid: 'dummy_tx_2',
@@ -333,10 +291,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
           address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
           addressLabel: 'Exchange',
           note: 'Sent to exchange',
-          confirmationTime: Confirmation(
-            height: 800001,
-            timestamp: Timestamp.fromDateTime(DateTime(2024)),
-          ),
+          confirmationTime: Confirmation(height: 800001, timestamp: Timestamp.fromDateTime(DateTime(2024))),
         ),
         WalletTransaction(
           txid: 'dummy_tx_3',
@@ -346,18 +301,13 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
           address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
           addressLabel: 'Mining Pool',
           note: 'Mining reward',
-          confirmationTime: Confirmation(
-            height: 800002,
-            timestamp: Timestamp.fromDateTime(DateTime(2024)),
-          ),
+          confirmationTime: Confirmation(height: 800002, timestamp: Timestamp.fromDateTime(DateTime(2024))),
         ),
       ];
     }
 
     final filteredTransactions = _txProvider.walletTransactions
-        .where(
-          (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
-        )
+        .where((tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text))
         .toList();
 
     // Always sort by date, newest first

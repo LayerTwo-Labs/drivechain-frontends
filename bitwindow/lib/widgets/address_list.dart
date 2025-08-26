@@ -101,9 +101,7 @@ class AddressBookViewModel extends BaseViewModel {
 }
 
 class AddressBookTable extends StatefulWidget {
-  const AddressBookTable({
-    super.key,
-  });
+  const AddressBookTable({super.key});
 
   @override
   State<AddressBookTable> createState() => _AddressBookTableState();
@@ -115,9 +113,7 @@ class _AddressBookTableState extends State<AddressBookTable> {
     return ViewModelBuilder<AddressBookViewModel>.reactive(
       viewModelBuilder: () => AddressBookViewModel(),
       builder: (context, model, child) {
-        final content = AddressBookContent(
-          viewModel: model,
-        );
+        final content = AddressBookContent(viewModel: model);
 
         return SailPadding(
           padding: EdgeInsets.only(
@@ -127,16 +123,8 @@ class _AddressBookTableState extends State<AddressBookTable> {
           ),
           child: InlineTabBar(
             tabs: [
-              TabItem(
-                label: 'Send',
-                icon: SailSVGAsset.iconSend,
-                child: content,
-              ),
-              TabItem(
-                label: 'Receive',
-                icon: SailSVGAsset.iconReceive,
-                child: content,
-              ),
+              TabItem(label: 'Send', icon: SailSVGAsset.iconSend, child: content),
+              TabItem(label: 'Receive', icon: SailSVGAsset.iconReceive, child: content),
             ],
             initialIndex: model.direction == Direction.DIRECTION_SEND ? 0 : 1,
             onTabChanged: (index) {
@@ -151,38 +139,27 @@ class _AddressBookTableState extends State<AddressBookTable> {
 }
 
 class SendTableView extends ViewModelWidget<AddressBookViewModel> {
-  const SendTableView({
-    super.key,
-  });
+  const SendTableView({super.key});
 
   @override
   Widget build(BuildContext context, AddressBookViewModel viewModel) {
-    return AddressBookContent(
-      viewModel: viewModel,
-    );
+    return AddressBookContent(viewModel: viewModel);
   }
 }
 
 class ReceiveTableView extends ViewModelWidget<AddressBookViewModel> {
-  const ReceiveTableView({
-    super.key,
-  });
+  const ReceiveTableView({super.key});
 
   @override
   Widget build(BuildContext context, AddressBookViewModel viewModel) {
-    return AddressBookContent(
-      viewModel: viewModel,
-    );
+    return AddressBookContent(viewModel: viewModel);
   }
 }
 
 class AddressBookContent extends StatefulWidget {
   final AddressBookViewModel viewModel;
 
-  const AddressBookContent({
-    super.key,
-    required this.viewModel,
-  });
+  const AddressBookContent({super.key, required this.viewModel});
 
   @override
   State<AddressBookContent> createState() => _AddressBookContentState();
@@ -224,10 +201,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
               child: SailRow(
                 spacing: SailStyleValues.padding08,
                 children: [
-                  SailButton(
-                    label: 'Add New Sending Address',
-                    onPressed: () async => _showCreateDialog(context),
-                  ),
+                  SailButton(label: 'Add New Sending Address', onPressed: () async => _showCreateDialog(context)),
                 ],
               ),
             )
@@ -236,14 +210,8 @@ class _AddressBookContentState extends State<AddressBookContent> {
       child: SailTable(
         getRowId: (index) => widget.viewModel.entries[index].id.toString(),
         headerBuilder: (context) => [
-          SailTableHeaderCell(
-            name: 'Label',
-            onSort: () => onSort('label'),
-          ),
-          SailTableHeaderCell(
-            name: 'Address',
-            onSort: () => onSort('address'),
-          ),
+          SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
+          SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
           const SailTableHeaderCell(name: 'Actions'),
         ],
         rowBuilder: (context, row, selected) {
@@ -255,10 +223,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
               monospace: true,
               italic: entry.label == '',
             ),
-            SailTableCell(
-              value: entry.address,
-              monospace: true,
-            ),
+            SailTableCell(value: entry.address, monospace: true),
             SailTableCell(
               value: 'Actions',
               child: SailRow(
@@ -444,10 +409,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
                         }
                       },
                     ),
-                    SailButton(
-                      label: 'Cancel',
-                      onPressed: () async => Navigator.pop(context),
-                    ),
+                    SailButton(label: 'Cancel', onPressed: () async => Navigator.pop(context)),
                   ],
                 ),
               ],

@@ -13,7 +13,8 @@ part of 'router.dart';
 /// generated route for
 /// [ConsoleTabPage]
 class ConsoleTabRoute extends PageRouteInfo<void> {
-  const ConsoleTabRoute({List<PageRouteInfo>? children}) : super(ConsoleTabRoute.name, initialChildren: children);
+  const ConsoleTabRoute({List<PageRouteInfo>? children})
+    : super(ConsoleTabRoute.name, initialChildren: children);
 
   static const String name = 'ConsoleTabRoute';
 
@@ -28,7 +29,8 @@ class ConsoleTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children}) : super(HomeRoute.name, initialChildren: children);
+  const HomeRoute({List<PageRouteInfo>? children})
+    : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -48,10 +50,10 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
     required Widget child,
     List<PageRouteInfo>? children,
   }) : super(
-          SailTestRoute.name,
-          args: SailTestRouteArgs(key: key, child: child),
-          initialChildren: children,
-        );
+         SailTestRoute.name,
+         args: SailTestRouteArgs(key: key, child: child),
+         initialChildren: children,
+       );
 
   static const String name = 'SailTestRoute';
 
@@ -90,7 +92,8 @@ class SailTestRouteArgs {
 /// generated route for
 /// [SettingsTabPage]
 class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children}) : super(SettingsTabRoute.name, initialChildren: children);
+  const SettingsTabRoute({List<PageRouteInfo>? children})
+    : super(SettingsTabRoute.name, initialChildren: children);
 
   static const String name = 'SettingsTabRoute';
 

@@ -92,10 +92,7 @@ class ImportTxidModal extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: SailText.secondary13(
-                                viewModel.loadingStatus!,
-                                color: Colors.orange.shade700,
-                              ),
+                              child: SailText.secondary13(viewModel.loadingStatus!, color: Colors.orange.shade700),
                             ),
                           ],
                         ),
@@ -339,8 +336,11 @@ class ImportTxidModalViewModel extends BaseViewModel {
 
           if (xpubFromPayload != null && derivationPath != null) {
             try {
-              final derivedKeyInfo =
-                  await _hdWallet.deriveExtendedKeyInfo(_hdWallet.mnemonic ?? '', derivationPath, isMainnet);
+              final derivedKeyInfo = await _hdWallet.deriveExtendedKeyInfo(
+                _hdWallet.mnemonic ?? '',
+                derivationPath,
+                isMainnet,
+              );
 
               if (derivedKeyInfo.isNotEmpty) {
                 final derivedXpub = derivedKeyInfo['xpub'];

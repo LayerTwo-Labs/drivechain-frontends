@@ -79,18 +79,11 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
                     maxLines: 6,
                   ),
                   const SizedBox(height: 16),
-                  SailButton(
-                    label: 'Encrypt',
-                    onPressed: handleEncrypt,
-                    loading: encryptLoading,
-                  ),
+                  SailButton(label: 'Encrypt', onPressed: handleEncrypt, loading: encryptLoading),
                   if (encryptResult != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
-                      child: SailText.secondary13(
-                        encryptResult!,
-                        monospace: true,
-                      ),
+                      child: SailText.secondary13(encryptResult!, monospace: true),
                     ),
                 ],
               ),
@@ -121,18 +114,11 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
                     maxLines: 6,
                   ),
                   const SizedBox(height: 16),
-                  SailButton(
-                    label: 'Decrypt',
-                    onPressed: handleDecrypt,
-                    loading: decryptLoading,
-                  ),
+                  SailButton(label: 'Decrypt', onPressed: handleDecrypt, loading: decryptLoading),
                   if (decryptResult != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
-                      child: SailText.secondary13(
-                        decryptResult!,
-                        monospace: true,
-                      ),
+                      child: SailText.secondary13(decryptResult!, monospace: true),
                     ),
                 ],
               ),
@@ -163,8 +149,9 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
     }
 
     // First, check if input is already a direct hash match in bitnames
-    existingEntryMatch ??=
-        bitnamesProvider.entries.where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase()).firstOrNull;
+    existingEntryMatch ??= bitnamesProvider.entries
+        .where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase())
+        .firstOrNull;
 
     // If no bitname match found, assume input is a direct encryption key
     return existingEntryMatch?.details.encryptionPubkey;
@@ -184,10 +171,7 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
         return;
       }
 
-      final ciphertext = await rpc.encryptMsg(
-        msg: encryptMessageController.text.trim(),
-        encryptionPubkey: resolvedKey,
-      );
+      final ciphertext = await rpc.encryptMsg(msg: encryptMessageController.text.trim(), encryptionPubkey: resolvedKey);
       setState(() => encryptResult = ciphertext);
     } catch (e) {
       setState(() => encryptError = e.toString());

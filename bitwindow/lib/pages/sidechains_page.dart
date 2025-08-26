@@ -30,18 +30,9 @@ class SidechainsPage extends StatelessWidget {
           return InlineTabBar(
             key: ValueKey('sidechains_page'),
             tabs: [
-              TabItem(
-                label: 'Overview',
-                child: SidechainsTab(),
-              ),
-              TabItem(
-                label: 'Fast Withdrawal',
-                child: FastWithdrawalTab(),
-              ),
-              TabItem(
-                label: 'Starters',
-                child: StartersTab(),
-              ),
+              TabItem(label: 'Overview', child: SidechainsTab()),
+              TabItem(label: 'Fast Withdrawal', child: FastWithdrawalTab()),
+              TabItem(label: 'Starters', child: StartersTab()),
             ],
             initialIndex: 0,
           );
@@ -66,16 +57,8 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: spacing,
           children: [
-            SizedBox(
-              width: sidechainsWidth.toDouble(),
-              child: SidechainsList(
-                smallVersion: false,
-              ),
-            ),
-            SizedBox(
-              width: depositsWidth,
-              child: const DepositWithdrawView(),
-            ),
+            SizedBox(width: sidechainsWidth.toDouble(), child: SidechainsList(smallVersion: false)),
+            SizedBox(width: depositsWidth, child: const DepositWithdrawView()),
           ],
         );
       },
@@ -86,10 +69,7 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
 class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
   final bool smallVersion;
 
-  const SidechainsList({
-    super.key,
-    required this.smallVersion,
-  });
+  const SidechainsList({super.key, required this.smallVersion});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
@@ -148,26 +128,11 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
       key: ValueKey('sidechains_table'),
       getRowId: (index) => filledSlots[index].toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Slot',
-          onSort: () => viewModel.sortSidechains('slot'),
-        ),
-        SailTableHeaderCell(
-          name: 'Name',
-          onSort: () => viewModel.sortSidechains('name'),
-        ),
-        SailTableHeaderCell(
-          name: 'Balance',
-          onSort: () => viewModel.sortSidechains('balance'),
-        ),
-        SailTableHeaderCell(
-          name: 'Action',
-          onSort: () => viewModel.sortSidechains('action'),
-        ),
-        SailTableHeaderCell(
-          name: 'Settings',
-          onSort: () => viewModel.sortSidechains('update'),
-        ),
+        SailTableHeaderCell(name: 'Slot', onSort: () => viewModel.sortSidechains('slot')),
+        SailTableHeaderCell(name: 'Name', onSort: () => viewModel.sortSidechains('name')),
+        SailTableHeaderCell(name: 'Balance', onSort: () => viewModel.sortSidechains('balance')),
+        SailTableHeaderCell(name: 'Action', onSort: () => viewModel.sortSidechains('action')),
+        SailTableHeaderCell(name: 'Settings', onSort: () => viewModel.sortSidechains('update')),
       ],
       rowBuilder: (context, row, selected) {
         final slot = filledSlots[row]; // Get the actual slot number from filtered list
@@ -181,15 +146,10 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
           SailTableCell(value: '$slot:', textColor: textColor),
           SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
           SailTableCell(
-            value: formatBitcoin(
-              satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
-            ),
+            value: formatBitcoin(satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0)),
             textColor: textColor,
           ),
-          SailTableCell(
-            value: buttonWidget?.toString() ?? '',
-            child: buttonWidget,
-          ),
+          SailTableCell(value: buttonWidget?.toString() ?? '', child: buttonWidget),
           if (binary != null)
             SailTableCell(
               value: '',
@@ -203,9 +163,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                     onPressed: () async {
                       await showDialog(
                         context: context,
-                        builder: (context) => ChainSettingsModal(
-                          binary: binary,
-                        ),
+                        builder: (context) => ChainSettingsModal(binary: binary),
                       );
                     },
                   ),
@@ -216,10 +174,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                       child: Container(
                         width: 4,
                         height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                       ),
                     ),
                 ],
@@ -269,26 +224,11 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
       key: ValueKey('sidechains_table'),
       getRowId: (index) => index.toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Slot',
-          onSort: () => viewModel.sortSidechains('slot'),
-        ),
-        SailTableHeaderCell(
-          name: 'Name',
-          onSort: () => viewModel.sortSidechains('name'),
-        ),
-        SailTableHeaderCell(
-          name: 'Balance',
-          onSort: () => viewModel.sortSidechains('balance'),
-        ),
-        SailTableHeaderCell(
-          name: 'Action',
-          onSort: () => viewModel.sortSidechains('action'),
-        ),
-        SailTableHeaderCell(
-          name: 'Settings',
-          onSort: () => viewModel.sortSidechains('update'),
-        ),
+        SailTableHeaderCell(name: 'Slot', onSort: () => viewModel.sortSidechains('slot')),
+        SailTableHeaderCell(name: 'Name', onSort: () => viewModel.sortSidechains('name')),
+        SailTableHeaderCell(name: 'Balance', onSort: () => viewModel.sortSidechains('balance')),
+        SailTableHeaderCell(name: 'Action', onSort: () => viewModel.sortSidechains('action')),
+        SailTableHeaderCell(name: 'Settings', onSort: () => viewModel.sortSidechains('update')),
       ],
       rowBuilder: (context, row, selected) {
         final slot = row; // This is now the slot number (0-254)
@@ -302,15 +242,10 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
           SailTableCell(value: '$slot:', textColor: textColor),
           SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
           SailTableCell(
-            value: formatBitcoin(
-              satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
-            ),
+            value: formatBitcoin(satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0)),
             textColor: textColor,
           ),
-          SailTableCell(
-            value: buttonWidget?.toString() ?? '',
-            child: buttonWidget,
-          ),
+          SailTableCell(value: buttonWidget?.toString() ?? '', child: buttonWidget),
           if (binary != null)
             SailTableCell(
               value: '',
@@ -324,9 +259,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                     onPressed: () async {
                       await showDialog(
                         context: context,
-                        builder: (context) => ChainSettingsModal(
-                          binary: binary,
-                        ),
+                        builder: (context) => ChainSettingsModal(binary: binary),
                       );
                     },
                   ),
@@ -337,10 +270,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                       child: Container(
                         width: 4,
                         height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                       ),
                     ),
                 ],
@@ -493,46 +423,23 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         downloadInfo: downloadInfo,
       );
 
-      return ChainLoader(
-        name: sidechain.name,
-        syncInfo: syncInfo,
-        justPercent: true,
-        expanded: false,
-      );
+      return ChainLoader(name: sidechain.name, syncInfo: syncInfo, justPercent: true, expanded: false);
     }
 
     if (stopping) {
-      return SailButton(
-        label: 'Stopping...',
-        onPressed: null,
-        insideTable: true,
-        loading: true,
-      );
+      return SailButton(label: 'Stopping...', onPressed: null, insideTable: true, loading: true);
     }
 
     if (isRunning) {
-      return SailButton(
-        label: 'Stop',
-        onPressed: () async => _binaryProvider.stop(sidechain),
-        insideTable: true,
-      );
+      return SailButton(label: 'Stop', onPressed: () async => _binaryProvider.stop(sidechain), insideTable: true);
     }
 
     if (isInitializing) {
-      return SailButton(
-        label: 'Launching...',
-        onPressed: null,
-        insideTable: true,
-        loading: true,
-      );
+      return SailButton(label: 'Launching...', onPressed: null, insideTable: true, loading: true);
     }
 
     if (isProcessRunning) {
-      return SailButton(
-        label: 'Kill',
-        onPressed: () => _binaryProvider.stop(sidechain),
-        insideTable: true,
-      );
+      return SailButton(label: 'Kill', onPressed: () => _binaryProvider.stop(sidechain), insideTable: true);
     }
 
     if (!sidechain.isDownloaded) {
@@ -847,16 +754,8 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     return const InlineTabBar(
       tabs: [
-        TabItem(
-          label: 'Create Deposits',
-          icon: SailSVGAsset.iconDeposit,
-          child: MakeDepositsView(),
-        ),
-        TabItem(
-          label: 'See Withdrawals',
-          icon: SailSVGAsset.iconWithdraw,
-          child: SeeWithdrawalsView(),
-        ),
+        TabItem(label: 'Create Deposits', icon: SailSVGAsset.iconDeposit, child: MakeDepositsView()),
+        TabItem(label: 'See Withdrawals', icon: SailSVGAsset.iconWithdraw, child: SeeWithdrawalsView()),
       ],
       initialIndex: 0,
     );
@@ -926,14 +825,8 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                   hintText: '0.00',
                 ),
               ),
-              UnitDropdown(
-                value: Unit.BTC,
-                onChanged: (_) => {},
-                enabled: false,
-              ),
-              Expanded(
-                child: Container(),
-              ),
+              UnitDropdown(value: Unit.BTC, onChanged: (_) => {}, enabled: false),
+              Expanded(child: Container()),
             ],
           ),
           SailPadding(
@@ -945,7 +838,8 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
           ),
           SailButton(
             label: 'Deposit',
-            disabled: viewModel.addressController.text == '' ||
+            disabled:
+                viewModel.addressController.text == '' ||
                 viewModel.depositAmountController.text == '' ||
                 viewModel.feeController.text == '',
             onPressed: () async => viewModel.deposit(context),
@@ -971,10 +865,7 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return const SailCard(
-      bottomPadding: false,
-      child: RecentWithdrawalsTable(),
-    );
+    return const SailCard(bottomPadding: false, child: RecentWithdrawalsTable());
   }
 }
 
@@ -986,30 +877,15 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
     return SailTable(
       getRowId: (index) => viewModel.sortedDeposits[index].txid,
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Txid',
-          onSort: () => viewModel.sortDeposits('txid'),
-        ),
-        SailTableHeaderCell(
-          name: 'Amount',
-          onSort: () => viewModel.sortDeposits('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Fee',
-          onSort: () => viewModel.sortDeposits('fee'),
-        ),
-        SailTableHeaderCell(
-          name: 'Confirmations',
-          onSort: () => viewModel.sortDeposits('confirmations'),
-        ),
+        SailTableHeaderCell(name: 'Txid', onSort: () => viewModel.sortDeposits('txid')),
+        SailTableHeaderCell(name: 'Amount', onSort: () => viewModel.sortDeposits('amount')),
+        SailTableHeaderCell(name: 'Fee', onSort: () => viewModel.sortDeposits('fee')),
+        SailTableHeaderCell(name: 'Confirmations', onSort: () => viewModel.sortDeposits('confirmations')),
       ],
       rowBuilder: (context, row, selected) {
         final deposit = viewModel.sortedDeposits[row];
         return [
-          SailTableCell(
-            value: '${deposit.txid.substring(0, 10)}..',
-            copyValue: deposit.txid,
-          ),
+          SailTableCell(value: '${deposit.txid.substring(0, 10)}..', copyValue: deposit.txid),
           SailTableCell(value: formatBitcoin(satoshiToBTC(deposit.amount.toInt()))),
           SailTableCell(value: formatBitcoin(satoshiToBTC(deposit.fee.toInt()))),
           SailTableCell(value: deposit.confirmations.toString()),
@@ -1041,30 +917,12 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
     return SailTable(
       getRowId: (index) => viewModel.sortedWithdrawals[index].txid,
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'SC #',
-          onSort: () => viewModel.sortDeposits('sc'),
-        ),
-        SailTableHeaderCell(
-          name: 'Age',
-          onSort: () => viewModel.sortDeposits('age'),
-        ),
-        SailTableHeaderCell(
-          name: 'Max Age',
-          onSort: () => viewModel.sortDeposits('maxage'),
-        ),
-        SailTableHeaderCell(
-          name: 'Acks',
-          onSort: () => viewModel.sortDeposits('acks'),
-        ),
-        SailTableHeaderCell(
-          name: 'Approved',
-          onSort: () => viewModel.sortDeposits('approved'),
-        ),
-        SailTableHeaderCell(
-          name: 'Withdrawal Hash',
-          onSort: () => viewModel.sortDeposits('withdrawalhash'),
-        ),
+        SailTableHeaderCell(name: 'SC #', onSort: () => viewModel.sortDeposits('sc')),
+        SailTableHeaderCell(name: 'Age', onSort: () => viewModel.sortDeposits('age')),
+        SailTableHeaderCell(name: 'Max Age', onSort: () => viewModel.sortDeposits('maxage')),
+        SailTableHeaderCell(name: 'Acks', onSort: () => viewModel.sortDeposits('acks')),
+        SailTableHeaderCell(name: 'Approved', onSort: () => viewModel.sortDeposits('approved')),
+        SailTableHeaderCell(name: 'Withdrawal Hash', onSort: () => viewModel.sortDeposits('withdrawalhash')),
       ],
       rowBuilder: (context, row, selected) {
         final withdrawal = viewModel.sortedWithdrawals[row];
@@ -1079,8 +937,14 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
       rowCount: viewModel.sortedWithdrawals.length,
       drawGrid: true,
       sortAscending: viewModel.depositSortAscending,
-      sortColumnIndex:
-          ['sc', 'age', 'maxage', 'acks', 'approved', 'withdrawalhash'].indexOf(viewModel.depositSortColumn),
+      sortColumnIndex: [
+        'sc',
+        'age',
+        'maxage',
+        'acks',
+        'approved',
+        'withdrawalhash',
+      ].indexOf(viewModel.depositSortColumn),
       onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
     );
   }

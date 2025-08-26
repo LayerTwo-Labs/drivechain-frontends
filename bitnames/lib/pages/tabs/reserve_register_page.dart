@@ -38,10 +38,7 @@ class BitnamesTabPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           Expanded(
-                            child: SailTextField(
-                              hintText: 'Search bitnames...',
-                              controller: model.searchController,
-                            ),
+                            child: SailTextField(hintText: 'Search bitnames...', controller: model.searchController),
                           ),
                           SailButton(
                             label: 'Register New Bitname',
@@ -76,18 +73,13 @@ class BitnamesTabPage extends StatelessWidget {
                               final entry = model.myEntries[row];
                               final shortHash = '${entry.hash.substring(0, 10)}..';
                               return [
-                                SailTableCell(
-                                  value: shortHash,
-                                  copyValue: entry.hash,
-                                ),
+                                SailTableCell(value: shortHash, copyValue: entry.hash),
                                 SailTableCell(value: entry.plaintextName ?? '<unknown>'),
                                 SailTableCell(value: entry.details.seqId),
                                 SailTableCell(value: entry.details.commitment ?? '-'),
                                 SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
                                 SailTableCell(value: entry.details.signingPubkey ?? '-'),
-                                SailTableCell(
-                                  value: entry.details.paymailFeeSats?.toString() ?? '-',
-                                ),
+                                SailTableCell(value: entry.details.paymailFeeSats?.toString() ?? '-'),
                               ];
                             },
                             contextMenuItems: (rowId) {
@@ -226,10 +218,7 @@ class BitnamesTabPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           Expanded(
-                            child: SailTextField(
-                              hintText: 'Search bitnames...',
-                              controller: model.searchController,
-                            ),
+                            child: SailTextField(hintText: 'Search bitnames...', controller: model.searchController),
                           ),
                           SailButton(
                             label: 'Register New Bitname',
@@ -264,18 +253,13 @@ class BitnamesTabPage extends StatelessWidget {
                               final entry = model.entries[row];
                               final shortHash = '${entry.hash.substring(0, 10)}..';
                               return [
-                                SailTableCell(
-                                  value: shortHash,
-                                  copyValue: entry.hash,
-                                ),
+                                SailTableCell(value: shortHash, copyValue: entry.hash),
                                 SailTableCell(value: entry.plaintextName ?? '<unknown>'),
                                 SailTableCell(value: entry.details.seqId),
                                 SailTableCell(value: entry.details.commitment ?? '-'),
                                 SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
                                 SailTableCell(value: entry.details.signingPubkey ?? '-'),
-                                SailTableCell(
-                                  value: entry.details.paymailFeeSats?.toString() ?? '-',
-                                ),
+                                SailTableCell(value: entry.details.paymailFeeSats?.toString() ?? '-'),
                               ];
                             },
                             contextMenuItems: (rowId) {
@@ -314,9 +298,7 @@ class ReserveRegisterTab extends StatelessWidget {
     return SailCard(
       title: 'Reserve & Register',
       subtitle: 'Register a new bitname',
-      child: Center(
-        child: SailText.primary13('Coming soon...'),
-      ),
+      child: Center(child: SailText.primary13('Coming soon...')),
     );
   }
 }
@@ -385,18 +367,9 @@ class DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 160,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.textTertiary,
-            ),
+            child: SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
           ),
-          Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-            ),
-          ),
+          Expanded(child: SailText.secondary13(value, monospace: true)),
         ],
       ),
     );

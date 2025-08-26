@@ -40,26 +40,26 @@ class MultisigKey {
   });
 
   Map<String, dynamic> toJson() => {
-        'owner': owner,
-        'xpub': xpub,
-        'path': derivationPath,
-        'fingerprint': fingerprint,
-        'origin_path': originPath,
-        'is_wallet': isWallet,
-        if (activePSBTs != null) 'active_psbts': activePSBTs,
-        if (initialPSBTs != null) 'initial_psbts': initialPSBTs,
-      };
+    'owner': owner,
+    'xpub': xpub,
+    'path': derivationPath,
+    'fingerprint': fingerprint,
+    'origin_path': originPath,
+    'is_wallet': isWallet,
+    if (activePSBTs != null) 'active_psbts': activePSBTs,
+    if (initialPSBTs != null) 'initial_psbts': initialPSBTs,
+  };
 
   factory MultisigKey.fromJson(Map<String, dynamic> json) => MultisigKey(
-        owner: json['owner'],
-        xpub: json['xpub'] ?? json['pubkey'],
-        derivationPath: json['path'],
-        fingerprint: json['fingerprint'],
-        originPath: json['origin_path'],
-        isWallet: json['is_wallet'] ?? false,
-        activePSBTs: json['active_psbts'] != null ? Map<String, String>.from(json['active_psbts']) : null,
-        initialPSBTs: json['initial_psbts'] != null ? Map<String, String>.from(json['initial_psbts']) : null,
-      );
+    owner: json['owner'],
+    xpub: json['xpub'] ?? json['pubkey'],
+    derivationPath: json['path'],
+    fingerprint: json['fingerprint'],
+    originPath: json['origin_path'],
+    isWallet: json['is_wallet'] ?? false,
+    activePSBTs: json['active_psbts'] != null ? Map<String, String>.from(json['active_psbts']) : null,
+    initialPSBTs: json['initial_psbts'] != null ? Map<String, String>.from(json['initial_psbts']) : null,
+  );
 
   MultisigKey copyWith({
     String? owner,
@@ -139,10 +139,7 @@ class CreateMultisigModal extends StatelessWidget {
                         ],
                       ),
                       if (viewModel.parameterError != null)
-                        SailText.secondary12(
-                          viewModel.parameterError!,
-                          color: context.sailTheme.colors.error,
-                        ),
+                        SailText.secondary12(viewModel.parameterError!, color: context.sailTheme.colors.error),
                       SailCheckbox(
                         label: 'Do not store on chain (Not recommended)',
                         value: viewModel.shouldNotBroadcast,
@@ -160,11 +157,7 @@ class CreateMultisigModal extends StatelessWidget {
                             child: SailRow(
                               spacing: SailStyleValues.padding08,
                               children: [
-                                Icon(
-                                  Icons.info_outlined,
-                                  color: context.sailTheme.colors.orange,
-                                  size: 16,
-                                ),
+                                Icon(Icons.info_outlined, color: context.sailTheme.colors.orange, size: 16),
                                 Expanded(
                                   child: SailText.secondary12(
                                     'If you check this box, you must manually back up the multisig configuration. This is very risky but in some situations has a privacy benefit',
@@ -193,10 +186,7 @@ class CreateMultisigModal extends StatelessWidget {
                             SailSpacing(SailStyleValues.padding04),
                             SailText.secondary12('Keys added: ${viewModel.keys.length}/${viewModel.n}'),
                             if (viewModel.keys.length >= viewModel.n)
-                              SailText.secondary12(
-                                'Maximum keys reached',
-                                color: context.sailTheme.colors.orange,
-                              ),
+                              SailText.secondary12('Maximum keys reached', color: context.sailTheme.colors.orange),
                           ],
                         ),
                       ),
@@ -296,10 +286,7 @@ class CreateMultisigModal extends StatelessWidget {
                                   color: context.sailTheme.colors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: SailText.secondary12(
-                                  'Ready to save',
-                                  color: context.sailTheme.colors.primary,
-                                ),
+                                child: SailText.secondary12('Ready to save', color: context.sailTheme.colors.primary),
                               )
                             else
                               Container(
@@ -338,10 +325,7 @@ class CreateMultisigModal extends StatelessWidget {
                                             spacing: SailStyleValues.padding04,
                                             children: [
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 2,
-                                                ),
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: key.isWallet
                                                       ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
@@ -574,9 +558,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final jsonData = json.decode(content) as Map<String, dynamic>;
 
       final existingGroups = jsonData['groups'] as List<dynamic>? ?? [];
-      return existingGroups.any(
-        (group) => (group['name'] as String?)?.toLowerCase() == name.toLowerCase(),
-      );
+      return existingGroups.any((group) => (group['name'] as String?)?.toLowerCase() == name.toLowerCase());
     } catch (e) {
       return false;
     }
@@ -709,12 +691,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       notifyListeners();
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Key imported from ${file.name}'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Key imported from ${file.name}'), backgroundColor: Colors.green));
       }
     } catch (e) {
       modalError = 'Failed to import key: $e';
@@ -938,10 +917,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       }
       final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
 
-      Map<String, dynamic> jsonData = {
-        'groups': [],
-        'solo_keys': [],
-      };
+      Map<String, dynamic> jsonData = {'groups': [], 'solo_keys': []};
 
       if (await file.exists()) {
         final content = await file.readAsString();
@@ -981,10 +957,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final opReturnData = '$metadataStr|$contentStr';
 
       final address = await _api.wallet.getNewAddress();
-      final txid = await _api.wallet.sendTransaction(
-        {address: 10000},
-        opReturnMessage: opReturnData,
-      );
+      final txid = await _api.wallet.sendTransaction({address: 10000}, opReturnMessage: opReturnData);
 
       return txid;
     } catch (e) {
@@ -1052,9 +1025,7 @@ class ImportMultisigModal extends StatelessWidget {
                       ),
                     ] else ...[
                       SailText.primary15('Detected Keys'),
-                      SailText.secondary12(
-                        'The wallet has automatically detected which keys belong to you.',
-                      ),
+                      SailText.secondary12('The wallet has automatically detected which keys belong to you.'),
                       SailSpacing(SailStyleValues.padding08),
                       if (viewModel.processedKeys != null)
                         ...viewModel.processedKeys!.asMap().entries.map((entry) {
@@ -1328,10 +1299,7 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       }
       final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
 
-      Map<String, dynamic> jsonData = {
-        'groups': [],
-        'solo_keys': [],
-      };
+      Map<String, dynamic> jsonData = {'groups': [], 'solo_keys': []};
 
       if (await file.exists()) {
         final content = await file.readAsString();

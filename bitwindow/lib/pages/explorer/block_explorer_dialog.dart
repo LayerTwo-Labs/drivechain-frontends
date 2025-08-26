@@ -6,9 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class BlockExplorerDialog extends StatelessWidget {
-  const BlockExplorerDialog({
-    super.key,
-  });
+  const BlockExplorerDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -33,10 +31,7 @@ class BlockExplorerDialog extends StatelessWidget {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   Expanded(
-                    child: SailTextField(
-                      controller: model.searchController,
-                      hintText: 'Enter a block height or hash',
-                    ),
+                    child: SailTextField(controller: model.searchController, hintText: 'Enter a block height or hash'),
                   ),
                   SailButton(
                     onPressed: () => model.searchBlock(model.searchController.text),
@@ -57,10 +52,7 @@ class BlockExplorerDialog extends StatelessWidget {
                     itemCount: model.blocks.length + (model.isLoadingMoreBlocks ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (model.isLoadingMoreBlocks && index == 0) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator());
                       }
                       final adjustedIndex = model.isLoadingMoreBlocks ? index - 1 : index;
                       final block = model.blocks[adjustedIndex];
@@ -91,10 +83,7 @@ class BlockExplorerDialog extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.sailTheme.colors.backgroundSecondary,
           borderRadius: SailStyleValues.borderRadius,
-          border: Border.all(
-            color: context.sailTheme.colors.divider,
-            width: 1,
-          ),
+          border: Border.all(color: context.sailTheme.colors.divider, width: 1),
           boxShadow: [
             BoxShadow(
               color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
@@ -111,25 +100,13 @@ class BlockExplorerDialog extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
               margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: context.sailTheme.colors.divider,
-                    width: 1,
-                  ),
-                ),
+                border: Border(bottom: BorderSide(color: context.sailTheme.colors.divider, width: 1)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SailText.primary13(
-                    '${block.height}',
-                    monospace: true,
-                    color: context.sailTheme.colors.info,
-                  ),
-                  SailText.secondary13(
-                    block.blockTime.toDateTime().toLocal().format(),
-                    monospace: true,
-                  ),
+                  SailText.primary13('${block.height}', monospace: true, color: context.sailTheme.colors.info),
+                  SailText.secondary13(block.blockTime.toDateTime().toLocal().format(), monospace: true),
                 ],
               ),
             ),
@@ -152,15 +129,8 @@ class BlockExplorerDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SailText.primary13(
-            label,
-            monospace: true,
-            color: context.sailTheme.colors.textTertiary,
-          ),
-          SailText.secondary13(
-            value,
-            monospace: true,
-          ),
+          SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
+          SailText.secondary13(value, monospace: true),
         ],
       ),
     );
@@ -169,11 +139,7 @@ class BlockExplorerDialog extends StatelessWidget {
   Widget _buildBlockConnector(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
-      child: Icon(
-        Icons.chevron_left,
-        size: 20,
-        color: context.sailTheme.colors.textTertiary,
-      ),
+      child: Icon(Icons.chevron_left, size: 20, color: context.sailTheme.colors.textTertiary),
     );
   }
 
@@ -207,10 +173,7 @@ class BlockExplorerDialog extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: context.sailTheme.colors.backgroundSecondary,
                       borderRadius: SailStyleValues.borderRadius,
-                      border: Border.all(
-                        color: context.sailTheme.colors.divider,
-                        width: 1,
-                      ),
+                      border: Border.all(color: context.sailTheme.colors.divider, width: 1),
                       boxShadow: [
                         BoxShadow(
                           color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
@@ -277,18 +240,9 @@ class DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 160,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.textTertiary,
-            ),
+            child: SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
           ),
-          Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-            ),
-          ),
+          Expanded(child: SailText.secondary13(value, monospace: true)),
         ],
       ),
     );
@@ -366,21 +320,14 @@ class BlockTransaction {
   final int index;
   final String txid;
 
-  const BlockTransaction({
-    required this.index,
-    required this.txid,
-  });
+  const BlockTransaction({required this.index, required this.txid});
 }
 
 class TXIDTransactionTable extends StatefulWidget {
   final List<String> transactions;
   final void Function(String txid)? onTransactionSelected;
 
-  const TXIDTransactionTable({
-    super.key,
-    required this.transactions,
-    this.onTransactionSelected,
-  });
+  const TXIDTransactionTable({super.key, required this.transactions, this.onTransactionSelected});
 
   @override
   State<TXIDTransactionTable> createState() => _TXIDTransactionTableState();
@@ -441,10 +388,7 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(
-          color: context.sailTheme.colors.info,
-          width: 1,
-        ),
+        border: Border.all(color: context.sailTheme.colors.info, width: 1),
         borderRadius: SailStyleValues.borderRadius,
       ),
       child: SailTable(
@@ -453,14 +397,8 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
         getRowId: (index) => widget.transactions[index],
         onDoubleTap: widget.onTransactionSelected != null ? (rowId) => widget.onTransactionSelected!(rowId) : null,
         headerBuilder: (context) => [
-          SailTableHeaderCell(
-            name: 'n',
-            onSort: () => onSort('n'),
-          ),
-          SailTableHeaderCell(
-            name: 'txid',
-            onSort: () => onSort('txid'),
-          ),
+          SailTableHeaderCell(name: 'n', onSort: () => onSort('n')),
+          SailTableHeaderCell(name: 'txid', onSort: () => onSort('txid')),
         ],
         rowBuilder: (context, index, selected) => [
           SailTableCell(value: index.toString()),
@@ -475,10 +413,7 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
 class TransactionDetailsDialog extends StatefulWidget {
   final String txid;
 
-  const TransactionDetailsDialog({
-    super.key,
-    required this.txid,
-  });
+  const TransactionDetailsDialog({super.key, required this.txid});
 
   @override
   State<TransactionDetailsDialog> createState() => _TransactionDetailsDialogState();
@@ -547,60 +482,51 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                   ),
                 )
               : transaction == null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(SailStyleValues.padding16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SailText.primary13('Failed to load transaction details'),
-                            if (error != null) SailText.secondary13(error!),
-                            SailButton(
-                              onPressed: _loadTransaction,
-                              label: 'Retry',
-                              variant: ButtonVariant.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDetailRow(context, '# Inputs', '${transaction!.inputs.length}'),
-                          _buildDetailRow(context, '# Outputs', '${transaction!.outputs.length}'),
-                          _buildDetailRow(context, 'Size', '${transaction!.size} bytes'),
-                          _buildDetailRow(context, 'Virtual Size', '${transaction!.vsize} vbytes'),
-                          _buildDetailRow(context, 'Weight', '${transaction!.weight} wu'),
-                          _buildDetailRow(context, 'Block Hash', transaction!.blockhash),
-                          _buildDetailRow(context, 'Confirmations', '${transaction!.confirmations}'),
-                          _buildDetailRow(context, 'Lock Time', '${transaction!.locktime}'),
-                          if (transaction!.inputs.any((input) => input.coinbase.isNotEmpty))
-                            SailText.primary13('This is a coinbase transaction.'),
-                          const SailSpacing(SailStyleValues.padding16),
-                          SailText.primary13('Decoded from transaction outputs:'),
-                          const SailSpacing(SailStyleValues.padding08),
-                          _buildDecodedOutputsTable(context),
-                          const SailSpacing(SailStyleValues.padding16),
-                          BorderedSection(
-                            title: 'Transaction To String:',
-                            child: SailText.secondary13(
-                              transaction!.toString(),
-                            ),
-                          ),
-                          const SailSpacing(SailStyleValues.padding16),
-                          BorderedSection(
-                            title: 'Raw Transaction Hex',
-                            child: SailText.secondary13(
-                              transaction!.tx.hex,
-                              monospace: true,
-                            ),
-                          ),
-                        ],
-                      ),
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(SailStyleValues.padding16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SailText.primary13('Failed to load transaction details'),
+                        if (error != null) SailText.secondary13(error!),
+                        SailButton(onPressed: _loadTransaction, label: 'Retry', variant: ButtonVariant.primary),
+                      ],
                     ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow(context, '# Inputs', '${transaction!.inputs.length}'),
+                      _buildDetailRow(context, '# Outputs', '${transaction!.outputs.length}'),
+                      _buildDetailRow(context, 'Size', '${transaction!.size} bytes'),
+                      _buildDetailRow(context, 'Virtual Size', '${transaction!.vsize} vbytes'),
+                      _buildDetailRow(context, 'Weight', '${transaction!.weight} wu'),
+                      _buildDetailRow(context, 'Block Hash', transaction!.blockhash),
+                      _buildDetailRow(context, 'Confirmations', '${transaction!.confirmations}'),
+                      _buildDetailRow(context, 'Lock Time', '${transaction!.locktime}'),
+                      if (transaction!.inputs.any((input) => input.coinbase.isNotEmpty))
+                        SailText.primary13('This is a coinbase transaction.'),
+                      const SailSpacing(SailStyleValues.padding16),
+                      SailText.primary13('Decoded from transaction outputs:'),
+                      const SailSpacing(SailStyleValues.padding08),
+                      _buildDecodedOutputsTable(context),
+                      const SailSpacing(SailStyleValues.padding16),
+                      BorderedSection(
+                        title: 'Transaction To String:',
+                        child: SailText.secondary13(transaction!.toString()),
+                      ),
+                      const SailSpacing(SailStyleValues.padding16),
+                      BorderedSection(
+                        title: 'Raw Transaction Hex',
+                        child: SailText.secondary13(transaction!.tx.hex, monospace: true),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
@@ -614,18 +540,10 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
         children: [
           SizedBox(
             width: 160,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.inactiveNavText,
-            ),
+            child: SailText.primary13(label, monospace: true, color: context.sailTheme.colors.inactiveNavText),
           ),
           Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-              color: context.sailTheme.colors.inactiveNavText,
-            ),
+            child: SailText.secondary13(value, monospace: true, color: context.sailTheme.colors.inactiveNavText),
           ),
         ],
       ),
@@ -637,26 +555,17 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
       height: 200, // Fixed height for the table
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border.all(
-            color: context.sailTheme.colors.divider,
-            width: 1,
-          ),
+          border: Border.all(color: context.sailTheme.colors.divider, width: 1),
           borderRadius: SailStyleValues.borderRadius,
         ),
         child: SailTable(
           backgroundColor: context.sailTheme.colors.background,
           altBackgroundColor: context.sailTheme.colors.backgroundSecondary,
           getRowId: (index) => '${transaction!.outputs[index].vout}',
-          headerBuilder: (context) => [
-            SailTableHeaderCell(name: 'Type'),
-            SailTableHeaderCell(name: 'Details'),
-          ],
+          headerBuilder: (context) => [SailTableHeaderCell(name: 'Type'), SailTableHeaderCell(name: 'Details')],
           rowBuilder: (context, index, selected) {
             final output = transaction!.outputs[index];
-            return [
-              SailTableCell(value: output.scriptPubKey.type),
-              SailTableCell(value: output.scriptSig.asm),
-            ];
+            return [SailTableCell(value: output.scriptPubKey.type), SailTableCell(value: output.scriptSig.asm)];
           },
           rowCount: transaction!.outputs.length,
         ),
@@ -669,11 +578,7 @@ class BorderedSection extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const BorderedSection({
-    super.key,
-    required this.title,
-    required this.child,
-  });
+  const BorderedSection({super.key, required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -684,16 +589,10 @@ class BorderedSection extends StatelessWidget {
         const SailSpacing(SailStyleValues.padding08),
         DecoratedBox(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: context.sailTheme.colors.divider,
-              width: 1,
-            ),
+            border: Border.all(color: context.sailTheme.colors.divider, width: 1),
             borderRadius: SailStyleValues.borderRadius,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(SailStyleValues.padding16),
-            child: child,
-          ),
+          child: Padding(padding: const EdgeInsets.all(SailStyleValues.padding16), child: child),
         ),
       ],
     );
@@ -714,9 +613,7 @@ Future<void> showTransactionDetails(BuildContext context, String txid) async {
           onPopInvokedWithResult: (didPop, result) {
             // You can handle pop result here if needed
           },
-          child: TransactionDetailsDialog(
-            txid: txid,
-          ),
+          child: TransactionDetailsDialog(txid: txid),
         );
       },
     );

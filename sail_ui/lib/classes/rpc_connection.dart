@@ -24,16 +24,10 @@ abstract class RPCConnection extends ChangeNotifier {
   // if set to true, the process will be restarted when exiting with a non-zero exit code
   final bool restartOnFailure;
 
-  RPCConnection({
-    required this.conf,
-    required this.binaryType,
-    required this.restartOnFailure,
-  });
+  RPCConnection({required this.conf, required this.binaryType, required this.restartOnFailure});
 
   /// Args to pass to the binary on startup.
-  Future<List<String>> binaryArgs(
-    NodeConnectionSettings mainchainConf,
-  );
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf);
 
   Map<String, String> environment = const {};
 
@@ -112,7 +106,6 @@ abstract class RPCConnection extends ChangeNotifier {
       // to a bitcoin core based binary. That will return a bunch of
       // uninteresting errors during initialization, such as "indexing blocks...",
       // As long as it does that, we want to keep showing the orange spinner!
-
       else if (error is SocketException) {
         newError = error.osError?.message ?? 'could not connect ${binary.connectionString}';
       } else if (error is HttpException) {
@@ -170,7 +163,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<void> initBinary(
     Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment)
-        bootProcess,
+    bootProcess,
   ) async {
     final args = await binaryArgs(conf);
 
@@ -192,12 +185,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.i('init binaries: starting ${binary.name}:${binary.binary} ${args.join(" ")}');
 
-    final error = await bootProcess(
-      binary,
-      args,
-      stopRPC,
-      environment,
-    );
+    final error = await bootProcess(binary, args, stopRPC, environment);
     if (error != null) {
       log.e('init binaries: could not boot ${binary.connectionString}: $error');
       connectionTimer?.cancel();
@@ -214,7 +202,7 @@ abstract class RPCConnection extends ChangeNotifier {
   int _restartCount = 0;
   void startRestartTimer(
     Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment)
-        bootProcess,
+    bootProcess,
   ) {
     if (Environment.isInTest) {
       return;
@@ -419,41 +407,39 @@ class BlockchainInfo {
   String toJson() => jsonEncode(toMap());
 
   Map<String, dynamic> toMap() => {
-        'chain': chain,
-        'blocks': blocks,
-        'headers': headers,
-        'bestblockhash': bestBlockHash,
-        'difficulty': difficulty,
-        'time': time,
-        'mediantime': medianTime,
-        'verificationprogress': verificationProgress,
-        'initialblockdownload': initialBlockDownload,
-        'chainwork': chainWork,
-        'size_on_disk': sizeOnDisk,
-        'pruned': pruned,
-        'warnings': warnings,
-      };
+    'chain': chain,
+    'blocks': blocks,
+    'headers': headers,
+    'bestblockhash': bestBlockHash,
+    'difficulty': difficulty,
+    'time': time,
+    'mediantime': medianTime,
+    'verificationprogress': verificationProgress,
+    'initialblockdownload': initialBlockDownload,
+    'chainwork': chainWork,
+    'size_on_disk': sizeOnDisk,
+    'pruned': pruned,
+    'warnings': warnings,
+  };
 
   static BlockchainInfo empty() => BlockchainInfo(
-        chain: '',
-        blocks: 0,
-        headers: 0,
-        bestBlockHash: '',
-        difficulty: 0,
-        time: 0,
-        medianTime: 0,
-        verificationProgress: 0,
-        initialBlockDownload: true,
-        chainWork: '',
-        sizeOnDisk: 0,
-        pruned: false,
-        warnings: [],
-      );
+    chain: '',
+    blocks: 0,
+    headers: 0,
+    bestBlockHash: '',
+    difficulty: 0,
+    time: 0,
+    medianTime: 0,
+    verificationProgress: 0,
+    initialBlockDownload: true,
+    chainWork: '',
+    sizeOnDisk: 0,
+    pruned: false,
+    warnings: [],
+  );
 }
 
-String extractConnectException(
-  Object error,
-) {
+String extractConnectException(Object error) {
   final messageIfUnknown = error.toString();
 
   if (error is ConnectException) {

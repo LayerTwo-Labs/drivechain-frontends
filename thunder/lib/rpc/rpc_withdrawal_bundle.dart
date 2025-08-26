@@ -18,14 +18,13 @@ class WithdrawalBundle {
     BundleStatus status,
     BundleInfo info,
     List<Withdrawal> withdrawals,
-  ) =>
-      WithdrawalBundle(
-        hash: hash,
-        status: status,
-        bundleSize: info.weight,
-        blockHeight: info.height,
-        withdrawals: withdrawals,
-      );
+  ) => WithdrawalBundle(
+    hash: hash,
+    status: status,
+    bundleSize: info.weight,
+    blockHeight: info.height,
+    withdrawals: withdrawals,
+  );
 
   final BundleStatus status;
   final String hash;
@@ -45,10 +44,7 @@ class WithdrawalBundle {
 /// A collection of withdrawals that have not yet been proposed into
 /// a mainchain withdrawal bundle.
 class FutureWithdrawalBundle {
-  FutureWithdrawalBundle({
-    required this.cumulativeWeight,
-    required this.withdrawals,
-  });
+  FutureWithdrawalBundle({required this.cumulativeWeight, required this.withdrawals});
 
   final int cumulativeWeight;
   final List<Withdrawal> withdrawals;
@@ -76,20 +72,20 @@ class Withdrawal {
   final String status;
 
   factory Withdrawal.fromJson(Map<String, dynamic> json) => Withdrawal(
-        address: json['destination'],
-        refundDestination: json['refunddestination'],
-        amountSatoshi: json['amount'],
-        mainchainFeesSatoshi: json['amountmainchainfee'],
-        status: json['status'],
-        hashBlindTx: json['hashblindtx'],
-      );
+    address: json['destination'],
+    refundDestination: json['refunddestination'],
+    amountSatoshi: json['amount'],
+    mainchainFeesSatoshi: json['amountmainchainfee'],
+    status: json['status'],
+    hashBlindTx: json['hashblindtx'],
+  );
 
   Map<String, dynamic> toJson() => {
-        'destination': address,
-        'refunddestination': refundDestination,
-        'amount': amountSatoshi,
-        'amountmainchainfee': mainchainFeesSatoshi,
-        'status': status,
-        'hashblindtx': hashBlindTx,
-      };
+    'destination': address,
+    'refunddestination': refundDestination,
+    'amount': amountSatoshi,
+    'amountmainchainfee': mainchainFeesSatoshi,
+    'status': status,
+    'hashblindtx': hashBlindTx,
+  };
 }

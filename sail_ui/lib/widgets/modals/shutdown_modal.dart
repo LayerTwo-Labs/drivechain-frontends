@@ -22,10 +22,7 @@ class ShutdownCard extends StatelessWidget {
     return SizedBox(
       width: 250,
       child: SailBorder(
-        padding: const EdgeInsets.symmetric(
-          horizontal: SailStyleValues.padding12,
-          vertical: SailStyleValues.padding08,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding12, vertical: SailStyleValues.padding08),
         child: SailColumn(
           spacing: 0,
           children: [
@@ -44,9 +41,7 @@ class ShutdownCard extends StatelessWidget {
               ],
             ),
             const SailSpacing(SailStyleValues.padding12),
-            SailText.secondary12(
-              message,
-            ),
+            SailText.secondary12(message),
           ],
         ),
       ),

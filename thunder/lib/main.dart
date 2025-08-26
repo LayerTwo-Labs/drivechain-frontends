@@ -79,27 +79,17 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   return (applicationDir, logFile, log);
 }
 
-Future<void> runMultiWindow(
-  List<String> args,
-  Logger log,
-  Directory applicationDir,
-  File logFile,
-) async {
+Future<void> runMultiWindow(List<String> args, Logger log, Directory applicationDir, File logFile) async {
   final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
 
-  Widget child = SailCard(
-    child: SailText.primary15('no window type provided, the programmers messed up'),
-  );
+  Widget child = SailCard(child: SailText.primary15('no window type provided, the programmers messed up'));
 
   switch (arguments['window_type']) {
     case SubWindowTypes.consoleId:
       child = const ConsoleWindow();
       break;
     case SubWindowTypes.logsId:
-      child = LogPage(
-        logPath: logFile.path,
-        title: 'Thunder Logs',
-      );
+      child = LogPage(logPath: logFile.path, title: 'Thunder Logs');
       break;
   }
 
@@ -140,17 +130,11 @@ Future<void> runMultiWindow(
       },
       appRunner: () {
         log.i('Starting app with Sentry monitoring');
-        return runApp(
-          SentryWidget(
-            child: sailApp,
-          ),
-        );
+        return runApp(SentryWidget(child: sailApp));
       },
     );
   } else {
-    return runApp(
-      sailApp,
-    );
+    return runApp(sailApp);
   }
 }
 
@@ -199,10 +183,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   );
 }
 
-bool isCurrentChainActive({
-  required List<ActiveSidechain> activeChains,
-  required Binary currentChain,
-}) {
+bool isCurrentChainActive({required List<ActiveSidechain> activeChains, required Binary currentChain}) {
   final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
   return foundMatch != null;
 }
@@ -224,9 +205,7 @@ void bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
   final thunder = binaryProvider.binaries.firstWhere((b) => b is Thunder);
 
-  await binaryProvider.startWithEnforcer(
-    thunder,
-  );
+  await binaryProvider.startWithEnforcer(thunder);
 }
 
 // BitAssets window types

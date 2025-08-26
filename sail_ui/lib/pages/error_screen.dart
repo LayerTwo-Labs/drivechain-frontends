@@ -18,22 +18,14 @@ void runErrorScreen(Object e, StackTrace stackTrace) {
               children: [
                 Text(
                   'Initialization Failed',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 20),
                 Expanded(
                   child: SingleChildScrollView(
                     child: SelectableText(
                       initError,
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.red, fontFamily: 'monospace', fontSize: 12),
                     ),
                   ),
                 ),

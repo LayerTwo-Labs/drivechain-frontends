@@ -35,51 +35,24 @@ class AppRouter extends RootStackRouter {
   // routes should match exactly
   @override
   List<AutoRoute> get routes => [
-        AutoRoute(
-          path: '/',
-          page: RootRoute.page,
-          initial: true,
-          children: [
-            RedirectRoute(
-              path: '',
-              redirectTo: 'overview',
-            ),
-            AutoRoute(
-              path: 'overview',
-              page: OverviewRoute.page,
-            ),
-            AutoRoute(
-              path: 'learn',
-              page: LearnRoute.page,
-            ),
-            AutoRoute(
-              path: 'wallet',
-              page: WalletRoute.page,
-            ),
-            AutoRoute(
-              path: 'sidechains',
-              page: SidechainsRoute.page,
-            ),
-            AutoRoute(
-              path: 'settings',
-              page: SettingsRoute.page,
-            ),
-          ],
-          guards: [WalletGuard()],
-        ),
-        AutoRoute(
-          path: '/log',
-          page: LogRoute.page,
-        ),
-        AutoRoute(
-          path: '/shutting-down',
-          page: ShuttingDownRoute.page,
-        ),
-        AutoRoute(
-          path: '/create-wallet',
-          page: CreateWalletRoute.page,
-        ),
-      ];
+    AutoRoute(
+      path: '/',
+      page: RootRoute.page,
+      initial: true,
+      children: [
+        RedirectRoute(path: '', redirectTo: 'overview'),
+        AutoRoute(path: 'overview', page: OverviewRoute.page),
+        AutoRoute(path: 'learn', page: LearnRoute.page),
+        AutoRoute(path: 'wallet', page: WalletRoute.page),
+        AutoRoute(path: 'sidechains', page: SidechainsRoute.page),
+        AutoRoute(path: 'settings', page: SettingsRoute.page),
+      ],
+      guards: [WalletGuard()],
+    ),
+    AutoRoute(path: '/log', page: LogRoute.page),
+    AutoRoute(path: '/shutting-down', page: ShuttingDownRoute.page),
+    AutoRoute(path: '/create-wallet', page: CreateWalletRoute.page),
+  ];
 }
 
 class WalletGuard extends AutoRouteGuard {

@@ -6,10 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 class DenialDialog extends StatefulWidget {
   final String output;
 
-  const DenialDialog({
-    super.key,
-    required this.output,
-  });
+  const DenialDialog({super.key, required this.output});
 
   @override
   State<DenialDialog> createState() => _DenialDialogState();
@@ -135,16 +132,8 @@ class _DenialDialogState extends State<DenialDialog> {
                   spacing: SailStyleValues.padding08,
                   children: [
                     SailText.primary15('Defaults:'),
-                    SailButton(
-                      label: 'Normal',
-                      onPressed: setNormalDefaults,
-                      variant: ButtonVariant.secondary,
-                    ),
-                    SailButton(
-                      label: 'Paranoid',
-                      onPressed: setParanoidDefaults,
-                      variant: ButtonVariant.secondary,
-                    ),
+                    SailButton(label: 'Normal', onPressed: setNormalDefaults, variant: ButtonVariant.secondary),
+                    SailButton(label: 'Paranoid', onPressed: setParanoidDefaults, variant: ButtonVariant.secondary),
                   ],
                 ),
 

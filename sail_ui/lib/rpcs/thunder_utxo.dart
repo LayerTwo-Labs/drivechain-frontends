@@ -17,12 +17,7 @@ class SidechainUTXO {
   final int valueSats;
   final OutpointType type;
 
-  SidechainUTXO({
-    required this.outpoint,
-    required this.address,
-    required this.valueSats,
-    required this.type,
-  });
+  SidechainUTXO({required this.outpoint, required this.address, required this.valueSats, required this.type});
 
   factory SidechainUTXO.fromJson(Map<String, dynamic> json) {
     final outpoint = json['outpoint'] as Map<String, dynamic>;
@@ -41,12 +36,7 @@ class SidechainUTXO {
       type = OutpointType.deposit;
     }
 
-    return SidechainUTXO(
-      outpoint: outpointStr,
-      address: address,
-      valueSats: valueSats,
-      type: type,
-    );
+    return SidechainUTXO(outpoint: outpointStr, address: address, valueSats: valueSats, type: type);
   }
 
   static List<SidechainUTXO> fromJsonList(List<dynamic> json) {

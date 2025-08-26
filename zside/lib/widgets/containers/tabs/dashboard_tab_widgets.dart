@@ -13,19 +13,12 @@ class SendOnSidechainAction extends StatelessWidget {
   final double? maxAmount;
   final Future<String> Function(String address, double amount)? customSendAction;
 
-  const SendOnSidechainAction({
-    super.key,
-    this.maxAmount,
-    this.customSendAction,
-  });
+  const SendOnSidechainAction({super.key, this.maxAmount, this.customSendAction});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => SendOnSidechainViewModel(
-        customSendAction: customSendAction,
-        maxAmount: maxAmount,
-      ),
+      viewModelBuilder: () => SendOnSidechainViewModel(customSendAction: customSendAction, maxAmount: maxAmount),
       builder: ((context, model, child) {
         return DashboardActionModal(
           'Send on sidechain',
@@ -54,10 +47,7 @@ class SendOnSidechainAction extends StatelessWidget {
               label: 'Fee',
               value: (formatBitcoin(model.sidechainExpectedFee ?? 0, symbol: model.ticker)),
             ),
-            StaticActionField(
-              label: 'Total amount',
-              value: model.totalBitcoinAmount,
-            ),
+            StaticActionField(label: 'Total amount', value: model.totalBitcoinAmount),
           ],
         );
       }),
@@ -76,9 +66,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
-        symbol: ticker,
-      );
+    ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
+    symbol: ticker,
+  );
   String get ticker => _rpc.chain.ticker;
 
   double? sidechainExpectedFee;
@@ -87,10 +77,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final Future<String> Function(String address, double amount)? customSendAction;
   final double? maxAmount;
 
-  SendOnSidechainViewModel({
-    this.customSendAction,
-    this.maxAmount,
-  }) {
+  SendOnSidechainViewModel({this.customSendAction, this.maxAmount}) {
     bitcoinAddressController.addListener(notifyListeners);
     bitcoinAmountController.addListener(_capAmount);
     init();
@@ -101,8 +88,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
     if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
       bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
     } else {
       notifyListeners();
     }
@@ -143,21 +131,11 @@ class SendOnSidechainViewModel extends BaseViewModel {
       return;
     }
 
-    _doSidechainSend(
-      context,
-      address,
-      sendAmount!,
-    );
+    _doSidechainSend(context, address, sendAmount!);
   }
 
-  void _doSidechainSend(
-    BuildContext context,
-    String address,
-    double amount,
-  ) async {
-    log.i(
-      'doing sidechain withdrawal: $amount $ticker to $address with $sidechainExpectedFee SC fee',
-    );
+  void _doSidechainSend(BuildContext context, String address, double amount) async {
+    log.i('doing sidechain withdrawal: $amount $ticker to $address with $sidechainExpectedFee SC fee');
 
     try {
       final sendTXID = await _send(address, amount);
@@ -194,19 +172,12 @@ class SendOnSidechainViewModel extends BaseViewModel {
     }
   }
 
-  Future<String> _send(
-    String address,
-    double amount,
-  ) async {
+  Future<String> _send(String address, double amount) async {
     if (customSendAction != null) {
       return await customSendAction!(address, amount);
     }
 
-    return await _rpc.sideSend(
-      address,
-      amount,
-      false,
-    );
+    return await _rpc.sideSend(address, amount, false);
   }
 }
 
@@ -215,20 +186,13 @@ class ReceiveAction extends StatelessWidget {
   final String? customTitle;
   final String? initialAddress;
 
-  const ReceiveAction({
-    super.key,
-    this.customReceiveAction,
-    this.customTitle,
-    this.initialAddress,
-  });
+  const ReceiveAction({super.key, this.customReceiveAction, this.customTitle, this.initialAddress});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ReceiveViewModel(
-        initialAddress: initialAddress,
-        customReceiveAction: customReceiveAction,
-      ),
+      viewModelBuilder: () =>
+          ReceiveViewModel(initialAddress: initialAddress, customReceiveAction: customReceiveAction),
       builder: ((context, model, child) {
         return Padding(
           padding: const EdgeInsets.only(left: SailStyleValues.padding04),
@@ -242,13 +206,7 @@ class ReceiveAction extends StatelessWidget {
                 await model.generateSidechainAddress();
               },
             ),
-            children: [
-              StaticActionField(
-                label: 'Address',
-                value: model.address,
-                copyable: true,
-              ),
-            ],
+            children: [StaticActionField(label: 'Address', value: model.address, copyable: true)],
           ),
         );
       }),
@@ -265,10 +223,7 @@ class ReceiveViewModel extends BaseViewModel {
   final String? initialAddress;
   String get address => sidechainAddress ?? initialAddress ?? '';
 
-  ReceiveViewModel({
-    this.customReceiveAction,
-    this.initialAddress,
-  }) {
+  ReceiveViewModel({this.customReceiveAction, this.initialAddress}) {
     if (initialAddress == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await generateSidechainAddress();

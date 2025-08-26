@@ -127,11 +127,7 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<String> generateRandomMnemonic() async {
     try {
-      final mnemonic = Mnemonic.generate(
-        Language.english,
-        length: MnemonicLength.words12,
-        passphrase: 'layertwolabs',
-      );
+      final mnemonic = Mnemonic.generate(Language.english, length: MnemonicLength.words12, passphrase: 'layertwolabs');
       return mnemonic.sentence;
     } catch (e) {
       _error = 'Error generating random mnemonic';

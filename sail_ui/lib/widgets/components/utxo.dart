@@ -65,18 +65,18 @@ class UTXO {
   String toJson() => jsonEncode(toMap());
 
   Map<String, dynamic> toMap() => {
-        'txid': txid,
-        'vout': vout,
-        'address': address,
-        'account': account,
-        'redeemScript': redeemScript,
-        'scriptPubKey': scriptPubKey,
-        'amount': amount,
-        'confirmations': confirmations,
-        'spendable': spendable,
-        'solvable': solvable,
-        'safe': safe,
-        'time': time,
-        'raw': raw,
-      };
+    'txid': txid,
+    'vout': vout,
+    'address': address,
+    'account': account,
+    'redeemScript': redeemScript,
+    'scriptPubKey': scriptPubKey,
+    'amount': amount,
+    'confirmations': confirmations,
+    'spendable': spendable,
+    'solvable': solvable,
+    'safe': safe,
+    'time': time,
+    'raw': raw,
+  };
 }

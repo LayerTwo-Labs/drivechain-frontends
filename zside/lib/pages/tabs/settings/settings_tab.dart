@@ -62,18 +62,13 @@ class SettingsTabPage extends StatelessWidget {
                         padding: const EdgeInsets.only(top: SailStyleValues.padding20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary20('Font'),
-                            SailText.secondary13('Choose your preferred font'),
-                          ],
+                          children: [SailText.primary20('Font'), SailText.secondary13('Choose your preferred font')],
                         ),
                       ),
                       Row(
                         children: [
                           ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 640,
-                            ),
+                            constraints: const BoxConstraints(maxWidth: 640),
                             child: SailColumn(
                               spacing: SailStyleValues.padding10,
                               children: [
@@ -156,9 +151,7 @@ class SettingsTabPage extends StatelessWidget {
                   Row(
                     children: [
                       ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: 640,
-                        ),
+                        constraints: const BoxConstraints(maxWidth: 640),
                         child: SailColumn(
                           spacing: SailStyleValues.padding10,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,34 +159,22 @@ class SettingsTabPage extends StatelessWidget {
                             SailColumn(
                               spacing: SailStyleValues.padding04,
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Version'),
-                                SailText.secondary13(AppVersion.versionString),
-                              ],
+                              children: [SailText.primary13('Version'), SailText.secondary13(AppVersion.versionString)],
                             ),
                             SailColumn(
                               spacing: SailStyleValues.padding04,
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Build Date'),
-                                SailText.secondary13(AppVersion.buildDate),
-                              ],
+                              children: [SailText.primary13('Build Date'), SailText.secondary13(AppVersion.buildDate)],
                             ),
                             SailColumn(
                               spacing: SailStyleValues.padding04,
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Commit'),
-                                SailText.secondary13(AppVersion.commitFull),
-                              ],
+                              children: [SailText.primary13('Commit'), SailText.secondary13(AppVersion.commitFull)],
                             ),
                             SailColumn(
                               spacing: SailStyleValues.padding04,
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Application'),
-                                SailText.secondary13(AppVersion.appName),
-                              ],
+                              children: [SailText.primary13('Application'), SailText.secondary13(AppVersion.appName)],
                             ),
                           ],
                         ),
@@ -272,26 +253,10 @@ class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewMode
             onPressed: () async => settings.readAndSetValuesFromFile(chain, viewModel.network),
           ),
         ),
-        SailTextField(
-          label: 'Host',
-          controller: settings.hostController,
-          hintText: 'host',
-        ),
-        SailTextField(
-          label: 'Port',
-          controller: settings.portController,
-          hintText: 'port',
-        ),
-        SailTextField(
-          label: 'Username',
-          controller: settings.usernameController,
-          hintText: 'username',
-        ),
-        SailTextField(
-          label: 'Password',
-          controller: settings.passwordController,
-          hintText: 'password',
-        ),
+        SailTextField(label: 'Host', controller: settings.hostController, hintText: 'host'),
+        SailTextField(label: 'Port', controller: settings.portController, hintText: 'port'),
+        SailTextField(label: 'Username', controller: settings.usernameController, hintText: 'username'),
+        SailTextField(label: 'Password', controller: settings.passwordController, hintText: 'password'),
         SailRow(
           spacing: SailStyleValues.padding10,
           children: [
@@ -418,11 +383,6 @@ class ThemeSettingsViewModel extends BaseViewModel {
   }
 
   Future<void> openLogRoute() async {
-    await _router.push(
-      LogRoute(
-        title: 'ZSide',
-        logPath: logdir,
-      ),
-    );
+    await _router.push(LogRoute(title: 'ZSide', logPath: logdir));
   }
 }

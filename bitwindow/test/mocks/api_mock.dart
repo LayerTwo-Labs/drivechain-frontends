@@ -23,11 +23,7 @@ class MockAPI extends BitwindowRPC {
   @override
   final HealthAPI health = MockHealthAPI();
 
-  MockAPI({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  MockAPI({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {

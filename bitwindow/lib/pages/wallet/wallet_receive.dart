@@ -50,18 +50,13 @@ class ReceiveTab extends StatelessWidget {
                                   controller: TextEditingController(text: model.address),
                                   hintText: 'A Drivechain address',
                                   readOnly: true,
-                                  suffixWidget: CopyButton(
-                                    text: model.address,
-                                  ),
+                                  suffixWidget: CopyButton(text: model.address),
                                 ),
                               ),
                             ],
                           ),
                           if (model.address.isEmpty)
-                            SailButton(
-                              label: 'Generate new address',
-                              onPressed: model.generateNewAddress,
-                            ),
+                            SailButton(label: 'Generate new address', onPressed: model.generateNewAddress),
                         ],
                       ),
                     ),
@@ -72,10 +67,7 @@ class ReceiveTab extends StatelessWidget {
                       padding: true,
                       child: QrImageView(
                         padding: EdgeInsets.zero,
-                        eyeStyle: QrEyeStyle(
-                          color: theme.colors.text,
-                          eyeShape: QrEyeShape.square,
-                        ),
+                        eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
                         dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
                         data: model.address,
                         version: QrVersions.auto,
@@ -84,9 +76,7 @@ class ReceiveTab extends StatelessWidget {
                   ),
                 ],
               ),
-              ReceiveAddressesTable(
-                model: model,
-              ),
+              ReceiveAddressesTable(model: model),
             ],
           ),
         );
@@ -98,10 +88,7 @@ class ReceiveTab extends StatelessWidget {
 class ReceiveAddressesTable extends StatefulWidget {
   final ReceivePageViewModel model;
 
-  const ReceiveAddressesTable({
-    super.key,
-    required this.model,
-  });
+  const ReceiveAddressesTable({super.key, required this.model});
 
   @override
   State<ReceiveAddressesTable> createState() => _ReceiveAddressesTableState();
@@ -183,14 +170,12 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                 ],
                 rowBuilder: (context, row, selected) {
                   final utxo = entries[row];
-                  final formattedAmount = formatBitcoin(
-                    satoshiToBTC(utxo.currentBalanceSat.toInt()),
-                    symbol: '',
-                  );
+                  final formattedAmount = formatBitcoin(satoshiToBTC(utxo.currentBalanceSat.toInt()), symbol: '');
                   return [
                     SailTableCell(
-                      value:
-                          utxo.lastUsedAt.seconds == 0 ? 'Never' : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
+                      value: utxo.lastUsedAt.seconds == 0
+                          ? 'Never'
+                          : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
                     ),
                     SailTableCell(value: utxo.address),
                     SailTableCell(value: utxo.label),
@@ -199,12 +184,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                 },
                 rowCount: entries.length,
                 drawGrid: true,
-                sortColumnIndex: [
-                  'last_used_at',
-                  'address',
-                  'label',
-                  'current_balance_sat',
-                ].indexOf(sortColumn),
+                sortColumnIndex: ['last_used_at', 'address', 'label', 'current_balance_sat'].indexOf(sortColumn),
                 sortAscending: sortAscending,
                 onSort: (columnIndex, ascending) {
                   onSort(['last_used_at', 'address', 'label', 'current_balance_sat'][columnIndex]);
@@ -230,9 +210,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                                   title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
                                   subtitle:
                                       "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
-                                  fields: [
-                                    EditField(name: 'Label', currentValue: entry.label),
-                                  ],
+                                  fields: [EditField(name: 'Label', currentValue: entry.label)],
                                   onSave: (updatedFields) async {
                                     final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
                                     await widget.model.saveLabel(context, entry.address, newLabel);
@@ -268,9 +246,9 @@ class ReceivePageViewModel extends BaseViewModel {
   List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
-        (e) => e.address == address,
-        orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
-      );
+    (e) => e.address == address,
+    orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
+  );
   bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
 
   String sortColumn = 'address';
@@ -308,11 +286,7 @@ class ReceivePageViewModel extends BaseViewModel {
     try {
       modelError = null;
       setBusy(true);
-      await _addressBookProvider.createEntry(
-        label,
-        address,
-        Direction.DIRECTION_RECEIVE,
-      );
+      await _addressBookProvider.createEntry(label, address, Direction.DIRECTION_RECEIVE);
 
       // Fetch the transactions provider to update the receiveAddresses list
       await transactionsProvider.fetch();

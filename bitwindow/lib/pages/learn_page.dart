@@ -20,9 +20,7 @@ class LearnPage extends StatelessWidget {
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: [
-                ArticleGroupCarousel(viewModel: model),
-              ],
+              children: [ArticleGroupCarousel(viewModel: model)],
             ),
           ),
         );
@@ -52,10 +50,7 @@ class LearnPageViewModel extends BaseViewModel {
 class ArticleGroupCarousel extends StatefulWidget {
   final LearnPageViewModel viewModel;
 
-  const ArticleGroupCarousel({
-    super.key,
-    required this.viewModel,
-  });
+  const ArticleGroupCarousel({super.key, required this.viewModel});
 
   @override
   State<ArticleGroupCarousel> createState() => _ArticleGroupCarouselState();
@@ -72,13 +67,7 @@ class _ArticleGroupCarouselState extends State<ArticleGroupCarousel> {
 
     return SailColumn(
       spacing: SailStyleValues.padding20,
-      children: [
-        for (final group in groups)
-          ArticleGroupCard(
-            key: ValueKey(group.title),
-            group: group,
-          ),
-      ],
+      children: [for (final group in groups) ArticleGroupCard(key: ValueKey(group.title), group: group)],
     );
   }
 }
@@ -86,10 +75,7 @@ class _ArticleGroupCarouselState extends State<ArticleGroupCarousel> {
 class ArticleGroupCard extends StatefulWidget {
   final ArticleGroup group;
 
-  const ArticleGroupCard({
-    super.key,
-    required this.group,
-  });
+  const ArticleGroupCard({super.key, required this.group});
 
   @override
   State<ArticleGroupCard> createState() => _ArticleGroupCardState();
@@ -128,11 +114,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
     );
   }
 
-  Widget _buildScrollButton({
-    required VoidCallback onPressed,
-    required bool isLeft,
-    required SailThemeData theme,
-  }) {
+  Widget _buildScrollButton({required VoidCallback onPressed, required bool isLeft, required SailThemeData theme}) {
     return Material(
       color: Colors.black,
       borderRadius: SailStyleValues.borderRadius,
@@ -177,10 +159,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SailText.primary24(
-                  widget.group.title,
-                  bold: true,
-                ),
+                SailText.primary24(widget.group.title, bold: true),
                 const SailSpacing(5),
                 SailText.secondary15(widget.group.subtitle),
                 const SailSpacing(SailStyleValues.padding20),
@@ -205,10 +184,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                           color: theme.colors.background,
                           borderRadius: SailStyleValues.borderRadiusLarge,
                         ),
-                        child: ArticleCard(
-                          groupTitle: widget.group.title,
-                          article: widget.group.articles[index],
-                        ),
+                        child: ArticleCard(groupTitle: widget.group.title, article: widget.group.articles[index]),
                       ),
                     );
                   },
@@ -233,11 +209,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                               ),
                             ),
                           ),
-                          _buildScrollButton(
-                            onPressed: () => _scroll(-scrollDistance),
-                            isLeft: true,
-                            theme: theme,
-                          ),
+                          _buildScrollButton(onPressed: () => _scroll(-scrollDistance), isLeft: true, theme: theme),
                         ],
                       ),
                     ),
@@ -246,11 +218,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                     top: 100,
                     child: Row(
                       children: [
-                        _buildScrollButton(
-                          onPressed: () => _scroll(scrollDistance),
-                          isLeft: false,
-                          theme: theme,
-                        ),
+                        _buildScrollButton(onPressed: () => _scroll(scrollDistance), isLeft: false, theme: theme),
                         Container(
                           width: 24,
                           decoration: BoxDecoration(
@@ -281,11 +249,7 @@ class ArticleCard extends StatelessWidget {
   final String groupTitle;
   final Article article;
 
-  const ArticleCard({
-    super.key,
-    required this.groupTitle,
-    required this.article,
-  });
+  const ArticleCard({super.key, required this.groupTitle, required this.article});
 
   @override
   Widget build(BuildContext context) {
@@ -326,11 +290,7 @@ class _StoryCardState extends State<StoryCard> {
       child: InkWell(
         onTap: widget.onPressed,
         borderRadius: SailStyleValues.borderRadiusLarge,
-        child: _StoryCardContent(
-          title: widget.title,
-          subtitle: widget.subtitle,
-          largeIcon: widget.largeIcon,
-        ),
+        child: _StoryCardContent(title: widget.title, subtitle: widget.subtitle, largeIcon: widget.largeIcon),
       ),
     );
   }
@@ -341,11 +301,7 @@ class _StoryCardContent extends StatelessWidget {
   final String subtitle;
   final bool largeIcon;
 
-  const _StoryCardContent({
-    required this.title,
-    required this.subtitle,
-    required this.largeIcon,
-  });
+  const _StoryCardContent({required this.title, required this.subtitle, required this.largeIcon});
 
   @override
   Widget build(BuildContext context) {
@@ -355,11 +311,7 @@ class _StoryCardContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: SailSVG.png(
-              SailPNGAsset.articleBeginner,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            child: SailSVG.png(SailPNGAsset.articleBeginner, width: double.infinity, fit: BoxFit.cover),
           ),
           Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),
@@ -369,21 +321,10 @@ class _StoryCardContent extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailText.primary15(
-                        title,
-                        bold: true,
-                      ),
-                      SailText.secondary12(
-                        subtitle,
-                      ),
-                    ],
+                    children: [SailText.primary15(title, bold: true), SailText.secondary12(subtitle)],
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_right_rounded,
-                  color: SailTheme.of(context).colors.icon,
-                ),
+                Icon(Icons.keyboard_arrow_right_rounded, color: SailTheme.of(context).colors.icon),
               ],
             ),
           ),

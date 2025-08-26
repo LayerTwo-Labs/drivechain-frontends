@@ -18,9 +18,7 @@ Future<void> _setDeviceSize() async {
 }
 
 extension TestExtension on WidgetTester {
-  Future<void> pumpSailPage(
-    Widget child,
-  ) async {
+  Future<void> pumpSailPage(Widget child) async {
     await _setDeviceSize();
     await registerTestDependencies();
 
@@ -47,75 +45,49 @@ Future<void> registerTestDependencies() async {
   }
 
   if (!GetIt.I.isRegistered<ClientSettings>()) {
-    GetIt.I.registerLazySingleton<ClientSettings>(
-      () => ClientSettings(store: MockStore(), log: log),
-    );
+    GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: MockStore(), log: log));
   }
 
   if (!GetIt.I.isRegistered<SettingsProvider>()) {
     final settingsProvider = await SettingsProvider.create();
-    GetIt.I.registerLazySingleton<SettingsProvider>(
-      () => settingsProvider,
-    );
+    GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   }
 
   if (!GetIt.I.isRegistered<NewsProvider>()) {
-    GetIt.I.registerLazySingleton<NewsProvider>(
-      () => NewsProvider(),
-    );
+    GetIt.I.registerLazySingleton<NewsProvider>(() => NewsProvider());
   }
 
   if (!GetIt.I.isRegistered<MainchainRPC>()) {
-    GetIt.I.registerLazySingleton<MainchainRPC>(
-      () => MockMainchainRPC(),
-    );
+    GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
   }
 
   if (!GetIt.I.isRegistered<EnforcerRPC>()) {
-    GetIt.I.registerLazySingleton<EnforcerRPC>(
-      () => MockEnforcerRPC(),
-    );
+    GetIt.I.registerLazySingleton<EnforcerRPC>(() => MockEnforcerRPC());
   }
 
   if (!GetIt.I.isRegistered<BinaryProvider>()) {
-    GetIt.I.registerLazySingleton<BinaryProvider>(
-      () => MockBinaryProvider(),
-    );
+    GetIt.I.registerLazySingleton<BinaryProvider>(() => MockBinaryProvider());
   }
 
   if (!GetIt.I.isRegistered<SyncProvider>()) {
-    GetIt.I.registerLazySingleton<SyncProvider>(
-      () => SyncProvider(),
-    );
+    GetIt.I.registerLazySingleton<SyncProvider>(() => SyncProvider());
   }
 
   if (!GetIt.I.isRegistered<BitwindowRPC>()) {
     GetIt.I.registerLazySingleton<BitwindowRPC>(
-      () => MockAPI(
-        conf: NodeConnectionSettings.empty(),
-        binaryType: BinaryType.bitWindow,
-        restartOnFailure: true,
-      ),
+      () => MockAPI(conf: NodeConnectionSettings.empty(), binaryType: BinaryType.bitWindow, restartOnFailure: true),
     );
   }
 
   final balanceProvider = BalanceProvider(
     connections: [
-      MockAPI(
-        conf: NodeConnectionSettings.empty(),
-        binaryType: BinaryType.bitWindow,
-        restartOnFailure: true,
-      ),
+      MockAPI(conf: NodeConnectionSettings.empty(), binaryType: BinaryType.bitWindow, restartOnFailure: true),
     ],
   );
-  GetIt.I.registerLazySingleton<BalanceProvider>(
-    () => balanceProvider,
-  );
+  GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
 
   if (!GetIt.I.isRegistered<BlockchainProvider>()) {
-    GetIt.I.registerLazySingleton<BlockchainProvider>(
-      () => BlockchainProvider(),
-    );
+    GetIt.I.registerLazySingleton<BlockchainProvider>(() => BlockchainProvider());
   }
 }
 
@@ -131,34 +103,24 @@ class SailTestPage extends StatelessWidget {
 
 class MockBinary extends Binary {
   MockBinary()
-      : super(
-          name: 'Mocktown',
-          version: '0.0.0',
-          description: 'Mock Binary',
-          repoUrl: 'https://mock.test',
-          directories: DirectoryConfig(
-            base: {
-              OS.linux: '.mock',
-              OS.macos: 'Mock',
-              OS.windows: 'Mock',
-            },
-          ),
-          metadata: MetadataConfig(
-            baseUrl: 'https://mock.test',
-            files: {
-              OS.linux: 'mock',
-              OS.macos: 'mock',
-              OS.windows: 'mock',
-            },
-            remoteTimestamp: null,
-            downloadedTimestamp: null,
-            binaryPath: null,
-            updateable: false,
-          ),
-          binary: 'mock',
-          port: 8272,
-          chainLayer: 0,
-        );
+    : super(
+        name: 'Mocktown',
+        version: '0.0.0',
+        description: 'Mock Binary',
+        repoUrl: 'https://mock.test',
+        directories: DirectoryConfig(base: {OS.linux: '.mock', OS.macos: 'Mock', OS.windows: 'Mock'}),
+        metadata: MetadataConfig(
+          baseUrl: 'https://mock.test',
+          files: {OS.linux: 'mock', OS.macos: 'mock', OS.windows: 'mock'},
+          remoteTimestamp: null,
+          downloadedTimestamp: null,
+          binaryPath: null,
+          updateable: false,
+        ),
+        binary: 'mock',
+        port: 8272,
+        chainLayer: 0,
+      );
 
   @override
   BinaryType get type => BinaryType.testSidechain;
@@ -185,11 +147,11 @@ class MockBinary extends Binary {
 
 class MockBinaryProvider extends BinaryProvider {
   MockBinaryProvider()
-      : super.test(
-          bitwindowAppDir: Directory('/tmp'),
-          downloadManager: MockDownloadManager(),
-          processManager: MockProcessManager(),
-        );
+    : super.test(
+        bitwindowAppDir: Directory('/tmp'),
+        downloadManager: MockDownloadManager(),
+        processManager: MockProcessManager(),
+      );
 
   @override
   List<Binary> get binaries => [MockBinary()];
@@ -325,11 +287,7 @@ class MockBinaryProvider extends BinaryProvider {
 }
 
 class MockDownloadManager extends DownloadManager {
-  MockDownloadManager()
-      : super.test(
-          bitwindowAppDir: Directory('/tmp'),
-          binaries: [MockBinary()],
-        );
+  MockDownloadManager() : super.test(bitwindowAppDir: Directory('/tmp'), binaries: [MockBinary()]);
 }
 
 class MockProcessManager extends ProcessManager {

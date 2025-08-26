@@ -28,34 +28,21 @@ class AppRouter extends RootStackRouter {
   // routes should match exactly
   @override
   List<AutoRoute> get routes => [
-        AutoRoute(
-          page: HomeRoute.page,
-          initial: true,
-          children: [
-            AutoRoute(
-              page: ParentChainRoute.page,
-            ),
-            AutoRoute(
-              page: SidechainOverviewTabRoute.page,
-              initial: true,
-            ),
-            AutoRoute(
-              page: SettingsTabRoute.page,
-            ),
-            AutoRoute(
-              page: ConsoleTabRoute.page,
-            ),
-          ],
-        ),
-        AutoRoute(
-          page: LogRoute.page,
-        ),
-        AutoRoute(
-          page: ShuttingDownRoute.page,
-        ),
+    AutoRoute(
+      page: HomeRoute.page,
+      initial: true,
+      children: [
+        AutoRoute(page: ParentChainRoute.page),
+        AutoRoute(page: SidechainOverviewTabRoute.page, initial: true),
+        AutoRoute(page: SettingsTabRoute.page),
+        AutoRoute(page: ConsoleTabRoute.page),
+      ],
+    ),
+    AutoRoute(page: LogRoute.page),
+    AutoRoute(page: ShuttingDownRoute.page),
 
-        /// This route is used in tests so that we can pump a widget into a route
-        /// and use the real router for our test
-        AutoRoute(page: SailTestRoute.page),
-      ];
+    /// This route is used in tests so that we can pump a widget into a route
+    /// and use the real router for our test
+    AutoRoute(page: SailTestRoute.page),
+  ];
 }

@@ -25,9 +25,7 @@ class WalletProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
   final Directory appDir;
 
-  WalletProvider({
-    required this.appDir,
-  });
+  WalletProvider({required this.appDir});
 
   final _logger = GetIt.I.get<Logger>();
   static const String defaultBip32Path = "m/44'/0'/0'";

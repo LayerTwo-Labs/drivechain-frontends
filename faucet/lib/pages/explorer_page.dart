@@ -17,11 +17,7 @@ class Block {
   final int blockHeight;
   final DateTime blockTime;
 
-  Block({
-    required this.hash,
-    required this.blockHeight,
-    required this.blockTime,
-  });
+  Block({required this.hash, required this.blockHeight, required this.blockTime});
 
   // Format the block time in a human-friendly way
   String get formattedTime {
@@ -371,10 +367,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                       );
                     },
                   ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 500),
-                    child: ConsoleCard(),
-                  ),
+                  ConstrainedBox(constraints: const BoxConstraints(maxHeight: 500), child: ConsoleCard()),
                   SailSpacing(SailStyleValues.padding64 * 4),
                 ],
               ),

@@ -19,15 +19,11 @@ class FontSetting extends SettingValue<SailFontValues> {
 
   @override
   SailFontValues? fromJson(String jsonString) {
-    return SailFontValues.values.firstWhereOrNull(
-      (element) => element.name == jsonString,
-    );
+    return SailFontValues.values.firstWhereOrNull((element) => element.name == jsonString);
   }
 
   @override
   SettingValue<SailFontValues> withValue([SailFontValues? value]) {
-    return FontSetting(
-      newValue: value,
-    );
+    return FontSetting(newValue: value);
   }
 }

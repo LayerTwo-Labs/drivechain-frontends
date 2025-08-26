@@ -44,10 +44,7 @@ class TransactionsProvider extends ChangeNotifier {
     }
   }
 
-  bool _dataHasChanged(
-    List<CoreTransaction> newSidechainTransactions,
-    bool newInitialized,
-  ) {
+  bool _dataHasChanged(List<CoreTransaction> newSidechainTransactions, bool newInitialized) {
     if (newInitialized != initialized) {
       return true;
     }

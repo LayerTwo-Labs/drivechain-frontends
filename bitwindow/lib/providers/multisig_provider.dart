@@ -286,36 +286,19 @@ class BalanceManager {
   }
 
   static Future<void> updateAllGroupBalances(List<MultisigGroup> groups) async {
-    await Future.wait(
-      groups.map((group) => updateGroupBalance(group)),
-    );
+    await Future.wait(groups.map((group) => updateGroupBalance(group)));
   }
 
   static Future<void> _createWatchOnlyWallet(MultisigGroup group, WalletRPCManager walletManager) async {
     try {
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
 
-      await walletManager.createWallet(
-        walletName,
-        disablePrivateKeys: true,
-        blank: true,
-        descriptors: true,
-      );
+      await walletManager.createWallet(walletName, disablePrivateKeys: true, blank: true, descriptors: true);
 
       if (group.descriptorReceive != null && group.descriptorChange != null) {
         final descriptors = [
-          {
-            'desc': group.descriptorReceive!,
-            'active': true,
-            'internal': false,
-            'timestamp': 'now',
-          },
-          {
-            'desc': group.descriptorChange!,
-            'active': true,
-            'internal': true,
-            'timestamp': 'now',
-          },
+          {'desc': group.descriptorReceive!, 'active': true, 'internal': false, 'timestamp': 'now'},
+          {'desc': group.descriptorChange!, 'active': true, 'internal': true, 'timestamp': 'now'},
         ];
 
         await walletManager.importDescriptors(walletName, descriptors);
@@ -481,13 +464,15 @@ class MultisigDescriptorBuilder {
   static Future<MultisigDescriptors> buildWatchOnlyDescriptors(MultisigGroup group) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
 
-    final keyDescriptors = sortedKeys.map((key) {
-      if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-        return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
-      } else {
-        return key.xpub;
-      }
-    }).join(',');
+    final keyDescriptors = sortedKeys
+        .map((key) {
+          if (key.isWallet && key.fingerprint != null && key.originPath != null) {
+            return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
+          } else {
+            return key.xpub;
+          }
+        })
+        .join(',');
 
     final receiveDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/0/*))';
     final changeDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/1/*))';
@@ -495,10 +480,7 @@ class MultisigDescriptorBuilder {
     final receiveWithChecksum = await _addChecksum(receiveDesc);
     final changeWithChecksum = await _addChecksum(changeDesc);
 
-    return MultisigDescriptors(
-      receive: receiveWithChecksum,
-      change: changeWithChecksum,
-    );
+    return MultisigDescriptors(receive: receiveWithChecksum, change: changeWithChecksum);
   }
 
   static Future<List<String>> buildSigningDescriptors(
@@ -508,8 +490,9 @@ class MultisigDescriptorBuilder {
     String fingerprint,
   ) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
-    final originPath =
-        signingKey.derivationPath.startsWith('m/') ? signingKey.derivationPath.substring(2) : signingKey.derivationPath;
+    final originPath = signingKey.derivationPath.startsWith('m/')
+        ? signingKey.derivationPath.substring(2)
+        : signingKey.derivationPath;
 
     final receiveKeys = <String>[];
     final changeKeys = <String>[];
@@ -563,10 +546,7 @@ class MultisigDescriptors {
   final String receive;
   final String change;
 
-  const MultisigDescriptors({
-    required this.receive,
-    required this.change,
-  });
+  const MultisigDescriptors({required this.receive, required this.change});
 }
 
 class SigningResult {
@@ -676,20 +656,9 @@ class MultisigRPCSigner {
         throw Exception('Failed to derive extended private key for ${walletKey.owner}');
       }
 
-      final descriptors = await MultisigDescriptorBuilder.buildSigningDescriptors(
-        group,
-        walletKey,
-        xprv,
-        fingerprint!,
-      );
+      final descriptors = await MultisigDescriptorBuilder.buildSigningDescriptors(group, walletKey, xprv, fingerprint!);
 
-      final result = await _rpc.callRAW('descriptorprocesspsbt', [
-        psbtBase64,
-        descriptors,
-        'ALL',
-        true,
-        false,
-      ]);
+      final result = await _rpc.callRAW('descriptorprocesspsbt', [psbtBase64, descriptors, 'ALL', true, false]);
 
       if (result is Map) {
         final signedPsbt = result['psbt'] as String;
@@ -853,10 +822,7 @@ class TransactionStorage {
       newStatus = TxStatus.needsSignatures;
     }
 
-    final updatedTransaction = transaction.copyWith(
-      keyPSBTs: updatedKeyPSBTs,
-      status: newStatus,
-    );
+    final updatedTransaction = transaction.copyWith(keyPSBTs: updatedKeyPSBTs, status: newStatus);
 
     await saveTransaction(updatedTransaction);
 
@@ -886,10 +852,7 @@ class TransactionStorage {
               currentInitialPSBTs[transactionId] = initialPSBT;
 
               groupUpdated = true;
-              return key.copyWith(
-                activePSBTs: currentActivePSBTs,
-                initialPSBTs: currentInitialPSBTs,
-              );
+              return key.copyWith(activePSBTs: currentActivePSBTs, initialPSBTs: currentInitialPSBTs);
             }
             return key;
           }).toList();
@@ -990,10 +953,7 @@ class TransactionStorage {
     final threshold = signatureThreshold ?? transaction.requiredSignatures;
     final newStatus = signedCount >= threshold ? TxStatus.readyToCombine : TxStatus.needsSignatures;
 
-    final updatedTransaction = transaction.copyWith(
-      keyPSBTs: keyPSBTs,
-      status: newStatus,
-    );
+    final updatedTransaction = transaction.copyWith(keyPSBTs: keyPSBTs, status: newStatus);
 
     await saveTransaction(updatedTransaction);
   }
@@ -1007,10 +967,7 @@ class WalletRPCManager {
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   String? _currentlyLoadedWallet;
 
-  Future<T> withWallet<T>(
-    String walletName,
-    Future<T> Function() operation,
-  ) async {
+  Future<T> withWallet<T>(String walletName, Future<T> Function() operation) async {
     if (!await isWalletLoaded(walletName)) {
       try {
         await loadWallet(walletName);
@@ -1055,25 +1012,15 @@ class WalletRPCManager {
 
     final dio = Dio();
     dio.options.baseUrl = 'http://${conf.host}:${conf.port}';
-    dio.options.headers = {
-      'Content-Type': 'application/json',
-    };
+    dio.options.headers = {'Content-Type': 'application/json'};
 
     final auth = 'Basic ${base64Encode(utf8.encode('${conf.username}:${conf.password}'))}';
     dio.options.headers['Authorization'] = auth;
 
-    final payload = {
-      'jsonrpc': '2.0',
-      'method': method,
-      'params': params,
-      'id': DateTime.now().millisecondsSinceEpoch,
-    };
+    final payload = {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': DateTime.now().millisecondsSinceEpoch};
 
     try {
-      final response = await dio.post(
-        '/wallet/$walletName',
-        data: payload,
-      );
+      final response = await dio.post('/wallet/$walletName', data: payload);
 
       final data = response.data;
       if (data['error'] != null) {
@@ -1086,11 +1033,7 @@ class WalletRPCManager {
     }
   }
 
-  Future<double> getWalletBalance(
-    String walletName, {
-    int minConf = 0,
-    bool includeWatchOnly = true,
-  }) async {
+  Future<double> getWalletBalance(String walletName, {int minConf = 0, bool includeWatchOnly = true}) async {
     return await withWallet<double>(walletName, () async {
       final result = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, minConf, includeWatchOnly]);
       return result is num ? result.toDouble() : 0.0;
@@ -1103,11 +1046,7 @@ class WalletRPCManager {
     });
   }
 
-  Future<List<dynamic>> listUnspent(
-    String walletName, {
-    int minConf = 0,
-    int maxConf = 9999999,
-  }) async {
+  Future<List<dynamic>> listUnspent(String walletName, {int minConf = 0, int maxConf = 9999999}) async {
     return await withWallet<List<dynamic>>(walletName, () async {
       return await callWalletRPC<List<dynamic>>(walletName, 'listunspent', [minConf, maxConf]);
     });
@@ -1187,11 +1126,7 @@ class WalletRPCManager {
   Future<bool> isAddressMine(String walletName, String address) async {
     return await withWallet<bool>(walletName, () async {
       try {
-        final result = await callWalletRPC<Map<String, dynamic>>(
-          walletName,
-          'getaddressinfo',
-          [address],
-        );
+        final result = await callWalletRPC<Map<String, dynamic>>(walletName, 'getaddressinfo', [address]);
         return result['ismine'] == true || result['iswatchonly'] == true;
       } catch (e) {
         return false;
@@ -1237,11 +1172,7 @@ class WalletRPCManager {
         throw Exception('getbalance returned invalid type: ${balance.runtimeType} for wallet $walletName');
       }
 
-      return {
-        'balance': balance.toDouble(),
-        'utxos': utxos.length,
-        'utxo_details': utxos.cast<Map<String, dynamic>>(),
-      };
+      return {'balance': balance.toDouble(), 'utxos': utxos.length, 'utxo_details': utxos.cast<Map<String, dynamic>>()};
     });
   }
 }
@@ -1287,10 +1218,7 @@ class MultisigStorage {
       // Preserve existing solo_keys if file exists and is valid
       final soloKeys = await _loadExistingSoloKeys(file);
 
-      final jsonData = {
-        'groups': groups.map((group) => group.toJson()).toList(),
-        'solo_keys': soloKeys,
-      };
+      final jsonData = {'groups': groups.map((group) => group.toJson()).toList(), 'solo_keys': soloKeys};
 
       final content = json.encode(jsonData);
       await file.writeAsString(content);
@@ -1379,10 +1307,7 @@ class MultisigStorage {
 
         await file.parent.create(recursive: true);
 
-        final jsonData = {
-          'groups': groups.map((group) => group.toJson()).toList(),
-          'solo_keys': soloKeys,
-        };
+        final jsonData = {'groups': groups.map((group) => group.toJson()).toList(), 'solo_keys': soloKeys};
 
         final content = json.encode(jsonData);
         await file.writeAsString(content);

@@ -18,9 +18,7 @@ class LoadingIndicator extends StatelessWidget {
           child: Stack(
             fit: StackFit.loose,
             children: [
-              Center(
-                child: LoadingIndicator(color: theme.colors.text),
-              ),
+              Center(child: LoadingIndicator(color: theme.colors.text)),
               const AbsorbPointer(),
             ],
           ),
@@ -37,9 +35,7 @@ class LoadingIndicator extends StatelessWidget {
           height: SailStyleValues.padding16,
           child: Stack(
             children: [
-              Center(
-                child: LoadingIndicator(color: color),
-              ),
+              Center(child: LoadingIndicator(color: color)),
               const AbsorbPointer(),
             ],
           ),
@@ -50,10 +46,7 @@ class LoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailCircularProgressIndicator(
-      strokeWidth: strokeWidth,
-      color: color ?? SailTheme.of(context).colors.text,
-    );
+    return SailCircularProgressIndicator(strokeWidth: strokeWidth, color: color ?? SailTheme.of(context).colors.text);
   }
 }
 
@@ -61,17 +54,10 @@ class SailCircularProgressIndicator extends StatelessWidget {
   final double strokeWidth;
   final Color color;
 
-  const SailCircularProgressIndicator({
-    super.key,
-    required this.color,
-    this.strokeWidth = 2,
-  });
+  const SailCircularProgressIndicator({super.key, required this.color, this.strokeWidth = 2});
 
   @override
   Widget build(BuildContext context) {
-    return CircularProgressIndicator(
-      color: color,
-      strokeWidth: strokeWidth,
-    );
+    return CircularProgressIndicator(color: color, strokeWidth: strokeWidth);
   }
 }

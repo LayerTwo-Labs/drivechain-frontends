@@ -4,9 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DebugWindow extends StatefulWidget {
-  const DebugWindow({
-    super.key,
-  });
+  const DebugWindow({super.key});
 
   @override
   State<DebugWindow> createState() => _DebugWindowState();
@@ -25,21 +23,9 @@ class _DebugWindowState extends State<DebugWindow> {
       inSeparateWindow: true,
       child: InlineTabBar(
         tabs: const [
-          TabItem(
-            label: 'Information',
-            icon: SailSVGAsset.iconInfo,
-            child: InformationTab(),
-          ),
-          TabItem(
-            label: 'Console',
-            icon: SailSVGAsset.iconTerminal,
-            child: BitwindowConsoleTab(),
-          ),
-          TabItem(
-            label: 'Peers',
-            icon: SailSVGAsset.iconPeers,
-            child: PeersTab(),
-          ),
+          TabItem(label: 'Information', icon: SailSVGAsset.iconInfo, child: InformationTab()),
+          TabItem(label: 'Console', icon: SailSVGAsset.iconTerminal, child: BitwindowConsoleTab()),
+          TabItem(label: 'Peers', icon: SailSVGAsset.iconPeers, child: PeersTab()),
         ],
         initialIndex: 0,
       ),
@@ -159,18 +145,8 @@ class InfoSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
-                SizedBox(
-                  width: 250,
-                  child: SailText.secondary13(
-                    e.key,
-                  ),
-                ),
-                Expanded(
-                  child: SailText.primary13(
-                    e.value,
-                    monospace: true,
-                  ),
-                ),
+                SizedBox(width: 250, child: SailText.secondary13(e.key)),
+                Expanded(child: SailText.primary13(e.value, monospace: true)),
               ],
             ),
           ),
@@ -366,17 +342,9 @@ class DetailSection extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 150,
-                  child: SailText.secondary13(
-                    '${e.key}:',
-                    color: SailTheme.of(context).colors.textTertiary,
-                  ),
+                  child: SailText.secondary13('${e.key}:', color: SailTheme.of(context).colors.textTertiary),
                 ),
-                Expanded(
-                  child: SailText.primary13(
-                    e.value,
-                    monospace: true,
-                  ),
-                ),
+                Expanded(child: SailText.primary13(e.value, monospace: true)),
               ],
             ),
           ),

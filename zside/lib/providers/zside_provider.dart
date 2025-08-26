@@ -155,11 +155,7 @@ class PendingShield {
   late DateTime executeTime;
   late Duration executeIn;
 
-  PendingShield({
-    required this.utxo,
-    required this.maxMinutes,
-    required this.executeAction,
-  }) {
+  PendingShield({required this.utxo, required this.maxMinutes, required this.executeAction}) {
     Random random = Random();
     // Multiply function arg by 60 to get seconds. More precise
     // if the user wants it done in a few minutes, or sub-minutes
@@ -169,9 +165,6 @@ class PendingShield {
     executeIn = Duration(seconds: secondsForThisUTXO);
     executeTime = DateTime.now().add(executeIn);
     // timer responsible for shielding the utxo after x seconds have passed
-    timer = Timer(
-      executeIn,
-      executeAction,
-    );
+    timer = Timer(executeIn, executeAction);
   }
 }

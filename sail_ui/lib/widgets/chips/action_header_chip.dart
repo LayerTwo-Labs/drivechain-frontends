@@ -11,15 +11,9 @@ class ActionHeaderChip extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(Radius.circular(4)),
-        color: theme.colors.chip,
-      ),
+      decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(4)), color: theme.colors.chip),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: SailStyleValues.padding04,
-          horizontal: SailStyleValues.padding10,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04, horizontal: SailStyleValues.padding10),
         child: SailText.secondary12(title),
       ),
     );

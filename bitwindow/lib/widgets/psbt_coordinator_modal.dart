@@ -14,11 +14,7 @@ class PSBTCoordinatorModal extends StatelessWidget {
   final MultisigGroup? group;
   final List<MultisigGroup>? availableGroups;
 
-  const PSBTCoordinatorModal({
-    super.key,
-    this.group,
-    this.availableGroups,
-  });
+  const PSBTCoordinatorModal({super.key, this.group, this.availableGroups});
 
   @override
   Widget build(BuildContext context) {
@@ -231,19 +227,12 @@ class CreateTransactionViewModel extends BaseViewModel {
       final walletManager = WalletRPCManager();
       final walletName = group.watchWalletName ?? 'multisig_${group.id}';
 
-      final psbtResult = await walletManager.callWalletRPC<Map<String, dynamic>>(
-        walletName,
-        'walletcreatefundedpsbt',
-        [
-          [],
-          outputs,
-          0,
-          {
-            'includeWatching': true,
-            'changePosition': 1,
-          },
-        ],
-      );
+      final psbtResult = await walletManager.callWalletRPC<Map<String, dynamic>>(walletName, 'walletcreatefundedpsbt', [
+        [],
+        outputs,
+        0,
+        {'includeWatching': true, 'changePosition': 1},
+      ]);
 
       final psbt = psbtResult['psbt'] as String;
       final fee = (psbtResult['fee'] as num?)?.toDouble() ?? 0.0;
@@ -255,14 +244,7 @@ class CreateTransactionViewModel extends BaseViewModel {
       transactionId = txId;
 
       final keyPSBTs = group.keys
-          .map(
-            (key) => KeyPSBTStatus(
-              keyId: key.xpub,
-              psbt: psbt,
-              isSigned: false,
-              signedAt: null,
-            ),
-          )
+          .map((key) => KeyPSBTStatus(keyId: key.xpub, psbt: psbt, isSigned: false, signedAt: null))
           .toList();
 
       final transaction = MultisigTransaction(

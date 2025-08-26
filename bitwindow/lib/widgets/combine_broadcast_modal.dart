@@ -8,10 +8,7 @@ import 'package:sail_ui/sail_ui.dart';
 class CombineBroadcastModal extends StatefulWidget {
   final Function() onSuccess;
 
-  const CombineBroadcastModal({
-    super.key,
-    required this.onSuccess,
-  });
+  const CombineBroadcastModal({super.key, required this.onSuccess});
 
   @override
   State<CombineBroadcastModal> createState() => _CombineBroadcastModalState();
@@ -236,22 +233,15 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
           subtitle: _isLoading
               ? 'Loading transactions...'
               : _eligibleTransactions.isEmpty
-                  ? 'No transactions ready for processing'
-                  : 'Select transaction to combine PSBTs and broadcast',
+              ? 'No transactions ready for processing'
+              : 'Select transaction to combine PSBTs and broadcast',
           error: _error,
           widgetHeaderEnd: !_isLoading
-              ? IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _loadData,
-                  tooltip: 'Refresh transactions',
-                )
+              ? IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData, tooltip: 'Refresh transactions')
               : null,
           child: _isLoading
               ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(48.0),
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: Padding(padding: EdgeInsets.all(48.0), child: CircularProgressIndicator()),
                 )
               : SailColumn(
                   spacing: SailStyleValues.padding16,

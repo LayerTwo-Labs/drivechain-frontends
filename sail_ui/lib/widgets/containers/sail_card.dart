@@ -9,11 +9,7 @@ class NewWindowIdentifier {
   final Directory applicationDir;
   final File logFile;
 
-  const NewWindowIdentifier({
-    required this.windowType,
-    required this.applicationDir,
-    required this.logFile,
-  });
+  const NewWindowIdentifier({required this.windowType, required this.applicationDir, required this.logFile});
 }
 
 class SailCard extends StatelessWidget {
@@ -68,10 +64,7 @@ class SailCard extends StatelessWidget {
           clipBehavior: Clip.hardEdge,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.all(
-                color: theme.colors.border,
-                width: 1.0,
-              ),
+              border: Border.all(color: theme.colors.border, width: 1.0),
               borderRadius: borderRadius ?? SailStyleValues.borderRadiusLarge,
               color: color ?? theme.colors.background,
             ),
@@ -158,9 +151,7 @@ class SailCard extends StatelessWidget {
                         ),
                       ),
                     if (title != null) const SailSpacing(SailStyleValues.padding08),
-                    Flexible(
-                      child: child,
-                    ),
+                    Flexible(child: child),
                   ],
                 ),
               ),
@@ -231,9 +222,7 @@ class SailCardSmall extends StatelessWidget {
                     ),
                   ),
                   const SailSpacing(32),
-                  Flexible(
-                    child: child,
-                  ),
+                  Flexible(child: child),
                 ],
               ),
             ),
@@ -321,10 +310,7 @@ class SailCardStats extends StatelessWidget {
           clipBehavior: Clip.hardEdge,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.all(
-                color: theme.colors.border,
-                width: 1.0,
-              ),
+              border: Border.all(color: theme.colors.border, width: 1.0),
               borderRadius: SailStyleValues.borderRadiusLarge,
               color: theme.colors.background,
             ),
@@ -448,11 +434,7 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
               children: [
                 SailText.primary13(field.name, bold: true),
                 Expanded(
-                  child: SailTextField(
-                    controller: controllers[i],
-                    hintText: '',
-                    autofocus: i == 0,
-                  ),
+                  child: SailTextField(controller: controllers[i], hintText: '', autofocus: i == 0),
                 ),
               ],
             );
@@ -465,10 +447,7 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
               onPressed: () async {
                 final updatedFields = List<EditField>.generate(
                   widget.fields.length,
-                  (i) => EditField(
-                    name: widget.fields[i].name,
-                    currentValue: controllers[i].text,
-                  ),
+                  (i) => EditField(name: widget.fields[i].name, currentValue: controllers[i].text),
                 );
                 widget.onSave(updatedFields);
               },

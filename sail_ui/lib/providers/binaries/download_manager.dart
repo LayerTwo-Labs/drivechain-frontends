@@ -26,10 +26,7 @@ class DownloadManager extends ChangeNotifier {
   }
 
   // Private constructor
-  DownloadManager._create({
-    required this.bitwindowAppDir,
-    required List<Binary> binaries,
-  }) {
+  DownloadManager._create({required this.bitwindowAppDir, required List<Binary> binaries}) {
     // Convert list to map keyed by BinaryType
     _binariesMap = {for (var b in binaries) b.type: b};
   }
@@ -41,18 +38,12 @@ class DownloadManager extends ChangeNotifier {
   }) async {
     final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, bitwindowAppDir);
 
-    return DownloadManager._create(
-      bitwindowAppDir: bitwindowAppDir,
-      binaries: binariesWithTimestamps,
-    );
+    return DownloadManager._create(bitwindowAppDir: bitwindowAppDir, binaries: binariesWithTimestamps);
   }
 
   // Test constructor (visible for mocking)
   @visibleForTesting
-  DownloadManager.test({
-    required this.bitwindowAppDir,
-    required List<Binary> binaries,
-  }) {
+  DownloadManager.test({required this.bitwindowAppDir, required List<Binary> binaries}) {
     // Convert list to map keyed by BinaryType
     _binariesMap = {for (var b in binaries) b.type: b};
   }
@@ -109,13 +100,8 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       updateBinary(
         binary.type,
-        (b) => b.copyWith(
-          downloadInfo: DownloadInfo(
-            progress: 0.0,
-            error: 'Download failed: $e',
-            isDownloading: false,
-          ),
-        ),
+        (b) =>
+            b.copyWith(downloadInfo: DownloadInfo(progress: 0.0, error: 'Download failed: $e', isDownloading: false)),
       );
       log.e('could not download ${binary.name}: $e');
       rethrow;
@@ -126,9 +112,7 @@ class DownloadManager extends ChangeNotifier {
     // Find by name to get the type (for backward compatibility)
     MapEntry<BinaryType, Binary>? entry;
     try {
-      entry = _binariesMap.entries.firstWhere(
-        (e) => e.key == type,
-      );
+      entry = _binariesMap.entries.firstWhere((e) => e.key == type);
     } catch (e) {
       log.w('Binary $type not found for update');
       return;
@@ -168,13 +152,8 @@ class DownloadManager extends ChangeNotifier {
 
     updateBinary(
       binary.type,
-      (b) => b.copyWith(
-        downloadInfo: const DownloadInfo(
-          progress: 0.0,
-          message: 'Downloading...',
-          isDownloading: true,
-        ),
-      ),
+      (b) =>
+          b.copyWith(downloadInfo: const DownloadInfo(progress: 0.0, message: 'Downloading...', isDownloading: true)),
     );
 
     // 1. Setup directories
@@ -216,13 +195,8 @@ class DownloadManager extends ChangeNotifier {
       // Update binary state to show error
       updateBinary(
         binary.type,
-        (b) => b.copyWith(
-          downloadInfo: DownloadInfo(
-            progress: 0.0,
-            error: 'Extraction failed: $e',
-            isDownloading: false,
-          ),
-        ),
+        (b) =>
+            b.copyWith(downloadInfo: DownloadInfo(progress: 0.0, error: 'Extraction failed: $e', isDownloading: false)),
       );
       rethrow;
     }
@@ -375,34 +349,18 @@ class DownloadManager extends ChangeNotifier {
       log.e('ERROR: $error');
       updateBinary(
         binaryType,
-        (b) => b.copyWith(
-          downloadInfo: DownloadInfo(
-            progress: 0.0,
-            message: error,
-            isDownloading: false,
-          ),
-        ),
+        (b) => b.copyWith(downloadInfo: DownloadInfo(progress: 0.0, message: error, isDownloading: false)),
       );
       rethrow;
     }
   }
 
   /// Extract binary archive or process raw binary
-  Future<void> _extractBinary(
-    Directory extractDir,
-    String filePath,
-    Directory downloadsDir,
-    Binary binary,
-  ) async {
+  Future<void> _extractBinary(Directory extractDir, String filePath, Directory downloadsDir, Binary binary) async {
     updateBinary(
       binary.type,
       (b) => b.copyWith(
-        downloadInfo: DownloadInfo(
-          progress: 0.9999,
-          total: 1.0,
-          isDownloading: true,
-          message: 'Extracting...',
-        ),
+        downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Extracting...'),
       ),
     );
 
@@ -421,12 +379,7 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Extract zip file (existing logic)
-  Future<void> _extractZipFile(
-    Directory extractDir,
-    String zipPath,
-    Directory downloadsDir,
-    Binary binary,
-  ) async {
+  Future<void> _extractZipFile(Directory extractDir, String zipPath, Directory downloadsDir, Binary binary) async {
     // Create a temporary directory for extraction
     final tempDir = Directory(path.join(extractDir.path, 'temp', path.basenameWithoutExtension(binary.binary)));
     try {
@@ -481,11 +434,7 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Process raw binary file
-  Future<void> _processRawBinary(
-    Directory extractDir,
-    String binaryPath,
-    Binary binary,
-  ) async {
+  Future<void> _processRawBinary(Directory extractDir, String binaryPath, Binary binary) async {
     final downloadedFile = File(binaryPath);
     final fileName = path.basename(binaryPath);
 

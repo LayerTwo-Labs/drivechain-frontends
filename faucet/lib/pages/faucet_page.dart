@@ -62,10 +62,7 @@ class FaucetViewModel extends BaseViewModel {
 
       final amount = double.parse(amountController.text);
       final txid = await api.clients.faucet.dispenseCoins(
-        DispenseCoinsRequest(
-          destination: addressController.text,
-          amount: amount,
-        ),
+        DispenseCoinsRequest(destination: addressController.text, amount: amount),
       );
 
       if (!context.mounted) return '';
@@ -81,11 +78,7 @@ class FaucetViewModel extends BaseViewModel {
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: () => launchUrl(Uri.parse(url)),
-                child: SailText.primary13(
-                  txid.txid,
-                  color: context.sailTheme.colors.info,
-                  underline: true,
-                ),
+                child: SailText.primary13(txid.txid, color: context.sailTheme.colors.info, underline: true),
               ),
             ),
           ],
@@ -196,16 +189,13 @@ class _FaucetPageState extends State<FaucetPage> {
                             SailButton(
                               label: 'Send',
                               onPressed: () => model.claim(context),
-                              disabled: model.isBusy ||
+                              disabled:
+                                  model.isBusy ||
                                   model.amountController.text == '' ||
                                   model.addressController.text == '',
                             ),
                             const SizedBox(width: SailStyleValues.padding08),
-                            SailButton(
-                              variant: ButtonVariant.secondary,
-                              label: 'Clear All',
-                              onPressed: model.clearAll,
-                            ),
+                            SailButton(variant: ButtonVariant.secondary, label: 'Clear All', onPressed: model.clearAll),
                           ],
                         ),
                         // Balance
@@ -213,10 +203,7 @@ class _FaucetPageState extends State<FaucetPage> {
                     ),
                     if (model.dispenseErr != null) const SizedBox(height: SailStyleValues.padding16),
                     if (model.dispenseErr != null && model.dispenseErr!.isNotEmpty)
-                      SailInfoBox(
-                        text: model.dispenseErr!,
-                        type: InfoType.error,
-                      ),
+                      SailInfoBox(text: model.dispenseErr!, type: InfoType.error),
                   ],
                 ),
               ),
@@ -224,12 +211,7 @@ class _FaucetPageState extends State<FaucetPage> {
                 bottomPadding: false,
                 title: 'Latest Transactions',
                 subtitle: 'View the latest faucet dispensations',
-                child: SizedBox(
-                  height: 300,
-                  child: LatestTransactionTable(
-                    entries: model.claims,
-                  ),
-                ),
+                child: SizedBox(height: 300, child: LatestTransactionTable(entries: model.claims)),
               ),
             ],
           );
@@ -242,10 +224,7 @@ class _FaucetPageState extends State<FaucetPage> {
 class LatestTransactionTable extends StatefulWidget {
   final List<GetTransactionResponse> entries;
 
-  const LatestTransactionTable({
-    super.key,
-    required this.entries,
-  });
+  const LatestTransactionTable({super.key, required this.entries});
 
   @override
   State<LatestTransactionTable> createState() => _LatestTransactionTableState();
@@ -317,22 +296,10 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
     return SailTable(
       getRowId: (index) => entries[index].txid,
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Time',
-          onSort: () => onSort('time'),
-        ),
-        SailTableHeaderCell(
-          name: 'TxID',
-          onSort: () => onSort('txid'),
-        ),
-        SailTableHeaderCell(
-          name: 'Amount',
-          onSort: () => onSort('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Confirmations',
-          onSort: () => onSort('confirmations'),
-        ),
+        SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
+        SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
+        SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+        SailTableHeaderCell(name: 'Confirmations', onSort: () => onSort('confirmations')),
       ],
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
@@ -360,9 +327,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         ];
       },
       contextMenuItems: (rowId) {
-        return [
-          MempoolMenuItem(txid: rowId),
-        ];
+        return [MempoolMenuItem(txid: rowId)];
       },
       rowCount: entries.length,
       drawGrid: true,

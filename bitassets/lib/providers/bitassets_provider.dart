@@ -79,11 +79,7 @@ class BitAssetsProvider extends ChangeNotifier {
     _isFetching = false;
   }
 
-  bool _dataHasChanged(
-    List<BitAssetEntry>? newEntries,
-    List<DutchAuctionEntry>? newAuctions,
-    bool newInitialized,
-  ) {
+  bool _dataHasChanged(List<BitAssetEntry>? newEntries, List<DutchAuctionEntry>? newAuctions, bool newInitialized) {
     if (newInitialized != initialized) {
       return true;
     }

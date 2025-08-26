@@ -15,21 +15,13 @@ import 'package:sail_ui/sail_ui.dart';
 class CreateWalletPage extends StatefulWidget {
   final WelcomeScreen initalScreen;
 
-  const CreateWalletPage({
-    super.key,
-    this.initalScreen = WelcomeScreen.initial,
-  });
+  const CreateWalletPage({super.key, this.initalScreen = WelcomeScreen.initial});
 
   @override
   State<CreateWalletPage> createState() => _CreateWalletPageState();
 }
 
-enum WelcomeScreen {
-  initial,
-  restore,
-  advanced,
-  success,
-}
+enum WelcomeScreen { initial, restore, advanced, success }
 
 class _CreateWalletPageState extends State<CreateWalletPage> {
   late WelcomeScreen _currentScreen;
@@ -204,12 +196,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   }
 
   Future<void> _showErrorDialog(String message) async {
-    await errorDialog(
-      context: context,
-      action: 'Error',
-      title: 'Error',
-      subtitle: message,
-    );
+    await errorDialog(context: context, action: 'Error', title: 'Error', subtitle: message);
     _mnemonicController.clear();
   }
 
@@ -286,10 +273,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                                         ],
                                       ),
                                     )
-                                  : SailText.primary10(
-                                      binaryStrings[row * 6 + col],
-                                      color: theme.colors.textSecondary,
-                                    ),
+                                  : SailText.primary10(binaryStrings[row * 6 + col], color: theme.colors.textSecondary),
                           ],
                         ),
                       ),
@@ -341,36 +325,19 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
           SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SizedBox(
-                width: 100,
-                child: SailText.primary10('BIP39 Binary:', bold: true),
-              ),
-              Expanded(
-                child: SailText.primary10(
-                  binaryString,
-                  color: theme.colors.textSecondary,
-                ),
-              ),
+              SizedBox(width: 100, child: SailText.primary10('BIP39 Binary:', bold: true)),
+              Expanded(child: SailText.primary10(binaryString, color: theme.colors.textSecondary)),
             ],
           ),
           SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SizedBox(
-                width: 100,
-                child: SailText.primary10('Checksum:', bold: true),
-              ),
-              SailText.primary10(
-                checksumBinary,
-                color: theme.colors.success,
-              ),
+              SizedBox(width: 100, child: SailText.primary10('Checksum:', bold: true)),
+              SailText.primary10(checksumBinary, color: theme.colors.success),
               const SizedBox(width: SailStyleValues.padding16),
               SailText.primary10('Hex:', bold: true),
               const SizedBox(width: SailStyleValues.padding04),
-              SailText.primary10(
-                _currentWalletData['bip39_checksum_hex'] ?? '',
-                color: theme.colors.success,
-              ),
+              SailText.primary10(_currentWalletData['bip39_checksum_hex'] ?? '', color: theme.colors.success),
               Expanded(child: Container()),
             ],
           ),
@@ -382,10 +349,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SailText.primary10('Master Key:', bold: true),
-                    SailText.primary10(
-                      _currentWalletData['master_key'] ?? '',
-                      color: theme.colors.textSecondary,
-                    ),
+                    SailText.primary10(_currentWalletData['master_key'] ?? '', color: theme.colors.textSecondary),
                   ],
                 ),
               ),
@@ -399,10 +363,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SailText.primary10('Chain Code:', bold: true),
-                    SailText.primary10(
-                      _currentWalletData['chain_code'] ?? '',
-                      color: theme.colors.textSecondary,
-                    ),
+                    SailText.primary10(_currentWalletData['chain_code'] ?? '', color: theme.colors.textSecondary),
                   ],
                 ),
               ),
@@ -462,16 +423,16 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                                   _mnemonicController.text.isEmpty
                                       ? 'Enter up to 64 hex characters (0-9 and A-F)'
                                       : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text)
-                                          ? 'Invalid hex characters (only 0-9 and A-F allowed)'
-                                          : (_mnemonicController.text.length > 64
-                                              ? 'Too many characters (maximum 64)'
-                                              : 'Valid hex input')),
+                                            ? 'Invalid hex characters (only 0-9 and A-F allowed)'
+                                            : (_mnemonicController.text.length > 64
+                                                  ? 'Too many characters (maximum 64)'
+                                                  : 'Valid hex input')),
                                   color: _mnemonicController.text.isEmpty
                                       ? theme.colors.textSecondary
                                       : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text) ||
-                                              _mnemonicController.text.length > 64
-                                          ? theme.colors.error
-                                          : theme.colors.success),
+                                                _mnemonicController.text.length > 64
+                                            ? theme.colors.error
+                                            : theme.colors.success),
                                 ),
                             ],
                           ),
@@ -582,21 +543,12 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        theme.colors.primary,
-                        theme.colors.primary,
-                      ],
+                      colors: [theme.colors.primary, theme.colors.primary],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                   ),
                   child: TextButton(
                     onPressed: _isGenerating
@@ -622,18 +574,14 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                             _isGenerating
                                 ? 'Generating Your Wallet'
                                 : hasExistingWallet
-                                    ? 'Create New Wallet'
-                                    : 'Generate Wallet',
+                                ? 'Create New Wallet'
+                                : 'Generate Wallet',
                             color: Colors.white,
                             bold: true,
                           ),
                         ),
                         if (_isGenerating)
-                          SizedBox(
-                            width: 15,
-                            height: 15,
-                            child: LoadingIndicator.insideButton(Colors.white),
-                          ),
+                          SizedBox(width: 15, height: 15, child: LoadingIndicator.insideButton(Colors.white)),
                       ],
                     ),
                   ),
@@ -815,9 +763,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                       loadingLabel: 'Restarting ${runningSidechains.length} sidechains',
                       onPressed: () async {
                         // Restart all running sidechains
-                        await Future.wait(
-                          runningSidechains.map((sidechain) => binaryProvider.stop(sidechain)),
-                        );
+                        await Future.wait(runningSidechains.map((sidechain) => binaryProvider.stop(sidechain)));
                         await Future.delayed(const Duration(seconds: 3));
                         for (final sidechain in runningSidechains) {
                           unawaited(binaryProvider.start(sidechain));
@@ -861,16 +807,9 @@ class BootTitle extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 30),
-        SailText.primary40(
-          title,
-          bold: true,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary40(title, bold: true, textAlign: TextAlign.center),
         const SizedBox(height: 24),
-        SailText.primary15(
-          subtitle,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary15(subtitle, textAlign: TextAlign.center),
         const SizedBox(height: 30),
       ],
     );

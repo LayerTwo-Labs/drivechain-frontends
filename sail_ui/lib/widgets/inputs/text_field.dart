@@ -59,25 +59,16 @@ class SailTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final padding = EdgeInsets.symmetric(
-      vertical: 11.5,
-      horizontal: 12,
-    );
+    final padding = EdgeInsets.symmetric(vertical: 11.5, horizontal: 12);
     final textSize = size == TextFieldSize.regular ? 13.0 : 10.0;
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
       children: [
-        if (label != null)
-          SailText.primary13(
-            label!,
-            bold: true,
-          ),
+        if (label != null) SailText.primary13(label!, bold: true),
         Theme(
           data: Theme.of(context).copyWith(
-            textSelectionTheme: TextSelectionThemeData(
-              selectionColor: theme.colors.primary.withValues(alpha: 0.2),
-            ),
+            textSelectionTheme: TextSelectionThemeData(selectionColor: theme.colors.primary.withValues(alpha: 0.2)),
           ),
           child: TextField(
             autofocus: autofocus,
@@ -88,10 +79,7 @@ class SailTextField extends StatelessWidget {
             focusNode: focusNode,
             onSubmitted: onSubmitted,
             readOnly: readOnly,
-            style: SailStyleValues.thirteen.copyWith(
-              color: SailTheme.of(context).colors.text,
-              fontSize: textSize,
-            ),
+            style: SailStyleValues.thirteen.copyWith(color: SailTheme.of(context).colors.text, fontSize: textSize),
             inputFormatters: [
               if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
               if (textFieldType == TextFieldType.bitcoin) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
@@ -111,10 +99,7 @@ class SailTextField extends StatelessWidget {
                 borderRadius: SailStyleValues.borderRadius,
                 borderSide: BorderSide(color: theme.colors.text),
               ),
-              suffixStyle: TextStyle(
-                color: SailTheme.of(context).colors.textTertiary,
-                fontSize: textSize,
-              ),
+              suffixStyle: TextStyle(color: SailTheme.of(context).colors.textTertiary, fontSize: textSize),
               border: OutlineInputBorder(
                 borderRadius: SailStyleValues.borderRadius,
                 borderSide: BorderSide(color: theme.colors.border),
@@ -122,28 +107,17 @@ class SailTextField extends StatelessWidget {
               suffixIcon: loading != null && loading!.enabled
                   ? Tooltip(
                       message: loading!.description,
-                      child: Padding(
-                        padding: EdgeInsets.all(SailStyleValues.padding08),
-                        child: LoadingIndicator(),
-                      ),
+                      child: Padding(padding: EdgeInsets.all(SailStyleValues.padding08), child: LoadingIndicator()),
                     )
                   : Align(
                       alignment: Alignment.center,
                       widthFactor: 1.0,
                       child: Padding(
-                        padding: EdgeInsets.only(
-                          top: 1,
-                          bottom: 1,
-                          left: 1,
-                          right: 8,
-                        ),
+                        padding: EdgeInsets.only(top: 1, bottom: 1, left: 1, right: 8),
                         child: suffixWidget ?? Container(alignment: Alignment.centerRight, width: 10, height: 10),
                       ),
                     ),
-              prefixStyle: TextStyle(
-                color: SailTheme.of(context).colors.textTertiary,
-                fontSize: textSize,
-              ),
+              prefixStyle: TextStyle(color: SailTheme.of(context).colors.textTertiary, fontSize: textSize),
               prefixText: prefix,
               prefix: prefixWidget,
               prefixIcon: prefixIcon,

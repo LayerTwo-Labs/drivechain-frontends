@@ -29,16 +29,9 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SailButton(
-                label: 'Send',
-                onPressed: () => viewModel.sendTransaction(context),
-              ),
+              SailButton(label: 'Send', onPressed: () => viewModel.sendTransaction(context)),
               const SizedBox(width: SailStyleValues.padding08),
-              SailButton(
-                variant: ButtonVariant.ghost,
-                label: 'Clear All',
-                onPressed: viewModel.clearAll,
-              ),
+              SailButton(variant: ButtonVariant.ghost, label: 'Clear All', onPressed: viewModel.clearAll),
             ],
           ),
           SailSpacing(SailStyleValues.padding64),
@@ -60,8 +53,8 @@ String calculateLabel(RecipientModel recipient, int index) {
   final recipientLabel = recipient.matchingAddressLabel.isNotEmpty
       ? recipient.matchingAddressLabel
       : recipient.addressController.text.isEmpty
-          ? '<Unknown>'
-          : recipient.addressController.text.substring(0, min(recipient.addressController.text.length, 10));
+      ? '<Unknown>'
+      : recipient.addressController.text.substring(0, min(recipient.addressController.text.length, 10));
 
   return '$recipientLabel ${amount != null ? '(${formatBitcoin(amount)})' : ''}';
 }
@@ -170,16 +163,9 @@ class _RecipientFields extends StatelessWidget {
                     value: null,
                     hint: selectedEntry?.label ?? 'Address Book',
                     items: addressBookEntries.map((entry) {
-                      return SailDropdownItem<AddressBookEntry>(
-                        value: entry,
-                        label: entry.label,
-                      );
+                      return SailDropdownItem<AddressBookEntry>(value: entry, label: entry.label);
                     }).toList(),
-                    icon: SailSVG.fromAsset(
-                      SailSVGAsset.bookUser,
-                      width: 13,
-                      color: theme.colors.inactiveNavText,
-                    ),
+                    icon: SailSVG.fromAsset(SailSVGAsset.bookUser, width: 13, color: theme.colors.inactiveNavText),
                     onChanged: onAddressSelected,
                   ),
                 ),
@@ -213,13 +199,9 @@ class RecipientModel extends ChangeNotifier {
   String get matchingAddressLabel =>
       addressBookEntries.firstWhereOrNull((e) => e.address == addressController.text)?.label ?? '';
 
-  RecipientModel({
-    String address = '',
-    String amount = '',
-    String label = '',
-    this.subtractFee = false,
-  })  : addressController = TextEditingController(text: address),
-        amountController = TextEditingController(text: amount) {
+  RecipientModel({String address = '', String amount = '', String label = '', this.subtractFee = false})
+    : addressController = TextEditingController(text: address),
+      amountController = TextEditingController(text: amount) {
     addressController.addListener(notifyListeners);
     amountController.addListener(notifyListeners);
   }
@@ -273,13 +255,7 @@ class PayFromAndFeeCard extends ViewModelWidget<SendPageViewModel> {
             ],
           );
         } else {
-          return SailColumn(
-            spacing: SailStyleValues.padding16,
-            children: [
-              PayFromCard(),
-              FeeCard(),
-            ],
-          );
+          return SailColumn(spacing: SailStyleValues.padding16, children: [PayFromCard(), FeeCard()]);
         }
       },
     );
@@ -299,13 +275,11 @@ class SendPageViewModel extends BaseViewModel {
   AddressBookEntry? selectedEntry;
   TextEditingController selectedUTXOs = TextEditingController();
   TextEditingController feeController = TextEditingController(text: '10000');
-  List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted(
-        (a, b) {
-          final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
-          if (dateCompare != 0) return dateCompare;
-          return a.output.compareTo(b.output);
-        },
-      );
+  List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted((a, b) {
+    final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
+    if (dateCompare != 0) return dateCompare;
+    return a.output.compareTo(b.output);
+  });
 
   List<UnspentOutput> selectedUtxos = [];
 
@@ -549,13 +523,7 @@ class _UTXOSelectorState extends State<UTXOSelector> {
   @override
   Widget build(BuildContext context) {
     final utxoItems = widget.allUtxos
-        .map(
-          (u) => SailDropdownItem(
-            value: u.output,
-            label: formatUnspentOutput(u, long: true),
-            monospace: true,
-          ),
-        )
+        .map((u) => SailDropdownItem(value: u.output, label: formatUnspentOutput(u, long: true), monospace: true))
         .toList();
 
     final selectedValues = widget.selectedUtxos.map((u) => u.output).toList();

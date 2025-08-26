@@ -87,12 +87,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
               label: _rpc.chain.name,
               menus: [
                 PlatformMenuItemGroup(
-                  members: [
-                    PlatformMenuItem(
-                      label: 'About $BitAssetsRPC.rpc.chain.name',
-                      onSelected: null,
-                    ),
-                  ],
+                  members: [PlatformMenuItem(label: 'About $BitAssetsRPC.rpc.chain.name', onSelected: null)],
                 ),
                 PlatformMenuItemGroup(
                   members: [
@@ -201,9 +196,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                               tabsRouter.setActiveIndex(Tabs.Console.index);
                             },
                           ),
-                          TopNavRoute(
-                            icon: SailSVGAsset.settings,
-                          ),
+                          TopNavRoute(icon: SailSVGAsset.settings),
                         ],
                       ),
                       body: Column(
@@ -212,17 +205,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                           BottomNav(
                             mainchainInfo: false,
                             onlyShowAdditional: true,
-                            additionalConnection: ConnectionMonitor(
-                              rpc: _rpc,
-                              name: _rpc.chain.name,
-                            ),
+                            additionalConnection: ConnectionMonitor(rpc: _rpc, name: _rpc.chain.name),
                             navigateToLogs: (title, logPath) {
-                              GetIt.I.get<AppRouter>().push(
-                                    LogRoute(
-                                      title: title,
-                                      logPath: logPath,
-                                    ),
-                                  );
+                              GetIt.I.get<AppRouter>().push(LogRoute(title: title, logPath: logPath));
                             },
                             endWidgets: [],
                           ),
@@ -265,15 +250,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     bool isPreventClose = await windowManager.isPreventClose();
     if (isPreventClose) {
       await GetIt.I.get<BinaryProvider>().onShutdown(
-            shutdownOptions: ShutdownOptions(
-              router: GetIt.I.get<AppRouter>(),
-              onComplete: () async {
-                if (isPreventClose) {
-                  await windowManager.destroy();
-                }
-              },
-            ),
-          );
+        shutdownOptions: ShutdownOptions(
+          router: GetIt.I.get<AppRouter>(),
+          onComplete: () async {
+            if (isPreventClose) {
+              await windowManager.destroy();
+            }
+          },
+        ),
+      );
     }
   }
 

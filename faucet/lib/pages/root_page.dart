@@ -11,10 +11,7 @@ class RootPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AutoTabsRouter.tabBar(
       animatePageTransition: false,
-      routes: [
-        FaucetRoute(),
-        ExplorerRoute(),
-      ],
+      routes: [FaucetRoute(), ExplorerRoute()],
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
 
@@ -22,12 +19,8 @@ class RootPage extends StatelessWidget {
           backgroundColor: theme.colors.background,
           appBar: TopNav(
             routes: [
-              TopNavRoute(
-                label: 'Faucet',
-              ),
-              TopNavRoute(
-                label: 'Explorer',
-              ),
+              TopNavRoute(label: 'Faucet'),
+              TopNavRoute(label: 'Explorer'),
             ],
           ),
           body: child,

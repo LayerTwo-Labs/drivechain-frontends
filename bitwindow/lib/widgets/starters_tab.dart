@@ -30,10 +30,7 @@ class StartersTab extends StatelessWidget {
                       children: [
                         DecoratedBox(
                           decoration: BoxDecoration(
-                            border: Border.all(
-                              color: SailTheme.of(context).colors.divider,
-                              width: 1,
-                            ),
+                            border: Border.all(color: SailTheme.of(context).colors.divider, width: 1),
                             borderRadius: SailStyleValues.borderRadius,
                           ),
                           child: Table(
@@ -55,17 +52,11 @@ class StartersTab extends StatelessWidget {
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.all(12.0),
-                                    child: SailText.primary15(
-                                      'Starter',
-                                      color: SailTheme.of(context).colors.text,
-                                    ),
+                                    child: SailText.primary15('Starter', color: SailTheme.of(context).colors.text),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(12.0),
-                                    child: SailText.primary15(
-                                      'Mnemonic',
-                                      color: SailTheme.of(context).colors.text,
-                                    ),
+                                    child: SailText.primary15('Mnemonic', color: SailTheme.of(context).colors.text),
                                   ),
                                   const SizedBox(), // Space for buttons
                                 ],
@@ -84,16 +75,11 @@ class StartersTab extends StatelessWidget {
                               // Layer 1 divider and starters
                               if (starters.any((s) => s['name'] == 'Master')) ...[
                                 TableRow(
-                                  decoration: BoxDecoration(
-                                    color: SailTheme.of(context).colors.formField,
-                                  ),
+                                  decoration: BoxDecoration(color: SailTheme.of(context).colors.formField),
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
-                                      child: SailText.primary15(
-                                        'Layer 1',
-                                        color: SailTheme.of(context).colors.text,
-                                      ),
+                                      child: SailText.primary15('Layer 1', color: SailTheme.of(context).colors.text),
                                     ),
                                     Container(),
                                     Container(),
@@ -116,16 +102,11 @@ class StartersTab extends StatelessWidget {
                               // Layer 2 divider
                               if (starters.any((s) => s['chain_layer'] == 2)) ...[
                                 TableRow(
-                                  decoration: BoxDecoration(
-                                    color: SailTheme.of(context).colors.formField,
-                                  ),
+                                  decoration: BoxDecoration(color: SailTheme.of(context).colors.formField),
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
-                                      child: SailText.primary15(
-                                        'Layer 2',
-                                        color: SailTheme.of(context).colors.text,
-                                      ),
+                                      child: SailText.primary15('Layer 2', color: SailTheme.of(context).colors.text),
                                     ),
                                     Container(),
                                     Container(),
@@ -171,21 +152,13 @@ TableRow mnemonicRow(
 ) {
   return TableRow(
     decoration: BoxDecoration(
-      border: Border(
-        bottom: BorderSide(
-          color: SailTheme.of(context).colors.divider,
-          width: 1,
-        ),
-      ),
+      border: Border(bottom: BorderSide(color: SailTheme.of(context).colors.divider, width: 1)),
     ),
     children: [
       // Starter name
       Padding(
         padding: const EdgeInsets.all(12.0),
-        child: SailText.primary13(
-          name,
-          color: SailTheme.of(context).colors.text,
-        ),
+        child: SailText.primary13(name, color: SailTheme.of(context).colors.text),
       ),
       // Mnemonic
       Padding(
@@ -202,9 +175,7 @@ TableRow mnemonicRow(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (hasMnemonic) ...[
-              CopyButton(
-                text: mnemonic,
-              ),
+              CopyButton(text: mnemonic),
               const SizedBox(width: 8),
               if (!isRevealed)
                 SailButton(
@@ -257,11 +228,7 @@ class StartersPageViewModel extends BaseViewModel {
     starters.add(masterData);
 
     final l1Mnemonic = await _walletProvider.getL1Starter();
-    starters.add({
-      'name': BitcoinCore().name,
-      'mnemonic': l1Mnemonic,
-      'chain_layer': 1,
-    });
+    starters.add({'name': BitcoinCore().name, 'mnemonic': l1Mnemonic, 'chain_layer': 1});
 
     final l2Chains = binaryProvider.binaries.where((b) => b.chainLayer == 2).toList();
 
@@ -269,12 +236,7 @@ class StartersPageViewModel extends BaseViewModel {
       chain = chain as Sidechain;
 
       final mnemonic = await _walletProvider.getSidechainStarter(chain.slot);
-      starters.add({
-        'name': chain.name,
-        'mnemonic': mnemonic,
-        'sidechain_slot': chain.slot,
-        'chain_layer': 2,
-      });
+      starters.add({'name': chain.name, 'mnemonic': mnemonic, 'sidechain_slot': chain.slot, 'chain_layer': 2});
     }
 
     return starters;

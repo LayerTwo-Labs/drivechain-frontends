@@ -35,10 +35,7 @@ class DutchAuctionTabPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           Expanded(
-                            child: SailTextField(
-                              hintText: 'Search auctions...',
-                              controller: model.searchController,
-                            ),
+                            child: SailTextField(hintText: 'Search auctions...', controller: model.searchController),
                           ),
                           SailButton(
                             label: 'Create New Auction',
@@ -71,10 +68,7 @@ class DutchAuctionTabPage extends StatelessWidget {
                               final auction = model.filteredAuctions[row];
                               final shortId = '${auction.id.substring(0, 10)}..';
                               return [
-                                SailTableCell(
-                                  value: shortId,
-                                  copyValue: auction.id,
-                                ),
+                                SailTableCell(value: shortId, copyValue: auction.id),
                                 SailTableCell(value: auction.baseAsset),
                                 SailTableCell(value: auction.quoteAsset),
                                 SailTableCell(value: auction.baseAmount.toString()),
@@ -263,11 +257,7 @@ Future<void> showBidDialog(BuildContext context, DutchAuctionEntry auction, Dutc
             child: SailColumn(
               spacing: SailStyleValues.padding16,
               children: [
-                SailTextField(
-                  label: 'Bid Size',
-                  hintText: 'Amount to bid',
-                  controller: bidController,
-                ),
+                SailTextField(label: 'Bid Size', hintText: 'Amount to bid', controller: bidController),
                 SailRow(
                   spacing: SailStyleValues.padding08,
                   children: [
@@ -317,18 +307,9 @@ class DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.textTertiary,
-            ),
+            child: SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
           ),
-          Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-            ),
-          ),
+          Expanded(child: SailText.secondary13(value, monospace: true)),
         ],
       ),
     );
@@ -457,11 +438,7 @@ class DutchAuctionViewModel extends BaseViewModel {
       await bitAssetsProvider.fetch();
     } catch (e) {
       if (context.mounted) {
-        notificationProvider.add(
-          title: 'Error',
-          content: 'Failed to place bid: $e',
-          dialogType: DialogType.error,
-        );
+        notificationProvider.add(title: 'Error', content: 'Failed to place bid: $e', dialogType: DialogType.error);
       }
     }
   }

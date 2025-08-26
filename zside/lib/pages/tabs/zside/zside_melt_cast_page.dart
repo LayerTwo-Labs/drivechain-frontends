@@ -36,9 +36,7 @@ class ZSideMeltCastTabPage extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            MeltButton(
-                              onPressed: () => model.melt(context),
-                            ),
+                            MeltButton(onPressed: () => model.melt(context)),
                             const SizedBox(height: SailStyleValues.padding16),
                             SailCard(
                               bottomPadding: false,
@@ -47,10 +45,7 @@ class ZSideMeltCastTabPage extends StatelessWidget {
                               widgetHeaderEnd: HelpButton(onPressed: () => model.meltHelp(context)),
                               child: SizedBox(
                                 height: 300,
-                                child: PendingMeltTable(
-                                  entries: model.pendingMelts,
-                                  onMelt: () => model.melt(context),
-                                ),
+                                child: PendingMeltTable(entries: model.pendingMelts, onMelt: () => model.melt(context)),
                               ),
                             ),
                           ],
@@ -61,9 +56,7 @@ class ZSideMeltCastTabPage extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CastButton(
-                              onPressed: () async => model.cast(context),
-                            ),
+                            CastButton(onPressed: () async => model.cast(context)),
                             const SizedBox(height: SailStyleValues.padding16),
                             SailCard(
                               title: 'Pending casts',
@@ -82,10 +75,7 @@ class ZSideMeltCastTabPage extends StatelessWidget {
                               ),
                               child: SizedBox(
                                 height: 300,
-                                child: PendingCastsTable(
-                                  entries: model.pendingNonEmptyBills,
-                                  chain: model.chain,
-                                ),
+                                child: PendingCastsTable(entries: model.pendingNonEmptyBills, chain: model.chain),
                               ),
                             ),
                           ],
@@ -176,21 +166,14 @@ class ZSideMeltCast extends StatelessWidget {
                             children: [
                               SizedBox(
                                 height: 300,
-                                child: PendingMeltTable(
-                                  entries: model.pendingMelts,
-                                  onMelt: () => model.melt(context),
-                                ),
+                                child: PendingMeltTable(entries: model.pendingMelts, onMelt: () => model.melt(context)),
                               ),
                             ],
                           ),
                       ],
                     ),
                   ),
-                  VerticalDivider(
-                    width: 1,
-                    thickness: 1,
-                    color: theme.colors.divider,
-                  ),
+                  VerticalDivider(width: 1, thickness: 1, color: theme.colors.divider),
                   Flexible(
                     child: SailColumn(
                       spacing: SailStyleValues.padding32,
@@ -225,10 +208,7 @@ class ZSideMeltCast extends StatelessWidget {
                             children: [
                               SizedBox(
                                 height: 300,
-                                child: PendingCastsTable(
-                                  entries: model.pendingNonEmptyBills,
-                                  chain: model.chain,
-                                ),
+                                child: PendingCastsTable(entries: model.pendingNonEmptyBills, chain: model.chain),
                               ),
                             ],
                           ),
@@ -313,9 +293,7 @@ class ZSideMeltCastViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const MeltAction(
-          doEverythingMode: false,
-        );
+        return const MeltAction(doEverythingMode: false);
       },
     );
   }
@@ -378,9 +356,7 @@ class ZSideMeltCastViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const MeltAction(
-          doEverythingMode: true,
-        );
+        return const MeltAction(doEverythingMode: true);
       },
     );
   }
@@ -402,11 +378,7 @@ class PendingMeltTable extends StatefulWidget {
   final List<PendingShield> entries;
   final VoidCallback onMelt;
 
-  const PendingMeltTable({
-    super.key,
-    required this.entries,
-    required this.onMelt,
-  });
+  const PendingMeltTable({super.key, required this.entries, required this.onMelt});
 
   @override
   State<PendingMeltTable> createState() => _PendingMeltTableState();
@@ -436,9 +408,7 @@ class _PendingMeltTableState extends State<PendingMeltTable> {
             final entry = widget.entries.firstWhere((e) => e.utxo.raw == rowId);
             showDialog(
               context: context,
-              builder: (context) => Dialog(
-                child: PendingMeltView(tx: entry),
-              ),
+              builder: (context) => Dialog(child: PendingMeltView(tx: entry)),
             );
           },
         ),
@@ -446,9 +416,7 @@ class _PendingMeltTableState extends State<PendingMeltTable> {
       rowBuilder: (context, row, selected) {
         final entry = widget.entries[row];
         return [
-          SailTableCell(
-            value: formatBitcoin(entry.utxo.amount),
-          ),
+          SailTableCell(value: formatBitcoin(entry.utxo.amount)),
           SailTableCell(value: entry.utxo.address),
           SailTableCell(value: entry.executeTime.format()),
           SailTableCell(value: entry.utxo.confirmations.toString()),
@@ -464,11 +432,7 @@ class PendingCastsTable extends StatefulWidget {
   final List<PendingCastBill> entries;
   final Binary chain;
 
-  const PendingCastsTable({
-    super.key,
-    required this.entries,
-    required this.chain,
-  });
+  const PendingCastsTable({super.key, required this.entries, required this.chain});
 
   @override
   State<PendingCastsTable> createState() => _PendingCastsTableState();
@@ -535,50 +499,26 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
     return SailTable(
       getRowId: (index) => entries[index].powerOf.toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Bill Amount',
-          onSort: () => onSort('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Broadcast Day',
-          onSort: () => onSort('executeTime'),
-        ),
-        SailTableHeaderCell(
-          name: 'Power',
-          onSort: () => onSort('powerOf'),
-        ),
+        SailTableHeaderCell(name: 'Bill Amount', onSort: () => onSort('amount')),
+        SailTableHeaderCell(name: 'Broadcast Day', onSort: () => onSort('executeTime')),
+        SailTableHeaderCell(name: 'Power', onSort: () => onSort('powerOf')),
         const SailTableHeaderCell(name: 'ETA'),
       ],
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(
-            value: formatBitcoin(entry.castAmount),
-            monospace: true,
-          ),
-          SailTableCell(
-            value: entry.executeTime.toLocal().format(),
-          ),
-          SailTableCell(
-            value: entry.powerOf.toString(),
-          ),
-          SailTableCell(
-            value: formatExecuteIn(entry.executeIn),
-          ),
+          SailTableCell(value: formatBitcoin(entry.castAmount), monospace: true),
+          SailTableCell(value: entry.executeTime.toLocal().format()),
+          SailTableCell(value: entry.powerOf.toString()),
+          SailTableCell(value: formatExecuteIn(entry.executeIn)),
         ];
       },
       rowCount: entries.length,
       drawGrid: true,
-      sortColumnIndex: [
-        'amount',
-        'executeTime',
-        'powerOf',
-      ].indexOf(sortColumn),
+      sortColumnIndex: ['amount', 'executeTime', 'powerOf'].indexOf(sortColumn),
       sortAscending: sortAscending,
       onDoubleTap: (rowId) {
-        final bill = entries.firstWhere(
-          (b) => b.powerOf.toString() == rowId,
-        );
+        final bill = entries.firstWhere((b) => b.powerOf.toString() == rowId);
         _showBillDetails(context, bill);
       },
     );
@@ -635,10 +575,7 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
 class MeltButton extends StatelessWidget {
   final VoidCallback onPressed;
 
-  const MeltButton({
-    super.key,
-    required this.onPressed,
-  });
+  const MeltButton({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -654,15 +591,9 @@ class MeltButton extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [
-              theme.colors.orange.withValues(alpha: 0.25),
-              theme.colors.orangeLight.withValues(alpha: 0.25),
-            ],
+            colors: [theme.colors.orange.withValues(alpha: 0.25), theme.colors.orangeLight.withValues(alpha: 0.25)],
           ),
-          border: Border.all(
-            color: theme.colors.orange,
-            width: 1.0,
-          ),
+          border: Border.all(color: theme.colors.orange, width: 1.0),
         ),
         child: Column(
           children: [
@@ -670,18 +601,11 @@ class MeltButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: SailStyleValues.padding08,
               children: [
-                SailSVG.icon(
-                  SailSVGAsset.iconMelt,
-                  color: theme.colors.text,
-                  height: 24,
-                ),
+                SailSVG.icon(SailSVGAsset.iconMelt, color: theme.colors.text, height: 24),
                 SailText.primary24('Melt', bold: true),
               ],
             ),
-            SailText.secondary13(
-              'Click here to Melt ALL of your transparent Coins',
-              color: theme.colors.textSecondary,
-            ),
+            SailText.secondary13('Click here to Melt ALL of your transparent Coins', color: theme.colors.textSecondary),
           ],
         ),
       ),
@@ -692,10 +616,7 @@ class MeltButton extends StatelessWidget {
 class CastButton extends StatelessWidget {
   final Future<void> Function() onPressed;
 
-  const CastButton({
-    super.key,
-    required this.onPressed,
-  });
+  const CastButton({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -709,10 +630,7 @@ class CastButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: SailStyleValues.borderRadius,
           color: theme.colors.backgroundSecondary,
-          border: Border.all(
-            color: theme.colors.orange,
-            width: 1.0,
-          ),
+          border: Border.all(color: theme.colors.orange, width: 1.0),
         ),
         child: Column(
           children: [
@@ -720,11 +638,7 @@ class CastButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: SailStyleValues.padding08,
               children: [
-                SailSVG.icon(
-                  SailSVGAsset.iconCast,
-                  color: theme.colors.text,
-                  height: 24,
-                ),
+                SailSVG.icon(SailSVGAsset.iconCast, color: theme.colors.text, height: 24),
                 SailText.primary24('Cast', bold: true),
               ],
             ),
@@ -822,18 +736,9 @@ class _UTXOsTableState extends State<UTXOsTable> {
           ? (entries[index] as UnshieldedUTXO).address
           : (entries[index] as ShieldedUTXO).txid,
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Amount',
-          onSort: () => onSort('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Status',
-          onSort: () => onSort('type'),
-        ),
-        SailTableHeaderCell(
-          name: 'Confirmations',
-          onSort: () => onSort('confirmations'),
-        ),
+        SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+        SailTableHeaderCell(name: 'Status', onSort: () => onSort('type')),
+        SailTableHeaderCell(name: 'Confirmations', onSort: () => onSort('confirmations')),
         const SailTableHeaderCell(name: 'Actions'),
       ],
       rowBuilder: (context, row, selected) {
@@ -862,19 +767,13 @@ class _UTXOsTableState extends State<UTXOsTable> {
             value: isUnshielded ? 'Unshielded' : 'Shielded',
             child: Row(
               children: [
-                SailText.primary13(
-                  isUnshielded ? 'Unshielded' : 'Shielded',
-                  monospace: true,
-                ),
+                SailText.primary13(isUnshielded ? 'Unshielded' : 'Shielded', monospace: true),
                 const SizedBox(width: 8),
                 Tooltip(
                   message: isUnshielded
                       ? (isSafeAmount ? 'Melted' : 'Not melted')
                       : (isSafeAmount ? 'Casted' : 'Not casted'),
-                  child: SailSVG.icon(
-                    isSafeAmount ? SailSVGAsset.iconSuccess : SailSVGAsset.iconWarning,
-                    width: 13,
-                  ),
+                  child: SailSVG.icon(isSafeAmount ? SailSVGAsset.iconSuccess : SailSVGAsset.iconWarning, width: 13),
                 ),
               ],
             ),
@@ -883,10 +782,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
             value: confirmations.toString(),
             child: Row(
               children: [
-                SailText.primary13(
-                  confirmations.toString(),
-                  monospace: true,
-                ),
+                SailText.primary13(confirmations.toString(), monospace: true),
                 const SizedBox(width: 8),
                 Tooltip(
                   message: confirmations >= 1 ? '$confirmations confirmations' : 'Unconfirmed',
@@ -917,16 +813,10 @@ class _UTXOsTableState extends State<UTXOsTable> {
       },
       rowCount: entries.length,
       drawGrid: true,
-      sortColumnIndex: [
-        'amount',
-        'type',
-        'confirmations',
-      ].indexOf(sortColumn),
+      sortColumnIndex: ['amount', 'type', 'confirmations'].indexOf(sortColumn),
       sortAscending: sortAscending,
       onDoubleTap: (rowId) {
-        final utxo = entries.firstWhere(
-          (u) => (u is UnshieldedUTXO ? u.address : u.txid) == rowId,
-        );
+        final utxo = entries.firstWhere((u) => (u is UnshieldedUTXO ? u.address : u.txid) == rowId);
         _showUTXODetails(context, utxo);
       },
     );
@@ -949,23 +839,14 @@ class _UTXOsTableState extends State<UTXOsTable> {
                 children: [
                   DetailRow(
                     label: 'Amount',
-                    value: formatBitcoin(
-                      utxo.amount,
-                      symbol: GetIt.I.get<ZSideRPC>().chain.ticker,
-                    ),
+                    value: formatBitcoin(utxo.amount, symbol: GetIt.I.get<ZSideRPC>().chain.ticker),
                   ),
-                  DetailRow(
-                    label: 'Type',
-                    value: utxo is UnshieldedUTXO ? 'Unshielded' : 'Shielded',
-                  ),
+                  DetailRow(label: 'Type', value: utxo is UnshieldedUTXO ? 'Unshielded' : 'Shielded'),
                   DetailRow(
                     label: utxo is UnshieldedUTXO ? 'Address' : 'TxID',
                     value: utxo is UnshieldedUTXO ? utxo.address : utxo.txid,
                   ),
-                  DetailRow(
-                    label: 'Confirmations',
-                    value: utxo.confirmations.toString(),
-                  ),
+                  DetailRow(label: 'Confirmations', value: utxo.confirmations.toString()),
                 ],
               ),
             ),
@@ -979,10 +860,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
 class PendingMeltView extends StatelessWidget {
   final PendingShield tx;
 
-  const PendingMeltView({
-    super.key,
-    required this.tx,
-  });
+  const PendingMeltView({super.key, required this.tx});
 
   @override
   Widget build(BuildContext context) {
@@ -1004,22 +882,10 @@ class PendingMeltView extends StatelessWidget {
                   label: 'Amount',
                   value: formatBitcoin(tx.utxo.amount, symbol: container.chain.ticker),
                 ),
-                DetailRow(
-                  label: 'From Address',
-                  value: tx.utxo.address,
-                ),
-                DetailRow(
-                  label: 'Execute Time',
-                  value: tx.executeTime.format(),
-                ),
-                DetailRow(
-                  label: 'Confirmations',
-                  value: tx.utxo.confirmations.toString(),
-                ),
-                DetailRow(
-                  label: 'Raw Transaction',
-                  value: tx.utxo.raw,
-                ),
+                DetailRow(label: 'From Address', value: tx.utxo.address),
+                DetailRow(label: 'Execute Time', value: tx.executeTime.format()),
+                DetailRow(label: 'Confirmations', value: tx.utxo.confirmations.toString()),
+                DetailRow(label: 'Raw Transaction', value: tx.utxo.raw),
               ],
             ),
           ),

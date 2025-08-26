@@ -23,9 +23,7 @@ class WalletPage extends StatelessWidget {
   static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
   static SendPageViewModel? _sendViewModel; // Static reference to view model
 
-  const WalletPage({
-    super.key,
-  });
+  const WalletPage({super.key});
 
   static void handleBitcoinURI(BitcoinURI uri) {
     _sendViewModel?.handleBitcoinURI(uri);
@@ -45,46 +43,23 @@ class WalletPage extends StatelessWidget {
         builder: (context, model, child) {
           // Create the list of regular tabs
           final List<TabItem> allTabs = [
-            const SingleTabItem(
-              label: 'Overview',
-              child: OverviewTab(),
-            ),
-            const SingleTabItem(
-              label: 'Send',
-              child: SendTab(),
-            ),
-            const SingleTabItem(
-              label: 'Receive',
-              child: ReceiveTab(),
-            ),
-            const SingleTabItem(
-              label: 'UTXOs',
-              child: UTXOsTab(),
-            ),
+            const SingleTabItem(label: 'Overview', child: OverviewTab()),
+            const SingleTabItem(label: 'Send', child: SendTab()),
+            const SingleTabItem(label: 'Receive', child: ReceiveTab()),
+            const SingleTabItem(label: 'UTXOs', child: UTXOsTab()),
             MultiSelectTabItem(
               title: 'Tools',
               items: [
                 TabItem(
                   label: 'Deniability',
-                  child: DeniabilityTab(
-                    newWindowButton: SubWindowTypes.deniability,
-                  ),
+                  child: DeniabilityTab(newWindowButton: SubWindowTypes.deniability),
                   onTap: () {
                     transactionProvider.fetch();
                   },
                 ),
-                TabItem(
-                  label: 'HD Wallet Explorer',
-                  child: HDWalletTab(),
-                ),
-                TabItem(
-                  label: 'BitDrive',
-                  child: BitDriveTab(),
-                ),
-                TabItem(
-                  label: 'Multisig Lounge',
-                  child: MultisigLoungeTab(),
-                ),
+                TabItem(label: 'HD Wallet Explorer', child: HDWalletTab()),
+                TabItem(label: 'BitDrive', child: BitDriveTab()),
+                TabItem(label: 'Multisig Lounge', child: MultisigLoungeTab()),
               ],
             ),
           ];
@@ -121,18 +96,9 @@ class DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 160,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.textTertiary,
-            ),
+            child: SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
           ),
-          Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-            ),
-          ),
+          Expanded(child: SailText.secondary13(value, monospace: true)),
         ],
       ),
     );

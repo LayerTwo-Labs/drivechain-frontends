@@ -206,14 +206,7 @@ class _HDWalletTabState extends State<HDWalletTab> {
           wifBytes.setRange(34, 38, doubleSHAOutput.sublist(0, 4));
           final wif = base58.encode(wifBytes);
 
-          entries.add(
-            HDWalletEntry(
-              path: path,
-              address: address,
-              publicKey: pubKeyHex,
-              privateKey: wif,
-            ),
-          );
+          entries.add(HDWalletEntry(path: path, address: address, publicKey: pubKeyHex, privateKey: wif));
         } catch (e) {
           continue;
         }
@@ -226,7 +219,9 @@ class _HDWalletTabState extends State<HDWalletTab> {
   }
 
   Future<void> _handlePageChange(bool next) async {
-    if (_isBusy || (next && _derivedEntries.isEmpty) || (!next && _currentPage <= 0)) return;
+    if (_isBusy || (next && _derivedEntries.isEmpty) || (!next && _currentPage <= 0)) {
+      return;
+    }
 
     setState(() {
       if (next) {
@@ -285,12 +280,7 @@ class _HDWalletTabState extends State<HDWalletTab> {
     required Future<void> Function()? onPressed,
     required ButtonVariant variant,
   }) {
-    return SailButton(
-      label: label,
-      onPressed: onPressed,
-      variant: variant,
-      loading: _isBusy,
-    );
+    return SailButton(label: label, onPressed: onPressed, variant: variant, loading: _isBusy);
   }
 
   @override
@@ -504,10 +494,5 @@ class HDWalletEntry {
   final String publicKey;
   final String privateKey;
 
-  HDWalletEntry({
-    required this.path,
-    required this.address,
-    required this.publicKey,
-    required this.privateKey,
-  });
+  HDWalletEntry({required this.path, required this.address, required this.publicKey, required this.privateKey});
 }

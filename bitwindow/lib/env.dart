@@ -19,10 +19,7 @@ class Environment {
     'BITWINDOWD_HOST',
     String.fromEnvironment('BITWINDOWD_HOST', defaultValue: '127.0.0.1'),
   );
-  static const bitwindowdPort = Variable(
-    'BITWINDOWD_PORT',
-    int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 8080),
-  );
+  static const bitwindowdPort = Variable('BITWINDOWD_PORT', int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 8080));
 
   static Future<Directory> datadir() async {
     final fromEnv = Platform.environment['BITWINDOWD_DATADIR'] ?? const String.fromEnvironment('BITWINDOWD_DATADIR');

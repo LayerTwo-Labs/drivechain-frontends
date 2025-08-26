@@ -10,9 +10,7 @@ class SidechainProposalPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const QtPage(
-      child: SidechainProposalView(),
-    );
+    return const QtPage(child: SidechainProposalView());
   }
 }
 

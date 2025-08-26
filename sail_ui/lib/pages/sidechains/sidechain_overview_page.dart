@@ -90,9 +90,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                   controller: TextEditingController(text: model.receiveAddress),
                                   hintText: 'Generating deposit address...',
                                   readOnly: true,
-                                  suffixWidget: CopyButton(
-                                    text: model.receiveAddress ?? '',
-                                  ),
+                                  suffixWidget: CopyButton(text: model.receiveAddress ?? ''),
                                 ),
                               ],
                             ),
@@ -110,11 +108,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                               controller: model.bitcoinAddressController,
                               hintText: 'Enter a bitcoin address',
                             ),
-                            NumericField(
-                              label: 'Amount',
-                              controller: model.bitcoinAmountController,
-                              hintText: '0.00',
-                            ),
+                            NumericField(label: 'Amount', controller: model.bitcoinAmountController, hintText: '0.00'),
                             SailButton(
                               label: 'Send',
                               onPressed: () => model.executeSendOnSidechain(context),
@@ -128,9 +122,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                 ),
               ),
               // Transaction history
-              Expanded(
-                child: UTXOsTab(),
-              ),
+              Expanded(child: UTXOsTab()),
             ],
           ),
         );
@@ -163,10 +155,8 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   String get sidechainName => _rpc.chain.name;
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
 
-  String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)),
-        symbol: ticker,
-      );
+  String get totalBitcoinAmount =>
+      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)), symbol: ticker);
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
@@ -276,11 +266,7 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     log.i('doing sidechain withdrawal: $amount $ticker to $address with $sidechainFee SC fee');
 
     try {
-      final sendTXID = await _rpc.sideSend(
-        address,
-        amount,
-        false,
-      );
+      final sendTXID = await _rpc.sideSend(address, amount, false);
 
       unawaited(_balanceProvider.fetch());
       unawaited(_transactionsProvider.fetch());
@@ -337,11 +323,7 @@ class TransactionTable extends StatefulWidget {
   final Widget searchWidget;
   final LatestWalletTransactionsViewModel model;
 
-  const TransactionTable({
-    super.key,
-    required this.model,
-    required this.searchWidget,
-  });
+  const TransactionTable({super.key, required this.model, required this.searchWidget});
 
   @override
   State<TransactionTable> createState() => _TransactionTableState();
@@ -407,44 +389,25 @@ class _TransactionTableState extends State<TransactionTable> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SailStyleValues.padding16,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding16),
                 child: widget.searchWidget,
               ),
               Expanded(
                 child: SailTable(
                   getRowId: (index) => entries[index].txid,
                   headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Conf Height',
-                      onSort: () => onSort('height'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Amount',
-                      onSort: () => onSort('amount'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'TxID',
-                      onSort: () => onSort('txid'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Date',
-                      onSort: () => onSort('date'),
-                    ),
+                    SailTableHeaderCell(name: 'Conf Height', onSort: () => onSort('height')),
+                    SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+                    SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
+                    SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
                   ],
                   rowBuilder: (context, row, selected) {
                     final entry = entries[row];
                     final amount = formatBitcoin(satoshiToBTC(entry.amount.toInt()));
 
                     return [
-                      SailTableCell(
-                        value: entry.confirmations == 0 ? 'Unconfirmed' : entry.confirmations.toString(),
-                      ),
-                      SailTableCell(
-                        value: amount,
-                        monospace: true,
-                      ),
+                      SailTableCell(value: entry.confirmations == 0 ? 'Unconfirmed' : entry.confirmations.toString()),
+                      SailTableCell(value: amount, monospace: true),
                       SailTableCell(
                         value: '${entry.txid.substring(0, 6)}..:${entry.vout}',
                         copyValue: '${entry.txid}:${entry.vout}',
@@ -456,20 +419,13 @@ class _TransactionTableState extends State<TransactionTable> {
                   },
                   rowCount: entries.length,
                   drawGrid: true,
-                  sortColumnIndex: [
-                    'height',
-                    'date',
-                    'txid',
-                    'amount',
-                  ].indexOf(sortColumn),
+                  sortColumnIndex: ['height', 'date', 'txid', 'amount'].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
                     onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
                   },
                   onDoubleTap: (rowId) {
-                    final utxo = entries.firstWhere(
-                      (u) => u.txid == rowId,
-                    );
+                    final utxo = entries.firstWhere((u) => u.txid == rowId);
                     _showUtxoDetails(context, utxo);
                   },
                 ),
@@ -525,18 +481,9 @@ class DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 160,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.textTertiary,
-            ),
+            child: SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
           ),
-          Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-            ),
-          ),
+          Expanded(child: SailText.secondary13(value, monospace: true)),
         ],
       ),
     );
@@ -587,13 +534,7 @@ class BalanceRow extends StatelessWidget {
   final String ticker;
   final bool loading;
 
-  const BalanceRow({
-    super.key,
-    required this.label,
-    required this.amount,
-    required this.ticker,
-    this.loading = false,
-  });
+  const BalanceRow({super.key, required this.label, required this.amount, required this.ticker, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -646,10 +587,7 @@ class UTXOsTab extends StatelessWidget {
         return ViewModelBuilder<LatestUTXOsViewModel>.reactive(
           viewModelBuilder: () => LatestUTXOsViewModel(),
           builder: (context, model, child) {
-            return UTXOTable(
-              entries: model.entries,
-              model: model,
-            );
+            return UTXOTable(entries: model.entries, model: model);
           },
         );
       },
@@ -661,11 +599,7 @@ class UTXOTable extends StatefulWidget {
   final List<SidechainUTXO> entries;
   final LatestUTXOsViewModel model;
 
-  const UTXOTable({
-    super.key,
-    required this.entries,
-    required this.model,
-  });
+  const UTXOTable({super.key, required this.entries, required this.model});
 
   @override
   State<UTXOTable> createState() => _UTXOTableState();
@@ -743,10 +677,7 @@ class _UTXOTableState extends State<UTXOTable> {
                 ],
                 rowBuilder: (context, row, selected) {
                   final utxo = widget.entries[row];
-                  final formattedAmount = formatBitcoin(
-                    satoshiToBTC(utxo.valueSats),
-                    symbol: '',
-                  );
+                  final formattedAmount = formatBitcoin(satoshiToBTC(utxo.valueSats), symbol: '');
                   return [
                     SailTableCell(value: utxo.type.name, monospace: true),
                     SailTableCell(
@@ -759,12 +690,7 @@ class _UTXOTableState extends State<UTXOTable> {
                 },
                 rowCount: widget.entries.length,
                 drawGrid: true,
-                sortColumnIndex: [
-                  'type',
-                  'output',
-                  'address',
-                  'value',
-                ].indexOf(sortColumn),
+                sortColumnIndex: ['type', 'output', 'address', 'value'].indexOf(sortColumn),
                 sortAscending: sortAscending,
                 onSort: (columnIndex, ascending) {
                   onSort(['type', 'output', 'address', 'value'][columnIndex]);

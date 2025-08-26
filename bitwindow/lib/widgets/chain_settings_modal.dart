@@ -7,10 +7,7 @@ import 'package:sail_ui/sail_ui.dart';
 class ChainSettingsModal extends StatefulWidget {
   final Binary binary;
 
-  const ChainSettingsModal({
-    super.key,
-    required this.binary,
-  });
+  const ChainSettingsModal({super.key, required this.binary});
 
   @override
   State<ChainSettingsModal> createState() => _ChainSettingsModalState();
@@ -40,10 +37,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
         width: 500,
         height: 500,
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadius,
-        ),
+        decoration: BoxDecoration(color: theme.colors.backgroundSecondary, borderRadius: SailStyleValues.borderRadius),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -142,10 +136,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary13(
-            label,
-            color: theme.colors.textTertiary,
-          ),
+          SailText.primary13(label, color: theme.colors.textTertiary),
           const SizedBox(height: 4),
           SailText.primary13(value),
         ],

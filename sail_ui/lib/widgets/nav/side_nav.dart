@@ -7,13 +7,7 @@ class SideNav extends StatelessWidget {
   final ValueChanged<int>? onItemSelected;
   final int selectedIndex;
 
-  const SideNav({
-    super.key,
-    required this.items,
-    this.width = 200,
-    this.onItemSelected,
-    this.selectedIndex = 0,
-  });
+  const SideNav({super.key, required this.items, this.width = 200, this.onItemSelected, this.selectedIndex = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +17,12 @@ class SideNav extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ...items.asMap().entries.map(
-                (entry) => _SideNavItem(
-                  label: entry.value.label,
-                  isSelected: entry.key == selectedIndex,
-                  onTap: () => onItemSelected?.call(entry.key),
-                ),
-              ),
+            (entry) => _SideNavItem(
+              label: entry.value.label,
+              isSelected: entry.key == selectedIndex,
+              onTap: () => onItemSelected?.call(entry.key),
+            ),
+          ),
         ],
       ),
     );
@@ -38,9 +32,7 @@ class SideNav extends StatelessWidget {
 class SideNavItem {
   final String label;
 
-  const SideNavItem({
-    required this.label,
-  });
+  const SideNavItem({required this.label});
 }
 
 class _SideNavItem extends StatefulWidget {
@@ -48,11 +40,7 @@ class _SideNavItem extends StatefulWidget {
   final VoidCallback onTap;
   final bool isSelected;
 
-  const _SideNavItem({
-    required this.label,
-    required this.onTap,
-    this.isSelected = false,
-  });
+  const _SideNavItem({required this.label, required this.onTap, this.isSelected = false});
 
   @override
   State<_SideNavItem> createState() => _SideNavItemState();
@@ -80,10 +68,7 @@ class _SideNavItemState extends State<_SideNavItem> {
             color: widget.isSelected || isHovered ? theme.colors.backgroundSecondary : Colors.transparent,
             borderRadius: SailStyleValues.borderRadius,
           ),
-          child: SailText.primary13(
-            widget.label,
-            bold: true,
-          ),
+          child: SailText.primary13(widget.label, bold: true),
         ),
       ),
     );

@@ -73,10 +73,7 @@ class _HashCalculatorState extends State<HashCalculator> {
                         label: 'HMAC',
                       ),
                       if (_isHexMode && _hexValidationError.isNotEmpty)
-                        SailText.primary13(
-                          _hexValidationError,
-                          color: theme.colors.error,
-                        ),
+                        SailText.primary13(_hexValidationError, color: theme.colors.error),
                       const Spacer(),
                       SailButton(
                         label: 'Clear',
@@ -410,10 +407,7 @@ class _HashCalculatorState extends State<HashCalculator> {
         results.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary10(
-              _hexToBin(sha256dMatch.group(1)!),
-              color: theme.colors.textTertiary,
-            ),
+            child: SailText.primary10(_hexToBin(sha256dMatch.group(1)!), color: theme.colors.textTertiary),
           ),
         );
       }
@@ -442,10 +436,7 @@ class _HashCalculatorState extends State<HashCalculator> {
         results.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary10(
-              _hexToBin(hash160Match.group(1)!),
-              color: theme.colors.textTertiary,
-            ),
+            child: SailText.primary10(_hexToBin(hash160Match.group(1)!), color: theme.colors.textTertiary),
           ),
         );
       }
@@ -474,10 +465,7 @@ class _HashCalculatorState extends State<HashCalculator> {
         results.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary10(
-              _hexToBin(ripemd160Match.group(1)!),
-              color: theme.colors.textTertiary,
-            ),
+            child: SailText.primary10(_hexToBin(ripemd160Match.group(1)!), color: theme.colors.textTertiary),
           ),
         );
       }
@@ -506,10 +494,7 @@ class _HashCalculatorState extends State<HashCalculator> {
         results.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary10(
-              _hexToBin(sha256Match.group(1)!),
-              color: theme.colors.textTertiary,
-            ),
+            child: SailText.primary10(_hexToBin(sha256Match.group(1)!), color: theme.colors.textTertiary),
           ),
         );
       }
@@ -538,10 +523,7 @@ class _HashCalculatorState extends State<HashCalculator> {
         results.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary10(
-              _hexToBin(sha512Match.group(1)!),
-              color: theme.colors.textTertiary,
-            ),
+            child: SailText.primary10(_hexToBin(sha512Match.group(1)!), color: theme.colors.textTertiary),
           ),
         );
       }
@@ -631,10 +613,7 @@ class _HashCalculatorState extends State<HashCalculator> {
         results.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary10(
-              _hexToBin(hmacSha256Match.group(1)!),
-              color: theme.colors.textTertiary,
-            ),
+            child: SailText.primary10(_hexToBin(hmacSha256Match.group(1)!), color: theme.colors.textTertiary),
           ),
         );
       }
@@ -664,10 +643,7 @@ class _HashCalculatorState extends State<HashCalculator> {
         results.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary10(
-              _hexToBin(hmacSha512Match.group(1)!),
-              color: theme.colors.textTertiary,
-            ),
+            child: SailText.primary10(_hexToBin(hmacSha512Match.group(1)!), color: theme.colors.textTertiary),
           ),
         );
       }
@@ -699,24 +675,12 @@ class _HashCalculatorState extends State<HashCalculator> {
                 SailText.primary13(
                   "Hash160: 160 bit output from Bitcoin's Hash160 [RIPEMD160(sha256())] hash function. Outputs in Little-Endian byte order.",
                 ),
-                SailText.primary13(
-                  'RIPEMD160: 160 bit RIPE Message Digest.',
-                ),
-                SailText.primary13(
-                  'SHA256: 256 bit output from the Secure Hash Algorithm 2 hash function.',
-                ),
-                SailText.primary13(
-                  'SHA512: 512 bit output from the Secure Hash Algorithm 2 hash function.',
-                ),
-                SailText.primary13(
-                  'Decode: Shows the input text or decoded hex bytes as text.',
-                ),
-                SailText.primary13(
-                  'Hex: The hexadecimal (base 16) representation.',
-                ),
-                SailText.primary13(
-                  'Bin: The binary (base 2) representation.',
-                ),
+                SailText.primary13('RIPEMD160: 160 bit RIPE Message Digest.'),
+                SailText.primary13('SHA256: 256 bit output from the Secure Hash Algorithm 2 hash function.'),
+                SailText.primary13('SHA512: 512 bit output from the Secure Hash Algorithm 2 hash function.'),
+                SailText.primary13('Decode: Shows the input text or decoded hex bytes as text.'),
+                SailText.primary13('Hex: The hexadecimal (base 16) representation.'),
+                SailText.primary13('Bin: The binary (base 2) representation.'),
                 SailText.primary13(
                   'HMAC: Hash-based Message Authentication Code using SHA256 or SHA512 with a provided key.',
                 ),

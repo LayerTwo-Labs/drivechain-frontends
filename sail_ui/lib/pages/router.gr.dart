@@ -27,10 +27,10 @@ class LogRoute extends _i5.PageRouteInfo<LogRouteArgs> {
     required String title,
     List<_i5.PageRouteInfo>? children,
   }) : super(
-          LogRoute.name,
-          args: LogRouteArgs(key: key, logPath: logPath, title: title),
-          initialChildren: children,
-        );
+         LogRoute.name,
+         args: LogRouteArgs(key: key, logPath: logPath, title: title),
+         initialChildren: children,
+       );
 
   static const String name = 'LogRoute';
 
@@ -75,7 +75,8 @@ class LogRouteArgs {
 /// generated route for
 /// [_i2.ParentChainPage]
 class ParentChainRoute extends _i5.PageRouteInfo<void> {
-  const ParentChainRoute({List<_i5.PageRouteInfo>? children}) : super(ParentChainRoute.name, initialChildren: children);
+  const ParentChainRoute({List<_i5.PageRouteInfo>? children})
+    : super(ParentChainRoute.name, initialChildren: children);
 
   static const String name = 'ParentChainRoute';
 
@@ -96,14 +97,14 @@ class ShuttingDownRoute extends _i5.PageRouteInfo<ShuttingDownRouteArgs> {
     required _i6.VoidCallback onComplete,
     List<_i5.PageRouteInfo>? children,
   }) : super(
-          ShuttingDownRoute.name,
-          args: ShuttingDownRouteArgs(
-            key: key,
-            binaries: binaries,
-            onComplete: onComplete,
-          ),
-          initialChildren: children,
-        );
+         ShuttingDownRoute.name,
+         args: ShuttingDownRouteArgs(
+           key: key,
+           binaries: binaries,
+           onComplete: onComplete,
+         ),
+         initialChildren: children,
+       );
 
   static const String name = 'ShuttingDownRoute';
 
@@ -148,14 +149,17 @@ class ShuttingDownRouteArgs {
   }
 
   @override
-  int get hashCode => key.hashCode ^ const _i8.ListEquality().hash(binaries) ^ onComplete.hashCode;
+  int get hashCode =>
+      key.hashCode ^
+      const _i8.ListEquality().hash(binaries) ^
+      onComplete.hashCode;
 }
 
 /// generated route for
 /// [_i4.SidechainOverviewTabPage]
 class SidechainOverviewTabRoute extends _i5.PageRouteInfo<void> {
   const SidechainOverviewTabRoute({List<_i5.PageRouteInfo>? children})
-      : super(SidechainOverviewTabRoute.name, initialChildren: children);
+    : super(SidechainOverviewTabRoute.name, initialChildren: children);
 
   static const String name = 'SidechainOverviewTabRoute';
 

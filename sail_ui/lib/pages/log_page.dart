@@ -15,11 +15,7 @@ class LogPage extends StatefulWidget {
   final String logPath;
   final String title;
 
-  const LogPage({
-    super.key,
-    required this.logPath,
-    required this.title,
-  });
+  const LogPage({super.key, required this.logPath, required this.title});
 
   @override
   State<LogPage> createState() => _LogPageState();
@@ -79,11 +75,7 @@ class _LogPageState extends State<LogPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
                 child: Text.rich(
                   _parseAnsiCodes(_logLines[index]),
-                  style: const TextStyle(
-                    fontFamily: 'SourceCodePro',
-                    fontSize: 10,
-                    color: SailColorScheme.whiteDark,
-                  ),
+                  style: const TextStyle(fontFamily: 'SourceCodePro', fontSize: 10, color: SailColorScheme.whiteDark),
                 ),
               );
             },
@@ -346,9 +338,7 @@ class LogPageViewModel extends BaseViewModel {
   RandomAccessFile? _raf;
   late FocusNode focusNode;
 
-  LogPageViewModel({
-    required this.logPath,
-  });
+  LogPageViewModel({required this.logPath});
 
   Future<void> init() async {
     scrollController = ScrollController();
@@ -368,7 +358,8 @@ class LogPageViewModel extends BaseViewModel {
 
   void _scrollToBottom({bool overrideBottom = false}) {
     // Only scroll to bottom if currently at or near the bottom
-    final isAtBottom = scrollController.hasClients &&
+    final isAtBottom =
+        scrollController.hasClients &&
         scrollController.position.pixels >= scrollController.position.maxScrollExtent - 150; // 150 pixels threshold
 
     if (!overrideBottom && !isAtBottom) {
@@ -426,8 +417,12 @@ class LogPageViewModel extends BaseViewModel {
       raf.setPositionSync(start);
       final buffer = raf.readSync(end - start);
       try {
-        final chunk =
-            utf8.decode(buffer.toList(), allowMalformed: true).split('\n').map(_stripAnsiCodes).toList().reversed;
+        final chunk = utf8
+            .decode(buffer.toList(), allowMalformed: true)
+            .split('\n')
+            .map(_stripAnsiCodes)
+            .toList()
+            .reversed;
         lines.insertAll(0, chunk);
       } catch (e) {
         log.e('Error decoding log file chunk: $e');
@@ -449,9 +444,7 @@ class LogPageViewModel extends BaseViewModel {
       final buffer = await raf.read(fileLength - currentPosition);
       try {
         final chunk = utf8.decode(buffer, allowMalformed: true);
-        newLines.addAll(
-          chunk.split('\n').map(_stripAnsiCodes).where((line) => line.isNotEmpty),
-        );
+        newLines.addAll(chunk.split('\n').map(_stripAnsiCodes).where((line) => line.isNotEmpty));
       } catch (e) {
         log.e('Error decoding new log lines: $e');
       }

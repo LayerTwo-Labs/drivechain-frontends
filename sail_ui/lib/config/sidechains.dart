@@ -185,28 +185,24 @@ class TestSidechain extends Sidechain {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: '.testchain',
-                  OS.macos: 'testchain',
-                  OS.windows: 'testchain',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
-                files: {
-                  OS.linux: 'testchain-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'testchain-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'testchain-latest-x86_64-pc-windows-msvc.zip',
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-        );
+         directories:
+             directories ??
+             DirectoryConfig(base: {OS.linux: '.testchain', OS.macos: 'testchain', OS.windows: 'testchain'}),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: 'https://releases.drivechain.info/',
+               files: {
+                 OS.linux: 'testchain-latest-x86_64-unknown-linux-gnu.zip',
+                 OS.macos: 'testchain-latest-x86_64-apple-darwin.zip',
+                 OS.windows: 'testchain-latest-x86_64-pc-windows-msvc.zip',
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
 
   @override
   int slot = 0;
@@ -257,28 +253,26 @@ class ZSide extends Sidechain {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: '.thunder-orchard',
-                  OS.macos: '/thunder-orchard',
-                  OS.windows: '/thunder-orchard',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
-                files: {
-                  OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
-                  OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
-                  OS.windows: '', // thunder-orchard not available for windows
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-        );
+         directories:
+             directories ??
+             DirectoryConfig(
+               base: {OS.linux: '.thunder-orchard', OS.macos: '/thunder-orchard', OS.windows: '/thunder-orchard'},
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
+               files: {
+                 OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
+                 OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
+                 OS.windows: '', // thunder-orchard not available for windows
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
 
   @override
   int slot = 98;
@@ -332,28 +326,23 @@ class Thunder extends Sidechain {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: 'thunder',
-                  OS.macos: 'Thunder',
-                  OS.windows: 'thunder',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
-                files: {
-                  OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-        );
+         directories:
+             directories ?? DirectoryConfig(base: {OS.linux: 'thunder', OS.macos: 'Thunder', OS.windows: 'thunder'}),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: 'https://releases.drivechain.info/',
+               files: {
+                 OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
+                 OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
+                 OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
 
   @override
   int slot = 9;
@@ -407,28 +396,26 @@ class Bitnames extends Sidechain {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: 'plain_bitnames',
-                  OS.macos: 'plain_bitnames',
-                  OS.windows: 'plain_bitnames',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
-                files: {
-                  OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-        );
+         directories:
+             directories ??
+             DirectoryConfig(
+               base: {OS.linux: 'plain_bitnames', OS.macos: 'plain_bitnames', OS.windows: 'plain_bitnames'},
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: 'https://releases.drivechain.info/',
+               files: {
+                 OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
+                 OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
+                 OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
 
   @override
   int slot = 2;
@@ -482,28 +469,26 @@ class BitAssets extends Sidechain {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: 'plain_bitassets',
-                  OS.macos: 'plain_bitassets',
-                  OS.windows: 'plain_bitassets',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
-                files: {
-                  OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-        );
+         directories:
+             directories ??
+             DirectoryConfig(
+               base: {OS.linux: 'plain_bitassets', OS.macos: 'plain_bitassets', OS.windows: 'plain_bitassets'},
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: 'https://releases.drivechain.info/',
+               files: {
+                 OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
+                 OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
+                 OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
 
   @override
   int slot = 4;

@@ -16,10 +16,7 @@ class UTXOsTab extends StatelessWidget {
         return ViewModelBuilder<LatestUTXOsViewModel>.reactive(
           viewModelBuilder: () => LatestUTXOsViewModel(),
           builder: (context, model, child) {
-            return UTXOTable(
-              entries: model.entries,
-              model: model,
-            );
+            return UTXOTable(entries: model.entries, model: model);
           },
         );
       },
@@ -31,11 +28,7 @@ class UTXOTable extends StatefulWidget {
   final List<UnspentOutput> entries;
   final LatestUTXOsViewModel model;
 
-  const UTXOTable({
-    super.key,
-    required this.entries,
-    required this.model,
-  });
+  const UTXOTable({super.key, required this.entries, required this.model});
 
   @override
   State<UTXOTable> createState() => _UTXOTableState();
@@ -139,48 +132,24 @@ class _UTXOTableState extends State<UTXOTable> {
                 ],
                 rowBuilder: (context, row, selected) {
                   final utxo = sortedEntries[row];
-                  final formattedAmount = formatBitcoin(
-                    satoshiToBTC(utxo.valueSats.toInt()),
-                    symbol: '',
-                  );
+                  final formattedAmount = formatBitcoin(satoshiToBTC(utxo.valueSats.toInt()), symbol: '');
                   final isUtxoDenied = isDenied(utxo);
 
                   return [
-                    SailTableCell(
-                      value: formatDate(utxo.receivedAt.toDateTime().toLocal()),
-                    ),
+                    SailTableCell(value: formatDate(utxo.receivedAt.toDateTime().toLocal())),
                     SailTableCell(
                       value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
                       copyValue: utxo.output,
                     ),
-                    SailTableCell(
-                      value: utxo.address,
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: utxo.label,
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: isUtxoDenied ? utxo.denialInfo.hopsCompleted.toString() : '',
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: formattedAmount,
-                      monospace: true,
-                    ),
+                    SailTableCell(value: utxo.address, monospace: true),
+                    SailTableCell(value: utxo.label, monospace: true),
+                    SailTableCell(value: isUtxoDenied ? utxo.denialInfo.hopsCompleted.toString() : '', monospace: true),
+                    SailTableCell(value: formattedAmount, monospace: true),
                   ];
                 },
                 rowCount: sortedEntries.length,
                 drawGrid: true,
-                sortColumnIndex: [
-                  'date',
-                  'output',
-                  'address',
-                  'label',
-                  'isDenied',
-                  'value',
-                ].indexOf(sortColumn),
+                sortColumnIndex: ['date', 'output', 'address', 'label', 'isDenied', 'value'].indexOf(sortColumn),
                 sortAscending: sortAscending,
                 onSort: (columnIndex, ascending) {
                   onSort(['date', 'output', 'address', 'label', 'isDenied', 'value'][columnIndex]);
@@ -212,21 +181,9 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   List<UnspentOutput> get entries {
     if (loading) {
       return [
-        UnspentOutput(
-          output: 'dummy_output',
-          address: 'dummy_address',
-          label: 'dummy_label',
-        ),
-        UnspentOutput(
-          output: 'dummy_output',
-          address: 'dummy_address',
-          label: 'dummy_label',
-        ),
-        UnspentOutput(
-          output: 'dummy_output',
-          address: 'dummy_address',
-          label: 'dummy_label',
-        ),
+        UnspentOutput(output: 'dummy_output', address: 'dummy_address', label: 'dummy_label'),
+        UnspentOutput(output: 'dummy_output', address: 'dummy_address', label: 'dummy_label'),
+        UnspentOutput(output: 'dummy_output', address: 'dummy_address', label: 'dummy_label'),
       ];
     }
 

@@ -57,11 +57,7 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
             spacing: SailStyleValues.padding16,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SailTextField(
-                label: 'Bitcoin URI',
-                controller: _controller,
-                hintText: 'bitcoin:<address>?amount=1.23',
-              ),
+              SailTextField(label: 'Bitcoin URI', controller: _controller, hintText: 'bitcoin:<address>?amount=1.23'),
               if (_parsedURI != null) ...[
                 SailText.primary13('Address: ${_parsedURI!.address}'),
                 if (_parsedURI!.amount != null) SailText.primary13('Amount: ${_parsedURI!.amount} BTC'),

@@ -47,8 +47,5 @@ class LoadingDetails {
   final bool enabled;
   final String description;
 
-  const LoadingDetails({
-    required this.enabled,
-    required this.description,
-  });
+  const LoadingDetails({required this.enabled, required this.description});
 }

@@ -5,13 +5,8 @@ class BitcoinURI {
   final String? message;
   final Map<String, String> extraParams;
 
-  BitcoinURI({
-    required this.address,
-    this.amount,
-    this.label,
-    this.message,
-    Map<String, String>? extraParams,
-  }) : extraParams = extraParams ?? {};
+  BitcoinURI({required this.address, this.amount, this.label, this.message, Map<String, String>? extraParams})
+    : extraParams = extraParams ?? {};
 
   /// Parses a Bitcoin URI string according to BIP-0021
   /// Throws FormatException if URI is invalid
@@ -60,10 +55,7 @@ class BitcoinURI {
       amount: amount,
       label: params['label'],
       message: params['message'],
-      extraParams: params
-        ..removeWhere(
-          (key, _) => ['amount', 'label', 'message'].contains(key),
-        ),
+      extraParams: params..removeWhere((key, _) => ['amount', 'label', 'message'].contains(key)),
     );
   }
 

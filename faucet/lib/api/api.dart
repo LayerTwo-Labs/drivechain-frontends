@@ -8,9 +8,7 @@ class APILive extends API {
   Logger get log => GetIt.I.get<Logger>();
 
   APILive() {
-    clients = ServiceClients.setup(
-      baseUrl: Environment.baseUrl,
-    );
+    clients = ServiceClients.setup(baseUrl: Environment.baseUrl);
   }
 
   @override
@@ -18,9 +16,7 @@ class APILive extends API {
     try {
       final response = await http.post(
         Uri.parse('${Environment.baseUrl}/$service/$url'),
-        headers: {
-          'content-type': 'application/json',
-        },
+        headers: {'content-type': 'application/json'},
         body: body,
       );
 

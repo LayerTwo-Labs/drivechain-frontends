@@ -15,11 +15,7 @@ class ImportPSBTModal extends StatefulWidget {
   final List<MultisigGroup> availableGroups;
   final Function() onImportSuccess;
 
-  const ImportPSBTModal({
-    super.key,
-    required this.availableGroups,
-    required this.onImportSuccess,
-  });
+  const ImportPSBTModal({super.key, required this.availableGroups, required this.onImportSuccess});
 
   @override
   State<ImportPSBTModal> createState() => _ImportPSBTModalState();
@@ -104,10 +100,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
 
     final candidates = group.keys.where((k) => k.owner == keyOwner).toList();
     if (candidates.isNotEmpty) {
-      return candidates.firstWhere(
-        (k) => k.isWallet,
-        orElse: () => candidates.first,
-      );
+      return candidates.firstWhere((k) => k.isWallet, orElse: () => candidates.first);
     }
 
     return null;
@@ -225,14 +218,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         }
 
         final keyPSBTs = group.keys
-            .map(
-              (key) => KeyPSBTStatus(
-                keyId: key.xpub,
-                psbt: null,
-                isSigned: false,
-                signedAt: null,
-              ),
-            )
+            .map((key) => KeyPSBTStatus(keyId: key.xpub, psbt: null, isSigned: false, signedAt: null))
             .toList();
 
         final newTx = MultisigTransaction(
@@ -263,13 +249,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       }
 
       if (isSigned) {
-        await TransactionStorage.addOrUpdateKeyPSBT(
-          txId,
-          targetKey.xpub,
-          cleanPsbt,
-          true,
-          signatureThreshold: group.m,
-        );
+        await TransactionStorage.addOrUpdateKeyPSBT(txId, targetKey.xpub, cleanPsbt, true, signatureThreshold: group.m);
       } else {
         final allRelevantKeys = <MultisigKey>[];
 
@@ -292,13 +272,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
           }
 
           if (!shouldSkip) {
-            await TransactionStorage.addOrUpdateKeyPSBT(
-              txId,
-              key.xpub,
-              cleanPsbt,
-              false,
-              signatureThreshold: group.m,
-            );
+            await TransactionStorage.addOrUpdateKeyPSBT(txId, key.xpub, cleanPsbt, false, signatureThreshold: group.m);
           }
         }
       }
@@ -338,9 +312,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'PSBT imported successfully${isSigned ? ' (signed)' : ' (unsigned)'}',
-            ),
+            content: Text('PSBT imported successfully${isSigned ? ' (signed)' : ' (unsigned)'}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -388,12 +360,8 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             spacing: SailStyleValues.padding04,
                             children: [
-                              SailText.primary13(
-                                'Selected Group: ${selectedGroup.name}',
-                              ),
-                              SailText.secondary12(
-                                '${selectedGroup.m} of ${selectedGroup.n} multisig',
-                              ),
+                              SailText.primary13('Selected Group: ${selectedGroup.name}'),
+                              SailText.secondary12('${selectedGroup.m} of ${selectedGroup.n} multisig'),
                             ],
                           ),
                         ),
@@ -438,24 +406,16 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 spacing: SailStyleValues.padding04,
                                 children: [
-                                  SailText.primary13(
-                                    _selectedFileName ?? 'No file selected',
-                                  ),
+                                  SailText.primary13(_selectedFileName ?? 'No file selected'),
                                   if (_selectedFileName == null)
-                                    SailText.secondary12(
-                                      'Select a JSON file containing the PSBT export',
-                                    )
+                                    SailText.secondary12('Select a JSON file containing the PSBT export')
                                   else if (_importedData != null) ...[
-                                    SailText.secondary12(
-                                      'Transaction: ${_importedData!['transaction_id']}',
-                                    ),
+                                    SailText.secondary12('Transaction: ${_importedData!['transaction_id']}'),
                                     SailText.secondary12(
                                       'Status: ${_importedData!['is_signed'] == true ? 'Signed' : 'Unsigned'}',
                                     ),
                                     if (_importedData!['key_owner'] != null)
-                                      SailText.secondary12(
-                                        'Key: ${_importedData!['key_owner']}',
-                                      ),
+                                      SailText.secondary12('Key: ${_importedData!['key_owner']}'),
                                   ],
                                 ],
                               ),
@@ -484,9 +444,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                         children: [
                           SailText.primary12('Import Details:'),
                           if (_importedData!['exported_at'] != null)
-                            SailText.secondary12(
-                              'Exported: ${_importedData!['exported_at']}',
-                            ),
+                            SailText.secondary12('Exported: ${_importedData!['exported_at']}'),
                         ],
                       ),
                     ),
@@ -547,12 +505,8 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                               spacing: SailStyleValues.padding04,
                               children: [
                                 SailText.primary13(group.name),
-                                SailText.secondary12(
-                                  '${group.m} of ${group.n} multisig',
-                                ),
-                                SailText.secondary12(
-                                  'Balance: ${group.balance.toStringAsFixed(8)} BTC',
-                                ),
+                                SailText.secondary12('${group.m} of ${group.n} multisig'),
+                                SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
                               ],
                             ),
                           ),

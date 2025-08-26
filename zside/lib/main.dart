@@ -77,13 +77,9 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
     log: log,
   );
 
-  GetIt.I.registerLazySingleton<ZSideProvider>(
-    () => ZSideProvider(),
-  );
+  GetIt.I.registerLazySingleton<ZSideProvider>(() => ZSideProvider());
 
-  GetIt.I.registerLazySingleton<CastProvider>(
-    () => CastProvider(),
-  );
+  GetIt.I.registerLazySingleton<CastProvider>(() => CastProvider());
 
   return (applicationDir, logFile, log);
 }
@@ -93,9 +89,7 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
   log.i('starting zside in multi window');
   final zside = GetIt.I.get<ZSideRPC>();
 
-  Widget child = SailCard(
-    child: SailText.primary15('no window type provided, the programmers messed up'),
-  );
+  Widget child = SailCard(child: SailText.primary15('no window type provided, the programmers messed up'));
 
   switch (arguments['window_type']) {
     case 'console':
@@ -103,14 +97,7 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
       break;
   }
 
-  return runApp(
-    buildSailWindowApp(
-      log,
-      '${arguments['window_title'] as String} | ZSide',
-      child,
-      zside.chain.color,
-    ),
-  );
+  return runApp(buildSailWindowApp(log, '${arguments['window_title'] as String} | ZSide', child, zside.chain.color));
 }
 
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
@@ -158,10 +145,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   );
 }
 
-bool isCurrentChainActive({
-  required List<ActiveSidechain> activeChains,
-  required Binary currentChain,
-}) {
+bool isCurrentChainActive({required List<ActiveSidechain> activeChains, required Binary currentChain}) {
   final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
   return foundMatch != null;
 }
@@ -183,9 +167,7 @@ void bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
   final zside = binaryProvider.binaries.firstWhere((b) => b is ZSide);
 
-  await binaryProvider.startWithEnforcer(
-    zside,
-  );
+  await binaryProvider.startWithEnforcer(zside);
 }
 
 // BitAssets window types

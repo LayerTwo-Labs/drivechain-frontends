@@ -75,12 +75,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
           label: thunderRPC.chain.name,
           menus: [
             PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'About $thunderRPC.rpc.chain.name',
-                  onSelected: null,
-                ),
-              ],
+              members: [PlatformMenuItem(label: 'About $thunderRPC.rpc.chain.name', onSelected: null)],
             ),
             PlatformMenuItemGroup(
               members: [
@@ -162,9 +157,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                           tabsRouter.setActiveIndex(Tabs.Console.index);
                         },
                       ),
-                      TopNavRoute(
-                        icon: SailSVGAsset.settings,
-                      ),
+                      TopNavRoute(icon: SailSVGAsset.settings),
                     ],
                   ),
                   body: Column(
@@ -172,17 +165,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                       Expanded(child: children[tabsRouter.activeIndex]),
                       BottomNav(
                         mainchainInfo: false,
-                        additionalConnection: ConnectionMonitor(
-                          rpc: thunderRPC,
-                          name: thunderRPC.chain.name,
-                        ),
+                        additionalConnection: ConnectionMonitor(rpc: thunderRPC, name: thunderRPC.chain.name),
                         navigateToLogs: (title, logPath) {
-                          GetIt.I.get<AppRouter>().push(
-                                LogRoute(
-                                  title: title,
-                                  logPath: logPath,
-                                ),
-                              );
+                          GetIt.I.get<AppRouter>().push(LogRoute(title: title, logPath: logPath));
                         },
                         endWidgets: [],
                         onlyShowAdditional: true,
@@ -201,11 +186,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   @override
   Future<AppExitResponse> didRequestAppExit() async {
     await GetIt.I.get<BinaryProvider>().onShutdown(
-          shutdownOptions: ShutdownOptions(
-            router: GetIt.I.get<AppRouter>(),
-            onComplete: () {},
-          ),
-        );
+      shutdownOptions: ShutdownOptions(router: GetIt.I.get<AppRouter>(), onComplete: () {}),
+    );
     return AppExitResponse.exit;
   }
 
@@ -214,15 +196,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     bool isPreventClose = await windowManager.isPreventClose();
     if (isPreventClose) {
       await GetIt.I.get<BinaryProvider>().onShutdown(
-            shutdownOptions: ShutdownOptions(
-              router: GetIt.I.get<AppRouter>(),
-              onComplete: () async {
-                if (isPreventClose) {
-                  await windowManager.destroy();
-                }
-              },
-            ),
-          );
+        shutdownOptions: ShutdownOptions(
+          router: GetIt.I.get<AppRouter>(),
+          onComplete: () async {
+            if (isPreventClose) {
+              await windowManager.destroy();
+            }
+          },
+        ),
+      );
     }
   }
 

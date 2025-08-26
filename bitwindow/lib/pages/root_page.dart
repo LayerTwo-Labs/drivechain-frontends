@@ -61,10 +61,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
           menus: [
             PlatformMenuItemGroup(
               members: [
-                PlatformMenuItem(
-                  label: 'About bitwindow',
-                  onSelected: null,
-                ),
+                PlatformMenuItem(label: 'About bitwindow', onSelected: null),
                 PlatformMenuItem(
                   label: 'Change Theme',
                   onSelected: () async {
@@ -105,11 +102,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   label: 'Quit bitwindow',
                   shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
                   onSelected: () => GetIt.I.get<BinaryProvider>().onShutdown(
-                        shutdownOptions: ShutdownOptions(
-                          router: GetIt.I.get<AppRouter>(),
-                          onComplete: () => exit(0),
-                        ),
-                      ),
+                    shutdownOptions: ShutdownOptions(router: GetIt.I.get<AppRouter>(), onComplete: () => exit(0)),
+                  ),
                 ),
               ],
             ),
@@ -229,10 +223,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
           menus: [
             PlatformMenuItemGroup(
               members: [
-                PlatformMenuItem(
-                  label: 'Broadcast CoinNews',
-                  onSelected: () => displayBroadcastNewsDialog(context),
-                ),
+                PlatformMenuItem(label: 'Broadcast CoinNews', onSelected: () => displayBroadcastNewsDialog(context)),
               ],
             ),
             PlatformMenuItemGroup(
@@ -247,10 +238,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Chain Merchants',
                   onSelected: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const ChainMerchantsDialog(),
-                    );
+                    showDialog(context: context, builder: (context) => const ChainMerchantsDialog());
                   },
                 ),
                 PlatformMenuItem(
@@ -285,18 +273,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     windowProvider.open(SubWindowTypes.hashCalculator);
                   },
                 ),
-                PlatformMenuItem(
-                  label: 'Merkle Tree',
-                  onSelected: null,
-                ),
-                PlatformMenuItem(
-                  label: 'Signatures',
-                  onSelected: null,
-                ),
-                PlatformMenuItem(
-                  label: 'Base58Check Decoder',
-                  onSelected: null,
-                ),
+                PlatformMenuItem(label: 'Merkle Tree', onSelected: null),
+                PlatformMenuItem(label: 'Signatures', onSelected: null),
+                PlatformMenuItem(label: 'Base58Check Decoder', onSelected: null),
               ],
             ),
           ],
@@ -330,42 +309,24 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       child: AutoTabsRouter.tabBar(
         key: _routerKey,
         animatePageTransition: false,
-        routes: const [
-          OverviewRoute(),
-          WalletRoute(),
-          SidechainsRoute(),
-          LearnRoute(),
-          SettingsRoute(),
-        ],
+        routes: const [OverviewRoute(), WalletRoute(), SidechainsRoute(), LearnRoute(), SettingsRoute()],
         builder: (context, child, controller) {
           final theme = SailTheme.of(context);
 
           return SelectionArea(
             child: Theme(
               data: Theme.of(context).copyWith(
-                textSelectionTheme: TextSelectionThemeData(
-                  selectionColor: theme.colors.primary.withValues(alpha: 0.2),
-                ),
+                textSelectionTheme: TextSelectionThemeData(selectionColor: theme.colors.primary.withValues(alpha: 0.2)),
               ),
               child: Scaffold(
                 backgroundColor: theme.colors.background,
                 appBar: TopNav(
                   routes: [
-                    TopNavRoute(
-                      label: 'Overview',
-                    ),
-                    TopNavRoute(
-                      label: 'Wallet',
-                    ),
-                    TopNavRoute(
-                      label: 'Sidechains',
-                    ),
-                    TopNavRoute(
-                      label: 'Learn',
-                    ),
-                    TopNavRoute(
-                      icon: SailSVGAsset.settings,
-                    ),
+                    TopNavRoute(label: 'Overview'),
+                    TopNavRoute(label: 'Wallet'),
+                    TopNavRoute(label: 'Sidechains'),
+                    TopNavRoute(label: 'Learn'),
+                    TopNavRoute(icon: SailSVGAsset.settings),
                   ],
                   endWidget: SailButton(
                     onPressed: () async {
@@ -393,13 +354,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void dispose() {
     GetIt.I.get<BinaryProvider>().onShutdown(
-          shutdownOptions: ShutdownOptions(
-            router: GetIt.I.get<AppRouter>(),
-            onComplete: () async {
-              await windowManager.destroy();
-            },
-          ),
-        );
+      shutdownOptions: ShutdownOptions(
+        router: GetIt.I.get<AppRouter>(),
+        onComplete: () async {
+          await windowManager.destroy();
+        },
+      ),
+    );
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -408,13 +369,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void onWindowClose() async {
     await GetIt.I.get<BinaryProvider>().onShutdown(
-          shutdownOptions: ShutdownOptions(
-            router: GetIt.I.get<AppRouter>(),
-            onComplete: () async {
-              await windowManager.destroy();
-            },
-          ),
-        );
+      shutdownOptions: ShutdownOptions(
+        router: GetIt.I.get<AppRouter>(),
+        onComplete: () async {
+          await windowManager.destroy();
+        },
+      ),
+    );
   }
 }
 
@@ -471,17 +432,9 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
   @override
   Widget build(BuildContext context) {
     return BottomNav(
-      additionalConnection: ConnectionMonitor(
-        rpc: bitwindow,
-        name: 'BitWindow',
-      ),
+      additionalConnection: ConnectionMonitor(rpc: bitwindow, name: 'BitWindow'),
       navigateToLogs: (title, logPath) {
-        GetIt.I.get<AppRouter>().push(
-              LogRoute(
-                title: title,
-                logPath: logPath,
-              ),
-            );
+        GetIt.I.get<AppRouter>().push(LogRoute(title: title, logPath: logPath));
       },
       mainchainInfo: true,
       endWidgets: [
@@ -499,9 +452,7 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
           enabled: !blockchainProvider.mainchain.connected,
           child: Tooltip(
             message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-            child: SailText.secondary12(
-              formatTimeDifference(blockchainProvider.peers.length, 'peer'),
-            ),
+            child: SailText.secondary12(formatTimeDifference(blockchainProvider.peers.length, 'peer')),
           ),
         ),
       ],

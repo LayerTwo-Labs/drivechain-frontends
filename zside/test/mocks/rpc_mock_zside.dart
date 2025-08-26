@@ -2,11 +2,11 @@ import 'package:sail_ui/sail_ui.dart';
 
 class MockZSideRPC extends ZSideRPC {
   MockZSideRPC()
-      : super(
-          conf: NodeConnectionSettings('./mocked.conf', 'mock mock', 1337, '', '', true),
-          binaryType: BinaryType.testSidechain,
-          restartOnFailure: false,
-        );
+    : super(
+        conf: NodeConnectionSettings('./mocked.conf', 'mock mock', 1337, '', '', true),
+        binaryType: BinaryType.testSidechain,
+        restartOnFailure: false,
+      );
 
   @override
   Future<dynamic> callRAW(String method, [params]) async {

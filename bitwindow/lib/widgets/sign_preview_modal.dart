@@ -9,12 +9,7 @@ class SignPreviewModal extends StatefulWidget {
   final MultisigGroup group;
   final Future<void> Function() onSignConfirm;
 
-  const SignPreviewModal({
-    super.key,
-    required this.transaction,
-    required this.group,
-    required this.onSignConfirm,
-  });
+  const SignPreviewModal({super.key, required this.transaction, required this.group, required this.onSignConfirm});
 
   @override
   State<SignPreviewModal> createState() => _SignPreviewModalState();
@@ -44,9 +39,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
 
     final walletKeys = group.keys.where((key) => key.isWallet).toList();
     final unsignedWalletKeys = walletKeys
-        .where(
-          (key) => !tx.keyPSBTs.any((kp) => kp.keyId == key.xpub && kp.isSigned),
-        )
+        .where((key) => !tx.keyPSBTs.any((kp) => kp.keyId == key.xpub && kp.isSigned))
         .toList();
 
     return Dialog(
@@ -116,27 +109,18 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                       child: SailColumn(
                         spacing: SailStyleValues.padding04,
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SailText.secondary12('Transaction ID:'),
-                          SailText.primary13(tx.shortId),
-                        ],
+                        children: [SailText.secondary12('Transaction ID:'), SailText.primary13(tx.shortId)],
                       ),
                     ),
                     SailColumn(
                       spacing: SailStyleValues.padding04,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.secondary12('Group:'),
-                        SailText.primary13(group.name),
-                      ],
+                      children: [SailText.secondary12('Group:'), SailText.primary13(group.name)],
                     ),
                   ],
                 ),
                 const SizedBox(height: SailStyleValues.padding08),
-                Container(
-                  height: 1,
-                  color: context.sailTheme.colors.divider,
-                ),
+                Container(height: 1, color: context.sailTheme.colors.divider),
                 const SizedBox(height: SailStyleValues.padding08),
                 SailRow(
                   spacing: SailStyleValues.padding16,
@@ -154,20 +138,14 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                     SailColumn(
                       spacing: SailStyleValues.padding04,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.secondary12('Fee:'),
-                        SailText.primary13('${tx.fee.toStringAsFixed(8)} BTC'),
-                      ],
+                      children: [SailText.secondary12('Fee:'), SailText.primary13('${tx.fee.toStringAsFixed(8)} BTC')],
                     ),
                   ],
                 ),
                 SailColumn(
                   spacing: SailStyleValues.padding04,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.secondary12('Destination:'),
-                    SailText.primary13(tx.destination),
-                  ],
+                  children: [SailText.secondary12('Destination:'), SailText.primary13(tx.destination)],
                 ),
               ],
             ),
@@ -230,11 +208,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                       padding: const EdgeInsets.only(left: 8, top: 4),
                       child: SailRow(
                         children: [
-                          Icon(
-                            Icons.key,
-                            size: 16,
-                            color: Colors.orange.shade600,
-                          ),
+                          Icon(Icons.key, size: 16, color: Colors.orange.shade600),
                           const SizedBox(width: 8),
                           SailText.primary12(key.owner),
                         ],
@@ -263,12 +237,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
             children: group.keys.map((key) {
               final keyPSBT = tx.keyPSBTs.firstWhere(
                 (kp) => kp.keyId == key.xpub,
-                orElse: () => KeyPSBTStatus(
-                  keyId: key.xpub,
-                  psbt: null,
-                  isSigned: false,
-                  signedAt: null,
-                ),
+                orElse: () => KeyPSBTStatus(keyId: key.xpub, psbt: null, isSigned: false, signedAt: null),
               );
 
               final hasUnsignedPSBT = keyPSBT.psbt != null && !keyPSBT.isSigned;
@@ -306,20 +275,13 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                 ),
                 child: SailRow(
                   children: [
-                    Icon(
-                      statusIcon,
-                      size: 16,
-                      color: statusColor,
-                    ),
+                    Icon(statusIcon, size: 16, color: statusColor),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SailColumn(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: SailStyleValues.padding04,
-                        children: [
-                          SailText.primary12(key.owner),
-                          SailText.secondary12(statusText),
-                        ],
+                        children: [SailText.primary12(key.owner), SailText.secondary12(statusText)],
                       ),
                     ),
                     if (isWalletKey)

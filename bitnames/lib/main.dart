@@ -31,17 +31,10 @@ void main(List<String> args) async {
   }
 }
 
-Future<void> runMultiWindow(
-  List<String> args,
-  Logger log,
-  Directory applicationDir,
-  File logFile,
-) async {
+Future<void> runMultiWindow(List<String> args, Logger log, Directory applicationDir, File logFile) async {
   final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
 
-  Widget child = SailCard(
-    child: SailText.primary15('no window type provided, the programmers messed up'),
-  );
+  Widget child = SailCard(child: SailText.primary15('no window type provided, the programmers messed up'));
 
   switch (arguments['window_type']) {
     case 'console':
@@ -86,17 +79,11 @@ Future<void> runMultiWindow(
       },
       appRunner: () {
         log.i('Starting app with Sentry monitoring');
-        return runApp(
-          SentryWidget(
-            child: sailApp,
-          ),
-        );
+        return runApp(SentryWidget(child: sailApp));
       },
     );
   } else {
-    return runApp(
-      sailApp,
-    );
+    return runApp(sailApp);
   }
 }
 
@@ -146,9 +133,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
     log: log,
   );
 
-  GetIt.I.registerLazySingleton<BitnamesProvider>(
-    () => BitnamesProvider(),
-  );
+  GetIt.I.registerLazySingleton<BitnamesProvider>(() => BitnamesProvider());
 
   return (applicationDir, logFile, log);
 }
@@ -206,10 +191,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   );
 }
 
-bool isCurrentChainActive({
-  required List<ActiveSidechain> activeChains,
-  required Binary currentChain,
-}) {
+bool isCurrentChainActive({required List<ActiveSidechain> activeChains, required Binary currentChain}) {
   final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
   return foundMatch != null;
 }

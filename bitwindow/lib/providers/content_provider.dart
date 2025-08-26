@@ -146,11 +146,7 @@ class ContentProvider extends ChangeNotifier {
       final titleMatch = titleRegex.firstMatch(frontMatter);
       final title = titleMatch?.group(1)?.trim().replaceAll("'", '') ?? 'Untitled';
 
-      return Article(
-        title: title,
-        markdown: markdown.trim(),
-        filename: filename,
-      );
+      return Article(title: title, markdown: markdown.trim(), filename: filename);
     }
     return null;
   }

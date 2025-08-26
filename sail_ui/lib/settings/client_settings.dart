@@ -5,10 +5,7 @@ class ClientSettings {
   final KeyValueStore store;
   final Logger log;
 
-  const ClientSettings({
-    required this.store,
-    required this.log,
-  });
+  const ClientSettings({required this.store, required this.log});
 
   Future<SettingValue<T>> getValue<T extends Object>(SettingValue<T> setting) async {
     String? jsonString;

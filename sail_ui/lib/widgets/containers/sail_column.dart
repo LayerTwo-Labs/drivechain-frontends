@@ -43,30 +43,13 @@ class SailColumn extends StatelessWidget {
       mainAxisSize: mainAxisSize,
       children: [
         for (int i = 0; i < children.length; i++) ...[
-          if (i == 0 && leadingSpacing)
-            SailSpacing(
-              spacing,
-            ),
+          if (i == 0 && leadingSpacing) SailSpacing(spacing),
           children[i],
-          if (notLastOrFirst(i) && (isNotOptional(i) || isOptionalWithValue(i)))
-            SailSpacing(
-              spacing,
-            ),
-          if (notLastOrFirst(i) && withDivider)
-            Divider(
-              height: 1,
-              thickness: 0.5,
-              color: theme.colors.divider,
-            ),
+          if (notLastOrFirst(i) && (isNotOptional(i) || isOptionalWithValue(i))) SailSpacing(spacing),
+          if (notLastOrFirst(i) && withDivider) Divider(height: 1, thickness: 0.5, color: theme.colors.divider),
           // add spacing before and after divider
-          if (notLastOrFirst(i) && withDivider)
-            SailSpacing(
-              spacing,
-            ),
-          if (i == (children.length - 1) && trailingSpacing)
-            SailSpacing(
-              spacing,
-            ),
+          if (notLastOrFirst(i) && withDivider) SailSpacing(spacing),
+          if (i == (children.length - 1) && trailingSpacing) SailSpacing(spacing),
         ],
       ],
     );

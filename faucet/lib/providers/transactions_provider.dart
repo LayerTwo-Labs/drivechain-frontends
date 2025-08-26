@@ -40,10 +40,7 @@ class TransactionsProvider extends ChangeNotifier {
     }
   }
 
-  bool _dataHasChanged(
-    List<GetTransactionResponse> newClaims,
-    bool newInitialized,
-  ) {
+  bool _dataHasChanged(List<GetTransactionResponse> newClaims, bool newInitialized) {
     if (newInitialized != initialized) {
       return true;
     }

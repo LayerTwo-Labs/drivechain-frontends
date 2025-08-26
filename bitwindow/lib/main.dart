@@ -99,10 +99,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<MainchainRPC>(() => MainchainRPCLive());
   GetIt.I.registerLazySingleton<EnforcerRPC>(() => EnforcerLive());
 
-  final bitwindow = BitwindowRPCLive(
-    host: Environment.bitwindowdHost.value,
-    port: Environment.bitwindowdPort.value,
-  );
+  final bitwindow = BitwindowRPCLive(host: Environment.bitwindowdHost.value, port: Environment.bitwindowdPort.value);
   GetIt.I.registerLazySingleton<BitwindowRPC>(() => bitwindow);
 
   // now register all sidedchains
@@ -114,7 +111,9 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<WalletProvider>(() => WalletProvider(appDir: applicationDir!));
   GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [bitwindow]));
   GetIt.I.registerLazySingleton<SyncProvider>(
-    () => SyncProvider(additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name)),
+    () => SyncProvider(
+      additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name),
+    ),
   );
   GetIt.I.registerLazySingleton<BlockchainProvider>(() => BlockchainProvider());
   GetIt.I.registerLazySingleton<TransactionProvider>(() => TransactionProvider());
@@ -204,10 +203,7 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
       break;
 
     case SubWindowTypes.logsId:
-      child = LogPage(
-        logPath: logFile.path,
-        title: 'Bitwindow Logs',
-      );
+      child = LogPage(logPath: logFile.path, title: 'Bitwindow Logs');
       break;
 
     case SubWindowTypes.deniabilityId:
@@ -231,34 +227,18 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
       break;
   }
 
-  return runApp(
-    buildSailWindowApp(
-      log,
-      '$windowTitle | Bitwindow',
-      child,
-      const Color.fromARGB(255, 255, 153, 0),
-    ),
-  );
+  return runApp(buildSailWindowApp(log, '$windowTitle | Bitwindow', child, const Color.fromARGB(255, 255, 153, 0)));
 }
 
-Future<void> initDependencies(
-  Logger log,
-  File logFile, {
-  required Directory applicationDir,
-}) async {}
+Future<void> initDependencies(Logger log, File logFile, {required Directory applicationDir}) async {}
 
-void ignoreOverflowErrors(
-  FlutterErrorDetails details, {
-  bool forceReport = false,
-}) {
+void ignoreOverflowErrors(FlutterErrorDetails details, {bool forceReport = false}) {
   bool ifIsOverflowError = false;
 
   // Detect overflow error.
   var exception = details.exception;
   if (exception is FlutterError) {
-    ifIsOverflowError = !exception.diagnostics.any(
-      (e) => e.value.toString().startsWith('A RenderFlex overflowed by'),
-    );
+    ifIsOverflowError = !exception.diagnostics.any((e) => e.value.toString().startsWith('A RenderFlex overflowed by'));
   }
 
   // Ignore if is overflow error.
@@ -296,10 +276,7 @@ class BitwindowApp extends StatelessWidget {
           routerDelegate: router.delegate(),
           routeInformationParser: router.defaultRouteParser(),
           title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-          ),
+          theme: ThemeData(visualDensity: VisualDensity.compact, fontFamily: 'Inter'),
         );
       },
       accentColor: const Color.fromARGB(255, 255, 153, 0),
@@ -415,15 +392,7 @@ class SubWindowTypes {
 }
 
 List<Binary> initalBinaries() {
-  return [
-    BitcoinCore(),
-    Enforcer(),
-    BitWindow(),
-    BitAssets(),
-    Bitnames(),
-    Thunder(),
-    ZSide(),
-  ];
+  return [BitcoinCore(), Enforcer(), BitWindow(), BitAssets(), Bitnames(), Thunder(), ZSide()];
 }
 
 Future<void> initAutoUpdater(Logger log) async {

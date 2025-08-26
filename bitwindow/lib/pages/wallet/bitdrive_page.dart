@@ -59,16 +59,9 @@ class BitDriveTab extends StatelessWidget {
                                   SailRow(
                                     spacing: SailStyleValues.padding08,
                                     children: [
-                                      SailButton(
-                                        label: 'Choose File',
-                                        onPressed: () => model.pickFile(context),
-                                      ),
+                                      SailButton(label: 'Choose File', onPressed: () => model.pickFile(context)),
                                       if (model.selectedFileName != null)
-                                        Expanded(
-                                          child: SailText.secondary13(
-                                            model.selectedFileName!,
-                                          ),
-                                        ),
+                                        Expanded(child: SailText.secondary13(model.selectedFileName!)),
                                       if (model.selectedFileName != null)
                                         SailButton(
                                           variant: ButtonVariant.icon,
@@ -137,12 +130,7 @@ class BitDriveTab extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: context.sailTheme.colors.border,
-                          width: 1.0,
-                        ),
-                      ),
+                      border: Border(top: BorderSide(color: context.sailTheme.colors.border, width: 1.0)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,16 +179,13 @@ class BitDriveTab extends StatelessWidget {
                                   color: context.sailTheme.colors.text,
                                 )
                               : model.pendingDownloadsCount > 0
-                                  ? SailText.primary13(
-                                      '${model.pendingDownloadsCount} new files available for download',
-                                      color: context.sailTheme.colors.text,
-                                    )
-                                  : model.isDownloading
-                                      ? SailText.primary13(
-                                          'Downloading files...',
-                                          color: context.sailTheme.colors.text,
-                                        )
-                                      : null, // No message, but space is still reserved
+                              ? SailText.primary13(
+                                  '${model.pendingDownloadsCount} new files available for download',
+                                  color: context.sailTheme.colors.text,
+                                )
+                              : model.isDownloading
+                              ? SailText.primary13('Downloading files...', color: context.sailTheme.colors.text)
+                              : null, // No message, but space is still reserved
                         ),
                       ],
                     ),
@@ -329,11 +314,7 @@ class BitDriveViewModel extends BaseViewModel {
 
   Future<void> pickFile(BuildContext context) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        allowMultiple: false,
-        withData: true,
-      );
+      final result = await FilePicker.platform.pickFiles(type: FileType.any, allowMultiple: false, withData: true);
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;

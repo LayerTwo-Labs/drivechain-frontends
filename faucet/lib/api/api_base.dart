@@ -20,15 +20,9 @@ class ServiceClients {
   final ExplorerServiceClient explorer;
   final ValidatorServiceClient validator;
 
-  ServiceClients._({
-    required this.faucet,
-    required this.explorer,
-    required this.validator,
-  });
+  ServiceClients._({required this.faucet, required this.explorer, required this.validator});
 
-  factory ServiceClients.setup({
-    required String baseUrl,
-  }) {
+  factory ServiceClients.setup({required String baseUrl}) {
     final httpClient = createHttpClient();
     var transport = protocol.Transport(
       baseUrl: baseUrl,

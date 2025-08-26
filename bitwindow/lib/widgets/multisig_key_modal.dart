@@ -42,27 +42,21 @@ class MultisigKeyModal extends StatelessWidget {
                         hintText: 'Key index',
                         controller: TextEditingController(text: viewModel.keyInfo!['index'].toString()),
                         readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.keyInfo!['index'].toString(),
-                        ),
+                        suffixWidget: CopyButton(text: viewModel.keyInfo!['index'].toString()),
                       ),
                       SailTextField(
                         label: 'Derivation Path',
                         hintText: 'Derivation path',
                         controller: TextEditingController(text: viewModel.keyInfo!['path']),
                         readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.keyInfo!['path'],
-                        ),
+                        suffixWidget: CopyButton(text: viewModel.keyInfo!['path']),
                       ),
                       SailTextField(
                         label: 'Extended Public Key (xpub)',
                         hintText: 'Extended public key',
                         controller: TextEditingController(text: viewModel.keyInfo!['xpub']),
                         readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.keyInfo!['xpub'],
-                        ),
+                        suffixWidget: CopyButton(text: viewModel.keyInfo!['xpub']),
                       ),
                       if (viewModel.keyInfo!['fingerprint'] != null)
                         SailTextField(
@@ -70,9 +64,7 @@ class MultisigKeyModal extends StatelessWidget {
                           hintText: 'Key fingerprint',
                           controller: TextEditingController(text: viewModel.keyInfo!['fingerprint']),
                           readOnly: true,
-                          suffixWidget: CopyButton(
-                            text: viewModel.keyInfo!['fingerprint'],
-                          ),
+                          suffixWidget: CopyButton(text: viewModel.keyInfo!['fingerprint']),
                         ),
                       if (viewModel.keyInfo!['originPath'] != null)
                         SailTextField(
@@ -80,9 +72,7 @@ class MultisigKeyModal extends StatelessWidget {
                           hintText: 'Origin path',
                           controller: TextEditingController(text: viewModel.keyInfo!['originPath']),
                           readOnly: true,
-                          suffixWidget: CopyButton(
-                            text: viewModel.keyInfo!['originPath'],
-                          ),
+                          suffixWidget: CopyButton(text: viewModel.keyInfo!['originPath']),
                         ),
                       const SizedBox(height: 16),
                       SailTextField(

@@ -76,11 +76,7 @@ class TransactionProvider extends ChangeNotifier {
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
         ),
-        update<String>(
-          address,
-          bitwindowd.wallet.getNewAddress,
-          (v) => address = v,
-        ),
+        update<String>(address, bitwindowd.wallet.getNewAddress, (v) => address = v),
         update<List<UnspentOutput>>(
           utxos,
           () async {

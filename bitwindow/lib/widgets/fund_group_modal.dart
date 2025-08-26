@@ -14,10 +14,7 @@ import 'package:stacked/stacked.dart';
 class FundGroupModal extends StatelessWidget {
   final List<MultisigGroup> groups;
 
-  const FundGroupModal({
-    super.key,
-    required this.groups,
-  });
+  const FundGroupModal({super.key, required this.groups});
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +40,7 @@ class FundGroupModal extends StatelessWidget {
                         hintText: 'Funding address',
                         controller: TextEditingController(text: viewModel.currentAddress),
                         readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.currentAddress,
-                        ),
+                        suffixWidget: CopyButton(text: viewModel.currentAddress),
                       ),
                       SailButton(
                         label: 'Close',
@@ -217,12 +212,7 @@ class FundGroupModalViewModel extends BaseViewModel {
 
       if (descriptor == null) {
         try {
-          await walletManager.createWallet(
-            walletName,
-            disablePrivateKeys: true,
-            blank: true,
-            descriptors: true,
-          );
+          await walletManager.createWallet(walletName, disablePrivateKeys: true, blank: true, descriptors: true);
         } catch (e) {
           if (!e.toString().contains('already exists')) {
             MultisigLogger.error('Failed to create multisig wallet $walletName: $e');
@@ -233,13 +223,15 @@ class FundGroupModalViewModel extends BaseViewModel {
         final sortedKeys = List<dynamic>.from(enhancedGroup.keys);
         sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
 
-        final keyDescriptors = sortedKeys.map((key) {
-          if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-            return '[${key.fingerprint!}/${key.originPath!}]${key.xpub}';
-          } else {
-            return key.xpub;
-          }
-        }).join(',');
+        final keyDescriptors = sortedKeys
+            .map((key) {
+              if (key.isWallet && key.fingerprint != null && key.originPath != null) {
+                return '[${key.fingerprint!}/${key.originPath!}]${key.xpub}';
+              } else {
+                return key.xpub;
+              }
+            })
+            .join(',');
 
         final receiveDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/0/*))';
 
@@ -286,13 +278,10 @@ class FundGroupModalViewModel extends BaseViewModel {
 
       int nextIndex = enhancedGroup.nextReceiveIndex;
 
-      final addresses = await api.callRAW(
-        'deriveaddresses',
-        [
-          descriptor,
-          [nextIndex, nextIndex],
-        ],
-      );
+      final addresses = await api.callRAW('deriveaddresses', [
+        descriptor,
+        [nextIndex, nextIndex],
+      ]);
 
       if (addresses is! List || addresses.isEmpty) {
         throw Exception('Failed to derive address from descriptor');
@@ -302,15 +291,9 @@ class FundGroupModalViewModel extends BaseViewModel {
       final addressIndex = nextIndex;
 
       final updatedAddresses = Map<String, dynamic>.from(groupData['addresses'] ?? {});
-      final receiveAddresses = List<Map<String, dynamic>>.from(
-        updatedAddresses['receive'] ?? [],
-      );
+      final receiveAddresses = List<Map<String, dynamic>>.from(updatedAddresses['receive'] ?? []);
 
-      receiveAddresses.add({
-        'index': addressIndex,
-        'address': newAddress,
-        'used': false,
-      });
+      receiveAddresses.add({'index': addressIndex, 'address': newAddress, 'used': false});
 
       updatedAddresses['receive'] = receiveAddresses;
       groupData['addresses'] = updatedAddresses;

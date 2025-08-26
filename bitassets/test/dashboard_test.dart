@@ -27,9 +27,7 @@ void main() {
   // there's timers in sidechainrpc and mainchainrpc, that
   // will get shut off when they're disposed. However, they're
   // not disposed per test!
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized({'flutter.test.automatic_wait_for_timers': 'false'});
 
   setUpAll(() async {
     final sidechainRPC = MockSidechainRPC();
@@ -49,9 +47,7 @@ void main() {
 
   testWidgets('can render and show balance', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpSailPage(
-      const ParentChainPage(),
-    );
+    await tester.pumpSailPage(const ParentChainPage());
     await tester.pumpAndSettle();
   });
 }

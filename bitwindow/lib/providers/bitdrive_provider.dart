@@ -22,12 +22,7 @@ class PendingDownload {
   final int timestamp;
   final String fileType;
 
-  PendingDownload({
-    required this.txid,
-    required this.isEncrypted,
-    required this.timestamp,
-    required this.fileType,
-  });
+  PendingDownload({required this.txid, required this.isEncrypted, required this.timestamp, required this.fileType});
 
   String get fileName => '$timestamp.$fileType';
 }
@@ -585,12 +580,7 @@ class BitDriveProvider extends ChangeNotifier {
           if (await file.exists()) continue;
 
           _pendingDownloads.add(
-            PendingDownload(
-              txid: tx.txid,
-              isEncrypted: isEncrypted,
-              timestamp: timestamp,
-              fileType: fileType,
-            ),
+            PendingDownload(txid: tx.txid, isEncrypted: isEncrypted, timestamp: timestamp, fileType: fileType),
           );
         } catch (e) {
           log.e('BitDrive: Error scanning tx ${tx.txid}: $e');
@@ -607,7 +597,9 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> downloadPendingFiles() async {
-    if (_isDownloading || _pendingDownloads.isEmpty || _bitdriveDir == null) return;
+    if (_isDownloading || _pendingDownloads.isEmpty || _bitdriveDir == null) {
+      return;
+    }
 
     _isDownloading = true;
     error = null;
@@ -700,10 +692,7 @@ class BitDriveProvider extends ChangeNotifier {
     final file = File(path.join(_bitdriveDir!, 'multisig', 'multisig.json'));
 
     // Load existing data or create new structure
-    Map<String, dynamic> jsonData = {
-      'groups': [],
-      'solo_keys': [],
-    };
+    Map<String, dynamic> jsonData = {'groups': [], 'solo_keys': []};
 
     if (await file.exists()) {
       final content = await file.readAsString();

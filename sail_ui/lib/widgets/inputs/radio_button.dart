@@ -50,11 +50,7 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
           color: color,
           boxShadow: enabled ? sailBoxShadow(context) : null,
         ),
-        child: Icon(
-          Icons.circle,
-          size: widget.size / 2,
-          color: SailTheme.of(context).colors.background,
-        ),
+        child: Icon(Icons.circle, size: widget.size / 2, color: SailTheme.of(context).colors.background),
       );
     } else {
       var color = SailTheme.of(context).colors.background;

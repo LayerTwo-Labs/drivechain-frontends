@@ -13,10 +13,7 @@ class UTXOsTab extends StatelessWidget {
         return ViewModelBuilder<LatestUTXOsViewModel>.reactive(
           viewModelBuilder: () => LatestUTXOsViewModel(),
           builder: (context, model, child) {
-            return UTXOTable(
-              entries: model.entries,
-              model: model,
-            );
+            return UTXOTable(entries: model.entries, model: model);
           },
         );
       },
@@ -28,11 +25,7 @@ class UTXOTable extends StatefulWidget {
   final List<SidechainUTXO> entries;
   final LatestUTXOsViewModel model;
 
-  const UTXOTable({
-    super.key,
-    required this.entries,
-    required this.model,
-  });
+  const UTXOTable({super.key, required this.entries, required this.model});
 
   @override
   State<UTXOTable> createState() => _UTXOTableState();
@@ -105,10 +98,7 @@ class _UTXOTableState extends State<UTXOTable> {
                 ],
                 rowBuilder: (context, row, selected) {
                   final utxo = widget.entries[row];
-                  final formattedAmount = formatBitcoin(
-                    satoshiToBTC(utxo.valueSats),
-                    symbol: '',
-                  );
+                  final formattedAmount = formatBitcoin(satoshiToBTC(utxo.valueSats), symbol: '');
                   return [
                     SailTableCell(
                       value: '${utxo.outpoint.substring(0, 6)}..:${utxo.outpoint.split(':').last}',
@@ -120,11 +110,7 @@ class _UTXOTableState extends State<UTXOTable> {
                 },
                 rowCount: widget.entries.length,
                 drawGrid: true,
-                sortColumnIndex: [
-                  'output',
-                  'address',
-                  'value',
-                ].indexOf(sortColumn),
+                sortColumnIndex: ['output', 'address', 'value'].indexOf(sortColumn),
                 sortAscending: sortAscending,
                 onSort: (columnIndex, ascending) {
                   onSort(['output', 'address', 'value'][columnIndex]);

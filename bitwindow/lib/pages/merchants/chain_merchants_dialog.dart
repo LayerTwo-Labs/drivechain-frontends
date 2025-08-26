@@ -7,11 +7,7 @@ class ChainMerchant {
   final String description;
   final String url;
 
-  const ChainMerchant({
-    required this.name,
-    required this.description,
-    required this.url,
-  });
+  const ChainMerchant({required this.name, required this.description, required this.url});
 }
 
 class ChainMerchantsDialog extends StatelessWidget {
@@ -31,11 +27,7 @@ class ChainMerchantsDialog extends StatelessWidget {
       description: 'Buy Bitcoin, but only if you live in Norway',
       url: 'https://barebitcoin.no',
     ),
-    ChainMerchant(
-      name: 'River',
-      description: 'Buy Bitcoin, but only if you live in USA',
-      url: 'https://river.com',
-    ),
+    ChainMerchant(name: 'River', description: 'Buy Bitcoin, but only if you live in USA', url: 'https://river.com'),
     // Add more merchants as needed
   ];
 

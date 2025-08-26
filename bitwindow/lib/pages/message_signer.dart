@@ -17,16 +17,8 @@ class MessageSigner extends StatelessWidget {
           padding: false,
           child: InlineTabBar(
             tabs: const [
-              TabItem(
-                label: 'Sign Message',
-                icon: SailSVGAsset.iconPen,
-                child: SignMessageTab(),
-              ),
-              TabItem(
-                label: 'Verify Message',
-                icon: SailSVGAsset.iconCheck,
-                child: VerifyMessageTab(),
-              ),
+              TabItem(label: 'Sign Message', icon: SailSVGAsset.iconPen, child: SignMessageTab()),
+              TabItem(label: 'Verify Message', icon: SailSVGAsset.iconCheck, child: VerifyMessageTab()),
             ],
             initialIndex: 0,
           ),
@@ -90,35 +82,18 @@ class _SignMessageTabState extends State<SignMessageTab> {
             hintText: '',
           ),
           const SizedBox(height: 24),
-          SailTextField(
-            controller: _messageController,
-            maxLines: 5,
-            hintText: 'Message',
-          ),
+          SailTextField(controller: _messageController, maxLines: 5, hintText: 'Message'),
           const SizedBox(height: 24),
-          SailTextField(
-            controller: _signatureController,
-            readOnly: true,
-            hintText: 'Signature',
-          ),
+          SailTextField(controller: _signatureController, readOnly: true, hintText: 'Signature'),
           const SizedBox(height: 24),
-          SailButton(
-            onPressed: _signMessage,
-            label: 'Sign Message',
-            icon: SailSVGAsset.iconPen,
-          ),
+          SailButton(onPressed: _signMessage, label: 'Sign Message', icon: SailSVGAsset.iconPen),
           if (_error != null) ...[
             const SizedBox(height: 16),
             Row(
               children: [
                 Icon(Icons.error, color: theme.colors.error),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: SailText.primary13(
-                    _error!,
-                    color: theme.colors.error,
-                  ),
-                ),
+                Expanded(child: SailText.primary13(_error!, color: theme.colors.error)),
               ],
             ),
           ],
@@ -190,33 +165,15 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
                 label: 'Enter a Drivechain address (e.g. n2wxQmfexkjwEPgdD6iJA7T7RtzkrnHxhFc)',
                 hintText: '',
               ),
-              SailTextField(
-                controller: _messageController,
-                label: 'Message',
-                maxLines: 5,
-                hintText: '',
-              ),
-              SailTextField(
-                controller: _signatureController,
-                label: 'Signature',
-                hintText: '',
-              ),
-              SailButton(
-                label: 'Verify Message',
-                icon: SailSVGAsset.iconQuestion,
-                onPressed: _verifyMessage,
-              ),
+              SailTextField(controller: _messageController, label: 'Message', maxLines: 5, hintText: ''),
+              SailTextField(controller: _signatureController, label: 'Signature', hintText: ''),
+              SailButton(label: 'Verify Message', icon: SailSVGAsset.iconQuestion, onPressed: _verifyMessage),
               if (_error != null) ...[
                 Row(
                   children: [
                     Icon(Icons.error, color: theme.colors.error),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: SailText.primary13(
-                        _error!,
-                        color: theme.colors.error,
-                      ),
-                    ),
+                    Expanded(child: SailText.primary13(_error!, color: theme.colors.error)),
                   ],
                 ),
               ],

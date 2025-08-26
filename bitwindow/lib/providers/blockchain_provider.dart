@@ -68,11 +68,7 @@ class BlockchainProvider extends ChangeNotifier {
     }
   }
 
-  bool _dataHasChanged(
-    List<Peer> newPeers,
-    List<RecentTransaction> newTXs,
-    List<Block> newBlocks,
-  ) {
+  bool _dataHasChanged(List<Peer> newPeers, List<RecentTransaction> newTXs, List<Block> newBlocks) {
     if (!listEquals(peers, newPeers)) {
       return true;
     }
@@ -124,9 +120,7 @@ class BlockchainProvider extends ChangeNotifier {
     isLoadingMoreBlocks = true;
     try {
       final lastBlock = blocks.last;
-      final (moreBlocks, hasMore) = await bitwindowd.bitcoind.listBlocks(
-        startHeight: lastBlock.height - 1,
-      );
+      final (moreBlocks, hasMore) = await bitwindowd.bitcoind.listBlocks(startHeight: lastBlock.height - 1);
 
       // Filter out blocks we've already loaded
       final newBlocks = moreBlocks.where((b) => !loadedBlockHeights.contains(b.height)).toList();

@@ -17,10 +17,7 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
       ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: 1200,
-          maxWidth: 1000,
-        ),
+        constraints: BoxConstraints(maxHeight: 1200, maxWidth: 1000),
         child: ViewModelBuilder.reactive(
           viewModelBuilder: () => CoinNewsViewModel(),
           builder: (context, model, child) => CoinNewsView(),

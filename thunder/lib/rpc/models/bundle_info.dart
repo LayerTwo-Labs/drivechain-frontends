@@ -4,12 +4,7 @@ class BundleInfo {
   final int weight;
   final int height;
 
-  BundleInfo({
-    required this.amountSatoshi,
-    required this.feesSatoshi,
-    required this.weight,
-    required this.height,
-  });
+  BundleInfo({required this.amountSatoshi, required this.feesSatoshi, required this.weight, required this.height});
 
   factory BundleInfo.fromJson(Map<String, dynamic> json) {
     return BundleInfo(
@@ -21,11 +16,6 @@ class BundleInfo {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'amount': amountSatoshi,
-      'fees': feesSatoshi,
-      'weight': weight,
-      'height': height,
-    };
+    return {'amount': amountSatoshi, 'fees': feesSatoshi, 'weight': weight, 'height': height};
   }
 }
