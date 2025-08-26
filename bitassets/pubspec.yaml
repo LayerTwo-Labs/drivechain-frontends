@@ -30,7 +30,7 @@ dependencies:
   qr_flutter: ^4.1.0
   window_manager: ^0.5.0
   collection: ^1.18.0
-  stacked: ^3.4.3
+  stacked: ^3.5.0
   desktop_multi_window: ^0.2.1
   synchronized: ^3.4.0
   intl: ^0.20.2
