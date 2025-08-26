@@ -125,18 +125,18 @@ packages:
     dependency: "direct main"
     description:
       name: bitcoin_base
-      sha256: "3de225565a5447d616b4f3dce9f6740ba898e70211ab77f48e2aac3cabdf86c3"
+      sha256: "7a5667b96f5550dd81f73517b0b431987a9e51a17d756955f2a9e1e2626dc8e7"
       url: "https://pub.dev"
     source: hosted
-    version: "6.7.0"
+    version: "6.8.0"
   blockchain_utils:
     dependency: "direct main"
     description:
       name: blockchain_utils
-      sha256: "2681bc950d31fd12eff8b9ea803d686a845a69f94fa88fdefc8c12ad63f55837"
+      sha256: edc360f7f2a8978d089a34dd62a5dfad303c79260e5f6207e1709fed80c84334
       url: "https://pub.dev"
     source: hosted
-    version: "5.1.0"
+    version: "5.2.0"
   boolean_selector:
     dependency: transitive
     description:
