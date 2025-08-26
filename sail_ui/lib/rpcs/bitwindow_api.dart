@@ -11,8 +11,8 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.connect.client.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' hide UnspentOutput;
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.connect.client.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.connect.client.dart';
@@ -67,7 +67,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
-    bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
+    bitcoind = _BitcoindAPILive(BitcoinServiceClient(transport));
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
     misc = _MiscAPILive(MiscServiceClient(transport));
     health = _HealthAPILive(HealthServiceClient(transport));
@@ -309,6 +309,9 @@ abstract class BitwindowAPI {
   Future<void> setTransactionNote(String txid, String note);
 
   Future<GetFireplaceStatsResponse> getFireplaceStats();
+
+  Future<List<RecentTransaction>> listRecentTransactions();
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
 }
 
 class _BitwindowAPILive implements BitwindowAPI {
@@ -388,6 +391,32 @@ class _BitwindowAPILive implements BitwindowAPI {
   Future<GetFireplaceStatsResponse> getFireplaceStats() async {
     final response = await _client.getFireplaceStats(Empty());
     return response;
+  }
+
+  @override
+  Future<List<RecentTransaction>> listRecentTransactions() async {
+    try {
+      final response = await _client.listRecentTransactions(ListRecentTransactionsRequest()..count = Int64(20));
+      return response.transactions;
+    } catch (e) {
+      final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) async {
+    try {
+      final response = await _client.listBlocks(
+        ListBlocksRequest()
+          ..startHeight = startHeight
+          ..pageSize = pageSize,
+      );
+      return (response.recentBlocks, response.hasMore);
+    } catch (e) {
+      final error = 'could not list blocks: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
   }
 }
 
@@ -572,12 +601,10 @@ class _WalletAPILive implements WalletAPI {
 
 abstract class BitcoindAPI {
   Future<List<Peer>> listPeers();
-  Future<List<RecentTransaction>> listRecentTransactions();
-  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
   Future<GetBlockchainInfoResponse> getBlockchainInfo();
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
   Future<GetRawTransactionResponse> getRawTransaction(String txid);
-  Future<Block> getBlock({String? hash, int? height});
+  Future<GetBlockResponse> getBlock({String? hash, int? height});
 
   Future<CreateWalletResponse> createWallet(
     String name,
@@ -627,49 +654,23 @@ abstract class BitcoindAPI {
 }
 
 class _BitcoindAPILive implements BitcoindAPI {
-  final BitcoindServiceClient _client;
+  final BitcoinServiceClient _client;
   Logger get log => GetIt.I.get<Logger>();
 
   _BitcoindAPILive(this._client);
 
   @override
-  Future<List<RecentTransaction>> listRecentTransactions() async {
-    try {
-      final response = await _client.listRecentTransactions(ListRecentTransactionsRequest()..count = Int64(20));
-      return response.transactions;
-    } catch (e) {
-      final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) async {
-    try {
-      final response = await _client.listBlocks(
-        ListBlocksRequest()
-          ..startHeight = startHeight
-          ..pageSize = pageSize,
-      );
-      return (response.recentBlocks, response.hasMore);
-    } catch (e) {
-      final error = 'could not list blocks: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
   Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
     // This should not try catched because callers elsewhere expect
     // it to throw if the connection is not live.
-    final response = await _client.getBlockchainInfo(Empty());
+    final response = await _client.getBlockchainInfo(GetBlockchainInfoRequest());
     return response;
   }
 
   @override
   Future<List<Peer>> listPeers() async {
     try {
-      final response = await _client.listPeers(Empty());
+      final response = await _client.getPeerInfo(GetPeerInfoRequest());
       return response.peers;
     } catch (e) {
       final error = 'could not list peers: ${extractConnectException(e)}';
@@ -700,7 +701,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<Block> getBlock({String? hash, int? height}) async {
+  Future<GetBlockResponse> getBlock({String? hash, int? height}) async {
     try {
       final request = GetBlockRequest();
       if (hash != null) {
@@ -713,7 +714,7 @@ class _BitcoindAPILive implements BitcoindAPI {
 
       final response = await _client.getBlock(request);
 
-      return response.block;
+      return response;
     } catch (e) {
       final error = 'could not get block: ${extractConnectException(e)}';
       throw BitcoindException(error);

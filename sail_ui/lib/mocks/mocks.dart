@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
 class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
@@ -876,16 +877,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<List<RecentTransaction>> listRecentTransactions() {
-    return Future.value([]);
-  }
-
-  @override
-  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) {
-    return Future.value((<Block>[], false));
-  }
-
-  @override
   Future<GetBlockchainInfoResponse> getBlockchainInfo() {
     return Future.value(GetBlockchainInfoResponse());
   }
@@ -901,8 +892,8 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<Block> getBlock({String? hash, int? height}) async {
-    return Block();
+  Future<GetBlockResponse> getBlock({String? hash, int? height}) async {
+    return GetBlockResponse();
   }
 
   @override

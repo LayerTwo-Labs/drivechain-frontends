@@ -82,4 +82,20 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
     bitwindowdv1bitwindowd.GetFireplaceStatsResponse.new,
   );
+
+  /// Lists the most recent transactions, both confirmed and unconfirmed.
+  static const listRecentTransactions = connect.Spec(
+    '/$name/ListRecentTransactions',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListRecentTransactionsRequest.new,
+    bitwindowdv1bitwindowd.ListRecentTransactionsResponse.new,
+  );
+
+  /// Lists blocks with pagination support
+  static const listBlocks = connect.Spec(
+    '/$name/ListBlocks',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListBlocksRequest.new,
+    bitwindowdv1bitwindowd.ListBlocksResponse.new,
+  );
 }

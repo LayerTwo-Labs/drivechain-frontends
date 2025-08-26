@@ -15,7 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../bitwindowd/v1/bitwindowd.pb.dart' as $3;
+import '../../bitwindowd/v1/bitwindowd.pb.dart' as $2;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
 
@@ -364,7 +364,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $fixnum.Int64? valueSats,
     $core.bool? isChange,
     $0.Timestamp? receivedAt,
-    $3.DenialInfo? denialInfo,
+    $2.DenialInfo? denialInfo,
   }) {
     final $result = create();
     if (output != null) {
@@ -401,7 +401,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(5, _omitFieldNames ? '' : 'isChange')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
-    ..aOM<$3.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $3.DenialInfo.create)
+    ..aOM<$2.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $2.DenialInfo.create)
     ..hasRequiredFields = false
   ;
 
@@ -490,15 +490,15 @@ class UnspentOutput extends $pb.GeneratedMessage {
 
   /// If set, this utxo is part of a denial chain
   @$pb.TagNumber(7)
-  $3.DenialInfo get denialInfo => $_getN(6);
+  $2.DenialInfo get denialInfo => $_getN(6);
   @$pb.TagNumber(7)
-  set denialInfo($3.DenialInfo v) { setField(7, v); }
+  set denialInfo($2.DenialInfo v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasDenialInfo() => $_has(6);
   @$pb.TagNumber(7)
   void clearDenialInfo() => clearField(7);
   @$pb.TagNumber(7)
-  $3.DenialInfo ensureDenialInfo() => $_ensure(6);
+  $2.DenialInfo ensureDenialInfo() => $_ensure(6);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {

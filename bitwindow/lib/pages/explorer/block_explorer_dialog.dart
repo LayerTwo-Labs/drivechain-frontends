@@ -2,6 +2,7 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -332,7 +333,27 @@ class BlockExplorerViewModel extends BaseViewModel {
         height: int.tryParse(query),
         hash: int.tryParse(query) == null ? query : null,
       );
-      await blockViewBuilder(block);
+      // the bitcoind rpc `getblock` returns a slightly
+      // different data model than the bitwindowd rpc `listblocks`
+      final converted = Block(
+        hash: block.hash,
+        height: block.height,
+        blockTime: block.time,
+        merkleRoot: block.merkleRoot,
+        version: block.version,
+        previousBlockHash: block.previousBlockHash,
+        nonce: block.nonce,
+        bits: block.bits,
+        difficulty: block.difficulty,
+        txids: block.txids,
+        confirmations: block.confirmations,
+        size: block.size,
+        weight: block.weight,
+        versionHex: block.versionHex,
+        nextBlockHash: block.nextBlockHash,
+        strippedSize: block.strippedSize,
+      );
+      await blockViewBuilder(converted);
     } catch (e) {
       // Show error dialog
     }

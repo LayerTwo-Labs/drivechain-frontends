@@ -4,7 +4,6 @@ modules:
   - path: proto
     name: buf.build/layertwo-labs/faucetd
 deps:
-  - buf.build/bitcoin/bitcoind
   - buf.build/bufbuild/protovalidate
 
 lint:
@@ -17,4 +16,3 @@ lint:
 breaking:
   use:
     - FILE
-

@@ -255,6 +255,118 @@ final $typed_data.Uint8List getFireplaceStatsResponseDescriptor = $convert.base6
     'EoA1ITdHJhbnNhY3Rpb25Db3VudDI0aBIqChFjb2lubmV3c19jb3VudF83ZBgCIAEoA1IPY29p'
     'bm5ld3NDb3VudDdkEiYKD2Jsb2NrX2NvdW50XzI0aBgDIAEoA1INYmxvY2tDb3VudDI0aA==');
 
+@$core.Deprecated('Use listRecentTransactionsRequestDescriptor instead')
+const ListRecentTransactionsRequest$json = {
+  '1': 'ListRecentTransactionsRequest',
+  '2': [
+    {'1': 'count', '3': 1, '4': 1, '5': 3, '10': 'count'},
+  ],
+};
+
+/// Descriptor for `ListRecentTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listRecentTransactionsRequestDescriptor = $convert.base64Decode(
+    'Ch1MaXN0UmVjZW50VHJhbnNhY3Rpb25zUmVxdWVzdBIUCgVjb3VudBgBIAEoA1IFY291bnQ=');
+
+@$core.Deprecated('Use listRecentTransactionsResponseDescriptor instead')
+const ListRecentTransactionsResponse$json = {
+  '1': 'ListRecentTransactionsResponse',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.RecentTransaction', '10': 'transactions'},
+  ],
+};
+
+/// Descriptor for `ListRecentTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listRecentTransactionsResponseDescriptor = $convert.base64Decode(
+    'Ch5MaXN0UmVjZW50VHJhbnNhY3Rpb25zUmVzcG9uc2USRAoMdHJhbnNhY3Rpb25zGAEgAygLMi'
+    'AuYml0d2luZG93ZC52MS5SZWNlbnRUcmFuc2FjdGlvblIMdHJhbnNhY3Rpb25z');
+
+@$core.Deprecated('Use recentTransactionDescriptor instead')
+const RecentTransaction$json = {
+  '1': 'RecentTransaction',
+  '2': [
+    {'1': 'virtual_size', '3': 1, '4': 1, '5': 13, '10': 'virtualSize'},
+    {'1': 'time', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'time'},
+    {'1': 'txid', '3': 3, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'fee_sats', '3': 4, '4': 1, '5': 4, '10': 'feeSats'},
+    {'1': 'confirmed_in_block', '3': 5, '4': 1, '5': 13, '9': 0, '10': 'confirmedInBlock', '17': true},
+  ],
+  '8': [
+    {'1': '_confirmed_in_block'},
+  ],
+};
+
+/// Descriptor for `RecentTransaction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recentTransactionDescriptor = $convert.base64Decode(
+    'ChFSZWNlbnRUcmFuc2FjdGlvbhIhCgx2aXJ0dWFsX3NpemUYASABKA1SC3ZpcnR1YWxTaXplEi'
+    '4KBHRpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgR0aW1lEhIKBHR4aWQY'
+    'AyABKAlSBHR4aWQSGQoIZmVlX3NhdHMYBCABKARSB2ZlZVNhdHMSMQoSY29uZmlybWVkX2luX2'
+    'Jsb2NrGAUgASgNSABSEGNvbmZpcm1lZEluQmxvY2uIAQFCFQoTX2NvbmZpcm1lZF9pbl9ibG9j'
+    'aw==');
+
+@$core.Deprecated('Use listBlocksRequestDescriptor instead')
+const ListBlocksRequest$json = {
+  '1': 'ListBlocksRequest',
+  '2': [
+    {'1': 'start_height', '3': 1, '4': 1, '5': 13, '10': 'startHeight'},
+    {'1': 'page_size', '3': 2, '4': 1, '5': 13, '10': 'pageSize'},
+  ],
+};
+
+/// Descriptor for `ListBlocksRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listBlocksRequestDescriptor = $convert.base64Decode(
+    'ChFMaXN0QmxvY2tzUmVxdWVzdBIhCgxzdGFydF9oZWlnaHQYASABKA1SC3N0YXJ0SGVpZ2h0Eh'
+    'sKCXBhZ2Vfc2l6ZRgCIAEoDVIIcGFnZVNpemU=');
+
+@$core.Deprecated('Use blockDescriptor instead')
+const Block$json = {
+  '1': 'Block',
+  '2': [
+    {'1': 'block_time', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'blockTime'},
+    {'1': 'height', '3': 2, '4': 1, '5': 13, '10': 'height'},
+    {'1': 'hash', '3': 3, '4': 1, '5': 9, '10': 'hash'},
+    {'1': 'confirmations', '3': 4, '4': 1, '5': 5, '10': 'confirmations'},
+    {'1': 'version', '3': 5, '4': 1, '5': 5, '10': 'version'},
+    {'1': 'version_hex', '3': 6, '4': 1, '5': 9, '10': 'versionHex'},
+    {'1': 'merkle_root', '3': 7, '4': 1, '5': 9, '10': 'merkleRoot'},
+    {'1': 'nonce', '3': 8, '4': 1, '5': 13, '10': 'nonce'},
+    {'1': 'bits', '3': 9, '4': 1, '5': 9, '10': 'bits'},
+    {'1': 'difficulty', '3': 10, '4': 1, '5': 1, '10': 'difficulty'},
+    {'1': 'previous_block_hash', '3': 11, '4': 1, '5': 9, '10': 'previousBlockHash'},
+    {'1': 'next_block_hash', '3': 12, '4': 1, '5': 9, '10': 'nextBlockHash'},
+    {'1': 'stripped_size', '3': 13, '4': 1, '5': 5, '10': 'strippedSize'},
+    {'1': 'size', '3': 14, '4': 1, '5': 5, '10': 'size'},
+    {'1': 'weight', '3': 15, '4': 1, '5': 5, '10': 'weight'},
+    {'1': 'txids', '3': 16, '4': 3, '5': 9, '10': 'txids'},
+  ],
+};
+
+/// Descriptor for `Block`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List blockDescriptor = $convert.base64Decode(
+    'CgVCbG9jaxI5CgpibG9ja190aW1lGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcF'
+    'IJYmxvY2tUaW1lEhYKBmhlaWdodBgCIAEoDVIGaGVpZ2h0EhIKBGhhc2gYAyABKAlSBGhhc2gS'
+    'JAoNY29uZmlybWF0aW9ucxgEIAEoBVINY29uZmlybWF0aW9ucxIYCgd2ZXJzaW9uGAUgASgFUg'
+    'd2ZXJzaW9uEh8KC3ZlcnNpb25faGV4GAYgASgJUgp2ZXJzaW9uSGV4Eh8KC21lcmtsZV9yb290'
+    'GAcgASgJUgptZXJrbGVSb290EhQKBW5vbmNlGAggASgNUgVub25jZRISCgRiaXRzGAkgASgJUg'
+    'RiaXRzEh4KCmRpZmZpY3VsdHkYCiABKAFSCmRpZmZpY3VsdHkSLgoTcHJldmlvdXNfYmxvY2tf'
+    'aGFzaBgLIAEoCVIRcHJldmlvdXNCbG9ja0hhc2gSJgoPbmV4dF9ibG9ja19oYXNoGAwgASgJUg'
+    '1uZXh0QmxvY2tIYXNoEiMKDXN0cmlwcGVkX3NpemUYDSABKAVSDHN0cmlwcGVkU2l6ZRISCgRz'
+    'aXplGA4gASgFUgRzaXplEhYKBndlaWdodBgPIAEoBVIGd2VpZ2h0EhQKBXR4aWRzGBAgAygJUg'
+    'V0eGlkcw==');
+
+@$core.Deprecated('Use listBlocksResponseDescriptor instead')
+const ListBlocksResponse$json = {
+  '1': 'ListBlocksResponse',
+  '2': [
+    {'1': 'recent_blocks', '3': 4, '4': 3, '5': 11, '6': '.bitwindowd.v1.Block', '10': 'recentBlocks'},
+    {'1': 'has_more', '3': 5, '4': 1, '5': 8, '10': 'hasMore'},
+  ],
+};
+
+/// Descriptor for `ListBlocksResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listBlocksResponseDescriptor = $convert.base64Decode(
+    'ChJMaXN0QmxvY2tzUmVzcG9uc2USOQoNcmVjZW50X2Jsb2NrcxgEIAMoCzIULmJpdHdpbmRvd2'
+    'QudjEuQmxvY2tSDHJlY2VudEJsb2NrcxIZCghoYXNfbW9yZRgFIAEoCFIHaGFzTW9yZQ==');
+
 const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
@@ -268,6 +380,8 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'GetSyncInfo', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetSyncInfoResponse'},
     {'1': 'SetTransactionNote', '2': '.bitwindowd.v1.SetTransactionNoteRequest', '3': '.google.protobuf.Empty'},
     {'1': 'GetFireplaceStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetFireplaceStatsResponse'},
+    {'1': 'ListRecentTransactions', '2': '.bitwindowd.v1.ListRecentTransactionsRequest', '3': '.bitwindowd.v1.ListRecentTransactionsResponse'},
+    {'1': 'ListBlocks', '2': '.bitwindowd.v1.ListBlocksRequest', '3': '.bitwindowd.v1.ListBlocksResponse'},
   ],
 };
 
@@ -286,6 +400,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.GetSyncInfoResponse': GetSyncInfoResponse$json,
   '.bitwindowd.v1.SetTransactionNoteRequest': SetTransactionNoteRequest$json,
   '.bitwindowd.v1.GetFireplaceStatsResponse': GetFireplaceStatsResponse$json,
+  '.bitwindowd.v1.ListRecentTransactionsRequest': ListRecentTransactionsRequest$json,
+  '.bitwindowd.v1.ListRecentTransactionsResponse': ListRecentTransactionsResponse$json,
+  '.bitwindowd.v1.RecentTransaction': RecentTransaction$json,
+  '.bitwindowd.v1.ListBlocksRequest': ListBlocksRequest$json,
+  '.bitwindowd.v1.ListBlocksResponse': ListBlocksResponse$json,
+  '.bitwindowd.v1.Block': Block$json,
 };
 
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -305,5 +425,9 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'd2luZG93ZC52MS5HZXRTeW5jSW5mb1Jlc3BvbnNlElYKElNldFRyYW5zYWN0aW9uTm90ZRIoLm'
     'JpdHdpbmRvd2QudjEuU2V0VHJhbnNhY3Rpb25Ob3RlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1'
     'Zi5FbXB0eRJVChFHZXRGaXJlcGxhY2VTdGF0cxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRooLm'
-    'JpdHdpbmRvd2QudjEuR2V0RmlyZXBsYWNlU3RhdHNSZXNwb25zZQ==');
+    'JpdHdpbmRvd2QudjEuR2V0RmlyZXBsYWNlU3RhdHNSZXNwb25zZRJ1ChZMaXN0UmVjZW50VHJh'
+    'bnNhY3Rpb25zEiwuYml0d2luZG93ZC52MS5MaXN0UmVjZW50VHJhbnNhY3Rpb25zUmVxdWVzdB'
+    'otLmJpdHdpbmRvd2QudjEuTGlzdFJlY2VudFRyYW5zYWN0aW9uc1Jlc3BvbnNlElEKCkxpc3RC'
+    'bG9ja3MSIC5iaXR3aW5kb3dkLnYxLkxpc3RCbG9ja3NSZXF1ZXN0GiEuYml0d2luZG93ZC52MS'
+    '5MaXN0QmxvY2tzUmVzcG9uc2U=');
 
