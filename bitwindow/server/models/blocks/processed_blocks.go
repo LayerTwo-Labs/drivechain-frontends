@@ -9,22 +9,34 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/rs/zerolog"
 )
 
 func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
-	var pb ProcessedBlock
-	var txidsJSON string
+	var (
+		pb           ProcessedBlock
+		txidsJSON    string
+		rawBlockHash string
+	)
+
 	err := db.QueryRowContext(ctx, `
 	SELECT height, block_hash, txids, block_time, processed_at
 	FROM processed_blocks 
 	ORDER BY height DESC 
 	LIMIT 1
-	`).Scan(&pb.Height, &pb.Hash, &txidsJSON, &pb.BlockTime, &pb.ProcessedAt)
+	`).Scan(&pb.Height, &rawBlockHash, &txidsJSON, &pb.BlockTime, &pb.ProcessedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("query processed tip: %w", err)
 	}
+
+	hash, err := chainhash.NewHashFromStr(rawBlockHash)
+	if err != nil {
+		return nil, err
+	}
+	pb.Hash = *hash
 
 	if err := json.Unmarshal([]byte(txidsJSON), &pb.Txids); err != nil {
 		return nil, fmt.Errorf("unmarshal txids: %w", err)
@@ -38,6 +50,8 @@ func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBloc
 	if len(blocks) == 0 {
 		return nil
 	}
+
+	start := time.Now()
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -55,12 +69,18 @@ func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBloc
 	}
 	defer stmt.Close()
 
+	var bestBlockHeight uint32
 	for _, block := range blocks {
+		bestBlockHeight = max(bestBlockHeight, block.Height)
+
 		txidsJSON, err := json.Marshal(block.Txids)
 		if err != nil {
 			return fmt.Errorf("marshal txids: %w", err)
 		}
-		_, err = stmt.ExecContext(ctx, block.Height, block.Hash, string(txidsJSON), block.BlockTime, time.Now())
+		_, err = stmt.ExecContext(
+			ctx, block.Height, block.Hash.String(),
+			string(txidsJSON), block.BlockTime, time.Now(),
+		)
 		if err != nil {
 			return fmt.Errorf("exec stmt: %w", err)
 		}
@@ -70,36 +90,74 @@ func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBloc
 		return fmt.Errorf("commit tx: %w", err)
 	}
 
+	zerolog.Ctx(ctx).Debug().
+		Msgf("blocks: marked %d as processed in %s, best block height: %d", len(blocks), time.Since(start), bestBlockHeight)
+
 	return nil
 }
 
 func WipeProcessedBlocks(ctx context.Context, db *sql.DB) error {
-	_, err := db.ExecContext(ctx, `DELETE FROM processed_blocks`)
+	start := time.Now()
+	tag, err := db.ExecContext(ctx, `DELETE FROM processed_blocks`)
 	if err != nil {
 		return fmt.Errorf("wipe processed blocks: %w", err)
 	}
+
+	if rows, _ := tag.RowsAffected(); rows > 0 {
+		zerolog.Ctx(ctx).Debug().
+			Msgf("blocks: wiped %d processed blocks in %s", rows, time.Since(start))
+	}
+
 	return nil
 }
 
 type ProcessedBlock struct {
-	Height      int32
-	Hash        string
+	Height      uint32
+	Hash        chainhash.Hash
 	BlockTime   time.Time
 	ProcessedAt time.Time
-	Txids       []string
+	Txids       []chainhash.Hash
 }
 
-func GetProcessedBlock(ctx context.Context, db *sql.DB, height int32) (ProcessedBlock, error) {
-	var pb ProcessedBlock
-	var txidsJSON string
-	err := db.QueryRowContext(ctx, `SELECT height, block_hash, txids, block_time, processed_at FROM processed_blocks WHERE height = ?`, height).Scan(&pb.Height, &pb.Hash, &txidsJSON, &pb.BlockTime, &pb.ProcessedAt)
+func GetProcessedBlock(ctx context.Context, db *sql.DB, height uint32) (ProcessedBlock, error) {
+	var (
+		pb           ProcessedBlock
+		rawBlockHash string
+		// JSON-encoded array of strings, nice
+		rawJsonTxids string
+	)
+	const query = `
+		SELECT height, block_hash, txids, block_time, processed_at 
+		FROM processed_blocks 
+		WHERE height = ?
+	`
+	err := db.
+		QueryRowContext(ctx, query, height).
+		Scan(&pb.Height, &rawBlockHash, &rawJsonTxids, &pb.BlockTime, &pb.ProcessedAt)
 	if err != nil {
 		return ProcessedBlock{}, fmt.Errorf("get processed block: %w", err)
 	}
 
-	if err := json.Unmarshal([]byte(txidsJSON), &pb.Txids); err != nil {
+	hash, err := chainhash.NewHashFromStr(rawBlockHash)
+	if err != nil {
+		return ProcessedBlock{}, fmt.Errorf("parse block hash: %w", err)
+	}
+	pb.Hash = *hash
+
+	var rawTxids []string
+	if err := json.Unmarshal([]byte(rawJsonTxids), &rawTxids); err != nil {
 		return ProcessedBlock{}, fmt.Errorf("unmarshal txids: %w", err)
 	}
+
+	var parsedTXIDs []chainhash.Hash
+	for _, rawTXID := range rawTxids {
+		txid, err := chainhash.NewHashFromStr(rawTXID)
+		if err != nil {
+			return ProcessedBlock{}, fmt.Errorf("parse txid: %w", err)
+		}
+		parsedTXIDs = append(parsedTXIDs, *txid)
+	}
+	pb.Txids = parsedTXIDs
 
 	return pb, nil
 }

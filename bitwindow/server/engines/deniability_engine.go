@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -52,7 +53,9 @@ func (e *DeniabilityEngine) Run(ctx context.Context) error {
 
 		case <-ticker.C:
 			if err := e.checkDenials(ctx); err != nil {
-				logger.Debug().Err(err).Msg("error checking denials")
+				if !strings.Contains(err.Error(), "does not accept connections") {
+					logger.Debug().Err(err).Msg("error checking denials")
+				}
 				continue
 			}
 		}

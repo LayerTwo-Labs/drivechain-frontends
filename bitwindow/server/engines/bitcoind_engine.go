@@ -1,8 +1,10 @@
 package engines
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -17,7 +19,9 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
@@ -49,48 +53,28 @@ func (p *Parser) Run(ctx context.Context) error {
 	alertTicker := time.NewTicker(2 * time.Second)
 	defer alertTicker.Stop()
 
-	mempoolTicker := time.NewTicker(1 * time.Second)
-	defer mempoolTicker.Stop()
-
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: started parser ticker")
 
-	processing := false
 	for {
 		select {
 		case <-ctx.Done():
-			zerolog.Ctx(ctx).Info().
+			zerolog.Ctx(ctx).Info().Err(ctx.Err()).
 				Msgf("bitcoind_engine/parser: stopping parser ticker")
 			return nil
 
 		case <-alertTicker.C:
-			if processing {
-				zerolog.Ctx(ctx).Trace().
-					Msgf("bitcoind_engine/parser: still processing block, skipping alert tick")
-				continue
-			}
-
-			// nolint:ineffassign
-			processing = true
 
 			zerolog.Ctx(ctx).Trace().
 				Msgf("bitcoind_engine/parser: processing block tick")
 
 			if err := p.handleBlockTick(ctx); err != nil {
-				return err
+				return fmt.Errorf("handle block tick: %w", err)
 			}
 
 			zerolog.Ctx(ctx).Trace().
 				Msgf("bitcoind_engine/parser: finished processing block tick")
-			processing = false
 
-		case <-mempoolTicker.C:
-			if err := p.handleMempoolTick(ctx); err != nil {
-				zerolog.Ctx(ctx).Error().
-					Err(err).
-					Msgf("bitcoind_engine/parser: could not handle mempool tick")
-				continue
-			}
 		}
 	}
 }
@@ -103,16 +87,21 @@ type BlockResult struct {
 
 func (p *Parser) handleBlockTick(ctx context.Context) error {
 
-	err := p.ensureSyncIsHealthy(ctx)
-	if err != nil && strings.Contains(err.Error(), "Block height out of range") {
+	switch err := p.ensureSyncIsHealthy(ctx); {
+	case err != nil &&
+		strings.Contains(err.Error(), "Block height out of range"):
+
 		zerolog.Ctx(ctx).Info().
 			Msgf("bitcoind_engine/parser: still in IBD, waiting for header download..")
 		return nil
-	} else if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not detect chain deletion")
+
+	case connect.CodeOf(err) == connect.CodeUnavailable:
+		zerolog.Ctx(ctx).Warn().Err(err).
+			Msgf("bitcoind_engine/parser: bitcoin core is not available, waiting for connection..")
 		return nil
+
+	case err != nil:
+		return err
 	}
 
 	zerolog.Ctx(ctx).Trace().
@@ -129,20 +118,17 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 
 	var (
 		lastProcessedHeight uint32
-		lastProcessedHash   string
+		lastProcessedHash   chainhash.Hash
 	)
 	if lastProcessedBlock != nil {
-		lastProcessedHeight = uint32(lastProcessedBlock.Height)
+		lastProcessedHeight = lastProcessedBlock.Height
 		lastProcessedHash = lastProcessedBlock.Hash
 	}
 
 	// Get current blockchain height
 	currentHeight, currentHash, err := p.currentHeight(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not get current height")
-		return nil
+		return fmt.Errorf("fetch current height: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Trace().
@@ -169,65 +155,66 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			batchEnd = min(batchEnd, p.conf.SyncToHeight)
 		}
 
-		pool := logpool.NewWithResults[*corepb.GetBlockResponse](ctx, "bitcoind_engine/processBlocks").
+		// Make sure to not apply any timeouts here. Bitcoin Core can hang in
+		// instances of Core being busy processing blocks, where RPC requests
+		// go unanswered for a little while.
+		pool := logpool.NewWithResults[lo.Tuple2[uint32, *wire.MsgBlock]](ctx, "bitcoind_engine/processBlocks").
 			WithCancelOnError().
 			WithFirstError()
 
 		for height := batchStart; height <= batchEnd; height++ {
-			pool.Go(fmt.Sprintf("block-%d", height), func(ctx context.Context) (*corepb.GetBlockResponse, error) {
-				ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-				defer cancel()
+			pool.Go(fmt.Sprintf("block-%d", height), func(ctx context.Context) (lo.Tuple2[uint32, *wire.MsgBlock], error) {
+				log := zerolog.Ctx(ctx).With().
+					Int32("height", int32(height)).
+					Logger()
+
+				ctx = log.WithContext(ctx)
+
+				start := time.Now()
 
 				zerolog.Ctx(ctx).Trace().
 					Msgf("bitcoind_engine/parser: processing block %d", height)
 
 				block, err := p.getBlock(ctx, height)
 				if err != nil {
-					zerolog.Ctx(ctx).Error().
-						Err(err).
-						Msgf("bitcoind_engine/parser: could not get block %d", height)
-					return nil, err
+					return lo.Tuple2[uint32, *wire.MsgBlock]{}, err
 				}
 
 				// If the block only has one transaction it's uninteresting,
 				// because it only has a coinbase transaction, e.g: an empty block
-				if len(block.Txids) > 1 {
-					zerolog.Ctx(ctx).Info().
-						Int32("height", int32(block.Height)).
-						Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
-
-					height := int32(block.Height)
-					for _, txid := range block.Txids {
-						if err := p.opReturnForTXID(ctx, txid, &height, block.Time.AsTime()); err != nil {
-							zerolog.Ctx(ctx).Error().
-								Err(err).
-								Msgf("bitcoind_engine/parser: could not process transaction %s", txid)
-						}
-					}
-
-					zerolog.Ctx(ctx).Trace().
-						Int32("height", int32(block.Height)).
-						Msgf("bitcoind_engine/parser: finished processing transactions for block %d", block.Height)
+				if len(block.Transactions) <= 1 {
+					return lo.T2(height, block), nil
 				}
 
-				return block, nil
+				log.Trace().
+					Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
+
+				for _, tx := range block.Transactions {
+					blockTime := block.Header.Timestamp
+					if err := p.opReturnForTXID(ctx, tx, &height, &blockTime); err != nil {
+						return lo.Tuple2[uint32, *wire.MsgBlock]{}, fmt.Errorf("process transaction %s: %w", tx.TxID(), err)
+					}
+				}
+
+				log.Trace().
+					Msgf("bitcoind_engine/parser: finished processing %d transactions for block %d in %s",
+						len(block.Transactions), height, time.Since(start),
+					)
+
+				return lo.T2(height, block), nil
 			})
 		}
 
 		zerolog.Ctx(ctx).Trace().
 			Msgf("bitcoind_engine/parser: waiting for block processing to finish")
+
 		results, err := pool.Wait(ctx)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().
-				Err(err).
-				Msgf("bitcoind_engine/parser: could not process blocks")
-			return fmt.Errorf("could not process blocks: %w", err)
+			return fmt.Errorf("process blocks: %w", err)
 		}
 
 		if err := p.processBlocks(ctx, results); err != nil {
-			zerolog.Ctx(ctx).Error().
-				Err(err).
-				Msgf("bitcoind_engine/parser: could not process blocks")
+			return fmt.Errorf("process blocks: %w", err)
 		}
 
 		if p.conf.SyncToHeight > 0 && batchEnd >= p.conf.SyncToHeight {
@@ -243,21 +230,21 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 
 // processBlock processes a single block: checks if it contains any OP_RETURN transactions, inserts any found into the database,
 // and marks the block as processed.
-func (p *Parser) processBlocks(ctx context.Context, coreBlocks []*corepb.GetBlockResponse) error {
+func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint32, *wire.MsgBlock]) error {
 
 	// Insert the processed blocks
-	if err := blocks.MarkBlocksProcessed(ctx, p.db, lo.Map(coreBlocks, func(block *corepb.GetBlockResponse, _ int) blocks.ProcessedBlock {
+	if err := blocks.MarkBlocksProcessed(ctx, p.db, lo.Map(coreBlocks, func(t lo.Tuple2[uint32, *wire.MsgBlock], _ int) blocks.ProcessedBlock {
+		height, block := t.Unpack()
 		return blocks.ProcessedBlock{
-			Height:    int32(block.Height),
-			Hash:      block.Hash,
-			BlockTime: block.Time.AsTime(),
-			Txids:     block.Txids,
+			Height:    height,
+			Hash:      block.Header.BlockHash(),
+			BlockTime: block.Header.Timestamp,
+			Txids: lo.Map(block.Transactions, func(tx *wire.MsgTx, _ int) chainhash.Hash {
+				return tx.TxHash()
+			}),
 		}
 	})); err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not insert block")
-		return err
+		return fmt.Errorf("insert processed blocks: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Trace().
@@ -267,41 +254,34 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []*corepb.GetBloc
 	return nil
 }
 
-func (p *Parser) handleMempoolTick(ctx context.Context) error {
-	bitcoind, err := p.bitcoind.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	mempoolRes, err := bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
-		Verbose: true,
-	}))
-	if err != nil {
-		return fmt.Errorf("bitcoind: could not get mempool: %w", err)
-	}
-
-	for txid, tx := range mempoolRes.Msg.Transactions {
-		if err := p.opReturnForTXID(ctx, txid, nil, tx.Time.AsTime()); err != nil {
-			return fmt.Errorf("find op return for txid: %w", err)
-		}
+// HandleNewRawTransaction can be called on a brand new transaction
+// from the mempool.
+func (p *Parser) HandleNewRawTransaction(
+	ctx context.Context, tx *wire.MsgTx,
+) error {
+	if err := p.opReturnForTXID(ctx, tx, nil, nil); err != nil {
+		return fmt.Errorf("find op return for txid: %w", err)
 	}
 
 	return nil
 }
 
-func (p *Parser) opReturnForTXID(ctx context.Context, txid string, height *int32, createdAt time.Time) error {
-	rawTx, err := p.getRawTransaction(ctx, txid)
-	if err != nil {
-		return fmt.Errorf("get raw transaction: %w", err)
+// Nil height means unconfirmed. Nil time means we don't know the TX time
+func (p *Parser) opReturnForTXID(
+	ctx context.Context, tx *wire.MsgTx,
+	height *uint32, createdAt *time.Time,
+) error {
+	if createdAt != nil && createdAt.IsZero() {
+		panic("PROGRAMMER ERROR: non-nil, zero create time")
 	}
 
-	opReturns, err := p.findOPReturns(ctx, rawTx, height, createdAt)
+	opReturns, err := p.findOPReturns(ctx, tx, height)
 	if err != nil {
-		return fmt.Errorf("find and persist op returns: %w", err)
+		return err
 	}
 
-	if err := p.persistOPReturns(ctx, opReturns); err != nil {
-		return fmt.Errorf("persist op returns: %w", err)
+	if err := opreturns.Persist(ctx, p.db, opReturns); err != nil {
+		return err
 	}
 
 	if err := p.handleCreateTopics(ctx, opReturns); err != nil {
@@ -311,72 +291,88 @@ func (p *Parser) opReturnForTXID(ctx context.Context, txid string, height *int32
 	return nil
 }
 
-func (p *Parser) persistOPReturns(ctx context.Context, opReturns []opreturns.OPReturn) error {
-	for _, opReturn := range opReturns {
-		if err := opreturns.Persist(ctx, p.db, opReturn.Height, opReturn.TxID, opReturn.Vout, opReturn.Data, opReturn.FeeSats, opReturn.CreatedAt); err != nil {
-			return fmt.Errorf("persist op return: %w", err)
-		}
-	}
-
-	return nil
-}
-
 func (p *Parser) handleCreateTopics(ctx context.Context, opReturns []opreturns.OPReturn) error {
 	for _, opReturn := range opReturns {
 		if opreturns.IsCreateTopic(opReturn.Data) {
-			zerolog.Ctx(ctx).Info().
-				Str("txid", opReturn.TxID).
-				Msgf("bitcoind_engine/parser: found create topic")
 
 			name, err := opreturns.NameFromCreateTopic(opReturn.Data)
 			if err != nil {
 				return fmt.Errorf("extract name from create topic: %w", err)
 			}
 
+			zerolog.Ctx(ctx).Info().
+				Msgf("bitcoind_engine/parser: found create topic: %s", name)
+
 			if err := opreturns.CreateTopic(ctx, p.db, string(opReturn.Data[:8]), name, opReturn.TxID); err != nil {
 				return fmt.Errorf("create topic: %w", err)
 			}
-
-			zerolog.Ctx(ctx).Info().
-				Str("txid", opReturn.TxID).
-				Msgf("bitcoind_engine/parser: created topic")
 		}
 	}
 
 	return nil
 }
 
-func (p *Parser) currentHeight(ctx context.Context) (uint32, string, error) {
+func (p *Parser) currentHeight(ctx context.Context) (uint32, chainhash.Hash, error) {
 	bitcoind, err := p.bitcoind.Get(ctx)
 	if err != nil {
-		return 0, "", err
+		return 0, chainhash.Hash{}, err
 	}
 
 	resp, err := bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
 	if err != nil {
-		return 0, "", fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
+		return 0, chainhash.Hash{}, err
 	}
 
-	return resp.Msg.Blocks, resp.Msg.BestBlockHash, nil
+	hash, err := chainhash.NewHashFromStr(resp.Msg.BestBlockHash)
+	if err != nil {
+		return 0, chainhash.Hash{}, fmt.Errorf("parse best block hash: %w", err)
+	}
+
+	return resp.Msg.Blocks, *hash, nil
 }
 
-func (p *Parser) getBlock(ctx context.Context, height uint32) (*corepb.GetBlockResponse, error) {
+func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, error) {
+	start := time.Now()
+
 	bitcoind, err := p.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+		Height: height,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: get block hash %d: %w", height, err)
+	}
+
+	// We want to minimize the network call count. We therefore fetch the raw
+	// block, and deserialize into wire.MsgTx objects in-process without calling
+	// out go `getrawtransaction` for each transaction.
+	const verbosity = corepb.GetBlockRequest_VERBOSITY_RAW_DATA
 	resp, err := bitcoind.GetBlock(ctx, &connect.Request[corepb.GetBlockRequest]{
 		Msg: &corepb.GetBlockRequest{
-			Height:    lo.ToPtr(int32(height)),
-			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
+			Hash:      hash.Msg.Hash,
+			Verbosity: verbosity,
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: could not get block: %w", err)
+		return nil, fmt.Errorf("bitcoind: get block %d: %w", height, err)
+	}
+	blockBytes, err := hex.DecodeString(resp.Msg.Hex)
+	if err != nil {
+		return nil, fmt.Errorf("decode block hex: %w", err)
 	}
 
-	return resp.Msg, nil
+	var msgBlock wire.MsgBlock
+	if err := msgBlock.Deserialize(bytes.NewReader(blockBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize block: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Trace().
+		Msgf("bitcoind_engine/parser: fetched block %d in %s", height, time.Since(start))
+
+	return &msgBlock, nil
 }
 
 func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.RawTransaction, error) {
@@ -391,7 +387,7 @@ func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.Ra
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: could not get raw transaction: %w", err)
+		return nil, fmt.Errorf("bitcoind: get raw transaction: %w", err)
 	}
 
 	return resp.Msg.Tx, nil
@@ -399,24 +395,19 @@ func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.Ra
 
 // finds all OP_RETURN outputs for a specific tx
 func (p *Parser) findOPReturns(
-	ctx context.Context, tx *corepb.RawTransaction, height *int32,
-	createdAt time.Time,
+	ctx context.Context, tx *wire.MsgTx, height *uint32,
 ) ([]opreturns.OPReturn, error) {
-	decodedTx, err := btcutil.NewTxFromBytes(tx.Data)
-	if err != nil {
-		return nil, fmt.Errorf("could not decode raw transaction: %w", err)
-	}
-	msgTx := decodedTx.MsgTx()
-	txid := msgTx.TxID()
+	txid := tx.TxID()
 
-	isCoinbase := len(msgTx.TxIn) > 0 && msgTx.TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
+	var emptyHash chainhash.Hash
+	isCoinbase := len(tx.TxIn) > 0 && tx.TxIn[0].PreviousOutPoint.Hash.IsEqual(&emptyHash)
 	// every coinbase transaction has a OP_RETURN output we don't care about
-	if isCoinbase && len(msgTx.TxOut) == 2 {
+	if isCoinbase && len(tx.TxOut) == 2 {
 		return nil, nil
 	}
 
 	// Check outputs for OP_NOP5
-	for _, txout := range msgTx.TxOut {
+	for _, txout := range tx.TxOut {
 		script := txout.PkScript
 		if len(script) > 0 && script[0] == txscript.OP_NOP5 {
 			return nil, nil // OP_DRIVECHAIN, skipping
@@ -424,7 +415,7 @@ func (p *Parser) findOPReturns(
 	}
 
 	var opReturns []opreturns.OPReturn
-	for vout, txout := range msgTx.TxOut {
+	for vout, txout := range tx.TxOut {
 		if len(txout.PkScript) < 2 {
 			continue
 		}
@@ -441,7 +432,7 @@ func (p *Parser) findOPReturns(
 		if isOPReturn {
 			// Calculate fee by getting all inputs and outputs
 			var inputSum int64
-			for _, txin := range msgTx.TxIn {
+			for _, txin := range tx.TxIn {
 				if isCoinbase {
 					continue // Coinbase input has no previous output to look up
 				}
@@ -458,31 +449,31 @@ func (p *Parser) findOPReturns(
 			}
 
 			var outputSum int64
-			for _, txout := range msgTx.TxOut {
+			for _, txout := range tx.TxOut {
 				outputSum += txout.Value
 			}
 
 			fee := inputSum - outputSum
 
-			// Parse the OP_RETURN data correctly
-			data, err := parseOPReturnData(txout.PkScript)
-			if err != nil {
-				return nil, fmt.Errorf("could not parse OP_RETURN data: %w", err)
+			// Parse the OP_RETURN data correctly, just skip if we're unable
+			// to parse. Lots of strange data on the blockchain!
+			data, ok := parseOPReturnData(txout.PkScript)
+			if !ok {
+				continue
 			}
 
 			// Log both hex and string representation for easier debugging
-			logger := zerolog.Ctx(ctx).Info()
-			logger.
+			zerolog.Ctx(ctx).Debug().
 				Str("txid", txid).
-				Msgf("bitcoind_engine/parser: found op_return")
+				Int("vout", vout).
+				Msgf("bitcoind_engine/parser: found OP_RETURN")
 
 			opReturns = append(opReturns, opreturns.OPReturn{
-				TxID:      txid,
-				Data:      data,
-				FeeSats:   fee,
-				Vout:      int32(vout),
-				Height:    height,
-				CreatedAt: createdAt,
+				TxID:    txid,
+				Data:    data,
+				FeeSats: fee,
+				Vout:    int32(vout),
+				Height:  height,
 			})
 		}
 	}
@@ -492,9 +483,9 @@ func (p *Parser) findOPReturns(
 
 // parseOPReturnData extracts the actual data from an OP_RETURN script by handling
 // different PUSHDATA opcodes correctly
-func parseOPReturnData(script []byte) ([]byte, error) {
+func parseOPReturnData(script []byte) ([]byte, bool) {
 	if len(script) < 2 || script[0] != txscript.OP_RETURN {
-		return nil, fmt.Errorf("not an OP_RETURN script")
+		return nil, false
 	}
 
 	// Skip OP_RETURN
@@ -509,45 +500,45 @@ func parseOPReturnData(script []byte) ([]byte, error) {
 		// OP_DATA_1 through OP_DATA_75 directly push X bytes
 		dataLen := int(opcode)
 		if len(script) < dataLen {
-			return nil, fmt.Errorf("script too short for OP_DATA_%d: need %d bytes but have %d", dataLen, dataLen, len(script))
+			return nil, false
 		}
-		return script[:dataLen], nil
+		return script[:dataLen], true
 
 	case opcode == txscript.OP_PUSHDATA1:
 		if len(script) < 1 {
-			return nil, fmt.Errorf("script too short for PUSHDATA1")
+			return nil, false
 		}
 		dataLen := int(script[0])
 		script = script[1:] // Skip length byte
 		if len(script) < dataLen {
-			return nil, fmt.Errorf("script too short for PUSHDATA1: need %d bytes but have %d", dataLen, len(script))
+			return nil, false
 		}
-		return script[:dataLen], nil
+		return script[:dataLen], true
 
 	case opcode == txscript.OP_PUSHDATA2:
 		if len(script) < 2 {
-			return nil, fmt.Errorf("script too short for PUSHDATA2")
+			return nil, false
 		}
 		dataLen := int(script[0]) | int(script[1])<<8
 		script = script[2:] // Skip length bytes
 		if len(script) < dataLen {
-			return nil, fmt.Errorf("script too short for PUSHDATA2: need %d bytes but have %d", dataLen, len(script))
+			return nil, false
 		}
-		return script[:dataLen], nil
+		return script[:dataLen], true
 
 	case opcode == txscript.OP_PUSHDATA4:
 		if len(script) < 4 {
-			return nil, fmt.Errorf("script too short for PUSHDATA4")
+			return nil, false
 		}
 		dataLen := int(script[0]) | int(script[1])<<8 | int(script[2])<<16 | int(script[3])<<24
 		script = script[4:] // Skip length bytes
 		if len(script) < dataLen {
-			return nil, fmt.Errorf("script too short for PUSHDATA4: need %d bytes but have %d", dataLen, len(script))
+			return nil, false
 		}
-		return script[:dataLen], nil
+		return script[:dataLen], true
 
 	default:
-		return nil, fmt.Errorf("unexpected opcode 0x%x after OP_RETURN", opcode)
+		return nil, false
 	}
 }
 
@@ -586,20 +577,17 @@ func (p *Parser) ensureSyncIsHealthy(ctx context.Context) error {
 			Err(err).
 			Msgf("bitcoind_engine/parser: complete reorg detected, wiping processed blocks")
 	} else if err != nil {
-		return fmt.Errorf("detect chain deletion: %w", err)
+		return fmt.Errorf("detect chain deletion: get block 1: %w", err)
 	}
 
 	savedBlock1, err := blocks.GetProcessedBlock(ctx, p.db, 1)
 	if errors.Is(err, sql.ErrNoRows) {
 		// no blocks have been processed yet
 	} else if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not get latest processed height")
-		return fmt.Errorf("detect chain deletion: %w", err)
+		return fmt.Errorf("detect chain deletion: get latest processed height: %w", err)
 	}
 
-	if block1 == nil || (savedBlock1.Hash != "" && savedBlock1.Hash != block1.Hash) {
+	if block1 == nil || !savedBlock1.Hash.IsEqual(lo.ToPtr(block1.Header.BlockHash())) {
 		zerolog.Ctx(ctx).Info().
 			Msgf("bitcoind_engine/parser: detected chain switch, reprocessing all blocks")
 		return blocks.WipeProcessedBlocks(ctx, p.db)
