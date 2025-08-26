@@ -24,7 +24,7 @@ dependencies:
   intl: ^0.20.2
   crypto: ^3.0.6
   logger: ^2.6.0
-  stacked: ^3.4.3
+  stacked: ^3.5.0
   skeletonizer: ^2.1.0+1
   auto_route: ^10.1.0+1
   get_it: ^8.2.0
