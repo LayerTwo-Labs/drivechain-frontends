@@ -180,4 +180,40 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Lists the most recent transactions, both confirmed and unconfirmed.
+  Future<bitwindowdv1bitwindowd.ListRecentTransactionsResponse> listRecentTransactions(
+    bitwindowdv1bitwindowd.ListRecentTransactionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.listRecentTransactions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Lists blocks with pagination support
+  Future<bitwindowdv1bitwindowd.ListBlocksResponse> listBlocks(
+    bitwindowdv1bitwindowd.ListBlocksRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.listBlocks,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

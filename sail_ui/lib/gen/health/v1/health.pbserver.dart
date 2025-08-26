@@ -16,14 +16,14 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
-import 'health.pb.dart' as $5;
+import 'health.pb.dart' as $4;
 import 'health.pbjson.dart';
 
 export 'health.pb.dart';
 
 abstract class HealthServiceBase extends $pb.GeneratedService {
-  $async.Future<$5.CheckResponse> check($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$5.CheckResponse> watch($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$4.CheckResponse> check($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$4.CheckResponse> watch($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {

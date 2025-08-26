@@ -13,7 +13,7 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $3;
+import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $2;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
@@ -380,8 +380,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.wallet.v1.UnspentOutput': UnspentOutput$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.bitwindowd.v1.DenialInfo': $3.DenialInfo$json,
-  '.bitwindowd.v1.ExecutedDenial': $3.ExecutedDenial$json,
+  '.bitwindowd.v1.DenialInfo': $2.DenialInfo$json,
+  '.bitwindowd.v1.ExecutedDenial': $2.ExecutedDenial$json,
   '.wallet.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.google.protobuf.Empty': $1.Empty$json,
   '.wallet.v1.GetBalanceResponse': GetBalanceResponse$json,

@@ -28,6 +28,7 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
     $1.ReverseHex? prevBlockHash,
     $core.int? height,
     $1.ConsensusHex? work,
+    $fixnum.Int64? timestamp,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -42,6 +43,9 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
     if (work != null) {
       $result.work = work;
     }
+    if (timestamp != null) {
+      $result.timestamp = timestamp;
+    }
     return $result;
   }
   BlockHeaderInfo._() : super();
@@ -53,6 +57,7 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
     ..aOM<$1.ReverseHex>(2, _omitFieldNames ? '' : 'prevBlockHash', subBuilder: $1.ReverseHex.create)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
     ..aOM<$1.ConsensusHex>(4, _omitFieldNames ? '' : 'work', subBuilder: $1.ConsensusHex.create)
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -119,6 +124,16 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
   void clearWork() => clearField(4);
   @$pb.TagNumber(4)
   $1.ConsensusHex ensureWork() => $_ensure(3);
+
+  /// Unix timestamp (seconds since epoch)
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get timestamp => $_getI64(4);
+  @$pb.TagNumber(5)
+  set timestamp($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasTimestamp() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTimestamp() => clearField(5);
 }
 
 class Deposit_Output extends $pb.GeneratedMessage {

@@ -1,7 +1,7 @@
 import 'package:fixnum/src/int64.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' hide UnspentOutput;
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/health/v1/health.pb.dart';
@@ -133,6 +133,16 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<GetFireplaceStatsResponse> getFireplaceStats() {
     return Future.value(GetFireplaceStatsResponse());
   }
+
+  @override
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) {
+    return Future.value((<Block>[], false));
+  }
+
+  @override
+  Future<List<RecentTransaction>> listRecentTransactions() {
+    return Future.value([]);
+  }
 }
 
 class MockWalletAPI implements WalletAPI {
@@ -206,11 +216,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<List<RecentTransaction>> listRecentTransactions() async {
-    return [];
-  }
-
-  @override
   Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
     return GetBlockchainInfoResponse();
   }
@@ -226,13 +231,8 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<Block> getBlock({String? hash, int? height}) async {
-    return Block();
-  }
-
-  @override
-  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) {
-    return Future.value((<Block>[], false));
+  Future<GetBlockResponse> getBlock({String? hash, int? height}) async {
+    return GetBlockResponse();
   }
 
   @override
