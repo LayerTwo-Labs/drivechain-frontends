@@ -20,7 +20,7 @@ dependencies:
       # master, as of 08.06.2024
       ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
   dio: 5.9.0
-  stacked: ^3.4.3
+  stacked: ^3.5.0
   qr_flutter: ^4.1.0
   http: ^1.4.0
   intl: ^0.20.2
