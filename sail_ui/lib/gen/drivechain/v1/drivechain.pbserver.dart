@@ -15,27 +15,27 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'drivechain.pb.dart' as $4;
+import 'drivechain.pb.dart' as $3;
 import 'drivechain.pbjson.dart';
 
 export 'drivechain.pb.dart';
 
 abstract class DrivechainServiceBase extends $pb.GeneratedService {
-  $async.Future<$4.ListSidechainsResponse> listSidechains($pb.ServerContext ctx, $4.ListSidechainsRequest request);
-  $async.Future<$4.ListSidechainProposalsResponse> listSidechainProposals($pb.ServerContext ctx, $4.ListSidechainProposalsRequest request);
+  $async.Future<$3.ListSidechainsResponse> listSidechains($pb.ServerContext ctx, $3.ListSidechainsRequest request);
+  $async.Future<$3.ListSidechainProposalsResponse> listSidechainProposals($pb.ServerContext ctx, $3.ListSidechainProposalsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListSidechains': return $4.ListSidechainsRequest();
-      case 'ListSidechainProposals': return $4.ListSidechainProposalsRequest();
+      case 'ListSidechains': return $3.ListSidechainsRequest();
+      case 'ListSidechainProposals': return $3.ListSidechainProposalsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListSidechains': return this.listSidechains(ctx, request as $4.ListSidechainsRequest);
-      case 'ListSidechainProposals': return this.listSidechainProposals(ctx, request as $4.ListSidechainProposalsRequest);
+      case 'ListSidechains': return this.listSidechains(ctx, request as $3.ListSidechainsRequest);
+      case 'ListSidechainProposals': return this.listSidechainProposals(ctx, request as $3.ListSidechainProposalsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

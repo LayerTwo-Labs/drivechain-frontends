@@ -44,6 +44,7 @@ const BlockHeaderInfo$json = {
     {'1': 'prev_block_hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'prevBlockHash'},
     {'1': 'height', '3': 3, '4': 1, '5': 13, '10': 'height'},
     {'1': 'work', '3': 4, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'work'},
+    {'1': 'timestamp', '3': 5, '4': 1, '5': 4, '10': 'timestamp'},
   ],
 };
 
@@ -52,7 +53,8 @@ final $typed_data.Uint8List blockHeaderInfoDescriptor = $convert.base64Decode(
     'Cg9CbG9ja0hlYWRlckluZm8SOQoKYmxvY2tfaGFzaBgBIAEoCzIaLmN1c2YuY29tbW9uLnYxLl'
     'JldmVyc2VIZXhSCWJsb2NrSGFzaBJCCg9wcmV2X2Jsb2NrX2hhc2gYAiABKAsyGi5jdXNmLmNv'
     'bW1vbi52MS5SZXZlcnNlSGV4Ug1wcmV2QmxvY2tIYXNoEhYKBmhlaWdodBgDIAEoDVIGaGVpZ2'
-    'h0EjAKBHdvcmsYBCABKAsyHC5jdXNmLmNvbW1vbi52MS5Db25zZW5zdXNIZXhSBHdvcms=');
+    'h0EjAKBHdvcmsYBCABKAsyHC5jdXNmLmNvbW1vbi52MS5Db25zZW5zdXNIZXhSBHdvcmsSHAoJ'
+    'dGltZXN0YW1wGAUgASgEUgl0aW1lc3RhbXA=');
 
 @$core.Deprecated('Use depositDescriptor instead')
 const Deposit$json = {

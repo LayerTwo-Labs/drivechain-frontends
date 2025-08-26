@@ -4,11 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
-import 'package:sail_ui/providers/sync_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
@@ -46,8 +43,8 @@ class BlockchainProvider extends ChangeNotifier {
 
     try {
       final newPeers = await bitwindowd.bitcoind.listPeers();
-      final newTXs = await bitwindowd.bitcoind.listRecentTransactions();
-      final (newBlocks, hasMore) = await bitwindowd.bitcoind.listBlocks();
+      final newTXs = await bitwindowd.bitwindowd.listRecentTransactions();
+      final (newBlocks, hasMore) = await bitwindowd.bitwindowd.listBlocks();
 
       if (_dataHasChanged(newPeers, newTXs, newBlocks)) {
         peers = newPeers;
@@ -124,7 +121,7 @@ class BlockchainProvider extends ChangeNotifier {
     isLoadingMoreBlocks = true;
     try {
       final lastBlock = blocks.last;
-      final (moreBlocks, hasMore) = await bitwindowd.bitcoind.listBlocks(
+      final (moreBlocks, hasMore) = await bitwindowd.bitwindowd.listBlocks(
         startHeight: lastBlock.height - 1,
       );
 

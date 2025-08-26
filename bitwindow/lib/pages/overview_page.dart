@@ -406,7 +406,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
           SailTableCell(
-            value: entry.confirmedInBlock.height == 0 ? '-' : entry.confirmedInBlock.height.toString(),
+            value: entry.confirmedInBlock == 0 ? '-' : entry.confirmedInBlock.toString(),
           ),
         ];
       },
