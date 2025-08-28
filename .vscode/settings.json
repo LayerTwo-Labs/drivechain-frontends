@@ -3,7 +3,6 @@
     "quickfix.insertSemicolon": "always",
     "source.fixAll": "always"
   },
-  "dart.lineLength": 120,
   "[dart]": {
     "editor.rulers": [120]
   },
@@ -26,5 +25,5 @@
     ".cache": true,
     "retool.config.json": true
   },
-  "dart.flutterSdkPath": ".fvm/versions/3.32.8"
+  "dart.flutterSdkPath": ".fvm/versions/3.35.2"
 }
