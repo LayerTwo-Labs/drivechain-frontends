@@ -6,8 +6,8 @@ publish_to: "none"
 version: 0.0.3
 
 environment:
-  sdk: 3.8.1
-  flutter: 3.32.1
+  sdk: 3.9.0
+  flutter: 3.35.2
 
 dependencies:
   sentry_flutter: ^9.6.0
