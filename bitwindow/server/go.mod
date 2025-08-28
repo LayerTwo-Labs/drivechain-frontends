@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	connectrpc.com/connect v1.18.1
-	github.com/barebitcoin/btc-buf v0.0.0-20250825145656-173624d7f180
+	github.com/barebitcoin/btc-buf v0.0.0-20250828175702-83cc992a6d8a
 	github.com/brianvoe/gofakeit/v7 v7.3.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
@@ -15,8 +15,6 @@ require (
 	golang.org/x/net v0.43.0
 	google.golang.org/protobuf v1.36.8
 )
-
-require github.com/kr/text v0.2.0 // indirect
 
 require (
 	connectrpc.com/grpchealth v1.3.0 // indirect
@@ -32,6 +30,7 @@ require (
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.32
