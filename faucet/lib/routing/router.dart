@@ -25,24 +25,24 @@ class AppRouter extends RootStackRouter {
   // routes should match exactly
   @override
   List<AutoRoute> get routes => [
-        AutoRoute(
-          path: '/',
-          page: RootRoute.page,
-          initial: true,
-          children: [
-            RedirectRoute(
-              path: '',
-              redirectTo: 'faucet',
-            ),
-            AutoRoute(
-              path: 'faucet',
-              page: FaucetRoute.page,
-            ),
-            AutoRoute(
-              path: 'explorer',
-              page: ExplorerRoute.page,
-            ),
-          ],
+    AutoRoute(
+      path: '/',
+      page: RootRoute.page,
+      initial: true,
+      children: [
+        RedirectRoute(
+          path: '',
+          redirectTo: 'faucet',
         ),
-      ];
+        AutoRoute(
+          path: 'faucet',
+          page: FaucetRoute.page,
+        ),
+        AutoRoute(
+          path: 'explorer',
+          page: ExplorerRoute.page,
+        ),
+      ],
+    ),
+  ];
 }

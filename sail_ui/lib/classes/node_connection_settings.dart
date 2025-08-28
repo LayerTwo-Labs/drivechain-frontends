@@ -104,13 +104,7 @@ class NodeConnectionSettings extends ChangeNotifier {
       usernameController.text = config.username;
       passwordController.text = config.password;
 
-      _setFileValues(
-        config.confPath,
-        config.host,
-        config.port,
-        config.username,
-        config.password,
-      );
+      _setFileValues(config.confPath, config.host, config.port, config.username, config.password);
     } catch (error) {
       readError = error.toString();
     }
@@ -215,25 +209,14 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
   switch (chain) {
     case TestSidechain():
       try {
-        conf = readRPCConfig(
-          TestSidechain().datadir(),
-          TestSidechain().confFile(),
-          TestSidechain(),
-          network,
-        );
+        conf = readRPCConfig(TestSidechain().datadir(), TestSidechain().confFile(), TestSidechain(), network);
       } catch (error) {
         // do nothing, just don't exit
       }
       break;
     case ZSide():
       try {
-        conf = readRPCConfig(
-          ZSide().datadir(),
-          ZSide().confFile(),
-          ZSide(),
-          'regtest',
-          useCookieAuth: false,
-        );
+        conf = readRPCConfig(ZSide().datadir(), ZSide().confFile(), ZSide(), 'regtest', useCookieAuth: false);
       } catch (error) {
         // do nothing, just don't exit
       }
@@ -253,12 +236,7 @@ NodeConnectionSettings readConf() {
   NodeConnectionSettings conf = NodeConnectionSettings.empty();
   try {
     final network = 'signet';
-    conf = readRPCConfig(
-      BitcoinCore().datadir(),
-      'bitcoin.conf',
-      BitcoinCore(),
-      network,
-    );
+    conf = readRPCConfig(BitcoinCore().datadir(), 'bitcoin.conf', BitcoinCore(), network);
     // Do something with mainchainConf if needed
   } catch (error) {
     log.e('could not read mainchain conf: $error');

@@ -69,10 +69,7 @@ class InlineTabBarState extends State<InlineTabBar> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: 5,
-                horizontal: 4,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
               decoration: BoxDecoration(
                 color: context.sailTheme.colors.backgroundSecondary,
                 borderRadius: SailStyleValues.borderRadius,
@@ -165,9 +162,7 @@ class InlineTabBarState extends State<InlineTabBar> {
           ],
         ),
         const SizedBox(height: SailStyleValues.padding16),
-        Expanded(
-          child: _buildTabContent(),
-        ),
+        Expanded(child: _buildTabContent()),
       ],
     );
   }
@@ -176,9 +171,7 @@ class InlineTabBarState extends State<InlineTabBar> {
     final tab = widget.tabs[_selectedIndex];
 
     if (tab is MultiSelectTabItem && _selectedSubItem != null) {
-      final selectedItem = tab.items.firstWhere(
-        (item) => item.label == _selectedSubItem,
-      );
+      final selectedItem = tab.items.firstWhere((item) => item.label == _selectedSubItem);
       return selectedItem.child;
     }
 
@@ -210,10 +203,7 @@ class _TabItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          vertical: SailStyleValues.padding04,
-          horizontal: SailStyleValues.padding12,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04, horizontal: SailStyleValues.padding12),
         decoration: BoxDecoration(
           color: isSelected ? context.sailTheme.colors.background : Colors.transparent,
           borderRadius: SailStyleValues.borderRadius,
@@ -232,16 +222,18 @@ class _TabItem extends StatelessWidget {
                 onTap: onIconTap,
                 child: SailSVG.fromAsset(
                   icon!,
-                  color:
-                      isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveSubNavText,
+                  color: isSelected
+                      ? context.sailTheme.colors.activeNavText
+                      : context.sailTheme.colors.inactiveSubNavText,
                   height: 13,
                 ),
               )
             else if (withDropdown)
               Icon(
                 Icons.arrow_drop_down,
-                color:
-                    isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveSubNavText,
+                color: isSelected
+                    ? context.sailTheme.colors.activeNavText
+                    : context.sailTheme.colors.inactiveSubNavText,
                 size: 18,
               ),
           ],
@@ -252,26 +244,18 @@ class _TabItem extends StatelessWidget {
 }
 
 class SingleTabItem extends TabItem {
-  const SingleTabItem({
-    required super.label,
-    required super.child,
-    super.onTap,
-    super.icon,
-    super.onIconTap,
-  });
+  const SingleTabItem({required super.label, required super.child, super.onTap, super.icon, super.onIconTap});
 }
 
 class MultiSelectTabItem extends TabItem {
   final String title; // The display title (e.g. "Tools")
   final List<TabItem> items;
 
-  const MultiSelectTabItem({
-    required this.title,
-    required this.items,
-  }) : super(
-          label: title, // Use the title as the label
-          child: const SizedBox(), // Not used since we handle content differently
-        );
+  const MultiSelectTabItem({required this.title, required this.items})
+    : super(
+        label: title, // Use the title as the label
+        child: const SizedBox(), // Not used since we handle content differently
+      );
 }
 
 class TabItem {
@@ -280,11 +264,5 @@ class TabItem {
   final VoidCallback? onTap;
   final SailSVGAsset? icon;
   final VoidCallback? onIconTap;
-  const TabItem({
-    required this.label,
-    required this.child,
-    this.onTap,
-    this.icon,
-    this.onIconTap,
-  });
+  const TabItem({required this.label, required this.child, this.onTap, this.icon, this.onIconTap});
 }

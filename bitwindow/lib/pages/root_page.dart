@@ -105,11 +105,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   label: 'Quit bitwindow',
                   shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
                   onSelected: () => GetIt.I.get<BinaryProvider>().onShutdown(
-                        shutdownOptions: ShutdownOptions(
-                          router: GetIt.I.get<AppRouter>(),
-                          onComplete: () => exit(0),
-                        ),
-                      ),
+                    shutdownOptions: ShutdownOptions(
+                      router: GetIt.I.get<AppRouter>(),
+                      onComplete: () => exit(0),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -393,13 +393,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void dispose() {
     GetIt.I.get<BinaryProvider>().onShutdown(
-          shutdownOptions: ShutdownOptions(
-            router: GetIt.I.get<AppRouter>(),
-            onComplete: () async {
-              await windowManager.destroy();
-            },
-          ),
-        );
+      shutdownOptions: ShutdownOptions(
+        router: GetIt.I.get<AppRouter>(),
+        onComplete: () async {
+          await windowManager.destroy();
+        },
+      ),
+    );
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -408,13 +408,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void onWindowClose() async {
     await GetIt.I.get<BinaryProvider>().onShutdown(
-          shutdownOptions: ShutdownOptions(
-            router: GetIt.I.get<AppRouter>(),
-            onComplete: () async {
-              await windowManager.destroy();
-            },
-          ),
-        );
+      shutdownOptions: ShutdownOptions(
+        router: GetIt.I.get<AppRouter>(),
+        onComplete: () async {
+          await windowManager.destroy();
+        },
+      ),
+    );
   }
 }
 
@@ -477,11 +477,11 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
       ),
       navigateToLogs: (title, logPath) {
         GetIt.I.get<AppRouter>().push(
-              LogRoute(
-                title: title,
-                logPath: logPath,
-              ),
-            );
+          LogRoute(
+            title: title,
+            logPath: logPath,
+          ),
+        );
       },
       mainchainInfo: true,
       endWidgets: [

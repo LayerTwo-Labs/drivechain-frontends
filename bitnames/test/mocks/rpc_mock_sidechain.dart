@@ -2,11 +2,11 @@ import 'package:sail_ui/sail_ui.dart';
 
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
-      : super(
-          conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
-          binaryType: BinaryType.testSidechain,
-          restartOnFailure: false,
-        );
+    : super(
+        conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
+        binaryType: BinaryType.testSidechain,
+        restartOnFailure: false,
+      );
 
   @override
   Future<(double, double)> balance() async {

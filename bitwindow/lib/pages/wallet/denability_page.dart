@@ -210,8 +210,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   status = utxo.denialInfo.hasCancelTime()
                       ? 'Cancelled'
                       : utxo.denialInfo.nextExecutionTime.toDateTime().second == 0
-                          ? 'Completed'
-                          : 'Ongoing';
+                      ? 'Completed'
+                      : 'Ongoing';
                   nextExecution = utxo.denialInfo.hasNextExecutionTime()
                       ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString()
                       : '-';

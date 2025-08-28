@@ -1,5 +1,5 @@
 format:
-   find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
+   find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format
 
 gen-version:
     cd ../ && bash scripts/generate-version.sh sail_ui

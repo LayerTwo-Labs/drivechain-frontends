@@ -6,34 +6,34 @@ import 'package:sail_ui/utils/file_utils.dart';
 
 class MockBinary extends Binary {
   MockBinary()
-      : super(
-          name: 'Mocktown',
-          version: '0.0.0',
-          description: 'Mock Binary',
-          repoUrl: 'https://mock.test',
-          directories: DirectoryConfig(
-            base: {
-              OS.linux: '.mock',
-              OS.macos: 'Mock',
-              OS.windows: 'Mock',
-            },
-          ),
-          metadata: MetadataConfig(
-            baseUrl: '',
-            files: {
-              OS.linux: 'mock',
-              OS.macos: 'mock',
-              OS.windows: 'mock',
-            },
-            remoteTimestamp: null,
-            downloadedTimestamp: null,
-            binaryPath: null,
-            updateable: false,
-          ),
-          binary: 'mock',
-          port: 8272,
-          chainLayer: 0,
-        );
+    : super(
+        name: 'Mocktown',
+        version: '0.0.0',
+        description: 'Mock Binary',
+        repoUrl: 'https://mock.test',
+        directories: DirectoryConfig(
+          base: {
+            OS.linux: '.mock',
+            OS.macos: 'Mock',
+            OS.windows: 'Mock',
+          },
+        ),
+        metadata: MetadataConfig(
+          baseUrl: '',
+          files: {
+            OS.linux: 'mock',
+            OS.macos: 'mock',
+            OS.windows: 'mock',
+          },
+          remoteTimestamp: null,
+          downloadedTimestamp: null,
+          binaryPath: null,
+          updateable: false,
+        ),
+        binary: 'mock',
+        port: 8272,
+        chainLayer: 0,
+      );
 
   @override
   BinaryType get type => BinaryType.testSidechain;

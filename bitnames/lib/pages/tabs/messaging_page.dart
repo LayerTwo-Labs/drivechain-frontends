@@ -163,8 +163,9 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
     }
 
     // First, check if input is already a direct hash match in bitnames
-    existingEntryMatch ??=
-        bitnamesProvider.entries.where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase()).firstOrNull;
+    existingEntryMatch ??= bitnamesProvider.entries
+        .where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase())
+        .firstOrNull;
 
     // If no bitname match found, assume input is a direct encryption key
     return existingEntryMatch?.details.encryptionPubkey;

@@ -10,11 +10,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server
 abstract class EnforcerRPC extends RPCConnection {
-  EnforcerRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  EnforcerRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   ValidatorServiceClient get validator;
 
@@ -26,12 +22,7 @@ class EnforcerLive extends EnforcerRPC {
   @override
   late final ValidatorServiceClient validator;
 
-  EnforcerLive()
-      : super(
-          conf: readConf(),
-          binaryType: BinaryType.enforcer,
-          restartOnFailure: true,
-        ) {
+  EnforcerLive() : super(conf: readConf(), binaryType: BinaryType.enforcer, restartOnFailure: true) {
     _init();
   }
 
@@ -96,9 +87,7 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Map<String, String> get environment {
-    return {
-      'RUST_BACKTRACE': '1',
-    };
+    return {'RUST_BACKTRACE': '1'};
   }
 
   @override
@@ -109,9 +98,7 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   List<String> startupErrors() {
-    return [
-      'Validator is not synced',
-    ];
+    return ['Validator is not synced'];
   }
 
   @override
@@ -149,9 +136,7 @@ class EnforcerLive extends EnforcerRPC {
     try {
       final response = await http.post(
         Uri.parse('http://localhost:8080/$url'),
-        headers: {
-          'content-type': 'application/json',
-        },
+        headers: {'content-type': 'application/json'},
         body: body,
       );
 

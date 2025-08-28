@@ -28,11 +28,7 @@ import 'package:sail_ui/providers/binaries/binary_provider.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
-  BitwindowRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  BitwindowRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   BitwindowAPI get bitwindowd;
   WalletAPI get wallet;
@@ -59,31 +55,15 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   late final HealthAPI health;
 
-  BitwindowRPCLive({
-    required String host,
-    required int port,
-  }) : super(
-          conf: readConf(),
-          binaryType: BinaryType.bitWindow,
-          restartOnFailure: true,
-        ) {
-    _init(
-      host: host,
-      port: port,
-    );
+  BitwindowRPCLive({required String host, required int port})
+    : super(conf: readConf(), binaryType: BinaryType.bitWindow, restartOnFailure: true) {
+    _init(host: host, port: port);
   }
 
-  void _init({
-    required String host,
-    required int port,
-  }) async {
+  void _init({required String host, required int port}) async {
     final httpClient = createHttpClient();
     final baseUrl = 'http://$host:$port';
-    final transport = connect.Transport(
-      baseUrl: baseUrl,
-      codec: const ProtoCodec(),
-      httpClient: httpClient,
-    );
+    final transport = connect.Transport(baseUrl: baseUrl, codec: const ProtoCodec(), httpClient: httpClient);
 
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
@@ -169,9 +149,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     try {
       final response = await http.post(
         Uri.parse('http://localhost:8080/$url'),
-        headers: {
-          'content-type': 'application/json',
-        },
+        headers: {'content-type': 'application/json'},
         body: body,
       );
 
@@ -244,45 +222,46 @@ class BitwindowRPCLive extends BitwindowRPC {
     // Cancel any existing subscription first
     _healthStreamSubscription?.cancel();
 
-    _healthStreamSubscription = health.watch().listen(
-      (response) {
-        // Only notify if the health status has changed
-        if (_previousHealthResponse == null) {
-          _previousHealthResponse = response;
-          notifyListeners();
-        } else if (!_areHealthResponsesEqual(_previousHealthResponse!, response)) {
-          _previousHealthResponse = response;
-          notifyListeners();
-        }
-      },
-      onError: (error) {
-        log.e('Health stream error: $error');
-        if (error is Exception) {
-          log.e('Error details: ${error.toString()}');
-        }
-        // Reset previous response on error since state is uncertain
-        _previousHealthResponse = null;
-        notifyListeners();
+    _healthStreamSubscription =
+        health.watch().listen(
+          (response) {
+            // Only notify if the health status has changed
+            if (_previousHealthResponse == null) {
+              _previousHealthResponse = response;
+              notifyListeners();
+            } else if (!_areHealthResponsesEqual(_previousHealthResponse!, response)) {
+              _previousHealthResponse = response;
+              notifyListeners();
+            }
+          },
+          onError: (error) {
+            log.e('Health stream error: $error');
+            if (error is Exception) {
+              log.e('Error details: ${error.toString()}');
+            }
+            // Reset previous response on error since state is uncertain
+            _previousHealthResponse = null;
+            notifyListeners();
 
-        // If we're still connected, try to restart the stream after a delay
-        if (connected) {
-          log.i('Health stream dropped, but still connected, restarting health stream in 5 seconds...');
-          Future.delayed(const Duration(seconds: 5), () {
-            startHealthStream();
-          });
-        }
-      },
-      cancelOnError: false,
-    )..onDone(() {
-        log.i('Health stream completed');
-        // If we're still connected, restart the stream
-        if (connected) {
-          log.i('Stream completed but still connected, restarting health stream in 5 seconds...');
-          Future.delayed(const Duration(seconds: 5), () {
-            startHealthStream();
-          });
-        }
-      });
+            // If we're still connected, try to restart the stream after a delay
+            if (connected) {
+              log.i('Health stream dropped, but still connected, restarting health stream in 5 seconds...');
+              Future.delayed(const Duration(seconds: 5), () {
+                startHealthStream();
+              });
+            }
+          },
+          cancelOnError: false,
+        )..onDone(() {
+          log.i('Health stream completed');
+          // If we're still connected, restart the stream
+          if (connected) {
+            log.i('Stream completed but still connected, restarting health stream in 5 seconds...');
+            Future.delayed(const Duration(seconds: 5), () {
+              startHealthStream();
+            });
+          }
+        });
   }
 
   @override
@@ -291,17 +270,12 @@ class BitwindowRPCLive extends BitwindowRPC {
     super.dispose();
   }
 
-  bool _areHealthResponsesEqual(
-    CheckResponse previous,
-    CheckResponse current,
-  ) {
+  bool _areHealthResponsesEqual(CheckResponse previous, CheckResponse current) {
     if (previous.serviceStatuses.length != current.serviceStatuses.length) {
       return false;
     }
 
-    final prevMap = {
-      for (var status in previous.serviceStatuses) status.serviceName: status.status,
-    };
+    final prevMap = {for (var status in previous.serviceStatuses) status.serviceName: status.status};
 
     for (var status in current.serviceStatuses) {
       final prevStatus = prevMap[status.serviceName];
@@ -321,12 +295,7 @@ abstract class BitwindowAPI {
   Future<void> stop();
 
   // Denial methods here
-  Future<void> createDenial({
-    required String txid,
-    required int vout,
-    required int numHops,
-    required int delaySeconds,
-  });
+  Future<void> createDenial({required String txid, required int vout, required int numHops, required int delaySeconds});
   Future<void> cancelDenial(Int64 id);
   Future<GetSyncInfoResponse> getSyncInfo();
 
@@ -361,12 +330,7 @@ class _BitwindowAPILive implements BitwindowAPI {
     required int delaySeconds,
   }) async {
     await _client.createDenial(
-      CreateDenialRequest(
-        txid: txid,
-        vout: vout,
-        numHops: numHops,
-        delaySeconds: delaySeconds,
-      ),
+      CreateDenialRequest(txid: txid, vout: vout, numHops: numHops, delaySeconds: delaySeconds),
     );
   }
 
@@ -408,9 +372,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<void> deleteAddressBookEntry(Int64 id) async {
-    await _client.deleteAddressBookEntry(
-      DeleteAddressBookEntryRequest()..id = id,
-    );
+    await _client.deleteAddressBookEntry(DeleteAddressBookEntryRequest()..id = id);
   }
 
   @override
@@ -762,9 +724,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   @override
   Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet) async {
     try {
-      final response = await _client.dumpPrivKey(
-        DumpPrivKeyRequest()..address = address,
-      );
+      final response = await _client.dumpPrivKey(DumpPrivKeyRequest()..address = address);
       log.i('Successfully dumped private key for wallet $wallet address $address');
       return response;
     } catch (e) {
@@ -829,9 +789,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   @override
   Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet) async {
     try {
-      final response = await _client.keyPoolRefill(
-        KeyPoolRefillRequest()..newSize = newSize,
-      );
+      final response = await _client.keyPoolRefill(KeyPoolRefillRequest()..newSize = newSize);
       log.i('Successfully refilled key pool to size $newSize');
       return response;
     } catch (e) {
@@ -844,9 +802,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   @override
   Future<GetAccountResponse> getAccount(String address, String wallet) async {
     try {
-      final response = await _client.getAccount(
-        GetAccountRequest()..address = address,
-      );
+      final response = await _client.getAccount(GetAccountRequest()..address = address);
       log.i('Successfully got account for wallet $wallet address $address');
       return response;
     } catch (e) {
@@ -875,9 +831,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   @override
   Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet) async {
     try {
-      final response = await _client.getAddressesByAccount(
-        GetAddressesByAccountRequest()..account = account,
-      );
+      final response = await _client.getAddressesByAccount(GetAddressesByAccountRequest()..account = account);
       log.i('Successfully got addresses for account $account');
       return response;
     } catch (e) {
@@ -889,9 +843,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   @override
   Future<ListAccountsResponse> listAccounts(int minConf, String wallet) async {
     try {
-      final response = await _client.listAccounts(
-        ListAccountsRequest()..minConf = minConf,
-      );
+      final response = await _client.listAccounts(ListAccountsRequest()..minConf = minConf);
       log.i('Successfully listed accounts with minConf=$minConf');
       return response;
     } catch (e) {

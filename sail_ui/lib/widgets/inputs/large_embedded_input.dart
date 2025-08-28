@@ -33,10 +33,7 @@ class LargeEmbeddedInput extends StatelessWidget {
       enabled: !disabled,
       controller: controller,
       cursorColor: theme.colors.primary,
-      style: TextStyle(
-        color: SailTheme.of(context).colors.text,
-        fontSize: 15,
-      ),
+      style: TextStyle(color: SailTheme.of(context).colors.text, fontSize: 15),
       inputFormatters: [
         if (bitcoinInput) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
         if (numberInput) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
@@ -50,10 +47,7 @@ class LargeEmbeddedInput extends StatelessWidget {
         hintText: hintText,
         suffix: suffixText != null ? SailText.primary13(suffixText!, bold: true) : null,
         contentPadding: const EdgeInsets.all(SailStyleValues.padding20),
-        hintStyle: TextStyle(
-          color: SailTheme.of(context).colors.textHint,
-          fontSize: 15,
-        ),
+        hintStyle: TextStyle(color: SailTheme.of(context).colors.textHint, fontSize: 15),
       ),
     );
   }
@@ -61,10 +55,7 @@ class LargeEmbeddedInput extends StatelessWidget {
 
 class BitcoinTextInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     final newText = newValue.text;
 
     if (newText.contains('.') && newText.substring(newText.indexOf('.') + 1).length > 8) {
@@ -80,10 +71,7 @@ class BitcoinTextInputFormatter extends TextInputFormatter {
 
 class CommaReplacerInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     final newText = newValue.text.replaceAll(',', '.');
 
     return newValue.copyWith(

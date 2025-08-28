@@ -162,8 +162,8 @@ class BinaryProvider extends ChangeNotifier {
     required this.bitwindowAppDir,
     required DownloadManager downloadManager,
     required ProcessManager processManager,
-  })  : _downloadManager = downloadManager,
-        _processManager = processManager {
+  }) : _downloadManager = downloadManager,
+       _processManager = processManager {
     // RPC clients will be lazily initialized when first accessed
 
     // Forward process manager notifications to BinaryProvider listeners
@@ -183,8 +183,8 @@ class BinaryProvider extends ChangeNotifier {
     required this.bitwindowAppDir,
     required DownloadManager downloadManager,
     required ProcessManager processManager,
-  })  : _downloadManager = downloadManager,
-        _processManager = processManager {
+  }) : _downloadManager = downloadManager,
+       _processManager = processManager {
     // Skip GetIt registration for tests
   }
 
@@ -198,9 +198,7 @@ class BinaryProvider extends ChangeNotifier {
       initialBinaries: initialBinaries,
     );
 
-    final processManager = ProcessManager(
-      bitwindowAppDir: bitwindowAppDir,
-    );
+    final processManager = ProcessManager(bitwindowAppDir: bitwindowAppDir);
 
     final provider = BinaryProvider._create(
       bitwindowAppDir: bitwindowAppDir,
@@ -217,10 +215,7 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     // Set up periodic release date checks
-    _releaseCheckTimer = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) => _checkReleaseDates(),
-    );
+    _releaseCheckTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkReleaseDates());
 
     try {
       _setupDirectoryWatcher();
@@ -261,11 +256,9 @@ class BinaryProvider extends ChangeNotifier {
       throw Exception('no RPC connection found for ${binary.name}');
     }
 
-    await rpcConnection.initBinary(
-      (binary, args, cleanup, environment) async {
-        return await _startProcess(binary, args, cleanup, environment: environment);
-      },
-    );
+    await rpcConnection.initBinary((binary, args, cleanup, environment) async {
+      return await _startProcess(binary, args, cleanup, environment: environment);
+    });
   }
 
   // startProcess attempts to boot the binary passed, and waits until
@@ -274,9 +267,8 @@ class BinaryProvider extends ChangeNotifier {
   Future<String?> _startProcess(
     Binary binary,
     List<String> args,
-    Future<void> Function() cleanup,
+    Future<void> Function() cleanup, {
     // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
-    {
     Map<String, String> environment = const {},
   }) async {
     String? error;
@@ -316,9 +308,7 @@ class BinaryProvider extends ChangeNotifier {
             return res != null;
           }),
 
-          Future.delayed(timeout).then(
-            (_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s",
-          ),
+          Future.delayed(timeout).then((_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s"),
           // Timeout case!
         ]);
 
@@ -473,10 +463,7 @@ class BinaryProvider extends ChangeNotifier {
     };
   }
 
-  Future<void> startWithEnforcer(
-    Binary binaryToBoot, {
-    bool bootExtraBinaryImmediately = false,
-  }) async {
+  Future<void> startWithEnforcer(Binary binaryToBoot, {bool bootExtraBinaryImmediately = false}) async {
     final log = GetIt.I.get<Logger>();
     final startTime = DateTime.now();
     int getElapsed() => DateTime.now().difference(startTime).inMilliseconds;
@@ -538,10 +525,7 @@ class BinaryProvider extends ChangeNotifier {
           // Show shutdown page with running binaries
           unawaited(
             shutdownOptions.router.push(
-              ShuttingDownRoute(
-                binaries: runningBinaries,
-                onComplete: shutdownOptions.onComplete,
-              ),
+              ShuttingDownRoute(binaries: runningBinaries, onComplete: shutdownOptions.onComplete),
             ),
           );
         }
@@ -575,22 +559,12 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   void _setupDirectoryWatcher() {
-    final allBinaries = [
-      BitcoinCore(),
-      Enforcer(),
-      BitWindow(),
-      Thunder(),
-      Bitnames(),
-      BitAssets(),
-      ZSide(),
-    ];
+    final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), Bitnames(), BitAssets(), ZSide()];
 
     // Watch the assets directory for changes
     _dirWatcher = binDir(bitwindowAppDir.path).watch(recursive: true).listen((event) {
       // Find which binary changed
-      final changedBinary = allBinaries.firstWhereOrNull(
-        (binary) => event.path.endsWith(binary.binary),
-      );
+      final changedBinary = allBinaries.firstWhereOrNull((binary) => event.path.endsWith(binary.binary));
 
       // The event is not related to a binary, ignore it
       if (changedBinary == null) {
@@ -613,9 +587,7 @@ class BinaryProvider extends ChangeNotifier {
 
           _downloadManager.updateBinary(
             updatedBinary.type,
-            (currentBinary) => currentBinary.copyWith(
-              metadata: updatedBinary.metadata,
-            ),
+            (currentBinary) => currentBinary.copyWith(metadata: updatedBinary.metadata),
           );
 
           log.d('Successfully updated metadata for ${changedBinary.name}');
@@ -636,9 +608,7 @@ class BinaryProvider extends ChangeNotifier {
         if (updatedBinary.metadata != binary.metadata) {
           _downloadManager.updateBinary(
             binary.type,
-            (currentBinary) => currentBinary.copyWith(
-              metadata: updatedBinary.metadata,
-            ),
+            (currentBinary) => currentBinary.copyWith(metadata: updatedBinary.metadata),
           );
         }
       } catch (e) {
@@ -668,10 +638,7 @@ class ShutdownOptions {
   final RootStackRouter router;
   final VoidCallback onComplete;
 
-  const ShutdownOptions({
-    required this.router,
-    required this.onComplete,
-  });
+  const ShutdownOptions({required this.router, required this.onComplete});
 }
 
 Future<void> waitForBoolToBeTrue(
@@ -710,9 +677,7 @@ String _stripFromString(String input, String whatToStrip) {
 
 Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory bitwindowAppDir) async {
   // Update metadata for all binaries in parallel
-  return await Future.wait(
-    binaries.map((binary) => binary.updateMetadata(bitwindowAppDir)),
-  );
+  return await Future.wait(binaries.map((binary) => binary.updateMetadata(bitwindowAppDir)));
 }
 
 Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));

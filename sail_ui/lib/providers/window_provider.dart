@@ -29,20 +29,11 @@ class WindowProvider extends ChangeNotifier {
   int get windowCount => windows.length;
   bool get hasWindows => windows.isNotEmpty;
 
-  WindowProvider._create({
-    required this.logFile,
-    required this.appDir,
-  });
+  WindowProvider._create({required this.logFile, required this.appDir});
 
   // Async factory
-  static Future<WindowProvider> newInstance(
-    File logFile,
-    Directory appDir,
-  ) async {
-    final instance = WindowProvider._create(
-      logFile: logFile,
-      appDir: appDir,
-    );
+  static Future<WindowProvider> newInstance(File logFile, Directory appDir) async {
+    final instance = WindowProvider._create(logFile: logFile, appDir: appDir);
     await instance._initialize();
     return instance;
   }
@@ -54,9 +45,7 @@ class WindowProvider extends ChangeNotifier {
   }
 
   /// Create a new window with the specified window type
-  Future<WindowInfo?> open(
-    SailWindow windowType,
-  ) async {
+  Future<WindowInfo?> open(SailWindow windowType) async {
     try {
       final windowConfig = {
         'window_type': windowType.identifier,
@@ -68,18 +57,13 @@ class WindowProvider extends ChangeNotifier {
       final title = windowType.name;
       log.i('Creating window: $title with type: ${windowType.identifier}');
 
-      final windowController = await DesktopMultiWindow.createWindow(
-        jsonEncode(windowConfig),
-      );
+      final windowController = await DesktopMultiWindow.createWindow(jsonEncode(windowConfig));
 
       final screen = PlatformDispatcher.instance.displays.first;
       // Get the actual physical size (accounting for display scaling)
       final physicalSize = screen.size;
       final devicePixelRatio = screen.devicePixelRatio;
-      final actualScreenSize = Size(
-        physicalSize.width / devicePixelRatio,
-        physicalSize.height / devicePixelRatio,
-      );
+      final actualScreenSize = Size(physicalSize.width / devicePixelRatio, physicalSize.height / devicePixelRatio);
 
       var windowPosition = windowType.defaultPosition ?? const Offset(100, 100);
       var windowSize = windowType.defaultSize ?? const Size(800, 600);
@@ -186,17 +170,9 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<dynamic> sendMessageTo(
-    int windowId,
-    String method,
-    dynamic arguments,
-  ) async {
+  Future<dynamic> sendMessageTo(int windowId, String method, dynamic arguments) async {
     try {
-      final response = await DesktopMultiWindow.invokeMethod(
-        windowId,
-        method,
-        arguments,
-      );
+      final response = await DesktopMultiWindow.invokeMethod(windowId, method, arguments);
       return response;
     } catch (e) {
       log.e('could not send message to window $windowId: $e', error: e);
@@ -204,10 +180,7 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<int, dynamic>> sendMessageToAll(
-    String method,
-    dynamic arguments,
-  ) async {
+  Future<Map<int, dynamic>> sendMessageToAll(String method, dynamic arguments) async {
     final responses = <int, dynamic>{};
     for (final window in windows) {
       try {
@@ -220,10 +193,7 @@ class WindowProvider extends ChangeNotifier {
     return responses;
   }
 
-  Future<dynamic> sendMessageToMain(
-    String method,
-    dynamic arguments,
-  ) async {
+  Future<dynamic> sendMessageToMain(String method, dynamic arguments) async {
     try {
       final response = await DesktopMultiWindow.invokeMethod(0, method, arguments);
       return response;
@@ -290,12 +260,7 @@ class SailWindow {
   /// Get the unique identifier for this window type
   String identifier;
 
-  SailWindow({
-    required this.name,
-    this.defaultSize,
-    this.defaultPosition,
-    required this.identifier,
-  });
+  SailWindow({required this.name, this.defaultSize, this.defaultPosition, required this.identifier});
 }
 
 /// Class representing a window with its properties
@@ -305,12 +270,7 @@ class WindowInfo {
   final WindowController controller;
   final DateTime createdAt;
 
-  WindowInfo({
-    required this.id,
-    required this.windowType,
-    required this.controller,
-    required this.createdAt,
-  });
+  WindowInfo({required this.id, required this.windowType, required this.controller, required this.createdAt});
 
   @override
   String toString() {
@@ -323,10 +283,7 @@ SailApp buildSailWindowApp(Logger log, String windowTitle, Widget child, Color a
     log: log,
     dense: true,
     builder: (context) => MaterialApp(
-      theme: ThemeData(
-        visualDensity: VisualDensity.compact,
-        fontFamily: 'Inter',
-      ),
+      theme: ThemeData(visualDensity: VisualDensity.compact, fontFamily: 'Inter'),
       home: Scaffold(
         backgroundColor: SailTheme.of(context).colors.background,
         body: Column(
@@ -335,11 +292,7 @@ SailApp buildSailWindowApp(Logger log, String windowTitle, Widget child, Color a
               height: 26,
               color: Colors.grey[200],
               alignment: Alignment.centerLeft,
-              child: Center(
-                child: SailText.primary13(
-                  windowTitle,
-                ),
-              ),
+              child: Center(child: SailText.primary13(windowTitle)),
             ),
             Expanded(child: child),
           ],

@@ -96,10 +96,7 @@ class BMMProvider extends ChangeNotifier {
       final index = attempts.indexOf(attempt);
       if (index != -1) {
         final errorMessage = e.toString();
-        attempts[index] = attempt.copyWith(
-          error: errorMessage,
-          raw: jsonEncode({'error': errorMessage}),
-        );
+        attempts[index] = attempt.copyWith(error: errorMessage, raw: jsonEncode({'error': errorMessage}));
       }
 
       currentAttempt = attempts.isNotEmpty ? attempts.first : null;

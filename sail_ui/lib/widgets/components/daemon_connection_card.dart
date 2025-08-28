@@ -35,14 +35,8 @@ class DaemonConnectionCard extends StatelessWidget {
           SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SailText.primary15(
-                '${connection.binary.name} daemon',
-                bold: true,
-              ),
-              SailSVG.fromAsset(
-                SailSVGAsset.iconConnectionStatus,
-                color: _getConnectionColor(theme),
-              ),
+              SailText.primary15('${connection.binary.name} daemon', bold: true),
+              SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: _getConnectionColor(theme)),
               Expanded(child: Container()),
               if (providerBinary != null && providerBinary.updateAvailable)
                 SailButton(
@@ -92,9 +86,7 @@ class DaemonConnectionCard extends StatelessWidget {
                 onPressed: () async {
                   await showDialog(
                     context: context,
-                    builder: (context) => DaemonConnectionDetailsModal(
-                      connection: connection,
-                    ),
+                    builder: (context) => DaemonConnectionDetailsModal(connection: connection),
                   );
                 },
                 icon: SailSVGAsset.tabSettings,
@@ -109,20 +101,13 @@ class DaemonConnectionCard extends StatelessWidget {
                 ),
               ),
               if (deleteFunction != null)
-                SailButton(
-                  variant: ButtonVariant.icon,
-                  onPressed: deleteFunction,
-                  icon: SailSVGAsset.iconDelete,
-                ),
+                SailButton(variant: ButtonVariant.icon, onPressed: deleteFunction, icon: SailSVGAsset.iconDelete),
             ],
           ),
           if (syncInfo != null)
             SizedBox(
               width: 350,
-              child: BlockStatus(
-                name: connection.binary.name,
-                syncInfo: syncInfo!,
-              ),
+              child: BlockStatus(name: connection.binary.name, syncInfo: syncInfo!),
             ),
           SailColumn(
             spacing: 0,
@@ -135,8 +120,8 @@ class DaemonConnectionCard extends StatelessWidget {
                       (connection.initializingBinary
                           ? 'Initializing...'
                           : connection.connected
-                              ? ''
-                              : 'Unknown error occured'),
+                          ? ''
+                          : 'Unknown error occured'),
                 ),
             ],
           ),
@@ -164,11 +149,7 @@ class BlockStatus extends StatelessWidget {
   final String name;
   final SyncInfo syncInfo;
 
-  const BlockStatus({
-    super.key,
-    required this.name,
-    required this.syncInfo,
-  });
+  const BlockStatus({super.key, required this.name, required this.syncInfo});
 
   @override
   Widget build(BuildContext context) {
@@ -190,10 +171,7 @@ class BlockStatus extends StatelessWidget {
               children: [
                 if (!syncInfo.isSynced)
                   Expanded(
-                    child: ProgressBar(
-                      current: syncInfo.progressCurrent,
-                      goal: syncInfo.progressGoal,
-                    ),
+                    child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal),
                   )
                 else
                   SailText.secondary12(

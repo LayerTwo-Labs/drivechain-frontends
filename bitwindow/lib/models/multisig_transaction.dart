@@ -108,11 +108,11 @@ class KeyPSBTStatus {
     );
   }
   Map<String, dynamic> toJson() => {
-        'keyId': keyId,
-        'psbt': psbt,
-        'isSigned': isSigned,
-        'signedAt': signedAt?.toIso8601String(),
-      };
+    'keyId': keyId,
+    'psbt': psbt,
+    'isSigned': isSigned,
+    'signedAt': signedAt?.toIso8601String(),
+  };
 }
 
 class MultisigTransaction {
@@ -161,7 +161,8 @@ class MultisigTransaction {
       id: json['id'] as String,
       groupId: json['groupId'] as String,
       initialPSBT: json['initialPSBT'] as String,
-      keyPSBTs: (json['keyPSBTs'] as List<dynamic>?)
+      keyPSBTs:
+          (json['keyPSBTs'] as List<dynamic>?)
               ?.map((k) => KeyPSBTStatus.fromJson(k as Map<String, dynamic>))
               .toList() ??
           [],
@@ -175,8 +176,9 @@ class MultisigTransaction {
       amount: (json['amount'] as num).toDouble(),
       destination: json['destination'] as String,
       fee: (json['fee'] as num).toDouble(),
-      inputs:
-          (json['inputs'] as List<dynamic>).map((input) => UtxoInfo.fromJson(input as Map<String, dynamic>)).toList(),
+      inputs: (json['inputs'] as List<dynamic>)
+          .map((input) => UtxoInfo.fromJson(input as Map<String, dynamic>))
+          .toList(),
       confirmations: json['confirmations'] as int? ?? 0,
     );
   }

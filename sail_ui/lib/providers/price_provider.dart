@@ -28,10 +28,7 @@ class PriceProvider extends ChangeNotifier {
       return;
     }
 
-    _fetchTimer = Timer.periodic(
-      Duration(seconds: 10),
-      (timer) => fetch(),
-    );
+    _fetchTimer = Timer.periodic(Duration(seconds: 10), (timer) => fetch());
   }
 
   /// Fetch the latest BTCUSD price from blockchain.info
@@ -88,11 +85,7 @@ class PriceProvider extends ChangeNotifier {
     }
 
     // Format with commas and 2 decimal places
-    final formatter = NumberFormat.currency(
-      locale: 'en_US',
-      symbol: '\$',
-      decimalDigits: 2,
-    );
+    final formatter = NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2);
 
     return formatter.format(btcPriceUsd);
   }

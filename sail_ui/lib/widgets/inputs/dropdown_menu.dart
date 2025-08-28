@@ -17,10 +17,7 @@ class SailDropdownButton<T> extends StatefulWidget {
     required this.onChanged,
     required this.value,
     this.hint,
-    this.icon = const Icon(
-      Icons.expand_more,
-      size: 16,
-    ),
+    this.icon = const Icon(Icons.expand_more, size: 16),
     this.large = false,
     this.enabled = true,
     this.openOnHover = false,
@@ -90,18 +87,12 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       },
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border.all(
-            color: context.sailTheme.colors.border,
-            width: 1,
-          ),
+          border: Border.all(color: context.sailTheme.colors.border, width: 1),
           borderRadius: SailStyleValues.borderRadius,
           color: widget.value == null ? theme.colors.primary : Colors.transparent,
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: 9,
-            horizontal: 12,
-          ),
+          padding: EdgeInsets.symmetric(vertical: 9, horizontal: 12),
           child: SailRow(
             spacing: SailStyleValues.padding08,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -139,9 +130,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (widget.menuChildren != null) ...widget.menuChildren!,
-                SailMenu(
-                  items: items,
-                ),
+                SailMenu(items: items),
               ],
             ),
           )
@@ -151,9 +140,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (widget.menuChildren != null) ...widget.menuChildren!,
-              SailMenu(
-                items: items,
-              ),
+              SailMenu(items: items),
             ],
           ),
       ],
@@ -182,12 +169,7 @@ class SailDropdownItem<T> extends StatelessWidget {
   final dynamic value;
   final bool monospace;
 
-  const SailDropdownItem({
-    super.key,
-    required this.value,
-    required this.label,
-    this.monospace = false,
-  });
+  const SailDropdownItem({super.key, required this.value, required this.label, this.monospace = false});
 
   @override
   Widget build(BuildContext context) {
@@ -295,27 +277,18 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: widget.buttonVariant == ButtonVariant.outline
-                ? Border.all(
-                    color: theme.colors.border,
-                    width: 1,
-                  )
+                ? Border.all(color: theme.colors.border, width: 1)
                 : null,
             borderRadius: SailStyleValues.borderRadius,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 9,
-              horizontal: 12,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   widget.selectedCountText,
-                  style: SailStyleValues.thirteen.copyWith(
-                    color: theme.colors.text,
-                    fontSize: 13,
-                  ),
+                  style: SailStyleValues.thirteen.copyWith(color: theme.colors.text, fontSize: 13),
                 ),
                 const SizedBox(width: 8),
                 if (widget.showDropdownArrow)
@@ -344,11 +317,7 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              SailSVG.fromAsset(
-                SailSVGAsset.search,
-                height: 13,
-                color: theme.colors.inactiveNavText,
-              ),
+              SailSVG.fromAsset(SailSVGAsset.search, height: 13, color: theme.colors.inactiveNavText),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
@@ -357,10 +326,7 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                   focusNode: _focusNode,
                   decoration: InputDecoration(
                     hintText: widget.searchPlaceholder,
-                    hintStyle: SailStyleValues.thirteen.copyWith(
-                      color: theme.colors.textSecondary,
-                      fontSize: 13,
-                    ),
+                    hintStyle: SailStyleValues.thirteen.copyWith(color: theme.colors.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                     border: InputBorder.none,
@@ -368,10 +334,7 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                     focusedBorder: InputBorder.none,
                     filled: false,
                   ),
-                  style: SailStyleValues.thirteen.copyWith(
-                    color: theme.colors.text,
-                    fontSize: 13,
-                  ),
+                  style: SailStyleValues.thirteen.copyWith(color: theme.colors.text, fontSize: 13),
                 ),
               ),
             ],
@@ -390,11 +353,7 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                   spacing: SailStyleValues.padding08,
                   children: [
                     if (isSelected)
-                      SailSVG.fromAsset(
-                        SailSVGAsset.check,
-                        color: theme.colors.text,
-                        height: 8,
-                      )
+                      SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.text, height: 8)
                     else
                       const SizedBox(width: 13),
                     Expanded(child: SailText.primary13(item.label)),
@@ -431,23 +390,14 @@ class ExtraActionItem {
   final String? shortcut;
   final VoidCallback onSelect;
 
-  const ExtraActionItem({
-    required this.label,
-    required this.icon,
-    required this.onSelect,
-    this.shortcut,
-  });
+  const ExtraActionItem({required this.label, required this.icon, required this.onSelect, this.shortcut});
 }
 
 class ExtraActionsDropdown extends StatefulWidget {
   final String title;
   final List<ExtraActionItem> items;
 
-  const ExtraActionsDropdown({
-    required this.title,
-    required this.items,
-    super.key,
-  });
+  const ExtraActionsDropdown({required this.title, required this.items, super.key});
 
   @override
   State<ExtraActionsDropdown> createState() => _ExtraActionsDropdownState();
@@ -505,10 +455,7 @@ class _ExtraActionsDropdownState extends State<ExtraActionsDropdown> {
                           SailText.primary13(item.label),
                           if (item.shortcut != null) ...[
                             const Spacer(),
-                            SailText.primary12(
-                              item.shortcut!,
-                              color: theme.colors.text.withValues(alpha: 0.6),
-                            ),
+                            SailText.primary12(item.shortcut!, color: theme.colors.text.withValues(alpha: 0.6)),
                           ],
                         ],
                       ),
@@ -576,10 +523,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
 
     // Find the currently selected item
     final selectedItem = widget.selectedValues != null
-        ? widget.items.firstWhere(
-            (item) => item.value == widget.selectedValues,
-            orElse: () => widget.items.first,
-          )
+        ? widget.items.firstWhere((item) => item.value == widget.selectedValues, orElse: () => widget.items.first)
         : null;
 
     return MenuAnchor(
@@ -603,17 +547,11 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
             },
             child: DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(
-                  color: theme.colors.border,
-                  width: 1,
-                ),
+                border: Border.all(color: theme.colors.border, width: 1),
                 borderRadius: SailStyleValues.borderRadius,
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 9,
-                  horizontal: 12,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
                 child: SailRow(
                   spacing: SailStyleValues.padding08,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -622,10 +560,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                     Expanded(
                       child: selectedItem != null
                           ? SailText.primary13(selectedItem.label)
-                          : SailText.primary13(
-                              widget.searchPlaceholder,
-                              color: theme.colors.textSecondary,
-                            ),
+                          : SailText.primary13(widget.searchPlaceholder, color: theme.colors.textSecondary),
                     ),
                     widget.suffix ??
                         SailSVG.fromAsset(
@@ -652,10 +587,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
         if (filteredItems.isEmpty)
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: SailText.primary13(
-              'No results found',
-              color: theme.colors.textSecondary,
-            ),
+            child: SailText.primary13('No results found', color: theme.colors.textSecondary),
           )
         else
           SailMenu(
@@ -666,9 +598,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 },
                 child: SailRow(
                   spacing: SailStyleValues.padding08,
-                  children: [
-                    Expanded(child: SailText.primary13(item.label)),
-                  ],
+                  children: [Expanded(child: SailText.primary13(item.label))],
                 ),
               );
             }).toList(),

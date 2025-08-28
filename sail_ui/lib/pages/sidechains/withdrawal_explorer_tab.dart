@@ -13,14 +13,8 @@ class WithdrawalExplorerTab extends StatelessWidget {
     return SailCard(
       child: InlineTabBar(
         tabs: [
-          const SingleTabItem(
-            label: 'Bundle Explorer',
-            child: BundleExplorerTab(),
-          ),
-          const SingleTabItem(
-            label: 'Next Bundle',
-            child: NextBundleTab(),
-          ),
+          const SingleTabItem(label: 'Bundle Explorer', child: BundleExplorerTab()),
+          const SingleTabItem(label: 'Next Bundle', child: NextBundleTab()),
         ],
         initialIndex: 0,
       ),
@@ -41,9 +35,7 @@ class BundleExplorerTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SailText.primary12(
-                'Select a withdrawal bundle to show details',
-              ),
+              SailText.primary12('Select a withdrawal bundle to show details'),
               SizedBox(
                 height: 150,
                 child: SailTable(
@@ -57,27 +49,15 @@ class BundleExplorerTab extends StatelessWidget {
                   rowBuilder: (context, row, selected) {
                     final withdrawal = viewModel.bundle!.withdrawalOutputs[row];
                     return [
-                      SailTableCell(
-                        value: withdrawal.valueSats.toString(),
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: withdrawal.mainFeeSats.toString(),
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: withdrawal.mainAddress,
-                        copyValue: withdrawal.mainAddress,
-                        monospace: true,
-                      ),
+                      SailTableCell(value: withdrawal.valueSats.toString(), monospace: true),
+                      SailTableCell(value: withdrawal.mainFeeSats.toString(), monospace: true),
+                      SailTableCell(value: withdrawal.mainAddress, copyValue: withdrawal.mainAddress, monospace: true),
                     ];
                   },
                   rowCount: viewModel.bundle?.withdrawalOutputs.length ?? 0,
                   drawGrid: true,
                   contextMenuItems: (rowId) {
-                    final withdrawal = viewModel.bundle!.withdrawalOutputs.firstWhere(
-                      (w) => w.mainAddress == rowId,
-                    );
+                    final withdrawal = viewModel.bundle!.withdrawalOutputs.firstWhere((w) => w.mainAddress == rowId);
                     return [
                       SailMenuItem(
                         onSelected: () {
@@ -130,14 +110,8 @@ class BundleExplorerTab extends StatelessWidget {
                         rowBuilder: (context, row, selected) {
                           final withdrawal = viewModel.bundle!.withdrawalOutputs[row];
                           return [
-                            SailTableCell(
-                              value: withdrawal.valueSats.toString(),
-                              monospace: true,
-                            ),
-                            SailTableCell(
-                              value: withdrawal.mainFeeSats.toString(),
-                              monospace: true,
-                            ),
+                            SailTableCell(value: withdrawal.valueSats.toString(), monospace: true),
+                            SailTableCell(value: withdrawal.mainFeeSats.toString(), monospace: true),
                             SailTableCell(
                               value: withdrawal.mainAddress,
                               copyValue: withdrawal.mainAddress,
@@ -180,10 +154,7 @@ class BundleExplorerTab extends StatelessWidget {
                                         ],
                                       ),
                                       actions: [
-                                        SailButton(
-                                          label: 'Close',
-                                          onPressed: () async => Navigator.of(context).pop(),
-                                        ),
+                                        SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop()),
                                       ],
                                     );
                                   },
@@ -235,27 +206,15 @@ class NextBundleTab extends StatelessWidget {
                 rowBuilder: (context, row, selected) {
                   final withdrawal = viewModel.bundle!.withdrawalOutputs[row];
                   return [
-                    SailTableCell(
-                      value: withdrawal.valueSats.toString(),
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: withdrawal.mainFeeSats.toString(),
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: withdrawal.mainAddress,
-                      copyValue: withdrawal.mainAddress,
-                      monospace: true,
-                    ),
+                    SailTableCell(value: withdrawal.valueSats.toString(), monospace: true),
+                    SailTableCell(value: withdrawal.mainFeeSats.toString(), monospace: true),
+                    SailTableCell(value: withdrawal.mainAddress, copyValue: withdrawal.mainAddress, monospace: true),
                   ];
                 },
                 rowCount: viewModel.bundle?.withdrawalOutputs.length ?? 0,
                 drawGrid: true,
                 contextMenuItems: (rowId) {
-                  final withdrawal = viewModel.bundle!.withdrawalOutputs.firstWhere(
-                    (w) => w.mainAddress == rowId,
-                  );
+                  final withdrawal = viewModel.bundle!.withdrawalOutputs.firstWhere((w) => w.mainAddress == rowId);
                   return [
                     SailMenuItem(
                       onSelected: () {
@@ -284,12 +243,7 @@ class NextBundleTab extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              actions: [
-                                SailButton(
-                                  label: 'Close',
-                                  onPressed: () async => Navigator.of(context).pop(),
-                                ),
-                              ],
+                              actions: [SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop())],
                             );
                           },
                         );

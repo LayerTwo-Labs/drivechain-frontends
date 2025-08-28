@@ -76,9 +76,9 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
 
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)),
-        symbol: ticker,
-      );
+    ((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)),
+    symbol: ticker,
+  );
 
   double get shieldFee => _zsideProvider.sideFee;
   String get ticker => _rpc.chain.ticker;
@@ -99,8 +99,9 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
 
     if (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount) {
       bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
     } else {
       notifyListeners();
     }
@@ -255,8 +256,9 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
 
     if (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount) {
       bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
     } else {
       notifyListeners();
     }

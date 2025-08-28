@@ -49,11 +49,7 @@ final zsideRPCMethods = [
 ];
 
 abstract class ZSideRPC extends SidechainRPC {
-  ZSideRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  ZSideRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   Future<double> getSidechainWealth();
   Future<String> createDeposit(String address, double amount, double fee);
@@ -103,12 +99,7 @@ class ZSideLive extends ZSideRPC {
     return client;
   }
 
-  ZSideLive()
-      : super(
-          conf: readConf(),
-          binaryType: BinaryType.zSide,
-          restartOnFailure: false,
-        ) {
+  ZSideLive() : super(conf: readConf(), binaryType: BinaryType.zSide, restartOnFailure: false) {
     _init();
   }
 
@@ -220,12 +211,7 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', [
-      address,
-      amountSats,
-      sidechainFeeSats,
-      mainchainFeeSats,
-    ]);
+    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
     return response as String;
   }
 
@@ -370,10 +356,7 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
-    final response = await _client().call('shield', {
-      'value_sats': utxo.amount.toInt(),
-      'fee_sats': zsideFee.toInt(),
-    });
+    final response = await _client().call('shield', {'value_sats': utxo.amount.toInt(), 'fee_sats': zsideFee.toInt()});
     return response as String;
   }
 
@@ -472,10 +455,7 @@ class ShieldedUTXO {
   }
 
   @override
-  int get hashCode => Object.hash(
-        txid,
-        raw,
-      );
+  int get hashCode => Object.hash(txid, raw);
 
   factory ShieldedUTXO.fromMap(Map<String, dynamic> map) {
     return ShieldedUTXO(
@@ -542,10 +522,7 @@ class UnshieldedUTXO {
   }
 
   @override
-  int get hashCode => Object.hash(
-        txid,
-        raw,
-      );
+  int get hashCode => Object.hash(txid, raw);
 
   factory UnshieldedUTXO.fromMap(Map<String, dynamic> map) {
     return UnshieldedUTXO(
@@ -562,10 +539,10 @@ class UnshieldedUTXO {
   String toJson() => jsonEncode(toMap());
 
   Map<String, dynamic> toMap() => {
-        'txid': txid,
-        'address': address,
-        'amount': amount,
-        'confirmations': confirmations,
-        'generated': generated,
-      };
+    'txid': txid,
+    'address': address,
+    'amount': amount,
+    'confirmations': confirmations,
+    'generated': generated,
+  };
 }

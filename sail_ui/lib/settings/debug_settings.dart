@@ -32,8 +32,6 @@ class DebugModeSetting extends SettingValue<bool> {
 
   @override
   SettingValue<bool> withValue([bool? value]) {
-    return DebugModeSetting(
-      newValue: value,
-    );
+    return DebugModeSetting(newValue: value);
   }
 }

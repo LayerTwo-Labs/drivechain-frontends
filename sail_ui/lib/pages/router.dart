@@ -8,14 +8,14 @@ class AppRouter extends RootStackRouter {
 
   @override
   List<AutoRoute> get routes => [
-        AutoRoute(page: SidechainOverviewTabRoute.page),
-        AutoRoute(page: ParentChainRoute.page),
-        AutoRoute(page: LogRoute.page),
-        AutoRoute(page: ShuttingDownRoute.page),
-      ];
+    AutoRoute(page: SidechainOverviewTabRoute.page),
+    AutoRoute(page: ParentChainRoute.page),
+    AutoRoute(page: LogRoute.page),
+    AutoRoute(page: ShuttingDownRoute.page),
+  ];
 
   @override
   List<AutoRouteGuard> get guards => [
-        // optionally add root guards here
-      ];
+    // optionally add root guards here
+  ];
 }

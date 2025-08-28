@@ -47,9 +47,7 @@ class SailTextFormField extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final padding = size != TextFieldSize.regular
-        ? EdgeInsets.all(
-            theme.dense ? SailStyleValues.padding08 : SailStyleValues.padding16,
-          )
+        ? EdgeInsets.all(theme.dense ? SailStyleValues.padding08 : SailStyleValues.padding16)
         : EdgeInsets.symmetric(
             vertical: theme.dense ? SailStyleValues.padding04 : SailStyleValues.padding10,
             horizontal: theme.dense ? SailStyleValues.padding10 : SailStyleValues.padding16,
@@ -59,13 +57,7 @@ class SailTextFormField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label != null)
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 2,
-            ),
-            child: SailText.primary12(label!),
-          ),
+        if (label != null) Padding(padding: const EdgeInsets.only(left: 2), child: SailText.primary12(label!)),
         TextFormField(
           enabled: enabled,
           mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
@@ -92,10 +84,7 @@ class SailTextFormField extends StatelessWidget {
               borderRadius: const BorderRadius.all(Radius.circular(6)),
               borderSide: BorderSide(color: theme.colors.border),
             ),
-            suffixStyle: TextStyle(
-              color: SailTheme.of(context).colors.textTertiary,
-              fontSize: textSize,
-            ),
+            suffixStyle: TextStyle(color: SailTheme.of(context).colors.textTertiary, fontSize: textSize),
             suffixText: suffix,
             suffix: suffixWidget == null
                 ? null
@@ -103,10 +92,7 @@ class SailTextFormField extends StatelessWidget {
                     padding: const EdgeInsets.only(left: SailStyleValues.padding08),
                     child: suffixWidget,
                   ),
-            prefixStyle: TextStyle(
-              color: SailTheme.of(context).colors.textTertiary,
-              fontSize: textSize,
-            ),
+            prefixStyle: TextStyle(color: SailTheme.of(context).colors.textTertiary, fontSize: textSize),
             prefixText: prefix,
             prefix: prefixWidget,
             prefixIcon: prefixIcon,
@@ -116,10 +102,7 @@ class SailTextFormField extends StatelessWidget {
             contentPadding: padding,
             isDense: theme.dense,
             hintText: hintText,
-            hintStyle: TextStyle(
-              color: SailTheme.of(context).colors.textTertiary,
-              fontSize: textSize,
-            ),
+            hintStyle: TextStyle(color: SailTheme.of(context).colors.textTertiary, fontSize: textSize),
           ),
           style: SailStyleValues.thirteen,
           keyboardType: keyboardType,

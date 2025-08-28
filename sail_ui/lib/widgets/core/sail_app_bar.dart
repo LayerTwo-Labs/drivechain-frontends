@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SailAppBar {
-  static PreferredSizeWidget build(
-    BuildContext context, {
-    required title,
-  }) {
+  static PreferredSizeWidget build(BuildContext context, {required title}) {
     final colors = SailTheme.of(context).colors;
 
     return AppBar(

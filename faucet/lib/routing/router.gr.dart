@@ -13,7 +13,8 @@ part of 'router.dart';
 /// generated route for
 /// [ExplorerPage]
 class ExplorerRoute extends PageRouteInfo<void> {
-  const ExplorerRoute({List<PageRouteInfo>? children}) : super(ExplorerRoute.name, initialChildren: children);
+  const ExplorerRoute({List<PageRouteInfo>? children})
+    : super(ExplorerRoute.name, initialChildren: children);
 
   static const String name = 'ExplorerRoute';
 
@@ -28,7 +29,8 @@ class ExplorerRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [FaucetPage]
 class FaucetRoute extends PageRouteInfo<void> {
-  const FaucetRoute({List<PageRouteInfo>? children}) : super(FaucetRoute.name, initialChildren: children);
+  const FaucetRoute({List<PageRouteInfo>? children})
+    : super(FaucetRoute.name, initialChildren: children);
 
   static const String name = 'FaucetRoute';
 
@@ -43,7 +45,8 @@ class FaucetRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [RootPage]
 class RootRoute extends PageRouteInfo<void> {
-  const RootRoute({List<PageRouteInfo>? children}) : super(RootRoute.name, initialChildren: children);
+  const RootRoute({List<PageRouteInfo>? children})
+    : super(RootRoute.name, initialChildren: children);
 
   static const String name = 'RootRoute';
 

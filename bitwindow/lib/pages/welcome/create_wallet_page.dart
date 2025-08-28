@@ -462,16 +462,16 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                                   _mnemonicController.text.isEmpty
                                       ? 'Enter up to 64 hex characters (0-9 and A-F)'
                                       : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text)
-                                          ? 'Invalid hex characters (only 0-9 and A-F allowed)'
-                                          : (_mnemonicController.text.length > 64
-                                              ? 'Too many characters (maximum 64)'
-                                              : 'Valid hex input')),
+                                            ? 'Invalid hex characters (only 0-9 and A-F allowed)'
+                                            : (_mnemonicController.text.length > 64
+                                                  ? 'Too many characters (maximum 64)'
+                                                  : 'Valid hex input')),
                                   color: _mnemonicController.text.isEmpty
                                       ? theme.colors.textSecondary
                                       : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text) ||
-                                              _mnemonicController.text.length > 64
-                                          ? theme.colors.error
-                                          : theme.colors.success),
+                                                _mnemonicController.text.length > 64
+                                            ? theme.colors.error
+                                            : theme.colors.success),
                                 ),
                             ],
                           ),
@@ -622,8 +622,8 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                             _isGenerating
                                 ? 'Generating Your Wallet'
                                 : hasExistingWallet
-                                    ? 'Create New Wallet'
-                                    : 'Generate Wallet',
+                                ? 'Create New Wallet'
+                                : 'Generate Wallet',
                             color: Colors.white,
                             bold: true,
                           ),

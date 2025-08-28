@@ -189,8 +189,9 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   );
                   return [
                     SailTableCell(
-                      value:
-                          utxo.lastUsedAt.seconds == 0 ? 'Never' : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
+                      value: utxo.lastUsedAt.seconds == 0
+                          ? 'Never'
+                          : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
                     ),
                     SailTableCell(value: utxo.address),
                     SailTableCell(value: utxo.label),
@@ -268,9 +269,9 @@ class ReceivePageViewModel extends BaseViewModel {
   List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
-        (e) => e.address == address,
-        orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
-      );
+    (e) => e.address == address,
+    orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
+  );
   bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
 
   String sortColumn = 'address';

@@ -13,16 +13,7 @@ import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
-enum BinaryType {
-  bitcoinCore,
-  bitWindow,
-  enforcer,
-  testSidechain,
-  zSide,
-  thunder,
-  bitnames,
-  bitassets,
-}
+enum BinaryType { bitcoinCore, bitWindow, enforcer, testSidechain, zSide, thunder, bitnames, bitassets }
 
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
@@ -83,18 +74,18 @@ abstract class Binary {
 
   @override
   int get hashCode => Object.hash(
-        name,
-        version,
-        description,
-        repoUrl,
-        binary,
-        port,
-        chainLayer,
-        directories,
-        metadata,
-        extraBootArgs,
-        downloadInfo,
-      );
+    name,
+    version,
+    description,
+    repoUrl,
+    binary,
+    port,
+    chainLayer,
+    directories,
+    metadata,
+    extraBootArgs,
+    downloadInfo,
+  );
 
   bool _listEquals(List<String> a, List<String> b) {
     if (a.length != b.length) return false;
@@ -144,26 +135,13 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['bitwindow.db', 'bitdrive']);
 
       case BinaryType.bitnames:
-        await _deleteFilesInDir(dir, [
-          'data.mdb',
-          'logs',
-        ]);
+        await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
 
       case BinaryType.bitassets:
-        await _deleteFilesInDir(dir, [
-          'data.mdb',
-          'logs',
-        ]);
+        await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
 
       case BinaryType.thunder:
-        await _deleteFilesInDir(dir, [
-          'data.mdb',
-          'logs',
-          'start.sh',
-          'thunder.conf',
-          'thunder.zip',
-          'thunder_app',
-        ]);
+        await _deleteFilesInDir(dir, ['data.mdb', 'logs', 'start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']);
 
       case BinaryType.testSidechain:
       case BinaryType.zSide:
@@ -231,8 +209,8 @@ abstract class Binary {
     String candidateName = originalName;
     int counter = 2;
 
-    while (
-        await File(path.join(dir, candidateName)).exists() || await Directory(path.join(dir, candidateName)).exists()) {
+    while (await File(path.join(dir, candidateName)).exists() ||
+        await Directory(path.join(dir, candidateName)).exists()) {
       candidateName = '$baseName-$counter$extension';
       counter++;
     }
@@ -246,13 +224,7 @@ abstract class Binary {
     final dir = assetsDir.path;
 
     // delete raw binary assets
-    await _deleteFilesInDir(dir, [
-      binary,
-      binary.replaceAll('.exe', ''),
-      '$binary.exe',
-      '$binary.app',
-      '$binary.meta',
-    ]);
+    await _deleteFilesInDir(dir, [binary, binary.replaceAll('.exe', ''), '$binary.exe', '$binary.app', '$binary.meta']);
 
     // then any extra files for that specific chain
     switch (type) {
@@ -282,21 +254,13 @@ abstract class Binary {
         ]);
 
       case BinaryType.bitnames:
-        await _deleteFilesInDir(dir, [
-          'bitnames-cli',
-          'logs',
-        ]);
+        await _deleteFilesInDir(dir, ['bitnames-cli', 'logs']);
 
       case BinaryType.bitassets:
-        await _deleteFilesInDir(dir, [
-          'bitassets-cli',
-          'logs',
-        ]);
+        await _deleteFilesInDir(dir, ['bitassets-cli', 'logs']);
 
       case BinaryType.thunder:
-        await _deleteFilesInDir(dir, [
-          'thunder-cli',
-        ]);
+        await _deleteFilesInDir(dir, ['thunder-cli']);
 
       case BinaryType.testSidechain:
       case BinaryType.zSide:
@@ -332,12 +296,7 @@ abstract class Binary {
           var resolvedPath = binaryPath;
           // Handle .app bundles on macOS
           if (Platform.isMacOS && (binary.endsWith('.app'))) {
-            resolvedPath = path.join(
-              binaryPath,
-              'Contents',
-              'MacOS',
-              path.basenameWithoutExtension(binaryPath),
-            );
+            resolvedPath = path.join(binaryPath, 'Contents', 'MacOS', path.basenameWithoutExtension(binaryPath));
           }
           return File(resolvedPath);
         }
@@ -375,9 +334,7 @@ abstract class Binary {
       // Create temp file
       final temp = await getTemporaryDirectory();
       final ts = DateTime.now();
-      final randDir = Directory(
-        filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
-      );
+      final randDir = Directory(filePath([temp.path, ts.millisecondsSinceEpoch.toString()]));
       log.d('Creating temporary directory at: ${randDir.path}');
       await randDir.create();
 
@@ -388,9 +345,7 @@ abstract class Binary {
     log.d('Process: writing binary to ${file.path}');
 
     final buffer = binResource.buffer;
-    await file.writeAsBytes(
-      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
-    );
+    await file.writeAsBytes(buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes));
     log.d('Process: successfully wrote binary to assets');
 
     return file;
@@ -401,21 +356,15 @@ abstract class Binary {
 
     if (kDebugMode) {
       // In debug mode, check pwd/bin first
-      paths.addAll([
-        path.join(binDir(Directory.current.path).path, baseBinary),
-      ]);
+      paths.addAll([path.join(binDir(Directory.current.path).path, baseBinary)]);
     }
 
     // Check the folder where binaries are downloaded to first
-    paths.addAll([
-      path.join(appDir.path, 'assets', 'bin', baseBinary),
-    ]);
+    paths.addAll([path.join(appDir.path, 'assets', 'bin', baseBinary)]);
 
     // we might be running a sidechain. if that's the case, check if bitwindow has downloaded it
     final bitwindowAppDir = path.join(appDir.parent.path, 'bitwindow');
-    paths.addAll([
-      path.join(bitwindowAppDir, 'assets', 'bin', baseBinary),
-    ]);
+    paths.addAll([path.join(bitwindowAppDir, 'assets', 'bin', baseBinary)]);
 
     return paths;
   }
@@ -521,29 +470,25 @@ class BitcoinCore extends Binary {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs,
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: '.drivechain',
-                  OS.macos: 'Drivechain',
-                  OS.windows: 'Drivechain',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
-                files: {
-                  OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-          port: port ?? 38332,
-        );
+         directories:
+             directories ??
+             DirectoryConfig(base: {OS.linux: '.drivechain', OS.macos: 'Drivechain', OS.windows: 'Drivechain'}),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: 'https://releases.drivechain.info/',
+               files: {
+                 OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
+                 OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
+                 OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+         port: port ?? 38332,
+       );
 
   @override
   BinaryType get type => BinaryType.bitcoinCore;
@@ -592,30 +537,26 @@ class BitWindow extends Binary {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs,
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: 'bitwindow',
-                  OS.macos: 'bitwindow',
-                  OS.windows: 'bitwindow',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: '',
-                files: {
-                  // should not be downloaded from any platform
-                  OS.linux: '',
-                  OS.macos: '',
-                  OS.windows: '',
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-          port: port ?? 8080,
-        );
+         directories:
+             directories ??
+             DirectoryConfig(base: {OS.linux: 'bitwindow', OS.macos: 'bitwindow', OS.windows: 'bitwindow'}),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: '',
+               files: {
+                 // should not be downloaded from any platform
+                 OS.linux: '',
+                 OS.macos: '',
+                 OS.windows: '',
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+         port: port ?? 8080,
+       );
 
   @override
   BinaryType get type => BinaryType.bitWindow;
@@ -664,29 +605,27 @@ class Enforcer extends Binary {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs,
   }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: 'bip300301_enforcer',
-                  OS.macos: 'bip300301_enforcer',
-                  OS.windows: 'bip300301_enforcer',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
-                files: {
-                  OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
-                },
-                remoteTimestamp: null,
-                downloadedTimestamp: null,
-                binaryPath: null,
-                updateable: false,
-              ),
-          port: port ?? 50051,
-        );
+         directories:
+             directories ??
+             DirectoryConfig(
+               base: {OS.linux: 'bip300301_enforcer', OS.macos: 'bip300301_enforcer', OS.windows: 'bip300301_enforcer'},
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               baseUrl: 'https://releases.drivechain.info/',
+               files: {
+                 OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
+                 OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
+                 OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
+               },
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+         port: port ?? 50051,
+       );
 
   @override
   BinaryType get type => BinaryType.enforcer;
@@ -931,9 +870,7 @@ extension BinaryDownload on Binary {
 class DirectoryConfig {
   final Map<OS, String> base;
 
-  const DirectoryConfig({
-    required this.base,
-  });
+  const DirectoryConfig({required this.base});
 
   @override
   bool operator ==(Object other) => identical(this, other) || other is DirectoryConfig && _mapEquals(base, other.base);
@@ -998,14 +935,8 @@ class MetadataConfig {
           _mapEquals(files, other.files);
 
   @override
-  int get hashCode => Object.hash(
-        baseUrl,
-        updateable,
-        remoteTimestamp,
-        downloadedTimestamp,
-        binaryPath?.path,
-        files.hashCode,
-      );
+  int get hashCode =>
+      Object.hash(baseUrl, updateable, remoteTimestamp, downloadedTimestamp, binaryPath?.path, files.hashCode);
 
   bool _mapEquals(Map<OS, String> a, Map<OS, String> b) {
     if (a.length != b.length) return false;
@@ -1072,12 +1003,5 @@ class DownloadInfo {
           isDownloading == other.isDownloading;
 
   @override
-  int get hashCode => Object.hash(
-        progress,
-        total,
-        error,
-        hash,
-        downloadedAt,
-        isDownloading,
-      );
+  int get hashCode => Object.hash(progress, total, error, hash, downloadedAt, isDownloading);
 }

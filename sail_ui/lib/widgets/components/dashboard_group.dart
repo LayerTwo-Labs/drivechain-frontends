@@ -8,13 +8,7 @@ class DashboardGroup extends StatelessWidget {
   final Widget? widgetTrailing;
   final Widget? widgetEnd;
 
-  const DashboardGroup({
-    super.key,
-    required this.title,
-    required this.children,
-    this.widgetTrailing,
-    this.widgetEnd,
-  });
+  const DashboardGroup({super.key, required this.title, required this.children, this.widgetTrailing, this.widgetEnd});
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +28,7 @@ class DashboardGroup extends StatelessWidget {
                 SailRow(
                   spacing: SailStyleValues.padding10,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SailText.primary13(
-                      title,
-                      bold: true,
-                    ),
-                    if (widgetTrailing != null) widgetTrailing!,
-                  ],
+                  children: [SailText.primary13(title, bold: true), if (widgetTrailing != null) widgetTrailing!],
                 ),
                 Expanded(child: Container()),
                 if (widgetEnd != null) widgetEnd!,

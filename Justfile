@@ -1,5 +1,5 @@
-lint:
-    bash scripts/lint.sh
+format:
+    bash scripts/format.sh
 
 gen-router:
     #!/usr/bin/env bash

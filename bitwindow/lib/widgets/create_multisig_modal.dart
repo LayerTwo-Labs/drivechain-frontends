@@ -40,26 +40,26 @@ class MultisigKey {
   });
 
   Map<String, dynamic> toJson() => {
-        'owner': owner,
-        'xpub': xpub,
-        'path': derivationPath,
-        'fingerprint': fingerprint,
-        'origin_path': originPath,
-        'is_wallet': isWallet,
-        if (activePSBTs != null) 'active_psbts': activePSBTs,
-        if (initialPSBTs != null) 'initial_psbts': initialPSBTs,
-      };
+    'owner': owner,
+    'xpub': xpub,
+    'path': derivationPath,
+    'fingerprint': fingerprint,
+    'origin_path': originPath,
+    'is_wallet': isWallet,
+    if (activePSBTs != null) 'active_psbts': activePSBTs,
+    if (initialPSBTs != null) 'initial_psbts': initialPSBTs,
+  };
 
   factory MultisigKey.fromJson(Map<String, dynamic> json) => MultisigKey(
-        owner: json['owner'],
-        xpub: json['xpub'] ?? json['pubkey'],
-        derivationPath: json['path'],
-        fingerprint: json['fingerprint'],
-        originPath: json['origin_path'],
-        isWallet: json['is_wallet'] ?? false,
-        activePSBTs: json['active_psbts'] != null ? Map<String, String>.from(json['active_psbts']) : null,
-        initialPSBTs: json['initial_psbts'] != null ? Map<String, String>.from(json['initial_psbts']) : null,
-      );
+    owner: json['owner'],
+    xpub: json['xpub'] ?? json['pubkey'],
+    derivationPath: json['path'],
+    fingerprint: json['fingerprint'],
+    originPath: json['origin_path'],
+    isWallet: json['is_wallet'] ?? false,
+    activePSBTs: json['active_psbts'] != null ? Map<String, String>.from(json['active_psbts']) : null,
+    initialPSBTs: json['initial_psbts'] != null ? Map<String, String>.from(json['initial_psbts']) : null,
+  );
 
   MultisigKey copyWith({
     String? owner,

@@ -7,11 +7,7 @@ class ShuttingDownPage extends StatefulWidget {
   final List<Binary> binaries;
   final VoidCallback onComplete;
 
-  const ShuttingDownPage({
-    super.key,
-    required this.binaries,
-    required this.onComplete,
-  });
+  const ShuttingDownPage({super.key, required this.binaries, required this.onComplete});
 
   @override
   State<ShuttingDownPage> createState() => _ShuttingDownPageState();
@@ -29,15 +25,9 @@ class _ShuttingDownPageState extends State<ShuttingDownPage> with SingleTickerPr
     final totalSteps = widget.binaries.length + 1;
     final duration = Duration(seconds: totalSteps);
 
-    _controller = AnimationController(
-      duration: duration,
-      vsync: this,
-    );
+    _controller = AnimationController(duration: duration, vsync: this);
 
-    _progressAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(_controller);
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
 
     _controller.addListener(_updateMessage);
 
@@ -80,12 +70,7 @@ class _ShuttingDownPageState extends State<ShuttingDownPage> with SingleTickerPr
       child: Stack(
         children: [
           // Centered logo
-          Center(
-            child: SailSVG.fromAsset(
-              SailSVGAsset.layerTwoLabsLogo,
-              height: 71,
-            ),
-          ),
+          Center(child: SailSVG.fromAsset(SailSVGAsset.layerTwoLabsLogo, height: 71)),
 
           // Progress and text overlay
           Positioned(
@@ -98,10 +83,7 @@ class _ShuttingDownPageState extends State<ShuttingDownPage> with SingleTickerPr
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SailText.primary10(
-                    _currentMessage,
-                    color: theme.colors.inactiveNavText,
-                  ),
+                  SailText.primary10(_currentMessage, color: theme.colors.inactiveNavText),
                   SizedBox(
                     width: 200,
                     child: ProgressBar(

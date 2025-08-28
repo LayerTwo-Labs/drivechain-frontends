@@ -17,28 +17,17 @@ Future<void> initSidechainDependencies({
   required KeyValueStore store,
   required Logger log,
 }) async {
-  GetIt.I.registerLazySingleton<NotificationProvider>(
-    () => NotificationProvider(),
-  );
+  GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
-  final clientSettings = ClientSettings(
-    store: store,
-    log: log,
-  );
-  GetIt.I.registerLazySingleton<ClientSettings>(
-    () => clientSettings,
-  );
+  final clientSettings = ClientSettings(store: store, log: log);
+  GetIt.I.registerLazySingleton<ClientSettings>(() => clientSettings);
   final settingsProvider = await SettingsProvider.create();
-  GetIt.I.registerLazySingleton<SettingsProvider>(
-    () => settingsProvider,
-  );
+  GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
 
   // Load initial binary states
   final binaries = _initialBinaries(sidechain);
   final mainchainRPC = MainchainRPCLive();
-  GetIt.I.registerLazySingleton<MainchainRPC>(
-    () => mainchainRPC,
-  );
+  GetIt.I.registerLazySingleton<MainchainRPC>(() => mainchainRPC);
 
   final enforcer = EnforcerLive();
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
@@ -48,52 +37,28 @@ Future<void> initSidechainDependencies({
 
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
-  final bitwindowAppDir = Directory(
-    path.join(
-      applicationDir.path,
-      '..',
-      'bitwindow',
-    ),
-  );
+  final bitwindowAppDir = Directory(path.join(applicationDir.path, '..', 'bitwindow'));
 
   // After RPCs including sidechain rpcs have been registered, register the binary provider
-  final binaryProvider = await BinaryProvider.create(
-    bitwindowAppDir: bitwindowAppDir,
-    initialBinaries: binaries,
-  );
+  final binaryProvider = await BinaryProvider.create(bitwindowAppDir: bitwindowAppDir, initialBinaries: binaries);
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   bootBinaries(log, sidechain);
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
 
-  GetIt.I.registerLazySingleton<AppRouter>(
-    () => AppRouter(),
-  );
+  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
 
-  GetIt.I.registerLazySingleton<BalanceProvider>(
-    () => BalanceProvider(
-      connections: [sidechainConnection],
-    ),
-  );
+  GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [sidechainConnection]));
 
-  GetIt.I.registerLazySingleton<AddressProvider>(
-    () => AddressProvider(),
-  );
+  GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
 
   final syncProvider = SyncProvider(
-    additionalConnection: SyncConnection(
-      rpc: sidechainConnection,
-      name: sidechainConnection.chain.name,
-    ),
+    additionalConnection: SyncConnection(rpc: sidechainConnection, name: sidechainConnection.chain.name),
   );
-  GetIt.I.registerLazySingleton<SyncProvider>(
-    () => syncProvider,
-  );
+  GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
   unawaited(syncProvider.fetch());
 
-  GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
-    () => SidechainTransactionsProvider(),
-  );
+  GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => SidechainTransactionsProvider());
 }
 
 Future<File> getLogFile(Directory appDir) async {
@@ -112,18 +77,12 @@ Future<File> getLogFile(Directory appDir) async {
 void bootBinaries(Logger log, Binary sidechain) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
 
-  await binaryProvider.startWithEnforcer(
-    sidechain,
-  );
+  await binaryProvider.startWithEnforcer(sidechain);
 }
 
 List<Binary> _initialBinaries(Binary sidechain) {
   // Register all binaries
-  var binaries = [
-    BitcoinCore(),
-    Enforcer(),
-    sidechain,
-  ];
+  var binaries = [BitcoinCore(), Enforcer(), sidechain];
 
   // make sidechain boot in headless-mode
   binaries[2].addBootArg('--headless');

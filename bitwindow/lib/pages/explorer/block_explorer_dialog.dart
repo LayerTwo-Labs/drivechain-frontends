@@ -547,60 +547,60 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                   ),
                 )
               : transaction == null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(SailStyleValues.padding16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SailText.primary13('Failed to load transaction details'),
-                            if (error != null) SailText.secondary13(error!),
-                            SailButton(
-                              onPressed: _loadTransaction,
-                              label: 'Retry',
-                              variant: ButtonVariant.primary,
-                            ),
-                          ],
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(SailStyleValues.padding16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SailText.primary13('Failed to load transaction details'),
+                        if (error != null) SailText.secondary13(error!),
+                        SailButton(
+                          onPressed: _loadTransaction,
+                          label: 'Retry',
+                          variant: ButtonVariant.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow(context, '# Inputs', '${transaction!.inputs.length}'),
+                      _buildDetailRow(context, '# Outputs', '${transaction!.outputs.length}'),
+                      _buildDetailRow(context, 'Size', '${transaction!.size} bytes'),
+                      _buildDetailRow(context, 'Virtual Size', '${transaction!.vsize} vbytes'),
+                      _buildDetailRow(context, 'Weight', '${transaction!.weight} wu'),
+                      _buildDetailRow(context, 'Block Hash', transaction!.blockhash),
+                      _buildDetailRow(context, 'Confirmations', '${transaction!.confirmations}'),
+                      _buildDetailRow(context, 'Lock Time', '${transaction!.locktime}'),
+                      if (transaction!.inputs.any((input) => input.coinbase.isNotEmpty))
+                        SailText.primary13('This is a coinbase transaction.'),
+                      const SailSpacing(SailStyleValues.padding16),
+                      SailText.primary13('Decoded from transaction outputs:'),
+                      const SailSpacing(SailStyleValues.padding08),
+                      _buildDecodedOutputsTable(context),
+                      const SailSpacing(SailStyleValues.padding16),
+                      BorderedSection(
+                        title: 'Transaction To String:',
+                        child: SailText.secondary13(
+                          transaction!.toString(),
                         ),
                       ),
-                    )
-                  : SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDetailRow(context, '# Inputs', '${transaction!.inputs.length}'),
-                          _buildDetailRow(context, '# Outputs', '${transaction!.outputs.length}'),
-                          _buildDetailRow(context, 'Size', '${transaction!.size} bytes'),
-                          _buildDetailRow(context, 'Virtual Size', '${transaction!.vsize} vbytes'),
-                          _buildDetailRow(context, 'Weight', '${transaction!.weight} wu'),
-                          _buildDetailRow(context, 'Block Hash', transaction!.blockhash),
-                          _buildDetailRow(context, 'Confirmations', '${transaction!.confirmations}'),
-                          _buildDetailRow(context, 'Lock Time', '${transaction!.locktime}'),
-                          if (transaction!.inputs.any((input) => input.coinbase.isNotEmpty))
-                            SailText.primary13('This is a coinbase transaction.'),
-                          const SailSpacing(SailStyleValues.padding16),
-                          SailText.primary13('Decoded from transaction outputs:'),
-                          const SailSpacing(SailStyleValues.padding08),
-                          _buildDecodedOutputsTable(context),
-                          const SailSpacing(SailStyleValues.padding16),
-                          BorderedSection(
-                            title: 'Transaction To String:',
-                            child: SailText.secondary13(
-                              transaction!.toString(),
-                            ),
-                          ),
-                          const SailSpacing(SailStyleValues.padding16),
-                          BorderedSection(
-                            title: 'Raw Transaction Hex',
-                            child: SailText.secondary13(
-                              transaction!.tx.hex,
-                              monospace: true,
-                            ),
-                          ),
-                        ],
+                      const SailSpacing(SailStyleValues.padding16),
+                      BorderedSection(
+                        title: 'Raw Transaction Hex',
+                        child: SailText.secondary13(
+                          transaction!.tx.hex,
+                          monospace: true,
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         ),
       ),
     );

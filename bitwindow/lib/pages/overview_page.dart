@@ -751,7 +751,8 @@ class CreateTopicView extends StatelessWidget {
             SailButton(
               label: 'Create',
               onPressed: () => viewModel.createTopic(context),
-              disabled: viewModel.identifierController.text.isEmpty ||
+              disabled:
+                  viewModel.identifierController.text.isEmpty ||
                   viewModel.nameController.text.isEmpty ||
                   viewModel.identifierController.text.length != 8,
             ),

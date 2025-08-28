@@ -76,9 +76,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
-        symbol: ticker,
-      );
+    ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
+    symbol: ticker,
+  );
   String get ticker => _rpc.chain.ticker;
 
   double? sidechainExpectedFee;
@@ -101,8 +101,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
     if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
       bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
     } else {
       notifyListeners();
     }

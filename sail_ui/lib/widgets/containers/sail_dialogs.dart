@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-Future<T?> showThemedDialog<T>({
-  required BuildContext context,
-  required WidgetBuilder builder,
-}) async {
+Future<T?> showThemedDialog<T>({required BuildContext context, required WidgetBuilder builder}) async {
   final theme = SailTheme.of(context);
   return await showDialog(
     context: context,
@@ -19,12 +16,7 @@ Future<T?> infoDialog<T>({
   required String subtitle,
   required Future<void> Function() onConfirm,
 }) async {
-  return await _baseDialogSimple(
-    context: context,
-    title: title,
-    subtitle: subtitle,
-    onConfirm: onConfirm,
-  );
+  return await _baseDialogSimple(context: context, title: title, subtitle: subtitle, onConfirm: onConfirm);
 }
 
 Future<T?> successDialog<T>({
@@ -33,12 +25,7 @@ Future<T?> successDialog<T>({
   required String title,
   required String subtitle,
 }) async {
-  return await _baseDialogSimple(
-    context: context,
-    title: title,
-    subtitle: subtitle,
-    onConfirm: null,
-  );
+  return await _baseDialogSimple(context: context, title: title, subtitle: subtitle, onConfirm: null);
 }
 
 Future<T?> errorDialog<T>({
@@ -47,12 +34,7 @@ Future<T?> errorDialog<T>({
   required String title,
   required String subtitle,
 }) async {
-  return await _baseDialogSimple(
-    context: context,
-    title: title,
-    subtitle: subtitle,
-    onConfirm: null,
-  );
+  return await _baseDialogSimple(context: context, title: title, subtitle: subtitle, onConfirm: null);
 }
 
 Future<T?> _baseDialogSimple<T>({
@@ -70,10 +52,7 @@ Future<T?> _baseDialogSimple<T>({
       spacing: SailStyleValues.padding12,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SailText.primary15(
-          subtitle,
-          color: theme.colors.textSecondary,
-        ),
+        SailText.primary15(subtitle, color: theme.colors.textSecondary),
         DialogButtons(onPressed: onConfirm),
       ],
     ),
@@ -94,15 +73,8 @@ Future<T?> widgetDialog<T>({
     builder: (context) => Dialog(
       backgroundColor: theme.colors.backgroundSecondary,
       child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: maxWidth,
-        ),
-        child: SailCard(
-          title: title,
-          subtitle: subtitle,
-          withCloseButton: true,
-          child: child,
-        ),
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SailCard(title: title, subtitle: subtitle, withCloseButton: true, child: child),
       ),
     ),
   );
@@ -114,13 +86,7 @@ class CardHeader extends StatelessWidget {
   final String? subtitle;
   final String? error;
 
-  const CardHeader({
-    super.key,
-    required this.title,
-    this.titleTooltip,
-    this.subtitle,
-    this.error,
-  });
+  const CardHeader({super.key, required this.title, this.titleTooltip, this.subtitle, this.error});
 
   @override
   Widget build(BuildContext context) {
@@ -132,18 +98,9 @@ class CardHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (titleTooltip != null)
-          Tooltip(
-            message: titleTooltip,
-            child: SailText.primary15(
-              title,
-              bold: true,
-            ),
-          )
+          Tooltip(message: titleTooltip, child: SailText.primary15(title, bold: true))
         else
-          SailText.primary15(
-            title,
-            bold: true,
-          ),
+          SailText.primary15(title, bold: true),
         if (error != null || subtitle != null)
           SailText.primary12(
             error ?? subtitle!,
@@ -162,12 +119,7 @@ class DialogHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
 
-  const DialogHeader({
-    super.key,
-    required this.onClose,
-    required this.title,
-    this.subtitle,
-  });
+  const DialogHeader({super.key, required this.onClose, required this.title, this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -178,11 +130,7 @@ class DialogHeader extends StatelessWidget {
         Expanded(
           child: CardHeader(title: title, subtitle: subtitle),
         ),
-        SailButton(
-          variant: ButtonVariant.icon,
-          icon: SailSVGAsset.iconClose,
-          onPressed: onClose,
-        ),
+        SailButton(variant: ButtonVariant.icon, icon: SailSVGAsset.iconClose, onPressed: onClose),
       ],
     );
   }
@@ -191,10 +139,7 @@ class DialogHeader extends StatelessWidget {
 class DialogButtons extends StatelessWidget {
   final Future<void> Function()? onPressed;
 
-  const DialogButtons({
-    super.key,
-    required this.onPressed,
-  });
+  const DialogButtons({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -209,12 +154,7 @@ class DialogButtons extends StatelessWidget {
             Navigator.of(context).pop();
           },
         ),
-        if (onPressed != null)
-          SailButton(
-            label: 'Confirm',
-            variant: ButtonVariant.primary,
-            onPressed: onPressed!,
-          ),
+        if (onPressed != null) SailButton(label: 'Confirm', variant: ButtonVariant.primary, onPressed: onPressed!),
       ],
     );
   }

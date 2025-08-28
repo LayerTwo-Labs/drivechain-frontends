@@ -60,8 +60,8 @@ String calculateLabel(RecipientModel recipient, int index) {
   final recipientLabel = recipient.matchingAddressLabel.isNotEmpty
       ? recipient.matchingAddressLabel
       : recipient.addressController.text.isEmpty
-          ? '<Unknown>'
-          : recipient.addressController.text.substring(0, min(recipient.addressController.text.length, 10));
+      ? '<Unknown>'
+      : recipient.addressController.text.substring(0, min(recipient.addressController.text.length, 10));
 
   return '$recipientLabel ${amount != null ? '(${formatBitcoin(amount)})' : ''}';
 }
@@ -218,8 +218,8 @@ class RecipientModel extends ChangeNotifier {
     String amount = '',
     String label = '',
     this.subtractFee = false,
-  })  : addressController = TextEditingController(text: address),
-        amountController = TextEditingController(text: amount) {
+  }) : addressController = TextEditingController(text: address),
+       amountController = TextEditingController(text: amount) {
     addressController.addListener(notifyListeners);
     amountController.addListener(notifyListeners);
   }
@@ -300,12 +300,12 @@ class SendPageViewModel extends BaseViewModel {
   TextEditingController selectedUTXOs = TextEditingController();
   TextEditingController feeController = TextEditingController(text: '10000');
   List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted(
-        (a, b) {
-          final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
-          if (dateCompare != 0) return dateCompare;
-          return a.output.compareTo(b.output);
-        },
-      );
+    (a, b) {
+      final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
+      if (dateCompare != 0) return dateCompare;
+      return a.output.compareTo(b.output);
+    },
+  );
 
   List<UnspentOutput> selectedUtxos = [];
 

@@ -191,16 +191,16 @@ class BitDriveTab extends StatelessWidget {
                                   color: context.sailTheme.colors.text,
                                 )
                               : model.pendingDownloadsCount > 0
-                                  ? SailText.primary13(
-                                      '${model.pendingDownloadsCount} new files available for download',
-                                      color: context.sailTheme.colors.text,
-                                    )
-                                  : model.isDownloading
-                                      ? SailText.primary13(
-                                          'Downloading files...',
-                                          color: context.sailTheme.colors.text,
-                                        )
-                                      : null, // No message, but space is still reserved
+                              ? SailText.primary13(
+                                  '${model.pendingDownloadsCount} new files available for download',
+                                  color: context.sailTheme.colors.text,
+                                )
+                              : model.isDownloading
+                              ? SailText.primary13(
+                                  'Downloading files...',
+                                  color: context.sailTheme.colors.text,
+                                )
+                              : null, // No message, but space is still reserved
                         ),
                       ],
                     ),

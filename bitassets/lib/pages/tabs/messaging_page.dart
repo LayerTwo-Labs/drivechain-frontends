@@ -165,8 +165,9 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
     }
 
     // First, check if input is already a direct hash match in bitassets
-    existingEntryMatch ??=
-        bitassetsProvider.entries.where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase()).firstOrNull;
+    existingEntryMatch ??= bitassetsProvider.entries
+        .where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase())
+        .firstOrNull;
 
     // If no bitasset match found, assume input is a direct encryption key
     return existingEntryMatch?.details.encryptionPubkey;

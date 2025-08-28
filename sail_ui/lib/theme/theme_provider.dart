@@ -4,10 +4,7 @@ import 'package:sail_ui/sail_ui.dart';
 class SailThemeProvider extends StatefulWidget {
   final WidgetBuilder builder;
 
-  const SailThemeProvider({
-    super.key,
-    required this.builder,
-  });
+  const SailThemeProvider({super.key, required this.builder});
 
   @override
   State<SailThemeProvider> createState() => SailThemeProviderState();
@@ -15,9 +12,7 @@ class SailThemeProvider extends StatefulWidget {
     final SailThemeProviderState? result = context.findAncestorStateOfType<SailThemeProviderState>();
     if (result != null) return result;
     throw FlutterError.fromParts(<DiagnosticsNode>[
-      ErrorSummary(
-        'SailThemeProviderState.of() called with a context that does not contain a SailThemeProvider.',
-      ),
+      ErrorSummary('SailThemeProviderState.of() called with a context that does not contain a SailThemeProvider.'),
     ]);
   }
 }
@@ -31,9 +26,6 @@ class SailThemeProviderState extends State<SailThemeProvider> {
 
   @override
   Widget build(BuildContext context) {
-    return SailTheme(
-      data: theme,
-      child: widget.builder(context),
-    );
+    return SailTheme(data: theme, child: widget.builder(context));
   }
 }

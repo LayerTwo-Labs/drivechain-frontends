@@ -8,11 +8,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// RPC connection to the mainchain node. Only really used
 /// to set correct conf, and start the binary
 abstract class MainchainRPC extends RPCConnection {
-  MainchainRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  MainchainRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   final chain = BitcoinCore();
 
@@ -48,12 +44,7 @@ class MainchainRPCLive extends MainchainRPC {
     return client;
   }
 
-  MainchainRPCLive()
-      : super(
-          conf: readConf(),
-          binaryType: BinaryType.bitcoinCore,
-          restartOnFailure: false,
-        ) {
+  MainchainRPCLive() : super(conf: readConf(), binaryType: BinaryType.bitcoinCore, restartOnFailure: false) {
     _init();
   }
 
@@ -146,9 +137,7 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  Future<List<String>> binaryArgs(
-    NodeConnectionSettings mainchainConf,
-  ) async {
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     if (mainchainConf.hasConfFile) {
       // the conf file exists, and should take total precedence
       log.i('Mainchain conf file is present, not adding sidechain args');
@@ -216,9 +205,7 @@ class MainchainRPCLive extends MainchainRPC {
 
   @override
   List<String> startupErrors() {
-    return [
-      'Loading block index',
-    ];
+    return ['Loading block index'];
   }
 
   @override

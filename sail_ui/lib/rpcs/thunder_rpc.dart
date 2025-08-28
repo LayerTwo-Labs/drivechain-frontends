@@ -13,11 +13,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the thunder server.
 abstract class ThunderRPC extends SidechainRPC {
-  ThunderRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  ThunderRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -73,12 +69,7 @@ class ThunderLive extends ThunderRPC {
     return client;
   }
 
-  ThunderLive()
-      : super(
-          conf: readConf(),
-          binaryType: BinaryType.thunder,
-          restartOnFailure: false,
-        ) {
+  ThunderLive() : super(conf: readConf(), binaryType: BinaryType.thunder, restartOnFailure: false) {
     _init();
   }
 
@@ -180,12 +171,7 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', [
-      address,
-      amountSats,
-      sidechainFeeSats,
-      mainchainFeeSats,
-    ]);
+    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
     return response as String;
   }
 

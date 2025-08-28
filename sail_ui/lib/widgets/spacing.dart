@@ -6,9 +6,6 @@ class SailSpacing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: spacing,
-      height: spacing,
-    );
+    return SizedBox(width: spacing, height: spacing);
   }
 }

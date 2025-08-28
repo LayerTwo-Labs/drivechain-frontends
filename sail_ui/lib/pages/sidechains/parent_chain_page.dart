@@ -24,24 +24,12 @@ class ParentChainPage extends StatelessWidget {
         viewModelBuilder: () => ParentChainTabViewModel(),
         builder: ((context, model, child) {
           final List<TabItem> allTabs = [
-            const SingleTabItem(
-              label: 'Transfer',
-              child: TransferTab(),
-            ),
-            const SingleTabItem(
-              label: 'Withdrawal Explorer',
-              child: WithdrawalExplorerTab(),
-            ),
-            const SingleTabItem(
-              label: 'BMM',
-              child: BMMTab(),
-            ),
+            const SingleTabItem(label: 'Transfer', child: TransferTab()),
+            const SingleTabItem(label: 'Withdrawal Explorer', child: WithdrawalExplorerTab()),
+            const SingleTabItem(label: 'BMM', child: BMMTab()),
           ];
 
-          return InlineTabBar(
-            tabs: allTabs,
-            initialIndex: 0,
-          );
+          return InlineTabBar(tabs: allTabs, initialIndex: 0);
         }),
       ),
     );
@@ -54,13 +42,7 @@ class TransferTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SingleChildScrollView(
-      child: SailColumn(
-        spacing: SailStyleValues.padding16,
-        children: [
-          DepositTab(),
-          WithdrawTab(),
-        ],
-      ),
+      child: SailColumn(spacing: SailStyleValues.padding16, children: [DepositTab(), WithdrawTab()]),
     );
   }
 }
@@ -133,9 +115,8 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   double? get pegAmount => double.tryParse(bitcoinAmountController.text);
   double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0), 0);
 
-  String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)),
-      );
+  String get totalBitcoinAmount =>
+      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)));
 
   String? get depositAddress => _addressProvider.depositAddress;
 
@@ -293,9 +274,7 @@ class DepositTab extends StatelessWidget {
                 controller: TextEditingController(text: model.depositAddress),
                 hintText: 'Generating deposit address...',
                 readOnly: true,
-                suffixWidget: CopyButton(
-                  text: model.depositAddress ?? '',
-                ),
+                suffixWidget: CopyButton(text: model.depositAddress ?? ''),
               ),
             ],
           ),
