@@ -25,5 +25,4 @@
     ".cache": true,
     "retool.config.json": true
   },
-  "dart.flutterSdkPath": ".fvm/versions/3.35.2"
 }

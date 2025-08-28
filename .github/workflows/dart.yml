@@ -26,7 +26,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.35.2
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.9.0
 
       - name: Install dependencies for ${{ matrix.package }}
         run: flutter pub get --enforce-lockfile
