@@ -93,6 +93,35 @@ if test -n "$notarization_key_path"; then
     xcrun stapler validate $app_name.app
 fi
 
+# Create DMG
+echo "Creating DMG for $app_name"
+dmg_name=$lower_app_name-osx64.dmg
+
+# Install create-dmg if not already installed
+if ! command -v create-dmg &> /dev/null; then
+    echo "Installing create-dmg..."
+    brew install create-dmg
+fi
+
+# Create the DMG with nice formatting
+create-dmg \
+    --volname "$app_name Installer" \
+    --window-pos 200 120 \
+    --window-size 800 529 \
+    --icon-size 130 \
+    --text-size 14 \
+    --icon "$app_name.app" 260 250 \
+    --hide-extension "$app_name.app" \
+    --app-drop-link 540 250 \
+    --hdiutil-quiet \
+    --sandbox-safe \
+    "$dmg_name" \
+    "$app_name.app"
+
+
+echo "DMG created: $dmg_name"
+
 release_dir="$old_cwd/release"
 mkdir -p "$release_dir"
 cp $zip_name "$release_dir"
+cp $dmg_name "$release_dir"
