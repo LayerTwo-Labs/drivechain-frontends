@@ -336,12 +336,10 @@ jobs:
           echo "Content of created file:"
           cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
 
-      - name: Generate appcast fragment for this build (BitWindow only)
-        if: matrix.client == 'bitwindow'
+      - name: Generate appcast fragment for this build
         continue-on-error: true
         run: |
-          # Only generate appcast fragments for BitWindow
-          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/build/" -name "*.msix" -o -name "*.zip" | head -1)
+          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.msix" -o -name "*.zip" | head -1)
           if [ -n "$built_file" ]; then
             # Map GitHub runner OS to platform and determine signing approach
             case "${{ matrix.os }}" in
@@ -367,34 +365,33 @@ jobs:
             
             echo "Generating appcast fragment for $platform"
             
-            # Create signing key from secrets (COMMENTED OUT FOR TESTING)
-            # if [ "$platform" = "macos" ]; then
-            #   echo "${{ secrets.MACOS_ED25519_PRIVATE_KEY }}" > id_ed25519
-            #   key_file="id_ed25519"
-            # elif [ "$platform" = "windows" ]; then
-            #   echo "${{ secrets.WINDOWS_DSA_PRIVATE_KEY }}" > dsa_priv.pem
-            #   key_file="dsa_priv.pem"
-            # fi
-            
-            # Use test keys from files instead
+            # Create temporary key file from secrets
             if [ "$platform" = "macos" ]; then
-              key_file="${{ matrix.client }}/test-keys/eddsa_priv.pem"
+              # Use EdDSA key for macOS
+              echo "${{ secrets.SPARKLE_MACOS_PRIVATE_KEY }}" > sparkle_macos_key.pem
+              key_file="sparkle_macos_key.pem"
             elif [ "$platform" = "windows" ]; then
-              key_file="${{ matrix.client }}/test-keys/dsa_priv.pem"
+              # Use DSA key for Windows
+              echo "${{ secrets.SPARKLE_DSA_PRIVATE_KEY }}" > sparkle_dsa_key.pem
+              key_file="sparkle_dsa_key.pem"
             fi
             
             echo "Using key file: $key_file"
-            
-            # Copy the built file to release directory where appcast script expects it
-            mkdir -p "${{ env.BUILD_DIR }}/${{ matrix.client }}/release"
-            cp "$built_file" "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
+            echo "Using zip file: $built_file"
             
             # Make the script executable and run it
             chmod +x scripts/appcast/$generate_script
-            ./scripts/appcast/$generate_script ${{ matrix.client }} "$key_file" "$(basename "$built_file")" || echo "Failed to generate $platform appcast fragment"
             
-            # The fragment should now exist in the client's release directory
-            fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$platform-appcast-fragment.xml"
+            # Change to build directory where the client folder exists
+            cd "${{ env.BUILD_DIR }}"
+            ../scripts/appcast/$generate_script ${{ matrix.client }} "../$key_file" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate $platform appcast fragment"
+            
+            cd ..
+            # Clean up the key file
+            rm -f "$key_file"
+            
+            # The fragment should now exist in the client's build directory
+            fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$platform-fragment.xml"
             if [ -f "$fragment_file" ]; then
               echo "Generated appcast fragment: $fragment_file"
               cat "$fragment_file"
@@ -497,6 +494,7 @@ jobs:
 
           # BitWindow
           mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
+          mv bitwindow-binaries-macOS/bitwindow-osx64.dmg BitWindow-latest-x86_64-apple-darwin.dmg || true
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
           mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
           mv bitwindow-binaries-Windows/bitwindow.msix BitWindow-latest-x86_64-windows.msix || true
@@ -541,43 +539,52 @@ jobs:
           echo "Final versions.json:"
           cat versions.json | jq . || echo "Failed to parse versions.json"
 
-      - name: Generate BitWindow appcast for auto-updater
+      - name: Generate appcast for auto-updater
         continue-on-error: true
         run: |
-          # Look for BitWindow appcast fragments in artifact directories
-          echo "Looking for BitWindow appcast fragments in artifact directories..."
-
-          appcast_fragments=$(find . -name "*bitwindow*appcast*fragment*.xml" -type f 2>/dev/null || true)
-
-          if [ -n "$appcast_fragments" ]; then
-            echo "Found appcast fragments:"
-            echo "$appcast_fragments"
+          # Process appcast fragments for each client
+          for client in bitwindow thunder bitnames bitassets zside; do
+            echo "Looking for $client appcast fragments in artifact directories..."
             
-            # Create temp bitwindow directory structure for merging
-            mkdir -p bitwindow/release
+            macos_fragment=$(find . -name "*${client}*macos*fragment*.xml" -type f 2>/dev/null | head -1 || true)
+            windows_fragment=$(find . -name "*${client}*windows*fragment*.xml" -type f 2>/dev/null | head -1 || true)
             
-            # Copy fragments to release directory
-            echo "$appcast_fragments" | while read fragment_file; do
-              if [ -n "$fragment_file" ]; then
-                echo "Copying fragment: $fragment_file"
-                cp "$fragment_file" bitwindow/release/
+            if [ -n "$macos_fragment" ] || [ -n "$windows_fragment" ]; then
+              echo "Found appcast fragments for $client:"
+              [ -n "$macos_fragment" ] && echo "  macOS: $macos_fragment"
+              [ -n "$windows_fragment" ] && echo "  Windows: $windows_fragment"
+              
+              # Start building the appcast XML
+              echo '<?xml version="1.0" encoding="UTF-8"?>' > "$client-appcast.xml"
+              echo '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">' >> "$client-appcast.xml"
+              echo '  <channel>' >> "$client-appcast.xml"
+              echo "    <title>$client</title>" >> "$client-appcast.xml"
+              echo '    <link>https://releases.drivechain.info/</link>' >> "$client-appcast.xml"
+              echo "    <description>$client - Drivechain Application</description>" >> "$client-appcast.xml"
+              echo '    <language>en</language>' >> "$client-appcast.xml"
+              
+              # Add Windows fragment if it exists
+              if [ -n "$windows_fragment" ] && [ -f "$windows_fragment" ]; then
+                echo "    <!-- Windows fragment -->" >> "$client-appcast.xml"
+                cat "$windows_fragment" >> "$client-appcast.xml"
               fi
-            done
-            
-            # Merge fragments into final appcast using existing script
-            echo "Merging appcast fragments"
-            chmod +x scripts/appcast/merge.sh
-            ./scripts/appcast/merge.sh bitwindow || echo "Failed to merge appcast fragments"
-            
-            # Copy generated appcast to upload directory
-            if [ -f "bitwindow/release/bitwindow-appcast.xml" ]; then
-              cp bitwindow/release/bitwindow-appcast.xml .
-              echo "Generated bitwindow-appcast.xml"
-              cat bitwindow-appcast.xml
+              
+              # Add macOS fragment if it exists
+              if [ -n "$macos_fragment" ] && [ -f "$macos_fragment" ]; then
+                echo "    <!-- macOS fragment -->" >> "$client-appcast.xml"
+                cat "$macos_fragment" >> "$client-appcast.xml"
+              fi
+              
+              # Close the XML
+              echo '  </channel>' >> "$client-appcast.xml"
+              echo '</rss>' >> "$client-appcast.xml"
+              
+              echo "Generated $client-appcast.xml"
+              cat "$client-appcast.xml"
+            else
+              echo "No appcast fragments found for $client, skipping"
             fi
-          else
-            echo "No BitWindow appcast fragments found, skipping appcast generation"
-          fi
+          done
 
       - name: Upload artifacts to releases.drivechain.info
         uses: yitianyigexiangfa/ssh-scp-ssh-pipelines@v1.1.5
@@ -590,9 +597,14 @@ jobs:
           scp: |
             'BitWindow-*.msix' => '/var/www/html/'
             'BitWindow-*.zip' => '/var/www/html/'
+            'BitWindow-*.dmg' => '/var/www/html/'
             'BitWindow-*.AppImage' => '/var/www/html/'
             'test-*.zip' => '/var/www/html/'
             'test-*.msix' => '/var/www/html/'
             'test-*.AppImage' => '/var/www/html/'
             'versions.json' => '/var/www/html/'
             'bitwindow-appcast.xml' => '/var/www/html/'
+            'bitnames-appcast.xml' => '/var/www/html/'
+            'bitassets-appcast.xml' => '/var/www/html/'
+            'thunder-appcast.xml' => '/var/www/html/'
+            'zside-appcast.xml' => '/var/www/html/'
