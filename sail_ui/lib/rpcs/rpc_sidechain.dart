@@ -6,11 +6,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// RPC connection for all sidechain nodes
 abstract class SidechainRPC extends RPCConnection {
-  SidechainRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  SidechainRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   Sidechain get chain => Sidechain.fromBinary(binary);
 
@@ -22,11 +18,7 @@ abstract class SidechainRPC extends RPCConnection {
   Future<String> getDepositAddress();
   Future<int> getBlockCount();
 
-  Future<String> sideSend(
-    String address,
-    double amount,
-    bool subtractFeeFromAmount,
-  );
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount);
   Future<String> getSideAddress();
   Future<double> sideEstimateFee();
   Future<List<SidechainUTXO>> listUTXOs();
@@ -37,12 +29,7 @@ abstract class SidechainRPC extends RPCConnection {
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle();
 
   /// Initiate a withdrawal to the specified mainchain address
-  Future<String> withdraw(
-    String address,
-    int amountSats,
-    int sidechainFeeSats,
-    int mainchainFeeSats,
-  );
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats);
 }
 
 class RPCError {
@@ -56,22 +43,13 @@ class BitcoinOutPoint {
   final String txid;
   final int vout;
 
-  BitcoinOutPoint({
-    required this.txid,
-    required this.vout,
-  });
+  BitcoinOutPoint({required this.txid, required this.vout});
 
   factory BitcoinOutPoint.fromMap(Map<String, dynamic> map) {
-    return BitcoinOutPoint(
-      txid: map['txid'] as String,
-      vout: map['vout'] as int,
-    );
+    return BitcoinOutPoint(txid: map['txid'] as String, vout: map['vout'] as int);
   }
 
-  Map<String, dynamic> toMap() => {
-        'txid': txid,
-        'vout': vout,
-      };
+  Map<String, dynamic> toMap() => {'txid': txid, 'vout': vout};
 }
 
 class BitcoinTransaction {
@@ -103,13 +81,13 @@ class BitcoinTransaction {
   }
 
   Map<String, dynamic> toMap() => {
-        'txid': txid,
-        'hash': hash,
-        'version': version,
-        'locktime': locktime,
-        'inputs': inputs.map((e) => e.toMap()).toList(),
-        'outputs': outputs.map((e) => e.toMap()).toList(),
-      };
+    'txid': txid,
+    'hash': hash,
+    'version': version,
+    'locktime': locktime,
+    'inputs': inputs.map((e) => e.toMap()).toList(),
+    'outputs': outputs.map((e) => e.toMap()).toList(),
+  };
 }
 
 class BitcoinInput {
@@ -141,13 +119,13 @@ class BitcoinInput {
   }
 
   Map<String, dynamic> toMap() => {
-        'txid': txid,
-        'vout': vout,
-        if (coinbase != null) 'coinbase': coinbase,
-        if (scriptSig != null) 'scriptSig': scriptSig!.toMap(),
-        'sequence': sequence,
-        if (witness != null) 'witness': witness,
-      };
+    'txid': txid,
+    'vout': vout,
+    if (coinbase != null) 'coinbase': coinbase,
+    if (scriptSig != null) 'scriptSig': scriptSig!.toMap(),
+    'sequence': sequence,
+    if (witness != null) 'witness': witness,
+  };
 }
 
 class BitcoinOutput {
@@ -155,11 +133,7 @@ class BitcoinOutput {
   final int vout;
   final BitcoinScriptPubKey scriptPubKey;
 
-  BitcoinOutput({
-    required this.amount,
-    required this.vout,
-    required this.scriptPubKey,
-  });
+  BitcoinOutput({required this.amount, required this.vout, required this.scriptPubKey});
 
   factory BitcoinOutput.fromMap(Map<String, dynamic> map) {
     return BitcoinOutput(
@@ -169,11 +143,7 @@ class BitcoinOutput {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-        'amount': amount,
-        'vout': vout,
-        'scriptPubKey': scriptPubKey.toMap(),
-      };
+  Map<String, dynamic> toMap() => {'amount': amount, 'vout': vout, 'scriptPubKey': scriptPubKey.toMap()};
 }
 
 class BitcoinScriptSig {
@@ -183,16 +153,10 @@ class BitcoinScriptSig {
   BitcoinScriptSig({required this.asm, required this.hex});
 
   factory BitcoinScriptSig.fromMap(Map<String, dynamic> map) {
-    return BitcoinScriptSig(
-      asm: map['asm'] as String,
-      hex: map['hex'] as String,
-    );
+    return BitcoinScriptSig(asm: map['asm'] as String, hex: map['hex'] as String);
   }
 
-  Map<String, dynamic> toMap() => {
-        'asm': asm,
-        'hex': hex,
-      };
+  Map<String, dynamic> toMap() => {'asm': asm, 'hex': hex};
 }
 
 class BitcoinScriptPubKey {
@@ -203,14 +167,7 @@ class BitcoinScriptPubKey {
   final List<String>? addresses;
   final int? reqSigs;
 
-  BitcoinScriptPubKey({
-    required this.type,
-    required this.address,
-    this.asm,
-    this.hex,
-    this.addresses,
-    this.reqSigs,
-  });
+  BitcoinScriptPubKey({required this.type, required this.address, this.asm, this.hex, this.addresses, this.reqSigs});
 
   factory BitcoinScriptPubKey.fromMap(Map<String, dynamic> map) {
     return BitcoinScriptPubKey(
@@ -224,20 +181,16 @@ class BitcoinScriptPubKey {
   }
 
   Map<String, dynamic> toMap() => {
-        'type': type,
-        'address': address,
-        if (asm != null) 'asm': asm,
-        if (hex != null) 'hex': hex,
-        if (addresses != null) 'addresses': addresses,
-        if (reqSigs != null) 'reqSigs': reqSigs,
-      };
+    'type': type,
+    'address': address,
+    if (asm != null) 'asm': asm,
+    if (hex != null) 'hex': hex,
+    if (addresses != null) 'addresses': addresses,
+    if (reqSigs != null) 'reqSigs': reqSigs,
+  };
 }
 
-enum OutPointType {
-  regular,
-  coinbase,
-  deposit,
-}
+enum OutPointType { regular, coinbase, deposit }
 
 class PWBOutPoint {
   final OutPointType type;
@@ -245,16 +198,12 @@ class PWBOutPoint {
   final CoinbaseOutPoint? coinbase;
   final BitcoinOutPoint? deposit;
 
-  PWBOutPoint({
-    required this.type,
-    this.regular,
-    this.coinbase,
-    this.deposit,
-  }) : assert(
-          (type == OutPointType.regular && regular != null) ||
-              (type == OutPointType.coinbase && coinbase != null) ||
-              (type == OutPointType.deposit && deposit != null),
-        );
+  PWBOutPoint({required this.type, this.regular, this.coinbase, this.deposit})
+    : assert(
+        (type == OutPointType.regular && regular != null) ||
+            (type == OutPointType.coinbase && coinbase != null) ||
+            (type == OutPointType.deposit && deposit != null),
+      );
 
   factory PWBOutPoint.fromMap(Map<String, dynamic> map) {
     if (map.containsKey('Regular')) {
@@ -295,16 +244,10 @@ class RegularOutPoint {
   RegularOutPoint({required this.txid, required this.vout});
 
   factory RegularOutPoint.fromMap(Map<String, dynamic> map) {
-    return RegularOutPoint(
-      txid: map['txid'] as String,
-      vout: map['vout'] as int,
-    );
+    return RegularOutPoint(txid: map['txid'] as String, vout: map['vout'] as int);
   }
 
-  Map<String, dynamic> toMap() => {
-        'txid': txid,
-        'vout': vout,
-      };
+  Map<String, dynamic> toMap() => {'txid': txid, 'vout': vout};
 }
 
 class CoinbaseOutPoint {
@@ -314,16 +257,10 @@ class CoinbaseOutPoint {
   CoinbaseOutPoint({required this.merkleRoot, required this.vout});
 
   factory CoinbaseOutPoint.fromMap(Map<String, dynamic> map) {
-    return CoinbaseOutPoint(
-      merkleRoot: map['merkle_root'] as String,
-      vout: map['vout'] as int,
-    );
+    return CoinbaseOutPoint(merkleRoot: map['merkle_root'] as String, vout: map['vout'] as int);
   }
 
-  Map<String, dynamic> toMap() => {
-        'merkle_root': merkleRoot,
-        'vout': vout,
-      };
+  Map<String, dynamic> toMap() => {'merkle_root': merkleRoot, 'vout': vout};
 }
 
 class PWBOutput {
@@ -339,10 +276,7 @@ class PWBOutput {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-        'address': address,
-        'content': content.toMap(),
-      };
+  Map<String, dynamic> toMap() => {'address': address, 'content': content.toMap()};
 }
 
 class OutputContent {
@@ -350,21 +284,15 @@ class OutputContent {
   final int? value;
   final WithdrawalOutput? withdrawal;
 
-  OutputContent({
-    required this.type,
-    this.value,
-    this.withdrawal,
-  }) : assert(
-          (type == OutputContentType.value && value != null) ||
-              (type == OutputContentType.withdrawal && withdrawal != null),
-        );
+  OutputContent({required this.type, this.value, this.withdrawal})
+    : assert(
+        (type == OutputContentType.value && value != null) ||
+            (type == OutputContentType.withdrawal && withdrawal != null),
+      );
 
   factory OutputContent.fromMap(Map<String, dynamic> map) {
     if (map.containsKey('Value')) {
-      return OutputContent(
-        type: OutputContentType.value,
-        value: map['Value'] as int,
-      );
+      return OutputContent(type: OutputContentType.value, value: map['Value'] as int);
     } else if (map.containsKey('Withdrawal')) {
       return OutputContent(
         type: OutputContentType.withdrawal,
@@ -384,21 +312,14 @@ class OutputContent {
   }
 }
 
-enum OutputContentType {
-  value,
-  withdrawal,
-}
+enum OutputContentType { value, withdrawal }
 
 class WithdrawalOutput {
   final int valueSats;
   final int mainFeeSats;
   final String mainAddress;
 
-  WithdrawalOutput({
-    required this.valueSats,
-    required this.mainFeeSats,
-    required this.mainAddress,
-  });
+  WithdrawalOutput({required this.valueSats, required this.mainFeeSats, required this.mainAddress});
 
   factory WithdrawalOutput.fromMap(Map<String, dynamic> map) {
     return WithdrawalOutput(
@@ -408,11 +329,7 @@ class WithdrawalOutput {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-        'value_sats': valueSats,
-        'main_fee_sats': mainFeeSats,
-        'main_address': mainAddress,
-      };
+  Map<String, dynamic> toMap() => {'value_sats': valueSats, 'main_fee_sats': mainFeeSats, 'main_address': mainAddress};
 }
 
 class PendingWithdrawalBundle {
@@ -420,17 +337,13 @@ class PendingWithdrawalBundle {
   final BitcoinTransaction tx;
   final int heightCreated;
 
-  PendingWithdrawalBundle({
-    required this.spendUtxos,
-    required this.tx,
-    required this.heightCreated,
-  });
+  PendingWithdrawalBundle({required this.spendUtxos, required this.tx, required this.heightCreated});
 
   factory PendingWithdrawalBundle.fromMap(Map<String, dynamic> map) {
     return PendingWithdrawalBundle(
       spendUtxos:
           (map['spend_utxos'] as List<dynamic>?)?.map((item) => SpendUtxo.fromMap(item as List<dynamic>)).toList() ??
-              [],
+          [],
       tx: BitcoinTransaction.fromMap(map['tx'] as Map<String, dynamic>),
       heightCreated: map['height_created'] as int,
     );
@@ -442,10 +355,10 @@ class PendingWithdrawalBundle {
   }
 
   Map<String, dynamic> toMap() => {
-        'spend_utxos': spendUtxos.map((e) => e.toList()).toList(),
-        'tx': tx.toMap(),
-        'height_created': heightCreated,
-      };
+    'spend_utxos': spendUtxos.map((e) => e.toList()).toList(),
+    'tx': tx.toMap(),
+    'height_created': heightCreated,
+  };
 
   String toJson() => jsonEncode(toMap());
 
@@ -478,17 +391,10 @@ class PendingWithdrawalBundle {
   }
 
   static PendingWithdrawalBundle empty() => PendingWithdrawalBundle(
-        spendUtxos: [],
-        tx: BitcoinTransaction(
-          txid: '',
-          hash: '',
-          version: 0,
-          locktime: 0,
-          inputs: [],
-          outputs: [],
-        ),
-        heightCreated: 0,
-      );
+    spendUtxos: [],
+    tx: BitcoinTransaction(txid: '', hash: '', version: 0, locktime: 0, inputs: [], outputs: []),
+    heightCreated: 0,
+  );
 }
 
 // New class to properly represent the [OutPoint, Output] pair structure
@@ -496,10 +402,7 @@ class SpendUtxo {
   final PWBOutPoint outPoint;
   final PWBOutput output;
 
-  SpendUtxo({
-    required this.outPoint,
-    required this.output,
-  });
+  SpendUtxo({required this.outPoint, required this.output});
 
   factory SpendUtxo.fromMap(List<dynamic> list) {
     if (list.length != 2) {
@@ -595,27 +498,27 @@ class BmmResult {
   String toJson() => jsonEncode(toMap());
 
   Map<String, dynamic> toMap() => {
-        'hash_last_main_block': hashLastMainBlock,
-        'bmm_block_created': bmmBlockCreated,
-        'bmm_block_submitted': bmmBlockSubmitted,
-        'bmm_block_submitted_blind': bmmBlockSubmittedBlind,
-        'ntxn': ntxn,
-        'nfees': nfees,
-        'txid': txid,
-        'error': error,
-      };
+    'hash_last_main_block': hashLastMainBlock,
+    'bmm_block_created': bmmBlockCreated,
+    'bmm_block_submitted': bmmBlockSubmitted,
+    'bmm_block_submitted_blind': bmmBlockSubmittedBlind,
+    'ntxn': ntxn,
+    'nfees': nfees,
+    'txid': txid,
+    'error': error,
+  };
 
   static BmmResult empty() => BmmResult(
-        hashLastMainBlock: '0000000000000000000000000000000000000000000000000000000000000000',
-        bmmBlockCreated: null,
-        bmmBlockSubmitted: null,
-        bmmBlockSubmittedBlind: null,
-        ntxn: 0,
-        nfees: 0,
-        txid: '',
-        error: null,
-        raw: '{}',
-      );
+    hashLastMainBlock: '0000000000000000000000000000000000000000000000000000000000000000',
+    bmmBlockCreated: null,
+    bmmBlockSubmitted: null,
+    bmmBlockSubmittedBlind: null,
+    ntxn: 0,
+    nfees: 0,
+    txid: '',
+    error: null,
+    raw: '{}',
+  );
 }
 
 // Helper function for handling empty strings

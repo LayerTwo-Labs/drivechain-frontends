@@ -8,14 +8,7 @@ class SailPage extends StatelessWidget {
   final Widget body;
   final bool scrollable;
 
-  const SailPage({
-    super.key,
-    this.title,
-    this.subtitle,
-    this.widgetTitle,
-    this.scrollable = false,
-    required this.body,
-  });
+  const SailPage({super.key, this.title, this.subtitle, this.widgetTitle, this.scrollable = false, required this.body});
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +36,7 @@ class SailPage extends StatelessWidget {
 
   Widget buildBody(BuildContext context) {
     if (scrollable) {
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: _pageContainer(),
-      );
+      return SingleChildScrollView(physics: const BouncingScrollPhysics(), child: _pageContainer());
     }
 
     return _pageContainer();
@@ -59,9 +49,7 @@ class SailPage extends StatelessWidget {
           children: [
             Expanded(child: Container()),
             ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 640,
-              ),
+              constraints: const BoxConstraints(maxWidth: 640),
               child: SailColumn(
                 spacing: 0,
                 children: [
@@ -90,25 +78,16 @@ class SailPage extends StatelessWidget {
 
 // placed outside of class to safeguard against using any locally defined variables
 
-Widget _withPadding(
-  Widget child,
-  String? title,
-  bool scrollable,
-) {
+Widget _withPadding(Widget child, String? title, bool scrollable) {
   if (scrollable) {
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: SailStyleValues.padding40,
-      ),
+      padding: const EdgeInsets.only(bottom: SailStyleValues.padding40),
       child: child,
     );
   }
 
   return Padding(
-    padding: const EdgeInsets.only(
-      bottom: SailStyleValues.padding20,
-      top: SailStyleValues.padding16,
-    ),
+    padding: const EdgeInsets.only(bottom: SailStyleValues.padding20, top: SailStyleValues.padding16),
     child: child,
   );
 }

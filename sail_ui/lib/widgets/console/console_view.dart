@@ -10,11 +10,7 @@ class ConsoleService {
   final List<String> commands;
   final Future<dynamic> Function(String command, List<String> args) execute;
 
-  const ConsoleService({
-    required this.name,
-    required this.commands,
-    required this.execute,
-  });
+  const ConsoleService({required this.name, required this.commands, required this.execute});
 }
 
 class ConsoleEntry {
@@ -26,27 +22,15 @@ class ConsoleEntry {
   bool get isGrouped => requestId != '';
   bool get isGroupStart => type == EntryType.command;
 
-  ConsoleEntry({
-    required this.timestamp,
-    required this.content,
-    required this.type,
-    required this.requestId,
-  });
+  ConsoleEntry({required this.timestamp, required this.content, required this.type, required this.requestId});
 }
 
-enum EntryType {
-  command,
-  response,
-  error,
-}
+enum EntryType { command, response, error }
 
 class ConsoleView extends StatefulWidget {
   final List<ConsoleService> services;
 
-  const ConsoleView({
-    super.key,
-    required this.services,
-  });
+  const ConsoleView({super.key, required this.services});
 
   @override
   State<ConsoleView> createState() => _ConsoleViewState();
@@ -117,14 +101,7 @@ class _ConsoleViewState extends State<ConsoleView> {
     final now = DateTime.now();
 
     setState(() {
-      entries.add(
-        ConsoleEntry(
-          timestamp: now,
-          content: text,
-          type: EntryType.command,
-          requestId: requestId,
-        ),
-      );
+      entries.add(ConsoleEntry(timestamp: now, content: text, type: EntryType.command, requestId: requestId));
       _commandHistory.add(text);
       _historyIndex = _commandHistory.length;
       _controller.clear();
@@ -193,17 +170,13 @@ class _ConsoleViewState extends State<ConsoleView> {
       if (_historyIndex > 0) {
         _historyIndex--;
         _controller.text = _commandHistory[_historyIndex];
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: _controller.text.length),
-        );
+        _controller.selection = TextSelection.fromPosition(TextPosition(offset: _controller.text.length));
       }
     } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       if (_historyIndex < _commandHistory.length - 1) {
         _historyIndex++;
         _controller.text = _commandHistory[_historyIndex];
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: _controller.text.length),
-        );
+        _controller.selection = TextSelection.fromPosition(TextPosition(offset: _controller.text.length));
       } else {
         _historyIndex = _commandHistory.length;
         _controller.clear();
@@ -324,10 +297,7 @@ class _ConsoleViewState extends State<ConsoleView> {
                                 return InkWell(
                                   onTap: () => onSelected(command),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     child: SailText.primary12(
                                       '${service.name} -> $command',
                                       color: theme.colors.text,
@@ -345,19 +315,14 @@ class _ConsoleViewState extends State<ConsoleView> {
                       setState(() {
                         _currentService = _determineService(selection).name;
                         _controller.text = selection;
-                        _controller.selection = TextSelection.fromPosition(
-                          TextPosition(offset: selection.length),
-                        );
+                        _controller.selection = TextSelection.fromPosition(TextPosition(offset: selection.length));
                       });
                     },
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                       return TextField(
                         controller: controller,
                         focusNode: focusNode,
-                        style: TextStyle(
-                          color: theme.colors.text,
-                          fontFamily: 'SourceCodePro',
-                        ),
+                        style: TextStyle(color: theme.colors.text, fontFamily: 'SourceCodePro'),
                         decoration: InputDecoration(
                           prefixIcon: Container(
                             margin: const EdgeInsets.only(left: 8),
@@ -372,18 +337,13 @@ class _ConsoleViewState extends State<ConsoleView> {
                                     monospace: true,
                                   ),
                                 if (_currentService != null) const SizedBox(width: 8),
-                                SailText.primary13(
-                                  '>',
-                                  monospace: true,
-                                ),
+                                SailText.primary13('>', monospace: true),
                                 const SizedBox(width: 8),
                               ],
                             ),
                           ),
                           prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-                          border: OutlineInputBorder(
-                            borderRadius: SailStyleValues.borderRadius,
-                          ),
+                          border: OutlineInputBorder(borderRadius: SailStyleValues.borderRadius),
                           fillColor: theme.colors.background,
                           filled: true,
                         ),
@@ -413,15 +373,10 @@ class ConsoleEntryWidget extends StatelessWidget {
   final List<ConsoleEntry> entries;
   final _timeFormat = DateFormat('HH:mm:ss');
 
-  ConsoleEntryWidget({
-    super.key,
-    required this.entry,
-    required this.entries,
-  });
+  ConsoleEntryWidget({super.key, required this.entry, required this.entries});
 
-  bool _hasResponse(String requestId) => entries.any(
-        (e) => e.requestId == requestId && (e.type == EntryType.response || e.type == EntryType.error),
-      );
+  bool _hasResponse(String requestId) =>
+      entries.any((e) => e.requestId == requestId && (e.type == EntryType.response || e.type == EntryType.error));
 
   @override
   Widget build(BuildContext context) {
@@ -441,38 +396,23 @@ class ConsoleEntryWidget extends StatelessWidget {
     return Container(
       decoration: entry.isGrouped
           ? BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: theme.colors.primary.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-              ),
+              border: Border(left: BorderSide(color: theme.colors.primary.withValues(alpha: 0.3), width: 2)),
             )
           : null,
-      margin: EdgeInsets.only(
-        left: entry.isGrouped ? 16 : 0,
-        top: entry.isGroupStart ? 16 : 0,
-      ),
+      margin: EdgeInsets.only(left: entry.isGrouped ? 16 : 0, top: entry.isGroupStart ? 16 : 0),
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SailSpacing(SailStyleValues.padding08),
-          SailText.secondary13(
-            _timeFormat.format(entry.timestamp),
-            color: theme.colors.textSecondary,
-            monospace: true,
-          ),
+          SailText.secondary13(_timeFormat.format(entry.timestamp), color: theme.colors.textSecondary, monospace: true),
           const SizedBox(width: 8),
           if (entry.type == EntryType.command) ...[
             if (!_hasResponse(entry.requestId))
               SizedBox(
                 width: 12,
                 height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1,
-                  color: theme.colors.primary,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 1, color: theme.colors.primary),
               )
             else
               Icon(Icons.chevron_right, size: 16, color: theme.colors.textSecondary),
@@ -482,11 +422,7 @@ class ConsoleEntryWidget extends StatelessWidget {
           Expanded(
             child: SelectableText(
               entry.content,
-              style: TextStyle(
-                color: getColor(),
-                fontFamily: 'SourceCodePro',
-                fontSize: 13,
-              ),
+              style: TextStyle(color: getColor(), fontFamily: 'SourceCodePro', fontSize: 13),
             ),
           ),
         ],

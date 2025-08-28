@@ -8,21 +8,12 @@ class HashMapping {
   final String name;
   final bool isMine;
 
-  HashMapping({
-    required this.name,
-    this.isMine = false,
-  });
+  HashMapping({required this.name, this.isMine = false});
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'isMine': isMine,
-      };
+  Map<String, dynamic> toJson() => {'name': name, 'isMine': isMine};
 
   factory HashMapping.fromJson(Map<String, dynamic> json) {
-    return HashMapping(
-      name: json['name'] as String,
-      isMine: json['isMine'] as bool? ?? false,
-    );
+    return HashMapping(name: json['name'] as String, isMine: json['isMine'] as bool? ?? false);
   }
 }
 
@@ -71,10 +62,7 @@ class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
   /// Add a new hash-name mapping
   HashNameMappingSetting addMapping(String hash, String name, {bool isMine = false}) {
     final newMappings = Map<String, HashMapping>.from(value);
-    newMappings[hash.toLowerCase()] = HashMapping(
-      name: name.toLowerCase(),
-      isMine: isMine,
-    );
+    newMappings[hash.toLowerCase()] = HashMapping(name: name.toLowerCase(), isMine: isMine);
     return HashNameMappingSetting(newValue: newMappings);
   }
 

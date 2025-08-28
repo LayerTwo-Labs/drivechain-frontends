@@ -7,19 +7,12 @@ class CrossPlatformMenuBar extends StatelessWidget {
   final List<PlatformMenuItem> menus;
   final Widget child;
 
-  const CrossPlatformMenuBar({
-    super.key,
-    required this.menus,
-    required this.child,
-  });
+  const CrossPlatformMenuBar({super.key, required this.menus, required this.child});
 
   @override
   Widget build(BuildContext context) {
     if (Platform.isMacOS) {
-      return PlatformMenuBar(
-        menus: menus,
-        child: child,
-      );
+      return PlatformMenuBar(menus: menus, child: child);
     }
 
     return Column(
@@ -31,10 +24,7 @@ class CrossPlatformMenuBar extends StatelessWidget {
             children: [
               const SizedBox(width: 8),
               for (final menu in menus)
-                if (menu is PlatformMenu) ...[
-                  _buildMenu(context, menu),
-                  const SizedBox(width: 4),
-                ],
+                if (menu is PlatformMenu) ...[_buildMenu(context, menu), const SizedBox(width: 4)],
             ],
           ),
         ),
@@ -118,9 +108,7 @@ class _MenuButtonState extends State<_MenuButton> {
               _isInMenu = false;
               _checkShouldClose();
             }),
-            child: SailMenu(
-              items: _buildMenuItems(context, widget.menu),
-            ),
+            child: SailMenu(items: _buildMenuItems(context, widget.menu)),
           ),
         ],
       ),

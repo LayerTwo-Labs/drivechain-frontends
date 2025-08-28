@@ -37,19 +37,13 @@ class BMMTab extends StatelessWidget {
                   SailText.primary15('Bid Amount:'),
                   SizedBox(
                     width: 120,
-                    child: SailTextField(
-                      controller: viewModel.bidAmountController,
-                      hintText: '0.0001',
-                    ),
+                    child: SailTextField(controller: viewModel.bidAmountController, hintText: '0.0001'),
                   ),
                   const SizedBox(width: 16),
                   SailText.primary15('Refresh:'),
                   SizedBox(
                     width: 150,
-                    child: SailTextField(
-                      controller: viewModel.intervalController,
-                      hintText: '1 Second(s)',
-                    ),
+                    child: SailTextField(controller: viewModel.intervalController, hintText: '1 Second(s)'),
                   ),
                 ],
               ),
@@ -75,20 +69,9 @@ class BMMTab extends StatelessWidget {
                         : attempt.hashLastMainBlock;
 
                     return [
-                      SailTableCell(
-                        value: shortTxid,
-                        copyValue: attempt.txid,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: shortBlockHash,
-                        copyValue: attempt.hashLastMainBlock,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: attempt.bmmBlockCreated ?? '-',
-                        monospace: true,
-                      ),
+                      SailTableCell(value: shortTxid, copyValue: attempt.txid, monospace: true),
+                      SailTableCell(value: shortBlockHash, copyValue: attempt.hashLastMainBlock, monospace: true),
+                      SailTableCell(value: attempt.bmmBlockCreated ?? '-', monospace: true),
                       SailTableCell(value: attempt.ntxn.toString()),
                       SailTableCell(value: attempt.nfees.toString()),
                       SailTableCell(value: viewModel.bidAmountController.text),
@@ -143,10 +126,7 @@ class BMMTab extends StatelessWidget {
                                   ],
                                 ),
                                 actions: [
-                                  SailButton(
-                                    label: 'Close',
-                                    onPressed: () async => Navigator.of(context).pop(),
-                                  ),
+                                  SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop()),
                                 ],
                               );
                             },
@@ -174,9 +154,7 @@ class BMMViewModel extends BaseViewModel {
 
   Timer? _syncTimer;
 
-  BMMViewModel()
-      : bidAmountController = TextEditingController(),
-        intervalController = TextEditingController() {
+  BMMViewModel() : bidAmountController = TextEditingController(), intervalController = TextEditingController() {
     // Initialize controllers with provider values
     bidAmountController.text = bmmProvider.bidAmount.toString();
     intervalController.text = bmmProvider.interval.inSeconds.toString();

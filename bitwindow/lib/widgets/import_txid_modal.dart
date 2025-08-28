@@ -339,8 +339,11 @@ class ImportTxidModalViewModel extends BaseViewModel {
 
           if (xpubFromPayload != null && derivationPath != null) {
             try {
-              final derivedKeyInfo =
-                  await _hdWallet.deriveExtendedKeyInfo(_hdWallet.mnemonic ?? '', derivationPath, isMainnet);
+              final derivedKeyInfo = await _hdWallet.deriveExtendedKeyInfo(
+                _hdWallet.mnemonic ?? '',
+                derivationPath,
+                isMainnet,
+              );
 
               if (derivedKeyInfo.isNotEmpty) {
                 final derivedXpub = derivedKeyInfo['xpub'];

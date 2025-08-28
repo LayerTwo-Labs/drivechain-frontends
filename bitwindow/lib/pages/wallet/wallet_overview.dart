@@ -50,8 +50,10 @@ class OverviewTab extends StatelessWidget {
                       Expanded(
                         child: WalletStats(
                           title: 'Sidechain Deposit Volume',
-                          value:
-                              formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolume.toInt() ?? 0), symbol: ''),
+                          value: formatBitcoin(
+                            satoshiToBTC(model.stats?.sidechainDepositVolume.toInt() ?? 0),
+                            symbol: '',
+                          ),
                           subtitle:
                               '${formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0), symbol: '')} last 30 days',
                           bitcoinAmount: true,
@@ -208,10 +210,11 @@ class _TransactionTableState extends State<TransactionTable> {
                       // Calculate amount and determine sign
                       final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
                       final sign = amountDiff > 0 ? '+' : '-';
-                      final formattedAmount = '$sign${formatBitcoin(
-                        satoshiToBTC(amountDiff.abs().toInt()),
-                        symbol: '',
-                      )}';
+                      final formattedAmount =
+                          '$sign${formatBitcoin(
+                            satoshiToBTC(amountDiff.abs().toInt()),
+                            symbol: '',
+                          )}';
 
                       return [
                         SailTableCell(

@@ -25,36 +25,12 @@ abstract class SailStyleValues {
   static const regularWeight = FontWeight.w400;
   static const boldWeight = FontWeight.w500;
 
-  static const TextStyle twentyFour = TextStyle(
-    fontSize: 24,
-    fontWeight: regularWeight,
-  );
-  static const TextStyle twentyTwo = TextStyle(
-    fontSize: 22,
-    fontWeight: regularWeight,
-  );
-  static const TextStyle twenty = TextStyle(
-    fontSize: 20,
-    fontWeight: regularWeight,
-  );
-  static const TextStyle fifteen = TextStyle(
-    fontSize: 15,
-    fontWeight: regularWeight,
-  );
-  static const TextStyle thirteen = TextStyle(
-    fontSize: 13,
-    fontWeight: regularWeight,
-  );
-  static const TextStyle twelve = TextStyle(
-    fontSize: 12,
-    fontWeight: regularWeight,
-  );
-  static const TextStyle eleven = TextStyle(
-    fontSize: 11,
-    fontWeight: regularWeight,
-  );
-  static const TextStyle ten = TextStyle(
-    fontSize: 10,
-    fontWeight: regularWeight,
-  );
+  static const TextStyle twentyFour = TextStyle(fontSize: 24, fontWeight: regularWeight);
+  static const TextStyle twentyTwo = TextStyle(fontSize: 22, fontWeight: regularWeight);
+  static const TextStyle twenty = TextStyle(fontSize: 20, fontWeight: regularWeight);
+  static const TextStyle fifteen = TextStyle(fontSize: 15, fontWeight: regularWeight);
+  static const TextStyle thirteen = TextStyle(fontSize: 13, fontWeight: regularWeight);
+  static const TextStyle twelve = TextStyle(fontSize: 12, fontWeight: regularWeight);
+  static const TextStyle eleven = TextStyle(fontSize: 11, fontWeight: regularWeight);
+  static const TextStyle ten = TextStyle(fontSize: 10, fontWeight: regularWeight);
 }

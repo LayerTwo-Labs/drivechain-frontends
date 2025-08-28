@@ -13,7 +13,8 @@ part of 'router.dart';
 /// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children}) : super(HomeRoute.name, initialChildren: children);
+  const HomeRoute({List<PageRouteInfo>? children})
+    : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -33,10 +34,10 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
     required Widget child,
     List<PageRouteInfo>? children,
   }) : super(
-          SailTestRoute.name,
-          args: SailTestRouteArgs(key: key, child: child),
-          initialChildren: children,
-        );
+         SailTestRoute.name,
+         args: SailTestRouteArgs(key: key, child: child),
+         initialChildren: children,
+       );
 
   static const String name = 'SailTestRoute';
 
@@ -75,7 +76,8 @@ class SailTestRouteArgs {
 /// generated route for
 /// [SettingsTabPage]
 class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children}) : super(SettingsTabRoute.name, initialChildren: children);
+  const SettingsTabRoute({List<PageRouteInfo>? children})
+    : super(SettingsTabRoute.name, initialChildren: children);
 
   static const String name = 'SettingsTabRoute';
 
@@ -91,7 +93,7 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 /// [SidechainOverviewTabPage]
 class SidechainOverviewTabRoute extends PageRouteInfo<void> {
   const SidechainOverviewTabRoute({List<PageRouteInfo>? children})
-      : super(SidechainOverviewTabRoute.name, initialChildren: children);
+    : super(SidechainOverviewTabRoute.name, initialChildren: children);
 
   static const String name = 'SidechainOverviewTabRoute';
 
@@ -106,7 +108,8 @@ class SidechainOverviewTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [ZSideBillPage]
 class ZSideBillRoute extends PageRouteInfo<void> {
-  const ZSideBillRoute({List<PageRouteInfo>? children}) : super(ZSideBillRoute.name, initialChildren: children);
+  const ZSideBillRoute({List<PageRouteInfo>? children})
+    : super(ZSideBillRoute.name, initialChildren: children);
 
   static const String name = 'ZSideBillRoute';
 
@@ -122,7 +125,7 @@ class ZSideBillRoute extends PageRouteInfo<void> {
 /// [ZSideMeltCastTabPage]
 class ZSideMeltCastTabRoute extends PageRouteInfo<void> {
   const ZSideMeltCastTabRoute({List<PageRouteInfo>? children})
-      : super(ZSideMeltCastTabRoute.name, initialChildren: children);
+    : super(ZSideMeltCastTabRoute.name, initialChildren: children);
 
   static const String name = 'ZSideMeltCastTabRoute';
 
@@ -137,7 +140,8 @@ class ZSideMeltCastTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [ZSideRPCTabPage]
 class ZSideRPCTabRoute extends PageRouteInfo<void> {
-  const ZSideRPCTabRoute({List<PageRouteInfo>? children}) : super(ZSideRPCTabRoute.name, initialChildren: children);
+  const ZSideRPCTabRoute({List<PageRouteInfo>? children})
+    : super(ZSideRPCTabRoute.name, initialChildren: children);
 
   static const String name = 'ZSideRPCTabRoute';
 
@@ -153,7 +157,7 @@ class ZSideRPCTabRoute extends PageRouteInfo<void> {
 /// [ZSideShieldDeshieldTabPage]
 class ZSideShieldDeshieldTabRoute extends PageRouteInfo<void> {
   const ZSideShieldDeshieldTabRoute({List<PageRouteInfo>? children})
-      : super(ZSideShieldDeshieldTabRoute.name, initialChildren: children);
+    : super(ZSideShieldDeshieldTabRoute.name, initialChildren: children);
 
   static const String name = 'ZSideShieldDeshieldTabRoute';
 
@@ -169,7 +173,7 @@ class ZSideShieldDeshieldTabRoute extends PageRouteInfo<void> {
 /// [ZSideTransferTabPage]
 class ZSideTransferTabRoute extends PageRouteInfo<void> {
   const ZSideTransferTabRoute({List<PageRouteInfo>? children})
-      : super(ZSideTransferTabRoute.name, initialChildren: children);
+    : super(ZSideTransferTabRoute.name, initialChildren: children);
 
   static const String name = 'ZSideTransferTabRoute';
 

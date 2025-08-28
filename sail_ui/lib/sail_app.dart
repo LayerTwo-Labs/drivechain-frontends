@@ -15,13 +15,8 @@ class SailApp extends StatefulWidget {
 
   final WidgetBuilder builder;
 
-  SailApp({
-    required this.builder,
-    required this.accentColor,
-    required this.log,
-    required this.dense,
-    this.initMethod,
-  }) : super(key: sailAppKey);
+  SailApp({required this.builder, required this.accentColor, required this.log, required this.dense, this.initMethod})
+    : super(key: sailAppKey);
 
   @override
   State<SailApp> createState() => SailAppState();
@@ -30,9 +25,7 @@ class SailApp extends StatefulWidget {
     final SailAppState? result = context.findAncestorStateOfType<SailAppState>();
     if (result != null) return result;
     throw FlutterError.fromParts(<DiagnosticsNode>[
-      ErrorSummary(
-        'SailAppState.of() called with a context that does not contain a SailApp.',
-      ),
+      ErrorSummary('SailAppState.of() called with a context that does not contain a SailApp.'),
     ]);
   }
 }
@@ -79,10 +72,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return SailTheme(
-      data: theme,
-      child: widget.builder(context),
-    );
+    return SailTheme(data: theme, child: widget.builder(context));
   }
 
   @override

@@ -7,11 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 abstract class BitAssetsRPC extends SidechainRPC {
-  BitAssetsRPC({
-    required super.conf,
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  BitAssetsRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
 
   /// Get balance in sats
   Future<BalanceResponse> getBalance();
@@ -174,12 +170,7 @@ class BitAssetsLive extends BitAssetsRPC {
     return client;
   }
 
-  BitAssetsLive()
-      : super(
-          conf: readConf(),
-          binaryType: BinaryType.bitassets,
-          restartOnFailure: true,
-        ) {
+  BitAssetsLive() : super(conf: readConf(), binaryType: BinaryType.bitassets, restartOnFailure: true) {
     _init();
   }
 
@@ -303,9 +294,7 @@ class BitAssetsLive extends BitAssetsRPC {
     Map<String, String>? hashNameMapping;
     try {
       final settingValue = await clientSettings.getValue(HashNameMappingSetting());
-      hashNameMapping = Map.fromEntries(
-        settingValue.value.entries.map((e) => MapEntry(e.key, e.value.name)),
-      );
+      hashNameMapping = Map.fromEntries(settingValue.value.entries.map((e) => MapEntry(e.key, e.value.name)));
     } catch (e) {
       // do nothing
     }
@@ -321,12 +310,7 @@ class BitAssetsLive extends BitAssetsRPC {
       final detailsMap = item[2] as Map<String, dynamic>;
 
       final details = BitAssetDetails.fromJson(detailsMap);
-      return BitAssetEntry(
-        sequenceID: sequenceID,
-        hash: hash,
-        details: details,
-        plaintextName: hashNameMapping?[hash],
-      );
+      return BitAssetEntry(sequenceID: sequenceID, hash: hash, details: details, plaintextName: hashNameMapping?[hash]);
     }).toList();
   }
 
@@ -343,10 +327,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<String> registerBitAsset(String plaintextName, BitAssetRequest data) async {
-    final params = {
-      'plaintext_name': plaintextName,
-      ...data.toJson(),
-    };
+    final params = {'plaintext_name': plaintextName, ...data.toJson()};
 
     final response = await _client().call('register_bitasset', params);
     return response as String;
@@ -402,23 +383,13 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
-    final response = await _client().call('transfer', {
-      'dest': dest,
-      'value': value,
-      'fee': fee,
-      'memo': memo,
-    });
+    final response = await _client().call('transfer', {'dest': dest, 'value': value, 'fee': fee, 'memo': memo});
     return response as String;
   }
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', [
-      address,
-      amountSats,
-      sidechainFeeSats,
-      mainchainFeeSats,
-    ]);
+    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
     return response as String;
   }
 
@@ -430,23 +401,14 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
-    final response = await _client().call('sign_arbitrary_msg', {
-      'msg': msg,
-      'verifying_key': verifyingKey,
-    });
+    final response = await _client().call('sign_arbitrary_msg', {'msg': msg, 'verifying_key': verifyingKey});
     return response as String;
   }
 
   @override
   Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', {
-      'msg': msg,
-      'address': address,
-    });
-    return {
-      'verifying_key': response['verifying_key'] as String,
-      'signature': response['signature'] as String,
-    };
+    final response = await _client().call('sign_arbitrary_msg_as_addr', {'msg': msg, 'address': address});
+    return {'verifying_key': response['verifying_key'] as String, 'signature': response['signature'] as String};
   }
 
   // AMM Methods
@@ -488,19 +450,14 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<AmmPoolState?> getAmmPoolState({required String asset0, required String asset1}) async {
-    final response = await _client().call('get_amm_pool_state', {
-      'asset0': asset0,
-      'asset1': asset1,
-    }) as Map<String, dynamic>?;
+    final response =
+        await _client().call('get_amm_pool_state', {'asset0': asset0, 'asset1': asset1}) as Map<String, dynamic>?;
     return response != null ? AmmPoolState.fromJson(response) : null;
   }
 
   @override
   Future<Map<String, dynamic>?> getAmmPrice({required String base, required String quote}) async {
-    final response = await _client().call('get_amm_price', {
-      'base': base,
-      'quote': quote,
-    });
+    final response = await _client().call('get_amm_price', {'base': base, 'quote': quote});
     return response as Map<String, dynamic>?;
   }
 
@@ -552,10 +509,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
-    final response = await _client().call('encrypt_msg', {
-      'msg': msg,
-      'encryption_pubkey': encryptionPubkey,
-    });
+    final response = await _client().call('encrypt_msg', {'msg': msg, 'encryption_pubkey': encryptionPubkey});
     return response as String;
   }
 
@@ -714,37 +668,32 @@ class BitAssetRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'initial_supply': initialSupply,
-        if (commitment != null) 'commitment': commitment,
-        if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
-        if (signingPubkey != null) 'signing_pubkey': signingPubkey,
-        if (socketAddrV4 != null) 'socket_addr_v4': socketAddrV4,
-        if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
-      };
+    'initial_supply': initialSupply,
+    if (commitment != null) 'commitment': commitment,
+    if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
+    if (signingPubkey != null) 'signing_pubkey': signingPubkey,
+    if (socketAddrV4 != null) 'socket_addr_v4': socketAddrV4,
+    if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
+  };
 
   factory BitAssetRequest.fromJson(Map<String, dynamic> json) => BitAssetRequest(
-        initialSupply: json['initial_supply'] as int,
-        commitment: json['commitment'] as String?,
-        encryptionPubkey: json['encryption_pubkey'] as String?,
-        signingPubkey: json['signing_pubkey'] as String?,
-        socketAddrV4: json['socket_addr_v4'] as String?,
-        socketAddrV6: json['socket_addr_v6'] as String?,
-      );
+    initialSupply: json['initial_supply'] as int,
+    commitment: json['commitment'] as String?,
+    encryptionPubkey: json['encryption_pubkey'] as String?,
+    signingPubkey: json['signing_pubkey'] as String?,
+    socketAddrV4: json['socket_addr_v4'] as String?,
+    socketAddrV6: json['socket_addr_v6'] as String?,
+  );
 }
 
 class BitAssetsPeerInfo {
   final String address;
   final String status;
 
-  BitAssetsPeerInfo({
-    required this.address,
-    required this.status,
-  });
+  BitAssetsPeerInfo({required this.address, required this.status});
 
-  factory BitAssetsPeerInfo.fromJson(Map<String, dynamic> json) => BitAssetsPeerInfo(
-        address: json['address'] as String,
-        status: json['status'] as String,
-      );
+  factory BitAssetsPeerInfo.fromJson(Map<String, dynamic> json) =>
+      BitAssetsPeerInfo(address: json['address'] as String, status: json['status'] as String);
 }
 
 class BitAssetEntry {
@@ -753,12 +702,7 @@ class BitAssetEntry {
   final String? plaintextName;
   final BitAssetDetails details;
 
-  BitAssetEntry({
-    required this.sequenceID,
-    required this.hash,
-    required this.details,
-    this.plaintextName,
-  });
+  BitAssetEntry({required this.sequenceID, required this.hash, required this.details, this.plaintextName});
 }
 
 class BitAssetDetails {
@@ -768,21 +712,15 @@ class BitAssetDetails {
   final String? socketAddrV4;
   final String? socketAddrV6;
 
-  BitAssetDetails({
-    this.commitment,
-    this.encryptionPubkey,
-    this.signingPubkey,
-    this.socketAddrV4,
-    this.socketAddrV6,
-  });
+  BitAssetDetails({this.commitment, this.encryptionPubkey, this.signingPubkey, this.socketAddrV4, this.socketAddrV6});
 
   factory BitAssetDetails.fromJson(Map<String, dynamic> json) => BitAssetDetails(
-        commitment: json['commitment'] as String?,
-        encryptionPubkey: json['encryption_pubkey'] as String?,
-        signingPubkey: json['signing_pubkey'] as String?,
-        socketAddrV4: json['socket_addr_v4'] as String?,
-        socketAddrV6: json['socket_addr_v6'] as String?,
-      );
+    commitment: json['commitment'] as String?,
+    encryptionPubkey: json['encryption_pubkey'] as String?,
+    signingPubkey: json['signing_pubkey'] as String?,
+    socketAddrV4: json['socket_addr_v4'] as String?,
+    socketAddrV6: json['socket_addr_v6'] as String?,
+  );
 }
 
 class AmmPoolState {
@@ -799,11 +737,11 @@ class AmmPoolState {
   });
 
   factory AmmPoolState.fromJson(Map<String, dynamic> json) => AmmPoolState(
-        reserve0: json['reserve0'] as int,
-        reserve1: json['reserve1'] as int,
-        outstandingLpTokens: json['outstanding_lp_tokens'] as int,
-        creationTxid: json['creation_txid'] as String,
-      );
+    reserve0: json['reserve0'] as int,
+    reserve1: json['reserve1'] as int,
+    outstandingLpTokens: json['outstanding_lp_tokens'] as int,
+    creationTxid: json['creation_txid'] as String,
+  );
 }
 
 class DutchAuctionParams {
@@ -826,24 +764,24 @@ class DutchAuctionParams {
   });
 
   Map<String, dynamic> toJson() => {
-        'start_block': startBlock,
-        'duration': duration,
-        'base_asset': baseAsset,
-        'base_amount': baseAmount,
-        'quote_asset': quoteAsset,
-        'initial_price': initialPrice,
-        'final_price': finalPrice,
-      };
+    'start_block': startBlock,
+    'duration': duration,
+    'base_asset': baseAsset,
+    'base_amount': baseAmount,
+    'quote_asset': quoteAsset,
+    'initial_price': initialPrice,
+    'final_price': finalPrice,
+  };
 
   factory DutchAuctionParams.fromJson(Map<String, dynamic> json) => DutchAuctionParams(
-        startBlock: json['start_block'] as int,
-        duration: json['duration'] as int,
-        baseAsset: json['base_asset'] as String,
-        baseAmount: json['base_amount'] as int,
-        quoteAsset: json['quote_asset'] as String,
-        initialPrice: json['initial_price'] as int,
-        finalPrice: json['final_price'] as int,
-      );
+    startBlock: json['start_block'] as int,
+    duration: json['duration'] as int,
+    baseAsset: json['base_asset'] as String,
+    baseAmount: json['base_amount'] as int,
+    quoteAsset: json['quote_asset'] as String,
+    initialPrice: json['initial_price'] as int,
+    finalPrice: json['final_price'] as int,
+  );
 }
 
 class DutchAuctionEntry {
@@ -893,14 +831,12 @@ class DutchAuctionEntry {
 class BitAssetsUTXO extends SidechainUTXO {
   final Map<String, dynamic> output;
 
-  BitAssetsUTXO({
-    required super.outpoint,
-    required this.output,
-  }) : super(
-          address: output['address'] as String,
-          valueSats: _extractValueSats(output['content']),
-          type: OutpointType.deposit, // TODO: determine actual type from data
-        );
+  BitAssetsUTXO({required super.outpoint, required this.output})
+    : super(
+        address: output['address'] as String,
+        valueSats: _extractValueSats(output['content']),
+        type: OutpointType.deposit, // TODO: determine actual type from data
+      );
 
   static int _extractValueSats(Map<String, dynamic> content) {
     // Extract value based on content type
@@ -912,8 +848,6 @@ class BitAssetsUTXO extends SidechainUTXO {
     return 0;
   }
 
-  factory BitAssetsUTXO.fromJson(Map<String, dynamic> json) => BitAssetsUTXO(
-        outpoint: json['outpoint'] as String,
-        output: json['output'] as Map<String, dynamic>,
-      );
+  factory BitAssetsUTXO.fromJson(Map<String, dynamic> json) =>
+      BitAssetsUTXO(outpoint: json['outpoint'] as String, output: json['output'] as Map<String, dynamic>);
 }

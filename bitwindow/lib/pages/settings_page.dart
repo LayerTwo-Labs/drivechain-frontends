@@ -220,7 +220,8 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               context: context,
               builder: (context) => SailAlertCard(
                 title: 'Reset Wallet?',
-                subtitle: 'Are you sure you want to reset all wallet data? This will:\n\n'
+                subtitle:
+                    'Are you sure you want to reset all wallet data? This will:\n\n'
                     '• Permanently delete all wallet files from BitWindow\n'
                     '• Permanently delete all wallet files from the Enforcer\n'
                     '• Stop all running processes\n'

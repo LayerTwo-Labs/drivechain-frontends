@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-enum BThemeType {
-  light,
-}
+enum BThemeType { light }
 
 class SailTheme extends StatelessWidget {
   final Widget child;
@@ -11,11 +9,7 @@ class SailTheme extends StatelessWidget {
 
   static final kFallbackTheme = SailThemeData.lightTheme(SailColorScheme.orange, true);
 
-  const SailTheme({
-    super.key,
-    required this.child,
-    required this.data,
-  });
+  const SailTheme({super.key, required this.child, required this.data});
 
   static SailThemeData of(BuildContext context) {
     final _InheritedTheme? inheritedTheme = context.dependOnInheritedWidgetOfExactType<_InheritedTheme>();
@@ -26,20 +20,14 @@ class SailTheme extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _InheritedTheme(
-      theme: this,
-      child: child,
-    );
+    return _InheritedTheme(theme: this, child: child);
   }
 }
 
 class _InheritedTheme extends InheritedWidget {
   final SailTheme theme;
 
-  const _InheritedTheme({
-    required super.child,
-    required this.theme,
-  });
+  const _InheritedTheme({required super.child, required this.theme});
 
   @override
   bool updateShouldNotify(covariant _InheritedTheme oldWidget) {

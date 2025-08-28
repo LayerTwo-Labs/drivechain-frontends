@@ -18,12 +18,7 @@ Future<LogOutput> _logoutput(File? logFile) async {
   List<LogOutput> outputs = [];
 
   if (logFile != null) {
-    outputs.add(
-      FileOutput(
-        file: logFile,
-        overrideExisting: true,
-      ),
-    );
+    outputs.add(FileOutput(file: logFile, overrideExisting: true));
   }
 
   if (logFile == null || kDebugMode) {
@@ -34,8 +29,8 @@ Future<LogOutput> _logoutput(File? logFile) async {
 }
 
 Future<Logger> logger(bool fileLog, bool consoleLog, File? logFile) async => Logger(
-      level: Level.debug,
-      filter: ProductionFilter(),
-      printer: _consolePrinter(),
-      output: await _logoutput(logFile),
-    );
+  level: Level.debug,
+  filter: ProductionFilter(),
+  printer: _consolePrinter(),
+  output: await _logoutput(logFile),
+);

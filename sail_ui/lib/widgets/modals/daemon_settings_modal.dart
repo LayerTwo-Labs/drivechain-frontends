@@ -4,10 +4,7 @@ import 'package:sail_ui/sail_ui.dart';
 class DaemonConnectionDetailsModal extends StatefulWidget {
   final RPCConnection connection;
 
-  const DaemonConnectionDetailsModal({
-    super.key,
-    required this.connection,
-  });
+  const DaemonConnectionDetailsModal({super.key, required this.connection});
 
   @override
   State<DaemonConnectionDetailsModal> createState() => _DaemonConnectionDetailsModalState();
@@ -49,32 +46,15 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
                 spacing: SailStyleValues.padding16,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  StaticField(
-                    label: 'Host',
-                    value: widget.connection.conf.host,
-                    copyable: true,
-                  ),
-                  StaticField(
-                    label: 'Port',
-                    value: widget.connection.binary.port.toString(),
-                    copyable: true,
-                  ),
+                  StaticField(label: 'Host', value: widget.connection.conf.host, copyable: true),
+                  StaticField(label: 'Port', value: widget.connection.binary.port.toString(), copyable: true),
                   if (args.isNotEmpty)
-                    StaticField(
-                      label: 'Binary Arguments',
-                      value: args.join(' \\\n'),
-                      copyable: true,
-                    ),
+                    StaticField(label: 'Binary Arguments', value: args.join(' \\\n'), copyable: true),
                   const SizedBox(height: SailStyleValues.padding08),
                   SailRow(
                     spacing: SailStyleValues.padding08,
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      SailButton(
-                        label: 'Close',
-                        onPressed: () async => Navigator.pop(context),
-                      ),
-                    ],
+                    children: [SailButton(label: 'Close', onPressed: () async => Navigator.pop(context))],
                   ),
                 ],
               ),

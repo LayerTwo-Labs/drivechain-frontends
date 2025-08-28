@@ -233,13 +233,15 @@ class FundGroupModalViewModel extends BaseViewModel {
         final sortedKeys = List<dynamic>.from(enhancedGroup.keys);
         sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
 
-        final keyDescriptors = sortedKeys.map((key) {
-          if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-            return '[${key.fingerprint!}/${key.originPath!}]${key.xpub}';
-          } else {
-            return key.xpub;
-          }
-        }).join(',');
+        final keyDescriptors = sortedKeys
+            .map((key) {
+              if (key.isWallet && key.fingerprint != null && key.originPath != null) {
+                return '[${key.fingerprint!}/${key.originPath!}]${key.xpub}';
+              } else {
+                return key.xpub;
+              }
+            })
+            .join(',');
 
         final receiveDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/0/*))';
 

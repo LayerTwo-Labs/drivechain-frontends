@@ -158,9 +158,9 @@ class OverviewTabViewModel extends BaseViewModel {
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
 
   String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)),
-        symbol: ticker,
-      );
+    ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)),
+    symbol: ticker,
+  );
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;

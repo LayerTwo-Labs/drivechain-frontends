@@ -131,34 +131,34 @@ class SailTestPage extends StatelessWidget {
 
 class MockBinary extends Binary {
   MockBinary()
-      : super(
-          name: 'Mocktown',
-          version: '0.0.0',
-          description: 'Mock Binary',
-          repoUrl: 'https://mock.test',
-          directories: DirectoryConfig(
-            base: {
-              OS.linux: '.mock',
-              OS.macos: 'Mock',
-              OS.windows: 'Mock',
-            },
-          ),
-          metadata: MetadataConfig(
-            baseUrl: 'https://mock.test',
-            files: {
-              OS.linux: 'mock',
-              OS.macos: 'mock',
-              OS.windows: 'mock',
-            },
-            remoteTimestamp: null,
-            downloadedTimestamp: null,
-            binaryPath: null,
-            updateable: false,
-          ),
-          binary: 'mock',
-          port: 8272,
-          chainLayer: 0,
-        );
+    : super(
+        name: 'Mocktown',
+        version: '0.0.0',
+        description: 'Mock Binary',
+        repoUrl: 'https://mock.test',
+        directories: DirectoryConfig(
+          base: {
+            OS.linux: '.mock',
+            OS.macos: 'Mock',
+            OS.windows: 'Mock',
+          },
+        ),
+        metadata: MetadataConfig(
+          baseUrl: 'https://mock.test',
+          files: {
+            OS.linux: 'mock',
+            OS.macos: 'mock',
+            OS.windows: 'mock',
+          },
+          remoteTimestamp: null,
+          downloadedTimestamp: null,
+          binaryPath: null,
+          updateable: false,
+        ),
+        binary: 'mock',
+        port: 8272,
+        chainLayer: 0,
+      );
 
   @override
   BinaryType get type => BinaryType.testSidechain;
@@ -185,11 +185,11 @@ class MockBinary extends Binary {
 
 class MockBinaryProvider extends BinaryProvider {
   MockBinaryProvider()
-      : super.test(
-          bitwindowAppDir: Directory('/tmp'),
-          downloadManager: MockDownloadManager(),
-          processManager: MockProcessManager(),
-        );
+    : super.test(
+        bitwindowAppDir: Directory('/tmp'),
+        downloadManager: MockDownloadManager(),
+        processManager: MockProcessManager(),
+      );
 
   @override
   List<Binary> get binaries => [MockBinary()];
@@ -326,10 +326,10 @@ class MockBinaryProvider extends BinaryProvider {
 
 class MockDownloadManager extends DownloadManager {
   MockDownloadManager()
-      : super.test(
-          bitwindowAppDir: Directory('/tmp'),
-          binaries: [MockBinary()],
-        );
+    : super.test(
+        bitwindowAppDir: Directory('/tmp'),
+        binaries: [MockBinary()],
+      );
 }
 
 class MockProcessManager extends ProcessManager {

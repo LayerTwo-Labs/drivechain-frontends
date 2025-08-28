@@ -75,8 +75,9 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                     ),
                     SailButton(
                       label: 'Broadcast',
-                      onPressed:
-                          viewModel.selectedTopicIds.isNotEmpty ? () => displayBroadcastNewsDialog(context) : null,
+                      onPressed: viewModel.selectedTopicIds.isNotEmpty
+                          ? () => displayBroadcastNewsDialog(context)
+                          : null,
                     ),
                   ],
                 ),

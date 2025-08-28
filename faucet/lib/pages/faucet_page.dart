@@ -196,7 +196,8 @@ class _FaucetPageState extends State<FaucetPage> {
                             SailButton(
                               label: 'Send',
                               onPressed: () => model.claim(context),
-                              disabled: model.isBusy ||
+                              disabled:
+                                  model.isBusy ||
                                   model.amountController.text == '' ||
                                   model.addressController.text == '',
                             ),

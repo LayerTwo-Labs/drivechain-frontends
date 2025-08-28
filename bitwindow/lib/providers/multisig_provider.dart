@@ -481,13 +481,15 @@ class MultisigDescriptorBuilder {
   static Future<MultisigDescriptors> buildWatchOnlyDescriptors(MultisigGroup group) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
 
-    final keyDescriptors = sortedKeys.map((key) {
-      if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-        return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
-      } else {
-        return key.xpub;
-      }
-    }).join(',');
+    final keyDescriptors = sortedKeys
+        .map((key) {
+          if (key.isWallet && key.fingerprint != null && key.originPath != null) {
+            return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
+          } else {
+            return key.xpub;
+          }
+        })
+        .join(',');
 
     final receiveDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/0/*))';
     final changeDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/1/*))';
@@ -508,8 +510,9 @@ class MultisigDescriptorBuilder {
     String fingerprint,
   ) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
-    final originPath =
-        signingKey.derivationPath.startsWith('m/') ? signingKey.derivationPath.substring(2) : signingKey.derivationPath;
+    final originPath = signingKey.derivationPath.startsWith('m/')
+        ? signingKey.derivationPath.substring(2)
+        : signingKey.derivationPath;
 
     final receiveKeys = <String>[];
     final changeKeys = <String>[];

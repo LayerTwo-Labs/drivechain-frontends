@@ -2,11 +2,11 @@ import 'package:sail_ui/sail_ui.dart';
 
 class MockBitAssetsRPC extends BitAssetsRPC {
   MockBitAssetsRPC()
-      : super(
-          conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
-          binaryType: BinaryType.testSidechain,
-          restartOnFailure: false,
-        );
+    : super(
+        conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
+        binaryType: BinaryType.testSidechain,
+        restartOnFailure: false,
+      );
 
   @override
   Future<String> ammBurn({required String asset0, required String asset1, required int lpTokenAmount}) {

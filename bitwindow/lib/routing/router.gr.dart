@@ -18,10 +18,10 @@ class CreateWalletRoute extends PageRouteInfo<CreateWalletRouteArgs> {
     WelcomeScreen initalScreen = WelcomeScreen.initial,
     List<PageRouteInfo>? children,
   }) : super(
-          CreateWalletRoute.name,
-          args: CreateWalletRouteArgs(key: key, initalScreen: initalScreen),
-          initialChildren: children,
-        );
+         CreateWalletRoute.name,
+         args: CreateWalletRouteArgs(key: key, initalScreen: initalScreen),
+         initialChildren: children,
+       );
 
   static const String name = 'CreateWalletRoute';
 
@@ -65,7 +65,8 @@ class CreateWalletRouteArgs {
 /// generated route for
 /// [LearnPage]
 class LearnRoute extends PageRouteInfo<void> {
-  const LearnRoute({List<PageRouteInfo>? children}) : super(LearnRoute.name, initialChildren: children);
+  const LearnRoute({List<PageRouteInfo>? children})
+    : super(LearnRoute.name, initialChildren: children);
 
   static const String name = 'LearnRoute';
 
@@ -80,7 +81,8 @@ class LearnRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
-  const OverviewRoute({List<PageRouteInfo>? children}) : super(OverviewRoute.name, initialChildren: children);
+  const OverviewRoute({List<PageRouteInfo>? children})
+    : super(OverviewRoute.name, initialChildren: children);
 
   static const String name = 'OverviewRoute';
 
@@ -95,7 +97,8 @@ class OverviewRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [RootPage]
 class RootRoute extends PageRouteInfo<void> {
-  const RootRoute({List<PageRouteInfo>? children}) : super(RootRoute.name, initialChildren: children);
+  const RootRoute({List<PageRouteInfo>? children})
+    : super(RootRoute.name, initialChildren: children);
 
   static const String name = 'RootRoute';
 
@@ -110,7 +113,8 @@ class RootRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [SettingsPage]
 class SettingsRoute extends PageRouteInfo<void> {
-  const SettingsRoute({List<PageRouteInfo>? children}) : super(SettingsRoute.name, initialChildren: children);
+  const SettingsRoute({List<PageRouteInfo>? children})
+    : super(SettingsRoute.name, initialChildren: children);
 
   static const String name = 'SettingsRoute';
 
@@ -126,7 +130,7 @@ class SettingsRoute extends PageRouteInfo<void> {
 /// [SidechainActivationManagementPage]
 class SidechainActivationManagementRoute extends PageRouteInfo<void> {
   const SidechainActivationManagementRoute({List<PageRouteInfo>? children})
-      : super(SidechainActivationManagementRoute.name, initialChildren: children);
+    : super(SidechainActivationManagementRoute.name, initialChildren: children);
 
   static const String name = 'SidechainActivationManagementRoute';
 
@@ -142,7 +146,7 @@ class SidechainActivationManagementRoute extends PageRouteInfo<void> {
 /// [SidechainProposalPage]
 class SidechainProposalRoute extends PageRouteInfo<void> {
   const SidechainProposalRoute({List<PageRouteInfo>? children})
-      : super(SidechainProposalRoute.name, initialChildren: children);
+    : super(SidechainProposalRoute.name, initialChildren: children);
 
   static const String name = 'SidechainProposalRoute';
 
@@ -157,7 +161,8 @@ class SidechainProposalRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [SidechainsPage]
 class SidechainsRoute extends PageRouteInfo<void> {
-  const SidechainsRoute({List<PageRouteInfo>? children}) : super(SidechainsRoute.name, initialChildren: children);
+  const SidechainsRoute({List<PageRouteInfo>? children})
+    : super(SidechainsRoute.name, initialChildren: children);
 
   static const String name = 'SidechainsRoute';
 
@@ -172,7 +177,8 @@ class SidechainsRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [WalletPage]
 class WalletRoute extends PageRouteInfo<void> {
-  const WalletRoute({List<PageRouteInfo>? children}) : super(WalletRoute.name, initialChildren: children);
+  const WalletRoute({List<PageRouteInfo>? children})
+    : super(WalletRoute.name, initialChildren: children);
 
   static const String name = 'WalletRoute';
 

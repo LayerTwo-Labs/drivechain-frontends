@@ -5,11 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
-      : super(
-          conf: NodeConnectionSettings.empty(),
-          binaryType: BinaryType.bitcoinCore,
-          restartOnFailure: false,
-        );
+    : super(conf: NodeConnectionSettings.empty(), binaryType: BinaryType.bitcoinCore, restartOnFailure: false);
 
   bool _connected = false;
   bool _initializing = false;
@@ -151,11 +147,7 @@ class MockMainchainRPC extends MainchainRPC {
 
 class MockEnforcerRPC extends EnforcerRPC {
   MockEnforcerRPC()
-      : super(
-          conf: NodeConnectionSettings.empty(),
-          binaryType: BinaryType.enforcer,
-          restartOnFailure: true,
-        );
+    : super(conf: NodeConnectionSettings.empty(), binaryType: BinaryType.enforcer, restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;
@@ -235,11 +227,7 @@ class MockEnforcerRPC extends EnforcerRPC {
 
 class MockBitwindowRPC extends BitwindowRPC {
   MockBitwindowRPC()
-      : super(
-          conf: NodeConnectionSettings.empty(),
-          binaryType: BinaryType.bitWindow,
-          restartOnFailure: true,
-        );
+    : super(conf: NodeConnectionSettings.empty(), binaryType: BinaryType.bitWindow, restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;
@@ -329,11 +317,7 @@ class MockBitwindowRPC extends BitwindowRPC {
 
 class MockThunderRPC extends ThunderRPC {
   MockThunderRPC()
-      : super(
-          conf: NodeConnectionSettings.empty(),
-          binaryType: BinaryType.thunder,
-          restartOnFailure: true,
-        );
+    : super(conf: NodeConnectionSettings.empty(), binaryType: BinaryType.thunder, restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;
@@ -520,11 +504,7 @@ class MockThunderRPC extends ThunderRPC {
 
 class MockBitnamesRPC extends BitnamesRPC {
   MockBitnamesRPC()
-      : super(
-          conf: NodeConnectionSettings.empty(),
-          binaryType: BinaryType.bitnames,
-          restartOnFailure: true,
-        );
+    : super(conf: NodeConnectionSettings.empty(), binaryType: BinaryType.bitnames, restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;

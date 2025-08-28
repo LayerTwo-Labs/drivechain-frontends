@@ -23,22 +23,13 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                 bottom: SailStyleValues.padding10,
               ),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: theme.colors.background,
-                    width: 1,
-                  ),
-                ),
+                border: Border(bottom: BorderSide(color: theme.colors.background, width: 1)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const SizedBox(width: 80), // Balance the header
-                  Expanded(
-                    child: Center(
-                      child: SailText.primary15(groupTitle, bold: true),
-                    ),
-                  ),
+                  Expanded(child: Center(child: SailText.primary15(groupTitle, bold: true))),
                   SizedBox(
                     width: 80, // Match left spacing
                     child: Align(
@@ -71,10 +62,7 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Title
-                          SailText.primary24(
-                            article.title,
-                            bold: true,
-                          ),
+                          SailText.primary24(article.title, bold: true),
                           SailSpacing(SailStyleValues.padding20),
                           // Content
                           MarkdownBody(
@@ -106,9 +94,7 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                             ),
                             onTapLink: (_, href, __) async {
                               if (href == null) return;
-                              await launchUrl(
-                                Uri.parse(href),
-                              );
+                              await launchUrl(Uri.parse(href));
                             },
                           ),
                           const SailSpacing(SailStyleValues.padding40),
@@ -137,11 +123,7 @@ class Article {
   final String markdown;
   final String filename;
 
-  Article({
-    required this.title,
-    required this.markdown,
-    required this.filename,
-  });
+  Article({required this.title, required this.markdown, required this.filename});
 }
 
 class ArticleGroup {
@@ -149,9 +131,5 @@ class ArticleGroup {
   final String subtitle;
   final List<Article> articles;
 
-  ArticleGroup({
-    required this.title,
-    required this.subtitle,
-    required this.articles,
-  });
+  ArticleGroup({required this.title, required this.subtitle, required this.articles});
 }

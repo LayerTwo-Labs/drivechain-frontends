@@ -10,9 +10,7 @@ import 'package:sail_ui/config/binaries.dart';
 class ProcessManager extends ChangeNotifier {
   final Directory bitwindowAppDir;
 
-  ProcessManager({
-    required this.bitwindowAppDir,
-  });
+  ProcessManager({required this.bitwindowAppDir});
 
   Logger get log => GetIt.I.get<Logger>();
 
@@ -32,9 +30,8 @@ class ProcessManager extends ChangeNotifier {
   Future<int> start(
     Binary binary,
     List<String> args,
-    Future<void> Function() cleanup,
+    Future<void> Function() cleanup, {
     // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
-    {
     Map<String, String> environment = const {},
   }) async {
     final file = await binary.resolveBinaryPath(bitwindowAppDir);
@@ -53,11 +50,7 @@ class ProcessManager extends ChangeNotifier {
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
       environment: environment,
     );
-    runningProcesses[binary.name] = SailProcess(
-      binary: binary,
-      pid: process.pid,
-      cleanup: cleanup,
-    );
+    runningProcesses[binary.name] = SailProcess(binary: binary, pid: process.pid, cleanup: cleanup);
     _exitTuples.remove(binary.name);
 
     // Let output streaming chug in the background
@@ -67,39 +60,43 @@ class ProcessManager extends ChangeNotifier {
     final stderrController = StreamController<String>();
 
     log.d('Setting up stdout listener for ${file.path}');
-    process.stdout.transform(systemEncoding.decoder).listen(
-      (data) {
-        stdoutController.add(data);
-        _finalErr[binary.name] = data;
-        if (!isSpam(data)) {
-          log.d('${file.path.split(Platform.pathSeparator).last}: $data');
-        }
-      },
-      onError: (error, stack) {
-        log.e('Stdout stream error: $error\n$stack');
-      },
-      onDone: () {
-        log.d('stdout stream done for ${file.path}');
-        stdoutController.close();
-      },
-    );
+    process.stdout
+        .transform(systemEncoding.decoder)
+        .listen(
+          (data) {
+            stdoutController.add(data);
+            _finalErr[binary.name] = data;
+            if (!isSpam(data)) {
+              log.d('${file.path.split(Platform.pathSeparator).last}: $data');
+            }
+          },
+          onError: (error, stack) {
+            log.e('Stdout stream error: $error\n$stack');
+          },
+          onDone: () {
+            log.d('stdout stream done for ${file.path}');
+            stdoutController.close();
+          },
+        );
 
     log.d('Setting up stderr listener for ${file.path}');
-    process.stderr.transform(systemEncoding.decoder).listen(
-      (data) {
-        stderrController.add(data);
-        if (!isSpam(data)) {
-          log.e('${file.path}: $data');
-        }
-      },
-      onError: (error, stack) {
-        log.e('Stderr stream error: $error\n$stack');
-      },
-      onDone: () {
-        log.d('stderr stream done for ${file.path}');
-        stderrController.close();
-      },
-    );
+    process.stderr
+        .transform(systemEncoding.decoder)
+        .listen(
+          (data) {
+            stderrController.add(data);
+            if (!isSpam(data)) {
+              log.e('${file.path}: $data');
+            }
+          },
+          onError: (error, stack) {
+            log.e('Stderr stream error: $error\n$stack');
+          },
+          onDone: () {
+            log.d('stderr stream done for ${file.path}');
+            stderrController.close();
+          },
+        );
 
     // Store the streams for later access
     _stdoutStreams[binary.name] = stdoutController.stream;
@@ -135,10 +132,7 @@ class ProcessManager extends ChangeNotifier {
           processExited.complete(true);
 
           // Forward to listeners that the process finished.
-          _exitTuples[binary.name] = ExitTuple(
-            code: code,
-            message: message,
-          );
+          _exitTuples[binary.name] = ExitTuple(code: code, message: message);
           runningProcesses.remove(binary.name);
           // Close the stream controllers
           await stdoutController.close();
@@ -172,9 +166,7 @@ class ProcessManager extends ChangeNotifier {
   }
 
   Future<void> kill(Binary binary) async {
-    final process = runningProcesses.values.firstWhereOrNull(
-      (p) => p.binary.name == binary.name,
-    );
+    final process = runningProcesses.values.firstWhereOrNull((p) => p.binary.name == binary.name);
     if (process == null) {
       log.w('Process not found for binary ${binary.name}');
       return;
@@ -272,19 +264,12 @@ class SailProcess {
   final int pid;
   Future<void> Function() cleanup;
 
-  SailProcess({
-    required this.binary,
-    required this.pid,
-    required this.cleanup,
-  });
+  SailProcess({required this.binary, required this.pid, required this.cleanup});
 }
 
 class ExitTuple {
   final int code;
   final String message;
 
-  ExitTuple({
-    required this.code,
-    required this.message,
-  });
+  ExitTuple({required this.code, required this.message});
 }

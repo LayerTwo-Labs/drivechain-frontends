@@ -586,10 +586,10 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
     _sortedTransactionRows.sort((a, b) {
       final aNeedsSignatures =
           (a.transaction.status == TxStatus.needsSignatures || a.transaction.status == TxStatus.awaitingSignedPSBTs) &&
-              a.transaction.type != TxType.deposit;
+          a.transaction.type != TxType.deposit;
       final bNeedsSignatures =
           (b.transaction.status == TxStatus.needsSignatures || b.transaction.status == TxStatus.awaitingSignedPSBTs) &&
-              b.transaction.type != TxType.deposit;
+          b.transaction.type != TxType.deposit;
 
       if (aNeedsSignatures && !bNeedsSignatures) return -1;
       if (!aNeedsSignatures && bNeedsSignatures) return 1;
@@ -1459,13 +1459,13 @@ class MultisigLoungeViewModel extends BaseViewModel {
                               small: true,
                               onPressed: (keyPSBT.psbt?.isNotEmpty ?? false)
                                   ? () async => _exportPSBTToFile(
-                                        context,
-                                        keyPSBT.psbt!,
-                                        transaction,
-                                        group,
-                                        keyName,
-                                        keyPSBT.isSigned,
-                                      )
+                                      context,
+                                      keyPSBT.psbt!,
+                                      transaction,
+                                      group,
+                                      keyName,
+                                      keyPSBT.isSigned,
+                                    )
                                   : null,
                             ),
                           ],
@@ -1561,7 +1561,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
       case TxStatus.needsSignatures:
       case TxStatus.awaitingSignedPSBTs:
         final walletKeys = group.keys.where((k) => k.isWallet).toList();
-        final canSign = walletKeys.isNotEmpty &&
+        final canSign =
+            walletKeys.isNotEmpty &&
             tx.keyPSBTs.any(
               (kp) => !kp.isSigned && kp.psbt != null && walletKeys.any((wk) => wk.xpub == kp.keyId),
             );
@@ -1615,7 +1616,8 @@ class MultisigLoungeViewModel extends BaseViewModel {
         throw Exception('No wallet keys found in group');
       }
 
-      final canSign = walletKeys.isNotEmpty &&
+      final canSign =
+          walletKeys.isNotEmpty &&
           tx.keyPSBTs.any(
             (kp) => !kp.isSigned && kp.psbt != null && walletKeys.any((wk) => wk.xpub == kp.keyId),
           );

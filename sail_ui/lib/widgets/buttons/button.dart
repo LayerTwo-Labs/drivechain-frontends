@@ -3,15 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'dart:async';
 
-enum ButtonVariant {
-  primary,
-  secondary,
-  destructive,
-  outline,
-  ghost,
-  link,
-  icon,
-}
+enum ButtonVariant { primary, secondary, destructive, outline, ghost, link, icon }
 
 class SailButton extends StatefulWidget {
   final String? label;
@@ -45,14 +37,11 @@ class SailButton extends StatefulWidget {
     this.small = false,
     this.insideTable = false,
     this.textColor,
-  })  : assert(
-          variant != ButtonVariant.icon || (icon != null && label == null),
-          'Icon must be set with no label for icon-variant',
-        ),
-        assert(
-          variant == ButtonVariant.icon || (label != null),
-          'Label must be set',
-        );
+  }) : assert(
+         variant != ButtonVariant.icon || (icon != null && label == null),
+         'Icon must be set with no label for icon-variant',
+       ),
+       assert(variant == ButtonVariant.icon || (label != null), 'Label must be set');
 
   @override
   State<SailButton> createState() => _SailButtonState();
@@ -97,24 +86,15 @@ class _SailButtonState extends State<SailButton> {
       borderColor: style.borderColor,
       hoverColor: style.hoverColor,
       child: Padding(
-        padding: widget.padding ??
+        padding:
+            widget.padding ??
             (widget.insideTable
-                ? EdgeInsets.only(
-                    top: 4,
-                    bottom: 4,
-                    left: 6,
-                    right: 6,
-                  )
+                ? EdgeInsets.only(top: 4, bottom: 4, left: 6, right: 6)
                 : (widget.variant == ButtonVariant.icon
-                    ? widget.small
-                        ? EdgeInsets.all(8)
-                        : EdgeInsets.all(12)
-                    : const EdgeInsets.only(
-                        top: 8,
-                        bottom: 8,
-                        left: 12,
-                        right: 12,
-                      ))),
+                      ? widget.small
+                            ? EdgeInsets.all(8)
+                            : EdgeInsets.all(12)
+                      : const EdgeInsets.only(top: 8, bottom: 8, left: 12, right: 12))),
         child: content,
       ),
     );
@@ -127,11 +107,7 @@ class _SailButtonState extends State<SailButton> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (_isLoading) ...[
-          SizedBox(
-            width: 12,
-            height: 12,
-            child: LoadingIndicator.insideButton(foregroundColor),
-          ),
+          SizedBox(width: 12, height: 12, child: LoadingIndicator.insideButton(foregroundColor)),
           const SizedBox(width: 8),
         ] else if (widget.icon != null || widget.endIcon != null) ...[
           if (widget.icon != null)
@@ -265,20 +241,22 @@ class _CopyButtonState extends State<CopyButton> {
       textColor: _copied ? SailColorScheme.green : null,
       padding: EdgeInsets.all(9.5),
       onPressed: () async {
-        await Clipboard.setData(ClipboardData(text: widget.text)).then((_) {
-          if (mounted) {
-            setState(() {
-              _copied = true;
+        await Clipboard.setData(ClipboardData(text: widget.text))
+            .then((_) {
+              if (mounted) {
+                setState(() {
+                  _copied = true;
+                });
+                // Reset after 2 seconds
+                _resetTimer?.cancel();
+                _resetTimer = Timer(const Duration(seconds: 2), _resetCopiedState);
+              }
+            })
+            .catchError((error) {
+              if (context.mounted) {
+                showSnackBar(context, 'Could not copy ${widget.text}: $error');
+              }
             });
-            // Reset after 2 seconds
-            _resetTimer?.cancel();
-            _resetTimer = Timer(const Duration(seconds: 2), _resetCopiedState);
-          }
-        }).catchError((error) {
-          if (context.mounted) {
-            showSnackBar(context, 'Could not copy ${widget.text}: $error');
-          }
-        });
       },
     );
   }
@@ -343,10 +321,7 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 50),
-      vsync: this,
-    );
+    _controller = AnimationController(duration: const Duration(milliseconds: 50), vsync: this);
   }
 
   @override
@@ -426,10 +401,7 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
                           borderRadius: widget.variant != ButtonVariant.link ? SailStyleValues.borderRadius : null,
                         ),
                         margin: widget.variant != ButtonVariant.link ? const EdgeInsets.only(top: 3) : EdgeInsets.zero,
-                        child: Opacity(
-                          opacity: 0,
-                          child: widget.child,
-                        ),
+                        child: Opacity(opacity: 0, child: widget.child),
                       ),
                       // Top button layer
                       Container(

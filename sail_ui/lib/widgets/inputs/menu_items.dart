@@ -12,12 +12,7 @@ const _menuPaddingWindows = EdgeInsets.symmetric(vertical: 4);
 class SailMenu extends StatelessWidget {
   final String? title;
 
-  const SailMenu({
-    required this.items,
-    this.title,
-    this.width,
-    super.key,
-  });
+  const SailMenu({required this.items, this.title, this.width, super.key});
 
   final List<SailMenuEntity> items;
   final double? width;
@@ -34,10 +29,7 @@ class SailMenu extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.sailTheme.colors.background,
         borderRadius: SailStyleValues.borderRadius,
-        border: Border.all(
-          color: context.sailTheme.colors.border,
-          width: 1,
-        ),
+        border: Border.all(color: context.sailTheme.colors.border, width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -45,20 +37,10 @@ class SailMenu extends StatelessWidget {
         children: [
           if (title != null)
             Padding(
-              padding: EdgeInsets.only(
-                top: 10,
-                bottom: 10,
-                left: 12,
-              ),
-              child: SailText.primary13(
-                title!,
-                bold: true,
-              ),
+              padding: EdgeInsets.only(top: 10, bottom: 10, left: 12),
+              child: SailText.primary13(title!, bold: true),
             ),
-          if (title != null)
-            Divider(
-              height: 1,
-            ),
+          if (title != null) Divider(height: 1),
           ...items,
         ],
       ),
@@ -141,16 +123,10 @@ class _SailMenuItemState extends State<SailMenuItem> {
           child: DefaultTextStyle(
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: textColor,
-            ),
+            style: TextStyle(color: textColor),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
-                  child: widget.child,
-                ),
-              ],
+              children: [Expanded(child: widget.child)],
             ),
           ),
         ),
@@ -181,10 +157,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
 class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
   final bool padding;
 
-  const SailMenuItemDivider({
-    super.key,
-    this.padding = true,
-  });
+  const SailMenuItemDivider({super.key, this.padding = true});
 
   @override
   double get height => _menuDividerHeight;
@@ -196,10 +169,7 @@ class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
       padding: padding ? EdgeInsets.symmetric(horizontal: context.isWindows ? 8 : 16) : null,
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Container(
-          color: context.sailTheme.colors.divider,
-          height: 1.0,
-        ),
+        child: Container(color: context.sailTheme.colors.divider, height: 1.0),
       ),
     );
   }
@@ -208,10 +178,7 @@ class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
 class MempoolMenuItem extends StatelessWidget implements SailMenuEntity {
   final String txid;
 
-  const MempoolMenuItem({
-    super.key,
-    required this.txid,
-  });
+  const MempoolMenuItem({super.key, required this.txid});
 
   @override
   double get height => _menuItemHeight;

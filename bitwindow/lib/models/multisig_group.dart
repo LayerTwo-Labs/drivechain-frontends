@@ -40,9 +40,9 @@ class MultisigGroup {
     this.nextReceiveIndex = 0,
     this.nextChangeIndex = 0,
     List<String>? transactionIds,
-  })  : addresses = addresses ?? {'receive': [], 'change': []},
-        utxoDetails = utxoDetails ?? [],
-        transactionIds = transactionIds ?? [];
+  }) : addresses = addresses ?? {'receive': [], 'change': []},
+       utxoDetails = utxoDetails ?? [],
+       transactionIds = transactionIds ?? [];
 
   factory MultisigGroup.fromJson(Map<String, dynamic> json) {
     return MultisigGroup(
@@ -68,28 +68,28 @@ class MultisigGroup {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'n': n,
-        'm': m,
-        'keys': keys.map((k) => k.toJson()).toList(),
-        'created': created,
-        'txid': txid,
-        'descriptor': descriptor,
-        'descriptorReceive': descriptorReceive,
-        'descriptorChange': descriptorChange,
-        'watch_wallet_name': watchWalletName,
-        'addresses': {
-          'receive': addresses['receive']?.map((a) => a.toJson()).toList() ?? [],
-          'change': addresses['change']?.map((a) => a.toJson()).toList() ?? [],
-        },
-        'utxo_details': utxoDetails.map((u) => u.toJson()).toList(),
-        'balance': balance,
-        'utxos': utxos,
-        'next_receive_index': nextReceiveIndex,
-        'next_change_index': nextChangeIndex,
-        'transaction_ids': transactionIds,
-      };
+    'id': id,
+    'name': name,
+    'n': n,
+    'm': m,
+    'keys': keys.map((k) => k.toJson()).toList(),
+    'created': created,
+    'txid': txid,
+    'descriptor': descriptor,
+    'descriptorReceive': descriptorReceive,
+    'descriptorChange': descriptorChange,
+    'watch_wallet_name': watchWalletName,
+    'addresses': {
+      'receive': addresses['receive']?.map((a) => a.toJson()).toList() ?? [],
+      'change': addresses['change']?.map((a) => a.toJson()).toList() ?? [],
+    },
+    'utxo_details': utxoDetails.map((u) => u.toJson()).toList(),
+    'balance': balance,
+    'utxos': utxos,
+    'next_receive_index': nextReceiveIndex,
+    'next_change_index': nextChangeIndex,
+    'transaction_ids': transactionIds,
+  };
 
   static Map<String, List<AddressInfo>> _parseAddresses(dynamic json) {
     if (json == null) return {'receive': [], 'change': []};
@@ -176,15 +176,15 @@ class AddressInfo {
     this.used = false,
   });
   factory AddressInfo.fromJson(Map<String, dynamic> json) => AddressInfo(
-        index: json['index'] ?? 0,
-        address: json['address'] ?? '',
-        used: json['used'] ?? false,
-      );
+    index: json['index'] ?? 0,
+    address: json['address'] ?? '',
+    used: json['used'] ?? false,
+  );
   Map<String, dynamic> toJson() => {
-        'index': index,
-        'address': address,
-        'used': used,
-      };
+    'index': index,
+    'address': address,
+    'used': used,
+  };
 }
 
 class UtxoInfo {
@@ -211,29 +211,29 @@ class UtxoInfo {
   });
 
   factory UtxoInfo.fromJson(Map<String, dynamic> json) => UtxoInfo(
-        txid: json['txid'] ?? '',
-        vout: json['vout'] ?? 0,
-        address: json['address'] ?? '',
-        amount: (json['amount'] ?? 0.0).toDouble(),
-        confirmations: json['confirmations'] ?? 0,
-        scriptPubKey: json['scriptPubKey'],
-        spendable: json['spendable'] ?? true,
-        solvable: json['solvable'] ?? true,
-        safe: json['safe'] ?? true,
-      );
+    txid: json['txid'] ?? '',
+    vout: json['vout'] ?? 0,
+    address: json['address'] ?? '',
+    amount: (json['amount'] ?? 0.0).toDouble(),
+    confirmations: json['confirmations'] ?? 0,
+    scriptPubKey: json['scriptPubKey'],
+    spendable: json['spendable'] ?? true,
+    solvable: json['solvable'] ?? true,
+    safe: json['safe'] ?? true,
+  );
   Map<String, dynamic> toJson() => {
-        'txid': txid,
-        'vout': vout,
-        'address': address,
-        'amount': amount,
-        'confirmations': confirmations,
-        'scriptPubKey': scriptPubKey,
-        'spendable': spendable,
-        'solvable': solvable,
-        'safe': safe,
-      };
+    'txid': txid,
+    'vout': vout,
+    'address': address,
+    'amount': amount,
+    'confirmations': confirmations,
+    'scriptPubKey': scriptPubKey,
+    'spendable': spendable,
+    'solvable': solvable,
+    'safe': safe,
+  };
   Map<String, dynamic> get outpoint => {
-        'txid': txid,
-        'vout': vout,
-      };
+    'txid': txid,
+    'vout': vout,
+  };
 }

@@ -6,12 +6,7 @@ class SailToggle extends StatelessWidget {
   final bool value;
   final ValueSetter<bool> onChanged;
 
-  const SailToggle({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+  const SailToggle({super.key, required this.label, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {

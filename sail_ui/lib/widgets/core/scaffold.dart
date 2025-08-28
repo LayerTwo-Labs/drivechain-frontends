@@ -5,11 +5,7 @@ class SailScaffold extends StatelessWidget {
   final Widget body;
   final Color? backgroundColor;
 
-  const SailScaffold({
-    super.key,
-    required this.body,
-    this.backgroundColor,
-  });
+  const SailScaffold({super.key, required this.body, this.backgroundColor});
 
   @override
   Widget build(BuildContext context) {

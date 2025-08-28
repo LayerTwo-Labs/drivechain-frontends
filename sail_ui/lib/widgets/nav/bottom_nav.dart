@@ -25,11 +25,7 @@ class BottomNav extends StatelessWidget {
       height: 36,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: SailTheme.of(context).colors.border,
-            ),
-          ),
+          border: Border(top: BorderSide(color: SailTheme.of(context).colors.border)),
         ),
         child: SailRow(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -82,10 +78,7 @@ class BottomNav extends StatelessWidget {
                                       ],
                                     )
                                   : const BoxDecoration(),
-                              child: SailSVG.fromAsset(
-                                SailSVGAsset.iconConnectionStatus,
-                                color: model.connectionColor,
-                              ),
+                              child: SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: model.connectionColor),
                             ),
                             if (model.connectionStatus == 'All binaries connected')
                               SailText.secondary12(model.connectionStatus)
@@ -140,9 +133,8 @@ class BottomNav extends StatelessWidget {
                     DaemonConnectionCard(
                       connection: model.mainchain,
                       syncInfo: model.syncProvider.mainchainSyncInfo,
-                      restartDaemon: () => binaryProvider.start(
-                        binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name),
-                      ),
+                      restartDaemon: () =>
+                          binaryProvider.start(binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name)),
                       infoMessage: _getDownloadMessage(model.syncProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
                     ),
@@ -150,15 +142,15 @@ class BottomNav extends StatelessWidget {
                     DaemonConnectionCard(
                       connection: model.enforcer,
                       syncInfo: model.syncProvider.enforcerSyncInfo,
-                      infoMessage: _getDownloadMessage(model.syncProvider.enforcerSyncInfo) ??
+                      infoMessage:
+                          _getDownloadMessage(model.syncProvider.enforcerSyncInfo) ??
                           (model.mainchain.initializingBinary
                               ? 'Waiting for mainchain to finish init'
                               : model.mainchain.inHeaderSync
-                                  ? 'Waiting for L1 to sync headers...'
-                                  : null),
-                      restartDaemon: () => binaryProvider.start(
-                        binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name),
-                      ),
+                              ? 'Waiting for L1 to sync headers...'
+                              : null),
+                      restartDaemon: () =>
+                          binaryProvider.start(binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name)),
                       navigateToLogs: model.navigateToLogs,
                     ),
                   DaemonConnectionCard(
@@ -216,19 +208,12 @@ class Separator extends StatelessWidget {
   final Widget child;
   final bool right;
 
-  const Separator({
-    super.key,
-    required this.child,
-    this.right = false,
-  });
+  const Separator({super.key, required this.child, this.right = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 4.0,
-        vertical: 2.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
       decoration: BoxDecoration(
         border: Border(
           left: right ? BorderSide.none : const BorderSide(color: Colors.grey),
@@ -245,10 +230,7 @@ class ConnectionMonitor {
   final RPCConnection rpc;
   final String name;
 
-  const ConnectionMonitor({
-    required this.rpc,
-    required this.name,
-  });
+  const ConnectionMonitor({required this.rpc, required this.name});
 
   bool get connected => rpc.connected;
   bool get initializingBinary => rpc.initializingBinary;
@@ -267,11 +249,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
 
-  BottomNavViewModel({
-    required this.additionalConnection,
-    required this.mainchainInfo,
-    required this.navigateToLogs,
-  }) {
+  BottomNavViewModel({required this.additionalConnection, required this.mainchainInfo, required this.navigateToLogs}) {
     initChangeTracker();
     // Add listeners for required connections
     mainchain.addListener(_onChange);
@@ -470,11 +448,7 @@ class ChainLoader extends StatelessWidget {
       message: syncInfo.downloadInfo.isDownloading
           ? 'Downloading $name\n${syncInfo.downloadInfo.message}'
           : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
-      child: ProgressBar(
-        current: syncInfo.progressCurrent,
-        goal: syncInfo.progressGoal,
-        justPercent: justPercent,
-      ),
+      child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal, justPercent: justPercent),
     );
 
     if (expanded) {
@@ -523,9 +497,7 @@ class BalanceDisplay extends StatelessWidget {
                   SailSkeletonizer(
                     description: 'Syncing wallet..',
                     enabled: balanceSyncing,
-                    child: SailText.secondary12(
-                      formatBitcoin(balance, symbol: 'BTC'),
-                    ),
+                    child: SailText.secondary12(formatBitcoin(balance, symbol: 'BTC')),
                   ),
                 ],
               ),
@@ -545,9 +517,7 @@ class BalanceDisplay extends StatelessWidget {
                         width: SailStyleValues.iconSizeSecondary,
                         height: SailStyleValues.iconSizeSecondary,
                       ),
-                      SailText.secondary12(
-                        formatBitcoin(pendingBalance, symbol: 'BTC'),
-                      ),
+                      SailText.secondary12(formatBitcoin(pendingBalance, symbol: 'BTC')),
                     ],
                   ),
                 ),

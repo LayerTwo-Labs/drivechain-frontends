@@ -945,7 +945,8 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
           ),
           SailButton(
             label: 'Deposit',
-            disabled: viewModel.addressController.text == '' ||
+            disabled:
+                viewModel.addressController.text == '' ||
                 viewModel.depositAmountController.text == '' ||
                 viewModel.feeController.text == '',
             onPressed: () async => viewModel.deposit(context),
@@ -1079,8 +1080,14 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
       rowCount: viewModel.sortedWithdrawals.length,
       drawGrid: true,
       sortAscending: viewModel.depositSortAscending,
-      sortColumnIndex:
-          ['sc', 'age', 'maxage', 'acks', 'approved', 'withdrawalhash'].indexOf(viewModel.depositSortColumn),
+      sortColumnIndex: [
+        'sc',
+        'age',
+        'maxage',
+        'acks',
+        'approved',
+        'withdrawalhash',
+      ].indexOf(viewModel.depositSortColumn),
       onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
     );
   }

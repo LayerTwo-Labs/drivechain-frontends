@@ -178,11 +178,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         ),
                         navigateToLogs: (title, logPath) {
                           GetIt.I.get<AppRouter>().push(
-                                LogRoute(
-                                  title: title,
-                                  logPath: logPath,
-                                ),
-                              );
+                            LogRoute(
+                              title: title,
+                              logPath: logPath,
+                            ),
+                          );
                         },
                         endWidgets: [],
                         onlyShowAdditional: true,
@@ -201,11 +201,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   @override
   Future<AppExitResponse> didRequestAppExit() async {
     await GetIt.I.get<BinaryProvider>().onShutdown(
-          shutdownOptions: ShutdownOptions(
-            router: GetIt.I.get<AppRouter>(),
-            onComplete: () {},
-          ),
-        );
+      shutdownOptions: ShutdownOptions(
+        router: GetIt.I.get<AppRouter>(),
+        onComplete: () {},
+      ),
+    );
     return AppExitResponse.exit;
   }
 
@@ -214,15 +214,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     bool isPreventClose = await windowManager.isPreventClose();
     if (isPreventClose) {
       await GetIt.I.get<BinaryProvider>().onShutdown(
-            shutdownOptions: ShutdownOptions(
-              router: GetIt.I.get<AppRouter>(),
-              onComplete: () async {
-                if (isPreventClose) {
-                  await windowManager.destroy();
-                }
-              },
-            ),
-          );
+        shutdownOptions: ShutdownOptions(
+          router: GetIt.I.get<AppRouter>(),
+          onComplete: () async {
+            if (isPreventClose) {
+              await windowManager.destroy();
+            }
+          },
+        ),
+      );
     }
   }
 

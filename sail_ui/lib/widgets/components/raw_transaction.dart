@@ -35,14 +35,7 @@ class RawTransaction {
   }
 
   @override
-  int get hashCode => Object.hash(
-        txid,
-        hash,
-        size,
-        vsize,
-        vin,
-        vout,
-      );
+  int get hashCode => Object.hash(txid, hash, size, vsize, vin, vout);
 
   factory RawTransaction.fromJson(Map<String, dynamic> json) {
     return RawTransaction(
@@ -65,13 +58,7 @@ class Vin {
   final List<String>? txinwitness;
   final int sequence;
 
-  Vin({
-    required this.txid,
-    required this.vout,
-    required this.scriptSig,
-    this.txinwitness,
-    required this.sequence,
-  });
+  Vin({required this.txid, required this.vout, required this.scriptSig, this.txinwitness, required this.sequence});
 
   factory Vin.fromJson(Map<String, dynamic> json) {
     return Vin(
@@ -95,10 +82,7 @@ class ScriptSig {
       return ScriptSig(asm: '', hex: '');
     }
 
-    return ScriptSig(
-      asm: json['asm'],
-      hex: json['hex'],
-    );
+    return ScriptSig(asm: json['asm'], hex: json['hex']);
   }
 }
 
@@ -110,11 +94,7 @@ class Vout {
   Vout({required this.value, required this.n, required this.scriptPubKey});
 
   factory Vout.fromJson(Map<String, dynamic> json) {
-    return Vout(
-      value: json['value'],
-      n: json['n'],
-      scriptPubKey: ScriptPubKey.fromJson(json['scriptPubKey']),
-    );
+    return Vout(value: json['value'], n: json['n'], scriptPubKey: ScriptPubKey.fromJson(json['scriptPubKey']));
   }
 }
 

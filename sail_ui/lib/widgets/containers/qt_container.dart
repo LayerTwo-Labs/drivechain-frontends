@@ -6,12 +6,7 @@ class QtContainer extends StatelessWidget {
   final bool tight;
   final Color? color;
 
-  const QtContainer({
-    super.key,
-    required this.child,
-    this.tight = false,
-    this.color,
-  });
+  const QtContainer({super.key, required this.child, this.tight = false, this.color});
 
   @override
   Widget build(BuildContext context) {

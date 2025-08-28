@@ -18,14 +18,13 @@ class WithdrawalBundle {
     BundleStatus status,
     BundleInfo info,
     List<Withdrawal> withdrawals,
-  ) =>
-      WithdrawalBundle(
-        hash: hash,
-        status: status,
-        bundleSize: info.weight,
-        blockHeight: info.height,
-        withdrawals: withdrawals,
-      );
+  ) => WithdrawalBundle(
+    hash: hash,
+    status: status,
+    bundleSize: info.weight,
+    blockHeight: info.height,
+    withdrawals: withdrawals,
+  );
 
   final BundleStatus status;
   final String hash;
@@ -76,20 +75,20 @@ class Withdrawal {
   final String status;
 
   factory Withdrawal.fromJson(Map<String, dynamic> json) => Withdrawal(
-        address: json['destination'],
-        refundDestination: json['refunddestination'],
-        amountSatoshi: json['amount'],
-        mainchainFeesSatoshi: json['amountmainchainfee'],
-        status: json['status'],
-        hashBlindTx: json['hashblindtx'],
-      );
+    address: json['destination'],
+    refundDestination: json['refunddestination'],
+    amountSatoshi: json['amount'],
+    mainchainFeesSatoshi: json['amountmainchainfee'],
+    status: json['status'],
+    hashBlindTx: json['hashblindtx'],
+  );
 
   Map<String, dynamic> toJson() => {
-        'destination': address,
-        'refunddestination': refundDestination,
-        'amount': amountSatoshi,
-        'amountmainchainfee': mainchainFeesSatoshi,
-        'status': status,
-        'hashblindtx': hashBlindTx,
-      };
+    'destination': address,
+    'refunddestination': refundDestination,
+    'amount': amountSatoshi,
+    'amountmainchainfee': mainchainFeesSatoshi,
+    'status': status,
+    'hashblindtx': hashBlindTx,
+  };
 }

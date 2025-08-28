@@ -114,7 +114,9 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<WalletProvider>(() => WalletProvider(appDir: applicationDir!));
   GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [bitwindow]));
   GetIt.I.registerLazySingleton<SyncProvider>(
-    () => SyncProvider(additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name)),
+    () => SyncProvider(
+      additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name),
+    ),
   );
   GetIt.I.registerLazySingleton<BlockchainProvider>(() => BlockchainProvider());
   GetIt.I.registerLazySingleton<TransactionProvider>(() => TransactionProvider());

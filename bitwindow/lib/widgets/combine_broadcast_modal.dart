@@ -236,8 +236,8 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
           subtitle: _isLoading
               ? 'Loading transactions...'
               : _eligibleTransactions.isEmpty
-                  ? 'No transactions ready for processing'
-                  : 'Select transaction to combine PSBTs and broadcast',
+              ? 'No transactions ready for processing'
+              : 'Select transaction to combine PSBTs and broadcast',
           error: _error,
           widgetHeaderEnd: !_isLoading
               ? IconButton(
