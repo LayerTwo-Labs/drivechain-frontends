@@ -27,5 +27,11 @@ done
 
 wait
 
-# Finally all Dart files in all repositories
-find . -name "*.dart" -not -path "*/lib/gen/*" | xargs dart format
+# then run format
+for dir in bitwindow bitassets bitnames sail_ui thunder zside; do
+  if [ -d "$dir" ]; then
+    (cd "$dir" && just format) &
+  fi
+done
+
+wait

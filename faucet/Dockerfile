@@ -9,23 +9,19 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     libglu1-mesa
 
+# Install Flutter SDK (pinned to version 3.35.2)
+RUN git clone https://github.com/flutter/flutter.git /opt/flutter -b 3.35.2
+ENV PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:/opt/flutter/bin:${PATH}"
+
 WORKDIR /builder
-
-# Install fvm. Root is needed for running in Docker
-# https://fvm.app/documentation/getting-started/installation#install-script-features
-RUN export FVM_ALLOW_ROOT=true && \ 
-    curl -fsSL https://fvm.app/install.sh | bash 
-
-COPY .fvmrc .
 
 COPY sail_ui/ ./sail_ui
 COPY faucet/ ./faucet
 
 WORKDIR /builder/faucet
 
-RUN fvm use --force
-RUN fvm flutter pub get --enforce-lockfile
-RUN fvm flutter build web --dart-define=FAUCET_BASE_URL=/api --release
+RUN flutter pub get --enforce-lockfile
+RUN flutter build web --dart-define=FAUCET_BASE_URL=/api --release
 
 FROM nginx:alpine
 COPY --from=builder /builder/faucet/build/web /usr/share/nginx/html

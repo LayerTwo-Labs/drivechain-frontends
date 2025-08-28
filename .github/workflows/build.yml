@@ -123,7 +123,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.35.2
 
       - uses: extractions/setup-just@v1
       # Setup go for building bitwindowd
