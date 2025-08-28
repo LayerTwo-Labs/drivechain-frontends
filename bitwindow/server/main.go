@@ -222,6 +222,9 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 			log := zerolog.Ctx(ctx).Level(logLevel)
 			return &log
 		}),
+
+		// We don't want startup of bitwindow to depend on Core running
+		coreproxy.WithoutInitialConnectionCheck(),
 	)
 	if err != nil {
 		return nil, err
