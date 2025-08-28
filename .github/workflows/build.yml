@@ -85,7 +85,7 @@ jobs:
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
               for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
                 # Skip macOS and linux for PRs
-                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "windows-latest" ]]; then
+                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "macos-latest" ]]; then
                   continue
                 fi
                 
@@ -336,6 +336,73 @@ jobs:
           echo "Content of created file:"
           cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
 
+      - name: Generate appcast fragment for this build (BitWindow only)
+        if: matrix.client == 'bitwindow'
+        continue-on-error: true
+        run: |
+          # Only generate appcast fragments for BitWindow
+          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/build/" -name "*.msix" -o -name "*.zip" | head -1)
+          if [ -n "$built_file" ]; then
+            # Map GitHub runner OS to platform and determine signing approach
+            case "${{ matrix.os }}" in
+              ubuntu-latest) 
+                platform="linux"
+                # Linux doesn't need appcast fragments (no auto-updater)
+                echo "Skipping appcast fragment for Linux"
+                exit 0
+                ;;
+              macos-latest) 
+                platform="macos"
+                generate_script="generate-macos.sh"
+                ;;  
+              windows-latest) 
+                platform="windows"
+                generate_script="generate-windows.sh"
+                ;;
+              *) 
+                echo "Unknown platform: ${{ matrix.os }}"
+                exit 0
+                ;;
+            esac
+            
+            echo "Generating appcast fragment for $platform"
+            
+            # Create signing key from secrets (COMMENTED OUT FOR TESTING)
+            # if [ "$platform" = "macos" ]; then
+            #   echo "${{ secrets.MACOS_ED25519_PRIVATE_KEY }}" > id_ed25519
+            #   key_file="id_ed25519"
+            # elif [ "$platform" = "windows" ]; then
+            #   echo "${{ secrets.WINDOWS_DSA_PRIVATE_KEY }}" > dsa_priv.pem
+            #   key_file="dsa_priv.pem"
+            # fi
+            
+            # Use test keys from files instead
+            if [ "$platform" = "macos" ]; then
+              key_file="${{ matrix.client }}/test-keys/eddsa_priv.pem"
+            elif [ "$platform" = "windows" ]; then
+              key_file="${{ matrix.client }}/test-keys/dsa_priv.pem"
+            fi
+            
+            echo "Using key file: $key_file"
+            
+            # Copy the built file to release directory where appcast script expects it
+            mkdir -p "${{ env.BUILD_DIR }}/${{ matrix.client }}/release"
+            cp "$built_file" "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
+            
+            # Make the script executable and run it
+            chmod +x scripts/appcast/$generate_script
+            ./scripts/appcast/$generate_script ${{ matrix.client }} "$key_file" "$(basename "$built_file")" || echo "Failed to generate $platform appcast fragment"
+            
+            # The fragment should now exist in the client's release directory
+            fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$platform-appcast-fragment.xml"
+            if [ -f "$fragment_file" ]; then
+              echo "Generated appcast fragment: $fragment_file"
+              cat "$fragment_file"
+            else
+              echo "No appcast fragment was generated"
+            fi
+          fi
+
       # Publish snap (bitwindoww doesn't exist, never publish!)
       - name: Publish snap
         if:
@@ -477,38 +544,29 @@ jobs:
       - name: Generate BitWindow appcast for auto-updater
         continue-on-error: true
         run: |
-          # Look for BitWindow files (.exe for Windows, .zip for macOS)
-          windows_file=$(ls BitWindow-*.exe 2>/dev/null | head -1 || echo "")
-          macos_file=$(ls BitWindow-*-apple-darwin.zip 2>/dev/null | head -1 || echo "")
+          # Look for BitWindow appcast fragments in artifact directories
+          echo "Looking for BitWindow appcast fragments in artifact directories..."
 
-          echo "Windows file: $windows_file"
-          echo "macOS file: $macos_file"
+          appcast_fragments=$(find . -name "*bitwindow*appcast*fragment*.xml" -type f 2>/dev/null || true)
 
-          if [ -n "$windows_file" ] || [ -n "$macos_file" ]; then
-            echo "Generating BitWindow appcast"
+          if [ -n "$appcast_fragments" ]; then
+            echo "Found appcast fragments:"
+            echo "$appcast_fragments"
             
-            # Create signing keys from secrets
-            echo "${{ secrets.WINDOWS_DSA_PRIVATE_KEY }}" > dsa_priv.pem
-            echo "${{ secrets.MACOS_ED25519_PRIVATE_KEY }}" > id_ed25519
-            
-            # Create temp bitwindow directory structure
+            # Create temp bitwindow directory structure for merging
             mkdir -p bitwindow/release
             
-            # Copy files to bitwindow release directory and generate individual fragments
-            if [ -n "$windows_file" ]; then
-              cp "$windows_file" bitwindow/release/
-              echo "Generating Windows appcast fragment"
-              ./scripts/appcast/generate-windows.sh bitwindow dsa_priv.pem $(basename "$windows_file") || echo "Failed to generate Windows fragment"
-            fi
+            # Copy fragments to release directory
+            echo "$appcast_fragments" | while read fragment_file; do
+              if [ -n "$fragment_file" ]; then
+                echo "Copying fragment: $fragment_file"
+                cp "$fragment_file" bitwindow/release/
+              fi
+            done
             
-            if [ -n "$macos_file" ]; then
-              cp "$macos_file" bitwindow/release/
-              echo "Generating macOS appcast fragment"  
-              ./scripts/appcast/generate-macos.sh bitwindow id_ed25519 $(basename "$macos_file") || echo "Failed to generate macOS fragment"
-            fi
-            
-            # Merge fragments into final appcast
+            # Merge fragments into final appcast using existing script
             echo "Merging appcast fragments"
+            chmod +x scripts/appcast/merge.sh
             ./scripts/appcast/merge.sh bitwindow || echo "Failed to merge appcast fragments"
             
             # Copy generated appcast to upload directory
@@ -517,11 +575,8 @@ jobs:
               echo "Generated bitwindow-appcast.xml"
               cat bitwindow-appcast.xml
             fi
-            
-            # Clean up key files
-            rm -f dsa_priv.pem id_ed25519
           else
-            echo "No BitWindow files found, skipping appcast generation"
+            echo "No BitWindow appcast fragments found, skipping appcast generation"
           fi
 
       - name: Upload artifacts to releases.drivechain.info
