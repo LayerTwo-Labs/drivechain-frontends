@@ -228,12 +228,96 @@ func Register[T any](
 	handler func(svc T, opts ...connect.HandlerOption) (string, http.Handler),
 	svc T, opts ...connect.HandlerOption,
 ) {
+	standardOpts := []connect.HandlerOption{
+		connect.WithInterceptors(
+			logInterceptor(),
+		),
+	}
 	service, h := handler(svc,
 		slices.Concat(
 			opts,
+			standardOpts,
 		)...,
 	)
 
 	s.services = append(s.services, service)
 	s.mux.Handle(service, h)
+}
+
+func logInterceptor() connect.UnaryInterceptorFunc {
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			start := time.Now()
+
+			var code connect.Code
+
+			log := zerolog.Ctx(ctx)
+
+			// Forward the request to the actual request handler. Prior to this
+			// line we haven't executed any handler code, after this line we're
+			// done.
+			resp, handlerErr := next(ctx, req)
+
+			// Important: We don't mutate err, only create a textual representation
+			// of it. What's sent back to the user is the responsibility of other
+			// interceptors/handlers.
+			if handlerErr != nil {
+				if cCode, ok := getCode(handlerErr); ok {
+					code = cCode
+				} else if errors.Is(handlerErr, context.Canceled) { //nolint:gocritic
+					code = connect.CodeCanceled
+				} else if errors.Is(handlerErr, context.DeadlineExceeded) {
+					code = connect.CodeDeadlineExceeded
+				} else {
+					code = connect.CodeInternal
+				}
+			}
+
+			// Internal and unknown errors are bad! In theory, these are bugs. We
+			// should always make sure to return something meaningful.
+			isBadErr := code == connect.CodeInternal || code == connect.CodeUnknown
+
+			message := fmt.Sprintf("%s: %s", req.Spec().Procedure, describeCode(code))
+
+			level := lo.Ternary(isBadErr, zerolog.ErrorLevel, zerolog.DebugLevel)
+
+			log.WithLevel(level).
+				Dur("duration", time.Since(start)).
+				Str("status", describeCode(code)).
+				Err(handlerErr).
+				Msg(message)
+
+			return resp, handlerErr
+		}
+	}
+}
+
+func describeCode(code connect.Code) string {
+	if code == 0 {
+		return "ok"
+	}
+
+	return code.String()
+}
+
+func getCode(err error) (connect.Code, bool) {
+	for err != nil {
+		if hasCode, ok := err.(interface{ Code() connect.Code }); ok {
+			return hasCode.Code(), true
+		}
+
+		// Joined errors cannot be unwrapped in the same way as other
+		// errors...
+		if joinErr, ok := err.(interface{ Unwrap() []error }); ok {
+			for _, err := range joinErr.Unwrap() {
+				code, ok := getCode(err)
+				if ok {
+					return code, true
+				}
+			}
+		}
+
+		err = errors.Unwrap(err)
+	}
+	return connect.CodeUnknown, false
 }
