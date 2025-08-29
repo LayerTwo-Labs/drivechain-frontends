@@ -93,35 +93,37 @@ if test -n "$notarization_key_path"; then
     xcrun stapler validate $app_name.app
 fi
 
-# Create DMG
-echo "Creating DMG for $app_name"
-dmg_name=$lower_app_name-osx64.dmg
+# Create DMG only if icon exists
+if [ -f "$old_cwd/$lower_app_name.icns" ]; then
+    echo "Creating DMG for $app_name"
+    dmg_name=$lower_app_name-osx64.dmg
 
-# Install create-dmg if not already installed
-if ! command -v create-dmg &> /dev/null; then
-    echo "Installing create-dmg..."
-    brew install create-dmg
+    brew install graphicsmagick imagemagick
+    # Install npm create-dmg if not already installed
+    if ! command -v create-dmg &> /dev/null; then
+        echo "Installing create-dmg via npm..."
+        npm install -g create-dmg
+    fi
+
+    # Create DMG with custom title and overwrite if exists
+    create-dmg --overwrite --dmg-title="$app_name Installer" "$app_name.app"
+    
+    # Find any DMG file and rename it to our expected format
+    found_dmg=$(find . -name "*.dmg" -type f | head -n1)
+    if [ -n "$found_dmg" ]; then
+        mv "$found_dmg" "$dmg_name"
+        echo "DMG created and renamed to: $dmg_name"
+    else
+        echo "Error: No DMG file found after create-dmg execution"
+        exit 1
+    fi
+else
+    echo "Skipping DMG creation: $old_cwd/$lower_app_name.icns not found"
 fi
-
-# Create the DMG with nice formatting
-create-dmg \
-    --volname "$app_name Installer" \
-    --window-pos 200 120 \
-    --window-size 800 529 \
-    --icon-size 130 \
-    --text-size 14 \
-    --icon "$app_name.app" 260 250 \
-    --hide-extension "$app_name.app" \
-    --app-drop-link 540 250 \
-    --hdiutil-quiet \
-    --sandbox-safe \
-    "$dmg_name" \
-    "$app_name.app"
-
-
-echo "DMG created: $dmg_name"
 
 release_dir="$old_cwd/release"
 mkdir -p "$release_dir"
 cp $zip_name "$release_dir"
-cp $dmg_name "$release_dir"
+if [ -f "$dmg_name" ]; then
+    cp "$dmg_name" "$release_dir"
+fi

@@ -571,7 +571,6 @@ jobs:
               
               # Add macOS fragment if it exists
               if [ -n "$macos_fragment" ] && [ -f "$macos_fragment" ]; then
-                echo "    <!-- macOS fragment -->" >> "$client-appcast.xml"
                 cat "$macos_fragment" >> "$client-appcast.xml"
               fi
               
