@@ -46,11 +46,10 @@ func TestService_ListOPReturn(t *testing.T) {
 		height := uint32(100)
 		err := opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "txid1",
-				Vout:    0,
-				Data:    []byte("test message"),
-				FeeSats: 1000,
+				Height: &height,
+				TxID:   "txid1",
+				Vout:   0,
+				Data:   []byte("test message"),
 			},
 		})
 		require.NoError(t, err)
@@ -64,7 +63,6 @@ func TestService_ListOPReturn(t *testing.T) {
 		assert.Equal(t, "txid1", resp.Msg.OpReturns[0].Txid)
 		assert.EqualValues(t, 0, resp.Msg.OpReturns[0].Vout)
 		assert.EqualValues(t, 100, lo.FromPtr(resp.Msg.OpReturns[0].Height))
-		assert.EqualValues(t, 1000, resp.Msg.OpReturns[0].FeeSats)
 	})
 }
 
@@ -447,11 +445,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		height := uint32(100)
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "news_txid1",
-				Vout:    0,
-				Data:    newsData1,
-				FeeSats: 1000,
+				Height: &height,
+				TxID:   "news_txid1",
+				Vout:   0,
+				Data:   newsData1,
 			},
 		})
 		require.NoError(t, err)
@@ -461,11 +458,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		newsData2 := []byte("87654321" + paddedHeadline2 + "Content for news 2")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "news_txid2",
-				Vout:    0,
-				Data:    newsData2,
-				FeeSats: 2000,
+				Height: &height,
+				TxID:   "news_txid2",
+				Vout:   0,
+				Data:   newsData2,
 			},
 		})
 		require.NoError(t, err)
@@ -502,11 +498,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		height := uint32(100)
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "news_txid1",
-				Vout:    0,
-				Data:    newsData1,
-				FeeSats: 1000,
+				Height: &height,
+				TxID:   "news_txid1",
+				Vout:   0,
+				Data:   newsData1,
 			},
 		})
 		require.NoError(t, err)
@@ -516,11 +511,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		newsData2 := []byte("87654321" + paddedHeadline2 + "Content for news 2")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "news_txid2",
-				Vout:    0,
-				Data:    newsData2,
-				FeeSats: 2000,
+				Height: &height,
+				TxID:   "news_txid2",
+				Vout:   0,
+				Data:   newsData2,
 			},
 		})
 		require.NoError(t, err)
@@ -556,11 +550,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		height := uint32(100)
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "news_txid1",
-				Vout:    0,
-				Data:    newsData1,
-				FeeSats: 1000,
+				Height: &height,
+				TxID:   "news_txid1",
+				Vout:   0,
+				Data:   newsData1,
 			},
 		})
 		require.NoError(t, err)
@@ -570,11 +563,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		newsData2 := []byte("12345678" + paddedHeadline2 + "Content for recent news")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "news_txid2",
-				Vout:    0,
-				Data:    newsData2,
-				FeeSats: 2000,
+				Height: &height,
+				TxID:   "news_txid2",
+				Vout:   0,
+				Data:   newsData2,
 			},
 		})
 		require.NoError(t, err)
@@ -584,11 +576,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		newsData3 := []byte("12345678" + paddedHeadline3 + "Content for latest news")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
-				Height:  &height,
-				TxID:    "news_txid3",
-				Vout:    0,
-				Data:    newsData3,
-				FeeSats: 3000,
+				Height: &height,
+				TxID:   "news_txid3",
+				Vout:   0,
+				Data:   newsData3,
 			},
 		})
 		require.NoError(t, err)
@@ -624,11 +615,10 @@ func TestService_ListCoinNews(t *testing.T) {
 			height := uint32(100)
 			err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 				{
-					Height:  &height,
-					TxID:    "news_txid",
-					Vout:    int32(i),
-					Data:    newsData,
-					FeeSats: 1000,
+					Height: &height,
+					TxID:   "news_txid",
+					Vout:   int32(i),
+					Data:   newsData,
 				},
 			})
 			require.NoError(t, err)

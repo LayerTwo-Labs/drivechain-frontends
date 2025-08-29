@@ -74,7 +74,6 @@ type OPReturn struct {
 	Txid          string                 `protobuf:"bytes,3,opt,name=txid,proto3" json:"txid,omitempty"`
 	Vout          int32                  `protobuf:"varint,4,opt,name=vout,proto3" json:"vout,omitempty"`
 	Height        *int32                 `protobuf:"varint,5,opt,name=height,proto3,oneof" json:"height,omitempty"`
-	FeeSats       int64                  `protobuf:"varint,6,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
 	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -141,13 +140,6 @@ func (x *OPReturn) GetVout() int32 {
 func (x *OPReturn) GetHeight() int32 {
 	if x != nil && x.Height != nil {
 		return *x.Height
-	}
-	return 0
-}
-
-func (x *OPReturn) GetFeeSats() int64 {
-	if x != nil {
-		return x.FeeSats
 	}
 	return 0
 }
@@ -522,7 +514,6 @@ type CoinNews struct {
 	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
 	Headline      string                 `protobuf:"bytes,3,opt,name=headline,proto3" json:"headline,omitempty"`
 	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
-	FeeSats       int64                  `protobuf:"varint,5,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
 	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -586,13 +577,6 @@ func (x *CoinNews) GetContent() string {
 	return ""
 }
 
-func (x *CoinNews) GetFeeSats() int64 {
-	if x != nil {
-		return x.FeeSats
-	}
-	return 0
-}
-
 func (x *CoinNews) GetCreateTime() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreateTime
@@ -651,14 +635,13 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x12misc/v1/misc.proto\x12\amisc.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"H\n" +
 	"\x14ListOPReturnResponse\x120\n" +
 	"\n" +
-	"op_returns\x18\x01 \x03(\v2\x11.misc.v1.OPReturnR\topReturns\"\xdc\x01\n" +
+	"op_returns\x18\x01 \x03(\v2\x11.misc.v1.OPReturnR\topReturns\"\xc1\x01\n" +
 	"\bOPReturn\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
 	"\x04txid\x18\x03 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04vout\x18\x04 \x01(\x05R\x04vout\x12\x1b\n" +
-	"\x06height\x18\x05 \x01(\x05H\x00R\x06height\x88\x01\x01\x12\x19\n" +
-	"\bfee_sats\x18\x06 \x01(\x03R\afeeSats\x12;\n" +
+	"\x06height\x18\x05 \x01(\x05H\x00R\x06height\x88\x01\x01\x12;\n" +
 	"\vcreate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTimeB\t\n" +
 	"\a_height\"b\n" +
@@ -683,13 +666,12 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x06topics\x18\x01 \x03(\v2\x0e.misc.v1.TopicR\x06topics\":\n" +
 	"\x13ListCoinNewsRequest\x12\x19\n" +
 	"\x05topic\x18\x01 \x01(\tH\x00R\x05topic\x88\x01\x01B\b\n" +
-	"\x06_topic\"\xbe\x01\n" +
+	"\x06_topic\"\xa3\x01\n" +
 	"\bCoinNews\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x1a\n" +
 	"\bheadline\x18\x03 \x01(\tR\bheadline\x12\x18\n" +
-	"\acontent\x18\x04 \x01(\tR\acontent\x12\x19\n" +
-	"\bfee_sats\x18\x05 \x01(\x03R\afeeSats\x12;\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\x12;\n" +
 	"\vcreate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\"F\n" +
 	"\x14ListCoinNewsResponse\x12.\n" +

@@ -23,7 +23,6 @@ message OPReturn {
   string txid = 3;
   int32 vout = 4;
   optional int32 height = 5;
-  int64 fee_sats = 6;
 
   google.protobuf.Timestamp create_time = 7;
 }
@@ -69,7 +68,6 @@ message CoinNews {
   string topic = 2;
   string headline = 3;
   string content = 4;
-  int64 fee_sats = 5;
 
   google.protobuf.Timestamp create_time = 6;
 }
