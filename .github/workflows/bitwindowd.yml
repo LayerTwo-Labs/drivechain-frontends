@@ -30,6 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install zmq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libzmq3-dev
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
@@ -49,10 +54,11 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: Install SQLite
+      - name: Install SQLite + ZMQ
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev
+          sudo apt-get install -y libzmq3-dev
 
       - name: Run tests
         run: go test -v ./...
@@ -73,6 +79,18 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25"
+
+      - name: Install zmq
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            choco install zeromq -y
+          elif [ "${{ runner.os }}" == "macOS" ]; then
+            brew install zeromq
+          else
+            sudo apt-get update
+            sudo apt-get install -y libzmq3-dev
+          fi
 
       - name: Build bitwindowd
         run: |
