@@ -356,7 +356,7 @@ class Thunder extends Sidechain {
                  files: {
                    OS.linux: 'test-thunder-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'test-thunder-x86_64-apple-darwin.zip',
-                   OS.windows: 'test-thunder-x86_64-windows.msix', // thunder not available for windows
+                   OS.windows: 'test-thunder-x86_64-windows.exe', // thunder not available for windows
                  },
                ),
                remoteTimestamp: null,
@@ -439,7 +439,7 @@ class Bitnames extends Sidechain {
                  files: {
                    OS.linux: 'test-bitnames-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'test-bitnames-x86_64-apple-darwin.zip',
-                   OS.windows: 'test-bitnames-x86_64-windows.msix',
+                   OS.windows: 'test-bitnames-x86_64-windows.exe',
                  },
                ),
                remoteTimestamp: null,
@@ -522,7 +522,7 @@ class BitAssets extends Sidechain {
                  files: {
                    OS.linux: 'test-bitassets-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'test-bitassets-x86_64-apple-darwin.zip',
-                   OS.windows: 'test-bitassets-x86_64-windows.msix',
+                   OS.windows: 'test-bitassets-x86_64-windows.exe',
                  },
                ),
                remoteTimestamp: null,

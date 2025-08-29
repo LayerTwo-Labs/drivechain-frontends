@@ -25,6 +25,14 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// WinSparkle
+//
+
+// And verify signature using DSA public key:
+DSAPub      DSAPEM      "../../dsa_pub.pem"
+
 1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
