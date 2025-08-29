@@ -269,7 +269,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, [
           'data',
           'lib',
-          'bitwindow.msix',
+          'bitwindow.exe',
           'flutter_platform_alert_plugin.dll',
           'flutter_windows.dll',
           'screen_retriever_windows_plugin.dll',
@@ -815,7 +815,7 @@ extension BinaryDownload on Binary {
       return Directory(appPath).existsSync();
     }
 
-    if (Platform.isWindows && binary.endsWith('.msix')) {
+    if (Platform.isWindows && binary.endsWith('.exe')) {
       final appPath = assetPath(datadir);
       return Directory(appPath).existsSync();
     }

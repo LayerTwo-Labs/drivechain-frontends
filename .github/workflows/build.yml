@@ -85,7 +85,7 @@ jobs:
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
               for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
                 # Skip macOS and linux for PRs
-                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "macos-latest" ]]; then
+                if [[ "${{ github.event_name }}" == "pull_request" && "$os" == "ubuntu-latest" ]]; then
                   continue
                 fi
                 
@@ -127,6 +127,9 @@ jobs:
         with:
           channel: stable
           flutter-version: 3.35.2
+
+      - name: Install Fastforge - a tool for building and distributing apps
+        run: dart pub global activate fastforge
 
       - uses: extractions/setup-just@v1
       # Setup go for building bitwindowd
@@ -299,8 +302,8 @@ jobs:
         run: |
           ./scripts/generate-version.sh ${{ matrix.client }}
 
-          # Find a .zip, .msix or .appimage in release directory
-          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.msix" -o -name "*.appimage" -o -name "*.zip" | head -1)
+          # Find a .zip, .exe or .appimage in release directory
+          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.exe" -o -name "*.appimage" -o -name "*.zip" | head -1)
           if [ -n "$built_file" ]; then
             # Map GitHub runner OS to platform name
             case "${{ matrix.os }}" in
@@ -339,63 +342,55 @@ jobs:
       - name: Generate appcast fragment for this build
         continue-on-error: true
         run: |
-          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.msix" -o -name "*.zip" | head -1)
+          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.exe" -o -name "*.zip" | head -1)
           if [ -n "$built_file" ]; then
-            # Map GitHub runner OS to platform and determine signing approach
+            # Map GitHub runner OS to platform and generate appcast
             case "${{ matrix.os }}" in
               ubuntu-latest) 
-                platform="linux"
                 # Linux doesn't need appcast fragments (no auto-updater)
                 echo "Skipping appcast fragment for Linux"
                 exit 0
                 ;;
-              macos-latest) 
-                platform="macos"
-                generate_script="generate-macos.sh"
+              macos-latest)
+                echo "Generating appcast fragment for macOS"
+                # Create EdDSA key file for macOS
+                echo "${{ secrets.SPARKLE_MACOS_PRIVATE_KEY }}" > sparkle_macos_key.pem
+                chmod +x scripts/appcast/generate-macos.sh
+                cd "${{ env.BUILD_DIR }}"
+                ../scripts/appcast/generate-macos.sh ${{ matrix.client }} "../sparkle_macos_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate $platform appcast fragment"
+                rm -f ../sparkle_macos_key.pem
                 ;;  
-              windows-latest) 
-                platform="windows"
-                generate_script="generate-windows.sh"
+              windows-latest)
+                echo "Generating appcast fragment for Windows"
+                # Create DSA key file for Windows
+                echo "${{ secrets.SPARKLE_WINDOWS_PRIVATE_KEY }}" | base64 -d > sparkle_dsa_key.pem
+                chmod +x scripts/appcast/generate-windows.sh
+                cd "${{ env.BUILD_DIR }}"
+                ../scripts/appcast/generate-windows.sh ${{ matrix.client }} "../sparkle_dsa_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate Windows appcast fragment"
+                rm -f ../sparkle_dsa_key.pem
                 ;;
               *) 
                 echo "Unknown platform: ${{ matrix.os }}"
                 exit 0
                 ;;
             esac
-            
-            echo "Generating appcast fragment for $platform"
-            
-            # Create temporary key file from secrets
-            if [ "$platform" = "macos" ]; then
-              # Use EdDSA key for macOS
-              echo "${{ secrets.SPARKLE_MACOS_PRIVATE_KEY }}" > sparkle_macos_key.pem
-              key_file="sparkle_macos_key.pem"
-            elif [ "$platform" = "windows" ]; then
-              # Use DSA key for Windows
-              echo "${{ secrets.SPARKLE_DSA_PRIVATE_KEY }}" > sparkle_dsa_key.pem
-              key_file="sparkle_dsa_key.pem"
-            fi
-            
-            echo "Using key file: $key_file"
-            echo "Using zip file: $built_file"
-            
-            # Make the script executable and run it
-            chmod +x scripts/appcast/$generate_script
-            
-            # Change to build directory where the client folder exists
-            cd "${{ env.BUILD_DIR }}"
-            ../scripts/appcast/$generate_script ${{ matrix.client }} "../$key_file" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate $platform appcast fragment"
-            
+
             cd ..
-            # Clean up the key file
-            rm -f "$key_file"
             
-            # The fragment should now exist in the client's build directory
-            fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$platform-fragment.xml"
-            if [ -f "$fragment_file" ]; then
+            # Check if fragment was generated (for macOS and Windows only)
+            case "${{ matrix.os }}" in
+              macos-latest)
+                fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-macos-fragment.xml"
+                ;;
+              windows-latest)
+                fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-windows-fragment.xml"
+                ;;
+            esac
+            
+            if [ -n "${fragment_file:-}" ] && [ -f "$fragment_file" ]; then
               echo "Generated appcast fragment: $fragment_file"
               cat "$fragment_file"
-            else
+            elif [ -n "${fragment_file:-}" ]; then
               echo "No appcast fragment was generated"
             fi
           fi
@@ -756,19 +751,19 @@ jobs:
           mv thunder-binaries-macOS/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
           mv thunder-binaries-Linux/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
           mv thunder-binaries-Linux/Thunder-x86_64.AppImage test-thunder-x86_64-unknown-linux-gnu.AppImage || true
-          mv thunder-binaries-Windows/thunder.msix test-thunder-x86_64-windows.msix || true
+          mv thunder-binaries-Windows/thunder.exe test-thunder-x86_64-windows.exe || true
 
           # BitNames
           mv bitnames-binaries-macOS/bitnames-osx64.zip test-bitnames-x86_64-apple-darwin.zip || true
           mv bitnames-binaries-Linux/bitnames-x86_64-linux-gnu.zip test-bitnames-x86_64-unknown-linux-gnu.zip || true
           mv bitnames-binaries-Linux/Bitnames-x86_64.AppImage test-bitnames-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitnames-binaries-Windows/bitnames.msix test-bitnames-x86_64-windows.msix || true
+          mv bitnames-binaries-Windows/bitnames.exe test-bitnames-x86_64-windows.exe || true
 
           # BitAssets
           mv bitassets-binaries-macOS/bitassets-osx64.zip test-bitassets-x86_64-apple-darwin.zip || true
           mv bitassets-binaries-Linux/bitassets-x86_64-linux-gnu.zip test-bitassets-x86_64-unknown-linux-gnu.zip || true
           mv bitassets-binaries-Linux/BitAssets-x86_64.AppImage test-bitassets-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitassets-binaries-Windows/bitassets.msix test-bitassets-x86_64-windows.msix || true
+          mv bitassets-binaries-Windows/bitassets.exe test-bitassets-x86_64-windows.exe || true
 
           # ZSide
           mv zside-binaries-macOS/zside-osx64.zip test-zside-x86_64-apple-darwin.zip || true
@@ -780,7 +775,7 @@ jobs:
           mv bitwindow-binaries-macOS/bitwindow-osx64.dmg BitWindow-latest-x86_64-apple-darwin.dmg || true
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
           mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitwindow-binaries-Windows/bitwindow.msix BitWindow-latest-x86_64-windows.msix || true
+          mv bitwindow-binaries-Windows/bitwindow.exe BitWindow-latest-x86_64-windows.exe || true
 
       - name: Install jq for merging version files
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -877,12 +872,12 @@ jobs:
           pass: ${{ secrets.RELEASES_SERVER_PW }}
           port: 22
           scp: |
-            'BitWindow-*.msix' => '/var/www/html/'
+            'BitWindow-*.exe' => '/var/www/html/'
             'BitWindow-*.zip' => '/var/www/html/'
             'BitWindow-*.dmg' => '/var/www/html/'
             'BitWindow-*.AppImage' => '/var/www/html/'
             'test-*.zip' => '/var/www/html/'
-            'test-*.msix' => '/var/www/html/'
+            'test-*.exe' => '/var/www/html/'
             'test-*.AppImage' => '/var/www/html/'
             'versions.json' => '/var/www/html/'
             'bitwindow-appcast.xml' => '/var/www/html/'

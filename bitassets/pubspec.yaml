@@ -53,7 +53,6 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   auto_route_generator: ^10.2.3
   build_runner: ^2.5.0
-  msix: ^3.16.9
   flutter_launcher_icons: ^0.14.3
 
 flutter_launcher_icons:

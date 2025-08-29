@@ -17,25 +17,11 @@ lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
 cd "$client_dir"
 
-# Copy certificate to the expected location if provided
-if [ -n "$certificate_path" ] && [ -f "$certificate_path" ]; then
-    echo "Copying certificate from $certificate_path to windows/certificate.pfx"
-    mkdir -p windows
-    cp "$certificate_path" windows/certificate.pfx
-fi
-
-# Create signed MSIX
-if [ -n "$certificate_path" ] && [ -n "$certificate_password" ]; then
-    echo "Building signed MSIX with certificate $certificate_path and identity $certificate_identity"
-    msix_cmd="dart run msix:create --store false --certificate-path windows/certificate.pfx --certificate-password $certificate_password --signtool-options=\"/d Use Drivechains /n LayerTwo Labs /tr http://timestamp.comodoca.com/rfc3161 /td sha256\""
-else
-    echo "Building unsigned MSIX (no certificate or password provided)"
-    msix_cmd="dart run msix:create"
-fi
-
-powershell.exe -Command "& {$msix_cmd; exit}"
+cmd="fastforge release --name prod --jobs windows-exe"
+powershell.exe -Command "& {$cmd; exit}"
 
 mkdir -p release
 
-# Copy MSIX to release directory
-powershell.exe -Command "Copy-Item build\windows\x64\runner\Release\\$lower_app_name.msix release\\$lower_app_name.msix"
+# Copy installer from versioned subdirectory to main release directory
+# Fastforge creates the installer in release/VERSION/ subdirectory
+powershell.exe -Command "Get-ChildItem -Path release -Filter '*-windows-setup.exe' -Recurse | Select-Object -First 1 | Move-Item -Destination release\\$lower_app_name.exe"
