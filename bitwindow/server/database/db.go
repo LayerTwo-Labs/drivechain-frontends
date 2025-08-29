@@ -32,6 +32,10 @@ func New(ctx context.Context, conf config.Config) (*sql.DB, error) {
 		return nil, fmt.Errorf("run migrations: %v", err)
 	}
 
+	// When running this against realistic amounts of data we run into DB locking
+	// issues if running with multiple connections.
+	db.SetMaxOpenConns(1)
+
 	return db, nil
 }
 
