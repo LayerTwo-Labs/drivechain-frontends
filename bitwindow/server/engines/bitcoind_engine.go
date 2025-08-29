@@ -18,7 +18,6 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -275,10 +274,7 @@ func (p *Parser) opReturnForTXID(
 		panic("PROGRAMMER ERROR: non-nil, zero create time")
 	}
 
-	opReturns, err := p.findOPReturns(ctx, tx, height)
-	if err != nil {
-		return err
-	}
+	opReturns := p.findOPReturns(ctx, tx, height)
 
 	if err := opreturns.Persist(ctx, p.db, opReturns); err != nil {
 		return err
@@ -375,42 +371,24 @@ func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, e
 	return &msgBlock, nil
 }
 
-func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.RawTransaction, error) {
-	bitcoind, err := p.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
-		Msg: &corepb.GetRawTransactionRequest{
-			Txid: txid,
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("bitcoind: get raw transaction: %w", err)
-	}
-
-	return resp.Msg.Tx, nil
-}
-
 // finds all OP_RETURN outputs for a specific tx
 func (p *Parser) findOPReturns(
 	ctx context.Context, tx *wire.MsgTx, height *uint32,
-) ([]opreturns.OPReturn, error) {
+) []opreturns.OPReturn {
 	txid := tx.TxID()
 
 	var emptyHash chainhash.Hash
 	isCoinbase := len(tx.TxIn) > 0 && tx.TxIn[0].PreviousOutPoint.Hash.IsEqual(&emptyHash)
 	// every coinbase transaction has a OP_RETURN output we don't care about
 	if isCoinbase && len(tx.TxOut) == 2 {
-		return nil, nil
+		return nil
 	}
 
 	// Check outputs for OP_NOP5
 	for _, txout := range tx.TxOut {
 		script := txout.PkScript
 		if len(script) > 0 && script[0] == txscript.OP_NOP5 {
-			return nil, nil // OP_DRIVECHAIN, skipping
+			return nil // OP_DRIVECHAIN, skipping
 		}
 	}
 
@@ -430,30 +408,6 @@ func (p *Parser) findOPReturns(
 		}
 
 		if isOPReturn {
-			// Calculate fee by getting all inputs and outputs
-			var inputSum int64
-			for _, txin := range tx.TxIn {
-				if isCoinbase {
-					continue // Coinbase input has no previous output to look up
-				}
-				// Get the previous transaction to find the output amount
-				prevTx, err := p.getRawTransaction(ctx, txin.PreviousOutPoint.Hash.String())
-				if err != nil {
-					return nil, fmt.Errorf("could not get previous transaction: %w", err)
-				}
-				prevDecodedTx, err := btcutil.NewTxFromBytes(prevTx.Data)
-				if err != nil {
-					return nil, fmt.Errorf("could not decode previous transaction: %w", err)
-				}
-				inputSum += prevDecodedTx.MsgTx().TxOut[txin.PreviousOutPoint.Index].Value
-			}
-
-			var outputSum int64
-			for _, txout := range tx.TxOut {
-				outputSum += txout.Value
-			}
-
-			fee := inputSum - outputSum
 
 			// Parse the OP_RETURN data correctly, just skip if we're unable
 			// to parse. Lots of strange data on the blockchain!
@@ -469,16 +423,15 @@ func (p *Parser) findOPReturns(
 				Msgf("bitcoind_engine/parser: found OP_RETURN")
 
 			opReturns = append(opReturns, opreturns.OPReturn{
-				TxID:    txid,
-				Data:    data,
-				FeeSats: fee,
-				Vout:    int32(vout),
-				Height:  height,
+				TxID:   txid,
+				Data:   data,
+				Vout:   int32(vout),
+				Height: height,
 			})
 		}
 	}
 
-	return opReturns, nil
+	return opReturns
 }
 
 // parseOPReturnData extracts the actual data from an OP_RETURN script by handling

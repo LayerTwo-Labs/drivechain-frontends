@@ -67,7 +67,6 @@ func opReturnToProto(opReturn opreturns.OPReturn, _ int) *miscv1.OPReturn {
 		Txid:       opReturn.TxID,
 		Vout:       opReturn.Vout,
 		Height:     height,
-		FeeSats:    opReturn.FeeSats,
 		CreateTime: timestamppb.New(lo.FromPtr(opReturn.CreatedAt)),
 	}
 }
@@ -281,7 +280,6 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		Topic:      coinNews.Topic,
 		Headline:   coinNews.Headline,
 		Content:    coinNews.Content,
-		FeeSats:    coinNews.FeeSats,
 		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
 	}
 }

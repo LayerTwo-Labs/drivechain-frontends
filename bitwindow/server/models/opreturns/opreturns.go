@@ -27,9 +27,11 @@ func Persist(
 		Columns("txid", "vout", "op_return_data", "fee_sats", "height", "created_at")
 
 	for _, value := range values {
+		// TODO: this is set as nullable in the DB...
+		const feeSats = 0
 		builder = builder.Values(
 			value.TxID, value.Vout, value.Data,
-			value.FeeSats, value.Height, time.Now(),
+			feeSats, value.Height, time.Now(),
 		)
 	}
 
@@ -57,14 +59,13 @@ type OPReturn struct {
 	TxID      string
 	Vout      int32
 	Data      []byte
-	FeeSats   int64
 	Height    *uint32
 	CreatedAt *time.Time
 }
 
 func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, txid, vout, op_return_data, fee_sats, height, created_at
+		SELECT id, txid, vout, op_return_data, height, created_at
 		FROM op_returns
 		ORDER BY created_at DESC
 	`)
@@ -76,7 +77,7 @@ func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 	var opReturns []OPReturn
 	for rows.Next() {
 		var opReturn OPReturn
-		err := rows.Scan(&opReturn.ID, &opReturn.TxID, &opReturn.Vout, &opReturn.Data, &opReturn.FeeSats, &opReturn.Height, &opReturn.CreatedAt)
+		err := rows.Scan(&opReturn.ID, &opReturn.TxID, &opReturn.Vout, &opReturn.Data, &opReturn.Height, &opReturn.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("could not scan op_return: %w", err)
 		}
@@ -203,7 +204,6 @@ type CoinNews struct {
 	TopicName string
 	Headline  string
 	Content   string
-	FeeSats   int64
 
 	CreatedAt *time.Time
 }
@@ -301,7 +301,6 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 			TopicName: topic.Name,
 			Headline:  headline,
 			Content:   content,
-			FeeSats:   opReturn.FeeSats,
 			CreatedAt: opReturn.CreatedAt,
 		})
 	}
