@@ -191,12 +191,14 @@ class TestSidechain extends Sidechain {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: 'https://releases.drivechain.info/',
-               files: {
-                 OS.linux: 'testchain-latest-x86_64-unknown-linux-gnu.zip',
-                 OS.macos: 'testchain-latest-x86_64-apple-darwin.zip',
-                 OS.windows: 'testchain-latest-x86_64-pc-windows-msvc.zip',
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'testchain-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'testchain-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'testchain-latest-x86_64-pc-windows-msvc.zip',
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -261,12 +263,22 @@ class ZSide extends Sidechain {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
-               files: {
-                 OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
-                 OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
-                 OS.windows: '', // thunder-orchard not available for windows
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
+                 files: {
+                   OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
+                   OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
+                   OS.windows: '', // thunder-orchard not available for windows
+                 },
+               ),
+               alternativeDownloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'test-zside-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'test-zside-x86_64-apple-darwin.zip',
+                   OS.windows: '', // zside not available for windows
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -331,12 +343,22 @@ class Thunder extends Sidechain {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: 'https://releases.drivechain.info/',
-               files: {
-                 OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
-                 OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
-                 OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
+                 },
+               ),
+               alternativeDownloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'test-thunder-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'test-thunder-x86_64-apple-darwin.zip',
+                   OS.windows: 'test-thunder-x86_64-windows.msix', // thunder not available for windows
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -404,12 +426,22 @@ class Bitnames extends Sidechain {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: 'https://releases.drivechain.info/',
-               files: {
-                 OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
-                 OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
-                 OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
+                 },
+               ),
+               alternativeDownloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'test-bitnames-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'test-bitnames-x86_64-apple-darwin.zip',
+                   OS.windows: 'test-bitnames-x86_64-windows.msix',
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -477,12 +509,22 @@ class BitAssets extends Sidechain {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: 'https://releases.drivechain.info/',
-               files: {
-                 OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
-                 OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
-                 OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
+                 },
+               ),
+               alternativeDownloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'test-bitassets-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'test-bitassets-x86_64-apple-darwin.zip',
+                   OS.windows: 'test-bitassets-x86_64-windows.msix',
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,

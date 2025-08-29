@@ -13,6 +13,7 @@ class SettingsProvider extends ChangeNotifier {
 
   // Individual setting variables
   bool debugMode = false;
+  bool useTestSidechains = false;
 
   // Private constructor
   SettingsProvider._create();
@@ -27,6 +28,7 @@ class SettingsProvider extends ChangeNotifier {
   /// Load all settings from storage
   Future<void> _loadAllSettings() async {
     await _loadDebugMode();
+    await _loadUseTestSidechains();
   }
 
   /// Load debug mode setting
@@ -53,6 +55,41 @@ class SettingsProvider extends ChangeNotifier {
       debugMode = !value;
       notifyListeners();
       log.e('Failed to update debug mode', error: e);
+      rethrow;
+    }
+  }
+
+  /// Load use test sidechains setting
+  Future<void> _loadUseTestSidechains() async {
+    final setting = UseTestSidechainsSetting();
+    final loadedSetting = await clientSettings.getValue(setting);
+    useTestSidechains = loadedSetting.value;
+    notifyListeners();
+  }
+
+  /// Update use test sidechains setting
+  Future<void> updateUseTestSidechains(bool value) async {
+    if (useTestSidechains == value) {
+      return;
+    }
+
+    try {
+      useTestSidechains = value;
+      notifyListeners();
+      final setting = UseTestSidechainsSetting(newValue: value);
+      await clientSettings.setValue(setting);
+
+      // delete all binaries so we can redownload the correct ones
+      final binaryProvider = GetIt.I.get<BinaryProvider>();
+      final wipeOperations = binaryProvider.binaries
+          .where((binary) => binary.chainLayer == 2)
+          .map((binary) => binary.wipeAsset(binDir(binaryProvider.bitwindowAppDir.path)));
+      await Future.wait(wipeOperations);
+    } catch (e) {
+      // Revert on error
+      useTestSidechains = !value;
+      notifyListeners();
+      log.e('Failed to update use test sidechains', error: e);
       rethrow;
     }
   }

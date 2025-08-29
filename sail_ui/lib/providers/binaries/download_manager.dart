@@ -135,7 +135,7 @@ class DownloadManager extends ChangeNotifier {
 
   /// Internal method to handle the actual download and extraction
   Future<void> _downloadAndExtractBinary(Binary binary) async {
-    if (binary.metadata.baseUrl.isEmpty) {
+    if (binary.metadata.downloadConfig.baseUrl.isEmpty) {
       updateBinary(
         binary.type,
         (b) => b.copyWith(
@@ -163,7 +163,7 @@ class DownloadManager extends ChangeNotifier {
     await extractDir.create(recursive: true);
 
     // Check if platform is supported
-    final fileName = binary.metadata.files[OS.current];
+    final fileName = binary.metadata.downloadConfig.files[OS.current];
     if (fileName == null || fileName.isEmpty) {
       log.w('No download file found for ${binary.name} on ${OS.current}');
       return;
@@ -171,9 +171,9 @@ class DownloadManager extends ChangeNotifier {
 
     String filePath;
     try {
-      if (binary.metadata.baseUrl.contains('github.com')) {
+      if (binary.metadata.downloadConfig.baseUrl.contains('github.com')) {
         filePath = await _downloadGithubBinary(binary, downloadsDir);
-      } else if (binary.metadata.baseUrl.contains('releases.drivechain.info')) {
+      } else if (binary.metadata.downloadConfig.baseUrl.contains('releases.drivechain.info')) {
         filePath = await _downloadReleasesBinary(binary, downloadsDir);
       } else {
         updateBinary(
@@ -181,7 +181,8 @@ class DownloadManager extends ChangeNotifier {
           (b) => b.copyWith(
             downloadInfo: b.downloadInfo.copyWith(
               progress: 0.0,
-              message: 'Programmers messed up. Did not find download strategy for ${binary.metadata.baseUrl}',
+              message:
+                  'Programmers messed up. Did not find download strategy for ${binary.metadata.downloadConfig.baseUrl}',
               isDownloading: false,
             ),
           ),
@@ -226,13 +227,13 @@ class DownloadManager extends ChangeNotifier {
 
   Future<String> _downloadGithubBinary(Binary binary, Directory downloadsDir) async {
     // For GitHub-based releases, download binary directly from releases
-    final response = await http.get(Uri.parse(binary.metadata.baseUrl));
+    final response = await http.get(Uri.parse(binary.metadata.downloadConfig.baseUrl));
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch GitHub release: ${response.statusCode}');
     }
 
     // Use the regex pattern from binary configuration
-    final regexPattern = binary.metadata.files[OS.current]!;
+    final regexPattern = binary.metadata.downloadConfig.files[OS.current]!;
     final platformRegex = RegExp(regexPattern, caseSensitive: false);
 
     final assets = json.decode(response.body)['assets'] as List;
@@ -266,9 +267,9 @@ class DownloadManager extends ChangeNotifier {
 
   Future<String> _downloadReleasesBinary(Binary binary, Directory downloadsDir) async {
     // 2. Download the binary
-    final zipName = binary.metadata.files[OS.current]!;
+    final zipName = binary.metadata.downloadConfig.files[OS.current]!;
     final zipPath = path.join(downloadsDir.path, zipName);
-    final downloadUrl = Uri.parse(binary.metadata.baseUrl).resolve(zipName).toString();
+    final downloadUrl = Uri.parse(binary.metadata.downloadConfig.baseUrl).resolve(zipName).toString();
     await _downloadFile(downloadUrl, zipPath, binary.type);
     return zipPath;
   }
