@@ -15,7 +15,7 @@ upgrade:
     set -euo pipefail
     for dir in sail_ui bitwindow faucet thunder bitnames zside; do
         if [ -d "$dir" ]; then
-            (cd "$dir" && flutter pub upgrade)
+            (cd "$dir" && flutter pub upgrade --tighten)
         fi
     done
 

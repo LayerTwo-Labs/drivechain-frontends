@@ -13,7 +13,7 @@ dependencies:
   sentry_flutter: ^9.6.0
   flutter:
     sdk: flutter
-  file_picker: ^10.3.1
+  file_picker: ^10.3.2
 
   dart_coin_rpc:
     git:
@@ -23,16 +23,16 @@ dependencies:
   dio: 5.9.0
   stacked: ^3.5.0
   qr_flutter: ^4.1.0
-  http: ^1.4.0
+  http: ^1.5.0
   intl: ^0.20.2
   cupertino_icons: ^1.0.8
   collection: ^1.19.1
   path_provider: ^2.1.5
   sail_ui:
     path: ../sail_ui
-  logger: ^2.6.0
-  google_fonts: ^6.3.0
-  auto_route: ^10.1.0+1
+  logger: ^2.6.1
+  google_fonts: ^6.3.1
+  auto_route: ^10.1.2
   fixnum: ^1.1.1
   get_it: ^8.2.0
   meta: ^1.16.0
@@ -49,22 +49,22 @@ dependencies:
   connectrpc: ^1.0.0
   desktop_multi_window: ^0.2.1
   convert: ^3.1.2
-  bip39_mnemonic: ^4.0.0
+  bip39_mnemonic: ^4.0.1
   dart_bip32_bip44: ^0.2.0
   bs58: ^1.0.2
   auto_updater: ^1.0.0
-  bitcoin_base: ^6.7.0
+  bitcoin_base: ^6.8.0
   blockchain_utils: ^5.2.0
 
 dev_dependencies:
-  sentry_dart_plugin: ^3.1.0
+  sentry_dart_plugin: ^3.1.1
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  auto_route_generator: ^10.2.3
+  auto_route_generator: ^10.2.4
   build_runner: ^2.7.0
-  msix: ^3.16.9
+  msix: ^3.16.12
   flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
