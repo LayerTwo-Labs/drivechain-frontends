@@ -45,16 +45,12 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   MainchainRPCLive() : super(conf: readConf(), binaryType: BinaryType.bitcoinCore, restartOnFailure: false) {
-    _init();
-  }
-
-  void _init() async {
     if (Environment.isInTest) {
       return;
     }
     pollIBDStatus();
     // must test connection before moving on, in case it is already running!
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   void pollIBDStatus() {

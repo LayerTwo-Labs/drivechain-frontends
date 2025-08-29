@@ -9,11 +9,34 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
-enum BinaryType { bitcoinCore, bitWindow, enforcer, testSidechain, zSide, thunder, bitnames, bitassets }
+enum BinaryType {
+  bitcoinCore,
+  bitWindow,
+  enforcer,
+  testSidechain,
+  zSide,
+  thunder,
+  bitnames,
+  bitassets,
+}
+
+extension BinaryTypeExtension on BinaryType {
+  Binary get binary => switch (this) {
+    BinaryType.bitcoinCore => BitcoinCore(),
+    BinaryType.bitWindow => BitWindow(),
+    BinaryType.enforcer => Enforcer(),
+    BinaryType.testSidechain => TestSidechain(),
+    BinaryType.zSide => ZSide(),
+    BinaryType.thunder => Thunder(),
+    BinaryType.bitnames => Bitnames(),
+    BinaryType.bitassets => BitAssets(),
+  };
+}
 
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
@@ -295,7 +318,7 @@ abstract class Binary {
         if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
           var resolvedPath = binaryPath;
           // Handle .app bundles on macOS
-          if (Platform.isMacOS && (binary.endsWith('.app'))) {
+          if (Platform.isMacOS && (resolvedPath.endsWith('.app'))) {
             resolvedPath = path.join(binaryPath, 'Contents', 'MacOS', path.basenameWithoutExtension(binaryPath));
           }
           return File(resolvedPath);

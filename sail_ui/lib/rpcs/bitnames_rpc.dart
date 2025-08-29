@@ -133,11 +133,7 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   BitnamesLive() : super(conf: readConf(), binaryType: BinaryType.bitnames, restartOnFailure: true) {
-    _init();
-  }
-
-  void _init() async {
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   @override

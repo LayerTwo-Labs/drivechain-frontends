@@ -139,7 +139,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   }
 
   await initSidechainDependencies(
-    sidechain: Bitnames(),
+    sidechainType: BinaryType.bitnames,
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
     store: store,

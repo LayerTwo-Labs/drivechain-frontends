@@ -69,7 +69,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   }
 
   await initSidechainDependencies(
-    sidechain: Thunder(),
+    sidechainType: BinaryType.thunder,
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
     store: store,

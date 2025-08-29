@@ -70,11 +70,7 @@ class ThunderLive extends ThunderRPC {
   }
 
   ThunderLive() : super(conf: readConf(), binaryType: BinaryType.thunder, restartOnFailure: false) {
-    _init();
-  }
-
-  void _init() async {
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   @override
