@@ -70,7 +70,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   }
 
   await initSidechainDependencies(
-    sidechain: ZSide(),
+    sidechainType: BinaryType.zSide,
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
     store: store,

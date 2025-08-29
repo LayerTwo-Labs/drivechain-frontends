@@ -100,11 +100,7 @@ class ZSideLive extends ZSideRPC {
   }
 
   ZSideLive() : super(conf: readConf(), binaryType: BinaryType.zSide, restartOnFailure: false) {
-    _init();
-  }
-
-  void _init() async {
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   @override

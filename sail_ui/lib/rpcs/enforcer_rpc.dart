@@ -20,13 +20,9 @@ abstract class EnforcerRPC extends RPCConnection {
 
 class EnforcerLive extends EnforcerRPC {
   @override
-  late final ValidatorServiceClient validator;
+  late ValidatorServiceClient validator;
 
   EnforcerLive() : super(conf: readConf(), binaryType: BinaryType.enforcer, restartOnFailure: true) {
-    _init();
-  }
-
-  void _init() async {
     final httpClient = createHttpClient();
 
     final baseUrl = 'http://127.0.0.1:${binary.port}';
@@ -38,7 +34,7 @@ class EnforcerLive extends EnforcerRPC {
     );
 
     validator = ValidatorServiceClient(transport);
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   @override

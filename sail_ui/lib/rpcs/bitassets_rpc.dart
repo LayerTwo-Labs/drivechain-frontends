@@ -171,11 +171,7 @@ class BitAssetsLive extends BitAssetsRPC {
   }
 
   BitAssetsLive() : super(conf: readConf(), binaryType: BinaryType.bitassets, restartOnFailure: true) {
-    _init();
-  }
-
-  void _init() async {
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   @override

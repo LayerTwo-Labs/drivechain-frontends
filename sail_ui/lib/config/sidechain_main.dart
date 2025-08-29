@@ -11,7 +11,7 @@ import 'package:sail_ui/sail_ui.dart';
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
 Future<void> initSidechainDependencies({
-  required Binary sidechain,
+  required BinaryType sidechainType,
   required Future<SidechainRPC> Function(Binary) createSidechainConnection,
   required Directory applicationDir,
   required KeyValueStore store,
@@ -24,40 +24,31 @@ Future<void> initSidechainDependencies({
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
 
-  // Load initial binary states
-  final binaries = _initialBinaries(sidechain);
-  final mainchainRPC = MainchainRPCLive();
-  GetIt.I.registerLazySingleton<MainchainRPC>(() => mainchainRPC);
-
-  final enforcer = EnforcerLive();
-  GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
-
-  final binary = binaries.firstWhere((b) => b.name == sidechain.name);
-  final sidechainConnection = await createSidechainConnection(binary);
-
-  GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
-
+  // Load and register initial binary states
+  final binaries = _initialBinaries(sidechainType.binary);
   final bitwindowAppDir = Directory(path.join(applicationDir.path, '..', 'bitwindow'));
-
-  // After RPCs including sidechain rpcs have been registered, register the binary provider
   final binaryProvider = await BinaryProvider.create(bitwindowAppDir: bitwindowAppDir, initialBinaries: binaries);
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
-  bootBinaries(log, sidechain);
+
+  // register and boot binaries
+  final mainchainRPC = MainchainRPCLive();
+  GetIt.I.registerLazySingleton<MainchainRPC>(() => mainchainRPC);
+  final enforcer = EnforcerLive();
+  GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
+  final binary = binaries.firstWhere((b) => b.type == sidechainType);
+  final sidechainConnection = await createSidechainConnection(binary);
+  GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
+  bootBinaries(log, binary);
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
-
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
-
   GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [sidechainConnection]));
-
   GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
-
   final syncProvider = SyncProvider(
     additionalConnection: SyncConnection(rpc: sidechainConnection, name: sidechainConnection.chain.name),
   );
   GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
   unawaited(syncProvider.fetch());
-
   GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => SidechainTransactionsProvider());
 }
 
