@@ -32,7 +32,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     final theme = SailTheme.of(context);
 
     final baseDir = widget.binary.directories.base[os];
-    final downloadFile = widget.binary.metadata.files[os];
+    final downloadFile = widget.binary.metadata.downloadConfig.files[os];
 
     return Dialog(
       backgroundColor: Colors.transparent,

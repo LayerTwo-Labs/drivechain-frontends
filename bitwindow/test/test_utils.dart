@@ -144,12 +144,14 @@ class MockBinary extends Binary {
           },
         ),
         metadata: MetadataConfig(
-          baseUrl: 'https://mock.test',
-          files: {
-            OS.linux: 'mock',
-            OS.macos: 'mock',
-            OS.windows: 'mock',
-          },
+          downloadConfig: DownloadConfig(
+            baseUrl: 'https://mock.test',
+            files: {
+              OS.linux: 'mock',
+              OS.macos: 'mock',
+              OS.windows: 'mock',
+            },
+          ),
           remoteTimestamp: null,
           downloadedTimestamp: null,
           binaryPath: null,

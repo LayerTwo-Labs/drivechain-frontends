@@ -87,6 +87,7 @@ export 'settings/client_settings.dart';
 export 'settings/debug_settings.dart';
 export 'settings/hash_plaintext_settings.dart';
 export 'settings/secure_store.dart';
+export 'settings/test_sidechains_settings.dart';
 export 'settings/theme_settings.dart';
 export 'settings/web_storage.dart';
 export 'style/color.dart';

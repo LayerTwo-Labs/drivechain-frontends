@@ -228,7 +228,8 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> start(Binary binary) async {
     await _downloadManager.downloadIfMissing(binary);
 
-    if (binary.chainLayer == 2) {
+    final SettingsProvider settings = GetIt.I.get<SettingsProvider>();
+    if (binary.chainLayer == 2 && !settings.useTestSidechains) {
       binary = binary as Sidechain;
       log.i('booting sidechain ${binary.name}');
       // We're booting some sort of sidechain. Check the wallet-starter-directory for

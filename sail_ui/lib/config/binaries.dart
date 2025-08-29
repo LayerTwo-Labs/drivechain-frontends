@@ -11,6 +11,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
+import 'package:sail_ui/providers/settings_provider.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
@@ -383,11 +384,16 @@ abstract class Binary {
     }
 
     // Check the folder where binaries are downloaded to first
-    paths.addAll([path.join(appDir.path, 'assets', 'bin', baseBinary)]);
+    paths.addAll([path.join(binDir(appDir.path).path, baseBinary)]);
 
     // we might be running a sidechain. if that's the case, check if bitwindow has downloaded it
     final bitwindowAppDir = path.join(appDir.parent.path, 'bitwindow');
-    paths.addAll([path.join(bitwindowAppDir, 'assets', 'bin', baseBinary)]);
+    paths.addAll([path.join(binDir(bitwindowAppDir).path, baseBinary)]);
+
+    // finally check .app bundle on macos
+    if (Platform.isMacOS) {
+      paths.addAll([path.join(binDir(appDir.path).path, '$baseBinary.app')]);
+    }
 
     return paths;
   }
@@ -396,7 +402,7 @@ abstract class Binary {
   Future<DateTime?> _checkReleaseDate() async {
     try {
       // Handle GitHub API URLs differently
-      if (metadata.baseUrl.contains('github.com')) {
+      if (metadata.downloadConfig.baseUrl.contains('github.com')) {
         return await _checkGithubReleaseDate();
       } else {
         return await _checkDirectReleaseDate();
@@ -410,7 +416,7 @@ abstract class Binary {
   Future<DateTime?> _checkGithubReleaseDate() async {
     try {
       // For GitHub-based releases, download binary directly from releases
-      final response = await http.get(Uri.parse(metadata.baseUrl));
+      final response = await http.get(Uri.parse(metadata.downloadConfig.baseUrl));
       if (response.statusCode != 200) {
         throw Exception('Failed to fetch GitHub release: ${response.statusCode}');
       }
@@ -433,12 +439,12 @@ abstract class Binary {
   Future<DateTime?> _checkDirectReleaseDate() async {
     try {
       final os = getOS();
-      final fileName = metadata.files[os];
-      if (fileName == null || fileName.isEmpty || metadata.baseUrl.isEmpty) {
+      final fileName = metadata.downloadConfig.files[os];
+      if (fileName == null || fileName.isEmpty || metadata.downloadConfig.baseUrl.isEmpty) {
         return null;
       }
 
-      final downloadUrl = Uri.parse(metadata.baseUrl).resolve(fileName).toString();
+      final downloadUrl = Uri.parse(metadata.downloadConfig.baseUrl).resolve(fileName).toString();
 
       final client = HttpClient();
 
@@ -499,12 +505,14 @@ class BitcoinCore extends Binary {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: 'https://releases.drivechain.info/',
-               files: {
-                 OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
-                 OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
-                 OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -566,13 +574,15 @@ class BitWindow extends Binary {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: '',
-               files: {
-                 // should not be downloaded from any platform
-                 OS.linux: '',
-                 OS.macos: '',
-                 OS.windows: '',
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: '',
+                 files: {
+                   // should not be downloaded from any platform
+                   OS.linux: '',
+                   OS.macos: '',
+                   OS.windows: '',
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -636,12 +646,14 @@ class Enforcer extends Binary {
          metadata:
              metadata ??
              MetadataConfig(
-               baseUrl: 'https://releases.drivechain.info/',
-               files: {
-                 OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
-                 OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
-                 OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
-               },
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 files: {
+                   OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
+                 },
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -910,35 +922,53 @@ class DirectoryConfig {
   }
 }
 
-/// Configuration for binary downloads
-class MetadataConfig {
+class DownloadConfig {
   final String baseUrl;
   final Map<OS, String> files;
+
+  const DownloadConfig({
+    required this.baseUrl,
+    required this.files,
+  });
+}
+
+/// Configuration for binary downloads
+class MetadataConfig {
+  // use settings provider to determine which download config to use
+  final SettingsProvider _settingsProvider = GetIt.I.get<SettingsProvider>();
+  final DownloadConfig _downloadConfig;
+  final DownloadConfig? _alternativeDownloadConfig;
+
+  // if test chains enabled, use those, but only if an alternative config exists
+  DownloadConfig get downloadConfig =>
+      _settingsProvider.useTestSidechains ? _alternativeDownloadConfig ?? _downloadConfig : _downloadConfig;
+
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // Local file timestamp
   File? binaryPath; // Path to the binary on disk (if exists)
   bool updateable; // Whether the binary can be updated
 
   MetadataConfig({
-    required this.baseUrl,
-    required this.files,
+    required DownloadConfig downloadConfig,
+    DownloadConfig? alternativeDownloadConfig,
     required this.updateable,
     required this.remoteTimestamp,
     required this.downloadedTimestamp,
     required this.binaryPath,
-  });
+  }) : _alternativeDownloadConfig = alternativeDownloadConfig,
+       _downloadConfig = downloadConfig;
 
   MetadataConfig copyWith({
-    String? baseUrl,
-    Map<OS, String>? files,
+    DownloadConfig? downloadConfig,
+    DownloadConfig? alternativeDownloadConfig,
     required DateTime? remoteTimestamp,
     required DateTime? downloadedTimestamp,
     required File? binaryPath,
     required bool updateable,
   }) {
     return MetadataConfig(
-      baseUrl: baseUrl ?? this.baseUrl,
-      files: files ?? this.files,
+      downloadConfig: downloadConfig ?? _downloadConfig,
+      alternativeDownloadConfig: alternativeDownloadConfig ?? _alternativeDownloadConfig,
       remoteTimestamp: remoteTimestamp,
       downloadedTimestamp: downloadedTimestamp,
       binaryPath: binaryPath,
@@ -950,16 +980,26 @@ class MetadataConfig {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is MetadataConfig &&
-          baseUrl == other.baseUrl &&
+          _downloadConfig == other._downloadConfig &&
+          _alternativeDownloadConfig == other._alternativeDownloadConfig &&
           updateable == other.updateable &&
           remoteTimestamp == other.remoteTimestamp &&
           downloadedTimestamp == other.downloadedTimestamp &&
           binaryPath?.path == other.binaryPath?.path &&
-          _mapEquals(files, other.files);
+          _mapEquals(_downloadConfig.files, other._downloadConfig.files) &&
+          (_alternativeDownloadConfig != null &&
+              other._alternativeDownloadConfig != null &&
+              _mapEquals(_alternativeDownloadConfig.files, other._alternativeDownloadConfig.files));
 
   @override
-  int get hashCode =>
-      Object.hash(baseUrl, updateable, remoteTimestamp, downloadedTimestamp, binaryPath?.path, files.hashCode);
+  int get hashCode => Object.hash(
+    _downloadConfig,
+    _alternativeDownloadConfig,
+    updateable,
+    remoteTimestamp,
+    downloadedTimestamp,
+    binaryPath?.path,
+  );
 
   bool _mapEquals(Map<OS, String> a, Map<OS, String> b) {
     if (a.length != b.length) return false;

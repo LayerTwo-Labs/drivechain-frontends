@@ -118,24 +118,6 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
     });
   }
 
-  Future<void> _showDebugModeWarning() async {
-    await showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Enable Debug Mode?',
-        subtitle:
-            'Enabling debug mode will send detailed error reports Sentry.\r\n\r\nEvery time a component crashes or an error is thrown, '
-            'Sentry will collect technical information about your device, app usage patterns, and error details.'
-            '\r\n\r\nIt is very helpful to the devs, but it also includes information such as your IP address, device type, and location. '
-            'If you dont trust Sentry with this information, enable a VPN, or press Cancel.',
-        onConfirm: () async {
-          await _settingsProvider.updateDebugMode(true);
-          if (context.mounted) Navigator.of(context).pop();
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return SailColumn(
@@ -147,7 +129,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailText.primary20('General'),
-            SailText.secondary13('Enable or disable debug mode'),
+            SailText.secondary13('Enable or disable various settings'),
           ],
         ),
 
@@ -183,7 +165,41 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             ),
           ],
         ),
+
+        // Test Sidechains Toggle
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Download and run alternative frontends for sidechains.'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailToggle(
+              label: 'Use Test Sidechains',
+              value: _settingsProvider.useTestSidechains,
+              onChanged: (value) async {
+                await _settingsProvider.updateUseTestSidechains(value);
+              },
+            ),
+          ],
+        ),
       ],
+    );
+  }
+
+  Future<void> _showDebugModeWarning() async {
+    await showDialog(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Enable Debug Mode?',
+        subtitle:
+            'Enabling debug mode will send detailed error reports Sentry.\r\n\r\nEvery time a component crashes or an error is thrown, '
+            'Sentry will collect technical information about your device, app usage patterns, and error details.'
+            '\r\n\r\nIt is very helpful to the devs, but it also includes information such as your IP address, device type, and location. '
+            'If you dont trust Sentry with this information, enable a VPN, or press Cancel.',
+        onConfirm: () async {
+          await _settingsProvider.updateDebugMode(true);
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ),
     );
   }
 }
