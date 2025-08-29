@@ -400,7 +400,7 @@ jobs:
             fi
           fi
 
-      # Publish snap (bitwindoww doesn't exist, never publish!)
+      # Publish snap (bitwindoww doesn't exist, so we never publish!)
       - name: Publish snap
         if:
           runner.os == 'Linux' && matrix.client == 'bitwindoww' &&
@@ -408,32 +408,315 @@ jobs:
         run: |
           # Decode the base64 credentials and export to environment
           export SNAPCRAFT_STORE_CREDENTIALS=$(echo "${{ secrets.SNAPCRAFT_LOGIN }}" | base64 --decode)
+          echo "=========================================="
+          echo "SNAP PUBLISHING SCRIPT STARTED"
+          echo "=========================================="
+          echo "Time: $(date)"
+          echo "Matrix client: ${{ matrix.client }}"
+          echo "Build directory: ${{ env.BUILD_DIR }}"
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub event: ${{ github.event_name }}"
 
-          # Get the new version from pubspec.yaml
-          NEW_VERSION=$(grep '^version: ' "${{ env.BUILD_DIR }}/${{ matrix.client }}/pubspec.yaml" | sed 's/version: //')
-          echo "New version from pubspec.yaml: $NEW_VERSION"
-
-          # Get current snap version from the store
-          CURRENT_VERSION=""
-          if snapcraft info bitwindow >/dev/null 2>&1; then
-            CURRENT_VERSION=$(snapcraft info bitwindow | grep -E "^[[:space:]]*version:" | sed 's/.*version:[[:space:]]*//')
-            echo "Current snap version: $CURRENT_VERSION"
-          else
-            echo "No existing snap found, will publish new version"
-          fi
-
-          # Compare versions and publish only if new version is higher
-          if [ -z "$CURRENT_VERSION" ] || [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
-            echo "Version changed or new snap - publishing to store"
+          # Semantic version comparison function
+          # Returns 0 if v1 > v2, 1 if v1 < v2, 2 if v1 == v2
+          compare_versions() {
+            local v1="$1"
+            local v2="$2"
             
-            # The snap should be built by build-linux.sh
-            snap_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.snap" | head -1)
-            echo "Publishing snap: $snap_file"
+            echo "[DEBUG] Comparing versions: '$v1' vs '$v2'"
+            
+            # Store original versions for debugging
+            local orig_v1="$v1"
+            local orig_v2="$v2"
+            
+            # Remove 'v' prefix if present and any '+' suffix (like 0.0.4+1)
+            v1="${v1#v}"
+            v1="${v1%%+*}"
+            v2="${v2#v}"
+            v2="${v2%%+*}"
+            
+            echo "[DEBUG] After cleanup: '$v1' vs '$v2'"
+            
+            # Split versions into arrays
+            IFS='.' read -ra V1_PARTS <<< "$v1"
+            IFS='.' read -ra V2_PARTS <<< "$v2"
+            
+            echo "[DEBUG] V1 parts: ${V1_PARTS[@]}"
+            echo "[DEBUG] V2 parts: ${V2_PARTS[@]}"
+            
+            # Pad arrays to same length with zeros
+            local max_len=$((${#V1_PARTS[@]} > ${#V2_PARTS[@]} ? ${#V1_PARTS[@]} : ${#V2_PARTS[@]}))
+            echo "[DEBUG] Max length for comparison: $max_len"
+            
+            for ((i=0; i<max_len; i++)); do
+              local part1="${V1_PARTS[i]:-0}"
+              local part2="${V2_PARTS[i]:-0}"
+              
+              echo "[DEBUG] Comparing part $i: $part1 vs $part2"
+              
+              # Compare numerically
+              if ((part1 > part2)); then
+                echo "[DEBUG] Part $part1 > $part2, returning v1 > v2"
+                return 0  # v1 > v2
+              elif ((part1 < part2)); then
+                echo "[DEBUG] Part $part1 < $part2, returning v1 < v2"
+                return 1  # v1 < v2
+              fi
+            done
+            
+            echo "[DEBUG] All parts equal, returning v1 == v2"
+            return 2  # versions are equal
+          }
 
-            snapcraft upload "$snap_file" --release edge
-          else
-            echo "Version unchanged ($NEW_VERSION), skipping snap publication"
+          echo ""
+          echo "==== STEP 1: Getting version from pubspec.yaml ===="
+          echo "Looking in: ${{ env.BUILD_DIR }}/${{ matrix.client }}/pubspec.yaml"
+
+          if [ ! -f "${{ env.BUILD_DIR }}/${{ matrix.client }}/pubspec.yaml" ]; then
+            echo "ERROR: pubspec.yaml not found at expected location!"
+            ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/" || echo "Directory doesn't exist"
+            exit 1
           fi
+
+          echo "pubspec.yaml contents (first 20 lines):"
+          head -20 "${{ env.BUILD_DIR }}/${{ matrix.client }}/pubspec.yaml"
+
+          # Get version from pubspec.yaml (handles version+build format)
+          RAW_VERSION=$(grep '^version: ' "${{ env.BUILD_DIR }}/${{ matrix.client }}/pubspec.yaml")
+          echo "[DEBUG] Raw grep output: '$RAW_VERSION'"
+
+          NEW_VERSION=$(echo "$RAW_VERSION" | sed 's/version: //' | tr -d ' ')
+          echo "[DEBUG] Extracted version: '$NEW_VERSION'"
+
+          # Validate version format
+          echo ""
+          echo "==== STEP 2: Validating version format ===="
+          if ! echo "$NEW_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\+[0-9]+)?$'; then
+            echo "ERROR: Invalid version format in pubspec.yaml: '$NEW_VERSION'"
+            echo "Expected format: X.Y.Z or X.Y.Z+BUILD"
+            echo "Regex pattern: ^[0-9]+\.[0-9]+\.[0-9]+(\+[0-9]+)?$"
+            exit 1
+          fi
+          echo "✓ Version format is valid: $NEW_VERSION"
+
+          # Try multiple methods to get current snap version from store
+          echo ""
+          echo "==== STEP 3: Getting current snap version from store ===="
+          CURRENT_VERSION=""
+          SNAP_NAME="${{ matrix.client }}"
+
+          echo "Snap name: $SNAP_NAME"
+          echo "Checking for snapcraft command..."
+          which snapcraft || echo "WARNING: snapcraft not found in PATH"
+          echo "Snapcraft version:"
+          snapcraft version || echo "Could not get snapcraft version"
+
+          # Method 1: Use snapcraft list-revisions (most reliable)
+          echo ""
+          echo "---- Method 1: snapcraft list-revisions ----"
+          if command -v snapcraft >/dev/null 2>&1; then
+            echo "Executing: snapcraft list-revisions \"$SNAP_NAME\""
+            # Get the latest revision from edge channel
+            REVISION_OUTPUT=$(snapcraft list-revisions "$SNAP_NAME" 2>&1 || true)
+            REVISION_EXIT_CODE=$?
+            echo "[DEBUG] Exit code: $REVISION_EXIT_CODE"
+            echo "[DEBUG] Full output (first 500 chars):"
+            echo "$REVISION_OUTPUT" | head -c 500
+            echo ""
+            
+            if [ -n "$REVISION_OUTPUT" ]; then
+              echo "[DEBUG] Filtering for edge channel entries..."
+              EDGE_LINES=$(echo "$REVISION_OUTPUT" | grep 'edge' || true)
+              echo "[DEBUG] Edge channel lines:"
+              echo "$EDGE_LINES"
+              
+              # Look for edge channel entries and get the version
+              CURRENT_VERSION=$(echo "$REVISION_OUTPUT" | grep -E '^\s*[0-9]+\s+' | grep 'edge' | head -1 | awk '{print $3}' || true)
+              echo "[DEBUG] Extracted version: '$CURRENT_VERSION'"
+              
+              if [ -n "$CURRENT_VERSION" ]; then
+                echo "✓ Found version via list-revisions: $CURRENT_VERSION"
+              else
+                echo "✗ No version found in list-revisions output"
+              fi
+            else
+              echo "✗ list-revisions returned empty output"
+            fi
+          else
+            echo "✗ snapcraft command not available"
+          fi
+
+          # Method 2: Use snapcraft status as fallback
+          echo ""
+          echo "---- Method 2: snapcraft status (fallback) ----"
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Executing: snapcraft status \"$SNAP_NAME\""
+            STATUS_OUTPUT=$(snapcraft status "$SNAP_NAME" 2>&1 || true)
+            STATUS_EXIT_CODE=$?
+            echo "[DEBUG] Exit code: $STATUS_EXIT_CODE"
+            echo "[DEBUG] Full output:"
+            echo "$STATUS_OUTPUT"
+            
+            if [ -n "$STATUS_OUTPUT" ]; then
+              echo "[DEBUG] Looking for edge channel line..."
+              EDGE_LINE=$(echo "$STATUS_OUTPUT" | grep -E '^\s*edge\s+' || true)
+              echo "[DEBUG] Edge line: '$EDGE_LINE'"
+              
+              # Extract version from edge channel line
+              CURRENT_VERSION=$(echo "$STATUS_OUTPUT" | grep -E '^\s*edge\s+' | awk '{print $2}' | cut -d' ' -f1 || true)
+              echo "[DEBUG] Extracted version: '$CURRENT_VERSION'"
+              
+              if [ -n "$CURRENT_VERSION" ]; then
+                echo "✓ Found version via status: $CURRENT_VERSION"
+              else
+                echo "✗ No version found in status output"
+              fi
+            else
+              echo "✗ status command returned empty output"
+            fi
+          else
+            echo "Skipping (already have version: $CURRENT_VERSION)"
+          fi
+
+          # Method 3: Use snap info as last resort (less reliable but worth trying)
+          echo ""
+          echo "---- Method 3: snap info (last resort) ----"
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Executing: snap info \"$SNAP_NAME\""
+            SNAP_INFO=$(snap info "$SNAP_NAME" 2>&1 || true)
+            INFO_EXIT_CODE=$?
+            echo "[DEBUG] Exit code: $INFO_EXIT_CODE"
+            echo "[DEBUG] Full output (first 1000 chars):"
+            echo "$SNAP_INFO" | head -c 1000
+            echo ""
+            
+            if [ -n "$SNAP_INFO" ]; then
+              echo "[DEBUG] Looking for edge channel info..."
+              EDGE_SECTION=$(echo "$SNAP_INFO" | grep -A3 'edge:' || true)
+              echo "[DEBUG] Edge section:"
+              echo "$EDGE_SECTION"
+              
+              # Look for edge channel version
+              CURRENT_VERSION=$(echo "$SNAP_INFO" | grep -A1 'edge:' | tail -1 | awk '{print $1}' | grep -E '^[0-9]+\.[0-9]+' || true)
+              echo "[DEBUG] Extracted version: '$CURRENT_VERSION'"
+              
+              if [ -n "$CURRENT_VERSION" ]; then
+                echo "✓ Found version via snap info: $CURRENT_VERSION"
+              else
+                echo "✗ No version found in snap info output"
+              fi
+            else
+              echo "✗ snap info returned empty output"
+            fi
+          else
+            echo "Skipping (already have version: $CURRENT_VERSION)"
+          fi
+
+          # Clean up version string (remove any trailing spaces or special chars)
+          echo ""
+          echo "==== STEP 4: Cleaning up version string ===="
+          echo "[DEBUG] Version before cleanup: '$CURRENT_VERSION'"
+          CURRENT_VERSION=$(echo "$CURRENT_VERSION" | tr -d ' ' | sed 's/[^0-9.+]//g')
+          echo "[DEBUG] Version after cleanup: '$CURRENT_VERSION'"
+
+          # Decision logic with robust version comparison
+          echo ""
+          echo "==== STEP 5: Version comparison and decision ===="
+          SHOULD_PUBLISH=false
+
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "✓ No existing snap found in store - will publish as first version"
+            echo "[DECISION] SHOULD_PUBLISH=true (first release)"
+            SHOULD_PUBLISH=true
+          else
+            echo "Current snap version in edge channel: '$CURRENT_VERSION'"
+            echo "New version from pubspec.yaml: '$NEW_VERSION'"
+            echo ""
+            echo "Running semantic version comparison..."
+            
+            # Use semantic version comparison
+            if compare_versions "$NEW_VERSION" "$CURRENT_VERSION"; then
+              echo ""
+              echo "✅ RESULT: New version ($NEW_VERSION) is HIGHER than current ($CURRENT_VERSION)"
+              echo "[DECISION] SHOULD_PUBLISH=true"
+              SHOULD_PUBLISH=true
+            elif compare_versions "$CURRENT_VERSION" "$NEW_VERSION"; then
+              echo ""
+              echo "⚠️  RESULT: New version ($NEW_VERSION) is LOWER than current ($CURRENT_VERSION)"
+              echo "WARNING: Version in pubspec.yaml should be bumped!"
+              echo "[DECISION] SHOULD_PUBLISH=false"
+              SHOULD_PUBLISH=false
+            else
+              echo ""
+              echo "ℹ️  RESULT: Version unchanged ($NEW_VERSION)"
+              echo "[DECISION] SHOULD_PUBLISH=false"
+              SHOULD_PUBLISH=false
+            fi
+          fi
+
+          # Publish if needed
+          echo ""
+          echo "==== STEP 6: Publishing decision ===="
+          echo "SHOULD_PUBLISH=$SHOULD_PUBLISH"
+
+          if [ "$SHOULD_PUBLISH" = true ]; then
+            echo "Decision: WILL PUBLISH to edge channel"
+            echo ""
+            echo "==== STEP 7: Finding snap file ===="
+            echo "Searching in: ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
+            
+            # List all files in release directory for debugging
+            echo "Contents of release directory:"
+            ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" 2>/dev/null || echo "Directory doesn't exist"
+            
+            # Find the snap file
+            echo ""
+            echo "Looking for *.snap files..."
+            snap_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.snap" -type f 2>/dev/null | head -1)
+            
+            if [ -z "$snap_file" ] || [ ! -f "$snap_file" ]; then
+              echo "ERROR: No snap file found!"
+              echo "Search command: find ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/ -name '*.snap' -type f"
+              echo ""
+              echo "Full directory tree:"
+              find "${{ env.BUILD_DIR }}/${{ matrix.client }}/" -type f -name "*.snap" 2>/dev/null || echo "No snap files found anywhere"
+              exit 1
+            fi
+            
+            echo "✓ Found snap file: $snap_file"
+            echo "File details:"
+            ls -lh "$snap_file"
+            echo "File size: $(du -h "$snap_file" | cut -f1)"
+            echo "File type: $(file "$snap_file")"
+            
+            # Upload with error handling
+            echo ""
+            echo "==== STEP 8: Uploading to snap store ===="
+            echo "Executing: snapcraft upload \"$snap_file\" --release edge"
+            
+            if snapcraft upload "$snap_file" --release edge; then
+              echo ""
+              echo "=========================================="
+              echo "✅ SUCCESS: Published version $NEW_VERSION to edge channel"
+              echo "=========================================="
+            else
+              UPLOAD_EXIT_CODE=$?
+              echo ""
+              echo "=========================================="
+              echo "❌ FAILED: Upload failed with exit code $UPLOAD_EXIT_CODE"
+              echo "=========================================="
+              exit 1
+            fi
+          else
+            echo "Decision: WILL NOT PUBLISH (no version change)"
+            echo ""
+            echo "=========================================="
+            echo "ℹ️  SKIPPED: No publication needed"
+            echo "=========================================="
+          fi
+
+          echo ""
+          echo "Script completed at: $(date)"
 
       # List artifacts for verification
       - name: List build artifacts
