@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"strings"
 	"testing"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -44,8 +43,15 @@ func TestService_ListOPReturn(t *testing.T) {
 		database := database.Test(t)
 		// Insert test data using the Persist function
 		ctx := context.Background()
-		height := int32(100)
-		err := opreturns.Persist(ctx, database, &height, "txid1", 0, []byte("test message"), 1000, time.Now())
+		height := uint32(100)
+		err := opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "txid1",
+				Vout:   0,
+				Data:   []byte("test message"),
+			},
+		})
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -57,7 +63,6 @@ func TestService_ListOPReturn(t *testing.T) {
 		assert.Equal(t, "txid1", resp.Msg.OpReturns[0].Txid)
 		assert.EqualValues(t, 0, resp.Msg.OpReturns[0].Vout)
 		assert.EqualValues(t, 100, lo.FromPtr(resp.Msg.OpReturns[0].Height))
-		assert.EqualValues(t, 1000, resp.Msg.OpReturns[0].FeeSats)
 	})
 }
 
@@ -437,14 +442,28 @@ func TestService_ListCoinNews(t *testing.T) {
 		headline1 := "News Headline 1"
 		paddedHeadline1 := headline1 + string(make([]byte, 64-len(headline1)))
 		newsData1 := []byte("12345678" + paddedHeadline1 + "Content for news 1")
-		height := int32(100)
-		err = opreturns.Persist(ctx, database, &height, "news_txid1", 0, newsData1, 1000, time.Now())
+		height := uint32(100)
+		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "news_txid1",
+				Vout:   0,
+				Data:   newsData1,
+			},
+		})
 		require.NoError(t, err)
 
 		headline2 := "News Headline 2"
 		paddedHeadline2 := headline2 + string(make([]byte, 64-len(headline2)))
 		newsData2 := []byte("87654321" + paddedHeadline2 + "Content for news 2")
-		err = opreturns.Persist(ctx, database, &height, "news_txid2", 0, newsData2, 2000, time.Now().Add(time.Minute))
+		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "news_txid2",
+				Vout:   0,
+				Data:   newsData2,
+			},
+		})
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -476,14 +495,28 @@ func TestService_ListCoinNews(t *testing.T) {
 		headline1 := "News Headline 1"
 		paddedHeadline1 := headline1 + string(make([]byte, 64-len(headline1)))
 		newsData1 := []byte("12345678" + paddedHeadline1 + "Content for news 1")
-		height := int32(100)
-		err = opreturns.Persist(ctx, database, &height, "news_txid1", 0, newsData1, 1000, time.Now())
+		height := uint32(100)
+		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "news_txid1",
+				Vout:   0,
+				Data:   newsData1,
+			},
+		})
 		require.NoError(t, err)
 
 		headline2 := "News Headline 2"
 		paddedHeadline2 := headline2 + string(make([]byte, 64-len(headline2)))
 		newsData2 := []byte("87654321" + paddedHeadline2 + "Content for news 2")
-		err = opreturns.Persist(ctx, database, &height, "news_txid2", 0, newsData2, 2000, time.Now())
+		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "news_txid2",
+				Vout:   0,
+				Data:   newsData2,
+			},
+		})
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -514,20 +547,41 @@ func TestService_ListCoinNews(t *testing.T) {
 		headline1 := "Old News"
 		paddedHeadline1 := headline1 + string(make([]byte, 64-len(headline1)))
 		newsData1 := []byte("12345678" + paddedHeadline1 + "Content for old news")
-		height := int32(100)
-		err = opreturns.Persist(ctx, database, &height, "news_txid1", 0, newsData1, 1000, time.Now().Add(-2*time.Hour))
+		height := uint32(100)
+		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "news_txid1",
+				Vout:   0,
+				Data:   newsData1,
+			},
+		})
 		require.NoError(t, err)
 
 		headline2 := "Recent News"
 		paddedHeadline2 := headline2 + string(make([]byte, 64-len(headline2)))
 		newsData2 := []byte("12345678" + paddedHeadline2 + "Content for recent news")
-		err = opreturns.Persist(ctx, database, &height, "news_txid2", 0, newsData2, 2000, time.Now().Add(-1*time.Hour))
+		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "news_txid2",
+				Vout:   0,
+				Data:   newsData2,
+			},
+		})
 		require.NoError(t, err)
 
 		headline3 := "Latest News"
 		paddedHeadline3 := headline3 + string(make([]byte, 64-len(headline3)))
 		newsData3 := []byte("12345678" + paddedHeadline3 + "Content for latest news")
-		err = opreturns.Persist(ctx, database, &height, "news_txid3", 0, newsData3, 3000, time.Now())
+		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+			{
+				Height: &height,
+				TxID:   "news_txid3",
+				Vout:   0,
+				Data:   newsData3,
+			},
+		})
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -558,8 +612,15 @@ func TestService_ListCoinNews(t *testing.T) {
 			headline := "News"
 			paddedHeadline := headline + string(make([]byte, 64-len(headline)))
 			newsData := []byte("12345678" + paddedHeadline + "Content for news")
-			height := int32(100)
-			err = opreturns.Persist(ctx, database, &height, "news_txid", int32(i), newsData, 1000, time.Now())
+			height := uint32(100)
+			err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
+				{
+					Height: &height,
+					TxID:   "news_txid",
+					Vout:   int32(i),
+					Data:   newsData,
+				},
+			})
 			require.NoError(t, err)
 		}
 

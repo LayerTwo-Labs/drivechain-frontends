@@ -9,29 +9,47 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/rs/zerolog"
 )
 
 func Persist(
-	ctx context.Context, db *sql.DB, height *int32, txid string, vout int32,
-	data []byte, feeSatoshi int64, createdAt time.Time,
+	ctx context.Context, db *sql.DB, values []OPReturn,
 ) error {
-	_, err := db.ExecContext(ctx, `
-		INSERT INTO op_returns (
-			txid,
-			vout,
-			op_return_data,
-			fee_sats,
-			height,
-			created_at
-		) VALUES (?, ?, ?, ?, ?, ?)
-		ON CONFLICT (txid, vout) DO UPDATE SET
-			op_return_data = excluded.op_return_data,
-			height = excluded.height,
-			fee_sats = excluded.fee_sats
-	`, txid, vout, data, feeSatoshi, height, createdAt)
-	if err != nil {
-		return fmt.Errorf("could not persist op_return: %w", err)
+	if len(values) == 0 {
+		return nil
 	}
+
+	start := time.Now()
+	builder := sq.
+		Insert("op_returns").
+		Columns("txid", "vout", "op_return_data", "fee_sats", "height", "created_at")
+
+	for _, value := range values {
+		// TODO: this is set as nullable in the DB...
+		const feeSats = 0
+		builder = builder.Values(
+			value.TxID, value.Vout, value.Data,
+			feeSats, value.Height, time.Now(),
+		)
+	}
+
+	builder = builder.Suffix(
+		`ON CONFLICT (txid, vout) DO UPDATE SET 
+			op_return_data = excluded.op_return_data, 
+			height = excluded.height, 
+			fee_sats = excluded.fee_sats`,
+	)
+
+	sql, args := builder.MustSql()
+
+	if _, err := db.ExecContext(ctx, sql, args...); err != nil {
+		return fmt.Errorf("persist %d OP_RETURN(s): %w", len(values), err)
+	}
+
+	zerolog.Ctx(ctx).Debug().
+		Msgf("opreturns: persisted %d OP_RETURN(s) in %s", len(values), time.Since(start))
 
 	return nil
 }
@@ -41,14 +59,13 @@ type OPReturn struct {
 	TxID      string
 	Vout      int32
 	Data      []byte
-	FeeSats   int64
-	Height    *int32
-	CreatedAt time.Time
+	Height    *uint32
+	CreatedAt *time.Time
 }
 
 func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, txid, vout, op_return_data, fee_sats, height, created_at
+		SELECT id, txid, vout, op_return_data, height, created_at
 		FROM op_returns
 		ORDER BY created_at DESC
 	`)
@@ -60,7 +77,7 @@ func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 	var opReturns []OPReturn
 	for rows.Next() {
 		var opReturn OPReturn
-		err := rows.Scan(&opReturn.ID, &opReturn.TxID, &opReturn.Vout, &opReturn.Data, &opReturn.FeeSats, &opReturn.Height, &opReturn.CreatedAt)
+		err := rows.Scan(&opReturn.ID, &opReturn.TxID, &opReturn.Vout, &opReturn.Data, &opReturn.Height, &opReturn.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("could not scan op_return: %w", err)
 		}
@@ -187,9 +204,8 @@ type CoinNews struct {
 	TopicName string
 	Headline  string
 	Content   string
-	FeeSats   int64
 
-	CreatedAt time.Time
+	CreatedAt *time.Time
 }
 
 func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
@@ -285,7 +301,6 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 			TopicName: topic.Name,
 			Headline:  headline,
 			Content:   content,
-			FeeSats:   opReturn.FeeSats,
 			CreatedAt: opReturn.CreatedAt,
 		})
 	}
