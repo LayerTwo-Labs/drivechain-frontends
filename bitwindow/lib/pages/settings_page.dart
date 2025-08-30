@@ -5,6 +5,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -268,6 +269,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               ),
             );
           },
+          skipLoading: true,
         ),
       ],
     );
@@ -308,65 +310,6 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
     final mainchainRPC = GetIt.I.get<MainchainRPC>();
     while (!mainchainRPC.connected) {
       await Future.delayed(const Duration(seconds: 1));
-    }
-  }
-
-  Future<void> _resetEverything(BuildContext context) async {
-    await _resetWallets(
-      context,
-      beforeBoot: () async {
-        log.i('resetting blockchain data');
-
-        final allBinaries = [
-          BitcoinCore(),
-          Enforcer(),
-          BitWindow(),
-          Thunder(),
-          Bitnames(),
-          BitAssets(),
-          ZSide(),
-        ];
-        // wipe all chain data - don't swallow errors
-        try {
-          await Future.wait(allBinaries.map((binary) => binary.wipeAppDir()));
-          log.i('Successfully wiped all blockchain data');
-        } catch (e) {
-          log.e('could not reset blockchain data: $e');
-        }
-
-        try {
-          await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(bitwindowAppDir.path))));
-          log.i('Successfully wiped all blockchain data');
-        } catch (e) {
-          log.e('could not reset blockchain data: $e');
-        }
-      },
-    );
-
-    // pop the dialog
-    if (context.mounted) Navigator.of(context).pop();
-  }
-
-  Future<void> _resetWallets(BuildContext context, {Future<void> Function()? beforeBoot}) async {
-    final logger = GetIt.I.get<Logger>();
-
-    try {
-      await GetIt.I.get<WalletProvider>().deleteAllWallets(beforeBoot: beforeBoot);
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      logger.e('could not reset wallet data: $e');
-
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not reset wallets: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
-        );
-      }
     }
   }
 }
@@ -428,4 +371,271 @@ class _InfoSettingsContentState extends State<_InfoSettingsContent> {
       ],
     );
   }
+}
+
+class ResetProgressStep {
+  String name;
+  DateTime startTime;
+  DateTime? endTime;
+
+  ResetProgressStep({
+    required this.name,
+    required this.startTime,
+  });
+
+  bool get isCompleted => endTime != null;
+  Duration? get duration => endTime?.difference(startTime);
+}
+
+class ResetProgressDialog extends StatefulWidget {
+  final Future<void> Function(void Function(String) updateStatus) resetFunction;
+
+  const ResetProgressDialog({super.key, required this.resetFunction});
+
+  @override
+  State<ResetProgressDialog> createState() => _ResetProgressDialogState();
+}
+
+class _ResetProgressDialogState extends State<ResetProgressDialog> {
+  final List<ResetProgressStep> _steps = [];
+  bool get _isCompleted => _steps.isNotEmpty && _steps.every((step) => step.isCompleted);
+  String? _error;
+  int _currentStepIndex = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAllSteps();
+    _startReset();
+  }
+
+  void _initializeAllSteps() {
+    final stepNames = [
+      'Wiping wallets',
+      'Stopping binaries',
+      'Waiting for processes to stop',
+      'Deleting wallet files',
+      'Cleaning multisig wallets',
+      'Moving master wallet directory',
+      'Wiping blockchain data',
+      'Wiping asset data',
+      'Reset complete',
+    ];
+
+    setState(() {
+      _steps.addAll(
+        stepNames.map(
+          (name) => ResetProgressStep(
+            name: name,
+            startTime: DateTime.now(),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _startReset() async {
+    try {
+      await widget.resetFunction((status) {
+        setState(() {
+          // Complete current step
+          if (_currentStepIndex >= 0 && _currentStepIndex < _steps.length) {
+            _steps[_currentStepIndex].endTime = DateTime.now();
+          }
+
+          // Move to next step
+          _currentStepIndex++;
+
+          if (_currentStepIndex < _steps.length) {
+            _steps[_currentStepIndex].startTime = DateTime.now();
+          }
+        });
+      });
+
+      // Complete the FINAL step (the one that's currently active)
+      setState(() {
+        if (_currentStepIndex >= 0 && _currentStepIndex < _steps.length) {
+          _steps[_currentStepIndex].endTime = DateTime.now();
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+        child: SailCard(
+          title: 'Reset Progress',
+          subtitle: _isCompleted
+              ? 'Reset completed successfully!'
+              : _error != null
+              ? 'Reset failed: $_error'
+              : 'Resetting everything...',
+          withCloseButton: true,
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ..._steps.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final step = entry.value;
+                  final isActive = index == _currentStepIndex && !step.isCompleted;
+                  return _buildStepTile(step, theme, index, isActive);
+                }),
+                if (_isCompleted) const SailSpacing(SailStyleValues.padding08),
+                if (_isCompleted)
+                  SailButton(
+                    label: 'Create New Wallet',
+                    variant: ButtonVariant.primary,
+                    onPressed: () async => GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepTile(ResetProgressStep step, SailThemeData theme, int index, bool isActive) {
+    Widget iconWidget;
+    String timeText = '';
+
+    if (step.isCompleted) {
+      iconWidget = SailSVG.fromAsset(SailSVGAsset.circleCheck, color: SailColorScheme.green, width: 16, height: 16);
+      if (step.duration != null) {
+        final duration = step.duration!;
+        if (duration.inSeconds > 0) {
+          timeText = '${duration.inSeconds}.${(duration.inMilliseconds % 1000).toString().padLeft(3, '0')}s';
+        } else {
+          timeText = '${duration.inMilliseconds}ms';
+        }
+      }
+    } else if (isActive) {
+      iconWidget = SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          strokeWidth: 1,
+          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
+        ),
+      );
+    } else {
+      iconWidget = SailSVG.fromAsset(SailSVGAsset.circle, color: theme.colors.textSecondary, width: 16, height: 16);
+    }
+
+    return SailRow(
+      spacing: SailStyleValues.padding04,
+      children: [
+        SizedBox(width: 16, child: iconWidget),
+        Expanded(
+          child: SailText.primary13(
+            step.name,
+            color: isActive
+                ? theme.colors.primary
+                : step.isCompleted
+                ? SailColorScheme.green
+                : theme.colors.textSecondary,
+          ),
+        ),
+        if (timeText.isNotEmpty)
+          SailText.secondary12(
+            timeText,
+            color: SailColorScheme.green,
+          ),
+      ],
+    );
+  }
+}
+
+Future<void> _resetWallets(
+  BuildContext context, {
+  Future<void> Function()? beforeBoot,
+  void Function(String status)? onStatusUpdate,
+}) async {
+  final logger = GetIt.I.get<Logger>();
+
+  try {
+    await GetIt.I.get<WalletProvider>().deleteAllWallets(
+      beforeBoot: beforeBoot,
+      onStatusUpdate: onStatusUpdate,
+    );
+  } catch (e) {
+    logger.e('could not reset wallet data: $e');
+
+    if (context.mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not reset wallets: $e'),
+          backgroundColor: SailTheme.of(context).colors.error,
+        ),
+      );
+    }
+  }
+}
+
+Future<void> _resetEverything(BuildContext context) async {
+  final log = GetIt.I.get<Logger>();
+  final bitwindowAppDir = GetIt.I.get<BinaryProvider>().bitwindowAppDir;
+
+  Navigator.of(context).pop(); // pop the current dialog
+
+  // Show the new one
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => ResetProgressDialog(
+      resetFunction: (updateStatus) async {
+        updateStatus('Wiping wallets');
+
+        await _resetWallets(
+          context,
+          onStatusUpdate: updateStatus,
+          beforeBoot: () async {
+            log.i('resetting blockchain data');
+
+            final allBinaries = [
+              BitcoinCore(),
+              Enforcer(),
+              BitWindow(),
+              Thunder(),
+              Bitnames(),
+              BitAssets(),
+              ZSide(),
+            ];
+
+            updateStatus('Wiping blockchain data');
+
+            // wipe all chain data - don't swallow errors
+            try {
+              await Future.wait(allBinaries.map((binary) => binary.wipeAppDir()));
+              log.i('Successfully wiped all blockchain data');
+            } catch (e) {
+              log.e('could not reset blockchain data: $e');
+            }
+
+            updateStatus('Wiping asset data');
+
+            try {
+              await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(bitwindowAppDir.path))));
+              log.i('Successfully wiped all blockchain data');
+            } catch (e) {
+              log.e('could not reset blockchain data: $e');
+            }
+          },
+        );
+      },
+    ),
+  );
 }

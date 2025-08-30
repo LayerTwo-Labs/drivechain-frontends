@@ -480,8 +480,12 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteAllWallets({Future<void> Function()? beforeBoot}) async {
+  Future<void> deleteAllWallets({
+    Future<void> Function()? beforeBoot,
+    void Function(String status)? onStatusUpdate,
+  }) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
+
     // Store connected and running binaries to reboot them after wallet wipe is complete
     final connected = binaryProvider.binaries.where(binaryProvider.isConnected).toList();
     final running = binaryProvider.runningBinaries;
@@ -493,32 +497,72 @@ class WalletProvider extends ChangeNotifier {
       return unique;
     });
 
-    // then be extra sure and stop everything in the process manager
-    await binaryProvider.stopAll();
+    onStatusUpdate?.call('Stopping binaries');
 
-    for (final binary in binaryProvider.binaries) {
-      // stop absolutely all binaries, to avoid corruption/file overwriting
-      await binaryProvider.stop(binary);
+    // then be extra sure and stop everything in the process manager
+    try {
+      await binaryProvider.stopAll();
+    } catch (e) {
+      _logger.e('could not stop all binaries: $e');
     }
 
+    try {
+      for (final binary in binaryProvider.binaries) {
+        // stop absolutely all binaries, to avoid corruption/file overwriting
+        await binaryProvider.stop(binary);
+      }
+    } catch (e) {
+      _logger.e('could not stop individual binaries: $e');
+    }
+
+    onStatusUpdate?.call('Waiting for processes to stop');
     await Future.delayed(const Duration(seconds: 5));
 
-    for (final binary in binaryProvider.binaries) {
-      // wipe all wallets, for the enforcer, bitnames, bitassets, thunder etc..
-      await binary.deleteWallet();
+    onStatusUpdate?.call('Deleting wallet files');
+
+    try {
+      for (final binary in binaryProvider.binaries) {
+        // wipe all wallets, for the enforcer, bitnames, bitassets, thunder etc..
+        await binary.deleteWallet();
+      }
+    } catch (e) {
+      _logger.e('could not wipe wallets: $e');
     }
 
-    await GetIt.I.get<BitDriveProvider>().wipeData(appDir);
-    await _deleteCoreMultisigWallets(appDir, _logger);
+    onStatusUpdate?.call('Cleaning multisig wallets');
 
-    await moveMasterWalletDir();
-
-    if (beforeBoot != null) {
-      await beforeBoot();
+    try {
+      await GetIt.I.get<BitDriveProvider>().wipeData(appDir);
+      await _deleteCoreMultisigWallets(appDir, _logger);
+    } catch (e) {
+      _logger.e('could not delete multisig wallets: $e');
     }
 
-    // reboot L1-binaries
-    await bootBinaries(_logger);
+    onStatusUpdate?.call('Moving master wallet directory');
+
+    try {
+      await moveMasterWalletDir();
+    } catch (e) {
+      _logger.e('could not move master wallet dir: $e');
+    }
+
+    try {
+      if (beforeBoot != null) {
+        await beforeBoot();
+      }
+    } catch (e) {
+      _logger.e('could not run beforeBoot: $e');
+    }
+
+    onStatusUpdate?.call('Reset complete');
+    onStatusUpdate?.call('Reset complete');
+
+    try {
+      // reboot L1-binaries
+      await bootBinaries(_logger);
+    } catch (e) {
+      _logger.e('could not boot L1-binaries: $e');
+    }
 
     // then restart all sidechains we stopped
     for (final binary in runningBinaries) {

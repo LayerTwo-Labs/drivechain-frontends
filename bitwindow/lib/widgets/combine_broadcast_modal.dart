@@ -283,14 +283,14 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                                   shadowSize: ShadowSize.none,
                                   child: SailRow(
                                     children: [
-                                      Radio<String>(
-                                        value: tx.id,
+                                      RadioGroup<String>(
                                         groupValue: _selectedTransaction?.id,
-                                        onChanged: _isProcessing
-                                            ? null
-                                            : (value) {
-                                                setState(() => _selectedTransaction = tx);
-                                              },
+                                        onChanged: (String? value) {
+                                          if (_isProcessing) return;
+                                          final tx = _eligibleTransactions.firstWhere((t) => t.id == value);
+                                          setState(() => _selectedTransaction = tx);
+                                        },
+                                        child: Radio<String>(value: tx.id),
                                       ),
                                       Expanded(child: _buildTransactionSummary(tx, group)),
                                     ],

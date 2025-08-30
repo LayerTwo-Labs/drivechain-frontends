@@ -58,7 +58,7 @@ class DownloadManager extends ChangeNotifier {
 
   Future<void> downloadIfMissing(Binary binary, {bool shouldUpdate = false}) async {
     // Always use the current binary state from our internal map to avoid stale metadata
-    final currentBinary = _binariesMap[binary.type] ?? binary;
+    var currentBinary = _binariesMap[binary.type] ?? binary;
 
     if (currentBinary.updateAvailable) {
       if (shouldUpdate) {
@@ -71,6 +71,9 @@ class DownloadManager extends ChangeNotifier {
       }
     }
 
+    // refresh metadata just in case it is wiped about 1 millisecond ago..
+    // and the directory watcher hasnt updated it yet
+    currentBinary = await currentBinary.updateLocalMetadata(bitwindowAppDir);
     if (currentBinary.isDownloaded) {
       // We already have a binary, dont bother
       return;

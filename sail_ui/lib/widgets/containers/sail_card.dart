@@ -238,6 +238,7 @@ class SailAlertCard extends StatelessWidget {
   final String subtitle;
   final Future<void> Function() onConfirm;
   final ButtonVariant? confirmButtonVariant;
+  final String? loadingLabel;
 
   const SailAlertCard({
     super.key,
@@ -245,6 +246,7 @@ class SailAlertCard extends StatelessWidget {
     required this.subtitle,
     required this.onConfirm,
     this.confirmButtonVariant,
+    this.loadingLabel,
   });
 
   @override
@@ -268,6 +270,8 @@ class SailAlertCard extends StatelessWidget {
               SailButton(
                 label: 'Confirm',
                 variant: confirmButtonVariant ?? ButtonVariant.secondary,
+                loadingLabel: loadingLabel,
+                loading: loadingLabel != null,
                 onPressed: () async {
                   await onConfirm();
                 },
