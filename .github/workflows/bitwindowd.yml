@@ -80,16 +80,26 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: Install zmq
+      - name: Install ZMQ dependencies
         shell: bash
         run: |
           if [ "${{ runner.os }}" == "Windows" ]; then
-            choco install zeromq -y
+            # Install vcpkg and ZeroMQ on Windows
+            git clone https://github.com/microsoft/vcpkg.git
+            cd vcpkg
+            ./bootstrap-vcpkg.bat
+            ./vcpkg.exe install zeromq:x64-windows
+            # Set environment variables for Windows ZMQ
+            echo "CGO_CFLAGS=-I$(pwd)/installed/x64-windows/include" >> $GITHUB_ENV
+            echo "CGO_LDFLAGS=-L$(pwd)/installed/x64-windows/lib -lzmq" >> $GITHUB_ENV
+            cd ..
           elif [ "${{ runner.os }}" == "macOS" ]; then
-            brew install zeromq
+            # Install ZeroMQ using homebrew
+            brew install zeromq pkg-config
           else
+            # Install ZeroMQ development libraries on Linux
             sudo apt-get update
-            sudo apt-get install -y libzmq3-dev
+            sudo apt-get install -y libzmq3-dev pkg-config
           fi
 
       - name: Build bitwindowd
