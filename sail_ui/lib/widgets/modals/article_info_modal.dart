@@ -92,7 +92,7 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                               ),
                               codeblockPadding: const EdgeInsets.all(16),
                             ),
-                            onTapLink: (_, href, __) async {
+                            onTapLink: (_, href, _) async {
                               if (href == null) return;
                               await launchUrl(Uri.parse(href));
                             },

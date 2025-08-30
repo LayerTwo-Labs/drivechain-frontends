@@ -874,19 +874,32 @@ extension BinaryDownload on Binary {
   /// Update metadata with current binary information
   Future<Binary> updateMetadata(Directory appDir) async {
     try {
+      final updatedLocal = await updateLocalMetadata(appDir);
+      final updatedReleaseDate = await updateReleaseDate(appDir);
+      return copyWith(
+        metadata: metadata.copyWith(
+          remoteTimestamp: updatedReleaseDate.metadata.remoteTimestamp,
+          downloadedTimestamp: updatedLocal.metadata.downloadedTimestamp,
+          binaryPath: updatedLocal.metadata.binaryPath,
+          updateable: updatedLocal.metadata.updateable,
+        ),
+      );
+    } catch (e) {
+      // Log error and return unchanged binary
+      log.e('Error updating metadata for $name: $e');
+      return this;
+    }
+  }
+
+  /// Update metadata with current binary information
+  Future<Binary> updateLocalMetadata(Directory appDir) async {
+    try {
       // Load metadata from bin/ directory
       final (lastModified, binaryFile) = await _getCreationDate(appDir);
       final updateableBinary = binaryFile?.path.contains(appDir.path) ?? false;
 
-      DateTime? serverReleaseDate;
-      try {
-        serverReleaseDate = await _checkReleaseDate();
-      } catch (e) {
-        log.e('could not check release date: $e');
-      }
-
       final updatedConfig = metadata.copyWith(
-        remoteTimestamp: serverReleaseDate,
+        remoteTimestamp: metadata.remoteTimestamp,
         downloadedTimestamp: lastModified,
         binaryPath: binaryFile,
         updateable: updateableBinary,
@@ -896,6 +909,31 @@ extension BinaryDownload on Binary {
     } catch (e) {
       // Log error and return unchanged binary
       log.e('Error updating metadata for $name: $e');
+      return this;
+    }
+  }
+
+  /// Update metadata with current binary information
+  Future<Binary> updateReleaseDate(Directory appDir) async {
+    try {
+      DateTime? serverReleaseDate;
+      try {
+        serverReleaseDate = await _checkReleaseDate();
+      } catch (e) {
+        log.e('could not check release date: $e');
+      }
+
+      final updatedConfig = metadata.copyWith(
+        remoteTimestamp: serverReleaseDate,
+        downloadedTimestamp: metadata.downloadedTimestamp,
+        binaryPath: metadata.binaryPath,
+        updateable: metadata.updateable,
+      );
+
+      return copyWith(metadata: updatedConfig);
+    } catch (e) {
+      // Log error and return unchanged binary
+      log.e('Error updating release date for $name: $e');
       return this;
     }
   }

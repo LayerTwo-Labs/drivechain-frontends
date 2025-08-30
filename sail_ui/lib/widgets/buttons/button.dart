@@ -20,6 +20,7 @@ class SailButton extends StatefulWidget {
   final bool small;
   final bool insideTable;
   final Color? textColor;
+  final bool skipLoading;
 
   const SailButton({
     super.key,
@@ -37,6 +38,7 @@ class SailButton extends StatefulWidget {
     this.small = false,
     this.insideTable = false,
     this.textColor,
+    this.skipLoading = false,
   }) : assert(
          variant != ButtonVariant.icon || (icon != null && label == null),
          'Icon must be set with no label for icon-variant',
@@ -50,7 +52,7 @@ class SailButton extends StatefulWidget {
 class _SailButtonState extends State<SailButton> {
   bool _internalLoading = false;
 
-  bool get _isLoading => widget.loading || _internalLoading;
+  bool get _isLoading => (widget.loading || _internalLoading) && !widget.skipLoading;
 
   Future<void> _handlePress() async {
     if (widget.onPressed == null || _isLoading) return;
