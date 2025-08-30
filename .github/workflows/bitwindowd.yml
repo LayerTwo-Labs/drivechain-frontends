@@ -90,8 +90,10 @@ jobs:
             ./bootstrap-vcpkg.bat
             ./vcpkg.exe install zeromq:x64-windows
             # Set environment variables for Windows ZMQ
-            echo "CGO_CFLAGS=-I$(pwd)/installed/x64-windows/include" >> $GITHUB_ENV
-            echo "CGO_LDFLAGS=-L$(pwd)/installed/x64-windows/lib -lzmq" >> $GITHUB_ENV
+            VCPKG_ROOT="$(pwd)"
+            echo "CGO_CFLAGS=-I${VCPKG_ROOT}/installed/x64-windows/include" >> $GITHUB_ENV
+            echo "CGO_LDFLAGS=-L${VCPKG_ROOT}/installed/x64-windows/lib -llibzmq" >> $GITHUB_ENV
+            echo "PKG_CONFIG_PATH=${VCPKG_ROOT}/installed/x64-windows/lib/pkgconfig" >> $GITHUB_ENV
             cd ..
           elif [ "${{ runner.os }}" == "macOS" ]; then
             # Install ZeroMQ using homebrew
