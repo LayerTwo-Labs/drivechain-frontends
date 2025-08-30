@@ -403,14 +403,7 @@ class DeniabilityViewModel extends BaseViewModel {
 
   // Post-frame initialization for async operations
   Future<void> postInit() async {
-    try {
-      // Fetch data
-      await transactionProvider.fetch();
-    } catch (e) {
-      setErrorForObject('deniability', e.toString());
-    } finally {
-      setBusy(false);
-    }
+    await transactionProvider.fetch();
   }
 
   void errorListener() {
