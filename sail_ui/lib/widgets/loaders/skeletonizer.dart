@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-class SailSkeletonizer extends StatelessWidget {
+class SailSkeletonizer extends StatefulWidget {
   final Widget child;
   // a description of what the widget is waiting on, why its loading
   final String description;
@@ -24,22 +24,64 @@ class SailSkeletonizer extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  State<SailSkeletonizer> createState() => _SailSkeletonizerState();
+}
+
+class _SailSkeletonizerState extends State<SailSkeletonizer> {
+  Widget? _cachedSkeletonizer;
+  bool? _lastEnabled;
+
+  @override
+  void didUpdateWidget(SailSkeletonizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Always rebuild when not enabled (so child gets updates)
+    if (!widget.enabled) {
+      _cachedSkeletonizer = null;
+      return;
+    }
+
+    // If skeleton properties changed, rebuild the skeletonizer
+    if (widget.enabled != _lastEnabled ||
+        widget.enableSwitchAnimation != oldWidget.enableSwitchAnimation ||
+        widget.ignoreContainers != oldWidget.ignoreContainers ||
+        widget.justifyMultiLineText != oldWidget.justifyMultiLineText ||
+        widget.duration != oldWidget.duration) {
+      _cachedSkeletonizer = null;
+    }
+  }
+
+  Widget _buildSkeletonizer() {
     final theme = SailTheme.of(context);
 
-    final skeletonizer = Skeletonizer(
-      enabled: enabled,
+    return Skeletonizer(
+      enabled: widget.enabled,
       effect: ShimmerEffect(
         baseColor: theme.colors.backgroundSecondary,
         highlightColor: theme.colors.text.withValues(alpha: 0.5),
-        duration: duration,
+        duration: widget.duration,
       ),
-      ignoreContainers: ignoreContainers,
-      justifyMultiLineText: justifyMultiLineText,
-      child: child,
+      ignoreContainers: widget.ignoreContainers,
+      justifyMultiLineText: widget.justifyMultiLineText,
+      child: widget.child,
     );
+  }
 
-    return enabled ? Tooltip(message: description, child: skeletonizer) : skeletonizer;
+  @override
+  Widget build(BuildContext context) {
+    // When disabled, always build fresh
+    if (!widget.enabled) {
+      final skeletonizer = _buildSkeletonizer();
+      return skeletonizer;
+    }
+
+    // When enabled, cache the skeletonizer to not restart animation
+    if (_cachedSkeletonizer == null || _lastEnabled != widget.enabled) {
+      _cachedSkeletonizer = _buildSkeletonizer();
+      _lastEnabled = widget.enabled;
+    }
+
+    return Tooltip(message: widget.description, child: _cachedSkeletonizer!);
   }
 }
 
