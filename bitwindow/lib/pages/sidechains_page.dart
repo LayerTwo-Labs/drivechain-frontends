@@ -99,7 +99,8 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
       title: 'Sidechains',
       titleTooltip:
           'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
-      error: error,
+      subtitle: viewModel._enforcerRPC.initializingBinary ? 'Enforcer is initializing...' : null,
+      error: viewModel._enforcerRPC.initializingBinary ? null : error,
       widgetHeaderEnd: smallVersion
           ? null
           : SailToggle(

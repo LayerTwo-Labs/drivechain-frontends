@@ -280,10 +280,6 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       false;
 
   Color get connectionColor {
-    if (allConnected) {
-      return SailColorScheme.green;
-    }
-
     if (initializingAny) {
       return SailColorScheme.orange;
     }
@@ -306,8 +302,36 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.red;
     }
 
+    if (!mainchain.connected) {
+      return SailColorScheme.red;
+    }
+
+    if (!enforcer.connected) {
+      return SailColorScheme.red;
+    }
+
+    if (!additionalConnection.connected) {
+      return SailColorScheme.red;
+    }
+
     if (downloadingAny) {
       return SailColorScheme.orange;
+    }
+
+    if (mainchain.inSync) {
+      return SailColorScheme.orange;
+    }
+
+    if (!(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+      return SailColorScheme.orange;
+    }
+
+    if (!(syncProvider.additionalSyncInfo?.isSynced ?? false)) {
+      return SailColorScheme.orange;
+    }
+
+    if (allConnected) {
+      return SailColorScheme.green;
     }
 
     return SailColorScheme.orange;
@@ -348,6 +372,30 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (additionalConnection.connectionError != null || additionalConnection.rpc.startupError != null) {
       return additionalConnection.connectionError ?? additionalConnection.rpc.startupError!;
+    }
+
+    if (!mainchain.connected) {
+      return 'Bitcoin Core not started';
+    }
+
+    if (!enforcer.connected) {
+      return 'Enforcer not started';
+    }
+
+    if (!additionalConnection.connected) {
+      return '${additionalConnection.name} not started';
+    }
+
+    if (mainchain.inSync) {
+      return 'Syncing mainchain blocks';
+    }
+
+    if (!(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+      return 'Syncing enforcer blocks';
+    }
+
+    if (!(syncProvider.additionalSyncInfo?.isSynced ?? false)) {
+      return 'Syncing mainchain blocks';
     }
 
     if (!allConnected) {
