@@ -26,8 +26,7 @@ Future<void> initSidechainDependencies({
 
   // Load and register initial binary states
   final binaries = _initialBinaries(sidechainType.binary);
-  final bitwindowAppDir = Directory(path.join(applicationDir.path, '..', 'bitwindow'));
-  final binaryProvider = await BinaryProvider.create(bitwindowAppDir: bitwindowAppDir, initialBinaries: binaries);
+  final binaryProvider = await BinaryProvider.create(appDir: applicationDir, initialBinaries: binaries);
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
 
   // register and boot binaries

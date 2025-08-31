@@ -386,10 +386,6 @@ abstract class Binary {
     // Check the folder where binaries are downloaded to first
     paths.addAll([path.join(binDir(appDir.path).path, baseBinary)]);
 
-    // we might be running a sidechain. if that's the case, check if bitwindow has downloaded it
-    final bitwindowAppDir = path.join(appDir.parent.path, 'bitwindow');
-    paths.addAll([path.join(binDir(bitwindowAppDir).path, baseBinary)]);
-
     // finally check .app bundle on macos
     if (Platform.isMacOS) {
       paths.addAll([path.join(binDir(appDir.path).path, '$baseBinary.app')]);
@@ -570,7 +566,13 @@ class BitWindow extends Binary {
   }) : super(
          directories:
              directories ??
-             DirectoryConfig(base: {OS.linux: 'bitwindow', OS.macos: 'bitwindow', OS.windows: 'bitwindow'}),
+             DirectoryConfig(
+               base: {
+                 OS.linux: 'bitwindow',
+                 OS.macos: 'bitwindow',
+                 OS.windows: 'bitwindow',
+               },
+             ),
          metadata:
              metadata ??
              MetadataConfig(

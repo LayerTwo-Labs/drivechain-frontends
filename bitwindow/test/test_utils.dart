@@ -188,7 +188,7 @@ class MockBinary extends Binary {
 class MockBinaryProvider extends BinaryProvider {
   MockBinaryProvider()
     : super.test(
-        bitwindowAppDir: Directory('/tmp'),
+        appDir: Directory('/tmp'),
         downloadManager: MockDownloadManager(),
         processManager: MockProcessManager(),
       );
@@ -197,7 +197,7 @@ class MockBinaryProvider extends BinaryProvider {
   List<Binary> get binaries => [MockBinary()];
 
   @override
-  Directory get bitwindowAppDir => Directory('/tmp');
+  Directory get appDir => Directory('/tmp');
 
   @override
   bool get mainchainConnected => true;
@@ -329,11 +329,11 @@ class MockBinaryProvider extends BinaryProvider {
 class MockDownloadManager extends DownloadManager {
   MockDownloadManager()
     : super.test(
-        bitwindowAppDir: Directory('/tmp'),
+        appDir: Directory('/tmp'),
         binaries: [MockBinary()],
       );
 }
 
 class MockProcessManager extends ProcessManager {
-  MockProcessManager() : super(bitwindowAppDir: Directory('/tmp'));
+  MockProcessManager() : super(appDir: Directory('/tmp'));
 }

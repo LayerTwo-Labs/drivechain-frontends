@@ -8,9 +8,9 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 
 class ProcessManager extends ChangeNotifier {
-  final Directory bitwindowAppDir;
+  final Directory appDir;
 
-  ProcessManager({required this.bitwindowAppDir});
+  ProcessManager({required this.appDir});
 
   Logger get log => GetIt.I.get<Logger>();
 
@@ -34,7 +34,7 @@ class ProcessManager extends ChangeNotifier {
     // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
     Map<String, String> environment = const {},
   }) async {
-    final file = await binary.resolveBinaryPath(bitwindowAppDir);
+    final file = await binary.resolveBinaryPath(appDir);
 
     // Windows doesn't do executable permissions
     if (!Platform.isWindows) {
