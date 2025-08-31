@@ -234,12 +234,16 @@ class BinaryProvider extends ChangeNotifier {
       log.i('booting sidechain ${binary.name}');
       // We're booting some sort of sidechain. Check the wallet-starter-directory for
       // a starter seed, but always bitwindow!
-      final bitwindowAppDir = Directory(path.join(appDir.path, 'bitwindow'));
+      final bitwindowAppDir = Directory(path.join(appDir.parent.path, 'bitwindow'));
       final mnemonicPath = binary.getMnemonicPath(bitwindowAppDir);
       log.i('mnemonic path: $mnemonicPath');
       if (mnemonicPath != null) {
         log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
         binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
+        _downloadManager.updateBinary(
+          binary.type,
+          (currentBinary) => binary,
+        );
       }
     }
 
@@ -495,8 +499,11 @@ class BinaryProvider extends ChangeNotifier {
     // the l1 mnemonic to the enforcer, to avoid it from generating
     // one itself
     while (true) {
-      final bitwindowAppDir = Directory(path.join(appDir.path, 'bitwindow'));
+      final bitwindowAppDir = Directory(path.join(appDir.parent.path, 'bitwindow'));
       final walletDir = getWalletDir(bitwindowAppDir);
+      log.i(
+        '[T+${getElapsed()}ms] STARTUP: Waiting for l1 starter..., walletDir: $walletDir, bitwindowAppDir: $bitwindowAppDir appDir: $appDir',
+      );
       if (walletDir != null) {
         final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
         if (await mnemonicFile.exists()) {

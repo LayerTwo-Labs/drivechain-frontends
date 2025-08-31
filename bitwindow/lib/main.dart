@@ -78,7 +78,6 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   Environment.validateAtRuntime();
 
   final storage = await KeyValueStore.create(dir: applicationDir);
-  await copyBinariesFromAssets(log, applicationDir);
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
@@ -90,6 +89,8 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   GetIt.I.registerLazySingleton<ContentProvider>(() => ContentProvider());
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
+
+  await copyBinariesFromAssets(log, applicationDir);
 
   // Load initial binary states
   final binaryProvider = await BinaryProvider.create(

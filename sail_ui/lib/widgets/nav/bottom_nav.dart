@@ -135,6 +135,8 @@ class BottomNav extends StatelessWidget {
                       syncInfo: model.syncProvider.mainchainSyncInfo,
                       restartDaemon: () =>
                           binaryProvider.start(binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name)),
+                      stopDaemon: () =>
+                          binaryProvider.stop(binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name)),
                       infoMessage: _getDownloadMessage(model.syncProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
                     ),
@@ -151,6 +153,8 @@ class BottomNav extends StatelessWidget {
                               : null),
                       restartDaemon: () =>
                           binaryProvider.start(binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name)),
+                      stopDaemon: () =>
+                          binaryProvider.stop(binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name)),
                       navigateToLogs: model.navigateToLogs,
                     ),
                   DaemonConnectionCard(
@@ -158,6 +162,9 @@ class BottomNav extends StatelessWidget {
                     syncInfo: model.syncProvider.additionalSyncInfo,
                     infoMessage: _getDownloadMessage(model.syncProvider.additionalSyncInfo),
                     restartDaemon: () => binaryProvider.start(
+                      binaryProvider.binaries.firstWhere((b) => b.name == additionalConnection.rpc.binary.name),
+                    ),
+                    stopDaemon: () => binaryProvider.stop(
                       binaryProvider.binaries.firstWhere((b) => b.name == additionalConnection.rpc.binary.name),
                     ),
                     navigateToLogs: model.navigateToLogs,
