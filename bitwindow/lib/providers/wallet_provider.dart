@@ -23,10 +23,10 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
 class WalletProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
-  final Directory appDir;
+  final Directory bitwindowAppDir;
 
   WalletProvider({
-    required this.appDir,
+    required this.bitwindowAppDir,
   });
 
   final _logger = GetIt.I.get<Logger>();
@@ -37,7 +37,7 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<bool> hasLauncherModeDir() async {
-    var walletDir = path.join(appDir.path, 'wallet_starters');
+    var walletDir = path.join(bitwindowAppDir.path, 'wallet_starters');
     return Directory(walletDir).existsSync();
   }
 
@@ -61,9 +61,9 @@ class WalletProvider extends ChangeNotifier {
       return;
     }
 
-    final newName = await _findAvailableName(appDir.path, 'wallet_starters');
-    final newPath = path.join(appDir.path, newName);
-    await getWalletDir(appDir)!.rename(newPath);
+    final newName = await _findAvailableName(bitwindowAppDir.path, 'wallet_starters');
+    final newPath = path.join(bitwindowAppDir.path, newName);
+    await getWalletDir(bitwindowAppDir)!.rename(newPath);
     _logger.i('Moved wallet_starters directory to $newName');
   }
 
@@ -372,7 +372,7 @@ class WalletProvider extends ChangeNotifier {
   Future<File?> _getWalletFile(String fileName) async {
     _logger.i('_getWalletFile: Getting file $fileName');
 
-    final walletDir = getWalletDir(appDir);
+    final walletDir = getWalletDir(bitwindowAppDir);
     if (walletDir == null) {
       _logger.e('_getWalletFile: walletDir is null for $fileName');
       return null;
@@ -386,10 +386,10 @@ class WalletProvider extends ChangeNotifier {
   Future<void> _ensureWalletDir() async {
     _logger.i('_ensureWalletDir: Starting');
 
-    var walletDir = getWalletDir(appDir);
+    var walletDir = getWalletDir(bitwindowAppDir);
     if (walletDir == null) {
       _logger.e('_ensureWalletDir: Could not find wallet dir, creating new one');
-      walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+      walletDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters'));
     } else {
       _logger.i('_ensureWalletDir: Found wallet dir: ${walletDir.path}');
       return;
@@ -460,7 +460,7 @@ class WalletProvider extends ChangeNotifier {
   }
 
   // Delete Bitcoin Core wallet directories in Drivechain/signet
-  Future<void> _deleteCoreMultisigWallets(Directory appDir, Logger logger) async {
+  Future<void> _deleteCoreMultisigWallets(Logger logger) async {
     try {
       final coreDataDir = Directory(path.join(BitcoinCore().datadir(), 'signet'));
       final entities = await coreDataDir.list(recursive: false).toList();
@@ -476,7 +476,7 @@ class WalletProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      logger.e('Error cleaning multisig wallets in ${appDir.path}: $e');
+      logger.e('Error cleaning multisig wallets in core data dir: $e');
     }
   }
 
@@ -532,8 +532,8 @@ class WalletProvider extends ChangeNotifier {
     onStatusUpdate?.call('Cleaning multisig wallets');
 
     try {
-      await GetIt.I.get<BitDriveProvider>().wipeData(appDir);
-      await _deleteCoreMultisigWallets(appDir, _logger);
+      await GetIt.I.get<BitDriveProvider>().wipeData(bitwindowAppDir);
+      await _deleteCoreMultisigWallets(_logger);
     } catch (e) {
       _logger.e('could not delete multisig wallets: $e');
     }

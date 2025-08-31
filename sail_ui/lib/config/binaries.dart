@@ -8,7 +8,6 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/providers/settings_provider.dart';
@@ -330,49 +329,7 @@ abstract class Binary {
       }
     }
 
-    return await loadAndWriteBinaryFromAssetsBundle(appDir);
-  }
-
-  Future<File> loadAndWriteBinaryFromAssetsBundle(Directory? appDir) async {
-    ByteData? binResource;
-
-    final binaryName = binary + (Platform.isWindows && !binary.endsWith('.exe') ? '.exe' : '');
-
-    try {
-      // add .exe if on windows and the binary doesn't already end with .exe
-      final assetPath = 'assets/bin/$binaryName';
-
-      binResource = await rootBundle.load(assetPath);
-    } catch (e) {
-      throw Exception('Process: could not find binary $binaryName in any location: $e');
-    }
-    log.d('successfully loaded binary from assets: $assetPath');
-
-    File file;
-    if (appDir != null) {
-      final fileDir = binDir(appDir.path);
-      await fileDir.create(recursive: true);
-      file = File(path.join(fileDir.path, binaryName));
-      log.d('Writing binary to assets/bin: ${file.path}');
-    } else {
-      // Create temp file
-      final temp = await getTemporaryDirectory();
-      final ts = DateTime.now();
-      final randDir = Directory(filePath([temp.path, ts.millisecondsSinceEpoch.toString()]));
-      log.d('Creating temporary directory at: ${randDir.path}');
-      await randDir.create();
-
-      file = File(filePath([randDir.path, binaryName]));
-      log.d('Writing binary to temporary file: ${file.path}');
-    }
-
-    log.d('Process: writing binary to ${file.path}');
-
-    final buffer = binResource.buffer;
-    await file.writeAsBytes(buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes));
-    log.d('Process: successfully wrote binary to assets');
-
-    return file;
+    throw Exception('Binary not found');
   }
 
   List<String> _getPossibleBinaryPaths(String baseBinary, Directory appDir) {
@@ -388,7 +345,15 @@ abstract class Binary {
 
     // finally check .app bundle on macos
     if (Platform.isMacOS) {
-      paths.addAll([path.join(binDir(appDir.path).path, '$baseBinary.app')]);
+      if (!baseBinary.endsWith('.app')) {
+        paths.addAll([path.join(binDir(appDir.path).path, '$baseBinary.app')]);
+      }
+    }
+    // or .exe on windows
+    if (Platform.isWindows) {
+      if (!baseBinary.endsWith('.exe')) {
+        paths.addAll([path.join(binDir(appDir.path).path, '$baseBinary.exe')]);
+      }
     }
 
     return paths;

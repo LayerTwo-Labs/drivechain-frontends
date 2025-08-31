@@ -25,6 +25,7 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -77,6 +78,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   Environment.validateAtRuntime();
 
   final storage = await KeyValueStore.create(dir: applicationDir);
+  await copyBinariesFromAssets(log, applicationDir);
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
@@ -111,7 +113,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<ThunderRPC>(() => ThunderLive());
   GetIt.I.registerLazySingleton<ZSideRPC>(() => ZSideLive());
 
-  GetIt.I.registerLazySingleton<WalletProvider>(() => WalletProvider(appDir: applicationDir!));
+  GetIt.I.registerLazySingleton<WalletProvider>(() => WalletProvider(bitwindowAppDir: applicationDir!));
   GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [bitwindow]));
   GetIt.I.registerLazySingleton<SyncProvider>(
     () => SyncProvider(
@@ -242,12 +244,6 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
     ),
   );
 }
-
-Future<void> initDependencies(
-  Logger log,
-  File logFile, {
-  required Directory applicationDir,
-}) async {}
 
 void ignoreOverflowErrors(
   FlutterErrorDetails details, {

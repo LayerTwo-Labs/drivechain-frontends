@@ -233,8 +233,9 @@ class BinaryProvider extends ChangeNotifier {
       binary = binary as Sidechain;
       log.i('booting sidechain ${binary.name}');
       // We're booting some sort of sidechain. Check the wallet-starter-directory for
-      // a starter seed
-      final mnemonicPath = binary.getMnemonicPath(appDir);
+      // a starter seed, but always bitwindow!
+      final bitwindowAppDir = Directory(path.join(appDir.path, 'bitwindow'));
+      final mnemonicPath = binary.getMnemonicPath(bitwindowAppDir);
       log.i('mnemonic path: $mnemonicPath');
       if (mnemonicPath != null) {
         log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
@@ -494,7 +495,8 @@ class BinaryProvider extends ChangeNotifier {
     // the l1 mnemonic to the enforcer, to avoid it from generating
     // one itself
     while (true) {
-      final walletDir = getWalletDir(appDir);
+      final bitwindowAppDir = Directory(path.join(appDir.path, 'bitwindow'));
+      final walletDir = getWalletDir(bitwindowAppDir);
       if (walletDir != null) {
         final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
         if (await mnemonicFile.exists()) {
