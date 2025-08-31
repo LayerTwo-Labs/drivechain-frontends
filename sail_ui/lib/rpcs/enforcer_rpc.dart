@@ -131,7 +131,7 @@ class EnforcerLive extends EnforcerRPC {
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:8080/$url'),
+        Uri.parse('http://localhost:50051/$url'),
         headers: {'content-type': 'application/json'},
         body: body,
       );
