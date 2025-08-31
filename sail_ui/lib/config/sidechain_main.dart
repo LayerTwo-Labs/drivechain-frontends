@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -16,6 +18,9 @@ Future<void> initSidechainDependencies({
   required KeyValueStore store,
   required Logger log,
 }) async {
+  // first of all, write all binaries to the assets/bin directory
+  await copyBinariesFromAssets(log, applicationDir);
+
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
   final clientSettings = ClientSettings(store: store, log: log);
@@ -77,4 +82,33 @@ List<Binary> _initialBinaries(Binary sidechain) {
   binaries[2].addBootArg('--headless');
 
   return binaries;
+}
+
+Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
+  final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), Bitnames(), BitAssets(), ZSide()];
+
+  final fileDir = binDir(appDir.path);
+  await fileDir.create(recursive: true);
+
+  for (final binary in allBinaries) {
+    try {
+      final binaryName = binary.name + (Platform.isWindows && !binary.name.endsWith('.exe') ? '.exe' : '');
+      final assetPath = 'assets/bin/$binaryName';
+
+      final binResource = await rootBundle.load(assetPath);
+      final file = File(path.join(fileDir.path, binaryName));
+
+      log.d('Writing binary ${binary.name} to: ${file.path}');
+
+      final buffer = binResource.buffer;
+      await file.writeAsBytes(buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes));
+
+      log.d('Successfully wrote binary: ${binary.name}');
+    } catch (e) {
+      log.w('Failed to copy binary ${binary.name}: $e');
+      // It's fine to fail, probably just doesn't exist in the assets/bin directory
+    }
+  }
+
+  log.d('Finished copying all available binaries to assets/bin');
 }
