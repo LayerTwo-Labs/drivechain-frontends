@@ -110,6 +110,7 @@ class ProcessManager extends ChangeNotifier {
       process.exitCode.then((code) async {
         try {
           log.i('process exit handler for code=$code binary=$binary pid=${process.pid} triggered');
+          runningProcesses.remove(binary.name);
 
           var level = Level.info;
           var message = '';
@@ -133,7 +134,6 @@ class ProcessManager extends ChangeNotifier {
 
           // Forward to listeners that the process finished.
           _exitTuples[binary.name] = ExitTuple(code: code, message: message);
-          runningProcesses.remove(binary.name);
           // Close the stream controllers
           await stdoutController.close();
           await stderrController.close();

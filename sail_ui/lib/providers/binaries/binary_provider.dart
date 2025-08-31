@@ -479,12 +479,8 @@ class BinaryProvider extends ChangeNotifier {
     log.i('[T+${getElapsed()}ms] STARTUP: Ensuring all binaries are downloaded');
 
     // Ensure we have all required binaries
-    final bitcoinCore = binaries.whereType<BitcoinCore>().firstOrNull;
-    final enforcer = binaries.whereType<Enforcer>().firstOrNull;
-
-    if (bitcoinCore == null || enforcer == null) {
-      throw Exception('could not find all required L1 binaries');
-    }
+    final bitcoinCore = binaries.whereType<BitcoinCore>().first;
+    final enforcer = binaries.whereType<Enforcer>().first;
 
     if (bootExtraBinaryImmediately) {
       log.i('[T+${getElapsed()}ms] STARTUP: Starting ${binaryToBoot.name}');
@@ -535,7 +531,10 @@ class BinaryProvider extends ChangeNotifier {
           // Show shutdown page with running binaries
           unawaited(
             shutdownOptions.router.push(
-              ShuttingDownRoute(binaries: runningBinaries, onComplete: shutdownOptions.onComplete),
+              ShuttingDownRoute(
+                binaries: runningBinaries,
+                onComplete: shutdownOptions.onComplete,
+              ),
             ),
           );
         }

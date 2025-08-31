@@ -131,7 +131,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   final router = AppRouter();
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  Future<SidechainRPC> createSidechainConnection(Binary binary) async {
+  SidechainRPC createSidechainConnection(Binary binary) {
     final bitnames = BitnamesLive();
     GetIt.I.registerSingleton<BitnamesRPC>(bitnames);
 
