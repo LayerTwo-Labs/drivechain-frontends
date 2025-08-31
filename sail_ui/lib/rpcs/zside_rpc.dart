@@ -29,7 +29,7 @@ final zsideRPCMethods = [
   'get_shielded_wallet_addresses',
   'get_transparent_wallet_addresses',
   'get_wallet_utxos',
-  'get_blockcount',
+  'getblockcount',
   'latest_failed_withdrawal_bundle_height',
   'list_peers',
   'list_utxos',

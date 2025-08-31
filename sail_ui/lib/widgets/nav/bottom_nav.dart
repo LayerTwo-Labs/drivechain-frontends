@@ -129,7 +129,9 @@ class BottomNav extends StatelessWidget {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!model.mainchain.connected || !onlyShowAdditional)
+                  if (!model.mainchain.connected ||
+                      !(model.syncProvider.mainchainSyncInfo?.isSynced ?? false) ||
+                      !onlyShowAdditional)
                     DaemonConnectionCard(
                       connection: model.mainchain,
                       syncInfo: model.syncProvider.mainchainSyncInfo,
@@ -140,7 +142,9 @@ class BottomNav extends StatelessWidget {
                       infoMessage: _getDownloadMessage(model.syncProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
                     ),
-                  if (!model.enforcer.connected || !onlyShowAdditional)
+                  if (!model.enforcer.connected ||
+                      !(model.syncProvider.enforcerSyncInfo?.isSynced ?? false) ||
+                      !onlyShowAdditional)
                     DaemonConnectionCard(
                       connection: model.enforcer,
                       syncInfo: model.syncProvider.enforcerSyncInfo,
