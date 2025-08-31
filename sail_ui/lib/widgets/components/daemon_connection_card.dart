@@ -10,6 +10,7 @@ class DaemonConnectionCard extends StatelessWidget {
   final RPCConnection connection;
   final SyncInfo? syncInfo;
   final Future<void> Function() restartDaemon;
+  final Future<void> Function() stopDaemon;
   final Future<void> Function()? deleteFunction;
 
   final String? infoMessage;
@@ -20,6 +21,7 @@ class DaemonConnectionCard extends StatelessWidget {
     required this.syncInfo,
     required this.infoMessage,
     required this.restartDaemon,
+    required this.stopDaemon,
     this.deleteFunction,
     this.navigateToLogs,
   });
@@ -100,6 +102,17 @@ class DaemonConnectionCard extends StatelessWidget {
                   icon: SailSVGAsset.iconRestart,
                 ),
               ),
+              if (connection.connected)
+                Tooltip(
+                  message: 'Stop ${connection.binary.name}',
+                  child: SailButton(
+                    variant: ButtonVariant.icon,
+                    onPressed: stopDaemon,
+                    loading: connection.stoppingBinary,
+                    icon: SailSVGAsset.square,
+                    textColor: theme.colors.error,
+                  ),
+                ),
               if (deleteFunction != null)
                 SailButton(variant: ButtonVariant.icon, onPressed: deleteFunction, icon: SailSVGAsset.iconDelete),
             ],

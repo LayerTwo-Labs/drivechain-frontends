@@ -18,15 +18,15 @@ Future<void> initSidechainDependencies({
   required KeyValueStore store,
   required Logger log,
 }) async {
-  // first of all, write all binaries to the assets/bin directory
-  await copyBinariesFromAssets(log, applicationDir);
-
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
   final clientSettings = ClientSettings(store: store, log: log);
   GetIt.I.registerLazySingleton<ClientSettings>(() => clientSettings);
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
+
+  // first of all, write all binaries to the assets/bin directory
+  await copyBinariesFromAssets(log, applicationDir);
 
   // Load and register initial binary states
   final binaries = _initialBinaries(sidechainType.binary);
@@ -92,7 +92,7 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
 
   for (final binary in allBinaries) {
     try {
-      final binaryName = binary.name + (Platform.isWindows && !binary.name.endsWith('.exe') ? '.exe' : '');
+      final binaryName = binary.binary + (Platform.isWindows && !binary.binary.endsWith('.exe') ? '.exe' : '');
       final assetPath = 'assets/bin/$binaryName';
 
       final binResource = await rootBundle.load(assetPath);

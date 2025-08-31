@@ -222,7 +222,7 @@ Future<File> getLogFile(Directory datadir) async {
 
 void bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final thunder = binaryProvider.binaries.firstWhere((b) => b is Thunder);
+  final thunder = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.thunder);
 
   await binaryProvider.startWithEnforcer(
     thunder,
