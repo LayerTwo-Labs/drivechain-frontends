@@ -13,7 +13,7 @@ import 'package:sail_ui/sail_ui.dart';
 // each dependency can only be registered once
 Future<void> initSidechainDependencies({
   required BinaryType sidechainType,
-  required Future<SidechainRPC> Function(Binary) createSidechainConnection,
+  required SidechainRPC Function(Binary) createSidechainConnection,
   required Directory applicationDir,
   required KeyValueStore store,
   required Logger log,
@@ -39,7 +39,7 @@ Future<void> initSidechainDependencies({
   final enforcer = EnforcerLive();
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
   final binary = binaries.firstWhere((b) => b.type == sidechainType);
-  final sidechainConnection = await createSidechainConnection(binary);
+  final sidechainConnection = createSidechainConnection(binary);
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
   bootBinaries(log, binary);
 

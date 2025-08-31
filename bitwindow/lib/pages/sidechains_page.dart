@@ -146,7 +146,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
     }
 
     return SailTable(
-      key: ValueKey('sidechains_table'),
+      key: ValueKey('sidechains_table_filled'),
       getRowId: (index) => filledSlots[index].toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(
@@ -267,7 +267,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     return SailTable(
-      key: ValueKey('sidechains_table'),
+      key: ValueKey('sidechains_table_full'),
       getRowId: (index) => index.toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(
