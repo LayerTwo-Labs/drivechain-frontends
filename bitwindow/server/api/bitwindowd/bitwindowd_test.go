@@ -2,7 +2,9 @@ package api_bitwindowd_test
 
 import (
 	"context"
+	"crypto/rand"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -10,10 +12,14 @@ import (
 	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -979,4 +985,106 @@ func TestService_SetTransactionNote(t *testing.T) {
 		}))
 		require.NoError(t, err)
 	})
+}
+
+func TestService_GetFireplaceStats(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	database := database.Test(t)
+	cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+
+	resp, err := cli.GetFireplaceStats(ctx, connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	assert.Empty(t, resp.Msg.TransactionCount_24H)
+	assert.Empty(t, resp.Msg.CoinnewsCount_7D)
+	assert.Empty(t, resp.Msg.BlockCount_24H)
+
+	newHash := func(t *testing.T) chainhash.Hash {
+		buf := make([]byte, chainhash.HashSize)
+		_, err := rand.Read(buf)
+		require.NoError(t, err)
+
+		hash, err := chainhash.NewHash(buf)
+		require.NoError(t, err)
+		return *hash
+	}
+
+	require.NoError(t, blocks.MarkBlocksProcessed(ctx, database, []blocks.ProcessedBlock{
+		{
+			Height:      100,
+			Hash:        newHash(t),
+			BlockTime:   time.Now(),
+			ProcessedAt: time.Now(),
+			Txids: []chainhash.Hash{
+				newHash(t),
+				newHash(t),
+			},
+		},
+		// old block, doesn't count
+		{
+			Height:      99,
+			Hash:        newHash(t),
+			BlockTime:   time.Now().AddDate(0, 0, -2),
+			ProcessedAt: time.Now(),
+			Txids: []chainhash.Hash{
+				newHash(t),
+				newHash(t),
+				newHash(t),
+			},
+		},
+	}))
+
+	topicID, err := opreturns.ValidNewsTopicID("deadbeefdeadbeef")
+	require.NoError(t, err)
+	require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid1"))
+
+	unknownTopicID, err := opreturns.ValidNewsTopicID("1234567887654321")
+	require.NoError(t, err)
+
+	// one old coin news entry
+	require.NoError(t, opreturns.Persist(ctx, database, []opreturns.OPReturn{
+		// coins new topic creation
+		{
+			Height:    lo.ToPtr(uint32(10)),
+			TxID:      "topic_txid1",
+			Vout:      0,
+			Data:      opreturns.EncodeTopicCreationMessage(topicID, "Test Topic"),
+			CreatedAt: lo.ToPtr(time.Now()),
+		},
+		// looks like a coin news entry, but we don't know about the topic
+		// should NOT be included
+		{
+			Height:    lo.ToPtr(uint32(10)),
+			TxID:      "news_txid4",
+			Vout:      0,
+			Data:      opreturns.EncodeNewsMessage(unknownTopicID, "Test Topic", "Test Content"),
+			CreatedAt: lo.ToPtr(time.Now()),
+		},
+		// one new coin news entry
+		{
+			Height:    lo.ToPtr(uint32(9)),
+			TxID:      "news_txid2",
+			Vout:      0,
+			Data:      opreturns.EncodeNewsMessage(topicID, "Test Topic", "Test Content"),
+			CreatedAt: lo.ToPtr(time.Now()),
+		},
+		{
+			Height:    lo.ToPtr(uint32(10)),
+			TxID:      "news_txid3",
+			Vout:      0,
+			Data:      opreturns.EncodeNewsMessage(topicID, "Test Topic", "Test Content"),
+			CreatedAt: lo.ToPtr(time.Now().AddDate(-1, 0, 0)),
+		},
+		// one old coin news entry
+	}))
+
+	resp, err = cli.GetFireplaceStats(ctx, connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	assert.EqualValues(t, 1, resp.Msg.TransactionCount_24H)
+	assert.EqualValues(t, 1, resp.Msg.CoinnewsCount_7D)
+	assert.EqualValues(t, 1, resp.Msg.BlockCount_24H)
+
 }

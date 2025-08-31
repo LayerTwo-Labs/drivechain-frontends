@@ -1,8 +1,11 @@
 package api_misc_test
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/hex"
+	"slices"
 	"strings"
 	"testing"
 
@@ -13,6 +16,7 @@ import (
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	miscv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	"github.com/samber/lo"
@@ -88,13 +92,14 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		// First create a topic using the CreateTopic function
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic", "topic_txid")
+		topicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
 
 		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "12345678",
+			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
@@ -124,12 +129,12 @@ func TestService_BroadcastNews(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "123", // Too short, should be 8 hex characters
+			Topic:    "12345678123456", // Too short, should be 16 hex characters
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "topic not on valid format")
+		assert.Contains(t, err.Error(), "is not 8 bytes")
 	})
 
 	t.Run("broadcast news with empty headline", func(t *testing.T) {
@@ -138,13 +143,15 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		// First create a topic
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic", "topic_txid")
+
+		topicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err = cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "12345678",
+			Topic:    topicID.String(),
 			Headline: "",
 			Content:  "https://example.com/news",
 		}))
@@ -158,19 +165,20 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		// First create a topic
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic", "topic_txid")
+		topicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		longHeadline := strings.Repeat("a", 65) // 65 characters, exceeds 64 limit
 		_, err = cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "12345678",
+			Topic:    topicID.String(),
 			Headline: longHeadline,
 			Content:  "https://example.com/news",
 		}))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "headline cannot be longer than 64 characters")
+		assert.Contains(t, err.Error(), "headline cannot be longer than 64 bytes")
 	})
 
 	t.Run("broadcast news with non-existent topic", func(t *testing.T) {
@@ -180,7 +188,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "87654321", // Non-existent topic
+			Topic:    "8765432187654321", // Non-existent topic
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
@@ -194,8 +202,24 @@ func TestService_BroadcastNews(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 
+		topicID := validTopicID()
+
 		mockWallet.EXPECT().
-			SendTransaction(gomock.Any(), gomock.Any()).
+			SendTransaction(gomock.Any(), tests.Connect(&pb.SendTransactionRequest{
+				OpReturnMessage: &commonv1.Hex{
+					Hex: &wrapperspb.StringValue{
+						Value: topicID.String() +
+							hex.EncodeToString(
+								slices.Concat(
+									[]byte("Test News Headline"),
+									// 64 - 18 = 46
+									make([]byte, 46),
+								),
+							) +
+							hex.EncodeToString([]byte("This is the news content")),
+					},
+				},
+			})).
 			Return(&connect.Response[pb.SendTransactionResponse]{
 				Msg: &pb.SendTransactionResponse{
 					Txid: &commonv1.ReverseHex{
@@ -207,13 +231,13 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		// First create a topic
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic", "topic_txid")
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
 
 		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "12345678",
+			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  "This is the news content",
 		}))
@@ -240,14 +264,15 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		// First create a topic
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic", "topic_txid")
+		topicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
 
 		hexContent := hex.EncodeToString([]byte("hex content"))
 		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "12345678",
+			Topic:    topicID.String(),
 			Headline: "Test News Headline",
 			Content:  hexContent,
 		}))
@@ -266,7 +291,15 @@ func TestService_CreateTopic(t *testing.T) {
 		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 
 		mockWallet.EXPECT().
-			SendTransaction(gomock.Any(), gomock.Any()).
+			SendTransaction(gomock.Any(), tests.Connect(&pb.SendTransactionRequest{
+				OpReturnMessage: &commonv1.Hex{
+					Hex: &wrapperspb.StringValue{
+						Value: "deadbeefdeadbeef" +
+							hex.EncodeToString([]byte("new")) +
+							hex.EncodeToString([]byte("Test Topic")),
+					},
+				},
+			})).
 			Return(&connect.Response[pb.SendTransactionResponse]{
 				Msg: &pb.SendTransactionResponse{
 					Txid: &commonv1.ReverseHex{
@@ -279,7 +312,7 @@ func TestService_CreateTopic(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
 
 		resp, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
-			Topic: "12345678",
+			Topic: "deadbeefdeadbeef",
 			Name:  "Test Topic",
 		}))
 		require.NoError(t, err)
@@ -297,7 +330,7 @@ func TestService_CreateTopic(t *testing.T) {
 			Name:  "Test Topic",
 		}))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "topic must be set")
+		assert.Contains(t, err.Error(), "topic ID is empty")
 	})
 
 	t.Run("create topic with invalid format", func(t *testing.T) {
@@ -307,11 +340,11 @@ func TestService_CreateTopic(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
-			Topic: "123", // Too short, should be 8 hex characters
+			Topic: "12345678123456", // Too short, should be 8 hex characters
 			Name:  "Test Topic",
 		}))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "topic not on valid format")
+		assert.Contains(t, err.Error(), "is not 8 bytes")
 	})
 
 	t.Run("create topic with empty name", func(t *testing.T) {
@@ -321,7 +354,7 @@ func TestService_CreateTopic(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
-			Topic: "12345678",
+			Topic: validTopicID().String(),
 			Name:  "",
 		}))
 		require.Error(t, err)
@@ -334,13 +367,13 @@ func TestService_CreateTopic(t *testing.T) {
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
-		longName := strings.Repeat("a", 33) // 33 characters, exceeds 32 limit
+		longName := bytes.Repeat(make([]byte, 65), 64) // 65 bytes, exceeds 64 limit
 		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
-			Topic: "12345678",
-			Name:  longName,
+			Topic: validTopicID().String(),
+			Name:  string(longName),
 		}))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "title cannot be longer than 32 characters")
+		assert.Contains(t, err.Error(), "title cannot be longer than 64 bytes")
 	})
 
 	t.Run("create duplicate topic", func(t *testing.T) {
@@ -349,13 +382,14 @@ func TestService_CreateTopic(t *testing.T) {
 		database := database.Test(t)
 		// First create a topic
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Existing Topic", "topic_txid")
+		topicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, topicID, "Existing Topic", "topic_txid")
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err = cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
-			Topic: "12345678",
+			Topic: topicID.String(),
 			Name:  "New Topic",
 		}))
 		require.Error(t, err)
@@ -383,9 +417,11 @@ func TestService_ListTopics(t *testing.T) {
 		database := database.Test(t)
 		// Insert test topics
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "Norway Weekly", "Topic 3", "a3a3a3a3")
+		topicID1 := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, topicID1, "Norway Weekly", "a3a3a3a3")
 		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, "Bitcoin Weekly", "Topic 4", "a4a4a4a4")
+		topicID2 := validTopicID()
+		err = opreturns.CreateTopic(ctx, database, topicID2, "Bitcoin Weekly", "a4a4a4a4")
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -395,20 +431,12 @@ func TestService_ListTopics(t *testing.T) {
 		require.Len(t, resp.Msg.Topics, 4)
 
 		// Check first topic
-		found1 := false
-		found2 := false
-		for _, topic := range resp.Msg.Topics {
-			if topic.Topic == "Norway Weekly" {
-				assert.Equal(t, "Topic 3", topic.Name)
-				found1 = true
-			}
-			if topic.Topic == "Bitcoin Weekly" {
-				assert.Equal(t, "Topic 4", topic.Name)
-				found2 = true
-			}
-		}
-		assert.True(t, found1, "Norway Weekly not found")
-		assert.True(t, found2, "Bitcoin Weekly not found")
+		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(topic *miscv1.Topic) bool {
+			return topic.Topic == topicID1.String()
+		}), "topic 3 not found")
+		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(topic *miscv1.Topic) bool {
+			return topic.Topic == topicID2.String()
+		}), "topic 4 not found")
 	})
 }
 
@@ -432,36 +460,35 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		// First create topics
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic 1", "topic_txid1")
+		topicID1 := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, topicID1, "Test Topic 1", "topic_txid1")
 		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, "87654321", "Test Topic 2", "topic_txid2")
+		topicID2 := validTopicID()
+		require.NoError(t, err)
+		err = opreturns.CreateTopic(ctx, database, topicID2, "Test Topic 2", "topic_txid2")
 		require.NoError(t, err)
 
 		// Insert coin news as OP_RETURN data
 		// Format: 8-byte topic + 64-byte headline (padded) + content
 		headline1 := "News Headline 1"
-		paddedHeadline1 := headline1 + string(make([]byte, 64-len(headline1)))
-		newsData1 := []byte("12345678" + paddedHeadline1 + "Content for news 1")
 		height := uint32(100)
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
 				Height: &height,
 				TxID:   "news_txid1",
 				Vout:   0,
-				Data:   newsData1,
+				Data:   opreturns.EncodeNewsMessage(topicID1, headline1, "Content for news 1"),
 			},
 		})
 		require.NoError(t, err)
 
 		headline2 := "News Headline 2"
-		paddedHeadline2 := headline2 + string(make([]byte, 64-len(headline2)))
-		newsData2 := []byte("87654321" + paddedHeadline2 + "Content for news 2")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
 				Height: &height,
 				TxID:   "news_txid2",
 				Vout:   0,
-				Data:   newsData2,
+				Data:   opreturns.EncodeNewsMessage(topicID2, headline2, "Content for news 2"),
 			},
 		})
 		require.NoError(t, err)
@@ -470,13 +497,14 @@ func TestService_ListCoinNews(t *testing.T) {
 
 		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
 		require.NoError(t, err)
-		assert.Len(t, resp.Msg.CoinNews, 2)
+		require.Len(t, resp.Msg.CoinNews, 2)
+
 		// Should be sorted by most recent first
-		assert.Equal(t, "87654321", resp.Msg.CoinNews[0].Topic)
-		assert.Equal(t, "News Headline 2"+string(make([]byte, 64-len("News Headline 2"))), resp.Msg.CoinNews[0].Headline)
+		assert.Equal(t, topicID2.String(), resp.Msg.CoinNews[0].Topic)
+		assert.Equal(t, "News Headline 2", resp.Msg.CoinNews[0].Headline)
 		assert.Equal(t, "Content for news 2", resp.Msg.CoinNews[0].Content)
-		assert.Equal(t, "12345678", resp.Msg.CoinNews[1].Topic)
-		assert.Equal(t, "News Headline 1"+string(make([]byte, 64-len("News Headline 1"))), resp.Msg.CoinNews[1].Headline)
+		assert.Equal(t, topicID1.String(), resp.Msg.CoinNews[1].Topic)
+		assert.Equal(t, "News Headline 1", resp.Msg.CoinNews[1].Headline)
 		assert.Equal(t, "Content for news 1", resp.Msg.CoinNews[1].Content)
 	})
 
@@ -486,35 +514,36 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		// First create topics
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic 1", "topic_txid1")
+
+		firstTopicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1")
 		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, "87654321", "Test Topic 2", "topic_txid2")
+
+		secondTopicID := validTopicID()
+		require.NoError(t, err)
+		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2")
 		require.NoError(t, err)
 
 		// Insert coin news for both topics
 		headline1 := "News Headline 1"
-		paddedHeadline1 := headline1 + string(make([]byte, 64-len(headline1)))
-		newsData1 := []byte("12345678" + paddedHeadline1 + "Content for news 1")
 		height := uint32(100)
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
 				Height: &height,
 				TxID:   "news_txid1",
 				Vout:   0,
-				Data:   newsData1,
+				Data:   opreturns.EncodeNewsMessage(firstTopicID, headline1, "Content for news 1"),
 			},
 		})
 		require.NoError(t, err)
 
 		headline2 := "News Headline 2"
-		paddedHeadline2 := headline2 + string(make([]byte, 64-len(headline2)))
-		newsData2 := []byte("87654321" + paddedHeadline2 + "Content for news 2")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
 				Height: &height,
 				TxID:   "news_txid2",
 				Vout:   0,
-				Data:   newsData2,
+				Data:   opreturns.EncodeNewsMessage(secondTopicID, headline2, "Content for news 2"),
 			},
 		})
 		require.NoError(t, err)
@@ -522,14 +551,14 @@ func TestService_ListCoinNews(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		// Filter by topic
-		topic := "12345678"
+		topic := firstTopicID.String()
 		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{
 			Topic: &topic,
 		}))
 		require.NoError(t, err)
-		assert.Len(t, resp.Msg.CoinNews, 1)
-		assert.Equal(t, "12345678", resp.Msg.CoinNews[0].Topic)
-		assert.Equal(t, paddedHeadline1, resp.Msg.CoinNews[0].Headline)
+		require.Len(t, resp.Msg.CoinNews, 1)
+		assert.Equal(t, topic, resp.Msg.CoinNews[0].Topic)
+		assert.Equal(t, "News Headline 1", resp.Msg.CoinNews[0].Headline)
 	})
 
 	t.Run("list coin news sorted by recency", func(t *testing.T) {
@@ -538,48 +567,44 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		// First create topics
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic 1", "topic_txid1")
+		firstTopicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1")
 		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, "87654321", "Test Topic 2", "topic_txid2")
+		secondTopicID := validTopicID()
+		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2")
 		require.NoError(t, err)
 
 		// Insert coin news with specific timestamps
 		headline1 := "Old News"
-		paddedHeadline1 := headline1 + string(make([]byte, 64-len(headline1)))
-		newsData1 := []byte("12345678" + paddedHeadline1 + "Content for old news")
 		height := uint32(100)
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
 				Height: &height,
 				TxID:   "news_txid1",
 				Vout:   0,
-				Data:   newsData1,
+				Data:   opreturns.EncodeNewsMessage(firstTopicID, headline1, "Content for old news"),
 			},
 		})
 		require.NoError(t, err)
 
 		headline2 := "Recent News"
-		paddedHeadline2 := headline2 + string(make([]byte, 64-len(headline2)))
-		newsData2 := []byte("12345678" + paddedHeadline2 + "Content for recent news")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
 				Height: &height,
 				TxID:   "news_txid2",
 				Vout:   0,
-				Data:   newsData2,
+				Data:   opreturns.EncodeNewsMessage(secondTopicID, headline2, "Content for recent news"),
 			},
 		})
 		require.NoError(t, err)
 
 		headline3 := "Latest News"
-		paddedHeadline3 := headline3 + string(make([]byte, 64-len(headline3)))
-		newsData3 := []byte("12345678" + paddedHeadline3 + "Content for latest news")
 		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 			{
 				Height: &height,
 				TxID:   "news_txid3",
 				Vout:   0,
-				Data:   newsData3,
+				Data:   opreturns.EncodeNewsMessage(firstTopicID, headline3, "Content for latest news"),
 			},
 		})
 		require.NoError(t, err)
@@ -588,12 +613,12 @@ func TestService_ListCoinNews(t *testing.T) {
 
 		resp, err := cli.ListCoinNews(context.Background(), connect.NewRequest(&miscv1.ListCoinNewsRequest{}))
 		require.NoError(t, err)
-		assert.Len(t, resp.Msg.CoinNews, 3)
+		require.Len(t, resp.Msg.CoinNews, 3)
 
 		// Check that news is sorted by recency (most recent first)
-		assert.Equal(t, "Latest News"+string(make([]byte, 64-len("Latest News"))), resp.Msg.CoinNews[0].Headline)
-		assert.Equal(t, "Recent News"+string(make([]byte, 64-len("Recent News"))), resp.Msg.CoinNews[1].Headline)
-		assert.Equal(t, "Old News"+string(make([]byte, 64-len("Old News"))), resp.Msg.CoinNews[2].Headline)
+		assert.Equal(t, "Latest News", resp.Msg.CoinNews[0].Headline)
+		assert.Equal(t, "Recent News", resp.Msg.CoinNews[1].Headline)
+		assert.Equal(t, "Old News", resp.Msg.CoinNews[2].Headline)
 	})
 
 	t.Run("list coin news limited to 100 entries", func(t *testing.T) {
@@ -602,23 +627,24 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		// First create topics
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, "12345678", "Test Topic 1", "topic_txid1")
+		firstTopicID := validTopicID()
+		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1")
 		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, "87654321", "Test Topic 2", "topic_txid2")
+
+		secondTopicID := validTopicID()
+		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2")
 		require.NoError(t, err)
 
 		// Insert 105 coin news entries
-		for i := 0; i < 105; i++ {
+		for i := range 105 {
 			headline := "News"
-			paddedHeadline := headline + string(make([]byte, 64-len(headline)))
-			newsData := []byte("12345678" + paddedHeadline + "Content for news")
 			height := uint32(100)
 			err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
 				{
 					Height: &height,
 					TxID:   "news_txid",
 					Vout:   int32(i),
-					Data:   newsData,
+					Data:   opreturns.EncodeNewsMessage(firstTopicID, headline, "Content for news"),
 				},
 			})
 			require.NoError(t, err)
@@ -631,4 +657,12 @@ func TestService_ListCoinNews(t *testing.T) {
 		// Should be limited to 100 entries
 		assert.Len(t, resp.Msg.CoinNews, 100)
 	})
+}
+
+func validTopicID() opreturns.TopicID {
+	buf := make([]byte, 8)
+	if _, err := rand.Read(buf); err != nil {
+		panic(err)
+	}
+	return opreturns.TopicID(buf)
 }
