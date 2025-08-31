@@ -206,7 +206,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final blocks = await _client().call('get_blockcount') as int;
+    final blocks = await _client().call('getblockcount') as int;
     return BlockchainInfo(
       chain: 'signet',
       blocks: blocks,
@@ -621,7 +621,7 @@ final bitAssetsRPCMethods = [
   'get_new_address',
   'get_new_encryption_key',
   'get_new_verifying_key',
-  'get_blockcount',
+  'getblockcount',
   'get_transaction',
   'get_transaction_info',
   'get_wallet_addresses',

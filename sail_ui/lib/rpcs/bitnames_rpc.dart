@@ -440,7 +440,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<int> getBlockCount() async {
-    final response = await _client().call('get_blockcount');
+    final response = await _client().call('getblockcount');
     return response as int;
   }
 
@@ -533,7 +533,7 @@ final bitnamesRPCMethods = [
   'get_new_address',
   'get_new_encryption_key',
   'get_new_verifying_key',
-  'get_blockcount',
+  'getblockcount',
   'get_paymail',
   'get_wallet_addresses',
   'get_wallet_utxos',
