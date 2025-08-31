@@ -33,11 +33,19 @@ func Test(t TestingLog) *sql.DB {
 		t.Logf("unable to get database: %s", err)
 		t.FailNow()
 	}
+	t.Logf("created database %s", tmpfile)
 
 	// Register cleanup
 	t.Cleanup(func() {
 		database.Close()
-		os.Remove(tmpfile)
+		type canFail interface {
+			Failed() bool
+		}
+		if _, ok := t.(canFail); ok && t.(canFail).Failed() {
+			t.Logf("test has failed, NOT removing database %s", tmpfile)
+		} else {
+			os.Remove(tmpfile)
+		}
 	})
 
 	return database
