@@ -289,18 +289,15 @@ func (p *Parser) opReturnForTXID(
 
 func (p *Parser) handleCreateTopics(ctx context.Context, opReturns []opreturns.OPReturn) error {
 	for _, opReturn := range opReturns {
-		if opreturns.IsCreateTopic(opReturn.Data) {
-
-			name, err := opreturns.NameFromCreateTopic(opReturn.Data)
-			if err != nil {
-				return fmt.Errorf("extract name from create topic: %w", err)
-			}
+		if info, ok := opreturns.IsCreateTopic(opReturn.Data); ok {
 
 			zerolog.Ctx(ctx).Info().
-				Msgf("bitcoind_engine/parser: found create topic: %s", name)
+				Msgf("bitcoind_engine/parser: found create topic: %s", info.Name)
 
-			if err := opreturns.CreateTopic(ctx, p.db, string(opReturn.Data[:8]), name, opReturn.TxID); err != nil {
-				return fmt.Errorf("create topic: %w", err)
+			if err := opreturns.CreateTopic(
+				ctx, p.db, info.ID, info.Name, opReturn.TxID,
+			); err != nil {
+				return err
 			}
 		}
 	}

@@ -446,18 +446,20 @@ func (s *Server) getTransactionCount24h(ctx context.Context) (int64, error) {
 func (s *Server) getCoinnewsCount7d(ctx context.Context) (int64, error) {
 	cutoffTime := time.Now().Add(-7 * 24 * time.Hour)
 
-	// Count op_returns that are valid coin news (not create topic operations)
-	// and were created in the last 7 days
 	var count int64
 	err := s.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) 
 		FROM op_returns o
+		-- created in the last 7 days
 		WHERE o.created_at >= ?
-		AND LENGTH(o.op_return_data) >= 8
-		AND NOT (LENGTH(o.op_return_data) >= 11 AND SUBSTR(o.op_return_data, 9, 3) = 'new')
+		AND LENGTH(o.op_return_data) >= 16
+		-- filter out all all topic creation operations
+		-- 6e6577 is hex for "new"
+		AND NOT(SUBSTR(o.op_return_data, 17, 6) = '6e6577')
+		-- and is a valid coin news entry
 		AND EXISTS (
 			SELECT 1 FROM coin_news_topics t 
-			WHERE t.topic = SUBSTR(o.op_return_data, 1, 8)
+			WHERE t.topic = SUBSTR(o.op_return_data, 1, 16)
 		)
 	`, cutoffTime).Scan(&count)
 

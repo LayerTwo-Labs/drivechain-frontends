@@ -1,16 +1,19 @@
 package opreturns
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 )
 
@@ -27,11 +30,16 @@ func Persist(
 		Columns("txid", "vout", "op_return_data", "fee_sats", "height", "created_at")
 
 	for _, value := range values {
-		// TODO: this is set as nullable in the DB...
-		const feeSats = 0
+		createdAt := time.Now()
+		if value.CreatedAt != nil {
+			createdAt = *value.CreatedAt
+		}
 		builder = builder.Values(
-			value.TxID, value.Vout, value.Data,
-			feeSats, value.Height, time.Now(),
+			value.TxID, value.Vout,
+			// Much easier to work with hex strings in the database! We're
+			// storing this in a string column, should've been BLOB?
+			hex.EncodeToString(value.Data),
+			value.Fee, value.Height, createdAt,
 		)
 	}
 
@@ -43,7 +51,6 @@ func Persist(
 	)
 
 	sql, args := builder.MustSql()
-
 	if _, err := db.ExecContext(ctx, sql, args...); err != nil {
 		return fmt.Errorf("persist %d OP_RETURN(s): %w", len(values), err)
 	}
@@ -59,33 +66,40 @@ type OPReturn struct {
 	TxID      string
 	Vout      int32
 	Data      []byte
+	Fee       btcutil.Amount // 0 can either mean zero fee or unknown fee
 	Height    *uint32
 	CreatedAt *time.Time
 }
 
 func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, txid, vout, op_return_data, height, created_at
+		SELECT id, txid, vout, unhex(op_return_data), fee_sats, height, created_at
 		FROM op_returns
 		ORDER BY created_at DESC
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("could not query op_returns: %w", err)
+		return nil, fmt.Errorf("list: query op_returns: %w", err)
 	}
 	defer rows.Close()
 
 	var opReturns []OPReturn
 	for rows.Next() {
-		var opReturn OPReturn
-		err := rows.Scan(&opReturn.ID, &opReturn.TxID, &opReturn.Vout, &opReturn.Data, &opReturn.Height, &opReturn.CreatedAt)
+		var (
+			opReturn OPReturn
+		)
+		err := rows.Scan(
+			&opReturn.ID, &opReturn.TxID, &opReturn.Vout,
+			&opReturn.Data, &opReturn.Fee, &opReturn.Height, &opReturn.CreatedAt,
+		)
 		if err != nil {
-			return nil, fmt.Errorf("could not scan op_return: %w", err)
+			return nil, fmt.Errorf("list: scan op_return: %w", err)
 		}
+
 		opReturns = append(opReturns, opReturn)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("could not iterate op_returns: %w", err)
+		return nil, fmt.Errorf("list: iterate op_returns: %w", err)
 	}
 
 	return opReturns, nil
@@ -125,56 +139,53 @@ func OPReturnToReadable(data []byte) string {
 	return hex.EncodeToString(data)
 }
 
-func ValidNewsTopic(topic string) bool {
-	// Check if length is exactly 8 characters (4 bytes in hex)
-	if len(topic) != 8 {
-		return false
+func ValidNewsTopicID(topic string) (TopicID, error) {
+	if topic == "" {
+		return TopicID{}, errors.New("topic ID is empty")
 	}
 
-	// Check if string is valid hex
-	_, err := hex.DecodeString(topic)
-	return err == nil
+	decode, err := hex.DecodeString(topic)
+	if err != nil {
+		return TopicID{}, fmt.Errorf("topic ID %q is not hex: %w", topic, err)
+	}
+
+	if len(decode) != topicIdLength {
+		return TopicID{}, fmt.Errorf("topic ID %q is not 8 bytes: %d", topic, len(decode))
+	}
+
+	return TopicID(decode), nil
 }
 
-func IsCreateTopic(data []byte) bool {
-	if len(data) < 11 {
-		return false
+type TopicInfo struct {
+	ID   TopicID
+	Name string
+}
+
+var newTopicTag = []byte("new")
+
+const topicIdLength = 8
+
+func IsCreateTopic(data []byte) (TopicInfo, bool) {
+	if len(data) < topicIdLength+len(newTopicTag) {
+		return TopicInfo{}, false
 	}
 
 	// First 8 chars should be the hex topic
-	topic := string(data[:8])
-	if !ValidNewsTopic(topic) {
-		return false
+	topic := hex.EncodeToString(data[:topicIdLength])
+	topicID, err := ValidNewsTopicID(topic)
+	if err != nil {
+		return TopicInfo{}, false
 	}
 
 	// Check if "new" follows the topic
-	return string(data[8:11]) == "new"
+	name, ok := bytes.CutPrefix(data[topicIdLength:], newTopicTag)
+	return TopicInfo{
+		ID:   topicID,
+		Name: string(name),
+	}, ok
 }
 
-func NameFromCreateTopic(data []byte) (string, error) {
-	if !IsCreateTopic(data) {
-		return "", errors.New("not a create topic")
-	}
-	// Skip the 8-char topic and the 3-char "new" prefix
-	return string(data[11:]), nil
-}
-
-func ContentFromReturn(data []byte) (string, error) {
-	if !IsCreateTopic(data) {
-		return "", errors.New("not a create topic")
-	}
-	return string(data[7:]), nil
-}
-
-func TitleFromReturn(data []byte) (string, error) {
-	// first 8 bytes are the topic
-	if len(data) < 8 {
-		return "", errors.New("data too short")
-	}
-	return hex.EncodeToString(data[:8]), nil
-}
-
-func CreateTopic(ctx context.Context, db *sql.DB, topic string, name string, txid string) error {
+func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, txid string) error {
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO coin_news_topics (
 			topic,
@@ -182,9 +193,9 @@ func CreateTopic(ctx context.Context, db *sql.DB, topic string, name string, txi
 			txid
 		) VALUES (?, ?, ?)
 		 ON CONFLICT (topic) DO NOTHING
-	`, topic, name, txid)
+	`, topic.String(), name, txid)
 	if err != nil {
-		return fmt.Errorf("could not create topic: %w", err)
+		return fmt.Errorf("create topic: %w", err)
 	}
 
 	return nil
@@ -192,7 +203,7 @@ func CreateTopic(ctx context.Context, db *sql.DB, topic string, name string, txi
 
 type Topic struct {
 	ID    int64
-	Topic string
+	Topic TopicID
 	Name  string
 
 	CreatedAt time.Time
@@ -200,10 +211,11 @@ type Topic struct {
 
 type CoinNews struct {
 	ID        int64
-	Topic     string
+	Topic     TopicID
 	TopicName string
 	Headline  string
 	Content   string
+	Fee       btcutil.Amount
 
 	CreatedAt *time.Time
 }
@@ -215,39 +227,68 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	ORDER BY created_at ASC
 `)
 	if err != nil {
-		return nil, fmt.Errorf("could not query op_returns: %w", err)
+		return nil, fmt.Errorf("list topics: query: %w", err)
 	}
 	defer rows.Close()
 
 	var topics []Topic
 	for rows.Next() {
 		var topic Topic
-		err := rows.Scan(&topic.ID, &topic.Topic, &topic.Name, &topic.CreatedAt)
+		var rawTopicID string
+		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.CreatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("could not scan topic: %w", err)
+			return nil, fmt.Errorf("list topics: scan: %w", err)
 		}
+
+		topicID, err := ValidNewsTopicID(rawTopicID)
+		if err != nil {
+			return nil, fmt.Errorf("list topics: invalid topic ID: %w", err)
+		}
+		topic.Topic = topicID
+
 		topics = append(topics, topic)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("could not iterate topics: %w", err)
+		return nil, fmt.Errorf("list topics: iterate: %w", err)
 	}
 
 	return topics, nil
 }
 
-func TopicExists(ctx context.Context, db *sql.DB, topic string) (bool, error) {
+func TopicExists(ctx context.Context, db *sql.DB, topic TopicID) (bool, error) {
 	var exists bool
 	err := db.QueryRowContext(ctx, `
 		SELECT EXISTS(SELECT 1 FROM coin_news_topics WHERE topic = ?)
-	`, topic).Scan(&exists)
+	`, topic.String()).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("could not check if topic exists: %w", err)
+		return false, fmt.Errorf("topic exists: %w", err)
 	}
 	return exists, nil
 }
 
-func extractTopic(topics []Topic, topic string) (Topic, bool) {
+// Format for OP_RETURN message: <topic (8 bytes)><headline (64 bytes)><message (arbitrary length)>
+func EncodeNewsMessage(topic TopicID, headline string, content string) []byte {
+	paddedHeadline := headline + string(make([]byte, 64-len(headline)))
+	return slices.Concat(
+		topic[:], []byte(paddedHeadline), []byte(content),
+	)
+}
+
+// Format for OP_RETURN message: <topic>new<title>
+func EncodeTopicCreationMessage(topic TopicID, name string) []byte {
+	return slices.Concat(
+		topic[:], newTopicTag, []byte(name),
+	)
+}
+
+type TopicID [topicIdLength]byte
+
+func (t TopicID) String() string {
+	return hex.EncodeToString(t[:])
+}
+
+func extractTopic(topics []Topic, topic TopicID) (Topic, bool) {
 	for _, t := range topics {
 		if t.Topic == topic {
 			return t, true
@@ -259,48 +300,53 @@ func extractTopic(topics []Topic, topic string) (Topic, bool) {
 func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 	opReturns, err := List(ctx, db)
 	if err != nil {
-		return nil, fmt.Errorf("could not select op returns: %w", err)
+		return nil, err
 	}
 
 	topics, err := ListTopics(ctx, db)
 	if err != nil {
-		return nil, fmt.Errorf("could not select topics: %w", err)
+		return nil, err
 	}
 
 	var coinNews []CoinNews
 	for _, opReturn := range opReturns {
-		if len(opReturn.Data) < 8 {
+		if len(opReturn.Data) < topicIdLength {
 			continue
 		}
 
-		if IsCreateTopic(opReturn.Data) {
+		// Skip over all topic creation OP_RETURNs
+		if _, ok := IsCreateTopic(opReturn.Data); ok {
 			continue
 		}
 
-		topicBytes := opReturn.Data[:8]
-		topic, ok := extractTopic(topics, string(topicBytes))
+		topic, ok := extractTopic(topics, TopicID(opReturn.Data[:topicIdLength]))
 		if !ok {
 			continue
 		}
 
-		var headline string
-		if len(opReturn.Data) >= 72 {
-			headline = strings.TrimRight(string(opReturn.Data[8:72]), " ")
-		} else {
-			headline = strings.TrimRight(string(opReturn.Data[8:]), " ")
+		var (
+			headline string
+			content  string
+		)
+		switch {
+		case len(opReturn.Data) >= 72:
+			headline = strings.TrimRight(string(opReturn.Data[topicIdLength:72]), " ")
+			content = string(opReturn.Data[72:])
+
+		default:
+			headline = strings.TrimRight(string(opReturn.Data[topicIdLength:]), " ")
 		}
 
-		var content string
-		if len(opReturn.Data) > 72 {
-			content = string(opReturn.Data[72:])
-		}
+		// Remove all the whitespace padding
+		headline = strings.TrimRight(headline, string([]byte{0}))
 
 		coinNews = append(coinNews, CoinNews{
 			ID:        opReturn.ID,
-			Topic:     string(topicBytes),
+			Topic:     topic.Topic,
 			TopicName: topic.Name,
 			Headline:  headline,
 			Content:   content,
+			Fee:       opReturn.Fee,
 			CreatedAt: opReturn.CreatedAt,
 		})
 	}
