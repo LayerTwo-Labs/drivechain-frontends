@@ -83,7 +83,7 @@ class SettingsProvider extends ChangeNotifier {
       final binaryProvider = GetIt.I.get<BinaryProvider>();
       final wipeOperations = binaryProvider.binaries
           .where((binary) => binary.chainLayer == 2)
-          .map((binary) => binary.wipeAsset(binDir(binaryProvider.bitwindowAppDir.path)));
+          .map((binary) => binary.wipeAsset(binDir(binaryProvider.appDir.path)));
       await Future.wait(wipeOperations);
     } catch (e) {
       // Revert on error

@@ -18,7 +18,7 @@ class ChainSettingsModal extends StatefulWidget {
 
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
-  Directory get bitwindowAppDir => _binaryProvider.bitwindowAppDir;
+  Directory get appDir => _binaryProvider.appDir;
 
   OS get os => getOS();
 
@@ -116,7 +116,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
               SailButton(
                 label: 'Delete ${widget.binary.name}',
                 onPressed: () async {
-                  await widget.binary.wipeAsset(binDir(bitwindowAppDir.path));
+                  await widget.binary.wipeAsset(binDir(appDir.path));
                   await widget.binary.wipeAppDir();
                   if (context.mounted) {
                     Navigator.of(context).pop();

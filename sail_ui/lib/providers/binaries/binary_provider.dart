@@ -16,7 +16,7 @@ import 'package:synchronized/synchronized.dart';
 /// Manages downloads, installations and running of binaries
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
-  final Directory bitwindowAppDir;
+  final Directory appDir;
 
   final settings = GetIt.I.get<SettingsProvider>();
 
@@ -159,7 +159,7 @@ class BinaryProvider extends ChangeNotifier {
 
   // Private constructor
   BinaryProvider._create({
-    required this.bitwindowAppDir,
+    required this.appDir,
     required DownloadManager downloadManager,
     required ProcessManager processManager,
   }) : _downloadManager = downloadManager,
@@ -180,7 +180,7 @@ class BinaryProvider extends ChangeNotifier {
   // Test constructor (visible for mocking)
   @visibleForTesting
   BinaryProvider.test({
-    required this.bitwindowAppDir,
+    required this.appDir,
     required DownloadManager downloadManager,
     required ProcessManager processManager,
   }) : _downloadManager = downloadManager,
@@ -190,18 +190,18 @@ class BinaryProvider extends ChangeNotifier {
 
   // Async factory
   static Future<BinaryProvider> create({
-    required Directory bitwindowAppDir,
+    required Directory appDir,
     required List<Binary> initialBinaries,
   }) async {
     final downloadManager = await DownloadManager.create(
-      bitwindowAppDir: bitwindowAppDir,
+      appDir: appDir,
       initialBinaries: initialBinaries,
     );
 
-    final processManager = ProcessManager(bitwindowAppDir: bitwindowAppDir);
+    final processManager = ProcessManager(appDir: appDir);
 
     final provider = BinaryProvider._create(
-      bitwindowAppDir: bitwindowAppDir,
+      appDir: appDir,
       downloadManager: downloadManager,
       processManager: processManager,
     );
@@ -234,7 +234,7 @@ class BinaryProvider extends ChangeNotifier {
       log.i('booting sidechain ${binary.name}');
       // We're booting some sort of sidechain. Check the wallet-starter-directory for
       // a starter seed
-      final mnemonicPath = binary.getMnemonicPath(bitwindowAppDir);
+      final mnemonicPath = binary.getMnemonicPath(appDir);
       log.i('mnemonic path: $mnemonicPath');
       if (mnemonicPath != null) {
         log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
@@ -494,7 +494,7 @@ class BinaryProvider extends ChangeNotifier {
     // the l1 mnemonic to the enforcer, to avoid it from generating
     // one itself
     while (true) {
-      final walletDir = getWalletDir(bitwindowAppDir);
+      final walletDir = getWalletDir(appDir);
       if (walletDir != null) {
         final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
         if (await mnemonicFile.exists()) {
@@ -563,7 +563,7 @@ class BinaryProvider extends ChangeNotifier {
     final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), Bitnames(), BitAssets(), ZSide()];
 
     // Watch the assets directory for changes
-    _dirWatcher = binDir(bitwindowAppDir.path).watch(recursive: true).listen((event) {
+    _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) {
       // Find which binary changed
       final changedBinary = allBinaries.firstWhereOrNull((binary) => event.path.endsWith(binary.binary));
 
@@ -584,7 +584,7 @@ class BinaryProvider extends ChangeNotifier {
           log.d('Processing metadata update for ${changedBinary.name}');
 
           // Only reload metadata for the binary that changed
-          final updatedBinary = await changedBinary.updateMetadata(bitwindowAppDir);
+          final updatedBinary = await changedBinary.updateMetadata(appDir);
 
           _downloadManager.updateBinary(
             updatedBinary.type,
@@ -603,7 +603,7 @@ class BinaryProvider extends ChangeNotifier {
     for (var i = 0; i < binaries.length; i++) {
       try {
         final binary = binaries[i];
-        final updatedBinary = await binary.updateMetadata(bitwindowAppDir);
+        final updatedBinary = await binary.updateMetadata(appDir);
 
         // Only update and mark as changed if the binary actually differs
         if (updatedBinary.metadata != binary.metadata) {
@@ -676,9 +676,9 @@ String _stripFromString(String input, String whatToStrip) {
   return input.substring(startIndex, endIndex + 1);
 }
 
-Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory bitwindowAppDir) async {
+Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
   // Update metadata for all binaries in parallel
-  return await Future.wait(binaries.map((binary) => binary.updateMetadata(bitwindowAppDir)));
+  return await Future.wait(binaries.map((binary) => binary.updateMetadata(appDir)));
 }
 
 Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));

@@ -212,7 +212,7 @@ class _ResetSettingsContent extends StatefulWidget {
 
 class _ResetSettingsContentState extends State<_ResetSettingsContent> {
   Logger get log => GetIt.I.get<Logger>();
-  Directory get bitwindowAppDir => GetIt.I.get<BinaryProvider>().bitwindowAppDir;
+  Directory get appDir => GetIt.I.get<BinaryProvider>().appDir;
 
   @override
   Widget build(BuildContext context) {
@@ -587,7 +587,7 @@ Future<void> _resetWallets(
 
 Future<void> _resetEverything(BuildContext context) async {
   final log = GetIt.I.get<Logger>();
-  final bitwindowAppDir = GetIt.I.get<BinaryProvider>().bitwindowAppDir;
+  final appDir = GetIt.I.get<BinaryProvider>().appDir;
 
   Navigator.of(context).pop(); // pop the current dialog
 
@@ -628,7 +628,7 @@ Future<void> _resetEverything(BuildContext context) async {
             updateStatus('Wiping asset data');
 
             try {
-              await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(bitwindowAppDir.path))));
+              await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(appDir.path))));
               log.i('Successfully wiped all blockchain data');
             } catch (e) {
               log.e('could not reset blockchain data: $e');

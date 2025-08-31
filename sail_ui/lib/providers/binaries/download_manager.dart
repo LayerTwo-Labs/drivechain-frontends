@@ -13,7 +13,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// the right place
 class DownloadManager extends ChangeNotifier {
   final log = Logger(level: Level.info);
-  final Directory bitwindowAppDir;
+  final Directory appDir;
   late Map<BinaryType, Binary> _binariesMap;
 
   // Public getter returns a List for compatibility
@@ -26,24 +26,24 @@ class DownloadManager extends ChangeNotifier {
   }
 
   // Private constructor
-  DownloadManager._create({required this.bitwindowAppDir, required List<Binary> binaries}) {
+  DownloadManager._create({required this.appDir, required List<Binary> binaries}) {
     // Convert list to map keyed by BinaryType
     _binariesMap = {for (var b in binaries) b.type: b};
   }
 
   // Async factory
   static Future<DownloadManager> create({
-    required Directory bitwindowAppDir,
+    required Directory appDir,
     required List<Binary> initialBinaries,
   }) async {
-    final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, bitwindowAppDir);
+    final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, appDir);
 
-    return DownloadManager._create(bitwindowAppDir: bitwindowAppDir, binaries: binariesWithTimestamps);
+    return DownloadManager._create(appDir: appDir, binaries: binariesWithTimestamps);
   }
 
   // Test constructor (visible for mocking)
   @visibleForTesting
-  DownloadManager.test({required this.bitwindowAppDir, required List<Binary> binaries}) {
+  DownloadManager.test({required this.appDir, required List<Binary> binaries}) {
     // Convert list to map keyed by BinaryType
     _binariesMap = {for (var b in binaries) b.type: b};
   }
@@ -73,7 +73,7 @@ class DownloadManager extends ChangeNotifier {
 
     // refresh metadata just in case it is wiped about 1 millisecond ago..
     // and the directory watcher hasnt updated it yet
-    currentBinary = await currentBinary.updateLocalMetadata(bitwindowAppDir);
+    currentBinary = await currentBinary.updateLocalMetadata(appDir);
     if (currentBinary.isDownloaded) {
       // We already have a binary, dont bother
       return;
@@ -160,8 +160,8 @@ class DownloadManager extends ChangeNotifier {
     );
 
     // 1. Setup directories
-    final downloadsDir = Directory(path.join(bitwindowAppDir.path, 'downloads'));
-    final extractDir = binDir(bitwindowAppDir.path);
+    final downloadsDir = Directory(path.join(appDir.path, 'downloads'));
+    final extractDir = binDir(appDir.path);
     await downloadsDir.create(recursive: true);
     await extractDir.create(recursive: true);
 
