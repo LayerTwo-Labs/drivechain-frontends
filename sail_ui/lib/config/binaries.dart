@@ -590,7 +590,7 @@ class BitWindow extends Binary {
                binaryPath: null,
                updateable: false,
              ),
-         port: port ?? 8080,
+         port: port ?? 2122,
        );
 
   @override

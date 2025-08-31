@@ -19,7 +19,7 @@ type Config struct {
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
-	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:8080"`
+	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:2122"`
 	Datadir string `long:"datadir" description:"Path to the data directory" default:""`
 
 	LogPath  string `long:"log.path" description:"Path to write logs to"`

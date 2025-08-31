@@ -21,7 +21,7 @@ class Environment {
   );
   static const bitwindowdPort = Variable(
     'BITWINDOWD_PORT',
-    int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 8080),
+    int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 2122),
   );
 
   static Future<Directory> datadir() async {
