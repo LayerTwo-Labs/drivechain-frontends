@@ -419,7 +419,7 @@ List<Binary> initalBinaries() {
     Enforcer(),
     BitWindow(),
     BitAssets(),
-    Bitnames(),
+    BitNames(),
     Thunder(),
     ZSide(),
   ];

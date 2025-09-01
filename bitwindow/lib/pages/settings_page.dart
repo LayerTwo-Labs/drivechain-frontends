@@ -610,7 +610,7 @@ Future<void> _resetEverything(BuildContext context) async {
               Enforcer(),
               BitWindow(),
               Thunder(),
-              Bitnames(),
+              BitNames(),
               BitAssets(),
               ZSide(),
             ];

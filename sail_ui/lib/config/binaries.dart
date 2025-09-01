@@ -33,7 +33,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.testSidechain => TestSidechain(),
     BinaryType.zSide => ZSide(),
     BinaryType.thunder => Thunder(),
-    BinaryType.bitnames => Bitnames(),
+    BinaryType.bitnames => BitNames(),
     BinaryType.bitassets => BitAssets(),
   };
 }
