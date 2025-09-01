@@ -252,7 +252,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerRPC,
       var b when b is BitWindow => bitwindowRPC,
       var b when b is Thunder => thunderRPC,
-      var b when b is Bitnames => bitnamesRPC,
+      var b when b is BitNames => bitnamesRPC,
       var b when b is BitAssets => bitassetsRPC,
       var b when b is ZSide => zsideRPC,
       _ => null,
@@ -362,7 +362,7 @@ class BinaryProvider extends ChangeNotifier {
           await bitwindowRPC?.stop();
         case Thunder():
           await thunderRPC?.stop();
-        case Bitnames():
+        case BitNames():
           await bitnamesRPC?.stop();
         case BitAssets():
           await bitassetsRPC?.stop();
@@ -405,7 +405,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerConnected,
       var b when b is BitWindow => bitwindowConnected,
       var b when b is Thunder => thunderConnected,
-      var b when b is Bitnames => bitnamesConnected,
+      var b when b is BitNames => bitnamesConnected,
       var b when b is BitAssets => bitassetsConnected,
       var b when b is ZSide => zsideConnected,
       _ => false,
@@ -420,7 +420,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerInitializing,
       var b when b is BitWindow => bitwindowInitializing,
       var b when b is Thunder => thunderInitializing,
-      var b when b is Bitnames => bitnamesInitializing,
+      var b when b is BitNames => bitnamesInitializing,
       var b when b is BitAssets => bitassetsInitializing,
       var b when b is ZSide => zsideInitializing,
       _ => false,
@@ -435,7 +435,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerError,
       var b when b is BitWindow => bitwindowError,
       var b when b is Thunder => thunderError,
-      var b when b is Bitnames => bitnamesError,
+      var b when b is BitNames => bitnamesError,
       var b when b is BitAssets => bitassetsError,
       var b when b is ZSide => zsideError,
       _ => null,
@@ -449,7 +449,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => _processManager.isRunning(Enforcer()),
       var b when b is BitWindow => _processManager.isRunning(BitWindow()),
       var b when b is Thunder => _processManager.isRunning(Thunder()),
-      var b when b is Bitnames => _processManager.isRunning(Bitnames()),
+      var b when b is BitNames => _processManager.isRunning(BitNames()),
       var b when b is BitAssets => _processManager.isRunning(BitAssets()),
       var b when b is ZSide => _processManager.isRunning(ZSide()),
       _ => false,
@@ -462,7 +462,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerStopping,
       var b when b is BitWindow => bitwindowStopping,
       var b when b is Thunder => thunderStopping,
-      var b when b is Bitnames => bitnamesStopping,
+      var b when b is BitNames => bitnamesStopping,
       var b when b is BitAssets => bitassetsStopping,
       var b when b is ZSide => zsideStopping,
       _ => false,
@@ -568,7 +568,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   void _setupDirectoryWatcher() {
-    final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), Bitnames(), BitAssets(), ZSide()];
+    final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), BitNames(), BitAssets(), ZSide()];
 
     // Watch the assets directory for changes
     _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) {

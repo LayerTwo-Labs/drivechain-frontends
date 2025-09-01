@@ -184,9 +184,9 @@ class SyncProvider extends ChangeNotifier {
         await _fetchAdditional();
         bool isSynced = additionalSyncInfo?.isSynced ?? false;
         if (additionalConnection!.name == Thunder().name ||
-            additionalConnection!.name == Bitnames().name ||
+            additionalConnection!.name == BitNames().name ||
             additionalConnection!.name == BitAssets().name ||
-            additionalConnection!.name == Bitnames().name) {
+            additionalConnection!.name == BitNames().name) {
           // We can't check whether we're in IBD for these sidechains, so
           // we stay aggressive forever...
           isSynced = false;

@@ -85,7 +85,7 @@ List<Binary> _initialBinaries(Binary sidechain) {
 }
 
 Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
-  final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), Bitnames(), BitAssets(), ZSide()];
+  final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), BitNames(), BitAssets(), ZSide()];
 
   final fileDir = binDir(appDir.path);
   await fileDir.create(recursive: true);

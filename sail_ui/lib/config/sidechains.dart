@@ -34,7 +34,7 @@ abstract class Sidechain extends Binary {
         return Thunder();
 
       case 'bitnames':
-        return Bitnames();
+        return BitNames();
 
       case 'bitassets':
         return BitAssets();
@@ -84,7 +84,7 @@ abstract class Sidechain extends Binary {
         );
 
       case 'Bitnames':
-        return Bitnames(
+        return BitNames(
           name: binary.name,
           version: binary.version,
           description: binary.description,
@@ -404,8 +404,8 @@ class Thunder extends Sidechain {
   }
 }
 
-class Bitnames extends Sidechain {
-  Bitnames({
+class BitNames extends Sidechain {
+  BitNames({
     super.name = 'Bitnames',
     super.version = 'latest',
     super.description = 'Variant of BitDNS that aims to replace ICANN',
@@ -459,7 +459,7 @@ class Bitnames extends Sidechain {
   Color color = SailColorScheme.green;
 
   @override
-  Bitnames copyWith({
+  BitNames copyWith({
     String? version,
     String? description,
     String? repoUrl,
@@ -471,7 +471,7 @@ class Bitnames extends Sidechain {
     DownloadInfo? downloadInfo,
     List<String>? extraBootArgs,
   }) {
-    return Bitnames(
+    return BitNames(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,

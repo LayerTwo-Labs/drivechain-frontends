@@ -201,7 +201,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
         onConfirm: () async {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-          final binary = Bitnames();
+          final binary = BitNames();
 
           // Only stop binaries that are started by bitwindow
           await binaryProvider.stop(binary);
@@ -214,7 +214,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           await binary.wipeAppDir();
 
           // finally, boot the binaries
-          bootBinaries(GetIt.I.get<Logger>(), binaryProvider.binaries.firstWhere((b) => b is Bitnames));
+          bootBinaries(GetIt.I.get<Logger>(), binaryProvider.binaries.firstWhere((b) => b is BitNames));
 
           final rpc = GetIt.I.get<BitnamesRPC>();
           while (!rpc.connected) {
