@@ -13,7 +13,6 @@ abstract class Sidechain extends Binary {
     required super.repoUrl,
     required super.directories,
     required super.metadata,
-    required super.binary,
     required super.port,
     required super.chainLayer,
     required super.downloadInfo,
@@ -52,7 +51,6 @@ abstract class Sidechain extends Binary {
           repoUrl: binary.repoUrl,
           directories: binary.directories,
           metadata: binary.metadata,
-          binary: binary.binary,
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
@@ -65,7 +63,6 @@ abstract class Sidechain extends Binary {
           repoUrl: binary.repoUrl,
           directories: binary.directories,
           metadata: binary.metadata,
-          binary: binary.binary,
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
@@ -78,7 +75,6 @@ abstract class Sidechain extends Binary {
           repoUrl: binary.repoUrl,
           directories: binary.directories,
           metadata: binary.metadata,
-          binary: binary.binary,
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
@@ -91,7 +87,6 @@ abstract class Sidechain extends Binary {
           repoUrl: binary.repoUrl,
           directories: binary.directories,
           metadata: binary.metadata,
-          binary: binary.binary,
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
@@ -104,7 +99,6 @@ abstract class Sidechain extends Binary {
           repoUrl: binary.repoUrl,
           directories: binary.directories,
           metadata: binary.metadata,
-          binary: binary.binary,
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
@@ -179,7 +173,6 @@ class TestSidechain extends Sidechain {
     super.repoUrl = '',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'testchaind',
     super.port = 38332,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
@@ -192,6 +185,7 @@ class TestSidechain extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
+                 binary: 'testchaind',
                  baseUrl: 'https://releases.drivechain.info/',
                  files: {
                    OS.linux: 'testchain-latest-x86_64-unknown-linux-gnu.zip',
@@ -233,7 +227,6 @@ class TestSidechain extends Sidechain {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
@@ -249,7 +242,6 @@ class ZSide extends Sidechain {
     super.repoUrl = 'https://github.com/LayerTwo-Labs/thunder-orchard',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'thunder-orchard',
     super.port = 6098,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
@@ -264,6 +256,7 @@ class ZSide extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
+                 binary: 'thunder-orchard',
                  baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
                  files: {
                    OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
@@ -273,6 +266,7 @@ class ZSide extends Sidechain {
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'zside',
                  files: {
                    OS.linux: 'test-zside-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'test-zside-x86_64-apple-darwin.zip',
@@ -315,7 +309,6 @@ class ZSide extends Sidechain {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
@@ -332,7 +325,6 @@ class Thunder extends Sidechain {
     super.repoUrl = 'https://github.com/LayerTwo-Labs/thunder-rust',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'thunder',
     super.port = 6009,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
@@ -345,6 +337,7 @@ class Thunder extends Sidechain {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'thunder',
                  files: {
                    OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
@@ -353,6 +346,7 @@ class Thunder extends Sidechain {
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'thunder',
                  files: {
                    OS.linux: 'test-thunder-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'test-thunder-x86_64-apple-darwin.zip',
@@ -395,7 +389,6 @@ class Thunder extends Sidechain {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
@@ -412,7 +405,6 @@ class BitNames extends Sidechain {
     super.repoUrl = 'https://github.com/LayerTwo-Labs/plain-bitnames',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'bitnames',
     super.port = 6002,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
@@ -428,6 +420,7 @@ class BitNames extends Sidechain {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'bitnames',
                  files: {
                    OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
@@ -436,6 +429,7 @@ class BitNames extends Sidechain {
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'bitnames',
                  files: {
                    OS.linux: 'test-bitnames-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'test-bitnames-x86_64-apple-darwin.zip',
@@ -478,7 +472,6 @@ class BitNames extends Sidechain {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
@@ -495,7 +488,6 @@ class BitAssets extends Sidechain {
     super.repoUrl = 'https://github.com/LayerTwo-Labs/plain-bitassets',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'bitassets',
     super.port = 6004,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
@@ -511,6 +503,7 @@ class BitAssets extends Sidechain {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'bitassets',
                  files: {
                    OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
@@ -519,6 +512,7 @@ class BitAssets extends Sidechain {
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'bitassets',
                  files: {
                    OS.linux: 'test-bitassets-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'test-bitassets-x86_64-apple-darwin.zip',
@@ -561,7 +555,6 @@ class BitAssets extends Sidechain {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,

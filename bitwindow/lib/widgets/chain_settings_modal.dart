@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
-class ChainSettingsModal extends StatefulWidget {
+class ChainSettingsModal extends StatelessWidget {
   final Binary binary;
 
   const ChainSettingsModal({
@@ -13,128 +14,151 @@ class ChainSettingsModal extends StatefulWidget {
   });
 
   @override
-  State<ChainSettingsModal> createState() => _ChainSettingsModalState();
-}
-
-class _ChainSettingsModalState extends State<ChainSettingsModal> {
-  final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
-  Directory get appDir => _binaryProvider.appDir;
-
-  OS get os => getOS();
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
+    return ViewModelBuilder<ChainSettingsViewModel>.reactive(
+      viewModelBuilder: () => ChainSettingsViewModel(binary),
+      builder: (context, viewModel, child) {
+        final theme = SailTheme.of(context);
 
-    final baseDir = widget.binary.directories.base[os];
-    final downloadFile = widget.binary.metadata.downloadConfig.files[os];
+        final baseDir = viewModel.binary.directories.base[viewModel.os];
+        final downloadFile = viewModel.binary.metadata.downloadConfig.files[viewModel.os];
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        width: 500,
-        height: 500,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadius,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 500,
+            height: 500,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.colors.backgroundSecondary,
+              borderRadius: SailStyleValues.borderRadius,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SailText.primary20('${widget.binary.name} Settings'),
-                  // Update button
-                  if (widget.binary.updateAvailable)
-                    SailButton(
-                      label: 'Update',
-                      onPressed: () async {
-                        try {
-                          // 1. Download the updated binary
-                          await _binaryProvider.download(widget.binary, shouldUpdate: true);
-
-                          // 2. Stop the binary
-                          await _binaryProvider.stop(widget.binary);
-
-                          // 3. Start the binary with retry logic (3 attempts, 5 second wait)
-                          bool started = false;
-                          int attempts = 0;
-                          const maxAttempts = 3;
-                          const retryDelay = Duration(seconds: 5);
-
-                          while (!started && attempts < maxAttempts) {
-                            attempts++;
-                            try {
-                              await _binaryProvider.start(widget.binary);
-                              started = true;
-                            } catch (e) {
-                              if (attempts < maxAttempts) {
-                                // Wait before retry
-                                await Future.delayed(retryDelay);
-                              } else {
-                                // Re-throw the error on final attempt
-                                rethrow;
-                              }
-                            }
-                          }
-                        } catch (e) {
-                          // Handle any errors during the update process
-                          // You might want to show a snackbar or dialog here
-                        }
-                      },
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SailText.primary20('${viewModel.binary.name} Settings'),
+                      // Update button - only show if update is available and not currently updating
+                      if (viewModel.showUpdateButton)
+                        SailButton(
+                          label: viewModel.isUpdating ? 'Updating...' : 'Update',
+                          onPressed: viewModel.isUpdating ? null : () => viewModel.handleUpdate(context),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  viewModel.buildInfoRow(context, 'Version', viewModel.binary.version),
+                  if (viewModel.binary.repoUrl.isNotEmpty)
+                    viewModel.buildInfoRow(context, 'Repository', viewModel.binary.repoUrl),
+                  viewModel.buildInfoRow(context, 'Network Port', viewModel.binary.port.toString()),
+                  viewModel.buildInfoRow(
+                    context,
+                    'Chain Layer',
+                    viewModel.binary.chainLayer == 1 ? 'Layer 1' : 'Layer 2',
+                  ),
+                  if (baseDir != null) viewModel.buildInfoRow(context, 'Installation Directory', baseDir),
+                  viewModel.buildInfoRow(context, 'Binary Path', viewModel.binary.metadata.binaryPath?.path ?? 'N/A'),
+                  if (downloadFile != null) viewModel.buildInfoRow(context, 'Download File', downloadFile),
+                  viewModel.buildInfoRow(
+                    context,
+                    'Latest Release At',
+                    viewModel.binary.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
+                  ),
+                  viewModel.buildInfoRow(
+                    context,
+                    'Your Version Installed At',
+                    viewModel.binary.metadata.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
+                  ),
+                  const SizedBox(height: 24),
+                  SailButton(
+                    label: 'Delete ${viewModel.binary.name}',
+                    onPressed: viewModel.handleDelete,
+                    variant: ButtonVariant.destructive,
+                  ),
                 ],
               ),
-              const SizedBox(height: 24),
-              _buildInfoRow(context, 'Version', widget.binary.version),
-              if (widget.binary.repoUrl.isNotEmpty) _buildInfoRow(context, 'Repository', widget.binary.repoUrl),
-              _buildInfoRow(context, 'Network Port', widget.binary.port.toString()),
-              _buildInfoRow(context, 'Chain Layer', widget.binary.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
-              if (baseDir != null) _buildInfoRow(context, 'Installation Directory', baseDir),
-              _buildInfoRow(context, 'Binary Path', widget.binary.metadata.binaryPath?.path ?? 'N/A'),
-              if (downloadFile != null) _buildInfoRow(context, 'Download File', downloadFile),
-              _buildInfoRow(
-                context,
-                'Latest Release At',
-                widget.binary.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
-              ),
-              _buildInfoRow(
-                context,
-                'Your Version Installed At',
-                widget.binary.metadata.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
-              ),
-              const SizedBox(height: 24),
-              SailButton(
-                label: 'Delete ${widget.binary.name}',
-                onPressed: () async {
-                  await widget.binary.wipeAsset(binDir(appDir.path));
-                  await widget.binary.wipeAppDir();
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                  if (context.mounted) {
-                    showSnackBar(context, 'Deleted ${widget.binary.name} binary including all blockchain data');
-                  }
-                },
-                variant: ButtonVariant.destructive,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+}
 
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
+class ChainSettingsViewModel extends BaseViewModel {
+  final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+  final Binary _binary;
+  bool _isUpdating = false;
+
+  ChainSettingsViewModel(this._binary) {
+    _binaryProvider.addListener(notifyListeners);
+  }
+
+  Binary get binary => _binaryProvider.binaries.firstWhere((b) => b.type == _binary.type);
+  bool get isUpdating => _isUpdating;
+  Directory get appDir => _binaryProvider.appDir;
+  OS get os => getOS();
+
+  // Show update button only if update is available and not currently updating
+  bool get showUpdateButton => _binary.updateAvailable && !_isUpdating;
+
+  Future<void> handleUpdate(BuildContext context) async {
+    if (_isUpdating) return;
+
+    _isUpdating = true;
+    notifyListeners();
+
+    try {
+      // 1. Download the updated binary
+      Navigator.of(context).pop();
+      await _binaryProvider.download(_binary, shouldUpdate: true);
+
+      bool wasRunning = _binaryProvider.isRunning(_binary);
+      if (wasRunning) {
+        // 2. Stop the binary
+        await _binaryProvider.stop(_binary);
+
+        // 3. Start the binary with retry logic (3 attempts, 5 second wait)
+        bool started = false;
+        int attempts = 0;
+        const maxAttempts = 3;
+        const retryDelay = Duration(seconds: 5);
+
+        while (!started && attempts < maxAttempts) {
+          attempts++;
+          try {
+            await _binaryProvider.start(_binary);
+            started = true;
+          } catch (e) {
+            if (attempts < maxAttempts) {
+              // Wait before retry
+              await Future.delayed(retryDelay);
+            } else {
+              // Re-throw the error on final attempt
+              rethrow;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Handle any errors during the update process
+      // You might want to show a snackbar or dialog here
+    } finally {
+      _isUpdating = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> handleDelete() async {
+    await _binary.wipeAsset(binDir(appDir.path));
+    await _binary.wipeAppDir();
+  }
+
+  Widget buildInfoRow(BuildContext context, String label, String value) {
     final theme = SailTheme.of(context);
 
     return Padding(
@@ -151,5 +175,11 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _binaryProvider.removeListener(notifyListeners);
+    super.dispose();
   }
 }

@@ -47,7 +47,6 @@ abstract class Binary {
   final String repoUrl;
   final DirectoryConfig directories;
   MetadataConfig metadata;
-  final String binary;
   final int port;
   final int chainLayer;
   List<String> extraBootArgs;
@@ -60,7 +59,6 @@ abstract class Binary {
     required this.repoUrl,
     required this.directories,
     required this.metadata,
-    required this.binary,
     required this.port,
     required this.chainLayer,
     this.extraBootArgs = const [],
@@ -71,6 +69,7 @@ abstract class Binary {
   BinaryType get type;
   Color get color;
   String get ticker => '';
+  String get binary => metadata.downloadConfig.binary;
   String get binaryName => binary;
   bool get isDownloaded => metadata.binaryPath != null;
 
@@ -124,7 +123,6 @@ abstract class Binary {
     String? repoUrl,
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    String? binary,
     int? port,
     int? chainLayer,
     DownloadInfo? downloadInfo,
@@ -454,7 +452,6 @@ class BitcoinCore extends Binary {
     super.repoUrl = 'https://github.com/drivechain-project/drivechain',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'bitcoind',
     int? port,
     super.chainLayer = 1,
     super.downloadInfo = const DownloadInfo(),
@@ -468,6 +465,7 @@ class BitcoinCore extends Binary {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'bitcoind',
                  files: {
                    OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
@@ -507,7 +505,6 @@ class BitcoinCore extends Binary {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
@@ -523,7 +520,6 @@ class BitWindow extends Binary {
     super.repoUrl = 'https://github.com/drivechain-project/bitwindow',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'bitwindowd',
     int? port,
     super.chainLayer = 1,
     super.downloadInfo = const DownloadInfo(),
@@ -542,6 +538,7 @@ class BitWindow extends Binary {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
+                 binary: 'bitwindowd',
                  baseUrl: '',
                  files: {
                    // should not be downloaded from any platform
@@ -583,7 +580,6 @@ class BitWindow extends Binary {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
@@ -599,7 +595,6 @@ class Enforcer extends Binary {
     super.repoUrl = 'https://github.com/drivechain-project/enforcer',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.binary = 'bip300301-enforcer',
     int? port,
     super.chainLayer = 1,
     super.downloadInfo = const DownloadInfo(),
@@ -615,6 +610,7 @@ class Enforcer extends Binary {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'bip300301-enforcer',
                  files: {
                    OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
@@ -654,7 +650,6 @@ class Enforcer extends Binary {
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
       port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
       downloadInfo: downloadInfo ?? this.downloadInfo,
@@ -929,10 +924,12 @@ class DirectoryConfig {
 
 class DownloadConfig {
   final String baseUrl;
+  final String binary;
   final Map<OS, String> files;
 
   const DownloadConfig({
     required this.baseUrl,
+    required this.binary,
     required this.files,
   });
 }

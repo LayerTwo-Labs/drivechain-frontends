@@ -21,6 +21,7 @@ class MockBinary extends Binary {
         metadata: MetadataConfig(
           downloadConfig: DownloadConfig(
             baseUrl: '',
+            binary: 'mock',
             files: {
               OS.linux: 'mock',
               OS.macos: 'mock',
@@ -32,7 +33,6 @@ class MockBinary extends Binary {
           binaryPath: null,
           updateable: false,
         ),
-        binary: 'mock',
         port: 8272,
         chainLayer: 0,
       );
