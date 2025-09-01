@@ -145,6 +145,7 @@ class MockBinary extends Binary {
         ),
         metadata: MetadataConfig(
           downloadConfig: DownloadConfig(
+            binary: 'mock',
             baseUrl: 'https://mock.test',
             files: {
               OS.linux: 'mock',
@@ -157,7 +158,6 @@ class MockBinary extends Binary {
           binaryPath: null,
           updateable: false,
         ),
-        binary: 'mock',
         port: 8272,
         chainLayer: 0,
       );

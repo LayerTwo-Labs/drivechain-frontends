@@ -188,12 +188,12 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             textColor: textColor,
           ),
           SailTableCell(
-            value: buttonWidget?.toString() ?? '',
+            value: '',
             child: buttonWidget,
           ),
           if (binary != null)
             SailTableCell(
-              value: '',
+              value: '', // Use spaces to represent the width needed for the settings button
               child: Stack(
                 children: [
                   SailButton(
@@ -314,7 +314,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
           ),
           if (binary != null)
             SailTableCell(
-              value: '',
+              value: '    ', // Use spaces to represent the width needed for the settings button
               child: Stack(
                 children: [
                   SailButton(
@@ -513,6 +513,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (isRunning) {
       return SailButton(
+        key: ValueKey('stop_${sidechain.name}'),
         label: 'Stop',
         onPressed: () async => _binaryProvider.stop(sidechain),
         insideTable: true,
@@ -530,6 +531,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (isProcessRunning) {
       return SailButton(
+        key: ValueKey('stop_${sidechain.name}'),
         label: 'Kill',
         onPressed: () => _binaryProvider.stop(sidechain),
         insideTable: true,
@@ -538,6 +540,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (!sidechain.isDownloaded) {
       return SailButton(
+        key: ValueKey('download_${sidechain.name}'),
         label: 'Download',
         onPressed: () async => await _binaryProvider.download(sidechain),
         insideTable: true,
@@ -546,6 +549,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (sidechain.isDownloaded) {
       return SailButton(
+        key: ValueKey('start_${sidechain.name}'),
         label: 'Start',
         onPressed: () async => await _binaryProvider.start(sidechain),
         insideTable: true,
