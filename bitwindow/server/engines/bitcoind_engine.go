@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -18,6 +19,7 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -42,6 +44,22 @@ type Parser struct {
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	db       *sql.DB
 	conf     config.Config
+
+	mu     sync.Mutex
+	topics []opreturns.TopicInfo
+}
+
+func (p *Parser) isKnownTopic(data []byte) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if len(data) < opreturns.TopicIdLength {
+		return false
+	}
+
+	return lo.ContainsBy(p.topics, func(t opreturns.TopicInfo) bool {
+		return bytes.HasPrefix(data, t.ID[:])
+	})
 }
 
 // Run runs the engine. It checks if a new block has been mined,
@@ -51,6 +69,17 @@ type Parser struct {
 func (p *Parser) Run(ctx context.Context) error {
 	alertTicker := time.NewTicker(2 * time.Second)
 	defer alertTicker.Stop()
+
+	topics, err := opreturns.ListTopics(ctx, p.db)
+	if err != nil {
+		return fmt.Errorf("list topics: %w", err)
+	}
+	p.topics = lo.Map(topics, func(t opreturns.Topic, _ int) opreturns.TopicInfo {
+		return opreturns.TopicInfo{
+			ID:   t.Topic,
+			Name: t.Name,
+		}
+	})
 
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: started parser ticker")
@@ -274,33 +303,38 @@ func (p *Parser) opReturnForTXID(
 		panic("PROGRAMMER ERROR: non-nil, zero create time")
 	}
 
-	opReturns := p.findOPReturns(ctx, tx, height)
+	opReturns, err := p.handleOpReturns(ctx, tx, height)
+	if err != nil {
+		return fmt.Errorf("find OP_RETURNs: %w", err)
+	}
 
 	if err := opreturns.Persist(ctx, p.db, opReturns); err != nil {
 		return err
 	}
 
-	if err := p.handleCreateTopics(ctx, opReturns); err != nil {
-		return fmt.Errorf("handle create topics: %w", err)
-	}
-
 	return nil
 }
 
-func (p *Parser) handleCreateTopics(ctx context.Context, opReturns []opreturns.OPReturn) error {
-	for _, opReturn := range opReturns {
-		if info, ok := opreturns.IsCreateTopic(opReturn.Data); ok {
+func (p *Parser) handleCreateTopic(
+	ctx context.Context, info opreturns.TopicInfo, txid string,
+) error {
 
-			zerolog.Ctx(ctx).Info().
-				Msgf("bitcoind_engine/parser: found create topic: %s", info.Name)
+	zerolog.Ctx(ctx).Info().
+		Msgf("bitcoind_engine/parser: found create topic: %s", info.Name)
 
-			if err := opreturns.CreateTopic(
-				ctx, p.db, info.ID, info.Name, opReturn.TxID,
-			); err != nil {
-				return err
-			}
-		}
+	if err := opreturns.CreateTopic(
+		ctx, p.db, info.ID, info.Name, txid,
+	); err != nil {
+		return fmt.Errorf("persist create topic: %w", err)
 	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.topics = append(p.topics, opreturns.TopicInfo{
+		ID:   info.ID,
+		Name: info.Name,
+	})
 
 	return nil
 }
@@ -369,25 +403,28 @@ func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, e
 }
 
 // finds all OP_RETURN outputs for a specific tx
-func (p *Parser) findOPReturns(
+func (p *Parser) handleOpReturns(
 	ctx context.Context, tx *wire.MsgTx, height *uint32,
-) []opreturns.OPReturn {
+) ([]opreturns.OPReturn, error) {
 	txid := tx.TxID()
 
 	var emptyHash chainhash.Hash
 	isCoinbase := len(tx.TxIn) > 0 && tx.TxIn[0].PreviousOutPoint.Hash.IsEqual(&emptyHash)
 	// every coinbase transaction has a OP_RETURN output we don't care about
 	if isCoinbase && len(tx.TxOut) == 2 {
-		return nil
+		return nil, nil
 	}
 
 	// Check outputs for OP_NOP5
 	for _, txout := range tx.TxOut {
 		script := txout.PkScript
 		if len(script) > 0 && script[0] == txscript.OP_NOP5 {
-			return nil // OP_DRIVECHAIN, skipping
+			return nil, nil // OP_DRIVECHAIN, skipping
 		}
 	}
+
+	// Only fetch this a single time if handling multiple outputs
+	var rawTx *corepb.GetRawTransactionResponse
 
 	var opReturns []opreturns.OPReturn
 	for vout, txout := range tx.TxOut {
@@ -404,31 +441,66 @@ func (p *Parser) findOPReturns(
 			continue
 		}
 
-		if isOPReturn {
+		if !isOPReturn {
+			continue
+		}
 
-			// Parse the OP_RETURN data correctly, just skip if we're unable
-			// to parse. Lots of strange data on the blockchain!
-			data, ok := parseOPReturnData(txout.PkScript)
-			if !ok {
-				continue
+		// Parse the OP_RETURN data correctly, just skip if we're unable
+		// to parse. Lots of strange data on the blockchain!
+		data, ok := parseOPReturnData(txout.PkScript)
+		if !ok {
+			continue
+		}
+
+		if info, ok := opreturns.IsCreateTopic(data); ok {
+			if err := p.handleCreateTopic(ctx, info, txid); err != nil {
+				return nil, err
+			}
+		}
+
+		zerolog.Ctx(ctx).Debug().
+			Str("txid", txid).
+			Int("vout", vout).
+			Msgf("bitcoind_engine/parser: found OP_RETURN")
+
+		var fee btcutil.Amount
+
+		// If this is a coin news message, we need to figoure out the fee
+		// paid.
+		if p.isKnownTopic(data) {
+			if rawTx == nil {
+				core, err := p.bitcoind.Get(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("get bitcoind: %w", err)
+				}
+				res, err := core.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+					// needed for fee info the be included
+					Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+					Txid:      txid,
+				}))
+				if err != nil {
+					return nil, fmt.Errorf("get raw transaction %q: %w", txid, err)
+				}
+				rawTx = res.Msg
 			}
 
-			// Log both hex and string representation for easier debugging
-			zerolog.Ctx(ctx).Debug().
-				Str("txid", txid).
-				Int("vout", vout).
-				Msgf("bitcoind_engine/parser: found OP_RETURN")
-
-			opReturns = append(opReturns, opreturns.OPReturn{
-				TxID:   txid,
-				Data:   data,
-				Vout:   int32(vout),
-				Height: height,
-			})
+			var err error
+			fee, err = btcutil.NewAmount(rawTx.GetFee())
+			if err != nil {
+				return nil, err
+			}
 		}
+
+		opReturns = append(opReturns, opreturns.OPReturn{
+			TxID:   txid,
+			Data:   data,
+			Vout:   int32(vout),
+			Height: height,
+			Fee:    fee,
+		})
 	}
 
-	return opReturns
+	return opReturns, nil
 }
 
 // parseOPReturnData extracts the actual data from an OP_RETURN script by handling

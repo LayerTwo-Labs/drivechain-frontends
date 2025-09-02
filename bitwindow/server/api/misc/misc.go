@@ -255,6 +255,7 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		Topic:      coinNews.Topic.String(),
 		Headline:   coinNews.Headline,
 		Content:    coinNews.Content,
+		FeeSats:    int64(coinNews.Fee),
 		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
 	}
 }
