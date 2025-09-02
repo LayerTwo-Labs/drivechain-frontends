@@ -175,13 +175,9 @@ class HDWalletProvider extends ChangeNotifier {
 
       // Additional validation: check the extended key structure
       final version = (decoded[0] << 24) | (decoded[1] << 16) | (decoded[2] << 8) | decoded[3];
-      final depth = decoded[4];
-      final parentFingerprint = decoded.sublist(5, 9);
-      final childNumber = decoded.sublist(9, 13);
-      final chainCode = decoded.sublist(13, 45);
       final keyData = decoded.sublist(45, 78);
 
-      // Extended key validation passed - verbose logging removed for performance
+      // Extended key validation passed
 
       // Check if version matches expected network
       final isMainnetVersion = version == 0x0488b21e; // xpub
@@ -476,9 +472,7 @@ class HDWalletProvider extends ChangeNotifier {
         // Found ${groups.length} groups in multisig.json
 
         for (final jsonGroup in groups) {
-          final groupName = jsonGroup['name'] ?? 'unnamed';
           final List<dynamic> keys = jsonGroup['keys'] ?? [];
-          // Group "$groupName" has ${keys.length} keys
 
           for (final keyData in keys) {
             final isWallet = keyData['is_wallet'] == true;

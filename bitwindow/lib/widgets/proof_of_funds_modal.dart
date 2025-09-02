@@ -792,7 +792,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
         } else {
           log.w('Failed to sign UTXO ${utxo.txid}:${utxo.vout} - no signature generated');
           failCount++;
-          // Write line without signature for debugging
+          // Write line without signature
           final csvLine = 'BTC,${utxo.txid},${utxo.address},$message,,${utxo.amount},';
           buffer.writeln(csvLine);
         }
