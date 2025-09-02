@@ -45,8 +45,10 @@ class ChainSettingsModal extends StatelessWidget {
                       // Update button - only show if update is available and not currently updating
                       if (viewModel.showUpdateButton)
                         SailButton(
-                          label: viewModel.isUpdating ? 'Updating...' : 'Update',
+                          label: 'Update',
                           onPressed: viewModel.isUpdating ? null : () => viewModel.handleUpdate(context),
+                          loading: viewModel.isUpdating,
+                          loadingLabel: 'Updating',
                         ),
                     ],
                   ),

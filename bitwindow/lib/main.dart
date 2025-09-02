@@ -431,7 +431,7 @@ Future<void> initAutoUpdater(Logger log) async {
     log.i('Initializing auto updater with feed URL: $feedURL');
 
     await autoUpdater.setFeedURL(feedURL);
-    await autoUpdater.checkForUpdates();
+    await autoUpdater.checkForUpdates(inBackground: true);
     await autoUpdater.setScheduledCheckInterval(3600); // Check every hour
 
     log.i('Auto updater initialized successfully');

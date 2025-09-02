@@ -188,7 +188,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             textColor: textColor,
           ),
           SailTableCell(
-            value: '',
+            value: '  Update  ',
             child: buttonWidget,
           ),
           if (binary != null)
