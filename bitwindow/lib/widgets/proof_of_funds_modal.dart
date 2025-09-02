@@ -1050,19 +1050,19 @@ class ProofOfFundsViewModel extends BaseViewModel {
   ) async {
     try {
       final isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
-      
+
       // Verify that the public key corresponds to the address
       // This proves the signature was created by the private key for this address
       final derivedAddress = _publicKeyToBech32Address(publicKeyHex, isMainnet);
       final addressMatches = derivedAddress == address;
-      
+
       if (addressMatches) {
         // Additional validation: ensure signature is not empty and properly formatted
         if (signatureBase64.isEmpty || signatureBase64.length < 40) {
           log.w('Invalid signature format for $address');
           return false;
         }
-        
+
         // Verify signature is valid base64
         try {
           base64Decode(signatureBase64);
@@ -1070,7 +1070,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
           log.w('Invalid base64 signature for $address');
           return false;
         }
-        
+
         log.d('Signature verification passed for $address');
         return true;
       } else {
