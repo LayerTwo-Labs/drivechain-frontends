@@ -7,6 +7,7 @@ import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
+import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -216,6 +217,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   onSelected: () async {
                     final windowProvider = GetIt.I.get<WindowProvider>();
                     await windowProvider.open(SubWindowTypes.deniability);
+                  },
+                ),
+                PlatformMenuItem(
+                  label: 'Proof of Funds',
+                  onSelected: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ProofOfFundsModal(),
+                    );
                   },
                 ),
               ],

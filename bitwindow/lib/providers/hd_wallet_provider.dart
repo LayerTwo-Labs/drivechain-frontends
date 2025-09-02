@@ -181,13 +181,7 @@ class HDWalletProvider extends ChangeNotifier {
       final chainCode = decoded.sublist(13, 45);
       final keyData = decoded.sublist(45, 78);
 
-      log.d('Extended key validation passed: ${extendedKey.substring(0, 8)}...');
-      log.d('  Version: 0x${version.toRadixString(16).padLeft(8, '0')}');
-      log.d('  Depth: $depth');
-      log.d('  Parent fingerprint: ${hex.encode(parentFingerprint)}');
-      log.d('  Child number: ${hex.encode(childNumber)}');
-      log.d('  Chain code: ${hex.encode(chainCode).substring(0, 16)}...');
-      log.d('  Key data: ${hex.encode(keyData).substring(0, 16)}...');
+      // Extended key validation passed - verbose logging removed for performance
 
       // Check if version matches expected network
       final isMainnetVersion = version == 0x0488b21e; // xpub
@@ -220,8 +214,7 @@ class HDWalletProvider extends ChangeNotifier {
       final childKey = chain.forPath('0/0'); // Try to derive m/0/0
       childKey.publicKey(); // Just call to verify derivation works
 
-      // If we got here, the extended key is valid enough to derive children
-      log.d('Successfully derived child key from extended key');
+      // Extended key validation and child derivation successful
       return true;
     } catch (e) {
       log.e('Failed to derive child key from extended key: $e');
@@ -241,7 +234,7 @@ class HDWalletProvider extends ChangeNotifier {
         adjustedPath = path.replaceAll("'0'/", "'1'/");
       }
 
-      log.d('deriveExtendedKeyInfo: original path=$path, adjusted path=$adjustedPath, isMainnet=$isMainnet');
+      // Deriving key for path: $adjustedPath (${isMainnet ? 'mainnet' : 'testnet'})
 
       final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
       final seedHex = hex.encode(mnemonicObj.seed);
@@ -265,9 +258,7 @@ class HDWalletProvider extends ChangeNotifier {
       var xprv = extendedPrivateKey.toString();
       var xpub = extendedPublicKey.toString();
 
-      log.d(
-        'Network: ${isMainnet ? "mainnet" : "testnet/signet"}, Original xpub: $xpub, Original xprv: ${xprv.substring(0, 8)}...',
-      );
+      // Key derivation for ${isMainnet ? 'mainnet' : 'testnet/signet'} network
 
       // For testnet, convert both xpub to tpub and xprv to tprv with proper checksums
       // Bitcoin Core should accept this even if dart_bip32_bip44 can't import it
@@ -290,7 +281,7 @@ class HDWalletProvider extends ChangeNotifier {
 
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
-            log.d('Generated testnet tpub: $xpub');
+            // Generated testnet tpub
           }
         } catch (e) {
           log.e('Failed to convert to tpub: $e');
@@ -316,7 +307,7 @@ class HDWalletProvider extends ChangeNotifier {
 
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
-              log.d('Generated testnet tprv: ${xprv.substring(0, 8)}...');
+              // Generated testnet tprv
             }
           } catch (e) {
             log.e('Failed to convert to tprv: $e');
@@ -342,7 +333,7 @@ class HDWalletProvider extends ChangeNotifier {
 
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
-            log.d('Converted testnet tpub to mainnet xpub');
+            // Converted testnet tpub to mainnet xpub
           }
         } catch (e) {
           log.e('Failed to convert tpub version bytes: $e');
@@ -368,7 +359,7 @@ class HDWalletProvider extends ChangeNotifier {
 
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
-              log.d('Converted testnet tprv to mainnet xprv');
+              // Converted testnet tprv to mainnet xprv
             }
           } catch (e) {
             log.e('Failed to convert tprv version bytes: $e');
@@ -389,7 +380,7 @@ class HDWalletProvider extends ChangeNotifier {
           log.w('Extended key cannot derive child keys in dart_bip32_bip44, but may still work with Bitcoin Core');
         }
       } else {
-        log.i('Skipping dart_bip32_bip44 child derivation test for testnet tpub key');
+        // Skipping dart_bip32_bip44 child derivation test for testnet tpub key
       }
 
       // Get pubkey if at leaf level (for validation)
@@ -482,12 +473,12 @@ class HDWalletProvider extends ChangeNotifier {
 
         // Check groups for wallet keys
         final groups = jsonData['groups'] as List<dynamic>? ?? [];
-        log.d('Found ${groups.length} groups in multisig.json');
+        // Found ${groups.length} groups in multisig.json
 
         for (final jsonGroup in groups) {
           final groupName = jsonGroup['name'] ?? 'unnamed';
           final List<dynamic> keys = jsonGroup['keys'] ?? [];
-          log.d('Group "$groupName" has ${keys.length} keys');
+          // Group "$groupName" has ${keys.length} keys
 
           for (final keyData in keys) {
             final isWallet = keyData['is_wallet'] == true;
@@ -507,7 +498,7 @@ class HDWalletProvider extends ChangeNotifier {
 
         // Check solo_keys (only count keys that belong to current wallet)
         final soloKeys = jsonData['solo_keys'] as List<dynamic>? ?? [];
-        log.d('Found ${soloKeys.length} solo keys in multisig.json');
+        // Found ${soloKeys.length} solo keys in multisig.json
 
         for (final keyData in soloKeys) {
           final derivationPath = keyData['path'] as String?;
@@ -521,7 +512,7 @@ class HDWalletProvider extends ChangeNotifier {
               // Count all keys regardless of wallet ownership
               if (accountIndex > maxAccountIndex) {
                 maxAccountIndex = accountIndex;
-                log.d('Updated max account index from solo_keys to: $maxAccountIndex');
+                // Updated max account index from solo_keys to: $maxAccountIndex
               }
             }
           }
@@ -530,17 +521,17 @@ class HDWalletProvider extends ChangeNotifier {
 
       // Include additional indices from current session
       if (additionalUsedIndices != null) {
-        log.d('Session used indices: $additionalUsedIndices');
+        // Session used indices: $additionalUsedIndices
         for (final index in additionalUsedIndices) {
           if (index > maxAccountIndex) {
             maxAccountIndex = index;
-            log.d('Updated max account index from session to: $maxAccountIndex');
+            // Updated max account index from session to: $maxAccountIndex
           }
         }
       }
 
       final nextIndex = maxAccountIndex + 1;
-      log.d('Returning next account index: $nextIndex');
+      // Returning next account index: $nextIndex
       return nextIndex;
     } catch (e) {
       log.e('Error getting next account index: $e');
