@@ -149,7 +149,7 @@ func ValidNewsTopicID(topic string) (TopicID, error) {
 		return TopicID{}, fmt.Errorf("topic ID %q is not hex: %w", topic, err)
 	}
 
-	if len(decode) != topicIdLength {
+	if len(decode) != TopicIdLength {
 		return TopicID{}, fmt.Errorf("topic ID %q is not 8 bytes: %d", topic, len(decode))
 	}
 
@@ -163,22 +163,22 @@ type TopicInfo struct {
 
 var newTopicTag = []byte("new")
 
-const topicIdLength = 8
+const TopicIdLength = 8
 
 func IsCreateTopic(data []byte) (TopicInfo, bool) {
-	if len(data) < topicIdLength+len(newTopicTag) {
+	if len(data) < TopicIdLength+len(newTopicTag) {
 		return TopicInfo{}, false
 	}
 
 	// First 8 chars should be the hex topic
-	topic := hex.EncodeToString(data[:topicIdLength])
+	topic := hex.EncodeToString(data[:TopicIdLength])
 	topicID, err := ValidNewsTopicID(topic)
 	if err != nil {
 		return TopicInfo{}, false
 	}
 
 	// Check if "new" follows the topic
-	name, ok := bytes.CutPrefix(data[topicIdLength:], newTopicTag)
+	name, ok := bytes.CutPrefix(data[TopicIdLength:], newTopicTag)
 	return TopicInfo{
 		ID:   topicID,
 		Name: string(name),
@@ -282,7 +282,7 @@ func EncodeTopicCreationMessage(topic TopicID, name string) []byte {
 	)
 }
 
-type TopicID [topicIdLength]byte
+type TopicID [TopicIdLength]byte
 
 func (t TopicID) String() string {
 	return hex.EncodeToString(t[:])
@@ -310,7 +310,7 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 
 	var coinNews []CoinNews
 	for _, opReturn := range opReturns {
-		if len(opReturn.Data) < topicIdLength {
+		if len(opReturn.Data) < TopicIdLength {
 			continue
 		}
 
@@ -319,7 +319,7 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 			continue
 		}
 
-		topic, ok := extractTopic(topics, TopicID(opReturn.Data[:topicIdLength]))
+		topic, ok := extractTopic(topics, TopicID(opReturn.Data[:TopicIdLength]))
 		if !ok {
 			continue
 		}
@@ -330,11 +330,11 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 		)
 		switch {
 		case len(opReturn.Data) >= 72:
-			headline = strings.TrimRight(string(opReturn.Data[topicIdLength:72]), " ")
+			headline = strings.TrimRight(string(opReturn.Data[TopicIdLength:72]), " ")
 			content = string(opReturn.Data[72:])
 
 		default:
-			headline = strings.TrimRight(string(opReturn.Data[topicIdLength:]), " ")
+			headline = strings.TrimRight(string(opReturn.Data[TopicIdLength:]), " ")
 		}
 
 		// Remove all the whitespace padding

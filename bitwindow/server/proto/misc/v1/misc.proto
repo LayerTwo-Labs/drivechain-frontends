@@ -68,6 +68,7 @@ message CoinNews {
   string topic = 2;
   string headline = 3;
   string content = 4;
+  int64 fee_sats = 5;
 
   google.protobuf.Timestamp create_time = 6;
 }

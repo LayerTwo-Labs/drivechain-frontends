@@ -616,29 +616,31 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		if err != nil {
 			return nil, fmt.Errorf("bitcoind: could not get block: %w", err)
 		}
-		for _, txid := range blockRes.Msg.Txids {
+		for idx, txid := range blockRes.Msg.Txids {
 			// Get full transaction details
 			txRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				Txid: txid,
+				Txid:      txid,
+				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 			}))
 			if err != nil {
 				return nil, fmt.Errorf("bitcoind: could not get transaction %s: %w", txid, err)
 			}
 
-			recentTx, isCoinbase, err := s.recentTransactionFromRaw(ctx, bitcoind, txRes.Msg.Tx.Data)
-			if err != nil {
-				return nil, fmt.Errorf("could not get recent transaction: %w", err)
-			}
-
-			if isCoinbase {
+			// Coinbase transaction
+			if idx == 0 {
 				continue
 			}
 
+			fee, err := btcutil.NewAmount(txRes.Msg.Fee)
+			if err != nil {
+				return nil, err
+			}
+
 			transactions = append(transactions, &pb.RecentTransaction{
-				VirtualSize:      recentTx.VirtualSize,
+				VirtualSize:      uint32(txRes.Msg.Vsize),
 				Time:             blockRes.Msg.Time,
 				Txid:             txid,
-				FeeSats:          recentTx.FeeSats,
+				FeeSats:          uint64(fee),
 				ConfirmedInBlock: &blockRes.Msg.Height,
 			})
 		}
@@ -664,53 +666,4 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	return connect.NewResponse(&pb.ListRecentTransactionsResponse{
 		Transactions: transactions,
 	}), nil
-}
-
-func (s *Server) recentTransactionFromRaw(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, data []byte) (*pb.RecentTransaction, bool, error) {
-	tx, err := btcutil.NewTxFromBytes(data)
-	if err != nil {
-		return nil, false, fmt.Errorf("could not decode transaction hex: %w", err)
-	}
-
-	// Check if coinbase, and skip input calculation if so
-	isCoinbase := len(tx.MsgTx().TxIn) > 0 && tx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
-	var fee int64
-	if !isCoinbase {
-		// Calculate total input value by looking up value of each input transaction
-		var totalIn int64
-		for _, txIn := range tx.MsgTx().TxIn {
-			prevTxRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				Txid:    txIn.PreviousOutPoint.Hash.String(),
-				Verbose: true,
-			}))
-			if err != nil {
-				return nil, false, fmt.Errorf("bitcoind: could not get input transaction %s: %w", txIn.PreviousOutPoint.Hash.String(), err)
-			}
-
-			prevTx, err := btcutil.NewTxFromBytes(prevTxRes.Msg.Tx.Data)
-			if err != nil {
-				return nil, false, fmt.Errorf("could not decode input transaction: %w", err)
-			}
-
-			totalIn += prevTx.MsgTx().TxOut[txIn.PreviousOutPoint.Index].Value
-		}
-
-		// Calculate total output value
-		var totalOut int64
-		for _, txOut := range tx.MsgTx().TxOut {
-			totalOut += txOut.Value
-		}
-
-		// Calculate fee as the difference between inputs and outputs
-		fee = totalIn - totalOut
-		if fee < 0 {
-			return nil, false, fmt.Errorf("could not calculate fee: negative fee %d", fee)
-		}
-	}
-
-	return &pb.RecentTransaction{
-		VirtualSize: uint32(tx.MsgTx().SerializeSize()),
-		Txid:        tx.Hash().String(),
-		FeeSats:     uint64(fee),
-	}, isCoinbase, nil
 }

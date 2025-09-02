@@ -514,6 +514,7 @@ type CoinNews struct {
 	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
 	Headline      string                 `protobuf:"bytes,3,opt,name=headline,proto3" json:"headline,omitempty"`
 	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	FeeSats       int64                  `protobuf:"varint,5,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
 	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -575,6 +576,13 @@ func (x *CoinNews) GetContent() string {
 		return x.Content
 	}
 	return ""
+}
+
+func (x *CoinNews) GetFeeSats() int64 {
+	if x != nil {
+		return x.FeeSats
+	}
+	return 0
 }
 
 func (x *CoinNews) GetCreateTime() *timestamppb.Timestamp {
@@ -666,12 +674,13 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x06topics\x18\x01 \x03(\v2\x0e.misc.v1.TopicR\x06topics\":\n" +
 	"\x13ListCoinNewsRequest\x12\x19\n" +
 	"\x05topic\x18\x01 \x01(\tH\x00R\x05topic\x88\x01\x01B\b\n" +
-	"\x06_topic\"\xa3\x01\n" +
+	"\x06_topic\"\xbe\x01\n" +
 	"\bCoinNews\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x1a\n" +
 	"\bheadline\x18\x03 \x01(\tR\bheadline\x12\x18\n" +
-	"\acontent\x18\x04 \x01(\tR\acontent\x12;\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\x12\x19\n" +
+	"\bfee_sats\x18\x05 \x01(\x03R\afeeSats\x12;\n" +
 	"\vcreate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\"F\n" +
 	"\x14ListCoinNewsResponse\x12.\n" +
