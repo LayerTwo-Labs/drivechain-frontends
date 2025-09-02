@@ -5,7 +5,7 @@ go 1.25
 require (
 	connectrpc.com/connect v1.18.1
 	github.com/barebitcoin/btc-buf v0.0.0-20250828175702-83cc992a6d8a
-	github.com/brianvoe/gofakeit/v7 v7.4.0
+	github.com/brianvoe/gofakeit/v7 v7.5.1
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.34.0
