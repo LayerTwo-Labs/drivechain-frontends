@@ -1,3 +1,6 @@
+set -e
+set -o pipefail
+
 original_cwd=$(pwd)
 assets_dir=$original_cwd/assets/bin
 # Ensure the binary folder is in place. 
@@ -12,11 +15,28 @@ echo "Building bitwindowd in $server_cwd"
 # Build bitwindowd
 echo "Building bitwindowd"
 
+# ibrew is a wrapper for brew that runs on x86_64 (intel) on macOS
+function ibrew() {
+    arch -x86_64 /usr/local/bin/brew "$@"
+}
+
 # force building for x86_64 on macOS, so both new and old macs 
 # work
 if [[ "$OSTYPE" == "darwin"* ]]; then
+
+    if [[ ! -e /usr/local/bin/brew ]]; then
+        echo "x86_64 (intel) brew is not installed"
+        echo 
+        echo "Do this by running this command:"
+        echo '  arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+        exit 1
+    fi
     echo "Forcing amd64 GOARCH"
     export GOARCH=amd64
+
+    export PKG_CONFIG_PATH="$(ibrew --prefix zeromq)/lib/pkgconfig:$PKG_CONFIG_PATH"
+    export CGO_CFLAGS="-I$(ibrew --prefix zeromq)/include $CGO_CFLAGS"
+    export CGO_LDFLAGS="-L$(ibrew --prefix zeromq)/lib $CGO_LDFLAGS"
 fi
 
 just build-go
