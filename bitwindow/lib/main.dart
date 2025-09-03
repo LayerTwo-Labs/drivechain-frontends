@@ -8,6 +8,9 @@ import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/message_signer.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
+import 'package:bitwindow/pages/wallet/wallet_hd.dart';
+import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
+import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -234,6 +237,15 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
     case SubWindowTypes.hashCalculatorId:
       child = const HashCalculator();
       break;
+    case SubWindowTypes.hdWalletId:
+      child = const HDWalletTab();
+      break;
+    case SubWindowTypes.multisigLoungeId:
+      child = const MultisigLoungeTab();
+      break;
+    case SubWindowTypes.bitDriveId:
+      child = const BitDriveTab();
+      break;
   }
 
   return runApp(
@@ -410,6 +422,30 @@ class SubWindowTypes {
     // set width to half of screen size, full height
     defaultSize: Size(double.maxFinite / 2, double.maxFinite),
     defaultPosition: Offset(double.maxFinite / 2, 0),
+  );
+
+  static const String hdWalletId = 'hd_wallet';
+  static var hdWallet = SailWindow(
+    identifier: hdWalletId,
+    name: 'HD Wallet Explorer',
+    defaultSize: Size(1200, 800),
+    defaultPosition: Offset(100, 100),
+  );
+
+  static const String multisigLoungeId = 'multisig_lounge';
+  static var multisigLounge = SailWindow(
+    identifier: multisigLoungeId,
+    name: 'Multisig Lounge',
+    defaultSize: Size(1200, 800),
+    defaultPosition: Offset(100, 100),
+  );
+
+  static const String bitDriveId = 'bitdrive';
+  static var bitDrive = SailWindow(
+    identifier: bitDriveId,
+    name: 'BitDrive',
+    defaultSize: Size(1000, 700),
+    defaultPosition: Offset(150, 150),
   );
 }
 
