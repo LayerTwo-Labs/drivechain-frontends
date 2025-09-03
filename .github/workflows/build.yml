@@ -765,39 +765,115 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
 
+      - name: Check which clients have version changes
+        run: |
+          # Download existing versions.json from server
+          if curl -s -f "https://releases.drivechain.info/versions.json" -o existing_versions.json 2>/dev/null; then
+            echo "Downloaded existing versions.json"
+          else
+            echo "No existing versions.json found, will upload all clients"
+            echo "UPLOAD_BITWINDOW=true UPLOAD_BITNAMES=true UPLOAD_BITASSETS=true UPLOAD_THUNDER=true UPLOAD_ZSIDE=true" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          # Find all generated version.json files from artifacts
+          version_files=$(find . -name "*-*-version.json" -type f 2>/dev/null || true)
+          
+          if [ -z "$version_files" ]; then
+            echo "No version files found, will upload all clients"
+            echo "UPLOAD_BITWINDOW=true UPLOAD_BITNAMES=true UPLOAD_BITASSETS=true UPLOAD_THUNDER=true UPLOAD_ZSIDE=true" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          # Create merged new versions.json from all generated version files
+          echo "{}" > new_versions.json
+          echo "$version_files" | while read version_file; do
+            if [ -n "$version_file" ]; then
+              jq -s '.[0] * .[1]' new_versions.json "$version_file" > temp_versions.json
+              mv temp_versions.json new_versions.json
+            fi
+          done
+          
+          echo "New versions.json:"
+          cat new_versions.json | jq .
+          echo "Existing versions.json:"
+          cat existing_versions.json | jq .
+          
+          # Compare versions for each client
+          for client in bitwindow bitnames bitassets thunder zside; do
+            # Get highest version from new and existing
+            new_ver=$(jq -r ".$client // {} | to_entries | map(.value.version) | max // \"0.0.0\"" new_versions.json)
+            existing_ver=$(jq -r ".$client // {} | to_entries | map(.value.version) | max // \"0.0.0\"" existing_versions.json)
+            
+            echo "$client: new=$new_ver, existing=$existing_ver"
+            
+            if [ "$(printf '%s\n' "$new_ver" "$existing_ver" | sort -V | tail -1)" = "$new_ver" ] && [ "$new_ver" != "$existing_ver" ]; then
+              echo "UPLOAD_${client^^}=true" >> $GITHUB_ENV
+              echo "$client version increased, will upload"
+            else
+              echo "UPLOAD_${client^^}=false" >> $GITHUB_ENV
+              echo "$client version unchanged, will skip"
+            fi
+          done
+
       - name: Rename and move artifacts
         working-directory: .
         continue-on-error: true
         run: |
-          # Thunder
-          mv thunder-binaries-macOS/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
-          mv thunder-binaries-Linux/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
-          mv thunder-binaries-Linux/Thunder-x86_64.AppImage test-thunder-x86_64-unknown-linux-gnu.AppImage || true
-          mv thunder-binaries-Windows/thunder.exe test-thunder-x86_64-windows.exe || true
+          # Thunder - only rename if version increased
+          if [ "$UPLOAD_THUNDER" = "true" ]; then
+            echo "Preparing Thunder artifacts for upload..."
+            mv thunder-binaries-macOS/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
+            mv thunder-binaries-Linux/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
+            mv thunder-binaries-Linux/Thunder-x86_64.AppImage test-thunder-x86_64-unknown-linux-gnu.AppImage || true
+            mv thunder-binaries-Windows/thunder.exe test-thunder-x86_64-windows.exe || true
+          else
+            echo "Skipping Thunder artifacts (version not increased)"
+          fi
 
-          # BitNames
-          mv bitnames-binaries-macOS/bitnames-osx64.zip test-bitnames-x86_64-apple-darwin.zip || true
-          mv bitnames-binaries-Linux/bitnames-x86_64-linux-gnu.zip test-bitnames-x86_64-unknown-linux-gnu.zip || true
-          mv bitnames-binaries-Linux/Bitnames-x86_64.AppImage test-bitnames-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitnames-binaries-Windows/bitnames.exe test-bitnames-x86_64-windows.exe || true
+          # BitNames - only rename if version increased
+          if [ "$UPLOAD_BITNAMES" = "true" ]; then
+            echo "Preparing BitNames artifacts for upload..."
+            mv bitnames-binaries-macOS/bitnames-osx64.zip test-bitnames-x86_64-apple-darwin.zip || true
+            mv bitnames-binaries-Linux/bitnames-x86_64-linux-gnu.zip test-bitnames-x86_64-unknown-linux-gnu.zip || true
+            mv bitnames-binaries-Linux/Bitnames-x86_64.AppImage test-bitnames-x86_64-unknown-linux-gnu.AppImage || true
+            mv bitnames-binaries-Windows/bitnames.exe test-bitnames-x86_64-windows.exe || true
+          else
+            echo "Skipping BitNames artifacts (version not increased)"
+          fi
 
-          # BitAssets
-          mv bitassets-binaries-macOS/bitassets-osx64.zip test-bitassets-x86_64-apple-darwin.zip || true
-          mv bitassets-binaries-Linux/bitassets-x86_64-linux-gnu.zip test-bitassets-x86_64-unknown-linux-gnu.zip || true
-          mv bitassets-binaries-Linux/BitAssets-x86_64.AppImage test-bitassets-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitassets-binaries-Windows/bitassets.exe test-bitassets-x86_64-windows.exe || true
+          # BitAssets - only rename if version increased
+          if [ "$UPLOAD_BITASSETS" = "true" ]; then
+            echo "Preparing BitAssets artifacts for upload..."
+            mv bitassets-binaries-macOS/bitassets-osx64.zip test-bitassets-x86_64-apple-darwin.zip || true
+            mv bitassets-binaries-Linux/bitassets-x86_64-linux-gnu.zip test-bitassets-x86_64-unknown-linux-gnu.zip || true
+            mv bitassets-binaries-Linux/BitAssets-x86_64.AppImage test-bitassets-x86_64-unknown-linux-gnu.AppImage || true
+            mv bitassets-binaries-Windows/bitassets.exe test-bitassets-x86_64-windows.exe || true
+          else
+            echo "Skipping BitAssets artifacts (version not increased)"
+          fi
 
-          # ZSide
-          mv zside-binaries-macOS/zside-osx64.zip test-zside-x86_64-apple-darwin.zip || true
-          mv zside-binaries-Linux/zside-x86_64-linux-gnu.zip test-zside-x86_64-unknown-linux-gnu.zip || true
-          mv zside-binaries-Linux/ZSide-x86_64.AppImage test-zside-x86_64-unknown-linux-gnu.AppImage || true
+          # ZSide - only rename if version increased
+          if [ "$UPLOAD_ZSIDE" = "true" ]; then
+            echo "Preparing ZSide artifacts for upload..."
+            mv zside-binaries-macOS/zside-osx64.zip test-zside-x86_64-apple-darwin.zip || true
+            mv zside-binaries-Linux/zside-x86_64-linux-gnu.zip test-zside-x86_64-unknown-linux-gnu.zip || true
+            mv zside-binaries-Linux/ZSide-x86_64.AppImage test-zside-x86_64-unknown-linux-gnu.AppImage || true
+          else
+            echo "Skipping ZSide artifacts (version not increased)"
+          fi
 
-          # BitWindow
-          mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
-          mv bitwindow-binaries-macOS/bitwindow-osx64.dmg BitWindow-latest-x86_64-apple-darwin.dmg || true
-          mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
-          mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
-          mv bitwindow-binaries-Windows/bitwindow.exe BitWindow-latest-x86_64-windows.exe || true
+          # BitWindow - only rename if version increased
+          if [ "$UPLOAD_BITWINDOW" = "true" ]; then
+            echo "Preparing BitWindow artifacts for upload..."
+            mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
+            mv bitwindow-binaries-macOS/bitwindow-osx64.dmg BitWindow-latest-x86_64-apple-darwin.dmg || true
+            mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
+            mv bitwindow-binaries-Linux/BitWindow-x86_64.AppImage BitWindow-latest-x86_64-unknown-linux-gnu.AppImage || true
+            mv bitwindow-binaries-Windows/bitwindow.exe BitWindow-latest-x86_64-windows.exe || true
+          else
+            echo "Skipping BitWindow artifacts (version not increased)"
+          fi
 
       - name: Install jq for merging version files
         run: sudo apt-get update && sudo apt-get install -y jq
