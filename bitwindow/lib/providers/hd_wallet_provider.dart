@@ -25,6 +25,7 @@ class HDWalletProvider extends ChangeNotifier {
   bool _initialized = false;
   final bool _isProcessing = false;
   String? _mnemonic;
+  String _bip47PaymentCode = '';
 
   String? get seedHex => _seedHex;
   String? get masterKey => _masterKey;
@@ -32,6 +33,7 @@ class HDWalletProvider extends ChangeNotifier {
   bool get isInitialized => _initialized;
   bool get isProcessing => _isProcessing;
   String? get mnemonic => _mnemonic;
+  String get bip47PaymentCode => _bip47PaymentCode;
 
   HDWalletProvider(this.appDir);
 
@@ -75,8 +77,6 @@ class HDWalletProvider extends ChangeNotifier {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
-      // Load from l1_starter.txt for the enforcer wallet mnemonic
-      // This is the correct mnemonic for deriving signing keys in multisig
       final l1Path = path.join(walletDir.path, 'l1_starter.txt');
       final file = File(l1Path);
       if (!await file.exists()) {
@@ -89,13 +89,24 @@ class HDWalletProvider extends ChangeNotifier {
         throw Exception('l1_starter.txt does not contain mnemonic');
       }
 
-      // Generate seed from mnemonic
       final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
       _seedHex = hex.encode(mnemonicObj.seed);
 
       final chain = Chain.seed(_seedHex!);
       final masterKey = chain.forPath('m');
       _masterKey = masterKey.privateKeyHex();
+
+      try {
+        final extendedPublicKey = (masterKey as ExtendedPrivateKey).publicKey();
+        final masterQ = extendedPublicKey.q;
+        if (masterQ != null) {
+          final masterPubKeyBytes = masterQ.getEncoded(true);
+          final masterPubKeyHex = hex.encode(masterPubKeyBytes);
+          _bip47PaymentCode = _generateBip47v3PaymentCode(masterPubKeyHex);
+        }
+      } catch (e) {
+        _bip47PaymentCode = '';
+      }
 
       _error = null;
       _initialized = true;
@@ -112,6 +123,7 @@ class HDWalletProvider extends ChangeNotifier {
     _seedHex = null;
     _masterKey = null;
     _mnemonic = null;
+    _bip47PaymentCode = '';
     _error = null;
     notifyListeners();
   }
@@ -140,7 +152,6 @@ class HDWalletProvider extends ChangeNotifier {
     }
   }
 
-  // Helper function for hash160 (SHA256 + RIPEMD160)
   Uint8List hash160(Uint8List data) {
     final sha256Digest = SHA256Digest();
     final ripemd160 = RIPEMD160Digest();
@@ -148,16 +159,48 @@ class HDWalletProvider extends ChangeNotifier {
     return ripemd160.process(sha256Result);
   }
 
-  // Validate extended key format and checksum
+  String _generateBip47v3PaymentCode(String masterPubKeyHex) {
+    try {
+      if (masterPubKeyHex.length != 66) {
+        return '';
+      }
+      
+      final pubKeyBytes = hex.decode(masterPubKeyHex);
+      if (pubKeyBytes.length != 33) {
+        return '';
+      }
+      
+      final binaryPayload = Uint8List(34);
+      binaryPayload[0] = 0x03;
+      binaryPayload.setRange(1, 34, pubKeyBytes);
+      
+      final versionedPayload = Uint8List(35);
+      versionedPayload[0] = 0x22;
+      versionedPayload.setRange(1, 35, binaryPayload);
+      
+      final sha256Digest = SHA256Digest();
+      final hash1 = sha256Digest.process(versionedPayload);
+      final hash2 = sha256Digest.process(hash1);
+      final checksum = hash2.sublist(0, 4);
+      
+      final finalBytes = Uint8List(39);
+      finalBytes.setRange(0, 35, versionedPayload);
+      finalBytes.setRange(35, 39, checksum);
+      
+      return base58.encode(finalBytes);
+    } catch (e) {
+      return '';
+    }
+  }
+
+
   bool _validateExtendedKey(String extendedKey) {
     try {
       final decoded = base58.decode(extendedKey);
       if (decoded.length != 82) {
-        log.e('Extended key wrong length: ${decoded.length}, expected 82');
-        return false;
+          return false;
       }
 
-      // Verify checksum
       final payload = decoded.sublist(0, 78);
       final providedChecksum = decoded.sublist(78, 82);
 
@@ -168,57 +211,43 @@ class HDWalletProvider extends ChangeNotifier {
 
       for (int i = 0; i < 4; i++) {
         if (providedChecksum[i] != calculatedChecksum[i]) {
-          log.e('Extended key checksum mismatch at byte $i: ${providedChecksum[i]} != ${calculatedChecksum[i]}');
           return false;
         }
       }
 
-      // Additional validation: check the extended key structure
       final version = (decoded[0] << 24) | (decoded[1] << 16) | (decoded[2] << 8) | decoded[3];
       final keyData = decoded.sublist(45, 78);
 
-      // Check if version matches expected network
-      final isMainnetVersion = version == 0x0488b21e; // xpub
-      final isTestnetVersion = version == 0x043587cf; // tpub
+      final isMainnetVersion = version == 0x0488b21e;
+      final isTestnetVersion = version == 0x043587cf;
 
       if (!isMainnetVersion && !isTestnetVersion) {
-        log.e('Unknown extended key version: 0x${version.toRadixString(16)}');
         return false;
       }
 
-      // Check if key data starts with proper compression byte for public key
       if (keyData[0] != 0x02 && keyData[0] != 0x03) {
-        log.e('Invalid public key compression byte: 0x${keyData[0].toRadixString(16)}');
         return false;
       }
 
       return true;
     } catch (e) {
-      log.e('Extended key validation error: $e');
       return false;
     }
   }
 
-  // Test if we can derive a child key from the extended key (additional validation)
   bool _canDeriveChild(String extendedKey) {
     try {
-      // Try to use the dart_bip32_bip44 library to derive a child key
-      // This will fail if the extended key format is incorrect
       final chain = Chain.import(extendedKey);
-      final childKey = chain.forPath('0/0'); // Try to derive m/0/0
-      childKey.publicKey(); // Just call to verify derivation works
+      final childKey = chain.forPath('0/0');
+      childKey.publicKey();
       return true;
     } catch (e) {
-      log.e('Failed to derive child key from extended key: $e');
       return false;
     }
   }
 
-  // Key derivation method with proper xPub/tpub handling
   Future<Map<String, String>> deriveExtendedKeyInfo(String mnemonic, String path, [bool isMainnet = false]) async {
     try {
-      // Adjust path for network-specific coin type
-      // Only replace if the path doesn't already have the correct coin type
       String adjustedPath = path;
       if (isMainnet && path.contains("'1'/")) {
         adjustedPath = path.replaceAll("'1'/", "'0'/");
@@ -230,7 +259,6 @@ class HDWalletProvider extends ChangeNotifier {
       final seedHex = hex.encode(mnemonicObj.seed);
       final chain = Chain.seed(seedHex);
 
-      // Derive master key for fingerprint
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
       final masterPubKey = masterKey.publicKey();
       final masterQ = masterPubKey.q;
@@ -240,26 +268,21 @@ class HDWalletProvider extends ChangeNotifier {
       final fingerprintBytes = hash160(Uint8List.fromList(masterPubBytes));
       final fingerprint = hex.encode(fingerprintBytes.sublist(0, 4));
 
-      // Derive key at requested path
       final extendedPrivateKey = chain.forPath(adjustedPath) as ExtendedPrivateKey;
       final extendedPublicKey = extendedPrivateKey.publicKey();
 
-      // Get raw extended keys
       var xprv = extendedPrivateKey.toString();
       var xpub = extendedPublicKey.toString();
 
-      // Bitcoin Core should accept this even if dart_bip32_bip44 can't import it
       if (!isMainnet && xpub.startsWith('xpub')) {
         try {
           final decoded = base58.decode(xpub);
           if (decoded.length == 82) {
-            // Change version bytes: xpub (0x0488b21e) -> tpub (0x043587cf)
             decoded[0] = 0x04;
             decoded[1] = 0x35;
             decoded[2] = 0x87;
             decoded[3] = 0xcf;
 
-            // Recalculate checksum
             final payload = decoded.sublist(0, 78);
             final sha256Digest = SHA256Digest();
             final hash1 = sha256Digest.process(payload);
@@ -270,15 +293,12 @@ class HDWalletProvider extends ChangeNotifier {
             xpub = base58.encode(decoded);
           }
         } catch (e) {
-          log.e('Failed to convert to tpub: $e');
         }
 
-        // Also convert xprv to tprv for testnet
         if (xprv.startsWith('xprv')) {
           try {
             final decodedPriv = base58.decode(xprv);
             if (decodedPriv.length == 82) {
-              // Change version bytes: xprv (0x0488ade4) -> tprv (0x04358394)
               decodedPriv[0] = 0x04;
               decodedPriv[1] = 0x35;
               decodedPriv[2] = 0x83;
@@ -295,21 +315,17 @@ class HDWalletProvider extends ChangeNotifier {
               xprv = base58.encode(decodedPriv);
             }
           } catch (e) {
-            log.e('Failed to convert to tprv: $e');
           }
         }
       } else if (isMainnet && xpub.startsWith('tpub')) {
-        // Convert tpub to xpub for mainnet
         try {
           final decoded = base58.decode(xpub);
           if (decoded.length == 82) {
-            // Change version bytes: tpub (0x043587cf) -> xpub (0x0488b21e)
             decoded[0] = 0x04;
             decoded[1] = 0x88;
             decoded[2] = 0xb2;
             decoded[3] = 0x1e;
 
-            // Recalculate checksum
             final payload = decoded.sublist(0, 78);
             final sha256Digest = SHA256Digest();
             final hash1 = sha256Digest.process(payload);
@@ -320,14 +336,12 @@ class HDWalletProvider extends ChangeNotifier {
             xpub = base58.encode(decoded);
           }
         } catch (e) {
-          log.e('Failed to convert tpub version bytes: $e');
         }
 
         if (xprv.startsWith('tprv')) {
           try {
             final decodedPriv = base58.decode(xprv);
             if (decodedPriv.length == 82) {
-              // Change version bytes: tprv (0x04358394) -> xprv (0x0488ade4)
               decodedPriv[0] = 0x04;
               decodedPriv[1] = 0x88;
               decodedPriv[2] = 0xad;
@@ -344,31 +358,23 @@ class HDWalletProvider extends ChangeNotifier {
               xprv = base58.encode(decodedPriv);
             }
           } catch (e) {
-            log.e('Failed to convert tprv version bytes: $e');
           }
         }
       }
 
-      // Validate the final extended key format
       if (!_validateExtendedKey(xpub)) {
-        log.e('Generated extended key failed validation: $xpub');
         throw Exception('Generated extended key is invalid');
       }
 
-      // Note: We skip the dart_bip32_bip44 child derivation test for testnet tpub keys
-      // because the library may not support them, but Bitcoin Core should accept them
       if (isMainnet || xpub.startsWith('xpub')) {
         if (!_canDeriveChild(xpub)) {
-          log.w('Extended key cannot derive child keys in dart_bip32_bip44, but may still work with Bitcoin Core');
         }
       }
-      // Get pubkey if at leaf level (for validation)
       final q = extendedPublicKey.q;
       if (q == null) return {};
       final pubKeyBytes = q.getEncoded(true);
       final pubKeyHex = hex.encode(pubKeyBytes);
 
-      // Generate legacy P2PKH address
       final pubKeyHash = hash160(Uint8List.fromList(pubKeyBytes));
       final versionedHash = Uint8List(21);
       versionedHash[0] = isMainnet ? 0x00 : 0x6F;
@@ -384,7 +390,6 @@ class HDWalletProvider extends ChangeNotifier {
       addressBytes.setRange(21, 25, checksum);
       final address = base58.encode(addressBytes);
 
-      // Generate WIF
       final privateKeyHex = extendedPrivateKey.privateKeyHex();
       final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
       final privateKeyBytes = hex.decode(cleanHex);
@@ -413,12 +418,10 @@ class HDWalletProvider extends ChangeNotifier {
         'wif': wif,
       };
     } catch (e) {
-      log.e('Error in fallback key derivation: $e');
       return {};
     }
   }
 
-  // Generate wallet xPub with origin info
   Future<Map<String, String>> generateWalletXpub(int accountIndex, [bool isMainnet = false]) async {
     final coinType = isMainnet ? "0'" : "1'";
     final path = "m/84'/$coinType/$accountIndex'";
@@ -429,7 +432,6 @@ class HDWalletProvider extends ChangeNotifier {
       return {};
     }
 
-    // Add origin info to xpub
     final originPath = path.replaceFirst('m/', '');
     info['xpub_with_origin'] = "[${info['fingerprint']}/$originPath]${info['xpub']}";
     info['derivation_path'] = path;
@@ -437,20 +439,18 @@ class HDWalletProvider extends ChangeNotifier {
     return info;
   }
 
-  // Get next available account index for multisig
   Future<int> getNextAccountIndex([Set<int>? additionalUsedIndices]) async {
     try {
       final appDir = await Environment.datadir();
       final bitdriveDir = path.join(appDir.path, 'bitdrive');
       final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
 
-      int maxAccountIndex = 7999; // Start before 8000
+      int maxAccountIndex = 7999;
 
       if (await file.exists()) {
         final content = await file.readAsString();
         final jsonData = json.decode(content) as Map<String, dynamic>;
 
-        // Check groups for wallet keys
         final groups = jsonData['groups'] as List<dynamic>? ?? [];
 
         for (final jsonGroup in groups) {
@@ -472,7 +472,6 @@ class HDWalletProvider extends ChangeNotifier {
           }
         }
 
-        // Check solo_keys (only count keys that belong to current wallet)
         final soloKeys = jsonData['solo_keys'] as List<dynamic>? ?? [];
 
         for (final keyData in soloKeys) {
@@ -484,7 +483,6 @@ class HDWalletProvider extends ChangeNotifier {
             if (match != null) {
               final accountIndex = int.parse(match.group(1)!);
 
-              // Count all keys regardless of wallet ownership
               if (accountIndex > maxAccountIndex) {
                 maxAccountIndex = accountIndex;
               }
@@ -493,7 +491,6 @@ class HDWalletProvider extends ChangeNotifier {
         }
       }
 
-      // Include additional indices from current session
       if (additionalUsedIndices != null) {
         for (final index in additionalUsedIndices) {
           if (index > maxAccountIndex) {
@@ -505,12 +502,11 @@ class HDWalletProvider extends ChangeNotifier {
       final nextIndex = maxAccountIndex + 1;
       return nextIndex;
     } catch (e) {
-      log.e('Error getting next account index: $e');
       return 8000;
     }
   }
 
-  // Compatibility method for existing callers
+
   Future<Map<String, String>> deriveKeyInfo(String mnemonic, String path) async {
     final isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
     return deriveExtendedKeyInfo(mnemonic, path, isMainnet);
