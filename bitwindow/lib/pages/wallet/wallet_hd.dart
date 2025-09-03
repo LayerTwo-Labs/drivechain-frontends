@@ -287,36 +287,34 @@ class HDWalletViewModel extends BaseViewModel {
       if (masterPubKeyHex.length != 66) {
         return '';
       }
-      
+
       final pubKeyBytes = hex.decode(masterPubKeyHex);
       if (pubKeyBytes.length != 33) {
         return '';
       }
-      
+
       final binaryPayload = Uint8List(34);
       binaryPayload[0] = 0x03;
       binaryPayload.setRange(1, 34, pubKeyBytes);
-      
+
       final versionedPayload = Uint8List(35);
       versionedPayload[0] = 0x22;
       versionedPayload.setRange(1, 35, binaryPayload);
-      
+
       final sha256Digest = SHA256Digest();
       final hash1 = sha256Digest.process(versionedPayload);
       final hash2 = sha256Digest.process(hash1);
       final checksum = hash2.sublist(0, 4);
-      
+
       final finalBytes = Uint8List(39);
       finalBytes.setRange(0, 35, versionedPayload);
       finalBytes.setRange(35, 39, checksum);
-      
+
       return base58.encode(finalBytes);
     } catch (e) {
       return '';
     }
   }
-
-
 
   HDWalletViewModel() {
     mnemonicController.addListener(notifyListeners);
@@ -384,14 +382,13 @@ class HDWalletViewModel extends BaseViewModel {
         _masterSeed = seedHex;
         _xpriv = masterKey.toString();
         _xpub = extendedPublicKey.toString();
-        
+
         // Generate BIP47_v3 payment code from master public key
         final masterQ = extendedPublicKey.q;
         if (masterQ != null) {
           final masterPubKeyBytes = masterQ.getEncoded(true);
           final masterPubKeyHex = hex.encode(masterPubKeyBytes);
           _bip47PaymentCode = _generateBip47v3PaymentCode(masterPubKeyHex);
-          
         }
       } catch (e) {
         _errorMessage = 'Error deriving master keys: $e';
@@ -535,8 +532,7 @@ class HDWalletViewModel extends BaseViewModel {
     _derivedEntries = [];
     _currentPage = 0;
     _errorMessage = null;
-    
-    
+
     notifyListeners();
   }
 
@@ -563,7 +559,6 @@ class HDWalletViewModel extends BaseViewModel {
       showSnackBar(context, '${label.replaceAll(':', '')} copied to clipboard');
     }
   }
-
 
   @override
   void dispose() {

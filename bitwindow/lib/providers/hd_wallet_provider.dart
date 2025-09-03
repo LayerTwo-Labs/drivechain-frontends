@@ -164,41 +164,40 @@ class HDWalletProvider extends ChangeNotifier {
       if (masterPubKeyHex.length != 66) {
         return '';
       }
-      
+
       final pubKeyBytes = hex.decode(masterPubKeyHex);
       if (pubKeyBytes.length != 33) {
         return '';
       }
-      
+
       final binaryPayload = Uint8List(34);
       binaryPayload[0] = 0x03;
       binaryPayload.setRange(1, 34, pubKeyBytes);
-      
+
       final versionedPayload = Uint8List(35);
       versionedPayload[0] = 0x22;
       versionedPayload.setRange(1, 35, binaryPayload);
-      
+
       final sha256Digest = SHA256Digest();
       final hash1 = sha256Digest.process(versionedPayload);
       final hash2 = sha256Digest.process(hash1);
       final checksum = hash2.sublist(0, 4);
-      
+
       final finalBytes = Uint8List(39);
       finalBytes.setRange(0, 35, versionedPayload);
       finalBytes.setRange(35, 39, checksum);
-      
+
       return base58.encode(finalBytes);
     } catch (e) {
       return '';
     }
   }
 
-
   bool _validateExtendedKey(String extendedKey) {
     try {
       final decoded = base58.decode(extendedKey);
       if (decoded.length != 82) {
-          return false;
+        return false;
       }
 
       final payload = decoded.sublist(0, 78);
@@ -292,8 +291,7 @@ class HDWalletProvider extends ChangeNotifier {
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
           }
-        } catch (e) {
-        }
+        } catch (e) {}
 
         if (xprv.startsWith('xprv')) {
           try {
@@ -314,8 +312,7 @@ class HDWalletProvider extends ChangeNotifier {
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
             }
-          } catch (e) {
-          }
+          } catch (e) {}
         }
       } else if (isMainnet && xpub.startsWith('tpub')) {
         try {
@@ -335,8 +332,7 @@ class HDWalletProvider extends ChangeNotifier {
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
           }
-        } catch (e) {
-        }
+        } catch (e) {}
 
         if (xprv.startsWith('tprv')) {
           try {
@@ -357,8 +353,7 @@ class HDWalletProvider extends ChangeNotifier {
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
             }
-          } catch (e) {
-          }
+          } catch (e) {}
         }
       }
 
@@ -367,8 +362,7 @@ class HDWalletProvider extends ChangeNotifier {
       }
 
       if (isMainnet || xpub.startsWith('xpub')) {
-        if (!_canDeriveChild(xpub)) {
-        }
+        if (!_canDeriveChild(xpub)) {}
       }
       final q = extendedPublicKey.q;
       if (q == null) return {};
@@ -505,7 +499,6 @@ class HDWalletProvider extends ChangeNotifier {
       return 8000;
     }
   }
-
 
   Future<Map<String, String>> deriveKeyInfo(String mnemonic, String path) async {
     final isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';

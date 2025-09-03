@@ -22,9 +22,9 @@ import 'package:url_launcher/url_launcher.dart';
 class WalletPageViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
   final AddressBookProvider _addressBookProvider = GetIt.I.get<AddressBookProvider>();
-  
+
   String get bip47PaymentCode => _hdWalletProvider.bip47PaymentCode;
-  
+
   WalletPageViewModel() {
     _hdWalletProvider.addListener(_onHdWalletProviderChanged);
     // Ensure HD wallet is initialized
@@ -32,7 +32,7 @@ class WalletPageViewModel extends BaseViewModel {
       _hdWalletProvider.init();
     }
   }
-  
+
   void _onHdWalletProviderChanged() {
     // Add payment code to address book when it becomes available
     if (bip47PaymentCode.isNotEmpty) {
@@ -40,14 +40,14 @@ class WalletPageViewModel extends BaseViewModel {
     }
     notifyListeners();
   }
-  
+
   Future<void> _addPaymentCodeToAddressBook() async {
     try {
       // Check if payment code already exists in address book
       final existingEntries = _addressBookProvider.receiveEntries
           .where((entry) => entry.address == bip47PaymentCode)
           .toList();
-      
+
       if (existingEntries.isEmpty) {
         await _addressBookProvider.createEntry(
           'BIP47 Payment Code',
@@ -59,7 +59,7 @@ class WalletPageViewModel extends BaseViewModel {
       // Silently fail if address book update fails - payment code will still be visible
     }
   }
-  
+
   Future<void> copyPaymentCode(BuildContext context) async {
     if (bip47PaymentCode.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: bip47PaymentCode));
@@ -68,7 +68,7 @@ class WalletPageViewModel extends BaseViewModel {
       }
     }
   }
-  
+
   @override
   void dispose() {
     _hdWalletProvider.removeListener(_onHdWalletProviderChanged);
@@ -106,107 +106,107 @@ class WalletPage extends StatelessWidget {
             onViewModelReady: (model) => model.init(),
             onDispose: (model) => _sendViewModel = null,
             builder: (context, model, child) {
-          // Create the list of regular tabs
-          final List<TabItem> allTabs = [
-            const SingleTabItem(
-              label: 'Overview',
-              child: OverviewTab(),
-            ),
-            const SingleTabItem(
-              label: 'Send',
-              child: SendTab(),
-            ),
-            const SingleTabItem(
-              label: 'Receive',
-              child: ReceiveTab(),
-            ),
-            const SingleTabItem(
-              label: 'UTXOs',
-              child: UTXOsTab(),
-            ),
-            MultiSelectTabItem(
-              title: 'Tools',
-              items: [
-                TabItem(
-                  label: 'Deniability',
-                  child: DeniabilityTab(
-                    newWindowButton: SubWindowTypes.deniability,
-                  ),
-                  onTap: () {
-                    transactionProvider.fetch();
-                  },
+              // Create the list of regular tabs
+              final List<TabItem> allTabs = [
+                const SingleTabItem(
+                  label: 'Overview',
+                  child: OverviewTab(),
                 ),
-                TabItem(
-                  label: 'HD Wallet Explorer',
-                  child: HDWalletTab(),
+                const SingleTabItem(
+                  label: 'Send',
+                  child: SendTab(),
                 ),
-                TabItem(
-                  label: 'BitDrive',
-                  child: BitDriveTab(),
+                const SingleTabItem(
+                  label: 'Receive',
+                  child: ReceiveTab(),
                 ),
-                TabItem(
-                  label: 'Multisig Lounge',
-                  child: MultisigLoungeTab(),
+                const SingleTabItem(
+                  label: 'UTXOs',
+                  child: UTXOsTab(),
                 ),
-              ],
-            ),
-          ];
+                MultiSelectTabItem(
+                  title: 'Tools',
+                  items: [
+                    TabItem(
+                      label: 'Deniability',
+                      child: DeniabilityTab(
+                        newWindowButton: SubWindowTypes.deniability,
+                      ),
+                      onTap: () {
+                        transactionProvider.fetch();
+                      },
+                    ),
+                    TabItem(
+                      label: 'HD Wallet Explorer',
+                      child: HDWalletTab(),
+                    ),
+                    TabItem(
+                      label: 'BitDrive',
+                      child: BitDriveTab(),
+                    ),
+                    TabItem(
+                      label: 'Multisig Lounge',
+                      child: MultisigLoungeTab(),
+                    ),
+                  ],
+                ),
+              ];
 
-          return InlineTabBar(
-            key: tabKey,
-            tabs: allTabs,
-            initialIndex: 0,
-            endWidget: SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                if (walletPageModel.bip47PaymentCode.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: SailStyleValues.padding12,
-                      vertical: SailStyleValues.padding04,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.sailTheme.colors.background,
-                      border: Border.all(color: context.sailTheme.colors.divider),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Tooltip(
-                      message: 'Click to Copy',
-                      child: InkWell(
-                        onTap: () => walletPageModel.copyPaymentCode(context),
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            SailText.primary12(
-                              'BIP47 v3 Payment Code:',
-                              bold: true,
+              return InlineTabBar(
+                key: tabKey,
+                tabs: allTabs,
+                initialIndex: 0,
+                endWidget: SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    if (walletPageModel.bip47PaymentCode.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: SailStyleValues.padding12,
+                          vertical: SailStyleValues.padding04,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.sailTheme.colors.background,
+                          border: Border.all(color: context.sailTheme.colors.divider),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Tooltip(
+                          message: 'Click to Copy',
+                          child: InkWell(
+                            onTap: () => walletPageModel.copyPaymentCode(context),
+                            child: SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                SailText.primary12(
+                                  'BIP47 v3 Payment Code:',
+                                  bold: true,
+                                ),
+                                SailText.primary12(
+                                  walletPageModel.bip47PaymentCode,
+                                  monospace: true,
+                                ),
+                                const Icon(
+                                  Icons.copy,
+                                  size: 16,
+                                ),
+                              ],
                             ),
-                            SailText.primary12(
-                              walletPageModel.bip47PaymentCode,
-                              monospace: true,
-                            ),
-                            const Icon(
-                              Icons.copy,
-                              size: 16,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
+                    // Open Faucet Button
+                    SailButton(
+                      onPressed: () async {
+                        await launchUrl(Uri.parse('https://node.drivechain.info/#/faucet'));
+                      },
+                      label: 'Open Faucet',
                     ),
-                  ),
-                // Open Faucet Button
-                SailButton(
-                  onPressed: () async {
-                    await launchUrl(Uri.parse('https://node.drivechain.info/#/faucet'));
-                  },
-                  label: 'Open Faucet',
+                  ],
                 ),
-              ],
-            ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
       ),
     );
   }
