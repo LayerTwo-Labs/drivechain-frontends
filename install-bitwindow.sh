@@ -128,7 +128,6 @@ if [ -z "$ICON_PATH" ] || [ ! -f "$ICON_PATH" ]; then
     
     cd - >/dev/null
     rm -rf "$temp_dir"
-else
 fi
 
 # Create desktop entry
