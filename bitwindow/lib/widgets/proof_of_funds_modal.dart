@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:bitcoin_base/bitcoin_base.dart';
 import 'package:convert/convert.dart';
 
+import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -267,10 +268,10 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
                     child: SailColumn(
                       spacing: SailStyleValues.padding12,
                       children: [
-                        LinearProgressIndicator(
-                          value: _progress,
-                          backgroundColor: theme.colors.background,
-                          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
+                        ProgressBar(
+                          current: _progress,
+                          goal: 1.0,
+                          justPercent: true,
                         ),
                         SailText.secondary12(_progressText),
                         SailText.secondary12('${(_progress * 100).toStringAsFixed(1)}%'),
@@ -283,7 +284,8 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
             Center(
               child: SailButton(
                 onPressed: _isGenerating ? null : _generateReport,
-                label: _isGenerating ? 'Generating Report...' : 'Generate Proof of Funds Report',
+                label: 'Generate Proof of Funds Report',
+                loadingLabel: 'Generating report',
                 icon: SailSVGAsset.iconPen,
                 loading: _isGenerating,
               ),
@@ -466,10 +468,10 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                     child: SailColumn(
                       spacing: SailStyleValues.padding12,
                       children: [
-                        LinearProgressIndicator(
-                          value: _progress,
-                          backgroundColor: theme.colors.background,
-                          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
+                        ProgressBar(
+                          current: _progress,
+                          goal: 1.0,
+                          justPercent: true,
                         ),
                         SailText.secondary12(_progressText),
                         SailText.secondary12('${(_progress * 100).toStringAsFixed(1)}%'),
@@ -482,7 +484,8 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
             Center(
               child: SailButton(
                 onPressed: _isVerifying ? null : _verifyReport,
-                label: _isVerifying ? 'Verifying Signatures...' : 'Verify Proof of Funds Report',
+                label: 'Verify Proof of Funds Report',
+                loadingLabel: 'Verifying Signatures',
                 icon: SailSVGAsset.iconCheck,
                 loading: _isVerifying,
               ),
@@ -831,7 +834,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
         throw Exception('HD wallet not initialized');
       }
 
-      final isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
+      final isMainnet = env(Environment.network) == 'mainnet';
 
       // Find the correct derivation path for the address
       final keyInfo = await _findKeyForAddress(address, isMainnet);
@@ -1049,7 +1052,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
     String address,
   ) async {
     try {
-      final isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
+      final isMainnet = env(Environment.network) == 'mainnet';
 
       // Verify that the public key corresponds to the address
       // This proves the signature was created by the private key for this address
