@@ -23,6 +23,10 @@ class Environment {
     'BITWINDOWD_PORT',
     int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 2122),
   );
+  static const network = Variable(
+    'BITWINDOW_NETWORK',
+    String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet'),
+  );
 
   static Future<Directory> datadir() async {
     final fromEnv = Platform.environment['BITWINDOWD_DATADIR'] ?? const String.fromEnvironment('BITWINDOWD_DATADIR');

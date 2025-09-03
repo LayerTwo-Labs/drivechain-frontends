@@ -177,8 +177,6 @@ class HDWalletProvider extends ChangeNotifier {
       final version = (decoded[0] << 24) | (decoded[1] << 16) | (decoded[2] << 8) | decoded[3];
       final keyData = decoded.sublist(45, 78);
 
-      // Extended key validation passed
-
       // Check if version matches expected network
       final isMainnetVersion = version == 0x0488b21e; // xpub
       final isTestnetVersion = version == 0x043587cf; // tpub
@@ -209,8 +207,6 @@ class HDWalletProvider extends ChangeNotifier {
       final chain = Chain.import(extendedKey);
       final childKey = chain.forPath('0/0'); // Try to derive m/0/0
       childKey.publicKey(); // Just call to verify derivation works
-
-      // Extended key validation and child derivation successful
       return true;
     } catch (e) {
       log.e('Failed to derive child key from extended key: $e');
@@ -229,8 +225,6 @@ class HDWalletProvider extends ChangeNotifier {
       } else if (!isMainnet && path.contains("'0'/")) {
         adjustedPath = path.replaceAll("'0'/", "'1'/");
       }
-
-      // Deriving key for path: $adjustedPath (${isMainnet ? 'mainnet' : 'testnet'})
 
       final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
       final seedHex = hex.encode(mnemonicObj.seed);
@@ -254,9 +248,6 @@ class HDWalletProvider extends ChangeNotifier {
       var xprv = extendedPrivateKey.toString();
       var xpub = extendedPublicKey.toString();
 
-      // Key derivation for ${isMainnet ? 'mainnet' : 'testnet/signet'} network
-
-      // For testnet, convert both xpub to tpub and xprv to tprv with proper checksums
       // Bitcoin Core should accept this even if dart_bip32_bip44 can't import it
       if (!isMainnet && xpub.startsWith('xpub')) {
         try {
@@ -277,7 +268,6 @@ class HDWalletProvider extends ChangeNotifier {
 
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
-            // Generated testnet tpub
           }
         } catch (e) {
           log.e('Failed to convert to tpub: $e');
@@ -303,7 +293,6 @@ class HDWalletProvider extends ChangeNotifier {
 
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
-              // Generated testnet tprv
             }
           } catch (e) {
             log.e('Failed to convert to tprv: $e');
@@ -329,13 +318,11 @@ class HDWalletProvider extends ChangeNotifier {
 
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
-            // Converted testnet tpub to mainnet xpub
           }
         } catch (e) {
           log.e('Failed to convert tpub version bytes: $e');
         }
 
-        // Also convert tprv to xprv for mainnet
         if (xprv.startsWith('tprv')) {
           try {
             final decodedPriv = base58.decode(xprv);
@@ -355,7 +342,6 @@ class HDWalletProvider extends ChangeNotifier {
 
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
-              // Converted testnet tprv to mainnet xprv
             }
           } catch (e) {
             log.e('Failed to convert tprv version bytes: $e');
@@ -375,10 +361,7 @@ class HDWalletProvider extends ChangeNotifier {
         if (!_canDeriveChild(xpub)) {
           log.w('Extended key cannot derive child keys in dart_bip32_bip44, but may still work with Bitcoin Core');
         }
-      } else {
-        // Skipping dart_bip32_bip44 child derivation test for testnet tpub key
       }
-
       // Get pubkey if at leaf level (for validation)
       final q = extendedPublicKey.q;
       if (q == null) return {};
@@ -469,7 +452,6 @@ class HDWalletProvider extends ChangeNotifier {
 
         // Check groups for wallet keys
         final groups = jsonData['groups'] as List<dynamic>? ?? [];
-        // Found ${groups.length} groups in multisig.json
 
         for (final jsonGroup in groups) {
           final List<dynamic> keys = jsonGroup['keys'] ?? [];
@@ -492,7 +474,6 @@ class HDWalletProvider extends ChangeNotifier {
 
         // Check solo_keys (only count keys that belong to current wallet)
         final soloKeys = jsonData['solo_keys'] as List<dynamic>? ?? [];
-        // Found ${soloKeys.length} solo keys in multisig.json
 
         for (final keyData in soloKeys) {
           final derivationPath = keyData['path'] as String?;
@@ -506,7 +487,6 @@ class HDWalletProvider extends ChangeNotifier {
               // Count all keys regardless of wallet ownership
               if (accountIndex > maxAccountIndex) {
                 maxAccountIndex = accountIndex;
-                // Updated max account index from solo_keys to: $maxAccountIndex
               }
             }
           }
@@ -515,17 +495,14 @@ class HDWalletProvider extends ChangeNotifier {
 
       // Include additional indices from current session
       if (additionalUsedIndices != null) {
-        // Session used indices: $additionalUsedIndices
         for (final index in additionalUsedIndices) {
           if (index > maxAccountIndex) {
             maxAccountIndex = index;
-            // Updated max account index from session to: $maxAccountIndex
           }
         }
       }
 
       final nextIndex = maxAccountIndex + 1;
-      // Returning next account index: $nextIndex
       return nextIndex;
     } catch (e) {
       log.e('Error getting next account index: $e');
