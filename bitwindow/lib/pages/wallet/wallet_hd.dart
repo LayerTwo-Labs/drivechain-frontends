@@ -63,12 +63,26 @@ class HDWalletTab extends StatelessWidget {
                   ),
                   const SizedBox(width: SailStyleValues.padding16),
                   Expanded(
-                    child: SailTextField(
-                      controller: model.displayMnemonicController,
-                      hintText: 'Enter mnemonic seed phrase',
-                      enabled: !model.hideMnemonic,
-                      size: TextFieldSize.small,
-                    ),
+                    child: model.hideMnemonic && model.mnemonicController.text.isNotEmpty
+                        ? Container(
+                            height: 36, // Small text field height
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: context.sailTheme.colors.divider),
+                              borderRadius: BorderRadius.circular(4),
+                              color: context.sailTheme.colors.background,
+                            ),
+                            child: SailText.primary13(
+                              '••••••••••••••••••••••••••••••••',
+                              monospace: true,
+                            ),
+                          )
+                        : SailTextField(
+                            controller: model.mnemonicController,
+                            hintText: 'Enter mnemonic seed phrase',
+                            size: TextFieldSize.small,
+                          ),
                   ),
                   const SizedBox(width: SailStyleValues.padding08),
                   SailButton(
@@ -123,6 +137,7 @@ class HDWalletTab extends StatelessWidget {
             spacing: SailStyleValues.padding08,
             children: [
               for (final item in [
+                {'label': 'BIP47 Payment Code:', 'value': model.bip47PaymentCode},
                 {'label': 'Master Seed:', 'value': model.masterSeed},
                 {'label': 'XPRIV:', 'value': model.xpriv},
                 {'label': 'XPUB:', 'value': model.xpub},
@@ -131,7 +146,7 @@ class HDWalletTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: 120,
+                      width: 160,
                       child: SailText.primary13(item['label']!, bold: true),
                     ),
                     Expanded(
@@ -241,8 +256,8 @@ class HDWalletViewModel extends BaseViewModel {
   String _masterSeed = '';
   String _xpriv = '';
   String _xpub = '';
-
-  bool _hideMnemonic = true;
+  String _bip47PaymentCode = '';
+  bool _hideMnemonic = false;
   bool _hidePrivateKeys = true;
 
   // Getters
@@ -252,6 +267,7 @@ class HDWalletViewModel extends BaseViewModel {
   String get masterSeed => _masterSeed;
   String get xpriv => _xpriv;
   String get xpub => _xpub;
+  String get bip47PaymentCode => _bip47PaymentCode;
   bool get hideMnemonic => _hideMnemonic;
   bool get hidePrivateKeys => _hidePrivateKeys;
   bool get hasMnemonic => mnemonicController.text.trim().isNotEmpty;
@@ -266,12 +282,41 @@ class HDWalletViewModel extends BaseViewModel {
     return pathRegex.hasMatch(path);
   }
 
-  TextEditingController get displayMnemonicController {
-    if (_hideMnemonic && mnemonicController.text.isNotEmpty) {
-      return TextEditingController(text: '••••••••••••••••••••••••••••••••');
+  String _generateBip47v3PaymentCode(String masterPubKeyHex) {
+    try {
+      if (masterPubKeyHex.length != 66) {
+        return '';
+      }
+      
+      final pubKeyBytes = hex.decode(masterPubKeyHex);
+      if (pubKeyBytes.length != 33) {
+        return '';
+      }
+      
+      final binaryPayload = Uint8List(34);
+      binaryPayload[0] = 0x03;
+      binaryPayload.setRange(1, 34, pubKeyBytes);
+      
+      final versionedPayload = Uint8List(35);
+      versionedPayload[0] = 0x22;
+      versionedPayload.setRange(1, 35, binaryPayload);
+      
+      final sha256Digest = SHA256Digest();
+      final hash1 = sha256Digest.process(versionedPayload);
+      final hash2 = sha256Digest.process(hash1);
+      final checksum = hash2.sublist(0, 4);
+      
+      final finalBytes = Uint8List(39);
+      finalBytes.setRange(0, 35, versionedPayload);
+      finalBytes.setRange(35, 39, checksum);
+      
+      return base58.encode(finalBytes);
+    } catch (e) {
+      return '';
     }
-    return mnemonicController;
   }
+
+
 
   HDWalletViewModel() {
     mnemonicController.addListener(notifyListeners);
@@ -286,7 +331,6 @@ class HDWalletViewModel extends BaseViewModel {
 
       if (mnemonic != null && mnemonic.isNotEmpty) {
         mnemonicController.text = mnemonic;
-        _hideMnemonic = true;
         _errorMessage = null;
       } else {
         _errorMessage = "Couldn't load wallet mnemonic";
@@ -304,7 +348,6 @@ class HDWalletViewModel extends BaseViewModel {
     try {
       final mnemonic = await _hdWalletProvider.generateRandomMnemonic();
       mnemonicController.text = mnemonic;
-      _hideMnemonic = true;
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Error generating random mnemonic: $e';
@@ -341,6 +384,15 @@ class HDWalletViewModel extends BaseViewModel {
         _masterSeed = seedHex;
         _xpriv = masterKey.toString();
         _xpub = extendedPublicKey.toString();
+        
+        // Generate BIP47_v3 payment code from master public key
+        final masterQ = extendedPublicKey.q;
+        if (masterQ != null) {
+          final masterPubKeyBytes = masterQ.getEncoded(true);
+          final masterPubKeyHex = hex.encode(masterPubKeyBytes);
+          _bip47PaymentCode = _generateBip47v3PaymentCode(masterPubKeyHex);
+          
+        }
       } catch (e) {
         _errorMessage = 'Error deriving master keys: $e';
         notifyListeners();
@@ -479,9 +531,12 @@ class HDWalletViewModel extends BaseViewModel {
     _masterSeed = '';
     _xpriv = '';
     _xpub = '';
+    _bip47PaymentCode = '';
     _derivedEntries = [];
     _currentPage = 0;
     _errorMessage = null;
+    
+    
     notifyListeners();
   }
 
@@ -508,6 +563,7 @@ class HDWalletViewModel extends BaseViewModel {
       showSnackBar(context, '${label.replaceAll(':', '')} copied to clipboard');
     }
   }
+
 
   @override
   void dispose() {
