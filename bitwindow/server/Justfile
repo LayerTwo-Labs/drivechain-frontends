@@ -1,5 +1,5 @@
 build-go:
-    # We need CGO due to the go-sqlite3 dependency.
+    # We need CGO due to the go-sqlite3 and zeromq dependencies.
     CGO_ENABLED=1 go build -v -o ./bin/bitwindowd .
 
 build: download-enforcer build-go

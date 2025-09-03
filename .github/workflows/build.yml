@@ -151,7 +151,7 @@ jobs:
           mkdir -p "$BUILD_DIR/${{ matrix.client }}/assets/bin"
           echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
-      - name: Install dependencies
+      - name: Install Flutter dependencies
         run: |
           cd ${{ env.BUILD_DIR }}/${{ matrix.client }}
           flutter pub get --enforce-lockfile
@@ -278,8 +278,30 @@ jobs:
 
         shell: bash
 
+      # Install Intel Homebrew into /usr/local using Rosetta
+      - name: Install Intel Homebrew + dependencies
+        if: runner.os == 'macOS' && matrix.client == 'bitwindow'
+        run: |
+          arch -x86_64 /bin/bash -lc \
+            "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo '/usr/local/bin' >> $GITHUB_PATH
+          /usr/local/bin/brew install zeromq
+
+      - name: Install ZMQ dependencies for Windows
+        if: runner.os == 'Windows' && matrix.client == 'bitwindow'
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          ./bootstrap-vcpkg.bat
+          ./vcpkg.exe install zeromq:x64-windows
+          VCPKG_ROOT="$(pwd)"
+          echo "CGO_CFLAGS=-I${VCPKG_ROOT}/installed/x64-windows/include" >> $GITHUB_ENV
+          echo "CGO_LDFLAGS=-L${VCPKG_ROOT}/installed/x64-windows/lib -llibzmq-mt-4_3_5" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=${VCPKG_ROOT}/installed/x64-windows/lib/pkgconfig" >> $GITHUB_ENV
+
       - name: Build app
         run: |
+          set -e
           cd ${{ env.BUILD_DIR }}
 
           # For Linux bitwindow builds, move files to snap/local to avoid warnings
