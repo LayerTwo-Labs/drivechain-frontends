@@ -146,6 +146,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     windowProvider.open(SubWindowTypes.addressbook);
                   },
                 ),
+                PlatformMenuItem(
+                  label: 'HD Wallet Explorer',
+                  onSelected: () {
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    windowProvider.open(SubWindowTypes.hdWallet);
+                  },
+                ),
               ],
             ),
           ],
@@ -228,6 +235,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     );
                   },
                 ),
+                PlatformMenuItem(
+                  label: 'Multisig Lounge',
+                  onSelected: () {
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    windowProvider.open(SubWindowTypes.multisigLounge);
+                  },
+                ),
               ],
             ),
           ],
@@ -268,6 +282,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   onSelected: () {
                     final tabsRouter = _routerKey.currentState?.controller;
                     tabsRouter?.setActiveIndex(2);
+                  },
+                ),
+                PlatformMenuItem(
+                  label: 'BitDrive',
+                  onSelected: () {
+                    final windowProvider = GetIt.I.get<WindowProvider>();
+                    windowProvider.open(SubWindowTypes.bitDrive);
                   },
                 ),
               ],

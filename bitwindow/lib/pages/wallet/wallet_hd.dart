@@ -10,24 +10,231 @@ import 'package:get_it/get_it.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
-class HDWalletTab extends StatefulWidget {
+class HDWalletTab extends StatelessWidget {
   const HDWalletTab({super.key});
 
   @override
-  State<HDWalletTab> createState() => _HDWalletTabState();
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<HDWalletViewModel>.reactive(
+      viewModelBuilder: () => HDWalletViewModel(),
+      builder: (context, model, child) => SingleChildScrollView(
+        child: SailColumn(
+          spacing: 0,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildControlsCard(context, model),
+            _buildAddressesSection(context, model, BoxConstraints()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControlsCard(BuildContext context, HDWalletViewModel model) {
+    return SailCard(
+      title: 'HD Wallet Explorer',
+      error: model.errorMessage,
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Mnemonic input
+          SailColumn(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary13('Mnemonic Seed'),
+              Row(
+                children: [
+                  SailButton(
+                    label: 'Use Wallet',
+                    onPressed: model.useWalletMnemonic,
+                    variant: ButtonVariant.secondary,
+                    small: true,
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: 'Random',
+                    onPressed: model.generateRandomMnemonic,
+                    variant: ButtonVariant.secondary,
+                    small: true,
+                  ),
+                  const SizedBox(width: SailStyleValues.padding16),
+                  Expanded(
+                    child: SailTextField(
+                      controller: model.displayMnemonicController,
+                      hintText: 'Enter mnemonic seed phrase',
+                      enabled: !model.hideMnemonic,
+                      size: TextFieldSize.small,
+                    ),
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: 'Copy',
+                    onPressed: model.mnemonicController.text.isEmpty
+                        ? null
+                        : () async => await model.copyMnemonic(context),
+                    variant: ButtonVariant.secondary,
+                    small: true,
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: 'Clear',
+                    onPressed: model.mnemonicController.text.isEmpty ? null : () async => model.clearAll(),
+                    variant: ButtonVariant.secondary,
+                    small: true,
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: model.hideMnemonic ? 'Show' : 'Hide',
+                    onPressed: () async => model.toggleMnemonicVisibility(),
+                    variant: ButtonVariant.secondary,
+                    small: true,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Derivation
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: SailTextField(
+                  label: 'Derivation Path',
+                  controller: model.derivationPathController,
+                  hintText: "m/84'/1'/0'/0/0",
+                  size: TextFieldSize.small,
+                ),
+              ),
+              const SizedBox(width: SailStyleValues.padding16),
+              SailButton(
+                label: 'Derive Addresses',
+                onPressed: !model.canDeriveAddresses ? null : model.deriveAddresses,
+                variant: model.canDeriveAddresses ? ButtonVariant.primary : ButtonVariant.secondary,
+              ),
+            ],
+          ),
+          // Master keys
+          const Divider(),
+          SailColumn(
+            spacing: SailStyleValues.padding08,
+            children: [
+              for (final item in [
+                {'label': 'Master Seed:', 'value': model.masterSeed},
+                {'label': 'XPRIV:', 'value': model.xpriv},
+                {'label': 'XPUB:', 'value': model.xpub},
+              ])
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: SailText.primary13(item['label']!, bold: true),
+                    ),
+                    Expanded(
+                      child: SailText.primary13(
+                        item['value']!.isEmpty ? '' : item['value']!,
+                        monospace: true,
+                      ),
+                    ),
+                    const SizedBox(width: SailStyleValues.padding08),
+                    SailButton(
+                      label: 'Copy',
+                      onPressed: item['value']!.isEmpty
+                          ? null
+                          : () async => await model.copyToClipboard(context, item['value']!, item['label']!),
+                      variant: ButtonVariant.secondary,
+                      small: true,
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressesSection(
+    BuildContext context,
+    HDWalletViewModel model,
+    BoxConstraints constraints,
+  ) {
+    return SailCard(
+      title: 'Derived Addresses',
+      subtitle: '${model.derivedEntries.length} address(es)',
+      bottomPadding: false,
+      child: SailColumn(
+        spacing: 0,
+        children: [
+          // Table
+          AddressTable(
+            entries: model.derivedEntries,
+            hidePrivateKeys: model.hidePrivateKeys,
+          ),
+          // Bottom Controls
+          Container(
+            padding: const EdgeInsets.all(SailStyleValues.padding16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: context.sailTheme.colors.divider,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    SailButton(
+                      label: model.hidePrivateKeys ? 'Show Private Keys' : 'Hide Private Keys',
+                      onPressed: () async => model.togglePrivateKeyVisibility(),
+                      variant: ButtonVariant.outline,
+                      small: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: SailStyleValues.padding16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SailButton(
+                      label: 'Prev',
+                      onPressed: model.canGoPrevious ? () async => await model.changePage(false) : null,
+                      variant: ButtonVariant.secondary,
+                      small: true,
+                    ),
+                    const SizedBox(width: SailStyleValues.padding16),
+                    SailText.primary13('Page ${model.currentPage + 1}'),
+                    const SizedBox(width: SailStyleValues.padding16),
+                    SailButton(
+                      label: 'Next',
+                      onPressed: model.canGoNext ? () async => await model.changePage(true) : null,
+                      variant: ButtonVariant.secondary,
+                      small: true,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _HDWalletTabState extends State<HDWalletTab> {
-  final TextEditingController _mnemonicController = TextEditingController();
-  final TextEditingController _derivationPathController = TextEditingController(text: "m/84'/1'/0'/0/0");
+class HDWalletViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+  final TextEditingController mnemonicController = TextEditingController();
+  final TextEditingController derivationPathController = TextEditingController(text: "m/84'/1'/0'/0/0");
 
   List<HDWalletEntry> _derivedEntries = [];
-  bool _isBusy = false;
-  bool _hideMnemonic = false;
-  bool _hidePrivateKeys = false;
-  String? _validationError;
+  String? _errorMessage;
   int _currentPage = 0;
   static const int _entriesPerPage = 10;
 
@@ -35,95 +242,128 @@ class _HDWalletTabState extends State<HDWalletTab> {
   String _xpriv = '';
   String _xpub = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _mnemonicController.addListener(() => setState(() {}));
+  bool _hideMnemonic = true;
+  bool _hidePrivateKeys = true;
+
+  // Getters
+  List<HDWalletEntry> get derivedEntries => _derivedEntries;
+  String? get errorMessage => _errorMessage ?? _hdWalletProvider.error;
+  int get currentPage => _currentPage;
+  String get masterSeed => _masterSeed;
+  String get xpriv => _xpriv;
+  String get xpub => _xpub;
+  bool get hideMnemonic => _hideMnemonic;
+  bool get hidePrivateKeys => _hidePrivateKeys;
+  bool get hasMnemonic => mnemonicController.text.trim().isNotEmpty;
+  bool get canGoPrevious => _currentPage > 0 && _derivedEntries.isNotEmpty;
+  bool get canGoNext => _derivedEntries.isNotEmpty;
+  bool get canDeriveAddresses => hasMnemonic && _isValidDerivationPath();
+
+  bool _isValidDerivationPath() {
+    final path = derivationPathController.text.trim();
+    // Basic validation for BIP44/84 path format
+    final pathRegex = RegExp(r"^m(/\d+'?){3,5}(/\d+)?$");
+    return pathRegex.hasMatch(path);
   }
 
-  @override
-  void dispose() {
-    _mnemonicController.dispose();
-    _derivationPathController.dispose();
-    super.dispose();
+  TextEditingController get displayMnemonicController {
+    if (_hideMnemonic && mnemonicController.text.isNotEmpty) {
+      return TextEditingController(text: '••••••••••••••••••••••••••••••••');
+    }
+    return mnemonicController;
   }
 
-  bool get _hasMnemonic => _mnemonicController.text.trim().isNotEmpty;
+  HDWalletViewModel() {
+    mnemonicController.addListener(notifyListeners);
+  }
 
-  Future<void> _validateAndDeriveEntries() async {
-    final mnemonic = _mnemonicController.text.trim();
+  Future<void> useWalletMnemonic() async {
+    _errorMessage = null;
+
+    try {
+      await _hdWalletProvider.loadMnemonic();
+      final mnemonic = _hdWalletProvider.mnemonic;
+
+      if (mnemonic != null && mnemonic.isNotEmpty) {
+        mnemonicController.text = mnemonic;
+        _hideMnemonic = true;
+        _errorMessage = null;
+      } else {
+        _errorMessage = "Couldn't load wallet mnemonic";
+      }
+    } catch (e) {
+      _errorMessage = 'Error loading wallet mnemonic: $e';
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> generateRandomMnemonic() async {
+    _errorMessage = null;
+
+    try {
+      final mnemonic = await _hdWalletProvider.generateRandomMnemonic();
+      mnemonicController.text = mnemonic;
+      _hideMnemonic = true;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Error generating random mnemonic: $e';
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> deriveAddresses() async {
+    final mnemonic = mnemonicController.text.trim();
     if (mnemonic.isEmpty) {
-      setState(() => _validationError = 'Please enter a mnemonic seed phrase');
+      _errorMessage = 'Please enter a mnemonic seed phrase';
+      notifyListeners();
       return;
     }
 
-    setState(() {
-      _isBusy = true;
-      _validationError = null;
-    });
+    _errorMessage = null;
 
-    await Future.microtask(() async {
-      try {
-        if (!await _hdWalletProvider.validateMnemonic(mnemonic)) {
-          setState(() {
-            _validationError = 'Invalid mnemonic seed phrase';
-            _isBusy = false;
-          });
-          return;
-        }
-
-        try {
-          final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
-          final seedHex = hex.encode(mnemonicObj.seed);
-          final chain = Chain.seed(seedHex);
-          final masterKey = chain.forPath('m');
-          final extendedPublicKey = (masterKey as ExtendedPrivateKey).publicKey();
-
-          setState(() {
-            _masterSeed = seedHex;
-            _xpriv = masterKey.toString();
-            _xpub = extendedPublicKey.toString();
-          });
-        } catch (e) {
-          setState(() {
-            _validationError = 'Error deriving master keys';
-            _isBusy = false;
-          });
-          return;
-        }
-
-        await _deriveEntries(mnemonic);
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _validationError = 'Error: $e';
-            _isBusy = false;
-          });
-        }
+    try {
+      if (!await _hdWalletProvider.validateMnemonic(mnemonic)) {
+        _errorMessage = 'Invalid mnemonic seed phrase';
+        notifyListeners();
+        return;
       }
-    });
+
+      // Derive master keys
+      try {
+        final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
+        final seedHex = hex.encode(mnemonicObj.seed);
+        final chain = Chain.seed(seedHex);
+        final masterKey = chain.forPath('m');
+        final extendedPublicKey = (masterKey as ExtendedPrivateKey).publicKey();
+
+        _masterSeed = seedHex;
+        _xpriv = masterKey.toString();
+        _xpub = extendedPublicKey.toString();
+      } catch (e) {
+        _errorMessage = 'Error deriving master keys: $e';
+        notifyListeners();
+        return;
+      }
+
+      // Derive addresses
+      await _deriveEntries(mnemonic);
+    } catch (e) {
+      _errorMessage = 'Error: $e';
+    } finally {
+      notifyListeners();
+    }
   }
 
   Future<void> _deriveEntries(String mnemonic) async {
     try {
-      final basePath = _derivationPathController.text.trim();
-      await Future.microtask(() {});
-
+      final basePath = derivationPathController.text.trim();
       final entries = await compute(_deriveEntriesInBackground, [mnemonic, basePath, _currentPage, _entriesPerPage]);
 
-      if (mounted) {
-        setState(() {
-          _derivedEntries = entries;
-          _isBusy = false;
-        });
-      }
+      _derivedEntries = entries;
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _validationError = 'Error deriving addresses: $e';
-          _isBusy = false;
-        });
-      }
+      _errorMessage = 'Error deriving addresses: $e';
     }
   }
 
@@ -144,21 +384,21 @@ class _HDWalletTabState extends State<HDWalletTab> {
       final ripemd160Digest = RIPEMD160Digest();
       final pubKeyHash = Uint8List(20);
       final versionedHash = Uint8List(21);
-      versionedHash[0] = 0x00; // Version byte for mainnet address
+      versionedHash[0] = 0x00;
       final shaOutput = Uint8List(32);
       final doubleSHAOutput = Uint8List(32);
       final addressBytes = Uint8List(25);
       final wifBytes = Uint8List(38);
       final wifBuffer = Uint8List(34);
-      wifBuffer[0] = 0x80; // Version byte for mainnet private key
-      wifBuffer[33] = 0x01; // Compression byte
+      wifBuffer[0] = 0x80;
+      wifBuffer[33] = 0x01;
 
       final startIndex = currentPage * entriesPerPage;
 
       for (var i = 0; i < entriesPerPage; i++) {
         try {
           final derivationIndex = startIndex + i;
-          final path = '$basePath/$derivationIndex';
+          final path = basePath.endsWith('/') ? '$basePath$derivationIndex' : '$basePath/$derivationIndex';
           final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
           final privateKeyHex = extendedPrivateKey.privateKeyHex();
           final publicKey = extendedPrivateKey.publicKey();
@@ -169,7 +409,6 @@ class _HDWalletTabState extends State<HDWalletTab> {
           final pubKeyBytes = q.getEncoded(true);
           final pubKeyHex = hex.encode(pubKeyBytes);
 
-          // Derive Bitcoin address
           sha256Digest.reset();
           ripemd160Digest.reset();
           final sha256Result = sha256Digest.process(Uint8List.fromList(pubKeyBytes));
@@ -189,7 +428,6 @@ class _HDWalletTabState extends State<HDWalletTab> {
           addressBytes.setRange(21, 25, doubleSHAOutput.sublist(0, 4));
           final address = base58.encode(addressBytes);
 
-          // Derive WIF format private key
           final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
           final privateKeyBytes = hex.decode(cleanHex);
           wifBuffer.setRange(1, 33, privateKeyBytes);
@@ -225,275 +463,140 @@ class _HDWalletTabState extends State<HDWalletTab> {
     return entries;
   }
 
-  Future<void> _handlePageChange(bool next) async {
-    if (_isBusy || (next && _derivedEntries.isEmpty) || (!next && _currentPage <= 0)) return;
+  Future<void> changePage(bool next) async {
+    if (next) {
+      _currentPage++;
+    } else {
+      _currentPage = _currentPage > 0 ? _currentPage - 1 : 0;
+    }
 
-    setState(() {
-      if (next) {
-        _currentPage++;
-      } else {
-        _currentPage = _currentPage > 0 ? _currentPage - 1 : 0;
-      }
-      _isBusy = true;
-    });
-
-    await _deriveEntries(_mnemonicController.text.trim());
+    await _deriveEntries(mnemonicController.text.trim());
+    notifyListeners();
   }
 
-  Future<void> _handleUseWalletMnemonic() async {
-    setState(() => _isBusy = true);
+  void clearAll() {
+    mnemonicController.clear();
+    _masterSeed = '';
+    _xpriv = '';
+    _xpub = '';
+    _derivedEntries = [];
+    _currentPage = 0;
+    _errorMessage = null;
+    notifyListeners();
+  }
 
-    try {
-      await _hdWalletProvider.loadMnemonic();
-      final mnemonic = _hdWalletProvider.mnemonic;
+  void toggleMnemonicVisibility() {
+    _hideMnemonic = !_hideMnemonic;
+    notifyListeners();
+  }
 
-      if (mnemonic != null && mnemonic.isNotEmpty) {
-        setState(() {
-          _mnemonicController.text = mnemonic;
-          _hideMnemonic = false;
-          _validationError = null;
-        });
-      } else {
-        setState(() => _validationError = "Couldn't load wallet mnemonic");
-      }
-    } catch (e) {
-      setState(() => _validationError = 'Error loading wallet mnemonic');
-    } finally {
-      setState(() => _isBusy = false);
+  void togglePrivateKeyVisibility() {
+    _hidePrivateKeys = !_hidePrivateKeys;
+    notifyListeners();
+  }
+
+  Future<void> copyMnemonic(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: mnemonicController.text));
+    if (context.mounted) {
+      showSnackBar(context, 'Mnemonic copied to clipboard');
     }
   }
 
-  Future<void> _handleGenerateRandomMnemonic() async {
-    setState(() => _isBusy = true);
-
-    try {
-      final mnemonic = await _hdWalletProvider.generateRandomMnemonic();
-      setState(() {
-        _mnemonicController.text = mnemonic;
-        _hideMnemonic = false;
-        _validationError = null;
-      });
-    } catch (e) {
-      setState(() => _validationError = 'Error generating random mnemonic');
-    } finally {
-      setState(() => _isBusy = false);
+  Future<void> copyToClipboard(BuildContext context, String text, String label) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (context.mounted) {
+      showSnackBar(context, '${label.replaceAll(':', '')} copied to clipboard');
     }
-  }
-
-  Widget _buildButton({
-    required String label,
-    required Future<void> Function()? onPressed,
-    required ButtonVariant variant,
-  }) {
-    return SailButton(
-      label: label,
-      onPressed: onPressed,
-      variant: variant,
-      loading: _isBusy,
-    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    return SailCard(
-      title: 'HD Wallet Explorer',
-      subtitle: _validationError ?? _hdWalletProvider.error,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailSpacing(SailStyleValues.padding16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-            child: SailColumn(
-              spacing: SailStyleValues.padding08,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.primary13('Mnemonic Seed'),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    _buildButton(
-                      label: 'Use Wallet',
-                      onPressed: _handleUseWalletMnemonic,
-                      variant: _hasMnemonic ? ButtonVariant.secondary : ButtonVariant.primary,
-                    ),
-                    _buildButton(
-                      label: 'Random',
-                      onPressed: _isBusy ? null : _handleGenerateRandomMnemonic,
-                      variant: _hasMnemonic ? ButtonVariant.secondary : ButtonVariant.primary,
-                    ),
-                    Expanded(
-                      child: SailTextField(
-                        controller: _hideMnemonic
-                            ? TextEditingController(
-                                text: _mnemonicController.text.isNotEmpty ? '••••••••••••••••••••••••••••••••' : '',
-                              )
-                            : _mnemonicController,
-                        hintText: 'Enter mnemonic seed phrase',
-                        enabled: !_isBusy,
-                      ),
-                    ),
-                    _buildButton(
-                      label: 'Copy',
-                      onPressed: _mnemonicController.text.isEmpty || _isBusy
-                          ? null
-                          : () async {
-                              await Clipboard.setData(ClipboardData(text: _mnemonicController.text));
-                              if (context.mounted) {
-                                showSnackBar(context, 'Mnemonic copied to clipboard');
-                              }
-                            },
-                      variant: ButtonVariant.secondary,
-                    ),
-                    _buildButton(
-                      label: 'Clear',
-                      onPressed: _mnemonicController.text.isEmpty || _isBusy
-                          ? null
-                          : () async {
-                              setState(() {
-                                _mnemonicController.clear();
-                                _masterSeed = '';
-                                _xpriv = '';
-                                _xpub = '';
-                                _derivedEntries = [];
-                                _currentPage = 0;
-                                _validationError = null;
-                              });
-                            },
-                      variant: ButtonVariant.secondary,
-                    ),
-                    _buildButton(
-                      label: _hideMnemonic ? 'Show' : 'Hide',
-                      onPressed: _isBusy ? null : () async => setState(() => _hideMnemonic = !_hideMnemonic),
-                      variant: ButtonVariant.secondary,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: SailStyleValues.padding08),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    _buildButton(
-                      label: 'Derive Addresses',
-                      onPressed: (_isBusy || !_hasMnemonic) ? null : _validateAndDeriveEntries,
-                      variant: _hasMnemonic ? ButtonVariant.primary : ButtonVariant.secondary,
-                    ),
-                    Expanded(
-                      child: SailTextField(
-                        label: 'Derivation Path',
-                        controller: _derivationPathController,
-                        hintText: "m/84'/1'/0'/0/0",
-                        enabled: !_isBusy,
-                      ),
-                    ),
-                    _buildButton(
-                      label: 'Prev',
-                      onPressed: (_currentPage <= 0 || _isBusy || _derivedEntries.isEmpty)
-                          ? null
-                          : () async => _handlePageChange(false),
-                      variant: ButtonVariant.secondary,
-                    ),
-                    SailText.primary13('Page ${_currentPage + 1}'),
-                    _buildButton(
-                      label: 'Next',
-                      onPressed: (_isBusy || _derivedEntries.isEmpty) ? null : () async => _handlePageChange(true),
-                      variant: ButtonVariant.secondary,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SailSpacing(SailStyleValues.padding16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-            child: SailColumn(
-              spacing: SailStyleValues.padding08,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Master key fields
-                for (final item in [
-                  {'label': 'Master Seed:', 'value': _masterSeed, 'hint': 'Master Seed'},
-                  {'label': 'XPRIV:', 'value': _xpriv, 'hint': 'Extended Private Key'},
-                  {'label': 'XPUB:', 'value': _xpub, 'hint': 'Extended Public Key'},
-                ])
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SizedBox(width: 120, child: SailText.primary13(item['label']!)),
-                      Expanded(
-                        child: SailTextField(
-                          controller: TextEditingController(text: item['value']!),
-                          enabled: false,
-                          hintText: item['hint']!,
-                        ),
-                      ),
-                      if (item['value']!.isNotEmpty)
-                        _buildButton(
-                          label: 'Copy',
-                          onPressed: () async {
-                            await Clipboard.setData(ClipboardData(text: item['value']!));
-                            if (context.mounted) {
-                              showSnackBar(context, '${item['label']!.replaceAll(':', '')} copied to clipboard');
-                            }
-                          },
-                          variant: ButtonVariant.secondary,
-                        ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-          SailSpacing(SailStyleValues.padding08),
-          Flexible(
-            child: SailTable(
-              getRowId: (index) => _derivedEntries.isEmpty ? 'empty$index' : _derivedEntries[index].path,
-              headerBuilder: (context) => [
-                const SailTableHeaderCell(name: 'Path'),
-                const SailTableHeaderCell(name: 'Address'),
-                const SailTableHeaderCell(name: 'Public Key'),
-                const SailTableHeaderCell(name: 'Private Key (WIF)'),
-              ],
-              rowBuilder: (context, row, selected) {
-                if (_derivedEntries.isEmpty) {
-                  return [
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                  ];
-                }
+  void dispose() {
+    mnemonicController.removeListener(notifyListeners);
+    mnemonicController.dispose();
+    derivationPathController.dispose();
+    super.dispose();
+  }
+}
 
-                final entry = _derivedEntries[row];
-                return [
-                  SailTableCell(value: entry.path, monospace: true),
-                  SailTableCell(value: entry.address, monospace: true),
-                  SailTableCell(value: entry.publicKey, monospace: true),
-                  SailTableCell(
-                    value: _hidePrivateKeys ? '••••••••••••••••••••••••••••••••' : entry.privateKey,
-                    monospace: true,
-                  ),
-                ];
-              },
-              rowCount: _derivedEntries.isEmpty ? 10 : _derivedEntries.length,
-              drawGrid: true,
+class AddressTable extends StatelessWidget {
+  final List<HDWalletEntry> entries;
+  final bool hidePrivateKeys;
+
+  const AddressTable({
+    super.key,
+    required this.entries,
+    required this.hidePrivateKeys,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => entries.isEmpty ? 'empty$index' : entries[index].path,
+      drawGrid: true,
+      shrinkWrap: true,
+      headerBuilder: (context) => [
+        const SailTableHeaderCell(name: 'Path                                   '),
+        const SailTableHeaderCell(name: 'Address                                                           '),
+        const SailTableHeaderCell(
+          name: 'Public Key                                                                             ',
+        ),
+        const SailTableHeaderCell(name: 'Private Key (WIF)                                                         '),
+      ],
+      rowBuilder: (context, row, selected) {
+        if (entries.isEmpty) {
+          return [
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+            const SailTableCell(value: ''),
+          ];
+        }
+
+        final entry = entries[row];
+        return [
+          SailTableCell(
+            value: entry.path,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SailText.primary12(
+                entry.path,
+                monospace: true,
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(SailStyleValues.padding16),
-            child: SailRow(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildButton(
-                  variant: ButtonVariant.outline,
-                  label: _hidePrivateKeys ? 'Show Private Keys' : 'Hide Private Keys',
-                  onPressed: () async => setState(() => _hidePrivateKeys = !_hidePrivateKeys),
-                ),
-              ],
+          SailTableCell(
+            value: entry.address,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SailText.primary12(
+                entry.address,
+                monospace: true,
+              ),
             ),
           ),
-        ],
-      ),
+          SailTableCell(
+            value: entry.publicKey,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SailText.primary12(
+                entry.publicKey,
+                monospace: true,
+              ),
+            ),
+          ),
+          SailTableCell(
+            value: hidePrivateKeys ? '••••••••••••••••••••••••••••••••' : entry.privateKey,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SailText.primary12(
+                hidePrivateKeys ? '••••••••••••••••••••••••••••••••' : entry.privateKey,
+                monospace: true,
+              ),
+            ),
+          ),
+        ];
+      },
+      rowCount: entries.isEmpty ? 10 : entries.length,
     );
   }
 }
