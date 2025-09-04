@@ -499,6 +499,12 @@ class WalletProvider extends ChangeNotifier {
 
     onStatusUpdate?.call('Stopping binaries');
 
+    final alwaysStop = [BitcoinCore(), Enforcer(), BitWindow()];
+    // regardless of whether bitwindow started these, we need to stop them
+    for (final binary in alwaysStop) {
+      await binaryProvider.stop(binary);
+    }
+
     // then be extra sure and stop everything in the process manager
     try {
       await binaryProvider.stopAll();
