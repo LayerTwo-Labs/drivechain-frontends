@@ -97,7 +97,8 @@ func (p *Parser) Run(ctx context.Context) error {
 				Msgf("bitcoind_engine/parser: processing block tick")
 
 			if err := p.handleBlockTick(ctx); err != nil {
-				return fmt.Errorf("handle block tick: %w", err)
+				zerolog.Ctx(ctx).Err(err).Msgf("unable to handle block tick")
+				continue
 			}
 
 			zerolog.Ctx(ctx).Trace().
