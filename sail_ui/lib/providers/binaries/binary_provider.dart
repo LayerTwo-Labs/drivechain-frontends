@@ -282,12 +282,7 @@ class BinaryProvider extends ChangeNotifier {
     try {
       await _processManager.start(binary, args, cleanup, environment: environment);
 
-      var timeout = const Duration(seconds: 60);
-      if (binary.binary == 'zsided') {
-        // zside can take a long time. initial sync as well
-        timeout = const Duration(seconds: 5 * 60);
-      }
-
+      final timeout = const Duration(seconds: 30);
       try {
         await Future.any([
           // Happy case: able to connect. we start a poller at the
@@ -320,7 +315,7 @@ class BinaryProvider extends ChangeNotifier {
 
         log.i('init binaries: $binary connected');
       } catch (err) {
-        log.e('init binaries: timed out connecting to $binary', error: err);
+        log.e('init binaries: could not connect to $binary', error: err);
 
         // Check one last time we're not running. If not, dig deep in logs to find a nice
         // error to return
@@ -527,11 +522,11 @@ class BinaryProvider extends ChangeNotifier {
 
       if (shutdownOptions != null) {
         // don't show the shutting down page if it's already shown!
-        if (shutdownOptions.router.current.name != ShuttingDownRoute.name) {
+        if (shutdownOptions.router.current.name != ShutDownRoute.name) {
           // Show shutdown page with running binaries
           unawaited(
             shutdownOptions.router.push(
-              ShuttingDownRoute(
+              ShutDownRoute(
                 binaries: runningBinaries,
                 onComplete: shutdownOptions.onComplete,
               ),
