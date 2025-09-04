@@ -9,6 +9,7 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/sidechain_main.dart' hide bootBinaries;
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -629,6 +630,9 @@ Future<void> _resetEverything(BuildContext context) async {
 
             try {
               await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(appDir.path))));
+
+              // rewrite bitwindow-binary
+              await copyBinariesFromAssets(log, appDir);
               log.i('Successfully wiped all blockchain data');
             } catch (e) {
               log.e('could not reset blockchain data: $e');

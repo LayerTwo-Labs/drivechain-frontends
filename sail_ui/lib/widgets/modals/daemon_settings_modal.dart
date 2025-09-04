@@ -66,17 +66,15 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
                         label: 'Delete ${widget.connection.binary.name} data',
                         onPressed: () async {
                           final binaryProvider = GetIt.I.get<BinaryProvider>();
-                          final bitwindowAppDir = GetIt.I.get<BinaryProvider>().appDir;
+                          final appDir = GetIt.I.get<BinaryProvider>().appDir;
 
                           setState(() {
                             deleteMessage = 'Deleting data';
                           });
 
-                          await widget.connection.binary.wipeAsset(binDir(bitwindowAppDir.path));
+                          await widget.connection.binary.wipeAsset(binDir(appDir.path));
                           await widget.connection.binary.wipeAppDir();
-                          if (widget.connection.binary.type == BinaryType.bitWindow) {
-                            await copyBinariesFromAssets(GetIt.I.get<Logger>(), bitwindowAppDir);
-                          }
+                          await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
 
                           setState(() {
                             deleteMessage = 'Rebooting';
