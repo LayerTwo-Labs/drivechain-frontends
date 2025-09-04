@@ -104,7 +104,7 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<void> stopRPC() async {
-    throw Exception('stop not implemented');
+    await validator.stop(StopRequest());
   }
 
   @override
