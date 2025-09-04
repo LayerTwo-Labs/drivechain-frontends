@@ -5,7 +5,6 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/widgets/chain_settings_modal.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
@@ -205,7 +204,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                       await showDialog(
                         context: context,
                         builder: (context) => ChainSettingsModal(
-                          binary: binary,
+                          connection: viewModel.rpcForSlot(slot)!,
                         ),
                       );
                     },
@@ -326,7 +325,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                       await showDialog(
                         context: context,
                         builder: (context) => ChainSettingsModal(
-                          binary: binary,
+                          connection: viewModel.rpcForSlot(slot)!,
                         ),
                       );
                     },
@@ -426,6 +425,27 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   Sidechain? sidechainForSlot(int slot) {
     return _binaryProvider.binaries.firstWhereOrNull((b) => b is Sidechain && b.slot == slot) as Sidechain?;
+  }
+
+  RPCConnection? rpcForSlot(int slot) {
+    final sidechain = sidechainForSlot(slot);
+    if (sidechain == null) {
+      return null;
+    }
+
+    // Check if binary is running
+    final rpc = switch (sidechain) {
+      var b when b is BitcoinCore => _binaryProvider.mainchainRPC,
+      var b when b is Enforcer => _binaryProvider.enforcerRPC,
+      var b when b is BitWindow => _binaryProvider.bitwindowRPC,
+      var b when b is Thunder => _binaryProvider.thunderRPC,
+      var b when b is BitNames => _binaryProvider.bitnamesRPC,
+      var b when b is BitAssets => _binaryProvider.bitassetsRPC,
+      var b when b is ZSide => _binaryProvider.zsideRPC,
+      _ => null,
+    };
+
+    return rpc;
   }
 
   Widget? sidechainWidget(int slot) {

@@ -291,7 +291,9 @@ class HDWalletProvider extends ChangeNotifier {
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
           }
-        } catch (e) {}
+        } catch (e) {
+          // do nothing
+        }
 
         if (xprv.startsWith('xprv')) {
           try {
@@ -312,7 +314,9 @@ class HDWalletProvider extends ChangeNotifier {
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
             }
-          } catch (e) {}
+          } catch (e) {
+            // do nothing
+          }
         }
       } else if (isMainnet && xpub.startsWith('tpub')) {
         try {
@@ -332,7 +336,9 @@ class HDWalletProvider extends ChangeNotifier {
             decoded.setRange(78, 82, newChecksum);
             xpub = base58.encode(decoded);
           }
-        } catch (e) {}
+        } catch (e) {
+          // do nothing
+        }
 
         if (xprv.startsWith('tprv')) {
           try {
@@ -353,7 +359,9 @@ class HDWalletProvider extends ChangeNotifier {
               decodedPriv.setRange(78, 82, newChecksum);
               xprv = base58.encode(decodedPriv);
             }
-          } catch (e) {}
+          } catch (e) {
+            // do nothing
+          }
         }
       }
 
