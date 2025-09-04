@@ -23,6 +23,7 @@ import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -462,6 +463,11 @@ List<Binary> initalBinaries() {
 }
 
 Future<void> initAutoUpdater(Logger log) async {
+  if (kDebugMode) {
+    log.i('Skipping auto updater initialization in debug mode');
+    return;
+  }
+
   try {
     const feedURL = 'https://releases.drivechain.info/bitwindow-appcast.xml';
     log.i('Initializing auto updater with feed URL: $feedURL');
