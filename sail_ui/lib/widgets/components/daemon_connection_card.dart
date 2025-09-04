@@ -98,7 +98,7 @@ class DaemonConnectionCard extends StatelessWidget {
                 child: SailButton(
                   variant: ButtonVariant.icon,
                   onPressed: restartDaemon,
-                  loading: connection.initializingBinary,
+                  loading: connection.initializingBinary || (syncInfo?.downloadInfo.isDownloading ?? false),
                   icon: SailSVGAsset.iconRestart,
                 ),
               ),
