@@ -388,6 +388,9 @@ class BlockchainInfo {
   });
 
   factory BlockchainInfo.fromMap(Map<String, dynamic> map) {
+    final initialBlockDownload = map['initialblockdownload'] ?? false;
+    final fullySyncedToHeaders = map['blocks'] > 10 && map['headers'] == map['blocks'];
+
     return BlockchainInfo(
       chain: map['chain'] ?? '',
       blocks: map['blocks'] ?? 0,
@@ -397,7 +400,7 @@ class BlockchainInfo {
       time: map['time'] ?? 0,
       medianTime: map['mediantime'] ?? 0,
       verificationProgress: (map['verificationprogress'] ?? 0.0).toDouble(),
-      initialBlockDownload: map['initialblockdownload'] ?? false,
+      initialBlockDownload: initialBlockDownload && !fullySyncedToHeaders,
       chainWork: map['chainwork'] ?? '',
       sizeOnDisk: map['size_on_disk'] ?? 0,
       pruned: map['pruned'] ?? false,
