@@ -180,7 +180,7 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    // only start retart timer if this process starts the binary!
+    // only start restart timer if this process starts the binary!
     startRestartTimer(bootProcess);
 
     log.i('init binaries: starting ${binary.name}:${binary.binary} ${args.join(" ")}');
@@ -209,7 +209,7 @@ abstract class RPCConnection extends ChangeNotifier {
     }
 
     restartTimer?.cancel();
-    restartTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    restartTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
       if (restartOnFailure && _completedStartup) {
         if (initializingBinary) {
           // we're still going from the last loop, don't retry multiple times in parallell!
@@ -241,6 +241,7 @@ abstract class RPCConnection extends ChangeNotifier {
           // Only attempt restart if the process has exited with non-zero code
           log.w('${binary.name} process exited unexpectedly with code ${exit.code}, restarting...');
           _restartCount++;
+          // inshallah we'll connect this time
           await initBinary(bootProcess);
           if (connected) {
             // we managed to restart! reset the restart count
@@ -325,6 +326,7 @@ abstract class RPCConnection extends ChangeNotifier {
       stoppingBinary = true;
       notifyListeners();
       await stopRPC();
+      restartTimer?.cancel();
       connectionTimer?.cancel();
     } catch (e) {
       log.e('could not stop rpc: $e');
