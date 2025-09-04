@@ -278,27 +278,6 @@ jobs:
 
         shell: bash
 
-      # Install Intel Homebrew into /usr/local using Rosetta
-      - name: Install Intel Homebrew + dependencies
-        if: runner.os == 'macOS' && matrix.client == 'bitwindow'
-        run: |
-          arch -x86_64 /bin/bash -lc \
-            "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          echo '/usr/local/bin' >> $GITHUB_PATH
-          /usr/local/bin/brew install zeromq
-
-      - name: Install ZMQ dependencies for Windows
-        if: runner.os == 'Windows' && matrix.client == 'bitwindow'
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          cd vcpkg
-          ./bootstrap-vcpkg.bat
-          ./vcpkg.exe install zeromq:x64-windows
-          VCPKG_ROOT="$(pwd)"
-          echo "CGO_CFLAGS=-I${VCPKG_ROOT}/installed/x64-windows/include" >> $GITHUB_ENV
-          echo "CGO_LDFLAGS=-L${VCPKG_ROOT}/installed/x64-windows/lib -llibzmq-mt-4_3_5" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=${VCPKG_ROOT}/installed/x64-windows/lib/pkgconfig" >> $GITHUB_ENV
-
       - name: Build app
         run: |
           set -e
@@ -775,16 +754,16 @@ jobs:
             echo "UPLOAD_BITWINDOW=true UPLOAD_BITNAMES=true UPLOAD_BITASSETS=true UPLOAD_THUNDER=true UPLOAD_ZSIDE=true" >> $GITHUB_ENV
             exit 0
           fi
-          
+
           # Find all generated version.json files from artifacts
           version_files=$(find . -name "*-*-version.json" -type f 2>/dev/null || true)
-          
+
           if [ -z "$version_files" ]; then
             echo "No version files found, will upload all clients"
             echo "UPLOAD_BITWINDOW=true UPLOAD_BITNAMES=true UPLOAD_BITASSETS=true UPLOAD_THUNDER=true UPLOAD_ZSIDE=true" >> $GITHUB_ENV
             exit 0
           fi
-          
+
           # Create merged new versions.json from all generated version files
           echo "{}" > new_versions.json
           echo "$version_files" | while read version_file; do
@@ -793,12 +772,12 @@ jobs:
               mv temp_versions.json new_versions.json
             fi
           done
-          
+
           echo "New versions.json:"
           cat new_versions.json | jq .
           echo "Existing versions.json:"
           cat existing_versions.json | jq .
-          
+
           # Compare versions for each client
           for client in bitwindow bitnames bitassets thunder zside; do
             # Get highest version from new and existing

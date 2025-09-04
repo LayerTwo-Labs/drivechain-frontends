@@ -8,13 +8,15 @@ require (
 	github.com/barebitcoin/btc-buf v0.0.0-20250831155113-8394267919f6
 	github.com/brianvoe/gofakeit/v7 v7.4.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
+	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
+	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/pebbe/zmq4 v1.4.0
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.51.0
 	github.com/sourcegraph/conc v0.3.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.43.0
+	golang.org/x/sync v0.16.0 // indirect
 	google.golang.org/protobuf v1.36.8
 )
 
