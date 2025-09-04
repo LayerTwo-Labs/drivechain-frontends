@@ -217,7 +217,7 @@ class SyncProvider extends ChangeNotifier {
         progressCurrent: newBlockchainInfo.blocks.toDouble(),
         progressGoal: newBlockchainInfo.headers.toDouble(),
         lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
-        downloadInfo: DownloadInfo(),
+        downloadInfo: mainchainSyncInfo?.downloadInfo ?? DownloadInfo(),
       );
 
       if (_syncInfoHasChanged(mainchainSyncInfo, newSyncInfo) || mainchainError != null) {
@@ -249,7 +249,7 @@ class SyncProvider extends ChangeNotifier {
         progressCurrent: newBlockchainInfo.blocks.toDouble(),
         progressGoal: mainchainSyncInfo?.progressGoal ?? 0,
         lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
-        downloadInfo: DownloadInfo(),
+        downloadInfo: enforcerSyncInfo?.downloadInfo ?? DownloadInfo(),
       );
 
       if (_syncInfoHasChanged(enforcerSyncInfo, newSyncInfo) || enforcerError != null) {
@@ -283,7 +283,7 @@ class SyncProvider extends ChangeNotifier {
         progressCurrent: newBlockchainInfo.blocks.toDouble(),
         progressGoal: newBlockchainInfo.headers.toDouble(),
         lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
-        downloadInfo: DownloadInfo(),
+        downloadInfo: additionalSyncInfo?.downloadInfo ?? DownloadInfo(),
       );
 
       if (_syncInfoHasChanged(additionalSyncInfo, newSyncInfo) || additionalError != null) {

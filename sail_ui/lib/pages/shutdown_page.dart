@@ -3,17 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class ShuttingDownPage extends StatefulWidget {
+class ShutDownPage extends StatefulWidget {
   final List<Binary> binaries;
   final VoidCallback onComplete;
 
-  const ShuttingDownPage({super.key, required this.binaries, required this.onComplete});
+  const ShutDownPage({super.key, required this.binaries, required this.onComplete});
 
   @override
-  State<ShuttingDownPage> createState() => _ShuttingDownPageState();
+  State<ShutDownPage> createState() => _ShutDownPageState();
 }
 
-class _ShuttingDownPageState extends State<ShuttingDownPage> with SingleTickerProviderStateMixin {
+class _ShutDownPageState extends State<ShutDownPage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _progressAnimation;
   String _currentMessage = '';
