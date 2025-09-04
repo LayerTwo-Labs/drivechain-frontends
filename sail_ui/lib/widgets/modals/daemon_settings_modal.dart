@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DaemonConnectionDetailsModal extends StatefulWidget {
@@ -12,11 +15,15 @@ class DaemonConnectionDetailsModal extends StatefulWidget {
 
 class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsModal> {
   List<String> args = [];
+  String deleteMessage = '';
 
   @override
   void initState() {
     super.initState();
     _loadArgs();
+    setState(() {
+      deleteMessage = 'Delete ${widget.connection.binary.name} data';
+    });
   }
 
   Future<void> _loadArgs() async {
@@ -54,7 +61,44 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
                   SailRow(
                     spacing: SailStyleValues.padding08,
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: [SailButton(label: 'Close', onPressed: () async => Navigator.pop(context))],
+                    children: [
+                      SailButton(
+                        label: 'Delete ${widget.connection.binary.name} data',
+                        onPressed: () async {
+                          final binaryProvider = GetIt.I.get<BinaryProvider>();
+                          final bitwindowAppDir = GetIt.I.get<BinaryProvider>().appDir;
+
+                          setState(() {
+                            deleteMessage = 'Deleting data';
+                          });
+
+                          await widget.connection.binary.wipeAsset(binDir(bitwindowAppDir.path));
+                          await widget.connection.binary.wipeAppDir();
+                          if (widget.connection.binary.type == BinaryType.bitWindow) {
+                            await copyBinariesFromAssets(GetIt.I.get<Logger>(), bitwindowAppDir);
+                          }
+
+                          setState(() {
+                            deleteMessage = 'Rebooting';
+                          });
+
+                          // everything's deleted, reboot the binary
+                          await binaryProvider.stop(widget.connection.binary);
+                          await Future.delayed(const Duration(seconds: 5));
+                          await binaryProvider.start(widget.connection.binary);
+                          setState(() {
+                            deleteMessage = 'Delete complete';
+                          });
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+
+                        variant: ButtonVariant.destructive,
+                        loadingLabel: deleteMessage,
+                      ),
+                      SailButton(label: 'Close', onPressed: () async => Navigator.pop(context)),
+                    ],
                   ),
                 ],
               ),

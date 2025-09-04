@@ -406,7 +406,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (!(syncProvider.additionalSyncInfo?.isSynced ?? false)) {
-      return 'Syncing mainchain blocks';
+      return 'Syncing ${additionalConnection.name} blocks';
     }
 
     if (!allConnected) {
@@ -506,7 +506,7 @@ class ChainLoader extends StatelessWidget {
     final widget = Tooltip(
       message: syncInfo.downloadInfo.isDownloading
           ? 'Downloading $name\n${syncInfo.downloadInfo.message}'
-          : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
+          : '$name\nCurrent height ${formatProgress(syncInfo.progressCurrent)}\nHeader height ${formatProgress(syncInfo.progressGoal)}',
       child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal, justPercent: justPercent),
     );
 
