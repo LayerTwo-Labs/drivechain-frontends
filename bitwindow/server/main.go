@@ -148,11 +148,6 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
 	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db)
 
-	zmqEngine, err := getZmqEngine(ctx, conf)
-	if err != nil {
-		return fmt.Errorf("get zmq engine: %w", err)
-	}
-
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
 	errs := make(chan error)
@@ -171,11 +166,42 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}()
 
 	// If Bitcoin Core publishes raw transactions, we can use this to handle
-	// pending mempool entries.
-	if zmqEngine != nil {
-		go func() {
-			errs <- zmqEngine.Run(ctx)
-		}()
+	// pending mempool entries. ZMQ notifications might not be available
+	// right away. We want a retry mechanism that doesn't stall startup for
+	// the rest of the system.
+
+	go func() {
+		var zmqEngine *engines.ZMQ
+		const maxAttempts = 20
+
+		for attempt := range maxAttempts {
+			var err error
+			zmqEngine, err = getZmqEngine(ctx, conf)
+			if err != nil {
+				log.Error().Err(err).Msg("unable to acquire and start ZMQ engine")
+
+				select {
+				case <-ctx.Done():
+					return
+
+				case <-time.After(time.Second * 5):
+					log.Debug().Msgf("waited a bit for the ZMQ engine, trying again")
+				}
+
+				continue
+			}
+
+			if attempt != 0 {
+				log.Debug().Msgf("ZMQ engine acquired on attempt %d", attempt)
+			}
+			break
+
+		}
+
+		if zmqEngine == nil {
+			log.Warn().Msg("no ZMQ engine acquired, skipping")
+			return
+		}
 
 		go func() {
 			for tx := range zmqEngine.Subscribe() {
@@ -184,9 +210,10 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 				}
 			}
 		}()
-	} else {
-		log.Warn().Msgf("no pubrawtx notification found, skipping ZMQ engine")
-	}
+
+		log.Info().Msg("starting ZMQ engine")
+		errs <- zmqEngine.Run(ctx)
+	}()
 
 	go func() {
 		<-ctx.Done()
@@ -263,19 +290,11 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
 	btc, err := startCoreProxy(ctx, conf)
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind connector: %w", err)
+		return nil, fmt.Errorf("start core proxy: %w", err)
 	}
 
 	notifs, err := btc.GetZmqNotifications(ctx, connect.NewRequest(&emptypb.Empty{}))
-	switch {
-	// Chug along without erroring
-	case connect.CodeOf(err) == connect.CodeUnavailable:
-		zerolog.Ctx(ctx).Warn().Err(err).
-			Msgf("unable to fetch ZMQ notifications, continuing with nil ZMQ engine")
-
-		return nil, nil
-
-	case err != nil:
+	if err != nil {
 		return nil, fmt.Errorf("get zmq notifications: %w", err)
 	}
 

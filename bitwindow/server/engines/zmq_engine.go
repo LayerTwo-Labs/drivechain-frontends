@@ -51,9 +51,6 @@ func (e *ZMQ) Subscribe() <-chan *wire.MsgTx {
 
 // Run starts the ZMQ engine and begins listening for raw transaction notifications
 func (e *ZMQ) Run(ctx context.Context) error {
-	logger := zerolog.Ctx(ctx)
-	logger.Info().Msg("starting ZMQ engine for raw transactions")
-
 	subCh, cancel, err := e.inner.SubscribeRawTx(ctx)
 	if err != nil {
 		return err
@@ -82,8 +79,9 @@ func (e *ZMQ) Run(ctx context.Context) error {
 	// Wait for context cancellation or error
 	select {
 	case <-ctx.Done():
-		logger.Info().Msg("ZMQ engine shutting down")
+		zerolog.Ctx(ctx).Info().Msg("ZMQ engine shutting down")
 		return nil
+
 	case err := <-errChan:
 
 		if err != nil {
