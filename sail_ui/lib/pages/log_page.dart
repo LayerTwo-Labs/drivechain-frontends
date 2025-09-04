@@ -54,7 +54,8 @@ class _LogPageState extends State<LogPage> {
               final logFile = File(widget.logPath);
               await openFile(logFile);
             },
-            variant: ButtonVariant.icon,
+            variant: ButtonVariant.primary,
+            label: 'Open Log File',
             icon: SailSVGAsset.download,
           ),
         ],
