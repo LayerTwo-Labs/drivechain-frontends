@@ -145,7 +145,7 @@ export 'widgets/loaders/progress.dart';
 export 'widgets/loaders/skeletonizer.dart';
 export 'widgets/loading_indicator.dart';
 export 'widgets/modals/article_info_modal.dart';
-export 'widgets/modals/daemon_settings_modal.dart';
+export 'widgets/modals/chain_settings_modal.dart';
 export 'widgets/modals/shutdown_modal.dart';
 export 'widgets/nav/bottom_nav.dart';
 export 'widgets/nav/side_nav.dart';

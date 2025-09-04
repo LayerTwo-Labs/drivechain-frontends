@@ -88,7 +88,9 @@ class DaemonConnectionCard extends StatelessWidget {
                 onPressed: () async {
                   await showDialog(
                     context: context,
-                    builder: (context) => DaemonConnectionDetailsModal(connection: connection),
+                    builder: (context) => ChainSettingsModal(
+                      connection: connection,
+                    ),
                   );
                 },
                 icon: SailSVGAsset.tabSettings,

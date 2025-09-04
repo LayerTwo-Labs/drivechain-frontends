@@ -449,7 +449,7 @@ class BitcoinCore extends Binary {
     super.name = 'Bitcoin Core (Patched)',
     super.version = 'latest',
     super.description = 'Modified Bitcoin implementation for drivechain support',
-    super.repoUrl = 'https://github.com/drivechain-project/drivechain',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/bitcoin-patched',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -517,7 +517,7 @@ class BitWindow extends Binary {
     super.name = 'BitWindow',
     super.version = 'latest',
     super.description = 'GUI for managing drivechain operations',
-    super.repoUrl = 'https://github.com/drivechain-project/bitwindow',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/bitwindow',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -592,7 +592,7 @@ class Enforcer extends Binary {
     super.name = 'BIP300301 Enforcer',
     super.version = '0.1.0',
     super.description = 'Manages drivechain validation rules',
-    super.repoUrl = 'https://github.com/drivechain-project/enforcer',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/bip300301-enforcer',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -671,14 +671,59 @@ extension BinaryPaths on Binary {
     return switch (type) {
       BinaryType.testSidechain => filePath([datadir(), 'debug.log']),
       BinaryType.zSide => filePath([datadir(), 'regtest', 'debug.log']),
-      BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets => _findLatestVersionedLog(),
       BinaryType.bitcoinCore => filePath([datadir(), 'debug.log']),
       BinaryType.bitWindow => filePath([datadir(), 'server.log']),
-      BinaryType.enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
+      BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets => _findLatestDirVersionedLog(),
+      BinaryType.enforcer => _findLatestEnforcerLog(),
     };
   }
 
-  String _findLatestVersionedLog() {
+  String _findLatestEnforcerLog() {
+    final logsDir = Directory(filePath([datadir(), 'logs']));
+
+    if (!logsDir.existsSync()) {
+      return filePath([datadir(), 'bip300301_enforcer.log']); // Fallback to original
+    }
+
+    // Find all enforcer log files matching the pattern: bip300301_enforcer.log.YYYY-MM-DD.N
+    final logFiles = logsDir.listSync().whereType<File>().where((file) {
+      final fileName = file.path.split(Platform.pathSeparator).last;
+      return fileName.startsWith('bip300301_enforcer.log.') &&
+          RegExp(r'bip300301_enforcer\.log\.\d{4}-\d{2}-\d{2}\.\d+$').hasMatch(fileName);
+    }).toList();
+
+    if (logFiles.isEmpty) {
+      return filePath([datadir(), 'bip300301_enforcer.log']); // Fallback to original
+    }
+
+    // Sort by date and sequence number (latest first)
+    logFiles.sort((a, b) {
+      final aFileName = a.path.split(Platform.pathSeparator).last;
+      final bFileName = b.path.split(Platform.pathSeparator).last;
+
+      // Extract date and sequence number from filename
+      final aMatch = RegExp(r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$').firstMatch(aFileName);
+      final bMatch = RegExp(r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$').firstMatch(bFileName);
+
+      if (aMatch == null || bMatch == null) return 0;
+
+      final aDate = aMatch.group(1)!;
+      final bDate = bMatch.group(1)!;
+      final aSeq = int.parse(aMatch.group(2)!);
+      final bSeq = int.parse(bMatch.group(2)!);
+
+      // First compare by date (descending)
+      final dateComparison = bDate.compareTo(aDate);
+      if (dateComparison != 0) return dateComparison;
+
+      // If dates are equal, compare by sequence number (descending)
+      return bSeq.compareTo(aSeq);
+    });
+
+    return logFiles.first.path;
+  }
+
+  String _findLatestDirVersionedLog() {
     final logsDir = Directory(filePath([datadir(), 'logs']));
     if (!logsDir.existsSync()) {
       return filePath([datadir(), 'logs', 'unknown.log']);

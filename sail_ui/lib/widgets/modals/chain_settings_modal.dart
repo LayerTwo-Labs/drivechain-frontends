@@ -2,21 +2,47 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-class ChainSettingsModal extends StatelessWidget {
-  final Binary binary;
+class ChainSettingsModal extends StatefulWidget {
+  final RPCConnection connection;
 
-  const ChainSettingsModal({
-    super.key,
-    required this.binary,
-  });
+  const ChainSettingsModal({super.key, required this.connection});
+
+  @override
+  State<ChainSettingsModal> createState() => _ChainSettingsModalState();
+}
+
+class _ChainSettingsModalState extends State<ChainSettingsModal> {
+  List<String> args = [];
+  String deleteMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadArgs();
+    setState(() {
+      deleteMessage = 'Delete ${widget.connection.binary.name} data';
+    });
+  }
+
+  Future<void> _loadArgs() async {
+    final loadedArgs = await widget.connection.binaryArgs(widget.connection.conf);
+    loadedArgs.removeWhere((arg) => arg.contains('pass'));
+    if (mounted) {
+      setState(() {
+        args = loadedArgs;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<ChainSettingsViewModel>.reactive(
-      viewModelBuilder: () => ChainSettingsViewModel(binary),
+      viewModelBuilder: () => ChainSettingsViewModel(widget.connection.binary),
       builder: (context, viewModel, child) {
         final theme = SailTheme.of(context);
 
@@ -53,33 +79,85 @@ class ChainSettingsModal extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  viewModel.buildInfoRow(context, 'Version', viewModel.binary.version),
+                  StaticField(label: 'Version', value: viewModel.binary.version, copyable: true),
                   if (viewModel.binary.repoUrl.isNotEmpty)
-                    viewModel.buildInfoRow(context, 'Repository', viewModel.binary.repoUrl),
-                  viewModel.buildInfoRow(context, 'Network Port', viewModel.binary.port.toString()),
-                  viewModel.buildInfoRow(
-                    context,
-                    'Chain Layer',
-                    viewModel.binary.chainLayer == 1 ? 'Layer 1' : 'Layer 2',
+                    StaticField(label: 'Repository', value: viewModel.binary.repoUrl, copyable: true),
+                  StaticField(label: 'Host', value: widget.connection.conf.host, copyable: true),
+                  StaticField(label: 'Port', value: widget.connection.binary.port.toString(), copyable: true),
+                  if (args.isNotEmpty)
+                    StaticField(label: 'Binary Arguments', value: args.join(' \\\n'), copyable: true),
+                  StaticField(
+                    label: 'Chain Layer',
+                    value: viewModel.binary.chainLayer == 1 ? 'Layer 1' : 'Layer 2',
+                    copyable: true,
                   ),
-                  if (baseDir != null) viewModel.buildInfoRow(context, 'Installation Directory', baseDir),
-                  viewModel.buildInfoRow(context, 'Binary Path', viewModel.binary.metadata.binaryPath?.path ?? 'N/A'),
+                  if (baseDir != null) StaticField(label: 'Installation Directory', value: baseDir, copyable: true),
+                  StaticField(
+                    label: 'Binary Data Directory',
+                    value: viewModel.binary.datadir(),
+                    copyable: true,
+                  ),
+                  StaticField(
+                    label: 'Log Path',
+                    value: viewModel.binary.logPath(),
+                    copyable: true,
+                  ),
+                  StaticField(
+                    label: 'Binary Asset Path',
+                    value: viewModel.binary.metadata.binaryPath?.path ?? 'N/A',
+                    copyable: true,
+                  ),
                   if (downloadFile != null) viewModel.buildInfoRow(context, 'Download File', downloadFile),
-                  viewModel.buildInfoRow(
-                    context,
-                    'Latest Release At',
-                    viewModel.binary.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
+                  StaticField(
+                    label: 'Latest Release At',
+                    value: viewModel.binary.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
+                    copyable: true,
                   ),
-                  viewModel.buildInfoRow(
-                    context,
-                    'Your Version Installed At',
-                    viewModel.binary.metadata.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
+                  StaticField(
+                    label: 'Your Version Installed At',
+                    value: viewModel.binary.metadata.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
+                    copyable: true,
                   ),
                   const SizedBox(height: 24),
-                  SailButton(
-                    label: 'Delete ${viewModel.binary.name}',
-                    onPressed: viewModel.handleDelete,
-                    variant: ButtonVariant.destructive,
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      SailButton(
+                        label: 'Delete ${widget.connection.binary.name} data',
+                        onPressed: () async {
+                          final binaryProvider = GetIt.I.get<BinaryProvider>();
+                          final appDir = GetIt.I.get<BinaryProvider>().appDir;
+
+                          setState(() {
+                            deleteMessage = 'Deleting data';
+                          });
+
+                          await widget.connection.binary.wipeAsset(binDir(appDir.path));
+                          await widget.connection.binary.wipeAppDir();
+                          await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
+
+                          setState(() {
+                            deleteMessage = 'Rebooting';
+                          });
+
+                          // everything's deleted, reboot the binary
+                          await binaryProvider.stop(widget.connection.binary);
+                          await Future.delayed(const Duration(seconds: 5));
+                          await binaryProvider.start(widget.connection.binary);
+                          setState(() {
+                            deleteMessage = 'Delete complete';
+                          });
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+
+                        variant: ButtonVariant.destructive,
+                        loadingLabel: deleteMessage,
+                      ),
+                      SailButton(label: 'Close', onPressed: () async => Navigator.pop(context)),
+                    ],
                   ),
                 ],
               ),
