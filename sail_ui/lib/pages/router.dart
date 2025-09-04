@@ -11,7 +11,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: SidechainOverviewTabRoute.page),
     AutoRoute(page: ParentChainRoute.page),
     AutoRoute(page: LogRoute.page),
-    AutoRoute(page: ShuttingDownRoute.page),
+    AutoRoute(page: ShutDownRoute.page),
   ];
 
   @override

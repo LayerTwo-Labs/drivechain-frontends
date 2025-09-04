@@ -68,7 +68,7 @@ class AppRouter extends RootStackRouter {
       page: LogRoute.page,
     ),
     AutoRoute(
-      page: ShuttingDownRoute.page,
+      page: ShutDownRoute.page,
     ),
 
     /// This route is used in tests so that we can pump a widget into a route
