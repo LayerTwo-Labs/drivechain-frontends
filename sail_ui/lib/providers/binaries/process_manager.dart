@@ -50,7 +50,11 @@ class ProcessManager extends ChangeNotifier {
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
       environment: environment,
     );
-    runningProcesses[binary.name] = SailProcess(binary: binary, pid: process.pid, cleanup: cleanup);
+    runningProcesses[binary.name] = SailProcess(
+      binary: binary,
+      pid: process.pid,
+      cleanup: cleanup,
+    );
     _exitTuples.remove(binary.name);
 
     // Let output streaming chug in the background
@@ -200,9 +204,30 @@ class ProcessManager extends ChangeNotifier {
       ]);
       log.d('nice shutdown successful for pid=${process.pid} binary=${process.binary.name}');
     } catch (error) {
-      // If nice shutdown fails or times out, force kill with SIGTERM
-      log.e('nice shutdown failed, killing with SIGINT pid=${process.pid}: $error');
-      Process.killPid(process.pid, ProcessSignal.sigint);
+      // If nice shutdown fails or times out, force kill
+      log.e('nice shutdown failed, force killing pid=${process.pid}: $error');
+
+      // Cross-platform process killing
+      if (Platform.isWindows) {
+        // On Windows, use taskkill or just kill without signal
+        try {
+          await Process.run('taskkill', ['/F', '/PID', '${process.pid}']);
+        } catch (e) {
+          // Fallback to Process.killPid without signal on Windows
+          Process.killPid(process.pid);
+        }
+      } else {
+        // On Unix-like systems, use SIGTERM first, then SIGKILL if needed
+        try {
+          Process.killPid(process.pid, ProcessSignal.sigterm);
+          // Wait a bit for graceful shutdown
+          await Future.delayed(const Duration(milliseconds: 500));
+          // If still running, use SIGKILL
+          Process.killPid(process.pid, ProcessSignal.sigkill);
+        } catch (e) {
+          log.e('Failed to kill process ${process.pid}: $e');
+        }
+      }
     } finally {
       runningProcesses.remove(process.binary.name);
       notifyListeners();

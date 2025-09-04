@@ -73,7 +73,7 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       path: '/shutting-down',
-      page: ShuttingDownRoute.page,
+      page: ShutDownRoute.page,
     ),
     AutoRoute(
       path: '/create-wallet',
