@@ -14,6 +14,7 @@ class SettingsProvider extends ChangeNotifier {
   // Individual setting variables
   bool debugMode = false;
   bool useTestSidechains = false;
+  SailFontValues font = SailFontValues.inter;
 
   // Private constructor
   SettingsProvider._create();
@@ -29,6 +30,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> _loadAllSettings() async {
     await _loadDebugMode();
     await _loadUseTestSidechains();
+    await _loadFont();
   }
 
   /// Load debug mode setting
@@ -90,6 +92,34 @@ class SettingsProvider extends ChangeNotifier {
       useTestSidechains = !value;
       notifyListeners();
       log.e('Failed to update use test sidechains', error: e);
+      rethrow;
+    }
+  }
+
+  /// Load font setting
+  Future<void> _loadFont() async {
+    final setting = FontSetting();
+    final loadedSetting = await clientSettings.getValue(setting);
+    font = loadedSetting.value;
+    notifyListeners();
+  }
+
+  /// Update font setting
+  Future<void> updateFont(SailFontValues value) async {
+    if (font == value) {
+      return;
+    }
+
+    try {
+      font = value;
+      notifyListeners();
+      final setting = FontSetting(newValue: value);
+      await clientSettings.setValue(setting);
+    } catch (e) {
+      // Revert on error
+      font = font == SailFontValues.inter ? SailFontValues.sourceCodePro : SailFontValues.inter;
+      notifyListeners();
+      log.e('Failed to update font', error: e);
       rethrow;
     }
   }
