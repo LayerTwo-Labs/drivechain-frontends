@@ -175,26 +175,46 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
-  final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
-
   final router = GetIt.I.get<AppRouter>();
   runApp(
     SailApp(
       dense: false,
-      // the initial route is defined in routing/router.dart
-      builder: (context) => MaterialApp.router(
-        routerDelegate: router.delegate(),
-        routeInformationParser: router.defaultRouteParser(),
-        title: bitassets.chain.name,
-        theme: ThemeData(
-          fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
-          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: bitassets.chain.color),
-        ),
-      ),
+      builder: (context) {
+        return _BitAssetsAppContent(
+          router: router,
+          bitassets: bitassets,
+        );
+      },
       accentColor: bitassets.chain.color,
       log: log,
     ),
   );
+}
+
+class _BitAssetsAppContent extends StatelessWidget {
+  final AppRouter router;
+  final BitAssetsRPC bitassets;
+
+  const _BitAssetsAppContent({
+    required this.router,
+    required this.bitassets,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final font = theme.font;
+
+    return MaterialApp.router(
+      routerDelegate: router.delegate(),
+      routeInformationParser: router.defaultRouteParser(),
+      title: bitassets.chain.name,
+      theme: ThemeData(
+        fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
+        colorScheme: ColorScheme.fromSwatch().copyWith(secondary: bitassets.chain.color),
+      ),
+    );
+  }
 }
 
 bool isCurrentChainActive({
