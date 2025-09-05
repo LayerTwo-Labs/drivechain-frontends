@@ -744,7 +744,6 @@ jobs:
     name: Upload artifacts to releases.drivechain.info
     runs-on: ubuntu-latest
     needs: build
-    # Modified if condition to run even with partial failures
     if: |
       always() && 
       github.event_name == 'push' && 
@@ -894,8 +893,8 @@ jobs:
             # Only merge version files for clients that have version updates
             echo "$version_files" | while read version_file; do
               if [ -n "$version_file" ]; then
-                # Extract client name from version file (e.g., bitwindow-macos-version.json -> bitwindow)
-                client_name=$(basename "$version_file" | sed 's/-[^-]*-version\.json$//')
+                # Extract client name from version file (e.g., thunder-windows-latest-version.json -> thunder)
+                client_name=$(basename "$version_file" | sed 's/-[^-]*-latest-version\.json$//')
                 upload_var="UPLOAD_${client_name^^}"
                 
                 if [ "${!upload_var}" = "true" ]; then
