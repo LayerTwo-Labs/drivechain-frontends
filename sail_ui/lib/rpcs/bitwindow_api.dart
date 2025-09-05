@@ -57,10 +57,10 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   BitwindowRPCLive({required String host, required int port})
     : super(conf: readConf(), binaryType: BinaryType.bitWindow, restartOnFailure: true) {
-    _init(host: host, port: port);
+    _initializeConnection(host: host, port: port);
   }
 
-  void _init({required String host, required int port}) async {
+  void _initializeConnection({required String host, required int port}) async {
     final httpClient = createHttpClient();
     final baseUrl = 'http://$host:$port';
     final transport = connect.Transport(baseUrl: baseUrl, codec: const ProtoCodec(), httpClient: httpClient);
@@ -91,7 +91,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<int> ping() async {
-    try {
+    return await _withRecreate(() async {
       final healthResponse = await health.check();
       // Check if any service is serving
       final hasServingService = healthResponse.serviceStatuses.any(
@@ -103,9 +103,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       } else {
         throw Exception('No services are currently serving');
       }
-    } catch (e) {
-      throw Exception('Health check failed: $e');
-    }
+    });
   }
 
   @override
@@ -115,33 +113,39 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<(double, double)> balance() async {
-    final balanceSat = await wallet.getBalance();
-    return (satoshiToBTC(balanceSat.confirmedSatoshi.toInt()), satoshiToBTC(balanceSat.pendingSatoshi.toInt()));
+    return await _withRecreate(() async {
+      final balanceSat = await wallet.getBalance();
+      return (satoshiToBTC(balanceSat.confirmedSatoshi.toInt()), satoshiToBTC(balanceSat.pendingSatoshi.toInt()));
+    });
   }
 
   @override
   Future<void> stopRPC() async {
-    await bitwindowd.stop();
+    await _withRecreate(() async {
+      await bitwindowd.stop();
+    });
   }
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final syncInfo = await bitwindowd.getSyncInfo();
-    return BlockchainInfo(
-      chain: 'signet',
-      bestBlockHash: syncInfo.tipBlockHash,
-      difficulty: 0,
-      time: syncInfo.tipBlockTime.toInt(),
-      medianTime: 0,
-      initialBlockDownload: false,
-      chainWork: '0',
-      blocks: syncInfo.tipBlockHeight.toInt(),
-      headers: syncInfo.headerHeight.toInt(),
-      verificationProgress: syncInfo.syncProgress,
-      sizeOnDisk: 0,
-      pruned: false,
-      warnings: [],
-    );
+    return await _withRecreate(() async {
+      final syncInfo = await bitwindowd.getSyncInfo();
+      return BlockchainInfo(
+        chain: 'signet',
+        bestBlockHash: syncInfo.tipBlockHash,
+        difficulty: 0,
+        time: syncInfo.tipBlockTime.toInt(),
+        medianTime: 0,
+        initialBlockDownload: false,
+        chainWork: '0',
+        blocks: syncInfo.tipBlockHeight.toInt(),
+        headers: syncInfo.headerHeight.toInt(),
+        verificationProgress: syncInfo.syncProgress,
+        sizeOnDisk: 0,
+        pruned: false,
+        warnings: [],
+      );
+    });
   }
 
   @override
@@ -288,6 +292,35 @@ class BitwindowRPCLive extends BitwindowRPC {
     }
 
     return true;
+  }
+
+  void _recreateConnection() {
+    log.w('Recreating HTTP/2 connection for bitwindowd');
+    _initializeConnection(host: '127.0.0.1', port: binary.port);
+  }
+
+  Future<T> _withRecreate<T>(Future<T> Function() operation) async {
+    try {
+      return await operation();
+    } catch (e) {
+      final errorString = e.toString().toLowerCase();
+
+      // Check for various connection errors that require recreation
+      if (errorString.contains('http/2 connection is finishing') ||
+          errorString.contains('connection closed') ||
+          errorString.contains('stream closed') ||
+          errorString.contains('transport closed') ||
+          errorString.contains('forcefully terminated') ||
+          errorString.contains('connection reset') ||
+          errorString.contains('broken pipe') ||
+          (errorString.contains('unavailable') && errorString.contains('grpc'))) {
+        log.w('Connection error detected, recreating connection: ${e.toString()}');
+        _recreateConnection();
+        // Retry the operation with the new connection
+        return await operation();
+      }
+      rethrow;
+    }
   }
 }
 
