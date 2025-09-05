@@ -95,20 +95,24 @@ class _GeneralSettingsContent extends StatefulWidget {
 }
 
 class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
-  final _clientSettings = GetIt.I<ClientSettings>();
-  bool _debugMode = false;
+  final _settingsProvider = GetIt.I.get<SettingsProvider>();
 
   @override
   void initState() {
     super.initState();
-    _loadDebugMode();
+    // Listen to settings changes
+    _settingsProvider.addListener(_onSettingsChanged);
   }
 
-  Future<void> _loadDebugMode() async {
-    final setting = DebugModeSetting();
-    final loadedSetting = await _clientSettings.getValue(setting);
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
     setState(() {
-      _debugMode = loadedSetting.value;
+      // Rebuild when settings change
     });
   }
 
@@ -123,8 +127,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             '\r\n\r\nIt is very helpful to the devs, but it also includes information such as your IP address, device type, and location. '
             'If you dont trust Sentry with this information, enable a VPN, or press Cancel.',
         onConfirm: () async {
-          await _clientSettings.setValue(DebugModeSetting(newValue: true));
-          setState(() => _debugMode = true);
+          await _settingsProvider.updateDebugMode(true);
           if (context.mounted) Navigator.of(context).pop();
         },
       ),
@@ -142,7 +145,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailText.primary20('General'),
-            SailText.secondary13('Enable or disable debug mode'),
+            SailText.secondary13('Enable or disable various settings'),
           ],
         ),
 
@@ -153,7 +156,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             SailText.primary15('Debug Mode'),
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<bool>(
-              value: _debugMode,
+              value: _settingsProvider.debugMode,
               items: [
                 SailDropdownItem<bool>(
                   value: false,
@@ -168,14 +171,53 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
                 if (newValue == true) {
                   await _showDebugModeWarning();
                 } else {
-                  await _clientSettings.setValue(DebugModeSetting(newValue: false));
-                  setState(() => _debugMode = false);
+                  await _settingsProvider.updateDebugMode(false);
                 }
               },
             ),
             const SailSpacing(4),
             SailText.secondary12(
               'When enabled, detailed error reporting will be collected to fix bugs hastily.',
+            ),
+          ],
+        ),
+
+        // Theme Toggle
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Theme'),
+            const SailSpacing(SailStyleValues.padding08),
+            ToggleThemeButton(),
+          ],
+        ),
+
+        // Font Dropdown
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Font'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<SailFontValues>(
+              value: _settingsProvider.font,
+              items: [
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.inter,
+                  label: 'Inter',
+                ),
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.sourceCodePro,
+                  label: 'Source Code Pro',
+                ),
+              ],
+              onChanged: (SailFontValues? newValue) async {
+                if (newValue != null) {
+                  await _settingsProvider.updateFont(newValue);
+                  // Trigger immediate font reload in SailApp
+                  final app = SailApp.of(context);
+                  await app.loadFont(newValue);
+                }
+              },
             ),
           ],
         ),

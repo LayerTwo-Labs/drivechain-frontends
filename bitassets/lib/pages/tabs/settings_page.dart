@@ -182,6 +182,16 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
           ],
         ),
 
+        // Theme Toggle
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Theme'),
+            const SailSpacing(SailStyleValues.padding08),
+            ToggleThemeButton(),
+          ],
+        ),
+
         // Font Dropdown
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
