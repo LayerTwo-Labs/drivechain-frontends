@@ -214,8 +214,10 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
                 if (newValue != null) {
                   await _settingsProvider.updateFont(newValue);
                   // Trigger immediate font reload in SailApp
-                  final app = SailApp.of(context);
-                  await app.loadFont(newValue);
+                  if (context.mounted) {
+                    final app = SailApp.of(context);
+                    await app.loadFont(newValue);
+                  }
                 }
               },
             ),
