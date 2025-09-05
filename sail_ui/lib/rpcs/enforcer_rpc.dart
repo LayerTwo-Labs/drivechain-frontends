@@ -21,20 +21,25 @@ abstract class EnforcerRPC extends RPCConnection {
 class EnforcerLive extends EnforcerRPC {
   @override
   late ValidatorServiceClient validator;
+  late grpc.Transport _grpcTransport;
 
   EnforcerLive() : super(conf: readConf(), binaryType: BinaryType.enforcer, restartOnFailure: true) {
-    final httpClient = createHttpClient();
+    _initializeConnection();
+    startConnectionTimer();
+  }
 
+  void _initializeConnection() {
+    // Create new HTTP/2 transport and client
+    final httpClient = createHttpClient();
     final baseUrl = 'http://127.0.0.1:${binary.port}';
-    final transport = grpc.Transport(
+    _grpcTransport = grpc.Transport(
       baseUrl: baseUrl,
       codec: const ProtoCodec(),
       httpClient: httpClient,
       statusParser: const StatusParser(),
     );
 
-    validator = ValidatorServiceClient(transport);
-    startConnectionTimer();
+    validator = ValidatorServiceClient(_grpcTransport);
   }
 
   @override
@@ -88,8 +93,10 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<int> ping() async {
-    final res = await validator.getChainTip(GetChainTipRequest());
-    return res.blockHeaderInfo.height;
+    return await _withRecreate(() async {
+      final res = await validator.getChainTip(GetChainTipRequest());
+      return res.blockHeaderInfo.height;
+    });
   }
 
   @override
@@ -104,27 +111,31 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<void> stopRPC() async {
-    await validator.stop(StopRequest());
+    await _withRecreate(() async {
+      await validator.stop(StopRequest());
+    });
   }
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final res = await validator.getChainTip(GetChainTipRequest());
-    return BlockchainInfo(
-      chain: 'signet',
-      blocks: res.blockHeaderInfo.height,
-      headers: res.blockHeaderInfo.height,
-      bestBlockHash: res.blockHeaderInfo.blockHash.hex.toString(),
-      difficulty: 0,
-      time: 0,
-      medianTime: 0,
-      verificationProgress: 0,
-      initialBlockDownload: false,
-      chainWork: '',
-      sizeOnDisk: 0,
-      pruned: false,
-      warnings: [],
-    );
+    return await _withRecreate(() async {
+      final res = await validator.getChainTip(GetChainTipRequest());
+      return BlockchainInfo(
+        chain: 'signet',
+        blocks: res.blockHeaderInfo.height,
+        headers: res.blockHeaderInfo.height,
+        bestBlockHash: res.blockHeaderInfo.blockHash.hex.toString(),
+        difficulty: 0,
+        time: 0,
+        medianTime: 0,
+        verificationProgress: 0,
+        initialBlockDownload: false,
+        chainWork: '',
+        sizeOnDisk: 0,
+        pruned: false,
+        warnings: [],
+      );
+    });
   }
 
   @override
@@ -144,6 +155,35 @@ class EnforcerLive extends EnforcerRPC {
 
       return response.body;
     } catch (e) {
+      rethrow;
+    }
+  }
+
+  void _recreateConnection() {
+    log.w('Recreating HTTP/2 connection for enforcer');
+    _initializeConnection();
+  }
+
+  Future<T> _withRecreate<T>(Future<T> Function() operation) async {
+    try {
+      return await operation();
+    } catch (e) {
+      final errorString = e.toString().toLowerCase();
+
+      // Check for various connection errors that require recreation
+      if (errorString.contains('http/2 connection is finishing') ||
+          errorString.contains('connection closed') ||
+          errorString.contains('stream closed') ||
+          errorString.contains('transport closed') ||
+          errorString.contains('forcefully terminated') ||
+          errorString.contains('connection reset') ||
+          errorString.contains('broken pipe') ||
+          (errorString.contains('unavailable') && errorString.contains('grpc'))) {
+        log.w('Connection error detected, recreating connection: ${e.toString()}');
+        _recreateConnection();
+        // Retry the operation with the new connection
+        return await operation();
+      }
       rethrow;
     }
   }

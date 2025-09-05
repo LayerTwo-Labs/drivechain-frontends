@@ -671,7 +671,7 @@ extension BinaryPaths on Binary {
     return switch (type) {
       BinaryType.testSidechain => filePath([datadir(), 'debug.log']),
       BinaryType.zSide => filePath([datadir(), 'regtest', 'debug.log']),
-      BinaryType.bitcoinCore => filePath([datadir(), 'debug.log']),
+      BinaryType.bitcoinCore => filePath([datadir(), 'signet', 'debug.log']),
       BinaryType.bitWindow => filePath([datadir(), 'server.log']),
       BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
