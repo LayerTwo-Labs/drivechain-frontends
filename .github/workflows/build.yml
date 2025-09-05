@@ -343,9 +343,7 @@ jobs:
       - name: Generate appcast fragment for this build
         continue-on-error: true
         run: |
-          built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.exe" -o -name "*.zip" | head -1)
-          if [ -n "$built_file" ]; then
-            # Map GitHub runner OS to platform and generate appcast
+            # Find built files with platform-specific patterns
             case "${{ matrix.os }}" in
               ubuntu-latest) 
                 # Linux doesn't need appcast fragments (no auto-updater)
@@ -354,15 +352,33 @@ jobs:
                 ;;
               macos-latest)
                 echo "Generating appcast fragment for macOS"
+                # Find the macOS zip file
+                built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*-osx64.zip" | head -1)
+                if [ -z "$built_file" ]; then
+                  echo "ERROR: No macOS zip file (*-osx64.zip) found in release directory"
+                  ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
+                  exit 1
+                fi
+                echo "Found macOS build file: $built_file"
+                
                 # Create EdDSA key file for macOS
                 echo "${{ secrets.SPARKLE_MACOS_PRIVATE_KEY }}" > sparkle_macos_key.pem
                 chmod +x scripts/appcast/generate-macos.sh
                 cd "${{ env.BUILD_DIR }}"
-                ../scripts/appcast/generate-macos.sh ${{ matrix.client }} "../sparkle_macos_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate $platform appcast fragment"
+                ../scripts/appcast/generate-macos.sh ${{ matrix.client }} "../sparkle_macos_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate macOS appcast fragment"
                 rm -f ../sparkle_macos_key.pem
                 ;;  
               windows-latest)
                 echo "Generating appcast fragment for Windows"
+                # Find the Windows exe file
+                built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.exe" | head -1)
+                if [ -z "$built_file" ]; then
+                  echo "ERROR: No Windows exe file (*.exe) found in release directory"
+                  ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
+                  exit 1
+                fi
+                echo "Found Windows build file: $built_file"
+                
                 # Create DSA key file for Windows
                 echo "${{ secrets.SPARKLE_WINDOWS_PRIVATE_KEY }}" | base64 -d > sparkle_dsa_key.pem
                 chmod +x scripts/appcast/generate-windows.sh
