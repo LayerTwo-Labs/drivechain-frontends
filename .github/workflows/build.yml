@@ -343,73 +343,68 @@ jobs:
       - name: Generate appcast fragment for this build
         continue-on-error: true
         run: |
-            # Find built files with platform-specific patterns
-            case "${{ matrix.os }}" in
-              ubuntu-latest) 
-                # Linux doesn't need appcast fragments (no auto-updater)
-                echo "Skipping appcast fragment for Linux"
-                exit 0
-                ;;
-              macos-latest)
-                echo "Generating appcast fragment for macOS"
-                # Find the macOS zip file
-                built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*-osx64.zip" | head -1)
-                if [ -z "$built_file" ]; then
-                  echo "ERROR: No macOS zip file (*-osx64.zip) found in release directory"
-                  ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
-                  exit 1
-                fi
-                echo "Found macOS build file: $built_file"
-                
-                # Create EdDSA key file for macOS
-                echo "${{ secrets.SPARKLE_MACOS_PRIVATE_KEY }}" > sparkle_macos_key.pem
-                chmod +x scripts/appcast/generate-macos.sh
-                cd "${{ env.BUILD_DIR }}"
-                ../scripts/appcast/generate-macos.sh ${{ matrix.client }} "../sparkle_macos_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate macOS appcast fragment"
-                rm -f ../sparkle_macos_key.pem
-                ;;  
-              windows-latest)
-                echo "Generating appcast fragment for Windows"
-                # Find the Windows exe file
-                built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.exe" | head -1)
-                if [ -z "$built_file" ]; then
-                  echo "ERROR: No Windows exe file (*.exe) found in release directory"
-                  ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
-                  exit 1
-                fi
-                echo "Found Windows build file: $built_file"
-                
-                # Create DSA key file for Windows
-                echo "${{ secrets.SPARKLE_WINDOWS_PRIVATE_KEY }}" | base64 -d > sparkle_dsa_key.pem
-                chmod +x scripts/appcast/generate-windows.sh
-                cd "${{ env.BUILD_DIR }}"
-                ../scripts/appcast/generate-windows.sh ${{ matrix.client }} "../sparkle_dsa_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate Windows appcast fragment"
-                rm -f ../sparkle_dsa_key.pem
-                ;;
-              *) 
-                echo "Unknown platform: ${{ matrix.os }}"
-                exit 0
-                ;;
-            esac
+          # Find built files with platform-specific patterns
+          case "${{ matrix.os }}" in
+            ubuntu-latest)
+              # Linux doesn't need appcast fragments (no auto-updater)
+              echo "Skipping appcast fragment for Linux"
+              exit 0
+              ;;
+            macos-latest)
+              echo "Generating appcast fragment for macOS"
+              built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*-osx64.zip" | head -1)
+              if [ -z "$built_file" ]; then
+                echo "ERROR: No macOS zip file (*-osx64.zip) found in release directory"
+                ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
+                exit 1
+              fi
+              echo "Found macOS build file: $built_file"
+              # Create EdDSA key file for macOS
+              echo "${{ secrets.SPARKLE_MACOS_PRIVATE_KEY }}" > sparkle_macos_key.pem
+              chmod +x scripts/appcast/generate-macos.sh
+              cd "${{ env.BUILD_DIR }}"
+              ../scripts/appcast/generate-macos.sh ${{ matrix.client }} "../sparkle_macos_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate macOS appcast fragment"
+              rm -f ../sparkle_macos_key.pem
+              ;;
+            windows-latest)
+              echo "Generating appcast fragment for Windows"
+              built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.exe" | head -1)
+              if [ -z "$built_file" ]; then
+                echo "ERROR: No Windows exe file found in release directory"
+                ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
+                exit 1
+              fi
+              echo "Found Windows build file: $built_file"
+              # Create DSA key file for Windows
+              echo "${{ secrets.SPARKLE_WINDOWS_PRIVATE_KEY }}" | base64 -d > sparkle_dsa_key.pem
+              chmod +x scripts/appcast/generate-windows.sh
+              cd "${{ env.BUILD_DIR }}"
+              ../scripts/appcast/generate-windows.sh ${{ matrix.client }} "../sparkle_dsa_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate Windows appcast fragment"
+              rm -f ../sparkle_dsa_key.pem
+              ;;
+            *)
+              echo "Unknown platform: ${{ matrix.os }}"
+              exit 0
+              ;;
+          esac
 
-            cd ..
-            
-            # Check if fragment was generated (for macOS and Windows only)
-            case "${{ matrix.os }}" in
-              macos-latest)
-                fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-macos-fragment.xml"
-                ;;
-              windows-latest)
-                fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-windows-fragment.xml"
-                ;;
-            esac
-            
-            if [ -n "${fragment_file:-}" ] && [ -f "$fragment_file" ]; then
-              echo "Generated appcast fragment: $fragment_file"
-              cat "$fragment_file"
-            elif [ -n "${fragment_file:-}" ]; then
-              echo "No appcast fragment was generated"
-            fi
+          cd ..
+
+          # Check if fragment was generated (for macOS and Windows only)
+          case "${{ matrix.os }}" in
+            macos-latest)
+              fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-macos-fragment.xml"
+              ;;
+            windows-latest)
+              fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-windows-fragment.xml"
+              ;;
+          esac
+
+          if [ -n "${fragment_file:-}" ] && [ -f "$fragment_file" ]; then
+            echo "Generated appcast fragment: $fragment_file"
+            cat "$fragment_file"
+          elif [ -n "${fragment_file:-}" ]; then
+            echo "No appcast fragment was generated"
           fi
 
       # Publish snap (bitwindoww doesn't exist, so we never publish!)
@@ -896,13 +891,21 @@ jobs:
             echo "Found version files:"
             echo "$version_files"
             
-            # Find all generated version.json files and merge them
+            # Only merge version files for clients that have version updates
             echo "$version_files" | while read version_file; do
               if [ -n "$version_file" ]; then
-                echo "Merging $version_file..."
-                # Use jq to merge the individual version file into the main versions.json
-                jq -s '.[0] * .[1]' versions.json "$version_file" > temp_versions.json
-                mv temp_versions.json versions.json
+                # Extract client name from version file (e.g., bitwindow-macos-version.json -> bitwindow)
+                client_name=$(basename "$version_file" | sed 's/-[^-]*-version\.json$//')
+                upload_var="UPLOAD_${client_name^^}"
+                
+                if [ "${!upload_var}" = "true" ]; then
+                  echo "Merging $version_file for $client_name (version increased)..."
+                  # Use jq to merge the individual version file into the main versions.json
+                  jq -s '.[0] * .[1]' versions.json "$version_file" > temp_versions.json
+                  mv temp_versions.json versions.json
+                else
+                  echo "Skipping $version_file for $client_name (version not increased)"
+                fi
               fi
             done
           fi
@@ -913,8 +916,15 @@ jobs:
       - name: Generate appcast for auto-updater
         continue-on-error: true
         run: |
-          # Process appcast fragments for each client
+          # Process appcast fragments for each client that has version updates
           for client in bitwindow thunder bitnames bitassets zside; do
+            # Check if this client should be uploaded (version increased)
+            upload_var="UPLOAD_${client^^}"
+            if [ "${!upload_var}" != "true" ]; then
+              echo "Skipping $client appcast generation (version not increased)"
+              continue
+            fi
+            
             echo "Looking for $client appcast fragments in artifact directories..."
             
             macos_fragment=$(find . -name "*${client}*macos*fragment*.xml" -type f 2>/dev/null | head -1 || true)
