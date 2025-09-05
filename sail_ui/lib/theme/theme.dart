@@ -7,7 +7,7 @@ class SailTheme extends StatelessWidget {
   final Widget child;
   final SailThemeData data;
 
-  static final kFallbackTheme = SailThemeData.lightTheme(SailColorScheme.orange, true);
+  static final kFallbackTheme = SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter);
 
   const SailTheme({super.key, required this.child, required this.data});
 
@@ -31,6 +31,6 @@ class _InheritedTheme extends InheritedWidget {
 
   @override
   bool updateShouldNotify(covariant _InheritedTheme oldWidget) {
-    return theme.data.colors != oldWidget.theme.data.colors;
+    return theme.data.colors != oldWidget.theme.data.colors || theme.data.font != oldWidget.theme.data.font;
   }
 }

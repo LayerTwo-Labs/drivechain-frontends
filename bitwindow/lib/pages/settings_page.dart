@@ -123,7 +123,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
   @override
   Widget build(BuildContext context) {
     return SailColumn(
-      spacing: SailStyleValues.padding20,
+      spacing: SailStyleValues.padding32,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Profile section header
@@ -183,6 +183,52 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             ),
           ],
         ),
+
+        // Theme Toggle
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Theme'),
+            const SailSpacing(SailStyleValues.padding08),
+            ToggleThemeButton(),
+          ],
+        ),
+
+        // Font Dropdown
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Font'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<SailFontValues>(
+              value: _settingsProvider.font,
+              items: [
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.inter,
+                  label: 'Inter',
+                ),
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.sourceCodePro,
+                  label: 'Source Code Pro',
+                ),
+              ],
+
+              onChanged: (SailFontValues? newValue) async {
+                if (newValue != null) {
+                  await _settingsProvider.updateFont(newValue);
+                  // Trigger immediate font reload in SailApp
+                  if (context.mounted) {
+                    final app = SailApp.of(context);
+                    await app.loadFont(newValue);
+                  }
+                }
+              },
+            ),
+            const SailSpacing(4),
+          ],
+        ),
+
+        SailSpacing(SailStyleValues.padding64),
       ],
     );
   }

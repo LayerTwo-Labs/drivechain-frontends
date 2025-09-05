@@ -182,8 +182,12 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
         options.enablePrintBreadcrumbs = false;
         options.debug = false;
       },
-      appRunner: () {
-        return runApp(SentryWidget(child: BitwindowApp(log: log)));
+      appRunner: () async {
+        return runApp(
+          SentryWidget(
+            child: BitwindowApp(log: log),
+          ),
+        );
       },
     );
   }
@@ -294,7 +298,10 @@ Future<File> getLogFile() async {
 class BitwindowApp extends StatelessWidget {
   final Logger log;
 
-  const BitwindowApp({super.key, required this.log});
+  const BitwindowApp({
+    super.key,
+    required this.log,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -304,17 +311,31 @@ class BitwindowApp extends StatelessWidget {
       log: log,
       dense: true,
       builder: (context) {
-        return MaterialApp.router(
-          routerDelegate: router.delegate(),
-          routeInformationParser: router.defaultRouteParser(),
-          title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-          ),
-        );
+        return _BitwindowAppContent(router: router);
       },
       accentColor: const Color.fromARGB(255, 255, 153, 0),
+    );
+  }
+}
+
+class _BitwindowAppContent extends StatelessWidget {
+  final AppRouter router;
+
+  const _BitwindowAppContent({required this.router});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final font = theme.font;
+
+    return MaterialApp.router(
+      routerDelegate: router.delegate(),
+      routeInformationParser: router.defaultRouteParser(),
+      title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
+      theme: ThemeData(
+        visualDensity: VisualDensity.compact,
+        fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
+      ),
     );
   }
 }

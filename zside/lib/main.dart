@@ -15,7 +15,6 @@ import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/rpc/models/active_sidechains.dart';
-import 'package:zside/storage/sail_settings/font_settings.dart';
 import 'package:zside/widgets/containers/dropdownactions/console.dart';
 
 void main(List<String> args) async {

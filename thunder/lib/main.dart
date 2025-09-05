@@ -12,7 +12,6 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:thunder/config/runtime_args.dart';
 import 'package:thunder/routing/router.dart';
 import 'package:thunder/rpc/models/active_sidechains.dart';
-import 'package:thunder/storage/sail_settings/font_settings.dart';
 import 'package:thunder/widgets/containers/dropdownactions/console.dart';
 import 'package:window_manager/window_manager.dart';
 

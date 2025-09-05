@@ -10,7 +10,6 @@ import 'package:zside/config/runtime_args.dart';
 import 'package:zside/gen/version.dart';
 import 'package:zside/main.dart';
 import 'package:zside/routing/router.dart';
-import 'package:zside/storage/sail_settings/font_settings.dart';
 import 'package:zside/storage/sail_settings/network_settings.dart';
 
 @RoutePage()

@@ -37,7 +37,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
   @override
   void initState() {
-    theme = SailThemeData.darkTheme(SailColorScheme.orange, widget.dense);
+    theme = SailThemeData.darkTheme(SailColorScheme.orange, widget.dense, SailFontValues.inter);
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
@@ -53,18 +53,32 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
           : SailThemeValues.dark;
     }
 
-    theme = _themeDataFromTheme(themeToLoad, widget.dense);
+    // Load the current font setting
+    final fontSetting = await settings.getValue(FontSetting());
+    final font = fontSetting.value;
+
+    theme = _themeDataFromTheme(themeToLoad, widget.dense, font);
 
     setState(() {});
     await settings.setValue(ThemeSetting(newValue: themeToLoad));
   }
 
-  SailThemeData _themeDataFromTheme(SailThemeValues theme, bool dense) {
-    switch (theme) {
+  Future<void> loadFont([SailFontValues? fontToLoad]) async {
+    fontToLoad ??= (await settings.getValue(FontSetting())).value;
+
+    // Rebuild theme with new font but keep current theme type
+    theme = _themeDataFromTheme(theme.type, widget.dense, fontToLoad);
+
+    setState(() {});
+    await settings.setValue(FontSetting(newValue: fontToLoad));
+  }
+
+  SailThemeData _themeDataFromTheme(SailThemeValues themeType, bool dense, SailFontValues font) {
+    switch (themeType) {
       case SailThemeValues.light:
-        return SailThemeData.lightTheme(widget.accentColor, dense);
+        return SailThemeData.lightTheme(widget.accentColor, dense, font);
       case SailThemeValues.dark:
-        return SailThemeData.darkTheme(widget.accentColor, dense);
+        return SailThemeData.darkTheme(widget.accentColor, dense, font);
       default:
         throw Exception('Could not get theme');
     }

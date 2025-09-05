@@ -6,16 +6,17 @@ class SailThemeData with Diagnosticable {
   final SailThemeValues type;
   final SailColor colors;
   final bool dense;
+  final SailFontValues font;
 
-  const SailThemeData({required this.type, required this.colors, required this.dense});
+  const SailThemeData({required this.type, required this.colors, required this.dense, required this.font});
 
   bool isLightMode() => type == SailThemeValues.light;
 
-  factory SailThemeData.lightTheme(Color primary, bool dense) {
-    return SailThemeData(type: SailThemeValues.light, dense: dense, colors: SailColor.lightTheme(primary));
+  factory SailThemeData.lightTheme(Color primary, bool dense, SailFontValues font) {
+    return SailThemeData(type: SailThemeValues.light, dense: dense, colors: SailColor.lightTheme(primary), font: font);
   }
 
-  factory SailThemeData.darkTheme(Color primary, bool dense) {
-    return SailThemeData(type: SailThemeValues.dark, dense: dense, colors: SailColor.darkTheme(primary));
+  factory SailThemeData.darkTheme(Color primary, bool dense, SailFontValues font) {
+    return SailThemeData(type: SailThemeValues.dark, dense: dense, colors: SailColor.darkTheme(primary), font: font);
   }
 }

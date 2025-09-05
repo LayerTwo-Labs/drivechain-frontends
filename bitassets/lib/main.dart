@@ -6,7 +6,6 @@ import 'package:bitassets/config/runtime_args.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:bitassets/rpc/models/active_sidechains.dart';
-import 'package:bitassets/storage/sail_settings/font_settings.dart';
 import 'package:bitassets/widgets/containers/dropdownactions/console.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
