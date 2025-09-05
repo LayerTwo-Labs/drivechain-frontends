@@ -182,27 +182,47 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
-  final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
-
   final router = GetIt.I.get<AppRouter>();
   final bitnames = GetIt.I.get<BitnamesRPC>();
   runApp(
     SailApp(
       dense: false,
-      // the initial route is defined in routing/router.dart
-      builder: (context) => MaterialApp.router(
-        routerDelegate: router.delegate(),
-        routeInformationParser: router.defaultRouteParser(),
-        title: bitnames.chain.name,
-        theme: ThemeData(
-          fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
-          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: bitnames.chain.color),
-        ),
-      ),
+      builder: (context) {
+        return _BitnamesAppContent(
+          router: router,
+          bitnames: bitnames,
+        );
+      },
       accentColor: bitnames.chain.color,
       log: log,
     ),
   );
+}
+
+class _BitnamesAppContent extends StatelessWidget {
+  final AppRouter router;
+  final BitnamesRPC bitnames;
+
+  const _BitnamesAppContent({
+    required this.router,
+    required this.bitnames,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final font = theme.font;
+
+    return MaterialApp.router(
+      routerDelegate: router.delegate(),
+      routeInformationParser: router.defaultRouteParser(),
+      title: bitnames.chain.name,
+      theme: ThemeData(
+        fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
+        colorScheme: ColorScheme.fromSwatch().copyWith(secondary: bitnames.chain.color),
+      ),
+    );
+  }
 }
 
 bool isCurrentChainActive({
