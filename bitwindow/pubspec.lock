@@ -133,10 +133,10 @@ packages:
     dependency: "direct main"
     description:
       name: bitcoin_base
-      sha256: "7a5667b96f5550dd81f73517b0b431987a9e51a17d756955f2a9e1e2626dc8e7"
+      sha256: abc80891f654cc09c246d09eb9ad4331e061f8f9c796eab367545a8f61da909f
       url: "https://pub.dev"
     source: hosted
-    version: "6.8.0"
+    version: "6.9.0"
   blockchain_utils:
     dependency: "direct main"
     description:
@@ -221,10 +221,10 @@ packages:
     dependency: transitive
     description:
       name: built_value
-      sha256: "1b3b173f3379c8f941446267868548b6fc67e9134d81f4842eb98bb729451359"
+      sha256: a30f0a0e38671e89a492c44d005b5545b830a961575bbd8336d42869ff71066d
       url: "https://pub.dev"
     source: hosted
-    version: "8.11.2"
+    version: "8.12.0"
   characters:
     dependency: transitive
     description:
