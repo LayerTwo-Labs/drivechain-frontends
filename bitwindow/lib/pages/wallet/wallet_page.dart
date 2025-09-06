@@ -12,6 +12,7 @@ import 'package:bitwindow/pages/wallet/wallet_send.dart';
 import 'package:bitwindow/pages/wallet/wallet_utxos.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -159,48 +160,8 @@ class WalletPage extends StatelessWidget {
                 endWidget: SailRow(
                   spacing: SailStyleValues.padding08,
                   children: [
-                    if (walletPageModel.bip47PaymentCode.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: SailStyleValues.padding12,
-                          vertical: SailStyleValues.padding04,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.sailTheme.colors.background,
-                          border: Border.all(color: context.sailTheme.colors.divider),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Tooltip(
-                          message: 'Click to Copy',
-                          child: InkWell(
-                            onTap: () => walletPageModel.copyPaymentCode(context),
-                            child: SailRow(
-                              spacing: SailStyleValues.padding08,
-                              children: [
-                                SailText.primary12(
-                                  'BIP47 v3 Payment Code:',
-                                  bold: true,
-                                ),
-                                SailText.primary12(
-                                  walletPageModel.bip47PaymentCode,
-                                  monospace: true,
-                                ),
-                                const Icon(
-                                  Icons.copy,
-                                  size: 16,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Open Faucet Button
-                    SailButton(
-                      onPressed: () async {
-                        await launchUrl(Uri.parse('https://node.drivechain.info/#/faucet'));
-                      },
-                      label: 'Open Faucet',
-                    ),
+                    // Faucet Button
+                    const GetCoinsButton(),
                   ],
                 ),
               );
@@ -208,6 +169,98 @@ class WalletPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class GetCoinsButton extends StatefulWidget {
+  const GetCoinsButton({super.key});
+
+  @override
+  State<GetCoinsButton> createState() => _GetCoinsButtonState();
+}
+
+class _GetCoinsButtonState extends State<GetCoinsButton> {
+  final TransactionProvider _transactionProvider = GetIt.I.get<TransactionProvider>();
+  bool _isClaiming = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _transactionProvider.addListener(_onTransactionProviderChanged);
+  }
+
+  @override
+  void dispose() {
+    _transactionProvider.removeListener(_onTransactionProviderChanged);
+    super.dispose();
+  }
+
+  void _onTransactionProviderChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _claimFaucet() async {
+    if (_isClaiming || _transactionProvider.address.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _isClaiming = true;
+    });
+
+    try {
+      final dio = Dio();
+      final response = await dio.post(
+        'https://node.drivechain.info/api/faucet.v1.FaucetService/DispenseCoins',
+        data: {
+          'destination': _transactionProvider.address,
+          'amount': 2.1,
+        },
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      if (response.data != null && response.data['txid'] != null) {
+        final txid = response.data['txid'];
+        if (!mounted) return;
+
+        final url = 'https://explorer.drivechain.info/tx/$txid';
+        final notificationProvider = GetIt.I.get<NotificationProvider>();
+        notificationProvider.add(
+          title: '2.1 BTC is on the way to your wallet',
+          content: txid,
+          dialogType: DialogType.info,
+          onPressed: () => launchUrl(Uri.parse(url)),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        showSnackBar(context, 'Failed to claim from faucet: ${error.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isClaiming = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_transactionProvider.address.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SailButton(
+      onPressed: () async => await _claimFaucet(),
+      label: 'Get Coins',
+      loading: _isClaiming,
+      loadingLabel: 'Claiming',
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -84,6 +85,42 @@ class ReceiveTab extends StatelessWidget {
                   ),
                 ],
               ),
+              SailCard(
+                title: 'Receive with Bip47 v3 Payment Code',
+                error: model.modelError,
+                child: SailColumn(
+                  spacing: SailStyleValues.padding16,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailRow(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        Expanded(
+                          child: SailTextField(
+                            loading: LoadingDetails(
+                              enabled: model.address.isEmpty,
+                              description: 'Waiting for enforcer to start and wallet to sync..',
+                            ),
+                            controller: TextEditingController(text: model.bip47PaymentCode),
+                            hintText: 'A Drivechain address',
+                            readOnly: true,
+                            suffixWidget: CopyButton(
+                              text: model.bip47PaymentCode,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (model.bip47PaymentCode.isEmpty)
+                      SailButton(
+                        label: 'Generate Bip47 Payment Code',
+                        onPressed: model.generateNewAddress,
+                      ),
+                  ],
+                ),
+              ),
+
               ReceiveAddressesTable(
                 model: model,
               ),
@@ -260,12 +297,14 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
 class ReceivePageViewModel extends BaseViewModel {
   final AddressBookProvider _addressBookProvider = GetIt.I<AddressBookProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
+  final HDWalletProvider _hdWalletProvider = GetIt.I<HDWalletProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
 
   @override
   String? modelError;
 
   String get address => transactionsProvider.address;
+  String get bip47PaymentCode => _hdWalletProvider.bip47PaymentCode;
   List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
@@ -297,6 +336,18 @@ class ReceivePageViewModel extends BaseViewModel {
     try {
       modelError = null;
       await transactionsProvider.fetch();
+    } catch (e) {
+      if (e.toString() != modelError) {
+        modelError = e.toString();
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> generateBip47PaymentCode() async {
+    try {
+      modelError = null;
+      await _hdWalletProvider.loadMnemonic();
     } catch (e) {
       if (e.toString() != modelError) {
         modelError = e.toString();
