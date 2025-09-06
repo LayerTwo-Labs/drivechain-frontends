@@ -113,11 +113,17 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final blocks = await _client().call('getblockcount') as int;
+
+    // There's no endpoint to get headers for thunder, so we get the height
+    // from the public explorer service, assuming it is fully synced
+    final explorerHeaders = await fetchExplorerHeaders();
+    final headers = explorerHeaders ?? blocks;
     final bestBlockHash = await getBestSidechainBlockHash();
+
     return BlockchainInfo(
       chain: 'signet',
       blocks: blocks,
-      headers: blocks,
+      headers: headers,
       bestBlockHash: bestBlockHash ?? '',
       difficulty: 0,
       time: 0,

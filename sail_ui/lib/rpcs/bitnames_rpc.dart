@@ -170,13 +170,18 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final blocks = await _client().call('getblockcount') as int;
-    // can't trust the rpc, give it a moment to stop
-    await Future.delayed(const Duration(seconds: 3));
+
+    // There's no endpoint to get headers for bitnames, so we get the height
+    // from the public explorer service, assuming it is fully synced
+    final explorerHeaders = await fetchExplorerHeaders();
+    final headers = explorerHeaders ?? blocks;
+
+    final bestBlockHash = await getBestSidechainBlockHash();
     return BlockchainInfo(
       chain: 'signet',
       blocks: blocks,
-      headers: blocks,
-      bestBlockHash: '',
+      headers: headers,
+      bestBlockHash: bestBlockHash ?? '',
       difficulty: 0,
       time: 0,
       medianTime: 0,
