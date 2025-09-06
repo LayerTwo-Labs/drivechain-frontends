@@ -459,7 +459,18 @@ class BitcoinCore extends Binary {
   }) : super(
          directories:
              directories ??
-             DirectoryConfig(base: {OS.linux: '.drivechain', OS.macos: 'Drivechain', OS.windows: 'Drivechain'}),
+             DirectoryConfig(
+               binary: {
+                 OS.linux: '.drivechain',
+                 OS.macos: 'Drivechain',
+                 OS.windows: 'Drivechain',
+               },
+               flutterFrontend: {
+                 OS.linux: '', // N/A
+                 OS.macos: '', // N/A
+                 OS.windows: '', // N/A
+               },
+             ),
          metadata:
              metadata ??
              MetadataConfig(
@@ -528,7 +539,12 @@ class BitWindow extends Binary {
          directories:
              directories ??
              DirectoryConfig(
-               base: {
+               binary: {
+                 OS.linux: 'bitwindow',
+                 OS.macos: 'bitwindow',
+                 OS.windows: 'bitwindow',
+               },
+               flutterFrontend: {
                  OS.linux: 'bitwindow',
                  OS.macos: 'bitwindow',
                  OS.windows: 'bitwindow',
@@ -603,7 +619,16 @@ class Enforcer extends Binary {
          directories:
              directories ??
              DirectoryConfig(
-               base: {OS.linux: 'bip300301_enforcer', OS.macos: 'bip300301_enforcer', OS.windows: 'bip300301_enforcer'},
+               binary: {
+                 OS.linux: 'bip300301_enforcer',
+                 OS.macos: 'bip300301_enforcer',
+                 OS.windows: 'bip300301_enforcer',
+               },
+               flutterFrontend: {
+                 OS.linux: '', // N/A
+                 OS.macos: '', // N/A
+                 OS.windows: '',
+               },
              ),
          metadata:
              metadata ??
@@ -779,31 +804,46 @@ extension BinaryPaths on Binary {
     return logFiles.first.path;
   }
 
-  String datadir() {
+  String appdir() {
     final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null) {
       throw 'unable to determine HOME location';
-    }
-
-    final subdir = directories.base[OS.current];
-    if (subdir == null || subdir.isEmpty) {
-      throw 'unsupported operating system, subdir is empty: ${Platform.operatingSystem}';
     }
 
     switch (OS.current) {
       case OS.linux:
         if (type == BinaryType.bitcoinCore) {
           // in good style, this is different than all the others
-          return filePath([home, subdir]);
+          return filePath([home]);
         }
 
-        return filePath([home, '.local', 'share', subdir]);
+        return filePath([home, '.local', 'share']);
 
       case OS.macos:
-        return filePath([home, 'Library', 'Application Support', subdir]);
+        return filePath([home, 'Library', 'Application Support']);
       case OS.windows:
-        return filePath([home, 'AppData', 'Roaming', subdir]);
+        return filePath([home, 'AppData', 'Roaming']);
     }
+  }
+
+  String datadir() {
+    final subdir = directories.binary[OS.current];
+    if (subdir == null || subdir.isEmpty) {
+      throw 'unsupported operating system, subdir is empty: ${Platform.operatingSystem}';
+    }
+
+    final appDir = appdir();
+    return filePath([appDir, subdir]);
+  }
+
+  String frontendDir() {
+    final subdir = directories.flutterFrontend[OS.current];
+    if (subdir == null || subdir.isEmpty) {
+      throw 'unsupported operating system, subdir is empty: ${Platform.operatingSystem}';
+    }
+
+    final appDir = appdir();
+    return filePath([appDir, subdir]);
   }
 }
 
@@ -948,15 +988,20 @@ extension BinaryDownload on Binary {
 
 /// Configuration for component directories
 class DirectoryConfig {
-  final Map<OS, String> base;
+  final Map<OS, String> binary;
+  final Map<OS, String> flutterFrontend;
 
-  const DirectoryConfig({required this.base});
+  const DirectoryConfig({
+    required this.binary,
+    required this.flutterFrontend,
+  });
 
   @override
-  bool operator ==(Object other) => identical(this, other) || other is DirectoryConfig && _mapEquals(base, other.base);
+  bool operator ==(Object other) =>
+      identical(this, other) || other is DirectoryConfig && _mapEquals(binary, other.binary);
 
   @override
-  int get hashCode => base.hashCode;
+  int get hashCode => binary.hashCode;
 
   bool _mapEquals(Map<OS, String> a, Map<OS, String> b) {
     if (a.length != b.length) return false;

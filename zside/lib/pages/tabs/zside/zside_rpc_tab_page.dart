@@ -21,15 +21,7 @@ class ZSideRPCTabPage extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: ConsoleView(
-                  services: [
-                    ConsoleService(
-                      name: 'zside',
-                      commands: zsideRPCMethods,
-                      execute: (command, args) => model._rpc.callRAW(command, args),
-                    ),
-                  ],
-                ),
+                child: IntegratedConsoleView(),
               ),
             ],
           ),

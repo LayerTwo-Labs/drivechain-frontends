@@ -12,10 +12,15 @@ class MockBinary extends Binary {
         description: 'Mock Binary',
         repoUrl: 'https://mock.test',
         directories: DirectoryConfig(
-          base: {
+          binary: {
             OS.linux: '.mock',
             OS.macos: 'Mock',
             OS.windows: 'Mock',
+          },
+          flutterFrontend: {
+            OS.linux: '',
+            OS.macos: '',
+            OS.windows: '',
           },
         ),
         metadata: MetadataConfig(

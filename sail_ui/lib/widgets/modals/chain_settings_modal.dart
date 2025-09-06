@@ -46,7 +46,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       builder: (context, viewModel, child) {
         final theme = SailTheme.of(context);
 
-        final baseDir = viewModel.binary.directories.base[viewModel.os];
+        final baseDir = viewModel.binary.directories.binary[viewModel.os];
         final downloadFile = viewModel.binary.metadata.downloadConfig.files[viewModel.os];
 
         return Dialog(

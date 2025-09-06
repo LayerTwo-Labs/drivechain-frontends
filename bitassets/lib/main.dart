@@ -6,7 +6,6 @@ import 'package:bitassets/config/runtime_args.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:bitassets/rpc/models/active_sidechains.dart';
-import 'package:bitassets/widgets/containers/dropdownactions/console.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -94,7 +93,7 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
 
   switch (arguments['window_type']) {
     case SubWindowTypes.consoleId:
-      child = const ConsoleWindow();
+      child = const IntegratedConsoleView();
       break;
     case SubWindowTypes.logsId:
       child = LogPage(
