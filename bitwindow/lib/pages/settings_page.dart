@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart';
+import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
@@ -544,7 +545,14 @@ class _ResetProgressDialogState extends State<ResetProgressDialog> {
                   SailButton(
                     label: 'Create New Wallet',
                     variant: ButtonVariant.primary,
-                    onPressed: () async => GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]),
+                    onPressed: () async {
+                      GetIt.I.get<AppRouter>().pop();
+                      await GetIt.I.get<AppRouter>().push(
+                        CreateWalletRoute(
+                          initalScreen: WelcomeScreen.initial,
+                        ),
+                      );
+                    },
                   ),
               ],
             ),
