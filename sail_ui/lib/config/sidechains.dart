@@ -180,7 +180,18 @@ class TestSidechain extends Sidechain {
   }) : super(
          directories:
              directories ??
-             DirectoryConfig(base: {OS.linux: '.testchain', OS.macos: 'testchain', OS.windows: 'testchain'}),
+             DirectoryConfig(
+               binary: {
+                 OS.linux: '.testchain',
+                 OS.macos: 'testchain',
+                 OS.windows: 'testchain',
+               },
+               flutterFrontend: {
+                 OS.linux: '', // N/A
+                 OS.macos: '', // N/A
+                 OS.windows: '', // N/A
+               },
+             ),
          metadata:
              metadata ??
              MetadataConfig(
@@ -250,7 +261,16 @@ class ZSide extends Sidechain {
          directories:
              directories ??
              DirectoryConfig(
-               base: {OS.linux: '.thunder-orchard', OS.macos: '/thunder-orchard', OS.windows: '/thunder-orchard'},
+               binary: {
+                 OS.linux: '.thunder-orchard',
+                 OS.macos: '/thunder-orchard',
+                 OS.windows: '/thunder-orchard',
+               },
+               flutterFrontend: {
+                 OS.linux: 'com.layertwolabs.zside',
+                 OS.macos: 'com.layertwolabs.zside',
+                 OS.windows: 'com.layertwolabs.zside',
+               },
              ),
          metadata:
              metadata ??
@@ -331,7 +351,15 @@ class Thunder extends Sidechain {
     super.extraBootArgs = const [],
   }) : super(
          directories:
-             directories ?? DirectoryConfig(base: {OS.linux: 'thunder', OS.macos: 'Thunder', OS.windows: 'thunder'}),
+             directories ??
+             DirectoryConfig(
+               binary: {OS.linux: 'thunder', OS.macos: 'Thunder', OS.windows: 'thunder'},
+               flutterFrontend: {
+                 OS.linux: 'com.layertwolabs.thunder',
+                 OS.macos: 'com.layertwolabs.thunder',
+                 OS.windows: 'com.layertwolabs.thunder',
+               },
+             ),
          metadata:
              metadata ??
              MetadataConfig(
@@ -413,7 +441,12 @@ class BitNames extends Sidechain {
          directories:
              directories ??
              DirectoryConfig(
-               base: {OS.linux: 'plain_bitnames', OS.macos: 'plain_bitnames', OS.windows: 'plain_bitnames'},
+               binary: {OS.linux: 'plain_bitnames', OS.macos: 'plain_bitnames', OS.windows: 'plain_bitnames'},
+               flutterFrontend: {
+                 OS.linux: 'com.layertwolabs.bitnames',
+                 OS.macos: 'com.layertwolabs.bitnames',
+                 OS.windows: 'com.layertwolabs.bitnames',
+               },
              ),
          metadata:
              metadata ??
@@ -496,7 +529,16 @@ class BitAssets extends Sidechain {
          directories:
              directories ??
              DirectoryConfig(
-               base: {OS.linux: 'plain_bitassets', OS.macos: 'plain_bitassets', OS.windows: 'plain_bitassets'},
+               binary: {
+                 OS.linux: 'plain_bitassets',
+                 OS.macos: 'plain_bitassets',
+                 OS.windows: 'plain_bitassets',
+               },
+               flutterFrontend: {
+                 OS.linux: 'com.layertwolabs.bitassets',
+                 OS.macos: 'com.layertwolabs.bitassets',
+                 OS.windows: 'com.layertwolabs.bitassets',
+               },
              ),
          metadata:
              metadata ??

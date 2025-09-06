@@ -93,6 +93,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   GetIt.I.registerLazySingleton<ContentProvider>(() => ContentProvider());
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
+  GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
   await copyBinariesFromAssets(log, applicationDir);
 

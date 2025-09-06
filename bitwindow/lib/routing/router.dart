@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/console_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
@@ -59,6 +60,10 @@ class AppRouter extends RootStackRouter {
         AutoRoute(
           path: 'sidechains',
           page: SidechainsRoute.page,
+        ),
+        AutoRoute(
+          path: 'console',
+          page: ConsoleRoute.page,
         ),
         AutoRoute(
           path: 'settings',

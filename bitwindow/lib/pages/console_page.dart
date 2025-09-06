@@ -3,20 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class ConsoleTabPage extends StatefulWidget {
-  const ConsoleTabPage({super.key});
+class ConsolePage extends StatefulWidget {
+  const ConsolePage({super.key});
 
   @override
-  State<ConsoleTabPage> createState() => _ConsoleTabPageState();
+  State<ConsolePage> createState() => _ConsolePageState();
 }
 
-class _ConsoleTabPageState extends State<ConsoleTabPage> {
+class _ConsolePageState extends State<ConsolePage> {
   @override
   Widget build(BuildContext context) {
     return QtPage(
-      child: SailColumn(
+      child: Column(
         children: [
-          const Expanded(
+          Expanded(
             child: IntegratedConsoleView(),
           ),
         ],

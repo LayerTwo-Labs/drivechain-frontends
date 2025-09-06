@@ -6,7 +6,6 @@ import 'package:bitnames/config/runtime_args.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:bitnames/routing/router.dart';
 import 'package:bitnames/rpc/models/active_sidechains.dart';
-import 'package:bitnames/widgets/containers/dropdownactions/console.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -44,7 +43,7 @@ Future<void> runMultiWindow(
 
   switch (arguments['window_type']) {
     case 'console':
-      child = const ConsoleWindow();
+      child = const IntegratedConsoleView();
       break;
   }
 

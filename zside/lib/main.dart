@@ -15,7 +15,6 @@ import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/rpc/models/active_sidechains.dart';
-import 'package:zside/widgets/containers/dropdownactions/console.dart';
 
 void main(List<String> args) async {
   try {
@@ -103,7 +102,7 @@ void runMultiWindow(List<String> args, Logger log, Directory applicationDir, Fil
 
   switch (arguments['window_type']) {
     case 'console':
-      child = const ConsoleWindow();
+      child = const IntegratedConsoleView();
       break;
   }
 

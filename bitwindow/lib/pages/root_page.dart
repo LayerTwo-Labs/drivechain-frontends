@@ -36,13 +36,25 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   final _routerKey = GlobalKey<AutoTabsRouterState>();
   final _clientSettings = GetIt.I<ClientSettings>();
 
+  NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
+  final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
+
   List<Topic> get topics => _newsProvider.topics;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _notificationProvider.addListener(rebuildNotifications);
     _initializeWindowManager();
+  }
+
+  void rebuildNotifications() {
+    notificationsNotifier.value = _notificationProvider.notifications;
+
+    // call notifyListeners manually coz == on List<Widget> doesn't work..
+    // ignore: invalid_use_of_protected_member,invalid_use_of_visible_for_testing_member
+    notificationsNotifier.notifyListeners();
   }
 
   Future<void> _initializeWindowManager() async {
@@ -54,370 +66,396 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   Widget build(BuildContext context) {
     final app = SailApp.of(context);
 
-    return CrossPlatformMenuBar(
-      menus: [
-        // First menu will be Apple menu (system provided)
-        PlatformMenu(
-          label: 'bitwindow',
+    return Stack(
+      children: [
+        CrossPlatformMenuBar(
           menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'About bitwindow',
-                  onSelected: null,
+            // First menu will be Apple menu (system provided)
+            PlatformMenu(
+              label: 'bitwindow',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'About bitwindow',
+                      onSelected: null,
+                    ),
+                    PlatformMenuItem(
+                      label: 'Change Theme',
+                      onSelected: () async {
+                        final log = GetIt.I.get<Logger>();
+
+                        final themeSetting = await _clientSettings.getValue(ThemeSetting());
+                        final currentTheme = themeSetting.value;
+
+                        final SailThemeValues nextTheme = currentTheme.toggleTheme();
+
+                        await _clientSettings.setValue(ThemeSetting().withValue(nextTheme));
+                        await app.loadTheme(nextTheme);
+                        log.d('Theme change complete from ${currentTheme.name} to ${nextTheme.name}');
+                      },
+                    ),
+                  ],
                 ),
-                PlatformMenuItem(
-                  label: 'Change Theme',
-                  onSelected: () async {
-                    final log = GetIt.I.get<Logger>();
-
-                    final themeSetting = await _clientSettings.getValue(ThemeSetting());
-                    final currentTheme = themeSetting.value;
-
-                    final SailThemeValues nextTheme = currentTheme.toggleTheme();
-
-                    await _clientSettings.setValue(ThemeSetting().withValue(nextTheme));
-                    await app.loadTheme(nextTheme);
-                    log.d('Theme change complete from ${currentTheme.name} to ${nextTheme.name}');
-                  },
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Hide bitwindow',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
+                      onSelected: () async {
+                        await windowManager.hide();
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Show All',
+                      onSelected: () async {
+                        await windowManager.show();
+                      },
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Quit bitwindow',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
+                      onSelected: () => GetIt.I.get<BinaryProvider>().onShutdown(
+                        shutdownOptions: ShutdownOptions(
+                          router: GetIt.I.get<AppRouter>(),
+                          onComplete: () => exit(0),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Hide bitwindow',
-                  shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
-                  onSelected: () async {
-                    await windowManager.hide();
-                  },
+
+            // Now our actual menus start
+            PlatformMenu(
+              label: 'Your Wallet',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Create New Wallet',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          CreateWalletRoute(initalScreen: WelcomeScreen.initial),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Restore My Wallet',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          CreateWalletRoute(initalScreen: WelcomeScreen.restore),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-                PlatformMenuItem(
-                  label: 'Show All',
-                  onSelected: () async {
-                    await windowManager.show();
-                  },
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Address Book',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.addressbook);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'HD Wallet Explorer',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.hdWallet);
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Quit bitwindow',
-                  shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
-                  onSelected: () => GetIt.I.get<BinaryProvider>().onShutdown(
-                    shutdownOptions: ShutdownOptions(
-                      router: GetIt.I.get<AppRouter>(),
-                      onComplete: () => exit(0),
+
+            // Banking menu (first custom menu)
+            PlatformMenu(
+              label: 'Banking',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Send Money',
+                      onSelected: () {
+                        final tabsRouter = _routerKey.currentState?.controller;
+                        tabsRouter?.setActiveIndex(1);
+
+                        if (WalletPage.tabKey.currentState != null) {
+                          WalletPage.tabKey.currentState!.setIndex(1, null);
+                        }
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Request Money',
+                      onSelected: () {
+                        final tabsRouter = _routerKey.currentState?.controller;
+                        tabsRouter?.setActiveIndex(1);
+                        if (WalletPage.tabKey.currentState != null) {
+                          WalletPage.tabKey.currentState!.setIndex(2, null);
+                        }
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'See Wallet Transactions',
+                      onSelected: () {
+                        final tabsRouter = _routerKey.currentState?.controller;
+                        tabsRouter?.setActiveIndex(1);
+                        if (WalletPage.tabKey.currentState != null) {
+                          WalletPage.tabKey.currentState!.setIndex(0, null);
+                        }
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Open URI Link',
+                      onSelected: () async {
+                        final result = await showDialog<BitcoinURI>(
+                          context: context,
+                          builder: (context) => const BitcoinURIDialog(),
+                        );
+                        if (result != null) {
+                          final tabsRouter = _routerKey.currentState?.controller;
+                          tabsRouter?.setActiveIndex(1);
+
+                          if (WalletPage.tabKey.currentState != null) {
+                            WalletPage.tabKey.currentState!.setIndex(1, null);
+                          }
+
+                          // Handle the URI in the wallet page
+                          WalletPage.handleBitcoinURI(result);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Deniability',
+                      onSelected: () async {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        await windowProvider.open(SubWindowTypes.deniability);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Proof of Funds',
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const ProofOfFundsModal(),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Multisig Lounge',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.multisigLounge);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Use Bitcoin menu
+            PlatformMenu(
+              label: 'Use Bitcoin',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Broadcast CoinNews',
+                      onSelected: () => displayBroadcastNewsDialog(context),
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Sign / Verify Message',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.messageSigner);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Chain Merchants',
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const ChainMerchantsDialog(),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Sidechains',
+                      onSelected: () {
+                        final tabsRouter = _routerKey.currentState?.controller;
+                        tabsRouter?.setActiveIndex(2);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'BitDrive',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.bitDrive);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Crypto Tools menu
+            PlatformMenu(
+              label: 'Crypto Tools',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Block Explorer',
+                      onSelected: () async {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        await windowProvider.open(SubWindowTypes.blockExplorer);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Hash Calculator',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.hashCalculator);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Merkle Tree',
+                      onSelected: null,
+                    ),
+                    PlatformMenuItem(
+                      label: 'Signatures',
+                      onSelected: null,
+                    ),
+                    PlatformMenuItem(
+                      label: 'Base58Check Decoder',
+                      onSelected: null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // This Node menu
+            PlatformMenu(
+              label: 'This Node',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Debug Window',
+                      onSelected: () async {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        await windowProvider.open(SubWindowTypes.debug);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'View Logs',
+                      onSelected: () async {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        await windowProvider.open(SubWindowTypes.logs);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+          child: AutoTabsRouter.tabBar(
+            key: _routerKey,
+            animatePageTransition: false,
+            routes: [
+              OverviewRoute(),
+              WalletRoute(),
+              SidechainsRoute(),
+              LearnRoute(),
+              ConsoleRoute(),
+              SettingsRoute(),
+            ],
+            builder: (context, child, controller) {
+              final theme = SailTheme.of(context);
+
+              return SelectionArea(
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    textSelectionTheme: TextSelectionThemeData(
+                      selectionColor: theme.colors.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Scaffold(
+                    backgroundColor: theme.colors.background,
+                    appBar: TopNav(
+                      routes: [
+                        TopNavRoute(
+                          label: 'Overview',
+                        ),
+                        TopNavRoute(
+                          label: 'Wallet',
+                        ),
+                        TopNavRoute(
+                          label: 'Sidechains',
+                        ),
+                        TopNavRoute(
+                          label: 'Learn',
+                        ),
+                        TopNavRoute(
+                          label: 'Console',
+                        ),
+                        TopNavRoute(
+                          icon: SailSVGAsset.settings,
+                        ),
+                      ],
+                      endWidget: SailButton(
+                        onPressed: () async {
+                          await launchUrl(Uri.parse('https://t.me/DcInsiders'));
+                        },
+                        variant: ButtonVariant.icon,
+                        icon: SailSVGAsset.telegram,
+                        small: true,
+                      ),
+                    ),
+                    body: Column(
+                      children: [
+                        Expanded(child: child),
+                        const StatusBar(),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
+              );
+            },
+          ),
         ),
-
-        // Now our actual menus start
-        PlatformMenu(
-          label: 'Your Wallet',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Create New Wallet',
-                  onSelected: () async {
-                    await GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.initial));
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Restore My Wallet',
-                  onSelected: () async {
-                    await GetIt.I.get<AppRouter>().push(CreateWalletRoute(initalScreen: WelcomeScreen.restore));
-                  },
-                ),
-              ],
-            ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Address Book',
-                  onSelected: () {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    windowProvider.open(SubWindowTypes.addressbook);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'HD Wallet Explorer',
-                  onSelected: () {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    windowProvider.open(SubWindowTypes.hdWallet);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Banking menu (first custom menu)
-        PlatformMenu(
-          label: 'Banking',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Send Money',
-                  onSelected: () {
-                    final tabsRouter = _routerKey.currentState?.controller;
-                    tabsRouter?.setActiveIndex(1);
-
-                    if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(1, null);
-                    }
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Request Money',
-                  onSelected: () {
-                    final tabsRouter = _routerKey.currentState?.controller;
-                    tabsRouter?.setActiveIndex(1);
-                    if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(2, null);
-                    }
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'See Wallet Transactions',
-                  onSelected: () {
-                    final tabsRouter = _routerKey.currentState?.controller;
-                    tabsRouter?.setActiveIndex(1);
-                    if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(0, null);
-                    }
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Open URI Link',
-                  onSelected: () async {
-                    final result = await showDialog<BitcoinURI>(
-                      context: context,
-                      builder: (context) => const BitcoinURIDialog(),
-                    );
-                    if (result != null) {
-                      final tabsRouter = _routerKey.currentState?.controller;
-                      tabsRouter?.setActiveIndex(1);
-
-                      if (WalletPage.tabKey.currentState != null) {
-                        WalletPage.tabKey.currentState!.setIndex(1, null);
-                      }
-
-                      // Handle the URI in the wallet page
-                      WalletPage.handleBitcoinURI(result);
-                    }
-                  },
-                ),
-              ],
-            ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Deniability',
-                  onSelected: () async {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    await windowProvider.open(SubWindowTypes.deniability);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Proof of Funds',
-                  onSelected: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const ProofOfFundsModal(),
-                    );
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Multisig Lounge',
-                  onSelected: () {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    windowProvider.open(SubWindowTypes.multisigLounge);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Use Bitcoin menu
-        PlatformMenu(
-          label: 'Use Bitcoin',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Broadcast CoinNews',
-                  onSelected: () => displayBroadcastNewsDialog(context),
-                ),
-              ],
-            ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Sign / Verify Message',
-                  onSelected: () {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    windowProvider.open(SubWindowTypes.messageSigner);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Chain Merchants',
-                  onSelected: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const ChainMerchantsDialog(),
-                    );
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Sidechains',
-                  onSelected: () {
-                    final tabsRouter = _routerKey.currentState?.controller;
-                    tabsRouter?.setActiveIndex(2);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'BitDrive',
-                  onSelected: () {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    windowProvider.open(SubWindowTypes.bitDrive);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Crypto Tools menu
-        PlatformMenu(
-          label: 'Crypto Tools',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Block Explorer',
-                  onSelected: () async {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    await windowProvider.open(SubWindowTypes.blockExplorer);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Hash Calculator',
-                  onSelected: () {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    windowProvider.open(SubWindowTypes.hashCalculator);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Merkle Tree',
-                  onSelected: null,
-                ),
-                PlatformMenuItem(
-                  label: 'Signatures',
-                  onSelected: null,
-                ),
-                PlatformMenuItem(
-                  label: 'Base58Check Decoder',
-                  onSelected: null,
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // This Node menu
-        PlatformMenu(
-          label: 'This Node',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Debug Window',
-                  onSelected: () async {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    await windowProvider.open(SubWindowTypes.debug);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'View Logs',
-                  onSelected: () async {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    await windowProvider.open(SubWindowTypes.logs);
-                  },
-                ),
-              ],
-            ),
-          ],
+        Positioned(
+          right: 24,
+          bottom: 24,
+          child: ValueListenableBuilder<List<Widget>>(
+            valueListenable: notificationsNotifier,
+            builder: (context, notifications, _) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: notifications,
+              );
+            },
+          ),
         ),
       ],
-      child: AutoTabsRouter.tabBar(
-        key: _routerKey,
-        animatePageTransition: false,
-        routes: const [
-          OverviewRoute(),
-          WalletRoute(),
-          SidechainsRoute(),
-          LearnRoute(),
-          SettingsRoute(),
-        ],
-        builder: (context, child, controller) {
-          final theme = SailTheme.of(context);
-
-          return SelectionArea(
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                textSelectionTheme: TextSelectionThemeData(
-                  selectionColor: theme.colors.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Scaffold(
-                backgroundColor: theme.colors.background,
-                appBar: TopNav(
-                  routes: [
-                    TopNavRoute(
-                      label: 'Overview',
-                    ),
-                    TopNavRoute(
-                      label: 'Wallet',
-                    ),
-                    TopNavRoute(
-                      label: 'Sidechains',
-                    ),
-                    TopNavRoute(
-                      label: 'Learn',
-                    ),
-                    TopNavRoute(
-                      icon: SailSVGAsset.settings,
-                    ),
-                  ],
-                  endWidget: SailButton(
-                    onPressed: () async {
-                      await launchUrl(Uri.parse('https://t.me/DcInsiders'));
-                    },
-                    variant: ButtonVariant.icon,
-                    icon: SailSVGAsset.telegram,
-                    small: true,
-                  ),
-                ),
-                body: Column(
-                  children: [
-                    Expanded(child: child),
-                    const StatusBar(),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 

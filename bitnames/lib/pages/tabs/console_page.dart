@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:bitnames/widgets/containers/dropdownactions/console.dart';
 
 @RoutePage()
 class ConsoleTabPage extends StatefulWidget {
@@ -21,7 +20,7 @@ class _ConsoleTabPageState extends State<ConsoleTabPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Expanded(
-            child: ConsoleWindow(),
+            child: IntegratedConsoleView(),
           ),
           const SailSpacing(SailStyleValues.padding40),
         ],

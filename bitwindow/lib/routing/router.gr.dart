@@ -11,6 +11,22 @@
 part of 'router.dart';
 
 /// generated route for
+/// [ConsolePage]
+class ConsoleRoute extends PageRouteInfo<void> {
+  const ConsoleRoute({List<PageRouteInfo>? children})
+    : super(ConsoleRoute.name, initialChildren: children);
+
+  static const String name = 'ConsoleRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ConsolePage();
+    },
+  );
+}
+
+/// generated route for
 /// [CreateWalletPage]
 class CreateWalletRoute extends PageRouteInfo<CreateWalletRouteArgs> {
   CreateWalletRoute({
