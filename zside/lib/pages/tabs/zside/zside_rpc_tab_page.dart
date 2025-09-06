@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/console/integrated_console_view.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/routing/router.dart';
 

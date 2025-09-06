@@ -113,7 +113,6 @@ export 'widgets/components/sail_info_box.dart';
 export 'widgets/components/table.dart';
 export 'widgets/components/utxo.dart';
 export 'widgets/console/console_view.dart';
-export 'widgets/console/integrated_console_view.dart';
 export 'widgets/containers/action_tile.dart';
 export 'widgets/containers/notification.dart';
 export 'widgets/containers/qt_container.dart';
