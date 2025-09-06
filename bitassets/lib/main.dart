@@ -12,6 +12,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/console/integrated_console_view.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
