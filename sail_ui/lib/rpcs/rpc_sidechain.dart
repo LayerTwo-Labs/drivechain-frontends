@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -30,6 +32,41 @@ abstract class SidechainRPC extends RPCConnection {
 
   /// Initiate a withdrawal to the specified mainchain address
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats);
+
+  /// Helper function to fetch headers from Explorer service
+  Future<int?> fetchExplorerHeaders() async {
+    // Map BinaryType to Explorer service keys
+    final sidechainKey = switch (binaryType) {
+      BinaryType.thunder => 'thunder',
+      BinaryType.bitassets => 'bitassets',
+      BinaryType.bitnames => 'bitnames',
+      BinaryType.zSide => 'zside',
+      _ => null,
+    };
+
+    if (sidechainKey == null) return null;
+
+    try {
+      final dio = Dio();
+      final response = await dio.post(
+        'https://node.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips',
+        data: {},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      if (response.data != null && response.data[sidechainKey] != null) {
+        final height = response.data[sidechainKey]['height'];
+        if (height != null) {
+          return int.tryParse(height.toString());
+        }
+      }
+    } catch (e) {
+      // Silently fail and return null - caller should use fallback
+    }
+    return null;
+  }
 }
 
 class RPCError {

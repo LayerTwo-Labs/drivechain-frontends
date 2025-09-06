@@ -157,11 +157,17 @@ class ZSideLive extends ZSideRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final blocks = await getBlockCount();
+
+    // There's no endpoint to get headers for zside, so we get the height
+    // from the public explorer service, assuming it is fully synced
+    final explorerHeaders = await fetchExplorerHeaders();
+    final headers = explorerHeaders ?? blocks;
     final bestBlockHash = await getBestSidechainBlockHash();
+
     return BlockchainInfo(
       chain: 'signet',
       blocks: blocks,
-      headers: blocks,
+      headers: headers,
       bestBlockHash: bestBlockHash ?? '',
       difficulty: 0,
       time: 0,
