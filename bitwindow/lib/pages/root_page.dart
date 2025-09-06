@@ -69,6 +69,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     return Stack(
       children: [
         CrossPlatformMenuBar(
+          key: ValueKey('crossPlatformMenuBar'),
           menus: [
             // First menu will be Apple menu (system provided)
             PlatformMenu(
