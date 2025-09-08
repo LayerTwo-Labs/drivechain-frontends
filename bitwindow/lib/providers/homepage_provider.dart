@@ -34,7 +34,7 @@ class HomepageConfigurationSetting extends SettingValue<HomepageConfiguration> {
 
 class HomepageProvider extends ChangeNotifier {
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
-  
+
   HomepageConfiguration _configuration = HomepageConfiguration.defaultConfiguration;
   HomepageConfiguration _tempConfiguration = HomepageConfiguration.defaultConfiguration;
   bool _isLoading = false;

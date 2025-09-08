@@ -90,7 +90,10 @@ class HomepageConfiguration {
 
   HomepageConfiguration addWidget(String widgetId) {
     return copyWith(
-      widgets: [...widgets, HomepageWidgetConfig(widgetId: widgetId)],
+      widgets: [
+        ...widgets,
+        HomepageWidgetConfig(widgetId: widgetId),
+      ],
       lastModified: DateTime.now(),
     );
   }
