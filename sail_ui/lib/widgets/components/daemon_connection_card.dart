@@ -168,7 +168,8 @@ class BlockStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentProgress = formatProgress(syncInfo.progressCurrent);
+    final currentProgress = formatProgress(syncInfo.progressCurrent, syncInfo.downloadInfo.isDownloading);
+    final goalProgress = formatProgress(syncInfo.progressGoal, syncInfo.downloadInfo.isDownloading);
 
     return SailRow(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -177,8 +178,8 @@ class BlockStatus extends StatelessWidget {
         Expanded(
           child: Tooltip(
             message: syncInfo.downloadInfo.isDownloading
-                ? 'Downloading $name\nProgress: $currentProgress MB\nSize: ${formatProgress(syncInfo.progressGoal)} MB'
-                : '$name\nCurrent height $currentProgress\nHeader height ${formatProgress(syncInfo.progressGoal)}',
+                ? 'Downloading $name\nProgress: $currentProgress MB\nSize: $goalProgress MB'
+                : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -203,11 +204,7 @@ class BlockStatus extends StatelessWidget {
   }
 }
 
-String formatProgress(double progress) {
-  // if progress is a whole number, return it as an integer
-  if (progress == progress.toInt()) {
-    return progress.toInt().toString();
-  }
+String formatProgress(double progress, bool withDecimal) {
   // otherwise return with appropriate decimal places
-  return progress.toStringAsFixed(1);
+  return progress.toStringAsFixed(withDecimal ? 1 : 0);
 }

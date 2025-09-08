@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
 import 'package:bitwindow/pages/overview_page.dart';
@@ -79,6 +80,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/shutting-down',
       page: ShutDownRoute.page,
+    ),
+    AutoRoute(
+      path: '/configure-home',
+      page: ConfigureHomeRoute.page,
     ),
     AutoRoute(
       path: '/create-wallet',

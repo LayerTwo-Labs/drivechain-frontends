@@ -11,6 +11,22 @@
 part of 'router.dart';
 
 /// generated route for
+/// [ConfigureHomePage]
+class ConfigureHomeRoute extends PageRouteInfo<void> {
+  const ConfigureHomeRoute({List<PageRouteInfo>? children})
+    : super(ConfigureHomeRoute.name, initialChildren: children);
+
+  static const String name = 'ConfigureHomeRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ConfigureHomePage();
+    },
+  );
+}
+
+/// generated route for
 /// [ConsolePage]
 class ConsoleRoute extends PageRouteInfo<void> {
   const ConsoleRoute({List<PageRouteInfo>? children})

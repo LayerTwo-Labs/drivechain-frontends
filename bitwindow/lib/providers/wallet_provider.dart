@@ -505,13 +505,6 @@ class WalletProvider extends ChangeNotifier {
       await binaryProvider.stop(binary);
     }
 
-    // then be extra sure and stop everything in the process manager
-    try {
-      await binaryProvider.stopAll();
-    } catch (e) {
-      _logger.e('could not stop all binaries: $e');
-    }
-
     try {
       for (final binary in binaryProvider.binaries) {
         // stop absolutely all binaries, to avoid corruption/file overwriting

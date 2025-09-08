@@ -16,6 +16,7 @@ import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -23,7 +24,6 @@ import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -133,6 +133,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<AddressBookProvider>(() => AddressBookProvider());
   GetIt.I.registerLazySingleton<HDWalletProvider>(() => HDWalletProvider(applicationDir!));
   GetIt.I.registerLazySingleton<BitDriveProvider>(() => BitDriveProvider());
+  GetIt.I.registerLazySingleton<HomepageProvider>(() => HomepageProvider());
 
   return (applicationDir, logFile, log);
 }
@@ -485,18 +486,12 @@ List<Binary> initalBinaries() {
 }
 
 Future<void> initAutoUpdater(Logger log) async {
-  if (kDebugMode) {
-    log.i('Skipping auto updater initialization in debug mode');
-    return;
-  }
-
   try {
     const feedURL = 'https://releases.drivechain.info/bitwindow-appcast.xml';
     log.i('Initializing auto updater with feed URL: $feedURL');
 
     await autoUpdater.setFeedURL(feedURL);
     await autoUpdater.checkForUpdates(inBackground: true);
-    await autoUpdater.setScheduledCheckInterval(3600); // Check every hour
 
     log.i('Auto updater initialized successfully');
   } catch (e) {

@@ -200,12 +200,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
-    await GetIt.I.get<BinaryProvider>().onShutdown(
-      shutdownOptions: ShutdownOptions(
-        router: GetIt.I.get<AppRouter>(),
-        onComplete: () {},
-      ),
-    );
+    await GetIt.I.get<BinaryProvider>().onShutdown();
     return AppExitResponse.exit;
   }
 
@@ -221,6 +216,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
               await windowManager.destroy();
             }
           },
+          showShutdownPage: true,
         ),
       );
     }

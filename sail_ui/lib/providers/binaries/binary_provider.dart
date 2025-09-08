@@ -377,10 +377,6 @@ class BinaryProvider extends ChangeNotifier {
     await _processManager.kill(binary);
   }
 
-  Future<void> stopAll() async {
-    await _processManager.stopAll();
-  }
-
   /// Download a binary using the DownloadProvider
   Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
     await _downloadManager.downloadIfMissing(binary, shouldUpdate: shouldUpdate);
@@ -520,7 +516,8 @@ class BinaryProvider extends ChangeNotifier {
       // Get list of running binaries
       final runningBinaries = _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
-      if (shutdownOptions != null) {
+      final showShutdownPage = shutdownOptions != null && shutdownOptions.showShutdownPage;
+      if (showShutdownPage) {
         // don't show the shutting down page if it's already shown!
         if (shutdownOptions.router.current.name != ShutDownRoute.name) {
           // Show shutdown page with running binaries
@@ -544,8 +541,10 @@ class BinaryProvider extends ChangeNotifier {
       // Wait for all stop operations to complete
       await Future.wait(futures);
 
-      // After all binaries are asked nicely to stop, kill any lingering processes
-      await _processManager.stopAll();
+      if (!showShutdownPage) {
+        // the shutdown doesnt call it, then we must!
+        shutdownOptions?.onComplete();
+      }
     } catch (error) {
       // do nothing, we just always need to return true
       log.e('error shutting down: $error');
@@ -641,8 +640,13 @@ class BinaryProvider extends ChangeNotifier {
 class ShutdownOptions {
   final RootStackRouter router;
   final VoidCallback onComplete;
+  final bool showShutdownPage;
 
-  const ShutdownOptions({required this.router, required this.onComplete});
+  const ShutdownOptions({
+    required this.router,
+    required this.onComplete,
+    required this.showShutdownPage,
+  });
 }
 
 Future<void> waitForBoolToBeTrue(

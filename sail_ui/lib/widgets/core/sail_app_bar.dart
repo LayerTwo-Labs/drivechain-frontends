@@ -7,12 +7,21 @@ class SailAppBar {
 
     return AppBar(
       elevation: 0,
-      titleSpacing: SailStyleValues.padding20,
-      automaticallyImplyLeading: true,
       backgroundColor: colors.background,
       foregroundColor: colors.icon,
-      centerTitle: true,
+      centerTitle: false,
       title: title,
+      leading: Navigator.canPop(context)
+          ? SailButton(
+              variant: ButtonVariant.icon,
+              icon: SailSVGAsset.chevronLeft,
+              onPressed: () async => Navigator.pop(context),
+              iconHeight: 14,
+              iconWidth: 14,
+              small: true,
+            )
+          : null,
+      toolbarHeight: 25,
     );
   }
 }

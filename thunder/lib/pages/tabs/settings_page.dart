@@ -249,8 +249,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
 
           // Only stop binaries that are started by bitwindow
           await binaryProvider.stop(binary);
-          // After all binaries are asked nicely to stop, kill any lingering processes just in case
-          await binaryProvider.stopAll();
+
           // wait for 3 seconds to ensure thunder is dead
           await Future.delayed(const Duration(seconds: 3));
 
