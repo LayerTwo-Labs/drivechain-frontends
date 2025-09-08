@@ -503,10 +503,13 @@ class ChainLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentProgress = formatProgress(syncInfo.progressCurrent, syncInfo.downloadInfo.isDownloading);
+    final goalProgress = formatProgress(syncInfo.progressGoal, syncInfo.downloadInfo.isDownloading);
+
     final widget = Tooltip(
       message: syncInfo.downloadInfo.isDownloading
           ? 'Downloading $name\n${syncInfo.downloadInfo.message}'
-          : '$name\nCurrent height ${formatProgress(syncInfo.progressCurrent)}\nHeader height ${formatProgress(syncInfo.progressGoal)}',
+          : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
       child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal, justPercent: justPercent),
     );
 

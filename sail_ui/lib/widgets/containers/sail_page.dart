@@ -8,7 +8,14 @@ class SailPage extends StatelessWidget {
   final Widget body;
   final bool scrollable;
 
-  const SailPage({super.key, this.title, this.subtitle, this.widgetTitle, this.scrollable = false, required this.body});
+  const SailPage({
+    super.key,
+    this.title,
+    this.subtitle,
+    this.widgetTitle,
+    this.scrollable = false,
+    required this.body,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +28,7 @@ class SailPage extends StatelessWidget {
             ? null
             : SailAppBar.build(
                 context,
-                title: Padding(
-                  padding: widgetTitle != null
-                      ? const EdgeInsets.symmetric(vertical: SailStyleValues.padding10)
-                      : const EdgeInsets.all(0),
-                  child: widgetTitle,
-                ),
+                title: widgetTitle,
               ),
         body: buildBody(context),
       ),
@@ -36,7 +38,10 @@ class SailPage extends StatelessWidget {
 
   Widget buildBody(BuildContext context) {
     if (scrollable) {
-      return SingleChildScrollView(physics: const BouncingScrollPhysics(), child: _pageContainer());
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: _pageContainer(),
+      );
     }
 
     return _pageContainer();

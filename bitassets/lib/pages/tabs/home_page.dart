@@ -272,6 +272,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
               await windowManager.destroy();
             }
           },
+          showShutdownPage: true,
         ),
       );
     }

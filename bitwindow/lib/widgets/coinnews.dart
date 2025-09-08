@@ -85,6 +85,8 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                 CoinNewsTable(
                   entries: viewModel.paginatedEntries,
                   onSort: viewModel.sortEntries,
+                  loading: viewModel.loading,
+                  allTopics: viewModel.topics,
                 ),
                 const SizedBox(height: 16),
                 Pagination(
@@ -101,6 +103,285 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
         ],
       ),
     );
+  }
+}
+
+class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
+  const CoinNewsLargeView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
+    return SailCard(
+      title: 'Coin News',
+      titleTooltip: 'Stay up-to-date on the latest world developments',
+      widgetHeaderEnd: SailRow(
+        children: [
+          SailButton(
+            label: 'Broadcast News',
+            variant: ButtonVariant.primary,
+            icon: SailSVGAsset.newspaper,
+            onPressed: () => displayBroadcastNewsDialog(context),
+          ),
+          ExtraActionsDropdown(
+            title: 'Extra Coin News Actions',
+            items: [
+              ExtraActionItem(
+                label: 'Create Topic',
+                icon: SailSVGAsset.newspaper,
+                onSelect: () => displayCreateTopicDialog(context),
+              ),
+              ExtraActionItem(
+                label: 'Graffiti Explorer',
+                icon: SailSVGAsset.sprayCan,
+                onSelect: () => displayGraffitiExplorerDialog(context),
+              ),
+            ],
+          ),
+        ],
+      ),
+      child: SailRow(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: SailStyleValues.padding16,
+        children: [
+          Flexible(
+            child: SailColumn(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              spacing: 0,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailRow(
+                  children: [
+                    Expanded(
+                      child: SailColumn(
+                        children: [
+                          SailDropdownButton(
+                            items: viewModel.topics
+                                .map(
+                                  (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
+                                )
+                                .toList(),
+                            onChanged: (value) => viewModel.setLeftTopic(value),
+                            value: viewModel.leftTopic,
+                          ),
+                          SizedBox(
+                            height: 300,
+                            child: CoinNewsTable(
+                              entries: viewModel.leftEntries,
+                              onSort: viewModel.sortLeftEntries,
+                              loading: viewModel.loading,
+                              allTopics: viewModel.topics,
+                              shrinkWrap: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: SailColumn(
+                        children: [
+                          SailDropdownButton(
+                            items: viewModel.topics
+                                .map(
+                                  (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
+                                )
+                                .toList(),
+                            onChanged: (value) => viewModel.setRightTopic(value),
+                            value: viewModel.rightTopic,
+                          ),
+                          SizedBox(
+                            height: 300,
+                            child: CoinNewsTable(
+                              entries: viewModel.rightEntries,
+                              onSort: viewModel.sortRightEntries,
+                              loading: viewModel.loading,
+                              allTopics: viewModel.topics,
+                              shrinkWrap: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CoinNewsLargeViewModel extends BaseViewModel {
+  final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
+  final ClientSettings _settings = GetIt.I.get<ClientSettings>();
+
+  // Sorting state
+  bool _sortLeftAscending = false;
+  bool _sortRightAscending = false;
+  String _sortLeftColumn = 'date';
+  String _sortRightColumn = 'date';
+  String leftTopic = '';
+  String rightTopic = '';
+
+  bool get loading => !_newsProvider.initialized;
+  List<Topic> get topics => _newsProvider.topics;
+
+  CoinNewsLargeViewModel() {
+    _newsProvider.addListener(notifyListeners);
+    _loadLeftAndRightTopics();
+  }
+
+  List<CoinNews> get leftEntries {
+    if (loading) {
+      return [
+        ...dummyData,
+      ];
+    }
+
+    var filteredEntries = _newsProvider.news.where((news) => leftTopic == news.topic).toList();
+
+    // Apply sorting
+    filteredEntries.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (_sortLeftColumn) {
+        case 'date':
+          aValue = a.createTime.toDateTime().millisecondsSinceEpoch;
+          bValue = b.createTime.toDateTime().millisecondsSinceEpoch;
+          break;
+        case 'topic':
+          aValue = a.topic;
+          bValue = b.topic;
+          break;
+        case 'title':
+          aValue = a.headline;
+          bValue = b.headline;
+          break;
+        case 'readtime':
+          aValue = expectedReadTime(a.content);
+          bValue = expectedReadTime(b.content);
+          break;
+      }
+
+      return _sortLeftAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+
+    return filteredEntries;
+  }
+
+  List<CoinNews> get rightEntries {
+    if (loading) {
+      return [
+        ...dummyData,
+      ];
+    }
+
+    var filteredEntries = _newsProvider.news.where((news) => rightTopic == news.topic).toList();
+
+    // Apply sorting
+    filteredEntries.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (_sortRightColumn) {
+        case 'date':
+          aValue = a.createTime.toDateTime().millisecondsSinceEpoch;
+          bValue = b.createTime.toDateTime().millisecondsSinceEpoch;
+          break;
+        case 'topic':
+          aValue = a.topic;
+          bValue = b.topic;
+          break;
+        case 'title':
+          aValue = a.headline;
+          bValue = b.headline;
+          break;
+        case 'readtime':
+          aValue = expectedReadTime(a.content);
+          bValue = expectedReadTime(b.content);
+          break;
+      }
+
+      return _sortRightAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+
+    return filteredEntries;
+  }
+
+  Future<void> _loadLeftAndRightTopics() async {
+    if (Environment.isInTest) {
+      return;
+    }
+
+    final setting = SelectedTopicsSetting();
+    final loadedSetting = await _settings.getValue(setting);
+    final config = loadedSetting.value;
+
+    if (config.selectedTopics.isEmpty && _newsProvider.topics.isNotEmpty) {
+      // Initialize with first and last if nothing is saved
+      leftTopic = _newsProvider.topics.first.topic;
+      rightTopic = _newsProvider.topics.last.topic;
+    } else {
+      leftTopic = config.leftTopic ?? _newsProvider.topics.first.topic;
+      rightTopic = config.rightTopic ?? _newsProvider.topics.last.topic;
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> setLeftTopic(String topicId) async {
+    leftTopic = topicId;
+
+    // Get current config and update it
+    final currentSetting = await _settings.getValue(SelectedTopicsSetting());
+    final updatedConfig = currentSetting.value.copyWith(leftTopic: topicId);
+
+    // Persist the selection
+    final setting = SelectedTopicsSetting(newValue: updatedConfig);
+    await _settings.setValue(setting);
+
+    notifyListeners();
+  }
+
+  Future<void> setRightTopic(String topicId) async {
+    rightTopic = topicId;
+
+    // Get current config and update it
+    final currentSetting = await _settings.getValue(SelectedTopicsSetting());
+    final updatedConfig = currentSetting.value.copyWith(rightTopic: topicId);
+
+    // Persist the selection
+    final setting = SelectedTopicsSetting(newValue: updatedConfig);
+    await _settings.setValue(setting);
+
+    notifyListeners();
+  }
+
+  void sortLeftEntries(String column) {
+    if (_sortLeftColumn == column) {
+      _sortLeftAscending = !_sortLeftAscending;
+    } else {
+      _sortLeftColumn = column;
+      // Default to descending for date column, ascending for others
+      _sortLeftAscending = column != 'date';
+    }
+    notifyListeners();
+  }
+
+  void sortRightEntries(String column) {
+    if (_sortRightColumn == column) {
+      _sortRightAscending = !_sortRightAscending;
+    } else {
+      _sortRightColumn = column;
+      // Default to descending for date column, ascending for others
+      _sortRightAscending = column != 'date';
+    }
+    notifyListeners();
   }
 }
 
@@ -262,12 +543,13 @@ class CoinNewsViewModel extends BaseViewModel {
 
     final setting = SelectedTopicsSetting();
     final loadedSetting = await _settings.getValue(setting);
+    final config = loadedSetting.value;
 
-    if (loadedSetting.value.isEmpty && topics.isNotEmpty) {
+    if (config.selectedTopics.isEmpty && topics.isNotEmpty) {
       // Initialize with all topics if nothing is saved
       _selectedTopicIds = topics.map((topic) => topic.topic).toList();
     } else {
-      _selectedTopicIds = loadedSetting.value;
+      _selectedTopicIds = config.selectedTopics;
     }
     notifyListeners();
   }
@@ -286,8 +568,12 @@ class CoinNewsViewModel extends BaseViewModel {
   Future<void> setSelectedTopics(List<String> topicIds) async {
     _selectedTopicIds = topicIds;
 
+    // Get current config and update it
+    final currentSetting = await _settings.getValue(SelectedTopicsSetting());
+    final updatedConfig = currentSetting.value.copyWith(selectedTopics: topicIds);
+
     // Persist the selection
-    final setting = SelectedTopicsSetting(newValue: topicIds);
+    final setting = SelectedTopicsSetting(newValue: updatedConfig);
     await _settings.setValue(setting);
 
     notifyListeners();
@@ -322,21 +608,96 @@ class CoinNewsViewModel extends BaseViewModel {
   }
 }
 
-// Settings class stays as a List<String>
-class SelectedTopicsSetting extends SettingValue<List<String>> {
+List<CoinNews> get dummyData => [
+  // if loading, add dummy date for the skeletonizer to render things properly
+  CoinNews(
+    topic: 'bitcoin',
+    headline: 'Bitcoin price hits new all-time high',
+    content: 'Bitcoin price hits new all-time high',
+    createTime: Timestamp.fromDateTime(DateTime.now()),
+  ),
+  CoinNews(
+    topic: 'bitcoin',
+    headline: 'Bitcoin price hits new all-time high',
+    content: 'Bitcoin price hits new all-time high',
+    createTime: Timestamp.fromDateTime(DateTime.now()),
+  ),
+  CoinNews(
+    topic: 'drivechain',
+    headline: 'Drivechain upgrade successfully completed',
+    content: 'The long-awaited Drivechain upgrade has been successfully implemented, bringing bitcoin to the masses.',
+    createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 2))),
+  ),
+  CoinNews(
+    topic: 'defi',
+    headline: 'New DeFi protocol launches with 100M TVL',
+    content:
+        'A revolutionary DeFi protocol has launched, offering innovative yield farming strategies and cross-layer (using drivechain!!) liquidity solutions.',
+    createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 4))),
+  ),
+  CoinNews(
+    topic: 'bitcoin',
+    headline: 'Major financial institution announces Bitcoin ETF',
+    content:
+        'A leading financial institution has filed for a spot Bitcoin ETF, potentially opening the door for institutional investors to gain direct exposure to Bitcoin.',
+    createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 6))),
+  ),
+];
+
+class TopicsConfigData {
+  final List<String> selectedTopics;
+  final String? leftTopic;
+  final String? rightTopic;
+
+  TopicsConfigData({
+    required this.selectedTopics,
+    this.leftTopic,
+    this.rightTopic,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'selectedTopics': selectedTopics,
+      'leftTopic': leftTopic,
+      'rightTopic': rightTopic,
+    };
+  }
+
+  factory TopicsConfigData.fromMap(Map<String, dynamic> map) {
+    return TopicsConfigData(
+      selectedTopics: List<String>.from(map['selectedTopics'] ?? []),
+      leftTopic: map['leftTopic'] as String?,
+      rightTopic: map['rightTopic'] as String?,
+    );
+  }
+
+  TopicsConfigData copyWith({
+    List<String>? selectedTopics,
+    String? leftTopic,
+    String? rightTopic,
+  }) {
+    return TopicsConfigData(
+      selectedTopics: selectedTopics ?? this.selectedTopics,
+      leftTopic: leftTopic ?? this.leftTopic,
+      rightTopic: rightTopic ?? this.rightTopic,
+    );
+  }
+}
+
+class SelectedTopicsSetting extends SettingValue<TopicsConfigData> {
   @override
-  String get key => 'selected_topics';
+  String get key => 'selected_topics_config';
 
   SelectedTopicsSetting({super.newValue});
 
   @override
-  List<String> defaultValue() => [];
+  TopicsConfigData defaultValue() => TopicsConfigData(selectedTopics: []);
 
   @override
-  List<String>? fromJson(String jsonString) {
+  TopicsConfigData? fromJson(String jsonString) {
     try {
-      final List<dynamic> decoded = json.decode(jsonString);
-      return decoded.cast<String>();
+      final Map<String, dynamic> decoded = json.decode(jsonString);
+      return TopicsConfigData.fromMap(decoded);
     } catch (e) {
       return null;
     }
@@ -344,11 +705,11 @@ class SelectedTopicsSetting extends SettingValue<List<String>> {
 
   @override
   String toJson() {
-    return json.encode(value);
+    return json.encode(value.toMap());
   }
 
   @override
-  SettingValue<List<String>> withValue([List<String>? value]) {
+  SettingValue<TopicsConfigData> withValue([TopicsConfigData? value]) {
     return SelectedTopicsSetting(newValue: value);
   }
 }
@@ -500,24 +861,30 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
   }
 }
 
-class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
+class CoinNewsTable extends StatelessWidget {
   final List<CoinNews> entries;
   final Function(String) onSort;
+  final bool loading;
+  final List<Topic> allTopics;
+  final bool shrinkWrap;
 
   const CoinNewsTable({
     super.key,
     required this.entries,
     required this.onSort,
+    required this.loading,
+    required this.allTopics,
+    this.shrinkWrap = true,
   });
 
   @override
-  Widget build(BuildContext context, CoinNewsViewModel viewModel) {
+  Widget build(BuildContext context) {
     return SailSkeletonizer(
       description: 'Waiting for backend to boot and load coin news..',
-      enabled: viewModel.loading,
+      enabled: loading,
       duration: const Duration(seconds: 3),
       child: SailTable(
-        shrinkWrap: true,
+        shrinkWrap: shrinkWrap,
         getRowId: (index) => index.toString(),
         headerBuilder: (context) => [
           const SailTableHeaderCell(name: 'Date'),
@@ -527,7 +894,7 @@ class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
         ],
         rowBuilder: (context, row, selected) {
           final entry = entries[row];
-          final matchingTopic = viewModel.topics.firstWhereOrNull((t) => t.topic == entry.topic);
+          final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
 
           return [
             SailTableCell(value: formatDate(entry.createTime.toDateTime())),

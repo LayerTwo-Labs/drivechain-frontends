@@ -123,7 +123,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: () => GetIt.I.get<BinaryProvider>().onShutdown(
                         shutdownOptions: ShutdownOptions(
                           router: GetIt.I.get<AppRouter>(),
-                          onComplete: () => exit(0),
+                          onComplete: () async {
+                            exit(0);
+                          },
+                          showShutdownPage: false,
                         ),
                       ),
                     ),
@@ -421,13 +424,25 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           icon: SailSVGAsset.settings,
                         ),
                       ],
-                      endWidget: SailButton(
-                        onPressed: () async {
-                          await launchUrl(Uri.parse('https://t.me/DcInsiders'));
-                        },
-                        variant: ButtonVariant.icon,
-                        icon: SailSVGAsset.telegram,
-                        small: true,
+                      endWidget: SailRow(
+                        children: [
+                          SailButton(
+                            onPressed: () async {
+                              await GetIt.I.get<AppRouter>().push(ConfigureHomeRoute());
+                            },
+                            variant: ButtonVariant.primary,
+                            label: 'Configure Home Page',
+                            small: true,
+                          ),
+                          SailButton(
+                            onPressed: () async {
+                              await launchUrl(Uri.parse('https://t.me/DcInsiders'));
+                            },
+                            variant: ButtonVariant.icon,
+                            icon: SailSVGAsset.telegram,
+                            small: true,
+                          ),
+                        ],
                       ),
                     ),
                     body: Column(
@@ -468,6 +483,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         onComplete: () async {
           await windowManager.destroy();
         },
+        showShutdownPage: true,
       ),
     );
     windowManager.removeListener(this);
@@ -483,6 +499,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         onComplete: () async {
           await windowManager.destroy();
         },
+        showShutdownPage: true,
       ),
     );
   }

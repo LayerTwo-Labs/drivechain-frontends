@@ -43,7 +43,10 @@ class SailButton extends StatefulWidget {
          variant != ButtonVariant.icon || (icon != null && label == null),
          'Icon must be set with no label for icon-variant',
        ),
-       assert(variant == ButtonVariant.icon || (label != null), 'Label must be set');
+       assert(
+         (variant == ButtonVariant.icon || variant == ButtonVariant.destructive) || (label != null),
+         'Label must be set',
+       );
 
   @override
   State<SailButton> createState() => _SailButtonState();

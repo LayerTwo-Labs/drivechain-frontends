@@ -3,10 +3,11 @@ import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
-import 'package:bitwindow/pages/sidechains_page.dart';
+import 'package:bitwindow/models/homepage_configuration.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
-import 'package:bitwindow/widgets/coinnews.dart';
+import 'package:bitwindow/widgets/homepage_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -25,33 +26,30 @@ class OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<OverviewPage> {
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<SidechainsViewModel>.reactive(
-      viewModelBuilder: () => SidechainsViewModel(),
+    return ViewModelBuilder<OverviewViewModel>.reactive(
+      viewModelBuilder: () => OverviewViewModel(),
       builder: (context, viewModel, child) => QtPage(
-        child: SingleChildScrollView(
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailColumn(
-                spacing: SailStyleValues.padding16,
-                children: [
-                  FireplaceStats(),
-                  ViewModelBuilder<CoinNewsViewModel>.reactive(
-                    viewModelBuilder: () => CoinNewsViewModel(),
-                    builder: (context, newsModel, child) {
-                      return CoinNewsView();
-                    },
-                  ),
-                  TransactionsView(),
-                ],
-              ),
-            ],
-          ),
+        child: HomepageBuilder(
+          configuration: viewModel.homepageConfiguration,
+          isPreview: false,
         ),
       ),
     );
+  }
+}
+
+class OverviewViewModel extends BaseViewModel {
+  HomepageProvider get _homepageProvider => GetIt.I.get<HomepageProvider>();
+  HomepageConfiguration get homepageConfiguration => _homepageProvider.configuration;
+
+  OverviewViewModel() {
+    _homepageProvider.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    _homepageProvider.removeListener(notifyListeners);
+    super.dispose();
   }
 }
 
@@ -108,65 +106,23 @@ class FireplaceStats extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<FireplaceViewModel>.reactive(
       viewModelBuilder: () => FireplaceViewModel(),
-      builder: (context, model, child) => LayoutBuilder(
-        builder: (context, constraints) {
-          int crossAxisCount = min(4, (constraints.maxWidth / 301).ceil());
-          double gridSpacing = SailStyleValues.padding16;
-          double totalSpacing = gridSpacing * (crossAxisCount - 1);
-          double cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
-          double desiredCardHeight = 128; // Set your ideal card height here
-
-          double childAspectRatio = cardWidth / desiredCardHeight;
-
-          List<Widget> cardList = [
-            FireplaceStat(
-              title: 'Bitcoin Price',
-              subtitle: 'Last updated ${model.priceLastUpdated}',
-              value: model.price,
-              bitcoinAmount: true,
-              icon: SailSVGAsset.dollarSign,
-            ),
-            FireplaceStat(
-              title: 'New transactions',
-              value: model.stats?.transactionCount24h.toString() ?? '0',
-              subtitle: 'Last 24 hours',
-              icon: SailSVGAsset.iconTransactions,
-            ),
-            FireplaceStat(
-              title: 'New coinnews',
-              value: model.stats?.coinnewsCount7d.toString() ?? '0',
-              subtitle: 'Last 7 days',
-              icon: SailSVGAsset.newspaper,
-            ),
-            FireplaceStat(
-              title: 'Number of blocks',
-              value: model.stats?.blockCount24h.toString() ?? '0',
-              subtitle: 'Last 24 hours',
-              icon: SailSVGAsset.blocks,
-            ),
-          ];
-
-          return GridView.count(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: gridSpacing,
-            mainAxisSpacing: gridSpacing,
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            childAspectRatio: childAspectRatio,
-            children: cardList,
-          );
-        },
+      builder: (context, model, child) => FireplaceStatsView(
+        priceLastUpdated: model.priceLastUpdated,
+        price: model.price,
+        stats: model.stats ?? GetFireplaceStatsResponse(),
+        loading: model.loading,
       ),
     );
   }
 }
 
-class FireplaceStat extends ViewModelWidget<FireplaceViewModel> {
+class FireplaceStat extends StatelessWidget {
   final String title;
   final String subtitle;
   final String value;
   final SailSVGAsset icon;
   final bool bitcoinAmount;
+  final bool loading;
 
   const FireplaceStat({
     super.key,
@@ -175,17 +131,18 @@ class FireplaceStat extends ViewModelWidget<FireplaceViewModel> {
     required this.value,
     required this.icon,
     this.bitcoinAmount = false,
+    this.loading = false,
   });
 
   @override
-  Widget build(BuildContext context, FireplaceViewModel viewModel) {
+  Widget build(BuildContext context) {
     return SailCardStats(
       title: title,
       subtitle: subtitle,
       value: value,
       icon: icon,
       loading: LoadingDetails(
-        enabled: viewModel.loading,
+        enabled: loading,
         description: 'Waiting for enforcer to boot and wallet to sync..',
       ),
     );
@@ -1026,6 +983,78 @@ class GraffitiTable extends StatelessWidget {
       rowCount: entries.length,
       onSort: (columnIndex, ascending) {
         onSort(['fee', 'message', 'time', 'height'][columnIndex]);
+      },
+    );
+  }
+}
+
+class FireplaceStatsView extends StatelessWidget {
+  final String priceLastUpdated;
+  final String price;
+  final GetFireplaceStatsResponse stats;
+  final bool loading;
+
+  const FireplaceStatsView({
+    super.key,
+    required this.priceLastUpdated,
+    required this.price,
+    required this.stats,
+    required this.loading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = min(4, (constraints.maxWidth / 301).ceil());
+        double gridSpacing = SailStyleValues.padding16;
+        double totalSpacing = gridSpacing * (crossAxisCount - 1);
+        double cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+        double desiredCardHeight = 128; // Set your ideal card height here
+
+        double childAspectRatio = cardWidth / desiredCardHeight;
+
+        List<Widget> cardList = [
+          FireplaceStat(
+            title: 'Bitcoin Price',
+            subtitle: 'Last updated $priceLastUpdated',
+            value: price,
+            bitcoinAmount: true,
+            icon: SailSVGAsset.dollarSign,
+            loading: loading,
+          ),
+          FireplaceStat(
+            title: 'New transactions',
+            value: stats.transactionCount24h.toString(),
+            subtitle: 'Last 24 hours',
+            icon: SailSVGAsset.iconTransactions,
+            loading: loading,
+          ),
+          FireplaceStat(
+            title: 'New coinnews',
+            value: stats.coinnewsCount7d.toString(),
+            subtitle: 'Last 7 days',
+            icon: SailSVGAsset.newspaper,
+            loading: loading,
+          ),
+          FireplaceStat(
+            title: 'Number of blocks',
+            value: stats.blockCount24h.toString(),
+            subtitle: 'Last 24 hours',
+            icon: SailSVGAsset.blocks,
+            loading: loading,
+          ),
+        ];
+
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: gridSpacing,
+          mainAxisSpacing: gridSpacing,
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          childAspectRatio: childAspectRatio,
+          children: cardList,
+        );
       },
     );
   }

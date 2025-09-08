@@ -103,8 +103,13 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       updateBinary(
         binary.type,
-        (b) =>
-            b.copyWith(downloadInfo: DownloadInfo(progress: 0.0, error: 'Download failed: $e', isDownloading: false)),
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(
+            progress: 0.0,
+            error: 'Download failed: $e',
+            isDownloading: false,
+          ),
+        ),
       );
       log.e('could not download ${binary.name}: $e');
       rethrow;
@@ -155,8 +160,13 @@ class DownloadManager extends ChangeNotifier {
 
     updateBinary(
       binary.type,
-      (b) =>
-          b.copyWith(downloadInfo: const DownloadInfo(progress: 0.0, message: 'Downloading...', isDownloading: true)),
+      (b) => b.copyWith(
+        downloadInfo: const DownloadInfo(
+          progress: 0.0,
+          message: 'Downloading...',
+          isDownloading: true,
+        ),
+      ),
     );
 
     // 1. Setup directories
@@ -199,8 +209,13 @@ class DownloadManager extends ChangeNotifier {
       // Update binary state to show error
       updateBinary(
         binary.type,
-        (b) =>
-            b.copyWith(downloadInfo: DownloadInfo(progress: 0.0, error: 'Extraction failed: $e', isDownloading: false)),
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(
+            progress: 0.0,
+            error: 'Extraction failed: $e',
+            isDownloading: false,
+          ),
+        ),
       );
       rethrow;
     }
@@ -320,7 +335,7 @@ class DownloadManager extends ChangeNotifier {
               binaryType,
               (b) => b.copyWith(
                 downloadInfo: DownloadInfo(
-                  progress: downloadedMB,
+                  progress: downloadedMB, // i always want two decimals
                   total: totalMB,
                   message: 'Downloaded $downloadedMB MB / $totalMB MB ($currentPercentStr%)',
                   isDownloading: true,

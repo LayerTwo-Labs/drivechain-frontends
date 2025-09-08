@@ -13,32 +13,41 @@ class FastWithdrawalTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return ViewModelBuilder<FastWithdrawalTabViewModel>.reactive(
       viewModelBuilder: () => FastWithdrawalTabViewModel(),
       builder: (context, viewModel, child) {
         return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Main Form
-              if (!viewModel.isCompleted) ...[
-                if (viewModel.withdrawalHash == null) ...[
-                  // Initial withdrawal form
-                  _buildWithdrawalForm(viewModel, theme.colors),
-                ] else ...[
-                  // Payment instructions and completion form
-                  _buildPaymentSection(viewModel, theme.colors),
-                ],
-              ] else ...[
-                // Success state
-                _buildSuccessSection(viewModel),
-              ],
-            ],
-          ),
+          child: FastWithdrawalForm(),
         );
       },
+    );
+  }
+}
+
+class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
+  const FastWithdrawalForm({super.key});
+
+  @override
+  Widget build(BuildContext context, FastWithdrawalTabViewModel viewModel) {
+    final theme = SailTheme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Main Form
+        if (!viewModel.isCompleted) ...[
+          if (viewModel.withdrawalHash == null) ...[
+            // Initial withdrawal form
+            _buildWithdrawalForm(viewModel, theme.colors),
+          ] else ...[
+            // Payment instructions and completion form
+            _buildPaymentSection(viewModel, theme.colors),
+          ],
+        ] else ...[
+          // Success state
+          _buildSuccessSection(viewModel),
+        ],
+      ],
     );
   }
 
