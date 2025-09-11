@@ -123,6 +123,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
             variant: ButtonVariant.primary,
             icon: SailSVGAsset.newspaper,
             onPressed: () => displayBroadcastNewsDialog(context),
+            skipLoading: true,
           ),
           ExtraActionsDropdown(
             title: 'Extra Coin News Actions',
@@ -174,6 +175,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                               loading: viewModel.loading,
                               allTopics: viewModel.topics,
                               shrinkWrap: false,
+                              condensed: true,
                             ),
                           ),
                         ],
@@ -199,6 +201,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                               loading: viewModel.loading,
                               allTopics: viewModel.topics,
                               shrinkWrap: false,
+                              condensed: true,
                             ),
                           ),
                         ],
@@ -224,8 +227,8 @@ class CoinNewsLargeViewModel extends BaseViewModel {
   bool _sortRightAscending = false;
   String _sortLeftColumn = 'date';
   String _sortRightColumn = 'date';
-  String leftTopic = '';
-  String rightTopic = '';
+  String leftTopic = 'a1a1a1a1a1a1a1a1';
+  String rightTopic = 'a2a2a2a2a2a2a2a2';
 
   bool get loading => !_newsProvider.initialized;
   List<Topic> get topics => _newsProvider.topics;
@@ -867,6 +870,7 @@ class CoinNewsTable extends StatelessWidget {
   final bool loading;
   final List<Topic> allTopics;
   final bool shrinkWrap;
+  final bool condensed;
 
   const CoinNewsTable({
     super.key,
@@ -875,6 +879,7 @@ class CoinNewsTable extends StatelessWidget {
     required this.loading,
     required this.allTopics,
     this.shrinkWrap = true,
+    this.condensed = false,
   });
 
   @override
@@ -887,20 +892,32 @@ class CoinNewsTable extends StatelessWidget {
         shrinkWrap: shrinkWrap,
         getRowId: (index) => index.toString(),
         headerBuilder: (context) => [
-          const SailTableHeaderCell(name: 'Date'),
-          const SailTableHeaderCell(name: 'Topic'),
-          const SailTableHeaderCell(name: 'Title'),
-          const SailTableHeaderCell(name: 'Read time'),
+          if (condensed) ...[
+            const SailTableHeaderCell(name: 'Date'),
+            const SailTableHeaderCell(name: 'Fee'),
+            const SailTableHeaderCell(name: 'Title'),
+          ] else ...[
+            const SailTableHeaderCell(name: 'Date'),
+            const SailTableHeaderCell(name: 'Topic'),
+            const SailTableHeaderCell(name: 'Title'),
+            const SailTableHeaderCell(name: 'Read time'),
+          ],
         ],
         rowBuilder: (context, row, selected) {
           final entry = entries[row];
           final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
 
           return [
-            SailTableCell(value: formatDate(entry.createTime.toDateTime())),
-            SailTableCell(value: matchingTopic?.name ?? entry.topic),
-            SailTableCell(value: entry.headline),
-            SailTableCell(value: expectedReadTime(entry.content)),
+            if (condensed) ...[
+              SailTableCell(value: formatDate(entry.createTime.toDateTime())),
+              SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSats.toInt()))),
+              SailTableCell(value: entry.headline),
+            ] else ...[
+              SailTableCell(value: formatDate(entry.createTime.toDateTime())),
+              SailTableCell(value: matchingTopic?.name ?? entry.topic),
+              SailTableCell(value: entry.headline),
+              SailTableCell(value: expectedReadTime(entry.content)),
+            ],
           ];
         },
         rowCount: entries.length,
