@@ -263,8 +263,8 @@ class ZSide extends Sidechain {
              DirectoryConfig(
                binary: {
                  OS.linux: '.thunder-orchard',
-                 OS.macos: '/thunder-orchard',
-                 OS.windows: '/thunder-orchard',
+                 OS.macos: 'thunder-orchard',
+                 OS.windows: 'thunder-orchard',
                },
                flutterFrontend: {
                  OS.linux: 'com.layertwolabs.zside',
