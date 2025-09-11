@@ -114,34 +114,6 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
   @override
   Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
     return SailCard(
-      title: 'Coin News',
-      titleTooltip: 'Stay up-to-date on the latest world developments',
-      widgetHeaderEnd: SailRow(
-        children: [
-          SailButton(
-            label: 'Broadcast News',
-            variant: ButtonVariant.primary,
-            icon: SailSVGAsset.newspaper,
-            onPressed: () => displayBroadcastNewsDialog(context),
-            skipLoading: true,
-          ),
-          ExtraActionsDropdown(
-            title: 'Extra Coin News Actions',
-            items: [
-              ExtraActionItem(
-                label: 'Create Topic',
-                icon: SailSVGAsset.newspaper,
-                onSelect: () => displayCreateTopicDialog(context),
-              ),
-              ExtraActionItem(
-                label: 'Graffiti Explorer',
-                icon: SailSVGAsset.sprayCan,
-                onSelect: () => displayGraffitiExplorerDialog(context),
-              ),
-            ],
-          ),
-        ],
-      ),
       child: SailRow(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: SailStyleValues.padding16,
@@ -154,18 +126,25 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SailRow(
+                  spacing: SailStyleValues.padding08,
                   children: [
                     Expanded(
                       child: SailColumn(
                         children: [
-                          SailDropdownButton(
-                            items: viewModel.topics
-                                .map(
-                                  (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
-                                )
-                                .toList(),
-                            onChanged: (value) => viewModel.setLeftTopic(value),
-                            value: viewModel.leftTopic,
+                          SailRow(
+                            children: [
+                              SailText.primary15('Coin News', bold: true),
+                              Expanded(child: Container()),
+                              SailDropdownButton(
+                                items: viewModel.topics
+                                    .map(
+                                      (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
+                                    )
+                                    .toList(),
+                                onChanged: (value) => viewModel.setLeftTopic(value),
+                                value: viewModel.leftTopic,
+                              ),
+                            ],
                           ),
                           SizedBox(
                             height: 300,
@@ -184,14 +163,41 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                     Expanded(
                       child: SailColumn(
                         children: [
-                          SailDropdownButton(
-                            items: viewModel.topics
-                                .map(
-                                  (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
-                                )
-                                .toList(),
-                            onChanged: (value) => viewModel.setRightTopic(value),
-                            value: viewModel.rightTopic,
+                          SailRow(
+                            children: [
+                              SailDropdownButton(
+                                items: viewModel.topics
+                                    .map(
+                                      (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
+                                    )
+                                    .toList(),
+                                onChanged: (value) => viewModel.setRightTopic(value),
+                                value: viewModel.rightTopic,
+                              ),
+                              Expanded(child: Container()),
+                              SailButton(
+                                label: 'Broadcast News',
+                                variant: ButtonVariant.primary,
+                                icon: SailSVGAsset.newspaper,
+                                onPressed: () => displayBroadcastNewsDialog(context),
+                                skipLoading: true,
+                              ),
+                              ExtraActionsDropdown(
+                                title: 'Extra Coin News Actions',
+                                items: [
+                                  ExtraActionItem(
+                                    label: 'Create Topic',
+                                    icon: SailSVGAsset.newspaper,
+                                    onSelect: () => displayCreateTopicDialog(context),
+                                  ),
+                                  ExtraActionItem(
+                                    label: 'Graffiti Explorer',
+                                    icon: SailSVGAsset.sprayCan,
+                                    onSelect: () => displayGraffitiExplorerDialog(context),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                           SizedBox(
                             height: 300,

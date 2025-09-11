@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -43,6 +44,7 @@ class BottomNav extends StatelessWidget {
                   balanceSyncing: model.balanceSyncing,
                   showUnconfirmed: model.showUnconfirmed,
                   onToggleUnconfirmed: model.toggleUnconfirmed,
+                  usdBalance: model.usdBalance,
                 );
               },
             ),
@@ -527,6 +529,7 @@ class BalanceDisplay extends StatelessWidget {
   final bool balanceSyncing;
   final bool showUnconfirmed;
   final VoidCallback onToggleUnconfirmed;
+  final double? usdBalance;
 
   const BalanceDisplay({
     super.key,
@@ -535,6 +538,7 @@ class BalanceDisplay extends StatelessWidget {
     required this.balanceSyncing,
     required this.showUnconfirmed,
     required this.onToggleUnconfirmed,
+    required this.usdBalance,
   });
 
   @override
@@ -559,7 +563,9 @@ class BalanceDisplay extends StatelessWidget {
                   SailSkeletonizer(
                     description: 'Syncing wallet..',
                     enabled: balanceSyncing,
-                    child: SailText.secondary12(formatBitcoin(balance, symbol: 'BTC')),
+                    child: SailText.secondary12(
+                      '${formatBitcoin(balance, symbol: 'BTC')} ${usdBalance != null ? '(\$${formatWithThousandSpacers(usdBalance)})' : ''}',
+                    ),
                   ),
                 ],
               ),
@@ -593,6 +599,7 @@ class BalanceDisplay extends StatelessWidget {
 
 class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  PriceProvider get _priceProvider => GetIt.I.get<PriceProvider>();
   bool _showUnconfirmed = false;
 
   BalanceDisplayViewModel() {
@@ -612,6 +619,7 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   double get pendingBalance => _balanceProvider.pendingBalance;
   bool get balanceSyncing => !_balanceProvider.initialized;
   bool get showUnconfirmed => _showUnconfirmed;
+  double? get usdBalance => _priceProvider.btcToUsd(balance);
 
   void toggleUnconfirmed() {
     _showUnconfirmed = !_showUnconfirmed;

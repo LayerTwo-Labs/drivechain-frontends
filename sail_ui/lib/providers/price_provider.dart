@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:sail_ui/env.dart';
+import 'package:sail_ui/extensions/formatting.dart';
 
 /// Provider that fetches and maintains the current BTC/USD exchange rate
 class PriceProvider extends ChangeNotifier {
-  double? btcPriceUsd;
+  double? btcusd;
   DateTime? lastUpdated;
   String? error;
   bool isFetching = false;
@@ -55,7 +55,7 @@ class PriceProvider extends ChangeNotifier {
 
             // Convert to double if needed
             if (price is num) {
-              btcPriceUsd = price.toDouble();
+              btcusd = price.toDouble();
               lastUpdated = DateTime.now();
               error = null;
             } else {
@@ -80,14 +80,11 @@ class PriceProvider extends ChangeNotifier {
 
   /// Format the BTC price as a USD string
   String get formattedPrice {
-    if (btcPriceUsd == null) {
+    if (btcusd == null) {
       return 'Loading...';
     }
 
-    // Format with commas and 2 decimal places
-    final formatter = NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2);
-
-    return formatter.format(btcPriceUsd);
+    return '\$${formatWithThousandSpacers(btcusd!.round())}';
   }
 
   /// Get the age of the last price update
@@ -110,18 +107,18 @@ class PriceProvider extends ChangeNotifier {
 
   /// Convert BTC amount to USD
   double? btcToUsd(double btcAmount) {
-    if (btcPriceUsd == null) {
+    if (btcusd == null) {
       return null;
     }
-    return btcAmount * btcPriceUsd!;
+    return btcAmount * btcusd!;
   }
 
   /// Convert USD amount to BTC
   double? usdToBtc(double usdAmount) {
-    if (btcPriceUsd == null || btcPriceUsd == 0) {
+    if (btcusd == null || btcusd == 0) {
       return null;
     }
-    return usdAmount / btcPriceUsd!;
+    return usdAmount / btcusd!;
   }
 
   @override
