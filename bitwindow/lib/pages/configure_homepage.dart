@@ -20,7 +20,7 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
   @override
   Widget build(BuildContext context) {
     return SailPage(
-      widgetTitle: SailText.secondary12('Configure Homepage'),
+      widgetTitle: SailText.secondary12('Back to homepage'),
       body: ViewModelBuilder<ConfigureHomePageViewModel>.reactive(
         viewModelBuilder: () => ConfigureHomePageViewModel(),
         builder: (context, model, child) => QtPage(
@@ -34,7 +34,7 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: context.sailTheme.colors.backgroundSecondary,
+                    color: context.sailTheme.colors.background,
                     border: Border.all(color: context.sailTheme.colors.border),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -47,7 +47,7 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
                           SailColumn(
                             spacing: SailStyleValues.padding04,
                             children: [
-                              SailText.primary15('Configure Homepage'),
+                              SailText.primary15('Make your own homepage'),
                               SailText.secondary12(
                                 model.hasUnsavedChanges ? 'You have unsaved changes' : 'Drag widgets to reorder',
                               ),
@@ -59,12 +59,13 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
                             icon: SailSVGAsset.plus,
                             onPressed: () async => _showAddWidgetDialog(context, model),
                             variant: ButtonVariant.primary,
+                            skipLoading: true,
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       // Current widgets list
-                      SailText.primary13('Current Widgets'),
+                      SailText.primary13('Your current widgets'),
                       const SizedBox(height: 8),
                       Expanded(
                         child: model.tempConfiguration.widgets.isEmpty
@@ -90,14 +91,14 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
                                   ),
                                   canvasColor: context.sailTheme.colors.backgroundSecondary,
                                   shadowColor: Colors.transparent,
-                                  cardColor: context.sailTheme.colors.background,
+                                  cardColor: context.sailTheme.colors.backgroundSecondary,
                                   scaffoldBackgroundColor: context.sailTheme.colors.backgroundSecondary,
                                 ),
                                 child: ReorderableListView.builder(
                                   buildDefaultDragHandles: true,
                                   proxyDecorator: (child, index, animation) {
                                     return Material(
-                                      color: context.sailTheme.colors.background,
+                                      color: context.sailTheme.colors.backgroundSecondary,
                                       elevation: 4,
                                       borderRadius: BorderRadius.circular(8),
                                       shadowColor: Colors.black.withValues(alpha: 0.2),
@@ -114,7 +115,7 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
                                       key: ValueKey(widgetConfig.widgetId + index.toString()),
                                       margin: const EdgeInsets.only(bottom: 8),
                                       decoration: BoxDecoration(
-                                        color: context.sailTheme.colors.background,
+                                        color: context.sailTheme.colors.backgroundSecondary,
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(color: context.sailTheme.colors.border),
                                       ),
@@ -205,17 +206,6 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: context.sailTheme.colors.backgroundSecondary,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(6),
-                            topRight: Radius.circular(6),
-                          ),
-                        ),
-                        child: SailText.primary15('Preview'),
-                      ),
                       Expanded(
                         child: ClipRRect(
                           borderRadius: const BorderRadius.only(

@@ -14,8 +14,8 @@ class NewsProvider extends ChangeNotifier {
   List<OPReturn> opReturns = [];
   List<CoinNews> news = [];
   List<Topic> topics = [
-    Topic(id: Int64(1), topic: 'a1a1a1a1', name: 'US Weekly'),
-    Topic(id: Int64(2), topic: 'a2a2a2a2', name: 'Japan Weekly'),
+    Topic(id: Int64(1), topic: 'a1a1a1a1a1a1a1a1', name: 'US Weekly'),
+    Topic(id: Int64(2), topic: 'a2a2a2a2a2a2a2a2', name: 'Japan Weekly'),
   ];
   bool initialized = false;
   String? error;

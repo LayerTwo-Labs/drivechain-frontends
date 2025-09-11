@@ -10,7 +10,9 @@ import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
+import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
@@ -33,6 +35,8 @@ class RootPage extends StatefulWidget {
 
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver, WindowListener {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
+  final HomepageProvider _homepageProvider = GetIt.I.get<HomepageProvider>();
+  final BitwindowSettingsProvider _bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
   final _clientSettings = GetIt.I<ClientSettings>();
 
@@ -46,7 +50,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _notificationProvider.addListener(rebuildNotifications);
+    _homepageProvider.addListener(_onProviderChanged);
+    _bitwindowSettingsProvider.addListener(_onProviderChanged);
     _initializeWindowManager();
+  }
+
+  void _onProviderChanged() {
+    setState(() {});
   }
 
   void rebuildNotifications() {
@@ -428,9 +438,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         children: [
                           SailButton(
                             onPressed: () async {
+                              await _bitwindowSettingsProvider.incrementConfigureButtonPressCount();
                               await GetIt.I.get<AppRouter>().push(ConfigureHomeRoute());
                             },
-                            variant: ButtonVariant.primary,
+                            variant: _bitwindowSettingsProvider.settings.shouldShowPrimaryButton
+                                ? ButtonVariant.primary
+                                : ButtonVariant.ghost,
                             label: 'Configure Home Page',
                             small: true,
                           ),
@@ -477,6 +490,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void dispose() {
+    _homepageProvider.removeListener(_onProviderChanged);
+    _bitwindowSettingsProvider.removeListener(_onProviderChanged);
     GetIt.I.get<BinaryProvider>().onShutdown(
       shutdownOptions: ShutdownOptions(
         router: GetIt.I.get<AppRouter>(),

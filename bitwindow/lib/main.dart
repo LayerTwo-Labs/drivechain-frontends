@@ -13,6 +13,7 @@ import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
+import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
@@ -134,6 +135,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<HDWalletProvider>(() => HDWalletProvider(applicationDir!));
   GetIt.I.registerLazySingleton<BitDriveProvider>(() => BitDriveProvider());
   GetIt.I.registerLazySingleton<HomepageProvider>(() => HomepageProvider());
+  GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
 
   return (applicationDir, logFile, log);
 }

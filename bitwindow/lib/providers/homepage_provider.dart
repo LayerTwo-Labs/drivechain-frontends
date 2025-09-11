@@ -1,4 +1,5 @@
 import 'package:bitwindow/models/homepage_configuration.dart';
+import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -45,6 +46,20 @@ class HomepageProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasUnsavedChanges => _hasUnsavedChanges;
 
+  bool get isConfiguredAwayFromDefault {
+    // Check if current configuration is different from default
+    final defaultConfig = HomepageConfiguration.defaultConfiguration;
+    if (_configuration.widgets.length != defaultConfig.widgets.length) {
+      return true;
+    }
+    for (int i = 0; i < _configuration.widgets.length; i++) {
+      if (_configuration.widgets[i].widgetId != defaultConfig.widgets[i].widgetId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   HomepageProvider() {
     _loadConfiguration();
   }
@@ -76,6 +91,12 @@ class HomepageProvider extends ChangeNotifier {
       await _settings.setValue(setting);
       _configuration = _tempConfiguration;
       _hasUnsavedChanges = false;
+
+      // Mark homepage as configured if it's different from default
+      if (isConfiguredAwayFromDefault) {
+        final bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
+        await bitwindowSettingsProvider.markHomepageAsConfigured();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
