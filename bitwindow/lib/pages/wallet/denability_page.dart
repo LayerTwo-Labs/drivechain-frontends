@@ -64,70 +64,6 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   String sortColumn = 'txid';
   bool sortAscending = true;
 
-  void onSort(String column) {
-    setState(() {
-      if (sortColumn == column) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = column;
-        sortAscending = true;
-      }
-      sortEntries();
-    });
-  }
-
-  void sortEntries() {
-    widget.utxos.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
-
-      switch (sortColumn) {
-        case 'id':
-          aValue = a.denialInfo.id;
-          bValue = b.denialInfo.id;
-          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-
-        case 'txid':
-          // Sort by combined txid:vout string
-          final aKey = a.output;
-          final bKey = b.output;
-          return sortAscending ? aKey.compareTo(bKey) : bKey.compareTo(aKey);
-        case 'amount':
-          return sortAscending ? a.valueSats.compareTo(b.valueSats) : b.valueSats.compareTo(a.valueSats);
-        case 'hops':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
-          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
-          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
-          aValue = a.denialInfo.executions.length;
-          bValue = b.denialInfo.executions.length;
-          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-        case 'next':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
-          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
-          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
-          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) return 0;
-          if (!a.denialInfo.hasNextExecutionTime()) return sortAscending ? 1 : -1;
-          if (!b.denialInfo.hasNextExecutionTime()) return sortAscending ? -1 : 1;
-          return sortAscending
-              ? a.denialInfo.nextExecutionTime.toDateTime().compareTo(b.denialInfo.nextExecutionTime.toDateTime())
-              : b.denialInfo.nextExecutionTime.toDateTime().compareTo(a.denialInfo.nextExecutionTime.toDateTime());
-        case 'status':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
-          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
-          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
-          aValue = a.denialInfo.hasCancelTime()
-              ? 'Cancelled'
-              : (a.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
-          bValue = b.denialInfo.hasCancelTime()
-              ? 'Cancelled'
-              : (b.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
-          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-        default:
-          return 0;
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return SailCard(
@@ -294,6 +230,70 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
         ],
       ),
     );
+  }
+
+  void onSort(String column) {
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
+      sortEntries();
+    });
+  }
+
+  void sortEntries() {
+    widget.utxos.sort((a, b) {
+      dynamic aValue;
+      dynamic bValue;
+
+      switch (sortColumn) {
+        case 'id':
+          aValue = a.denialInfo.id;
+          bValue = b.denialInfo.id;
+          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+
+        case 'txid':
+          // Sort by combined txid:vout string
+          final aKey = a.output;
+          final bKey = b.output;
+          return sortAscending ? aKey.compareTo(bKey) : bKey.compareTo(aKey);
+        case 'amount':
+          return sortAscending ? a.valueSats.compareTo(b.valueSats) : b.valueSats.compareTo(a.valueSats);
+        case 'hops':
+          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
+          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
+          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
+          aValue = a.denialInfo.executions.length;
+          bValue = b.denialInfo.executions.length;
+          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+        case 'next':
+          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
+          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
+          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
+          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) return 0;
+          if (!a.denialInfo.hasNextExecutionTime()) return sortAscending ? 1 : -1;
+          if (!b.denialInfo.hasNextExecutionTime()) return sortAscending ? -1 : 1;
+          return sortAscending
+              ? a.denialInfo.nextExecutionTime.toDateTime().compareTo(b.denialInfo.nextExecutionTime.toDateTime())
+              : b.denialInfo.nextExecutionTime.toDateTime().compareTo(a.denialInfo.nextExecutionTime.toDateTime());
+        case 'status':
+          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
+          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
+          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
+          aValue = a.denialInfo.hasCancelTime()
+              ? 'Cancelled'
+              : (a.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
+          bValue = b.denialInfo.hasCancelTime()
+              ? 'Cancelled'
+              : (b.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
+          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+        default:
+          return 0;
+      }
+    });
   }
 
   void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {

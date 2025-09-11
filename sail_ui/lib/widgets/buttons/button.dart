@@ -390,7 +390,7 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
             onTapDown: _handleTapDown,
             onTapUp: _handleTapUp,
             onTapCancel: _handleTapCancel,
-            onTap: widget.onPressed,
+            onTap: widget.disabled ? null : widget.onPressed,
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {

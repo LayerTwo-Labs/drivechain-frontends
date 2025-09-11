@@ -856,23 +856,17 @@ class GraffitiExplorerView extends StatelessWidget {
     return ViewModelBuilder<GraffitiExplorerViewModel>.reactive(
       viewModelBuilder: () => GraffitiExplorerViewModel(),
       builder: (context, viewModel, child) {
-        return SailColumn(
-          spacing: SailStyleValues.padding16,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          leadingSpacing: true,
-          children: [
-            // add button here, that opens ANOTHER dialog, where you can enter a message.
-            SailButton(
-              label: 'New Graffiti',
-              onPressed: () => newGraffitiDialog(context),
-            ),
-            Expanded(
-              child: GraffitiTable(
-                entries: viewModel.entries,
-                onSort: viewModel.onSort,
-              ),
-            ),
-          ],
+        return SailCard(
+          title: 'Graffiti Explorer',
+          subtitle: 'Browse blockchain graffiti and OP_RETURN data',
+          widgetHeaderEnd: SailButton(
+            label: 'New Graffiti',
+            onPressed: () => newGraffitiDialog(context),
+          ),
+          child: GraffitiTable(
+            entries: viewModel.entries,
+            onSort: viewModel.onSort,
+          ),
         );
       },
     );
@@ -965,19 +959,19 @@ class GraffitiTable extends StatelessWidget {
       getRowId: (index) => entries[index].id.toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Fee', onSort: () => onSort('fee')),
-        SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
-        SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
         SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
         SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
+        SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
+        SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
       ],
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
           SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSats.toInt()))),
-          SailTableCell(value: entry.message),
-          SailTableCell(value: entry.txid),
           SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
           SailTableCell(value: entry.height == 0 ? '-' : entry.height.toString()),
+          SailTableCell(value: entry.txid),
+          SailTableCell(value: entry.message),
         ];
       },
       rowCount: entries.length,

@@ -1,6 +1,8 @@
 import 'package:bitwindow/models/homepage_configuration.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
+import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:flutter/material.dart';
@@ -135,6 +137,39 @@ class HomepageWidgetCatalog {
             ),
           );
         },
+      ),
+    ),
+    'deniability': HomepageWidgetInfo(
+      id: 'deniability',
+      name: 'Deniability',
+      description: 'UTXO deniability management',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.iconWallet,
+      builder: (_) => SizedBox(
+        height: 300,
+        child: const DeniabilityTab(newWindowButton: null),
+      ),
+    ),
+    'block_explorer': HomepageWidgetInfo(
+      id: 'block_explorer',
+      name: 'Block Explorer',
+      description: 'Browse blockchain blocks and transactions',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.blocks,
+      builder: (_) => SizedBox(
+        height: 500,
+        child: const BlockExplorerDialog(),
+      ),
+    ),
+    'graffiti_explorer': HomepageWidgetInfo(
+      id: 'graffiti_explorer',
+      name: 'Graffiti Explorer',
+      description: 'Browse blockchain graffiti and OP_RETURN data',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.sprayCan,
+      builder: (_) => SizedBox(
+        height: 500,
+        child: const GraffitiExplorerView(),
       ),
     ),
   };
