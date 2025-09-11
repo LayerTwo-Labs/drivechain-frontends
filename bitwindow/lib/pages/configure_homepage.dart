@@ -169,25 +169,23 @@ class _ConfigureHomePageState extends State<ConfigureHomePage> {
                           Expanded(child: Container()),
                           SailButton(
                             label: 'Undo Changes',
-                            onPressed: model.hasUnsavedChanges
-                                ? null
-                                : () async {
-                                    model.undoChanges();
-                                  },
+                            onPressed: () async {
+                              model.undoChanges();
+                            },
                             variant: ButtonVariant.secondary,
+                            disabled: !model.hasUnsavedChanges,
                           ),
                           SailButton(
                             label: 'Save Changes',
-                            onPressed: !model.hasUnsavedChanges
-                                ? null
-                                : () async {
-                                    await model.saveConfiguration();
-                                    if (context.mounted) {
-                                      showSnackBar(context, 'Homepage configuration saved!');
-                                    }
-                                  },
+                            onPressed: () async {
+                              await model.saveConfiguration();
+                              if (context.mounted) {
+                                showSnackBar(context, 'Homepage configuration saved!');
+                              }
+                            },
                             variant: ButtonVariant.primary,
                             loading: model.isLoading,
+                            disabled: !model.hasUnsavedChanges,
                           ),
                         ],
                       ),
