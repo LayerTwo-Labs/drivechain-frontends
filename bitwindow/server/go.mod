@@ -17,7 +17,7 @@ require (
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.43.0
 	golang.org/x/sync v0.16.0 // indirect
-	google.golang.org/protobuf v1.36.8
+	google.golang.org/protobuf v1.36.9
 )
 
 require (
