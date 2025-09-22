@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     libglu1-mesa
 
-# Install Flutter SDK (pinned to version 3.35.3)
-RUN git clone https://github.com/flutter/flutter.git /opt/flutter -b 3.35.3
+# Install Flutter SDK (pinned to version 3.35.4)
+RUN git clone https://github.com/flutter/flutter.git /opt/flutter -b 3.35.4
 ENV PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:/opt/flutter/bin:${PATH}"
 
 WORKDIR /builder
