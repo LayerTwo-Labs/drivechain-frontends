@@ -7,7 +7,7 @@ version: 0.0.24
 
 environment:
   sdk: 3.9.2
-  flutter: 3.35.3
+  flutter: 3.35.4
 
 dependencies:
   sentry_flutter: ^9.6.0
