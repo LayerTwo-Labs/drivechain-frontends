@@ -16,6 +16,7 @@ import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -89,7 +90,145 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   members: [
                     PlatformMenuItem(
                       label: 'About bitwindow',
-                      onSelected: null,
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            final theme = SailTheme.of(context);
+                            return Dialog(
+                              backgroundColor: theme.colors.backgroundSecondary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                side: BorderSide(
+                                  color: theme.colors.border,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Container(
+                                width: 800,
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SailText.primary20('About Drivechain'),
+                                    const SizedBox(height: 16),
+                                    SelectableText.rich(
+                                      TextSpan(
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: theme.colors.text,
+                                          fontFamily: 'Inter',
+                                          height: 1.5,
+                                        ),
+                                        children: [
+                                          const TextSpan(text: 'Drivechain version v0.47.00.0-unk (64-bit)\n\n'),
+                                          const TextSpan(text: 'Copyright (C) 2009-2024 The Drivechain developers\n'),
+                                          const TextSpan(
+                                            text: 'Copyright (C) 2009-2024 The Bitcoin Core developers\n\n',
+                                          ),
+                                          const TextSpan(
+                                            text: 'Please contribute if you find Drivechain useful. Visit ',
+                                          ),
+                                          TextSpan(
+                                            text: 'http://drivechain.info',
+                                            style: TextStyle(
+                                              color: theme.colors.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () async {
+                                                await launchUrl(Uri.parse('http://drivechain.info'));
+                                              },
+                                          ),
+                                          const TextSpan(text: ' for further information about the software.\n'),
+                                          const TextSpan(
+                                            text: 'The source code for this application is available from ',
+                                          ),
+                                          TextSpan(
+                                            text: 'https://github.com/LayerTwo-Labs/drivechain-frontends',
+                                            style: TextStyle(
+                                              color: theme.colors.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () async {
+                                                await launchUrl(
+                                                  Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends'),
+                                                );
+                                              },
+                                          ),
+                                          const TextSpan(
+                                            text: '. The source code for the underlying enforcer is available from ',
+                                          ),
+                                          TextSpan(
+                                            text: 'https://github.com/LayerTwo-Labs/bip300301_enforcer',
+                                            style: TextStyle(
+                                              color: theme.colors.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () async {
+                                                await launchUrl(
+                                                  Uri.parse('https://github.com/LayerTwo-Labs/bip300301_enforcer'),
+                                                );
+                                              },
+                                          ),
+                                          const TextSpan(text: '.\n\n'),
+                                          const TextSpan(text: 'This is experimental software.\n'),
+                                          const TextSpan(
+                                            text:
+                                                'Distributed under the MIT software license, see the accompanying file COPYING or ',
+                                          ),
+                                          TextSpan(
+                                            text: 'https://opensource.org/licenses/MIT',
+                                            style: TextStyle(
+                                              color: theme.colors.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () async {
+                                                await launchUrl(Uri.parse('https://opensource.org/licenses/MIT'));
+                                              },
+                                          ),
+                                          const TextSpan(text: '\n\n'),
+                                          const TextSpan(
+                                            text:
+                                                'This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit ',
+                                          ),
+                                          TextSpan(
+                                            text: 'https://www.openssl.org',
+                                            style: TextStyle(
+                                              color: theme.colors.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () async {
+                                                await launchUrl(Uri.parse('https://www.openssl.org'));
+                                              },
+                                          ),
+                                          const TextSpan(
+                                            text:
+                                                ' and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard.',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: SailButton(
+                                        onPressed: () async => Navigator.of(context).pop(),
+                                        label: 'OK',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                     PlatformMenuItem(
                       label: 'Change Theme',
