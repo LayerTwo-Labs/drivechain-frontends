@@ -169,6 +169,22 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
           ],
         ),
 
+        // Mainnet Toggle
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Connect to Bitcoin mainnet'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailToggle(
+              label: 'Enable Mainnet',
+              value: _settingsProvider.mainnetToggle,
+              onChanged: (value) async {
+                await _settingsProvider.updateMainnetToggle(value);
+              },
+            ),
+          ],
+        ),
+
         // Test Sidechains Toggle
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

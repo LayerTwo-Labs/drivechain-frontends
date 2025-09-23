@@ -1,4 +1,3 @@
-import 'package:bitwindow/models/homepage_configuration.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
@@ -8,24 +7,6 @@ import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-
-class HomepageWidgetInfo {
-  final String id;
-  final String name;
-  final String description;
-  final WidgetSize size;
-  final SailSVGAsset icon;
-  final Widget Function(Map<String, dynamic> settings) builder;
-
-  const HomepageWidgetInfo({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.size,
-    required this.icon,
-    required this.builder,
-  });
-}
 
 class HomepageWidgetCatalog {
   static final Map<String, HomepageWidgetInfo> _widgets = {
@@ -188,6 +169,10 @@ class HomepageWidgetCatalog {
 
   static List<HomepageWidgetInfo> getHalfWidthWidgets() {
     return _widgets.values.where((w) => w.size == WidgetSize.half).toList();
+  }
+
+  static Map<String, HomepageWidgetInfo> getCatalogMap() {
+    return Map.from(_widgets);
   }
 
   static Widget buildWidget(String id, {Map<String, dynamic> settings = const {}}) {

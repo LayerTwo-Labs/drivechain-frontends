@@ -1,17 +1,15 @@
-import 'package:bitwindow/models/bitwindow_homepage_configuration.dart';
-import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
-import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:thunder/widgets/thunder_widget_catalog.dart';
 
-class HomepageConfigurationSetting extends SettingValue<HomepageConfiguration> {
+class ThunderHomepageConfigurationSetting extends SettingValue<HomepageConfiguration> {
   @override
-  String get key => 'homepage_configuration';
+  String get key => 'thunder_homepage_configuration';
 
-  HomepageConfigurationSetting({super.newValue});
+  ThunderHomepageConfigurationSetting({super.newValue});
 
   @override
-  HomepageConfiguration defaultValue() => BitwindowHomepageConfiguration.defaultConfiguration;
+  HomepageConfiguration defaultValue() => ThunderHomepageConfiguration.defaultConfiguration;
 
   @override
   HomepageConfiguration? fromJson(String jsonString) {
@@ -29,15 +27,28 @@ class HomepageConfigurationSetting extends SettingValue<HomepageConfiguration> {
 
   @override
   SettingValue<HomepageConfiguration> withValue([HomepageConfiguration? value]) {
-    return HomepageConfigurationSetting(newValue: value);
+    return ThunderHomepageConfigurationSetting(newValue: value);
   }
 }
 
-class BitwindowHomepageProvider extends HomepageProvider {
+class ThunderHomepageConfiguration {
+  static HomepageConfiguration get defaultConfiguration {
+    return HomepageConfiguration(
+      widgets: [
+        HomepageWidgetConfig(widgetId: 'balance_card'),
+        HomepageWidgetConfig(widgetId: 'receive_card'),
+        HomepageWidgetConfig(widgetId: 'send_card'),
+        HomepageWidgetConfig(widgetId: 'utxo_table'),
+      ],
+    );
+  }
+}
+
+class ThunderHomepageProvider extends HomepageProvider {
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
-  HomepageConfiguration _configuration = BitwindowHomepageConfiguration.defaultConfiguration;
-  HomepageConfiguration _tempConfiguration = BitwindowHomepageConfiguration.defaultConfiguration;
+  HomepageConfiguration _configuration = ThunderHomepageConfiguration.defaultConfiguration;
+  HomepageConfiguration _tempConfiguration = ThunderHomepageConfiguration.defaultConfiguration;
   bool _isLoading = false;
   bool _hasUnsavedChanges = false;
 
@@ -50,21 +61,7 @@ class BitwindowHomepageProvider extends HomepageProvider {
   @override
   bool get hasUnsavedChanges => _hasUnsavedChanges;
 
-  bool get isConfiguredAwayFromDefault {
-    // Check if current configuration is different from default
-    final defaultConfig = BitwindowHomepageConfiguration.defaultConfiguration;
-    if (_configuration.widgets.length != defaultConfig.widgets.length) {
-      return true;
-    }
-    for (int i = 0; i < _configuration.widgets.length; i++) {
-      if (_configuration.widgets[i].widgetId != defaultConfig.widgets[i].widgetId) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  BitwindowHomepageProvider() {
+  ThunderHomepageProvider() {
     _loadConfiguration();
   }
 
@@ -73,12 +70,12 @@ class BitwindowHomepageProvider extends HomepageProvider {
     notifyListeners();
 
     try {
-      final setting = HomepageConfigurationSetting();
+      final setting = ThunderHomepageConfigurationSetting();
       final loadedSetting = await _settings.getValue(setting);
       _configuration = loadedSetting.value;
       _tempConfiguration = _configuration;
     } catch (e) {
-      _configuration = BitwindowHomepageConfiguration.defaultConfiguration;
+      _configuration = ThunderHomepageConfiguration.defaultConfiguration;
       _tempConfiguration = _configuration;
     } finally {
       _isLoading = false;
@@ -92,16 +89,10 @@ class BitwindowHomepageProvider extends HomepageProvider {
     notifyListeners();
 
     try {
-      final setting = HomepageConfigurationSetting(newValue: _tempConfiguration);
+      final setting = ThunderHomepageConfigurationSetting(newValue: _tempConfiguration);
       await _settings.setValue(setting);
       _configuration = _tempConfiguration;
       _hasUnsavedChanges = false;
-
-      // Mark homepage as configured if it's different from default
-      if (isConfiguredAwayFromDefault) {
-        final bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
-        await bitwindowSettingsProvider.markHomepageAsConfigured();
-      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -129,12 +120,6 @@ class BitwindowHomepageProvider extends HomepageProvider {
     notifyListeners();
   }
 
-  void updateWidgetSettings(int index, Map<String, dynamic> settings) {
-    _tempConfiguration = _tempConfiguration.updateWidgetSettings(index, settings);
-    _hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
   @override
   void undoChanges() {
     _tempConfiguration = _configuration;
@@ -142,14 +127,8 @@ class BitwindowHomepageProvider extends HomepageProvider {
     notifyListeners();
   }
 
-  void cancelChanges() {
-    _tempConfiguration = _configuration;
-    _hasUnsavedChanges = false;
-    notifyListeners();
-  }
-
   @override
   Map<String, HomepageWidgetInfo> getWidgetCatalog() {
-    return HomepageWidgetCatalog.getCatalogMap();
+    return ThunderWidgetCatalog.getCatalogMap();
   }
 }

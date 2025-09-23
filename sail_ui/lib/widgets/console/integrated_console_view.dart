@@ -189,8 +189,9 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     }
 
     if (availableCLIs['bitcoin-cli'] == true) {
-      terminal.write('\r\n\x1b[93mNote: bitcoin-cli automatically includes -rpcuser=user -rpcpassword=password -signet\x1b[0m\r\n');
-      terminal.write('\x1b[93mTo get started, try typing `bitcoin-cli help` or `bitcoin-cli getblockchaininfo`\x1b[0m\r\n\r\n');
+      terminal.write(
+        '\r\n\x1b[93mTo get started, try typing `bitcoin-cli help` or `bitcoin-cli getblockchaininfo`\x1b[0m\r\n\r\n',
+      );
     } else {
       terminal.write('\r\n');
     }

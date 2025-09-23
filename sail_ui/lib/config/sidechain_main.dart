@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/pages/router.dart';
+import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 // register all global dependencies, for use in views, or in view models
@@ -53,6 +54,7 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
   unawaited(syncProvider.fetch());
   GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => SidechainTransactionsProvider());
+  GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
 }
 
 Future<File> getLogFile(Directory appDir) async {

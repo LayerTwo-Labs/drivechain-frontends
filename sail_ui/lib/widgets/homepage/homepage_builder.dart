@@ -1,15 +1,15 @@
-import 'package:bitwindow/models/homepage_configuration.dart';
-import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class HomepageBuilder extends StatelessWidget {
   final HomepageConfiguration configuration;
+  final Map<String, HomepageWidgetInfo> widgetCatalog;
   final bool isPreview;
 
   const HomepageBuilder({
     super.key,
     required this.configuration,
+    required this.widgetCatalog,
     this.isPreview = false,
   });
 
@@ -56,17 +56,14 @@ class HomepageBuilder extends StatelessWidget {
 
     for (int i = 0; i < configuration.widgets.length; i++) {
       final widgetConfig = configuration.widgets[i];
-      final widgetInfo = HomepageWidgetCatalog.getWidget(widgetConfig.widgetId);
+      final widgetInfo = widgetCatalog[widgetConfig.widgetId];
 
       if (widgetInfo == null) {
         continue;
       }
 
       final widget = _wrapWidget(
-        HomepageWidgetCatalog.buildWidget(
-          widgetConfig.widgetId,
-          settings: widgetConfig.settings,
-        ),
+        _buildWidget(widgetConfig.widgetId, settings: widgetConfig.settings),
         widgetInfo,
         isPreview,
       );
@@ -111,6 +108,23 @@ class HomepageBuilder extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: widgets.map((widget) => Expanded(child: widget)).toList(),
     );
+  }
+
+  Widget _buildWidget(String id, {Map<String, dynamic> settings = const {}}) {
+    final widgetInfo = widgetCatalog[id];
+    if (widgetInfo == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.red),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text('Widget not found: $id'),
+        ),
+      );
+    }
+    return widgetInfo.builder(settings);
   }
 
   Widget _wrapWidget(Widget widget, HomepageWidgetInfo info, bool isPreview) {
