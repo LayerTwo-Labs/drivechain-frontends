@@ -51,12 +51,29 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     );
 
     terminal.onOutput = (data) {
-      pty.write(const Utf8Encoder().convert(data));
+      final processedData = _processCommand(data);
+      pty.write(const Utf8Encoder().convert(processedData));
     };
 
     terminal.onResize = (w, h, pw, ph) {
       pty.resize(h, w);
     };
+  }
+
+  String _processCommand(String data) {
+    // Check if the command starts with bitcoin-cli and doesn't already have the required params
+    final trimmed = data.trim();
+    if (trimmed.startsWith('bitcoin-cli') && !trimmed.contains('-rpcuser=')) {
+      // Insert the default parameters after bitcoin-cli
+      final parts = trimmed.split(' ');
+      if (parts.isNotEmpty && parts[0] == 'bitcoin-cli') {
+        parts.insert(1, '-rpcuser=user');
+        parts.insert(2, '-rpcpassword=password');
+        parts.insert(3, '-signet');
+        return '${parts.join(' ')}\n';
+      }
+    }
+    return data;
   }
 
   Future<Map<String, String>> _setupTerminal() async {
@@ -171,7 +188,12 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       }
     }
 
-    terminal.write('\r\n');
+    if (availableCLIs['bitcoin-cli'] == true) {
+      terminal.write('\r\n\x1b[93mNote: bitcoin-cli automatically includes -rpcuser=user -rpcpassword=password -signet\x1b[0m\r\n');
+      terminal.write('\x1b[93mTo get started, try typing `bitcoin-cli help` or `bitcoin-cli getblockchaininfo`\x1b[0m\r\n\r\n');
+    } else {
+      terminal.write('\r\n');
+    }
   }
 
   String _getShell() {
