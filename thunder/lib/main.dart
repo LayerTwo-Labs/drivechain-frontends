@@ -11,6 +11,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/console/integrated_console_view.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:thunder/config/runtime_args.dart';
+import 'package:thunder/providers/thunder_homepage_provider.dart';
 import 'package:thunder/routing/router.dart';
 import 'package:thunder/rpc/models/active_sidechains.dart';
 import 'package:window_manager/window_manager.dart';
@@ -74,6 +75,12 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
     store: store,
     log: log,
   );
+
+  // Register homepage provider
+  final thunderHomepageProvider = ThunderHomepageProvider();
+  GetIt.I.registerLazySingleton<ThunderHomepageProvider>(() => thunderHomepageProvider);
+  // Register the abstract HomepageProvider as an alias to the concrete implementation
+  GetIt.I.registerLazySingleton<HomepageProvider>(() => thunderHomepageProvider);
 
   return (applicationDir, logFile, log);
 }

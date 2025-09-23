@@ -4,6 +4,8 @@ import 'package:sail_ui/pages/router.gr.dart';
 import 'package:thunder/pages/tabs/console_page.dart';
 import 'package:thunder/pages/tabs/home_page.dart';
 import 'package:thunder/pages/tabs/settings_page.dart';
+import 'package:thunder/pages/tabs/thunder_configure_homepage_page.dart';
+import 'package:thunder/pages/tabs/thunder_homepage.dart';
 import 'package:thunder/pages/test_page.dart';
 
 part 'router.gr.dart';
@@ -36,7 +38,7 @@ class AppRouter extends RootStackRouter {
           page: ParentChainRoute.page,
         ),
         AutoRoute(
-          page: SidechainOverviewTabRoute.page,
+          page: ThunderHomepageRoute.page,
           initial: true,
         ),
         AutoRoute(
@@ -52,6 +54,9 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       page: ShutDownRoute.page,
+    ),
+    AutoRoute(
+      page: ThunderConfigureHomepageRoute.page,
     ),
 
     /// This route is used in tests so that we can pump a widget into a route

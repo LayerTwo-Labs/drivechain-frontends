@@ -20,10 +20,10 @@ enum Tabs {
   // parent chain routes
   ParentChainPeg,
 
-  // sidechain balance/transfer route
-  SidechainOverview,
+  // thunder configurable homepage
+  ThunderHomepage,
 
-  // sidechain balance/transfer route
+  // sidechain console route
   Console,
 
   // trailing common routes
@@ -122,12 +122,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
       child: Scaffold(
         backgroundColor: theme.colors.background,
         body: auto_router.AutoTabsRouter.builder(
-          homeIndex: Tabs.ParentChainPeg.index,
+          homeIndex: Tabs.ThunderHomepage.index,
           routes: [
             // parent chain routes
             ParentChainRoute(),
-            // sidechain balance/transfer route
-            SidechainOverviewTabRoute(),
+            // thunder configurable homepage
+            ThunderHomepageRoute(),
             // sidechain console route
             ConsoleTabRoute(),
             // trailing common routes
@@ -150,9 +150,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                       ),
                       TopNavRoute(
                         label: 'Overview',
-                        optionalKey: Tabs.SidechainOverview.index,
+                        optionalKey: Tabs.ThunderHomepage.index,
                         onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+                          tabsRouter.setActiveIndex(Tabs.ThunderHomepage.index);
                         },
                       ),
                       TopNavRoute(
@@ -166,6 +166,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         icon: SailSVGAsset.settings,
                       ),
                     ],
+                    endWidget: SailRow(
+                      children: [
+                        SailButton(
+                          onPressed: () async {
+                            await GetIt.I.get<AppRouter>().push(ThunderConfigureHomepageRoute());
+                          },
+                          variant: ButtonVariant.primary,
+                          label: 'Configure Homepage',
+                          small: true,
+                        ),
+                      ],
+                    ),
                   ),
                   body: Column(
                     children: [

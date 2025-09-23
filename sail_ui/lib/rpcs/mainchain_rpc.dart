@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -154,27 +155,51 @@ class MainchainRPCLive extends MainchainRPC {
       return extraArgs;
     }
 
-    // only add sidechain args if the conf file is not present
-    final sidechainArgs = [
-      '-signet',
-      '-server',
-      '-addnode=172.105.148.135:38333',
-      '-signetblocktime=60',
-      '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
-      '-acceptnonstdtxn',
-      '-listen',
-      '-rpcbind=0.0.0.0',
-      '-rpcallowip=0.0.0.0/0',
-      '-txindex',
-      '-fallbackfee=0.00021',
-      '-zmqpubsequence=tcp://0.0.0.0:29000',
-      '-rpcthreads=40',
-      '-rpcworkqueue=100',
-      '-rest',
-    ];
-    log.i('${BitcoinCore().confFile()} not found, adding sidechain args: $sidechainArgs');
+    // Check if mainnet mode is enabled
+    final settingsProvider = GetIt.I.get<SettingsProvider>();
+    final isMainnet = settingsProvider.mainnetToggle;
 
-    final finalArgs = cleanArgs(mainchainConf, [...sidechainArgs, ...binary.extraBootArgs]);
+    List<String> networkArgs;
+    if (isMainnet) {
+      // Mainnet configuration - no signet, addnode, or fallbackfee
+      log.i('Mainnet mode enabled, using mainnet args');
+      networkArgs = [
+        '-server',
+        '-acceptnonstdtxn',
+        '-listen',
+        '-rpcbind=0.0.0.0',
+        '-rpcallowip=0.0.0.0/0',
+        '-txindex',
+        '-zmqpubsequence=tcp://0.0.0.0:29000',
+        '-rpcthreads=40',
+        '-rpcworkqueue=100',
+        '-rest',
+      ];
+    } else {
+      // Signet configuration (original sidechain args)
+      log.i('Signet mode enabled, using signet args');
+      networkArgs = [
+        '-signet',
+        '-server',
+        '-addnode=172.105.148.135:38333',
+        '-signetblocktime=60',
+        '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
+        '-acceptnonstdtxn',
+        '-listen',
+        '-rpcbind=0.0.0.0',
+        '-rpcallowip=0.0.0.0/0',
+        '-txindex',
+        '-fallbackfee=0.00021',
+        '-zmqpubsequence=tcp://0.0.0.0:29000',
+        '-rpcthreads=40',
+        '-rpcworkqueue=100',
+        '-rest',
+      ];
+    }
+
+    log.i('${BitcoinCore().confFile()} not found, adding network args: $networkArgs');
+
+    final finalArgs = cleanArgs(mainchainConf, [...networkArgs, ...binary.extraBootArgs]);
 
     log.i('Final binary args: $finalArgs');
     return finalArgs;

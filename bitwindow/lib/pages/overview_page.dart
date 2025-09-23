@@ -3,11 +3,10 @@ import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
-import 'package:bitwindow/models/homepage_configuration.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:bitwindow/providers/homepage_provider.dart';
+import 'package:bitwindow/providers/homepage_provider.dart' as bitwindow;
 import 'package:bitwindow/providers/news_provider.dart';
-import 'package:bitwindow/widgets/homepage_builder.dart';
+import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -31,6 +30,7 @@ class _OverviewPageState extends State<OverviewPage> {
       builder: (context, viewModel, child) => QtPage(
         child: HomepageBuilder(
           configuration: viewModel.homepageConfiguration,
+          widgetCatalog: HomepageWidgetCatalog.getCatalogMap(),
           isPreview: false,
         ),
       ),
@@ -39,7 +39,7 @@ class _OverviewPageState extends State<OverviewPage> {
 }
 
 class OverviewViewModel extends BaseViewModel {
-  HomepageProvider get _homepageProvider => GetIt.I.get<HomepageProvider>();
+  bitwindow.BitwindowHomepageProvider get _homepageProvider => GetIt.I.get<bitwindow.BitwindowHomepageProvider>();
   HomepageConfiguration get homepageConfiguration => _homepageProvider.configuration;
 
   OverviewViewModel() {

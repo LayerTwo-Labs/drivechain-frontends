@@ -134,7 +134,10 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<AddressBookProvider>(() => AddressBookProvider());
   GetIt.I.registerLazySingleton<HDWalletProvider>(() => HDWalletProvider(applicationDir!));
   GetIt.I.registerLazySingleton<BitDriveProvider>(() => BitDriveProvider());
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => HomepageProvider());
+  final bitwindowHomepageProvider = BitwindowHomepageProvider();
+  GetIt.I.registerLazySingleton<BitwindowHomepageProvider>(() => bitwindowHomepageProvider);
+  // Register the abstract HomepageProvider as an alias to the concrete implementation
+  GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
 
   return (applicationDir, logFile, log);
@@ -355,6 +358,8 @@ Future<void> bootBinaries(Logger log) async {
 
   await mainchainRPC.testConnection();
   await enforcerRPC.testConnection();
+
+  // TODO: if in mainchainmode, add bitcoincore.host=localhost:8332
 
   if (!mainchainRPC.connected) {
     log.i('MainchainRPC not connected, adding --gui-booted-mainchain boot arg');

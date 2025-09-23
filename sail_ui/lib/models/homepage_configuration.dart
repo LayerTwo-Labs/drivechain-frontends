@@ -45,17 +45,6 @@ class HomepageConfiguration {
     DateTime? lastModified,
   }) : lastModified = lastModified ?? DateTime.now();
 
-  static HomepageConfiguration get defaultConfiguration {
-    return HomepageConfiguration(
-      widgets: [
-        HomepageWidgetConfig(widgetId: 'fireplace_stats'),
-        HomepageWidgetConfig(widgetId: 'coin_news_large'),
-        HomepageWidgetConfig(widgetId: 'latest_transactions'),
-        HomepageWidgetConfig(widgetId: 'latest_blocks'),
-      ],
-    );
-  }
-
   Map<String, dynamic> toMap() {
     return {
       'widgets': widgets.map((w) => w.toMap()).toList(),

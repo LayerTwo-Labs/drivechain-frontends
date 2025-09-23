@@ -104,3 +104,35 @@ class SettingsTabRoute extends PageRouteInfo<void> {
     },
   );
 }
+
+/// generated route for
+/// [ThunderConfigureHomepagePage]
+class ThunderConfigureHomepageRoute extends PageRouteInfo<void> {
+  const ThunderConfigureHomepageRoute({List<PageRouteInfo>? children})
+    : super(ThunderConfigureHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'ThunderConfigureHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ThunderConfigureHomepagePage();
+    },
+  );
+}
+
+/// generated route for
+/// [ThunderHomepagePage]
+class ThunderHomepageRoute extends PageRouteInfo<void> {
+  const ThunderHomepageRoute({List<PageRouteInfo>? children})
+    : super(ThunderHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'ThunderHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ThunderHomepagePage();
+    },
+  );
+}
