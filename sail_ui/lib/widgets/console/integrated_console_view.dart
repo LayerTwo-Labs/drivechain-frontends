@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pty/flutter_pty.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:xterm/xterm.dart';
 
@@ -69,7 +70,29 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       if (parts.isNotEmpty && parts[0] == 'bitcoin-cli') {
         parts.insert(1, '-rpcuser=user');
         parts.insert(2, '-rpcpassword=password');
-        parts.insert(3, '-signet');
+
+        final network = GetIt.I.get<SettingsProvider>().network;
+        switch (network) {
+          case Network.NETWORK_REGTEST:
+            parts.insert(3, '-regtest');
+            break;
+
+          case Network.NETWORK_TESTNET:
+            parts.insert(3, '-testnet');
+            break;
+
+          case Network.NETWORK_SIGNET:
+            parts.insert(3, '-signet');
+            break;
+
+          case Network.NETWORK_MAINNET:
+            break;
+
+          default:
+            parts.insert(3, '-signet');
+            break;
+        }
+
         return '${parts.join(' ')}\n';
       }
     }

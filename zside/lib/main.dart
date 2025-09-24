@@ -55,7 +55,6 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   // Fall back to filesystem if not provided in args
   applicationDir ??= await RuntimeArgs.datadir();
   logFile ??= await getLogFile(applicationDir);
-  final store = await KeyValueStore.create(dir: applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
   GetIt.I.registerLazySingleton<Logger>(() => log);
@@ -73,7 +72,6 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
     sidechainType: BinaryType.zSide,
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
-    store: store,
     log: log,
   );
 

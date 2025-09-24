@@ -9,13 +9,17 @@ import 'package:sail_ui/sail_ui.dart';
 /// with automatic persistence and change notification.
 class SettingsProvider extends ChangeNotifier {
   ClientSettings get clientSettings => GetIt.I.get<ClientSettings>();
+  BitwindowClientSettings get bitwindowClientSettings => GetIt.I.get<BitwindowClientSettings>();
   Logger get log => GetIt.I.get<Logger>();
 
   // Individual setting variables
   bool debugMode = false;
   bool useTestSidechains = false;
-  bool mainnetToggle = false;
+  BitwindowSettings bitwindowSettings = BitwindowSettings();
   SailFontValues font = SailFontValues.inter;
+
+  // Convenience getters for individual bitwindow settings
+  Network get network => bitwindowSettings.network;
 
   // Private constructor
   SettingsProvider._create();
@@ -31,7 +35,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> _loadAllSettings() async {
     await _loadDebugMode();
     await _loadUseTestSidechains();
-    await _loadMainnetToggle();
+    await _loadBitwindowSettings();
     await _loadFont();
   }
 
@@ -98,35 +102,46 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  /// Load mainnet toggle setting
-  Future<void> _loadMainnetToggle() async {
-    final setting = MainnetToggleSetting();
-    final loadedSetting = await clientSettings.getValue(setting);
-    mainnetToggle = loadedSetting.value;
+  /// Load bitwindow settings
+  Future<void> _loadBitwindowSettings() async {
+    final setting = BitwindowSettingValue();
+    final loadedSetting = await bitwindowClientSettings.getValue(setting);
+    bitwindowSettings = loadedSetting.value;
     notifyListeners();
   }
 
-  /// Update mainnet toggle setting
-  Future<void> updateMainnetToggle(bool value) async {
-    if (mainnetToggle == value) {
+  /// Internal method to update bitwindow settings
+  Future<void> _updateBitwindowSettings(BitwindowSettings value) async {
+    final oldSettings = bitwindowSettings;
+    try {
+      bitwindowSettings = value;
+      notifyListeners();
+      final setting = BitwindowSettingValue(newValue: value);
+      await bitwindowClientSettings.setValue(setting);
+    } catch (e) {
+      // Revert on error
+      bitwindowSettings = oldSettings;
+      notifyListeners();
+      log.e('Failed to update bitwindow settings', error: e);
+      rethrow;
+    }
+  }
+
+  /// Update bitwindow network setting
+  Future<void> updateBitwindowNetwork(Network network) async {
+    if (bitwindowSettings.network == network) {
       return;
     }
 
-    try {
-      mainnetToggle = value;
-      notifyListeners();
-      final setting = MainnetToggleSetting(newValue: value);
-      await clientSettings.setValue(setting);
+    final oldNetwork = bitwindowSettings.network;
+    final newSettings = bitwindowSettings.copyWith(network: network);
+    await _updateBitwindowSettings(newSettings);
 
-      // When enabling mainnet, restart all services with data cleanup
-      log.i('Mainnet toggle changed to $value, restarting services...');
+    // When changing network, restart all services with data cleanup if needed
+    final isMainnetChange = (oldNetwork == Network.NETWORK_MAINNET) != (network == Network.NETWORK_MAINNET);
+    if (isMainnetChange) {
+      log.i('Network changed from ${oldNetwork.name} to ${network.name}, restarting services...');
       await _restartServicesForMainnet();
-    } catch (e) {
-      // Revert on error
-      mainnetToggle = !value;
-      notifyListeners();
-      log.e('Failed to update mainnet toggle', error: e);
-      rethrow;
     }
   }
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
+import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -74,8 +75,23 @@ class EnforcerLive extends EnforcerRPC {
         walletArg = '--wallet-seed-file=${mnemonicFile.path}';
       }
     }
-
     binary.addBootArg(walletArg);
+
+    // now set the esplora-url
+    switch (GetIt.I.get<SettingsProvider>().network) {
+      case Network.NETWORK_REGTEST:
+        binary.addBootArg('--wallet-esplora-url=http://localhost:3003');
+
+      case Network.NETWORK_TESTNET:
+        throw Exception('testnet not supported for enforcer');
+
+      case Network.NETWORK_MAINNET:
+        binary.addBootArg('--wallet-esplora-url=https://mempool.space/api');
+
+      case Network.NETWORK_SIGNET:
+      default:
+      // default is signet, for which we dont need anything extra
+    }
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',

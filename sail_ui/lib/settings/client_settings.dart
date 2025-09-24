@@ -32,6 +32,10 @@ class ClientSettings {
   }
 }
 
+class BitwindowClientSettings extends ClientSettings {
+  BitwindowClientSettings({required super.store, required super.log});
+}
+
 abstract class SettingValue<T> {
   String get key;
   T get value => _value ?? defaultValue();

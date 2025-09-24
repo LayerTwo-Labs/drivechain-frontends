@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
@@ -135,74 +136,142 @@ class MainchainRPCLive extends MainchainRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    if (mainchainConf.hasConfFile) {
-      // the conf file exists, and should take total precedence
-      log.i('Mainchain conf file is present, not adding sidechain args');
-      var extraArgs = <String>[];
-
-      if (!mainchainConf.isFromConfigFile('rest')) {
-        extraArgs.add('-rest');
-      }
-
-      if (!mainchainConf.isFromConfigFile('rpcthreads  ')) {
-        extraArgs.add('-rpcthreads=40');
-      }
-
-      if (!mainchainConf.isFromConfigFile('rpcworkqueue')) {
-        extraArgs.add('-rpcworkqueue=100');
-      }
-
-      return extraArgs;
-    }
-
     // Check if mainnet mode is enabled
-    final settingsProvider = GetIt.I.get<SettingsProvider>();
-    final isMainnet = settingsProvider.mainnetToggle;
+    final bitwindowNetwork = GetIt.I.get<SettingsProvider>().network;
+    final coreBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
 
-    List<String> networkArgs;
-    if (isMainnet) {
-      // Mainnet configuration - no signet, addnode, or fallbackfee
-      log.i('Mainnet mode enabled, using mainnet args');
-      networkArgs = [
-        '-server',
-        '-acceptnonstdtxn',
-        '-listen',
-        '-rpcbind=0.0.0.0',
-        '-rpcallowip=0.0.0.0/0',
-        '-txindex',
-        '-zmqpubsequence=tcp://0.0.0.0:29000',
-        '-rpcthreads=40',
-        '-rpcworkqueue=100',
-        '-rest',
-      ];
-    } else {
-      // Signet configuration (original sidechain args)
-      log.i('Signet mode enabled, using signet args');
-      networkArgs = [
-        '-signet',
-        '-server',
-        '-addnode=172.105.148.135:38333',
-        '-signetblocktime=60',
-        '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
-        '-acceptnonstdtxn',
-        '-listen',
-        '-rpcbind=0.0.0.0',
-        '-rpcallowip=0.0.0.0/0',
-        '-txindex',
-        '-fallbackfee=0.00021',
-        '-zmqpubsequence=tcp://0.0.0.0:29000',
-        '-rpcthreads=40',
-        '-rpcworkqueue=100',
-        '-rest',
-      ];
+    if (mainchainConf.hasConfFile) {
+      final confNetwork = extractConfNetwork();
+      if (confNetwork == bitwindowNetwork) {
+        // only if OUR network matches the conf network do we use values from the conf file
+        // if the user swaps networks, its our game
+
+        // the conf file exists, and should take total precedence
+        log.i('Mainchain conf file is present, not adding sidechain args');
+        var extraArgs = <String>[];
+
+        if (!mainchainConf.isFromConfigFile('rest')) {
+          extraArgs.add('-rest');
+        }
+
+        if (!mainchainConf.isFromConfigFile('rpcthreads')) {
+          extraArgs.add('-rpcthreads=40');
+        }
+
+        if (!mainchainConf.isFromConfigFile('rpcworkqueue')) {
+          extraArgs.add('-rpcworkqueue=100');
+        }
+
+        return extraArgs;
+      } else {
+        // Network mismatch - use empty config file to override the existing one
+        log.w('Network mismatch: conf file is for $confNetwork but app is set to $bitwindowNetwork');
+
+        // Create empty config file
+        final emptyConfPath = '${BitcoinCore().datadir()}/empty.conf';
+        final emptyConfFile = File(emptyConfPath);
+
+        try {
+          // Create the file with just a comment
+          await emptyConfFile.writeAsString('# Empty config file to override network settings\n');
+          log.i('Created empty config file at $emptyConfPath');
+        } catch (e) {
+          log.e('Failed to create empty config file: $e');
+        }
+
+        // Tell Bitcoin Core to use the empty config file
+        // This ensure we use the values from the networkArgs array below
+        coreBinary.addBootArg('-conf=empty.conf');
+        coreBinary.addBootArg('-allowignoredconf=1');
+        mainchainConf = NodeConnectionSettings(
+          mainchainConf.confPath,
+          mainchainConf.host,
+          mainchainConf.port,
+          'user',
+          'password',
+          false,
+        );
+      }
+    }
+    conf = mainchainConf;
+
+    List<String> networkArgs = [
+      '-rpcuser=user',
+      '-rpcpassword=password',
+      '-server',
+      '-listen',
+      '-txindex',
+      '-zmqpubsequence=tcp://0.0.0.0:29000',
+      '-rpcthreads=40',
+      '-rpcworkqueue=100',
+      '-rest',
+      '-fallbackfee=0.00021',
+    ];
+
+    switch (bitwindowNetwork) {
+      case Network.NETWORK_REGTEST:
+        log.i('Network is regtest, adding extra args');
+        networkArgs.addAll([
+          '-regtest',
+        ]);
+
+      case Network.NETWORK_TESTNET:
+        log.i('Network is regtest, adding extra args');
+        networkArgs.addAll([
+          '-testnet',
+        ]);
+
+      case Network.NETWORK_SIGNET:
+        log.i('Network is signet, adding extra args');
+        networkArgs.addAll([
+          '-signet',
+          '-addnode=172.105.148.135:38333',
+          '-signetblocktime=60',
+          '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
+          '-acceptnonstdtxn',
+        ]);
+
+      case Network.NETWORK_MAINNET:
+        log.i('Network is mainnet, adding no extra args');
+        // nothing extra
+        break;
+
+      default:
+        // SIGNET is default!
+        networkArgs.addAll([
+          '-signet',
+          '-addnode=172.105.148.135:38333',
+          '-signetblocktime=60',
+          '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
+        ]);
     }
 
     log.i('${BitcoinCore().confFile()} not found, adding network args: $networkArgs');
 
-    final finalArgs = cleanArgs(mainchainConf, [...networkArgs, ...binary.extraBootArgs]);
+    final finalArgs = cleanArgs(mainchainConf, [...networkArgs, ...coreBinary.extraBootArgs]);
 
     log.i('Final binary args: $finalArgs');
     return finalArgs;
+  }
+
+  Network extractConfNetwork() {
+    // Extract network from conf-values
+    final configValues = conf.configValues;
+
+    if (configValues['regtest'] == '1' || configValues['chain'] == 'regtest') {
+      return Network.NETWORK_REGTEST;
+    }
+
+    if (configValues['testnet'] == '1' || configValues['chain'] == 'test' || configValues['chain'] == 'testnet4') {
+      return Network.NETWORK_TESTNET;
+    }
+
+    if (configValues['signet'] == '1' || configValues['chain'] == 'signet') {
+      return Network.NETWORK_SIGNET;
+    }
+
+    // If no network flags are set, default to mainnet
+    return Network.NETWORK_MAINNET;
   }
 
   @override

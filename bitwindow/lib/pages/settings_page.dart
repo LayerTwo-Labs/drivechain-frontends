@@ -177,9 +177,11 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             const SailSpacing(SailStyleValues.padding08),
             SailToggle(
               label: 'Enable Mainnet',
-              value: _settingsProvider.mainnetToggle,
+              value: _settingsProvider.network == Network.NETWORK_MAINNET,
               onChanged: (value) async {
-                await _settingsProvider.updateMainnetToggle(value);
+                await _settingsProvider.updateBitwindowNetwork(
+                  value ? Network.NETWORK_MAINNET : Network.NETWORK_SIGNET,
+                );
               },
             ),
           ],
