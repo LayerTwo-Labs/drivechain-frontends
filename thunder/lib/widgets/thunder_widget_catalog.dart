@@ -16,7 +16,7 @@ class ThunderWidgetCatalog {
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
           return SizedBox(
-            height: 181, // Fixed height like the original
+            height: 200, // Fixed height to prevent layout issues
             child: SailCard(
               title: 'Balance',
               child: SailColumn(
@@ -61,30 +61,33 @@ class ThunderWidgetCatalog {
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
-          return SailCard(
-            title: 'Receive on Sidechain',
-            error: model.receiveError,
-            child: SailColumn(
-              spacing: SailStyleValues.padding04,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailColumn(
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailTextField(
-                      loading: LoadingDetails(
-                        enabled: model.receiveAddress == null,
-                        description: 'Waiting for thunder to boot...',
+          return SizedBox(
+            height: 150, // Fixed height to prevent layout issues
+            child: SailCard(
+              title: 'Receive on Sidechain',
+              error: model.receiveError,
+              child: SailColumn(
+                spacing: SailStyleValues.padding04,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailColumn(
+                    mainAxisSize: MainAxisSize.max,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailTextField(
+                        loading: LoadingDetails(
+                          enabled: model.receiveAddress == null,
+                          description: 'Waiting for thunder to boot...',
+                        ),
+                        controller: TextEditingController(text: model.receiveAddress),
+                        hintText: 'Generating deposit address...',
+                        readOnly: true,
+                        suffixWidget: CopyButton(text: model.receiveAddress ?? ''),
                       ),
-                      controller: TextEditingController(text: model.receiveAddress),
-                      hintText: 'Generating deposit address...',
-                      readOnly: true,
-                      suffixWidget: CopyButton(text: model.receiveAddress ?? ''),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -100,28 +103,31 @@ class ThunderWidgetCatalog {
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
-          return SailCard(
-            title: 'Send on Sidechain',
-            error: model.sendError,
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              children: [
-                SailText.secondary15('Pay to'),
-                SailTextField(
-                  controller: model.bitcoinAddressController,
-                  hintText: 'Enter a bitcoin address',
-                ),
-                NumericField(
-                  label: 'Amount',
-                  controller: model.bitcoinAmountController,
-                  hintText: '0.00',
-                ),
-                SailButton(
-                  label: 'Send',
-                  onPressed: () async => await model.executeSendOnSidechain(context),
-                  loading: model.isSending,
-                ),
-              ],
+          return SizedBox(
+            height: 300, // Fixed height for send form
+            child: SailCard(
+              title: 'Send on Sidechain',
+              error: model.sendError,
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                children: [
+                  SailText.secondary15('Pay to'),
+                  SailTextField(
+                    controller: model.bitcoinAddressController,
+                    hintText: 'Enter a bitcoin address',
+                  ),
+                  NumericField(
+                    label: 'Amount',
+                    controller: model.bitcoinAmountController,
+                    hintText: '0.00',
+                  ),
+                  SailButton(
+                    label: 'Send',
+                    onPressed: () async => await model.executeSendOnSidechain(context),
+                    loading: model.isSending,
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -134,7 +140,10 @@ class ThunderWidgetCatalog {
       description: 'Shows UTXO and transaction history',
       size: WidgetSize.full,
       icon: SailSVGAsset.iconTransactions,
-      builder: (_) => const UTXOsTab(),
+      builder: (_) => SizedBox(
+        height: 400, // Fixed height to prevent layout issues
+        child: const UTXOsTab(),
+      ),
     ),
   };
 
