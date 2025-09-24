@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:thunder/providers/thunder_homepage_provider.dart';
 import 'package:thunder/widgets/thunder_widget_catalog.dart';
 
 @RoutePage()
@@ -46,7 +47,7 @@ class ThunderHomepagePage extends StatelessWidget {
 }
 
 class ThunderHomepageViewModel extends BaseViewModel {
-  HomepageProvider get _homepageProvider => GetIt.I.get<HomepageProvider>();
+  ThunderHomepageProvider get _homepageProvider => GetIt.I.get<ThunderHomepageProvider>();
 
   HomepageConfiguration get homepageConfiguration => _homepageProvider.configuration;
 

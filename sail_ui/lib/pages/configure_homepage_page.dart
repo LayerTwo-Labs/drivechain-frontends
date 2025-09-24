@@ -33,9 +33,10 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
             spacing: SailStyleValues.padding16,
             children: [
               // Widget list with drag and drop
-              SizedBox(
-                width: 370,
+              Flexible(
+                flex: 0,
                 child: Container(
+                  width: 370,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: context.sailTheme.colors.background,
@@ -43,6 +44,7 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SailRow(
@@ -71,96 +73,102 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                       // Current widgets list
                       SailText.primary13('Your current widgets'),
                       const SizedBox(height: 8),
-                      Expanded(
-                        child: model.tempConfiguration.widgets.isEmpty
-                            ? Center(
-                                child: SailColumn(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  spacing: SailStyleValues.padding08,
-                                  children: [
-                                    Icon(
-                                      Icons.widgets_outlined,
-                                      size: 48,
-                                      color: context.sailTheme.colors.textTertiary,
-                                    ),
-                                    SailText.secondary13('No widgets added'),
-                                    SailText.secondary12('Click "Add Widget" to get started'),
-                                  ],
-                                ),
-                              )
-                            : Theme(
-                                data: Theme.of(context).copyWith(
-                                  iconTheme: IconThemeData(
-                                    color: context.sailTheme.colors.textSecondary,
+                      Flexible(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minHeight: 200,
+                            maxHeight: 400,
+                          ),
+                          child: model.tempConfiguration.widgets.isEmpty
+                              ? Center(
+                                  child: SailColumn(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    spacing: SailStyleValues.padding08,
+                                    children: [
+                                      Icon(
+                                        Icons.widgets_outlined,
+                                        size: 48,
+                                        color: context.sailTheme.colors.textTertiary,
+                                      ),
+                                      SailText.secondary13('No widgets added'),
+                                      SailText.secondary12('Click "Add Widget" to get started'),
+                                    ],
                                   ),
-                                  canvasColor: context.sailTheme.colors.backgroundSecondary,
-                                  shadowColor: Colors.transparent,
-                                  cardColor: context.sailTheme.colors.backgroundSecondary,
-                                  scaffoldBackgroundColor: context.sailTheme.colors.backgroundSecondary,
-                                ),
-                                child: ReorderableListView.builder(
-                                  buildDefaultDragHandles: true,
-                                  proxyDecorator: (child, index, animation) {
-                                    return Material(
-                                      color: context.sailTheme.colors.backgroundSecondary,
-                                      elevation: 4,
-                                      borderRadius: BorderRadius.circular(8),
-                                      shadowColor: Colors.black.withValues(alpha: 0.2),
-                                      child: child,
-                                    );
-                                  },
-                                  itemCount: model.tempConfiguration.widgets.length,
-                                  onReorder: model.reorderWidgets,
-                                  itemBuilder: (context, index) {
-                                    final widgetConfig = model.tempConfiguration.widgets[index];
-                                    final widgetInfo = widget.widgetCatalog[widgetConfig.widgetId];
-
-                                    return Container(
-                                      key: ValueKey(widgetConfig.widgetId + index.toString()),
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      decoration: BoxDecoration(
+                                )
+                              : Theme(
+                                  data: Theme.of(context).copyWith(
+                                    iconTheme: IconThemeData(
+                                      color: context.sailTheme.colors.textSecondary,
+                                    ),
+                                    canvasColor: context.sailTheme.colors.backgroundSecondary,
+                                    shadowColor: Colors.transparent,
+                                    cardColor: context.sailTheme.colors.backgroundSecondary,
+                                    scaffoldBackgroundColor: context.sailTheme.colors.backgroundSecondary,
+                                  ),
+                                  child: ReorderableListView.builder(
+                                    buildDefaultDragHandles: true,
+                                    proxyDecorator: (child, index, animation) {
+                                      return Material(
                                         color: context.sailTheme.colors.backgroundSecondary,
+                                        elevation: 4,
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: context.sailTheme.colors.border),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          children: [
-                                            SailSVG.icon(
-                                              widgetInfo?.icon ?? SailSVGAsset.iconWarning,
-                                              width: 24,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  SailText.primary13(widgetInfo?.name ?? 'Unknown Widget'),
-                                                  SailText.secondary12(
-                                                    widgetInfo?.size == WidgetSize.full ? 'Full Width' : 'Half Width',
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            SailButton(
-                                              icon: SailSVGAsset.iconClose,
-                                              variant: ButtonVariant.icon,
-                                              onPressed: () async => model.removeWidget(index),
-                                              textColor: SailColorScheme.red,
-                                              small: true,
-                                            ),
-                                            const SizedBox(width: 32),
-                                            // Drag handle will be added here automatically
-                                          ],
+                                        shadowColor: Colors.black.withValues(alpha: 0.2),
+                                        child: child,
+                                      );
+                                    },
+                                    itemCount: model.tempConfiguration.widgets.length,
+                                    onReorder: model.reorderWidgets,
+                                    itemBuilder: (context, index) {
+                                      final widgetConfig = model.tempConfiguration.widgets[index];
+                                      final widgetInfo = widget.widgetCatalog[widgetConfig.widgetId];
+
+                                      return Container(
+                                        key: ValueKey(widgetConfig.widgetId + index.toString()),
+                                        margin: const EdgeInsets.only(bottom: 8),
+                                        decoration: BoxDecoration(
+                                          color: context.sailTheme.colors.backgroundSecondary,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: context.sailTheme.colors.border),
                                         ),
-                                      ),
-                                    );
-                                  },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            children: [
+                                              SailSVG.icon(
+                                                widgetInfo?.icon ?? SailSVGAsset.iconWarning,
+                                                width: 24,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    SailText.primary13(widgetInfo?.name ?? 'Unknown Widget'),
+                                                    SailText.secondary12(
+                                                      widgetInfo?.size == WidgetSize.full ? 'Full Width' : 'Half Width',
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SailButton(
+                                                icon: SailSVGAsset.iconClose,
+                                                variant: ButtonVariant.icon,
+                                                onPressed: () async => model.removeWidget(index),
+                                                textColor: SailColorScheme.red,
+                                                small: true,
+                                              ),
+                                              const SizedBox(width: 32),
+                                              // Drag handle will be added here automatically
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
 
                       // Save/Cancel buttons at the bottom
@@ -206,23 +214,16 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                     border: Border.all(color: context.sailTheme.colors.border),
                     borderRadius: SailStyleValues.borderRadius,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(6),
-                            bottomRight: Radius.circular(6),
-                          ),
-                          child: HomepageBuilder(
-                            configuration: model.tempConfiguration,
-                            widgetCatalog: widget.widgetCatalog,
-                            isPreview: true,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(6),
+                      bottomRight: Radius.circular(6),
+                    ),
+                    child: HomepageBuilder(
+                      configuration: model.tempConfiguration,
+                      widgetCatalog: widget.widgetCatalog,
+                      isPreview: true,
+                    ),
                   ),
                 ),
               ),
