@@ -75,21 +75,25 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
         switch (network) {
           case Network.NETWORK_REGTEST:
             parts.insert(3, '-regtest');
+            parts.insert(4, '-conf=empty.conf');
             break;
 
           case Network.NETWORK_TESTNET:
-            parts.insert(3, '-testnet');
+            parts.insert(3, '-regtest');
+            parts.insert(4, '-conf=empty.conf');
             break;
 
           case Network.NETWORK_SIGNET:
-            parts.insert(3, '-signet');
+            parts.insert(3, '-regtest');
+            parts.insert(4, '-conf=empty.conf');
             break;
 
           case Network.NETWORK_MAINNET:
             break;
 
           default:
-            parts.insert(3, '-signet');
+            parts.insert(3, '-regtest');
+            parts.insert(4, '-conf=empty.conf');
             break;
         }
 

@@ -36,6 +36,21 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
+Color getNetworkAccentColor(Network network) {
+  switch (network) {
+    case Network.NETWORK_MAINNET:
+      return const Color.fromARGB(255, 255, 153, 0); // Orange (current)
+    case Network.NETWORK_TESTNET:
+      return const Color.fromARGB(255, 34, 139, 34); // Green
+    case Network.NETWORK_SIGNET:
+      return const Color.fromARGB(255, 65, 105, 225); // Blue
+    case Network.NETWORK_REGTEST:
+      return const Color.fromARGB(255, 220, 20, 60); // Red
+    default:
+      return const Color.fromARGB(255, 128, 128, 128); // Gray
+  }
+}
+
 void main(List<String> args) async {
   try {
     final (applicationDir, logFile, log) = await init(args);
@@ -303,7 +318,7 @@ Future<File> getLogFile() async {
   return logFile;
 }
 
-class BitwindowApp extends StatelessWidget {
+class BitwindowApp extends StatefulWidget {
   final Logger log;
 
   const BitwindowApp({
@@ -312,16 +327,41 @@ class BitwindowApp extends StatelessWidget {
   });
 
   @override
+  State<BitwindowApp> createState() => _BitwindowAppState();
+}
+
+class _BitwindowAppState extends State<BitwindowApp> {
+  late final SettingsProvider _settingsProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsProvider = GetIt.I.get<SettingsProvider>();
+    _settingsProvider.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final router = GetIt.I.get<AppRouter>();
+    final accentColor = getNetworkAccentColor(_settingsProvider.network);
 
     return SailApp(
-      log: log,
+      log: widget.log,
       dense: true,
       builder: (context) {
         return _BitwindowAppContent(router: router);
       },
-      accentColor: const Color.fromARGB(255, 255, 153, 0),
+      accentColor: accentColor,
     );
   }
 }
@@ -359,8 +399,6 @@ Future<void> bootBinaries(Logger log) async {
 
   await mainchainRPC.testConnection();
   await enforcerRPC.testConnection();
-
-  // TODO: if in mainchainmode, add bitcoincore.host=localhost:8332
 
   if (!mainchainRPC.connected) {
     log.i('MainchainRPC not connected, adding --gui-booted-mainchain boot arg');
