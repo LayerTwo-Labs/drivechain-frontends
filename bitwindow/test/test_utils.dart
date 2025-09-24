@@ -52,6 +52,12 @@ Future<void> registerTestDependencies() async {
     );
   }
 
+  if (!GetIt.I.isRegistered<BitwindowClientSettings>()) {
+    GetIt.I.registerLazySingleton<BitwindowClientSettings>(
+      () => BitwindowClientSettings(store: MockStore(), log: log),
+    );
+  }
+
   if (!GetIt.I.isRegistered<SettingsProvider>()) {
     final settingsProvider = await SettingsProvider.create();
     GetIt.I.registerLazySingleton<SettingsProvider>(

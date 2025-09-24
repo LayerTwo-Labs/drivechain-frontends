@@ -90,6 +90,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
   GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: storage, log: log));
+  GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => BitwindowClientSettings(store: storage, log: log));
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   GetIt.I.registerLazySingleton<ContentProvider>(() => ContentProvider());

@@ -1,11 +1,11 @@
 import 'dart:convert';
 
-class BitwindowSettings {
+class Settings {
   final int configureHomeButtonPressCount;
   final bool hasConfiguredHomepage;
   // Add more settings fields here as needed in the future
 
-  BitwindowSettings({
+  Settings({
     this.configureHomeButtonPressCount = 0,
     this.hasConfiguredHomepage = false,
   });
@@ -17,8 +17,8 @@ class BitwindowSettings {
     };
   }
 
-  factory BitwindowSettings.fromMap(Map<String, dynamic> map) {
-    return BitwindowSettings(
+  factory Settings.fromMap(Map<String, dynamic> map) {
+    return Settings(
       configureHomeButtonPressCount: map['configureHomeButtonPressCount'] ?? 0,
       hasConfiguredHomepage: map['hasConfiguredHomepage'] ?? false,
     );
@@ -26,20 +26,20 @@ class BitwindowSettings {
 
   String toJson() => json.encode(toMap());
 
-  factory BitwindowSettings.fromJson(String source) {
+  factory Settings.fromJson(String source) {
     try {
-      return BitwindowSettings.fromMap(json.decode(source));
+      return Settings.fromMap(json.decode(source));
     } catch (e) {
       // Return default if parsing fails
-      return BitwindowSettings();
+      return Settings();
     }
   }
 
-  BitwindowSettings copyWith({
+  Settings copyWith({
     int? configureHomeButtonPressCount,
     bool? hasConfiguredHomepage,
   }) {
-    return BitwindowSettings(
+    return Settings(
       configureHomeButtonPressCount: configureHomeButtonPressCount ?? this.configureHomeButtonPressCount,
       hasConfiguredHomepage: hasConfiguredHomepage ?? this.hasConfiguredHomepage,
     );

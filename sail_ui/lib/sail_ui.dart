@@ -92,7 +92,7 @@ export 'settings/font_settings.dart';
 export 'settings/hash_plaintext_settings.dart';
 export 'settings/secure_store.dart';
 export 'settings/test_sidechains_settings.dart';
-export 'settings/mainnet_toggle_setting.dart';
+export 'settings/bitwindow_settings.dart';
 export 'settings/theme_settings.dart';
 export 'settings/web_storage.dart';
 export 'settings/homepage_configuration_setting.dart';

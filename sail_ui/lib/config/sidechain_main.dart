@@ -16,13 +16,19 @@ Future<void> initSidechainDependencies({
   required BinaryType sidechainType,
   required SidechainRPC Function(Binary) createSidechainConnection,
   required Directory applicationDir,
-  required KeyValueStore store,
   required Logger log,
 }) async {
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
+  final store = await KeyValueStore.create(dir: applicationDir);
   final clientSettings = ClientSettings(store: store, log: log);
   GetIt.I.registerLazySingleton<ClientSettings>(() => clientSettings);
+
+  final bitwindowDir = Directory(path.join(applicationDir.parent.path, 'bitwindow'));
+  final bitwindowStore = await KeyValueStore.create(dir: bitwindowDir);
+  final bitwindowClientSettings = BitwindowClientSettings(store: bitwindowStore, log: log);
+  GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => bitwindowClientSettings);
+
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
 

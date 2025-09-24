@@ -7,24 +7,11 @@ import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' hide UnspentOutput;
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.connect.client.dart';
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
-import 'package:sail_ui/gen/drivechain/v1/drivechain.connect.client.dart';
-import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
-import 'package:sail_ui/gen/google/protobuf/empty.pb.dart';
-import 'package:sail_ui/gen/health/v1/health.connect.client.dart';
-import 'package:sail_ui/gen/health/v1/health.pb.dart';
-import 'package:sail_ui/gen/misc/v1/misc.connect.client.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/providers/binaries/binary_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
@@ -79,8 +66,30 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final bitwBinary = binaryProvider.binaries.where((b) => b.name == binary.name).first;
+    final bitwBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
+
+    // now set the bitcoincore host with correct ports
+    switch (GetIt.I.get<SettingsProvider>().network) {
+      case Network.NETWORK_REGTEST:
+        log.i('Network is regtest, adding extra args');
+        bitwBinary.addBootArg('--bitcoincore.host=localhost:18443');
+        break;
+
+      case Network.NETWORK_TESTNET:
+        bitwBinary.addBootArg('--bitcoincore.host=localhost:18332');
+        break;
+
+      case Network.NETWORK_SIGNET:
+        bitwBinary.addBootArg('--bitcoincore.host=localhost:38332');
+        break;
+
+      case Network.NETWORK_MAINNET:
+        bitwBinary.addBootArg('--bitcoincore.host=localhost:8332');
+        break;
+
+      default:
+      // use defaults, whatever they are (set in config.go)
+    }
 
     return [
       '--bitcoincore.rpcuser=${mainchainConf.username}',
