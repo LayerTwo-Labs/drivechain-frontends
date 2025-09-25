@@ -197,7 +197,7 @@ class SettingsProvider extends ChangeNotifier {
 
     // Wait for processes to fully stop
     log.i('Waiting for processes to stop...');
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 10));
 
     // Delete enforcer and bitwindow data
     log.i('Deleting enforcer and bitwindow data...');

@@ -393,9 +393,29 @@ class _ErrorBoundaryState extends State<_ErrorBoundary> {
     super.initState();
     // Set up the Flutter error handler to catch errors during build
     FlutterError.onError = (FlutterErrorDetails details) {
-      setState(() {
-        _error = details.exception;
-        _stackTrace = details.stack;
+      // Check if this is an overflow error - those are visual only and shouldn't crash the app
+      bool isOverflowError = false;
+      if (details.exception is FlutterError) {
+        final flutterError = details.exception as FlutterError;
+        isOverflowError = flutterError.diagnostics.any(
+          (e) => e.value.toString().contains('A RenderFlex overflowed by'),
+        );
+      }
+
+      // Skip overflow errors as they're just visual issues
+      if (isOverflowError) {
+        debugPrint('Overflow error detected, continuing normally');
+        return;
+      }
+
+      // Defer setState to avoid calling it during build/paint phase
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _error = details.exception;
+            _stackTrace = details.stack;
+          });
+        }
       });
       // Also log to console
       FlutterError.dumpErrorToConsole(details);
