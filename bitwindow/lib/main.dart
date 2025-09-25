@@ -331,33 +331,11 @@ class BitwindowApp extends StatefulWidget {
 }
 
 class _BitwindowAppState extends State<BitwindowApp> {
-  late final SettingsProvider _settingsProvider;
-
-  @override
-  void initState() {
-    super.initState();
-    _settingsProvider = GetIt.I.get<SettingsProvider>();
-    _settingsProvider.addListener(_onSettingsChanged);
-  }
-
-  @override
-  void dispose() {
-    _settingsProvider.removeListener(_onSettingsChanged);
-    super.dispose();
-  }
-
-  void _onSettingsChanged() {
-    setState(() {});
-    // Reload theme with new accent color when network changes
-    final app = SailApp.of(context);
-    final newAccentColor = getNetworkAccentColor(_settingsProvider.network);
-    app.reloadThemeWithCurrentSettings(newAccentColor);
-  }
-
   @override
   Widget build(BuildContext context) {
     final router = GetIt.I.get<AppRouter>();
-    final accentColor = getNetworkAccentColor(_settingsProvider.network);
+    final settingsProvider = GetIt.I.get<SettingsProvider>();
+    final accentColor = getNetworkAccentColor(settingsProvider.network);
 
     return SailApp(
       log: widget.log,

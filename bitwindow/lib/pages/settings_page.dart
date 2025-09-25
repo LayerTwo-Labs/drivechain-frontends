@@ -154,6 +154,13 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
 
     // We have ensured we have a datadir, proceed with network change
     await _settingsProvider.updateBitwindowNetwork(targetNetwork);
+
+    // Reload theme with new accent color for the network
+    if (mounted) {
+      final app = SailApp.of(context);
+      final newAccentColor = getNetworkAccentColor(targetNetwork);
+      app.reloadThemeWithCurrentSettings(newAccentColor);
+    }
   }
 
   @override
