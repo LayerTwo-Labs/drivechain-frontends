@@ -348,6 +348,10 @@ class _BitwindowAppState extends State<BitwindowApp> {
 
   void _onSettingsChanged() {
     setState(() {});
+    // Reload theme with new accent color when network changes
+    final app = SailApp.of(context);
+    final newAccentColor = getNetworkAccentColor(_settingsProvider.network);
+    app.reloadThemeWithCurrentSettings(newAccentColor);
   }
 
   @override
