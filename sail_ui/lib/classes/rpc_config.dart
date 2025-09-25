@@ -26,11 +26,11 @@ class Config {
 // 2. Inspect cookie
 // 3. Defaults
 //
-NodeConnectionSettings readRPCConfig(
+CoreConnectionSettings readRPCConfig(
   String datadir,
   String confFile,
   Binary chain,
-  String network, {
+  Network network, {
   // if set, will force this network, irregardless of runtime argument
   bool useCookieAuth = true,
 }) {
@@ -38,11 +38,18 @@ NodeConnectionSettings readRPCConfig(
 
   final conf = File(filePath([datadir, confFile]));
   // Mainnet == empty string, special datadirs only apply to non-mainnet
-  final networkDir = filePath([datadir, network == 'mainnet' ? '' : network]);
+  final networkDir = filePath([datadir, network == Network.NETWORK_MAINNET ? '' : network.toReadableNet()]);
 
   final cookie = File(filePath([networkDir, '.cookie']));
 
-  var settings = NodeConnectionSettings(conf.path, '127.0.0.1', chain.port, 'user', 'password', network == 'regtest');
+  var settings = CoreConnectionSettings(
+    conf.path,
+    '127.0.0.1',
+    chain.port,
+    'user',
+    'password',
+    network == Network.NETWORK_REGTEST,
+  );
 
   if (conf.existsSync()) {
     log.i('rpc: reading conf file at $conf');
@@ -66,15 +73,22 @@ NodeConnectionSettings readRPCConfig(
 
     // Make sure to not include password here
     log.t('rpc: read password from cookie file at $cookie');
-    log.i('resolved conf: $username@${settings.host}:${settings.port} on $network');
-    return NodeConnectionSettings(conf.path, settings.host, settings.port, username, password, network == 'regtest');
+    log.i('resolved conf: $username@${settings.host}:${settings.port} on ${network.toReadableNet()}');
+    return CoreConnectionSettings(
+      conf.path,
+      settings.host,
+      settings.port,
+      username,
+      password,
+      network == Network.NETWORK_REGTEST,
+    );
   }
 
   log.i('missing both conf ($conf) and cookie ($cookie), returning default settings');
   return settings;
 }
 
-List<String> bitcoinCoreBinaryArgs(NodeConnectionSettings conf) {
+List<String> bitcoinCoreBinaryArgs(CoreConnectionSettings conf) {
   // Only include non-config args in the base args
   final args = [
     conf.isLocalNetwork ? '-regtest' : '',
@@ -115,4 +129,22 @@ void addEntryIfNotSet(List<String> args, String key, String value) {
   final newEntry = '-$key=$value';
   log.i('$key not present in conf, adding $newEntry');
   args.add(newEntry);
+}
+
+extension NetworkExtensions on Network {
+  String toReadableNet() {
+    switch (this) {
+      case Network.NETWORK_MAINNET:
+        return 'mainnet';
+      case Network.NETWORK_SIGNET:
+        return 'signet';
+      case Network.NETWORK_REGTEST:
+        return 'regtest';
+      case Network.NETWORK_TESTNET:
+        return 'testnet';
+      case Network.NETWORK_UNSPECIFIED || Network.NETWORK_UNKNOWN:
+      default:
+        return 'unknown';
+    }
+  }
 }

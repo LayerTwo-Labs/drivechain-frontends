@@ -11,7 +11,10 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server
 abstract class EnforcerRPC extends RPCConnection {
-  EnforcerRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
+  EnforcerRPC({
+    required super.binaryType,
+    required super.restartOnFailure,
+  });
 
   ValidatorServiceClient get validator;
 
@@ -24,7 +27,7 @@ class EnforcerLive extends EnforcerRPC {
   late ValidatorServiceClient validator;
   late grpc.Transport _grpcTransport;
 
-  EnforcerLive() : super(conf: readConf(), binaryType: BinaryType.enforcer, restartOnFailure: true) {
+  EnforcerLive() : super(binaryType: BinaryType.enforcer, restartOnFailure: true) {
     _initializeConnection();
     startConnectionTimer();
   }
@@ -44,9 +47,8 @@ class EnforcerLive extends EnforcerRPC {
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    var host = mainchainConf.host;
-
+  Future<List<String>> binaryArgs() async {
+    var host = '127.0.0.1';
     if (host == 'localhost' && !Platform.isWindows) {
       host = '0.0.0.0';
     }
@@ -93,6 +95,7 @@ class EnforcerLive extends EnforcerRPC {
       // default is signet, for which we dont need anything extra
     }
 
+    final mainchainConf = readMainchainConf();
     return [
       '--node-rpc-pass=${mainchainConf.password}',
       '--node-rpc-user=${mainchainConf.username}',

@@ -3,7 +3,6 @@ import 'package:sail_ui/sail_ui.dart';
 class MockZSideRPC extends ZSideRPC {
   MockZSideRPC()
     : super(
-        conf: NodeConnectionSettings('./mocked.conf', 'mock mock', 1337, '', '', true),
         binaryType: BinaryType.testSidechain,
         restartOnFailure: false,
       );
@@ -166,7 +165,7 @@ class MockZSideRPC extends ZSideRPC {
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     return [];
   }
 

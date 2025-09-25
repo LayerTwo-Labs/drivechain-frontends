@@ -8,11 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/providers/binaries/binary_provider.dart';
-import 'package:sail_ui/providers/settings_provider.dart';
-import 'package:sail_ui/style/color_scheme.dart';
-import 'package:sail_ui/utils/file_utils.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 enum BinaryType {
   bitcoinCore,
@@ -37,6 +33,8 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.bitassets => BitAssets(),
   };
 }
+
+const BITWINDOW_CORE_CONF_FILE = 'bitwindow-bitcoin.conf';
 
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
@@ -687,20 +685,52 @@ extension BinaryPaths on Binary {
     return switch (type) {
       BinaryType.testSidechain => 'testchain.conf',
       BinaryType.zSide => 'zside.conf',
-      BinaryType.bitcoinCore => 'bitcoin.conf',
+      BinaryType.bitcoinCore => _getBitcoinConfFile(),
       _ => throw 'unsupported binary type: $type',
     };
+  }
+
+  String _getBitcoinConfFile() {
+    final datadir = BitcoinCore().datadir();
+
+    // Always check for bitcoin.conf first - user config takes priority
+    final bitcoinConfPath = File(path.join(datadir, 'bitcoin.conf'));
+    if (bitcoinConfPath.existsSync()) {
+      return 'bitcoin.conf';
+    }
+
+    // Fall back to our generated config
+    return BITWINDOW_CORE_CONF_FILE;
   }
 
   String logPath() {
     return switch (type) {
       BinaryType.testSidechain => filePath([datadir(), 'debug.log']),
       BinaryType.zSide => filePath([datadir(), 'regtest', 'debug.log']),
-      BinaryType.bitcoinCore => filePath([datadir(), 'signet', 'debug.log']),
+      BinaryType.bitcoinCore => _getBitcoinLogPath(),
       BinaryType.bitWindow => filePath([datadir(), 'server.log']),
       BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
     };
+  }
+
+  String _getBitcoinLogPath() {
+    final settingsProvider = GetIt.I.get<SettingsProvider>();
+
+    // Get network-specific subdirectory
+    final networkDir = switch (settingsProvider.network) {
+      Network.NETWORK_MAINNET => '', // mainnet uses root datadir
+      Network.NETWORK_SIGNET => 'signet',
+      Network.NETWORK_REGTEST => 'regtest',
+      Network.NETWORK_TESTNET => 'testnet',
+      _ => 'signet', // default to signet for unknown networks
+    };
+
+    if (networkDir.isEmpty) {
+      return filePath([datadir(), 'debug.log']);
+    } else {
+      return filePath([datadir(), networkDir, 'debug.log']);
+    }
   }
 
   String _findLatestEnforcerLog() {

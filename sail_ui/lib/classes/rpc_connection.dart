@@ -19,15 +19,17 @@ abstract class RPCConnection extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   Binary get binary => GetIt.I.get<BinaryProvider>().binaries.firstWhere((b) => b.type == binaryType);
 
-  NodeConnectionSettings conf;
   BinaryType binaryType;
   // if set to true, the process will be restarted when exiting with a non-zero exit code
   final bool restartOnFailure;
 
-  RPCConnection({required this.conf, required this.binaryType, required this.restartOnFailure});
+  RPCConnection({
+    required this.binaryType,
+    required this.restartOnFailure,
+  });
 
   /// Args to pass to the binary on startup.
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf);
+  Future<List<String>> binaryArgs();
 
   Map<String, String> environment = const {};
 
@@ -165,7 +167,7 @@ abstract class RPCConnection extends ChangeNotifier {
     Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment)
     bootProcess,
   ) async {
-    final args = await binaryArgs(conf);
+    final args = await binaryArgs();
 
     initializingBinary = true;
     notifyListeners();
@@ -288,7 +290,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
   // cleanArgs makes sure to NOT add any cli-args that are already set in the conf file
   // any duplicates are removed
-  List<String> cleanArgs(NodeConnectionSettings settings, List<String> extraArgs) {
+  List<String> cleanArgs(CoreConnectionSettings settings, List<String> extraArgs) {
     final baseArgs = bitcoinCoreBinaryArgs(settings);
     log.d('Deduplicating args - base args: $baseArgs');
 

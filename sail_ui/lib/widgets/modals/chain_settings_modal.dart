@@ -30,7 +30,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   }
 
   Future<void> _loadArgs() async {
-    final loadedArgs = await widget.connection.binaryArgs(widget.connection.conf);
+    final loadedArgs = await widget.connection.binaryArgs();
     loadedArgs.removeWhere((arg) => arg.contains('pass'));
     if (mounted) {
       setState(() {
@@ -82,7 +82,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                   StaticField(label: 'Version', value: viewModel.binary.version, copyable: true),
                   if (viewModel.binary.repoUrl.isNotEmpty)
                     StaticField(label: 'Repository', value: viewModel.binary.repoUrl, copyable: true),
-                  StaticField(label: 'Host', value: widget.connection.conf.host, copyable: true),
+                  StaticField(label: 'Host', value: '127.0.0.1', copyable: true),
                   StaticField(label: 'Port', value: widget.connection.binary.port.toString(), copyable: true),
                   if (args.isNotEmpty)
                     StaticField(label: 'Binary Arguments', value: args.join(' \\\n'), copyable: true),

@@ -1,5 +1,4 @@
 import 'package:fixnum/src/int64.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' hide UnspentOutput;
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
@@ -24,13 +23,12 @@ class MockAPI extends BitwindowRPC {
   final HealthAPI health = MockHealthAPI();
 
   MockAPI({
-    required super.conf,
     required super.binaryType,
     required super.restartOnFailure,
   });
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     return [];
   }
 

@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
@@ -12,7 +11,10 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the thunder server.
 abstract class ThunderRPC extends SidechainRPC {
-  ThunderRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
+  ThunderRPC({
+    required super.binaryType,
+    required super.restartOnFailure,
+  });
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -59,8 +61,8 @@ class ThunderLive extends ThunderRPC {
     final client = RPCClient(
       host: '127.0.0.1',
       port: binary.port,
-      username: conf.username,
-      password: conf.password,
+      username: 'N/A',
+      password: 'N/A',
       useSSL: false,
     );
 
@@ -68,12 +70,12 @@ class ThunderLive extends ThunderRPC {
     return client;
   }
 
-  ThunderLive() : super(conf: readConf(), binaryType: BinaryType.thunder, restartOnFailure: false) {
+  ThunderLive() : super(binaryType: BinaryType.thunder, restartOnFailure: false) {
     startConnectionTimer();
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     return binary.extraBootArgs;
   }
 

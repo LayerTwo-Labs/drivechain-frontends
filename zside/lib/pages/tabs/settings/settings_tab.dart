@@ -10,7 +10,6 @@ import 'package:zside/config/runtime_args.dart';
 import 'package:zside/gen/version.dart';
 import 'package:zside/main.dart';
 import 'package:zside/routing/router.dart';
-import 'package:zside/storage/sail_settings/network_settings.dart';
 
 @RoutePage()
 class SettingsTabPage extends StatelessWidget {
@@ -30,16 +29,6 @@ class SettingsTabPage extends StatelessWidget {
           return SailColumn(
             spacing: SailStyleValues.padding64,
             children: [
-              TweakNodeConnectionSettings(
-                name: model.rpc.chain.name,
-                chain: model.rpc.chain,
-                connected: model.rpc.connected,
-                settings: model.rpc.conf,
-                testConnectionValues: model.reconnectSidechain,
-                connectionError: model.rpc.connectionError,
-                readError: model.rpc.conf.readError,
-                loading: model._sidechainBusy,
-              ),
               TweakNodeConnectionSettings(
                 name: 'Parent Chain',
                 chain: BitcoinCore(),
@@ -214,7 +203,7 @@ class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewMode
   final Binary chain;
   final String name;
   final bool connected;
-  final NodeConnectionSettings settings;
+  final CoreConnectionSettings settings;
   final VoidCallback testConnectionValues;
   final String? connectionError;
   final String? readError;
@@ -323,14 +312,12 @@ class NodeConnectionViewModel extends BaseViewModel {
   ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
   MainchainRPC get mainRPC => GetIt.I.get<MainchainRPC>();
 
-  bool _sidechainBusy = false;
   bool _mainchainBusy = false;
 
-  late String network;
+  late Network network;
 
   Future<void> _initNetwork() async {
-    final clientSettings = GetIt.I.get<ClientSettings>();
-    network = RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
+    network = GetIt.I.get<SettingsProvider>().network;
   }
 
   NodeConnectionViewModel() {
@@ -338,7 +325,6 @@ class NodeConnectionViewModel extends BaseViewModel {
     mainRPC.conf.addListener(notifyListeners);
 
     rpc.addListener(notifyListeners);
-    rpc.conf.addListener(notifyListeners);
 
     _initNetwork();
   }
@@ -346,14 +332,12 @@ class NodeConnectionViewModel extends BaseViewModel {
   Timer? _connectionTimer;
 
   void reconnectSidechain() async {
-    _sidechainBusy = true;
     notifyListeners();
 
     // calling this will propagate the results to the local
     // sidechainConnected bool
     await rpc.testConnection();
 
-    _sidechainBusy = false;
     notifyListeners();
   }
 
@@ -373,7 +357,6 @@ class NodeConnectionViewModel extends BaseViewModel {
   void dispose() {
     _connectionTimer?.cancel();
     rpc.removeListener(notifyListeners);
-    rpc.conf.removeListener(notifyListeners);
 
     mainRPC.removeListener(notifyListeners);
     mainRPC.conf.removeListener(notifyListeners);

@@ -3,7 +3,6 @@ import 'package:sail_ui/sail_ui.dart';
 class MockBitAssetsRPC extends BitAssetsRPC {
   MockBitAssetsRPC()
     : super(
-        conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
         binaryType: BinaryType.testSidechain,
         restartOnFailure: false,
       );
@@ -29,7 +28,7 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) {
+  Future<List<String>> binaryArgs() {
     return Future.value([]);
   }
 
