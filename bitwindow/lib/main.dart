@@ -366,7 +366,205 @@ class _BitwindowAppContent extends StatelessWidget {
         visualDensity: VisualDensity.compact,
         fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
       ),
+      builder: (context, child) {
+        return _ErrorBoundary(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
+  }
+}
+
+class _ErrorBoundary extends StatefulWidget {
+  final Widget child;
+
+  const _ErrorBoundary({required this.child});
+
+  @override
+  State<_ErrorBoundary> createState() => _ErrorBoundaryState();
+}
+
+class _ErrorBoundaryState extends State<_ErrorBoundary> {
+  Object? _error;
+  StackTrace? _stackTrace;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set up the Flutter error handler to catch errors during build
+    FlutterError.onError = (FlutterErrorDetails details) {
+      setState(() {
+        _error = details.exception;
+        _stackTrace = details.stack;
+      });
+      // Also log to console
+      FlutterError.dumpErrorToConsole(details);
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return MaterialApp(
+        home: Scaffold(
+          backgroundColor: const Color(0xFF1A1A1A),
+          body: Container(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.redAccent,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Application Error',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: SelectableText(
+                        _error.toString(),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                    if (_stackTrace != null) ...[
+                      const SizedBox(height: 16),
+                      ExpansionTile(
+                        title: const Text(
+                          'Stack Trace',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        collapsedIconColor: Colors.white54,
+                        iconColor: Colors.white54,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2A2A2A),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            constraints: const BoxConstraints(maxHeight: 300),
+                            child: SingleChildScrollView(
+                              child: SelectableText(
+                                _stackTrace.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 12,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _error = null;
+                          _stackTrace = null;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: const Text(
+                        'Try Again',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _ErrorCatcher(child: widget.child);
+  }
+}
+
+class _ErrorCatcher extends StatelessWidget {
+  final Widget child;
+
+  const _ErrorCatcher({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      return MaterialApp(
+        home: Scaffold(
+          backgroundColor: const Color(0xFF1A1A1A),
+          body: Container(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.redAccent,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Widget Error',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: SelectableText(
+                        details.exception.toString(),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    };
+    return child;
   }
 }
 
