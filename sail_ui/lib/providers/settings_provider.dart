@@ -28,7 +28,7 @@ class SettingsProvider extends ChangeNotifier {
   // Async factory
   static Future<SettingsProvider> create() async {
     final instance = SettingsProvider._create();
-    unawaited(instance._loadAllSettings()); // unawaited to make bootup faster
+    await instance._loadAllSettings(); // Wait for settings to load to ensure correct initial state
     return instance;
   }
 
