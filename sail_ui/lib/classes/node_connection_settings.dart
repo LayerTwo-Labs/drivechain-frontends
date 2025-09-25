@@ -5,7 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-class NodeConnectionSettings extends ChangeNotifier {
+class CoreConnectionSettings extends ChangeNotifier {
   /// On local networks (i.e. regtest, simnet) we can mine blocks
   /// on the mainchain and activate new sidechains. That's NOT
   /// possible on global networks.
@@ -44,7 +44,7 @@ class NodeConnectionSettings extends ChangeNotifier {
   // Add a set to track which config values came from file
   final Set<String> configFromFile = {};
 
-  NodeConnectionSettings(
+  CoreConnectionSettings(
     String path,
     String host,
     int port,
@@ -90,7 +90,7 @@ class NodeConnectionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  void readAndSetValuesFromFile(Binary chain, String network) async {
+  void readAndSetValuesFromFile(Binary chain, Network network) async {
     try {
       var parts = splitPath(configPathController.text);
       String dataDir = parts.$1;
@@ -133,8 +133,8 @@ class NodeConnectionSettings extends ChangeNotifier {
     passwordController.removeListener(notifyListeners);
   }
 
-  static NodeConnectionSettings empty() {
-    return NodeConnectionSettings('', '127.0.0.1', 38332, 'user', 'password', true, {});
+  static CoreConnectionSettings empty() {
+    return CoreConnectionSettings('', '127.0.0.1', 38332, 'user', 'password', true, {});
   }
 
   // Add method to get config value
@@ -199,45 +199,17 @@ class NodeConnectionSettings extends ChangeNotifier {
   }
 }
 
-// This gets overwritten at a later point, just here to make the
-// type system happy.
-final _emptyNodeConf = NodeConnectionSettings.empty();
-
-Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network) async {
-  NodeConnectionSettings conf = _emptyNodeConf;
-
-  switch (chain) {
-    case TestSidechain():
-      try {
-        conf = readRPCConfig(TestSidechain().datadir(), TestSidechain().confFile(), TestSidechain(), network);
-      } catch (error) {
-        // do nothing, just don't exit
-      }
-      break;
-    case ZSide():
-      try {
-        conf = readRPCConfig(ZSide().datadir(), ZSide().confFile(), ZSide(), 'regtest', useCookieAuth: false);
-      } catch (error) {
-        // do nothing, just don't exit
-      }
-      break;
-
-    case BitcoinCore():
-      // do absolutely nothing, not a sidechain!
-      break;
-  }
-
-  return conf;
-}
-
-NodeConnectionSettings readConf() {
+CoreConnectionSettings readMainchainConf() {
   final log = GetIt.I.get<Logger>();
+  final settingsProvider = GetIt.I.get<SettingsProvider>();
 
-  NodeConnectionSettings conf = NodeConnectionSettings.empty();
+  CoreConnectionSettings conf = CoreConnectionSettings.empty();
   try {
-    final network = 'signet';
-    conf = readRPCConfig(BitcoinCore().datadir(), 'bitcoin.conf', BitcoinCore(), network);
-    // Do something with mainchainConf if needed
+    final datadir = BitcoinCore().datadir();
+    final confFileName = BitcoinCore().confFile();
+
+    conf = readRPCConfig(datadir, confFileName, BitcoinCore(), settingsProvider.network);
+    log.i('Using $confFileName for mainchain configuration');
   } catch (error) {
     log.e('could not read mainchain conf: $error');
     // do nothing

@@ -15,7 +15,10 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
-  BitwindowRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
+  BitwindowRPC({
+    required super.binaryType,
+    required super.restartOnFailure,
+  });
 
   BitwindowAPI get bitwindowd;
   WalletAPI get wallet;
@@ -43,7 +46,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   late final HealthAPI health;
 
   BitwindowRPCLive({required String host, required int port})
-    : super(conf: readConf(), binaryType: BinaryType.bitWindow, restartOnFailure: true) {
+    : super(binaryType: BinaryType.bitWindow, restartOnFailure: true) {
     _initializeConnection(host: host, port: port);
   }
 
@@ -65,7 +68,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     final bitwBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
 
     // now set the bitcoincore host with correct ports
@@ -90,6 +93,8 @@ class BitwindowRPCLive extends BitwindowRPC {
       default:
       // use defaults, whatever they are (set in config.go)
     }
+
+    final mainchainConf = readMainchainConf();
 
     return [
       '--bitcoincore.rpcuser=${mainchainConf.username}',

@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
@@ -49,7 +48,10 @@ final zsideRPCMethods = [
 ];
 
 abstract class ZSideRPC extends SidechainRPC {
-  ZSideRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
+  ZSideRPC({
+    required super.binaryType,
+    required super.restartOnFailure,
+  });
 
   Future<double> getSidechainWealth();
   Future<String> createDeposit(String address, double amount, double fee);
@@ -90,8 +92,8 @@ class ZSideLive extends ZSideRPC {
     final client = RPCClient(
       host: '127.0.0.1',
       port: binary.port,
-      username: conf.username,
-      password: conf.password,
+      username: 'N/A',
+      password: 'N/A',
       useSSL: false,
     );
 
@@ -99,12 +101,12 @@ class ZSideLive extends ZSideRPC {
     return client;
   }
 
-  ZSideLive() : super(conf: readConf(), binaryType: BinaryType.zSide, restartOnFailure: false) {
+  ZSideLive() : super(binaryType: BinaryType.zSide, restartOnFailure: false) {
     startConnectionTimer();
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     final thunderBinary = binaryProvider.binaries.where((b) => b.name == binary.name).first;
 

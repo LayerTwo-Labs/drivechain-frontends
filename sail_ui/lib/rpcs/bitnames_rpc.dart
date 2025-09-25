@@ -5,7 +5,6 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
@@ -17,7 +16,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the bitnames server.
 abstract class BitnamesRPC extends SidechainRPC {
-  BitnamesRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
+  BitnamesRPC({required super.binaryType, required super.restartOnFailure});
 
   /// Get balance in sats
   Future<BalanceResponse> getBalance();
@@ -123,8 +122,8 @@ class BitnamesLive extends BitnamesRPC {
     final client = RPCClient(
       host: '127.0.0.1',
       port: binary.port,
-      username: conf.username,
-      password: conf.password,
+      username: 'N/A',
+      password: 'N/A',
       useSSL: false,
     );
 
@@ -132,12 +131,12 @@ class BitnamesLive extends BitnamesRPC {
     return client;
   }
 
-  BitnamesLive() : super(conf: readConf(), binaryType: BinaryType.bitnames, restartOnFailure: true) {
+  BitnamesLive() : super(binaryType: BinaryType.bitnames, restartOnFailure: true) {
     startConnectionTimer();
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     return binaryProvider.binaries.where((b) => b.name == binary.name).first.extraBootArgs;
   }

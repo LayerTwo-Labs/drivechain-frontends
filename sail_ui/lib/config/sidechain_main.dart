@@ -41,7 +41,7 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
 
   // register and boot binaries
-  final mainchainRPC = MainchainRPCLive();
+  final mainchainRPC = MainchainRPCLive.create();
   GetIt.I.registerLazySingleton<MainchainRPC>(() => mainchainRPC);
   final enforcer = EnforcerLive();
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);

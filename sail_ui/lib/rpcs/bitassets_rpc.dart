@@ -7,7 +7,10 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 abstract class BitAssetsRPC extends SidechainRPC {
-  BitAssetsRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
+  BitAssetsRPC({
+    required super.binaryType,
+    required super.restartOnFailure,
+  });
 
   /// Get balance in sats
   Future<BalanceResponse> getBalance();
@@ -161,8 +164,8 @@ class BitAssetsLive extends BitAssetsRPC {
     final client = RPCClient(
       host: '127.0.0.1',
       port: binary.port,
-      username: conf.username,
-      password: conf.password,
+      username: 'N/A',
+      password: 'N/A',
       useSSL: false,
     );
 
@@ -170,12 +173,12 @@ class BitAssetsLive extends BitAssetsRPC {
     return client;
   }
 
-  BitAssetsLive() : super(conf: readConf(), binaryType: BinaryType.bitassets, restartOnFailure: true) {
+  BitAssetsLive() : super(binaryType: BinaryType.bitassets, restartOnFailure: true) {
     startConnectionTimer();
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     return binaryProvider.binaries.where((b) => b.name == binary.name).first.extraBootArgs;
   }

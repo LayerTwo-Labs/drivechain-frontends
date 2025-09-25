@@ -121,7 +121,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
 
-  GetIt.I.registerLazySingleton<MainchainRPC>(() => MainchainRPCLive());
+  GetIt.I.registerLazySingleton<MainchainRPC>(() => MainchainRPCLive.create());
   GetIt.I.registerLazySingleton<EnforcerRPC>(() => EnforcerLive());
 
   final bitwindow = BitwindowRPCLive(

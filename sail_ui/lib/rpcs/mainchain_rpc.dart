@@ -4,13 +4,21 @@ import 'dart:io';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// RPC connection to the mainchain node. Only really used
 /// to set correct conf, and start the binary
 abstract class MainchainRPC extends RPCConnection {
-  MainchainRPC({required super.conf, required super.binaryType, required super.restartOnFailure});
+  CoreConnectionSettings conf;
+
+  MainchainRPC({
+    required this.conf,
+    required super.binaryType,
+    required super.restartOnFailure,
+  });
 
   final chain = BitcoinCore();
 
@@ -46,13 +54,59 @@ class MainchainRPCLive extends MainchainRPC {
     return client;
   }
 
-  MainchainRPCLive() : super(conf: readConf(), binaryType: BinaryType.bitcoinCore, restartOnFailure: false) {
+  static MainchainRPCLive create() {
+    _writeConfFileSync();
+    return MainchainRPCLive._internal();
+  }
+
+  MainchainRPCLive._internal()
+    : super(conf: readMainchainConf(), binaryType: BinaryType.bitcoinCore, restartOnFailure: false) {
     if (Environment.isInTest) {
       return;
     }
     pollIBDStatus();
     // must test connection before moving on, in case it is already running!
     startConnectionTimer();
+  }
+
+  static void _writeConfFileSync() {
+    final confContent = '''# Generated code. Any changes to this file *will* get overwritten.
+# source: sail_ui/lib/rpcs/mainchain_rpc.dart (_writeConfFileSync())
+
+# Common settings for all networks
+rpcuser=user
+rpcpassword=password
+server=1
+listen=1
+txindex=1
+zmqpubsequence=tcp://0.0.0.0:29000
+rpcthreads=20
+rpcworkqueue=100
+rest=1
+fallbackfee=0.00021
+
+# Mainnet-specific settings
+[main]
+
+# Testnet-specific settings
+[test]
+
+# Signet-specific settings
+[signet]
+addnode=172.105.148.135:38333
+signetblocktime=60
+signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
+acceptnonstdtxn=1
+
+# Regtest-specific settings
+[regtest]
+''';
+
+    final confPath = path.join(BitcoinCore().datadir(), BITWINDOW_CORE_CONF_FILE);
+    File(confPath).writeAsStringSync(confContent);
+
+    final log = GetIt.I.get<Logger>();
+    log.i('Wrote $BITWINDOW_CORE_CONF_FILE to $confPath');
   }
 
   void pollIBDStatus() {
@@ -135,120 +189,37 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+  Future<List<String>> binaryArgs() async {
     // Check if mainnet mode is enabled
-    final bitwindowNetwork = GetIt.I.get<SettingsProvider>().network;
+    final settingsProvider = GetIt.I.get<SettingsProvider>();
     final coreBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
 
-    if (mainchainConf.hasConfFile) {
-      final confNetwork = extractConfNetwork();
-      if (confNetwork == bitwindowNetwork) {
-        // only if OUR network matches the conf network do we use values from the conf file
-        // if the user swaps networks, its our game
+    // Determine network args based on current network setting
+    final List<String> networkArgs = [];
+    final confFile = BitcoinCore().confFile();
 
-        // the conf file exists, and should take total precedence
-        log.i('Mainchain conf file is present, not adding sidechain args');
-        var extraArgs = <String>[];
-
-        if (!mainchainConf.isFromConfigFile('rest')) {
-          extraArgs.add('-rest');
-        }
-
-        if (!mainchainConf.isFromConfigFile('rpcthreads')) {
-          extraArgs.add('-rpcthreads=40');
-        }
-
-        if (!mainchainConf.isFromConfigFile('rpcworkqueue')) {
-          extraArgs.add('-rpcworkqueue=100');
-        }
-
-        return extraArgs;
-      } else {
-        // Network mismatch - use empty config file to override the existing one
-        log.w('Network mismatch: conf file is for $confNetwork but app is set to $bitwindowNetwork');
-
-        // Create empty config file
-        final emptyConfPath = '${BitcoinCore().datadir()}/empty.conf';
-        final emptyConfFile = File(emptyConfPath);
-
-        try {
-          // Create the file with just a comment
-          await emptyConfFile.writeAsString('# Empty config file to override network settings\n');
-          log.i('Created empty config file at $emptyConfPath');
-        } catch (e) {
-          log.e('Failed to create empty config file: $e');
-        }
-
-        // Tell Bitcoin Core to use the empty config file
-        // This ensure we use the values from the networkArgs array below
-        coreBinary.addBootArg('-conf=empty.conf');
-        coreBinary.addBootArg('-allowignoredconf=1');
-        mainchainConf = NodeConnectionSettings(
-          mainchainConf.confPath,
-          mainchainConf.host,
-          mainchainConf.port,
-          'user',
-          'password',
-          false,
-        );
-      }
-    }
-    conf = mainchainConf;
-
-    List<String> networkArgs = [
-      '-rpcuser=user',
-      '-rpcpassword=password',
-      '-server',
-      '-listen',
-      '-txindex',
-      '-zmqpubsequence=tcp://0.0.0.0:29000',
-      '-rpcthreads=40',
-      '-rpcworkqueue=100',
-      '-rest',
-      '-fallbackfee=0.00021',
-    ];
-
-    switch (bitwindowNetwork) {
-      case Network.NETWORK_REGTEST:
-        log.i('Network is regtest, adding extra args');
-        networkArgs.addAll([
-          '-regtest',
-        ]);
-
-      case Network.NETWORK_TESTNET:
-        log.i('Network is regtest, adding extra args');
-        networkArgs.addAll([
-          '-testnet',
-        ]);
-
-      case Network.NETWORK_SIGNET:
-        log.i('Network is signet, adding extra args');
-        networkArgs.addAll([
-          '-signet',
-          '-addnode=172.105.148.135:38333',
-          '-signetblocktime=60',
-          '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
-          '-acceptnonstdtxn',
-        ]);
-
+    // Use the appropriate config file based on the network
+    switch (settingsProvider.network) {
       case Network.NETWORK_MAINNET:
-        log.i('Network is mainnet, adding no extra args');
-        // nothing extra
+        networkArgs.add('-conf=$confFile');
         break;
-
+      case Network.NETWORK_SIGNET:
+        networkArgs.addAll(['-signet', '-conf=$confFile']);
+        break;
+      case Network.NETWORK_REGTEST:
+        networkArgs.addAll(['-regtest', '-conf=$confFile']);
+        break;
+      case Network.NETWORK_TESTNET:
+        networkArgs.addAll(['-testnet', '-conf=$confFile']);
+        break;
       default:
-        // SIGNET is default!
-        networkArgs.addAll([
-          '-signet',
-          '-addnode=172.105.148.135:38333',
-          '-signetblocktime=60',
-          '-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456',
-        ]);
+        networkArgs.addAll(['-signet', '-conf=$confFile']);
+        break;
     }
 
-    log.i('${BitcoinCore().confFile()} not found, adding network args: $networkArgs');
+    log.i('Using $confFile with network args: $networkArgs');
 
-    final finalArgs = cleanArgs(mainchainConf, [...networkArgs, ...coreBinary.extraBootArgs]);
+    final finalArgs = cleanArgs(conf, [...networkArgs, ...coreBinary.extraBootArgs]);
 
     log.i('Final binary args: $finalArgs');
     return finalArgs;
