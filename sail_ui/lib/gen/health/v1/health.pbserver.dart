@@ -27,21 +27,27 @@ abstract class HealthServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'Check': return $1.Empty();
-      case 'Watch': return $1.Empty();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Check':
+        return $1.Empty();
+      case 'Watch':
+        return $1.Empty();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'Check': return this.check(ctx, request as $1.Empty);
-      case 'Watch': return this.watch(ctx, request as $1.Empty);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Check':
+        return this.check(ctx, request as $1.Empty);
+      case 'Watch':
+        return this.watch(ctx, request as $1.Empty);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => HealthServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => HealthServiceBase$messageJson;
 }
-

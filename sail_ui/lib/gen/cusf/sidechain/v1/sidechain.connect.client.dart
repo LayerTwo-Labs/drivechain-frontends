@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "sidechain.pb.dart" as cusfsidechainv1sidechain;
 import "sidechain.connect.spec.dart" as specs;
 
-extension type SidechainServiceClient (connect.Transport _transport) {
+extension type SidechainServiceClient(connect.Transport _transport) {
   Future<cusfsidechainv1sidechain.GetMempoolTxsResponse> getMempoolTxs(
     cusfsidechainv1sidechain.GetMempoolTxsRequest input, {
     connect.Headers? headers,

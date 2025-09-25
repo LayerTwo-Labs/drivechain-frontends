@@ -8,7 +8,7 @@ import "health.pb.dart" as healthv1health;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 import "health.connect.spec.dart" as specs;
 
-extension type HealthServiceClient (connect.Transport _transport) {
+extension type HealthServiceClient(connect.Transport _transport) {
   /// Check status of requested services
   /// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   Future<healthv1health.CheckResponse> check(

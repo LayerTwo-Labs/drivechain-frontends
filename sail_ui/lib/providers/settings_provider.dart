@@ -20,6 +20,7 @@ class SettingsProvider extends ChangeNotifier {
 
   // Convenience getters for individual bitwindow settings
   Network get network => bitwindowSettings.network;
+  String? get bitcoinCoreDataDir => bitwindowSettings.bitcoinCoreDataDir;
 
   // Private constructor
   SettingsProvider._create();
@@ -137,11 +138,37 @@ class SettingsProvider extends ChangeNotifier {
     final newSettings = bitwindowSettings.copyWith(network: network);
     await _updateBitwindowSettings(newSettings);
 
+    // Regenerate bitcoin config for the new network
+    _regenerateBitcoinConf();
+
     // When changing network, restart all services with data cleanup if needed
     final isMainnetChange = (oldNetwork == Network.NETWORK_MAINNET) != (network == Network.NETWORK_MAINNET);
     if (isMainnetChange) {
       log.i('Network changed from ${oldNetwork.name} to ${network.name}, restarting services...');
       await _restartServicesForMainnet();
+    }
+  }
+
+  /// Update Bitcoin Core datadir setting
+  Future<void> updateBitcoinCoreDataDir(String? dataDir) async {
+    if (bitwindowSettings.bitcoinCoreDataDir == dataDir) {
+      return;
+    }
+
+    final newSettings = bitwindowSettings.copyWith(bitcoinCoreDataDir: dataDir);
+    await _updateBitwindowSettings(newSettings);
+
+    // Regenerate bitcoin config to include the new datadir
+    _regenerateBitcoinConf();
+  }
+
+  /// Regenerate bitcoin configuration file with current settings
+  void _regenerateBitcoinConf() {
+    try {
+      // Call the static method to regenerate the config
+      MainchainRPCLive.writeConfFileSync();
+    } catch (e) {
+      log.e('Failed to regenerate bitcoin config: $e');
     }
   }
 

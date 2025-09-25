@@ -18,7 +18,7 @@ class Direction extends $pb.ProtobufEnum {
   static const Direction DIRECTION_SEND = Direction._(1, _omitEnumNames ? '' : 'DIRECTION_SEND');
   static const Direction DIRECTION_RECEIVE = Direction._(2, _omitEnumNames ? '' : 'DIRECTION_RECEIVE');
 
-  static const $core.List<Direction> values = <Direction> [
+  static const $core.List<Direction> values = <Direction>[
     DIRECTION_UNSPECIFIED,
     DIRECTION_SEND,
     DIRECTION_RECEIVE,
@@ -29,6 +29,5 @@ class Direction extends $pb.ProtobufEnum {
 
   const Direction._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

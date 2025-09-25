@@ -8,7 +8,7 @@ import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 import "bitwindowd.connect.spec.dart" as specs;
 import "bitwindowd.pb.dart" as bitwindowdv1bitwindowd;
 
-extension type BitwindowdServiceClient (connect.Transport _transport) {
+extension type BitwindowdServiceClient(connect.Transport _transport) {
   Future<googleprotobufempty.Empty> stop(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
