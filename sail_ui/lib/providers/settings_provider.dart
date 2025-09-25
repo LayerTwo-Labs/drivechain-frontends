@@ -105,9 +105,15 @@ class SettingsProvider extends ChangeNotifier {
 
   /// Load bitwindow settings
   Future<void> _loadBitwindowSettings() async {
-    final setting = BitwindowSettingValue();
-    final loadedSetting = await bitwindowClientSettings.getValue(setting);
-    bitwindowSettings = loadedSetting.value;
+    try {
+      final setting = BitwindowSettingValue();
+      final loadedSetting = await bitwindowClientSettings.getValue(setting);
+      bitwindowSettings = loadedSetting.value;
+    } catch (e) {
+      // If loading fails, use default settings
+      log.d('Failed to load bitwindow settings, using defaults: $e');
+      bitwindowSettings = BitwindowSettings();
+    }
     notifyListeners();
   }
 
