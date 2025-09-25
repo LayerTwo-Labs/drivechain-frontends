@@ -55,7 +55,7 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   static MainchainRPCLive create() {
-    _writeConfFileSync();
+    writeConfFileSync();
     return MainchainRPCLive._internal();
   }
 
@@ -69,8 +69,15 @@ class MainchainRPCLive extends MainchainRPC {
     startConnectionTimer();
   }
 
-  static void _writeConfFileSync() {
-    final confContent = '''# Generated code. Any changes to this file *will* get overwritten.
+  static void writeConfFileSync() {
+    // Get datadir from settings if configured
+    final settingsProvider = GetIt.I.get<SettingsProvider>();
+    final datadirLine = settingsProvider.bitcoinCoreDataDir != null
+        ? 'datadir=${settingsProvider.bitcoinCoreDataDir}\n'
+        : '';
+
+    final confContent =
+        '''# Generated code. Any changes to this file *will* get overwritten.
 # source: sail_ui/lib/rpcs/mainchain_rpc.dart (_writeConfFileSync())
 
 # Common settings for all networks
@@ -84,6 +91,7 @@ rpcthreads=20
 rpcworkqueue=100
 rest=1
 fallbackfee=0.00021
+$datadirLine
 
 # Mainnet-specific settings
 [main]

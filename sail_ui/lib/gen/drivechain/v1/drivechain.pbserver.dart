@@ -22,25 +22,32 @@ export 'drivechain.pb.dart';
 
 abstract class DrivechainServiceBase extends $pb.GeneratedService {
   $async.Future<$3.ListSidechainsResponse> listSidechains($pb.ServerContext ctx, $3.ListSidechainsRequest request);
-  $async.Future<$3.ListSidechainProposalsResponse> listSidechainProposals($pb.ServerContext ctx, $3.ListSidechainProposalsRequest request);
+  $async.Future<$3.ListSidechainProposalsResponse> listSidechainProposals(
+      $pb.ServerContext ctx, $3.ListSidechainProposalsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListSidechains': return $3.ListSidechainsRequest();
-      case 'ListSidechainProposals': return $3.ListSidechainProposalsRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListSidechains':
+        return $3.ListSidechainsRequest();
+      case 'ListSidechainProposals':
+        return $3.ListSidechainProposalsRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListSidechains': return this.listSidechains(ctx, request as $3.ListSidechainsRequest);
-      case 'ListSidechainProposals': return this.listSidechainProposals(ctx, request as $3.ListSidechainProposalsRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListSidechains':
+        return this.listSidechains(ctx, request as $3.ListSidechainsRequest);
+      case 'ListSidechainProposals':
+        return this.listSidechainProposals(ctx, request as $3.ListSidechainProposalsRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => DrivechainServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => DrivechainServiceBase$messageJson;
 }
-

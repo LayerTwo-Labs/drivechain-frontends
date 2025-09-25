@@ -8,7 +8,7 @@ import "misc.pb.dart" as miscv1misc;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 import "misc.connect.spec.dart" as specs;
 
-extension type MiscServiceClient (connect.Transport _transport) {
+extension type MiscServiceClient(connect.Transport _transport) {
   Future<miscv1misc.ListOPReturnResponse> listOPReturn(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,

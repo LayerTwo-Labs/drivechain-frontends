@@ -9,15 +9,18 @@ import 'package:sail_ui/sail_ui.dart';
 // magic
 class BitwindowSettings {
   final Network network;
+  final String? bitcoinCoreDataDir;
   // Add more settings fields here as needed in the future
 
   BitwindowSettings({
     this.network = Network.NETWORK_SIGNET,
+    this.bitcoinCoreDataDir,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'network': network.name,
+      'bitcoinCoreDataDir': bitcoinCoreDataDir,
     };
   }
 
@@ -27,6 +30,7 @@ class BitwindowSettings {
         (e) => e.name == map['network'],
         orElse: () => Network.NETWORK_SIGNET,
       ),
+      bitcoinCoreDataDir: map['bitcoinCoreDataDir'] as String?,
     );
   }
 
@@ -43,9 +47,11 @@ class BitwindowSettings {
 
   BitwindowSettings copyWith({
     Network? network,
+    String? bitcoinCoreDataDir,
   }) {
     return BitwindowSettings(
       network: network ?? this.network,
+      bitcoinCoreDataDir: bitcoinCoreDataDir ?? this.bitcoinCoreDataDir,
     );
   }
 }

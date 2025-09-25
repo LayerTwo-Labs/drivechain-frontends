@@ -7,9 +7,11 @@ import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/sidechain_main.dart' hide bootBinaries;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -121,6 +123,39 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
     });
   }
 
+  Future<void> _handleMainnetToggle(bool value) async {
+    final targetNetwork = value ? Network.NETWORK_MAINNET : Network.NETWORK_SIGNET;
+
+    // If switching TO mainnet, check if we need to require a datadir
+    if (value && _settingsProvider.network != Network.NETWORK_MAINNET) {
+      // Check if user has their own bitcoin.conf (if so, we respect it and don't interfere)
+      final hasUserBitcoinConf = BitcoinCore().confFile() == 'bitcoin.conf';
+      // Check if we already have a datadir configured
+      final hasDatadirConfigured = _settingsProvider.bitcoinCoreDataDir != null;
+
+      if (!hasUserBitcoinConf && !hasDatadirConfigured) {
+        // User have not created their own bitcoin.conf, and have not been
+        // asked about specifying a datadir yet, ask!
+        final selectedPath = await showDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const DatadirSelectionDialog(),
+        );
+
+        if (selectedPath != null) {
+          // Save the selected datadir
+          await _settingsProvider.updateBitcoinCoreDataDir(selectedPath);
+        } else {
+          // User cancelled, don't switch to mainnet
+          return;
+        }
+      }
+    }
+
+    // We have ensured we have a datadir, proceed with network change
+    await _settingsProvider.updateBitwindowNetwork(targetNetwork);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SailColumn(
@@ -179,9 +214,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
               label: 'Enable Mainnet',
               value: _settingsProvider.network == Network.NETWORK_MAINNET,
               onChanged: (value) async {
-                await _settingsProvider.updateBitwindowNetwork(
-                  value ? Network.NETWORK_MAINNET : Network.NETWORK_SIGNET,
-                );
+                await _handleMainnetToggle(value);
               },
             ),
           ],
@@ -432,6 +465,129 @@ class _InfoSettingsContentState extends State<_InfoSettingsContent> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class DatadirSelectionDialog extends StatefulWidget {
+  const DatadirSelectionDialog({super.key});
+
+  @override
+  State<DatadirSelectionDialog> createState() => _DatadirSelectionDialogState();
+}
+
+class _DatadirSelectionDialogState extends State<DatadirSelectionDialog> {
+  String? selectedPath;
+  bool isSelecting = false;
+
+  Future<void> _selectDirectory() async {
+    setState(() {
+      isSelecting = true;
+    });
+
+    try {
+      final result = await FilePicker.platform.getDirectoryPath();
+      if (result != null) {
+        // Validate that the directory is writable
+        final testFile = File(path.join(result, '.bitwindow_test'));
+        try {
+          await testFile.writeAsString('test');
+          await testFile.delete();
+          setState(() {
+            selectedPath = result;
+          });
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Selected directory is not writable: $e'),
+                backgroundColor: SailTheme.of(context).colors.error,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting directory: $e'),
+            backgroundColor: SailTheme.of(context).colors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSelecting = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 350),
+
+        child: SailCard(
+          title: 'Select Bitcoin Data Directory',
+          subtitle:
+              'Bitcoin mainnet requires substantial storage space (approximately 2.5TB). '
+              'Please select a directory with enough free space to store the Bitcoin blockchain data.\n\n'
+              'This directory will be used for both mainnet and signet networks.',
+          withCloseButton: true,
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary15('Selected Directory:'),
+              SailRow(
+                mainAxisSize: MainAxisSize.min,
+                spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(SailStyleValues.padding12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: SailTheme.of(context).colors.border),
+                        borderRadius: SailStyleValues.borderRadiusSmall,
+                      ),
+                      child: SailText.secondary13(
+                        selectedPath ?? 'No directory selected',
+                      ),
+                    ),
+                  ),
+                  SailButton(
+                    label: 'Browse Directories',
+                    loading: isSelecting,
+                    onPressed: () async => await _selectDirectory(),
+                  ),
+                ],
+              ),
+              Expanded(child: Container()),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SailButton(
+                    label: 'Cancel',
+                    variant: ButtonVariant.secondary,
+                    onPressed: () async => Navigator.of(context).pop(),
+                  ),
+                  const SailSpacing(SailStyleValues.padding12),
+                  SailButton(
+                    label: 'Confirm',
+                    variant: ButtonVariant.primary,
+                    onPressed: selectedPath != null ? () async => Navigator.of(context).pop(selectedPath) : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
