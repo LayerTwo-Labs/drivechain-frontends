@@ -68,38 +68,40 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       // Insert the default parameters after bitcoin-cli
       final parts = trimmed.split(' ');
       if (parts.isNotEmpty && parts[0] == 'bitcoin-cli') {
-        parts.insert(1, '-rpcuser=user');
-        parts.insert(2, '-rpcpassword=password');
-
         final network = GetIt.I.get<SettingsProvider>().network;
+        final confFile = BitcoinCore().confFile();
+        parts.insert(3, '-conf=$confFile');
+
         switch (network) {
           case Network.NETWORK_REGTEST:
-            parts.insert(3, '-regtest');
-            parts.insert(4, '-conf=empty.conf');
+            parts.insert(4, '-regtest');
             break;
 
           case Network.NETWORK_TESTNET:
-            parts.insert(3, '-regtest');
-            parts.insert(4, '-conf=empty.conf');
+            parts.insert(4, '-testnet');
             break;
 
           case Network.NETWORK_SIGNET:
-            parts.insert(3, '-regtest');
-            parts.insert(4, '-conf=empty.conf');
+            parts.insert(4, '-signet');
             break;
 
           case Network.NETWORK_MAINNET:
             break;
 
           default:
-            parts.insert(3, '-regtest');
-            parts.insert(4, '-conf=empty.conf');
+            parts.insert(4, '-regtest');
             break;
         }
 
         return '${parts.join(' ')}\n';
       }
     }
+
+    if (trimmed.startsWith('enforcer-cli')) {
+      // TODO: CREATE AN ALIAS for enforcier-cli
+      // WHEN THE USER TYPES IN enforcer-cli, TRANSLATE IT TO grpcurl -plaintext localhost:50051
+    }
+
     return data;
   }
 
@@ -186,6 +188,8 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
 
     final binaryPaths = paths.where((p) => Directory(p).existsSync()).toList();
 
+    // enforcer-cli is just a grpcurl-wrapper, so they always have it
+    availableCLIs['enforcer-cli'] = true;
     _sendWelcomeMessage(availableCLIs);
 
     return binaryPaths;
@@ -194,6 +198,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
   void _sendWelcomeMessage(Map<String, bool> availableCLIs) {
     final cliDescriptions = {
       'bitcoin-cli': 'Bitcoin Core commands',
+      'enforcer-cli': 'Enforcer commands',
       'drivechain-cli': 'Drivechain enforcer commands',
       'thunder-cli': 'Thunder sidechain',
       'bitnames-cli': 'Bitnames sidechain',

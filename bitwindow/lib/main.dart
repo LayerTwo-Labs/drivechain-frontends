@@ -12,6 +12,7 @@ import 'package:bitwindow/pages/wallet/wallet_hd.dart';
 import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/bitcoin_config_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -155,6 +156,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   // Register the abstract HomepageProvider as an alias to the concrete implementation
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
+  GetIt.I.registerLazySingleton<BitcoinConfigProvider>(() => BitcoinConfigProvider());
 
   return (applicationDir, logFile, log);
 }

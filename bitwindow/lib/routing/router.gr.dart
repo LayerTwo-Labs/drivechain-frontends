@@ -11,6 +11,22 @@
 part of 'router.dart';
 
 /// generated route for
+/// [BitcoinConfEditorPage]
+class BitcoinConfEditorRoute extends PageRouteInfo<void> {
+  const BitcoinConfEditorRoute({List<PageRouteInfo>? children})
+    : super(BitcoinConfEditorRoute.name, initialChildren: children);
+
+  static const String name = 'BitcoinConfEditorRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitcoinConfEditorPage();
+    },
+  );
+}
+
+/// generated route for
 /// [ConfigureHomePage]
 class ConfigureHomeRoute extends PageRouteInfo<void> {
   const ConfigureHomeRoute({List<PageRouteInfo>? children})

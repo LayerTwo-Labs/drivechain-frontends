@@ -602,6 +602,28 @@ class _AdvancedSettingsContentState extends State<_AdvancedSettingsContent> {
           ],
         ),
 
+        // Bitcoin Configuration
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Bitcoin Configuration'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailButton(
+              label: 'Edit Bitcoin Core Settings',
+              onPressed: () async {
+                // Add small delay to allow proper widget cleanup
+                await Future.delayed(const Duration(milliseconds: 100));
+                final router = GetIt.I.get<AppRouter>();
+                await router.push(const BitcoinConfEditorRoute());
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'Configure Bitcoin Core settings through an intuitive interface',
+            ),
+          ],
+        ),
+
         // Test Sidechains
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

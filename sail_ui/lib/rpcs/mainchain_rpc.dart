@@ -113,11 +113,11 @@ acceptnonstdtxn=1
     final dataDir = BitcoinCore().datadir();
     // Ensure the data directory exists before writing the config file
     Directory(dataDir).createSync(recursive: true);
-    final confPath = path.join(dataDir, BITWINDOW_CORE_CONF_FILE);
+    final confPath = path.join(dataDir, 'bitwindow-bitcoin.conf');
     File(confPath).writeAsStringSync(confContent);
 
     final log = GetIt.I.get<Logger>();
-    log.i('Wrote $BITWINDOW_CORE_CONF_FILE to $confPath');
+    log.i('Wrote bitwindow-bitcoin.conf to $confPath');
   }
 
   void pollIBDStatus() {
