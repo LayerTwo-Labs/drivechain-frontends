@@ -90,7 +90,9 @@ class ProcessManager extends ChangeNotifier {
           (data) {
             stderrController.add(data);
             if (!isSpam(data)) {
-              log.e('${file.path}: $data');
+              // Strip ANSI color codes from the log output
+              final cleanData = data.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
+              log.e('${file.path}: $cleanData');
             }
           },
           onError: (error, stack) {
