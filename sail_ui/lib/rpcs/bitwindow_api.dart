@@ -33,17 +33,17 @@ abstract class BitwindowRPC extends RPCConnection {
 
 class BitwindowRPCLive extends BitwindowRPC {
   @override
-  late final BitwindowAPI bitwindowd;
+  late BitwindowAPI bitwindowd;
   @override
-  late final WalletAPI wallet;
+  late WalletAPI wallet;
   @override
-  late final BitcoindAPI bitcoind;
+  late BitcoindAPI bitcoind;
   @override
-  late final DrivechainAPI drivechain;
+  late DrivechainAPI drivechain;
   @override
-  late final MiscAPI misc;
+  late MiscAPI misc;
   @override
-  late final HealthAPI health;
+  late HealthAPI health;
 
   BitwindowRPCLive({required String host, required int port})
     : super(binaryType: BinaryType.bitWindow, restartOnFailure: true) {
@@ -319,16 +319,12 @@ class BitwindowRPCLive extends BitwindowRPC {
     } catch (e) {
       final errorString = e.toString().toLowerCase();
 
-      // Check for various connection errors that require recreation
+      // Only recreate when the HTTP/2 connection itself is dropped
+      // These specific errors indicate the HTTP/2 client connection was terminated
       if (errorString.contains('http/2 connection is finishing') ||
           errorString.contains('connection closed') ||
-          errorString.contains('stream closed') ||
-          errorString.contains('transport closed') ||
-          errorString.contains('forcefully terminated') ||
-          errorString.contains('connection reset') ||
-          errorString.contains('broken pipe') ||
-          (errorString.contains('unavailable') && errorString.contains('grpc'))) {
-        log.w('Connection error detected, recreating connection: ${e.toString()}');
+          errorString.contains('stream closed')) {
+        log.w('HTTP/2 connection dropped, recreating: ${e.toString()}');
         _recreateConnection();
         // Retry the operation with the new connection
         return await operation();
