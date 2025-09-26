@@ -73,12 +73,12 @@ class MainchainRPCLive extends MainchainRPC {
     // Get datadir from settings if configured
     final settingsProvider = GetIt.I.get<SettingsProvider>();
     final datadirLine = settingsProvider.bitcoinCoreDataDir != null
-        ? 'datadir=${settingsProvider.bitcoinCoreDataDir}\n'
+        ? 'datadir=${settingsProvider.bitcoinCoreDataDir}'
         : '';
 
     final confContent =
         '''# Generated code. Any changes to this file *will* get overwritten.
-# source: sail_ui/lib/rpcs/mainchain_rpc.dart (_writeConfFileSync())
+# source: sail_ui/lib/rpcs/mainchain_rpc.dart (writeConfFileSync())
 
 # Common settings for all networks
 rpcuser=user
@@ -110,7 +110,10 @@ acceptnonstdtxn=1
 [regtest]
 ''';
 
-    final confPath = path.join(BitcoinCore().datadir(), BITWINDOW_CORE_CONF_FILE);
+    final dataDir = BitcoinCore().datadir();
+    // Ensure the data directory exists before writing the config file
+    Directory(dataDir).createSync(recursive: true);
+    final confPath = path.join(dataDir, BITWINDOW_CORE_CONF_FILE);
     File(confPath).writeAsStringSync(confContent);
 
     final log = GetIt.I.get<Logger>();
@@ -204,24 +207,32 @@ acceptnonstdtxn=1
 
     // Determine network args based on current network setting
     final List<String> networkArgs = [];
-    final confFile = BitcoinCore().confFile();
+    var confFile = '';
+    try {
+      // if we can find a conf-file, add it as a -conf arg
+      confFile = BitcoinCore().confFile();
+      networkArgs.add('-conf=$confFile');
+    } catch (error) {
+      log.w('could not read conf file to get core binary args: $error');
+    }
 
-    // Use the appropriate config file based on the network
+    // Set the correct network. Bitwindows own bitcoin.conf configures
+    // network values for all nets, so the only thing required
+    // to get up and running is to boot into the correct network!
     switch (settingsProvider.network) {
       case Network.NETWORK_MAINNET:
-        networkArgs.add('-conf=$confFile');
         break;
       case Network.NETWORK_SIGNET:
-        networkArgs.addAll(['-signet', '-conf=$confFile']);
+        networkArgs.add('-signet');
         break;
       case Network.NETWORK_REGTEST:
-        networkArgs.addAll(['-regtest', '-conf=$confFile']);
+        networkArgs.add('-regtest');
         break;
       case Network.NETWORK_TESTNET:
-        networkArgs.addAll(['-testnet', '-conf=$confFile']);
+        networkArgs.add('-testnet');
         break;
       default:
-        networkArgs.addAll(['-signet', '-conf=$confFile']);
+        networkArgs.add('-signet');
         break;
     }
 
