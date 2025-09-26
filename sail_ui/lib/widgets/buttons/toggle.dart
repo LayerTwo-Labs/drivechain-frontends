@@ -19,6 +19,7 @@ class SailToggle extends StatelessWidget {
       child: SailRow(
         spacing: SailStyleValues.padding08,
         children: [
+          SailText.primary13(label),
           Container(
             width: 30,
             height: 20,
@@ -41,7 +42,6 @@ class SailToggle extends StatelessWidget {
               ),
             ),
           ),
-          SailText.secondary12(label),
         ],
       ),
     );

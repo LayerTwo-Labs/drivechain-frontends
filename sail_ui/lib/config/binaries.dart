@@ -34,8 +34,6 @@ extension BinaryTypeExtension on BinaryType {
   };
 }
 
-const BITWINDOW_CORE_CONF_FILE = 'bitwindow-bitcoin.conf';
-
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
 
@@ -700,7 +698,7 @@ extension BinaryPaths on Binary {
     }
 
     // Fall back to our generated config
-    return BITWINDOW_CORE_CONF_FILE;
+    return 'bitwindow-bitcoin.conf';
   }
 
   String logPath() {

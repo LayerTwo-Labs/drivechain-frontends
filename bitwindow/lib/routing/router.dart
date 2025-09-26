@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/bitcoin_conf_editor_page.dart';
 import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
@@ -88,6 +89,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/create-wallet',
       page: CreateWalletRoute.page,
+    ),
+    AutoRoute(
+      path: '/bitcoin-config',
+      page: BitcoinConfEditorRoute.page,
     ),
   ];
 }
