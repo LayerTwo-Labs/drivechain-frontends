@@ -58,9 +58,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 // Left navigation
                 SideNav(
                   items: const [
-                    SideNavItem(label: 'General'),
+                    SideNavItem(label: 'Network'),
+                    SideNavItem(label: 'Appearance'),
+                    SideNavItem(label: 'Advanced'),
                     SideNavItem(label: 'Reset'),
-                    SideNavItem(label: 'Info'),
+                    SideNavItem(label: 'About'),
                   ],
                   selectedIndex: _selectedIndex,
                   onItemSelected: (index) {
@@ -85,30 +87,37 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildContent() {
     switch (_selectedIndex) {
       case 0:
-        return _GeneralSettingsContent();
+        return _NetworkSettingsContent();
       case 1:
-        return _ResetSettingsContent();
+        return _AppearanceSettingsContent();
       case 2:
-        return _InfoSettingsContent();
+        return _AdvancedSettingsContent();
+      case 3:
+        return _ResetSettingsContent();
+      case 4:
+        return _AboutSettingsContent();
       default:
-        return _GeneralSettingsContent();
+        return _NetworkSettingsContent();
     }
   }
 }
 
-class _GeneralSettingsContent extends StatefulWidget {
+class _NetworkSettingsContent extends StatefulWidget {
   @override
-  State<_GeneralSettingsContent> createState() => _GeneralSettingsContentState();
+  State<_NetworkSettingsContent> createState() => _NetworkSettingsContentState();
 }
 
-class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
+class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   final _settingsProvider = GetIt.I.get<SettingsProvider>();
+  String? _selectedDataDir;
+  bool _isSelectingDataDir = false;
 
   @override
   void initState() {
     super.initState();
     // Listen to settings changes
     _settingsProvider.addListener(_onSettingsChanged);
+    _selectedDataDir = _settingsProvider.bitcoinCoreDataDir;
   }
 
   @override
@@ -120,6 +129,7 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
   void _onSettingsChanged() {
     setState(() {
       // Rebuild when settings change
+      _selectedDataDir = _settingsProvider.bitcoinCoreDataDir;
     });
   }
 
@@ -163,51 +173,80 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
     }
   }
 
+  Future<void> _selectDataDirectory() async {
+    setState(() {
+      _isSelectingDataDir = true;
+    });
+
+    try {
+      // Get the default Bitcoin Core datadir to use as initial directory
+      final defaultDir = BitcoinCore().datadir();
+
+      final result = await FilePicker.platform.getDirectoryPath(
+        initialDirectory: defaultDir,
+      );
+      if (result != null) {
+        // Validate that the directory is writable
+        final testFile = File(path.join(result, '.bitwindow_test'));
+        try {
+          await testFile.writeAsString('test');
+          await testFile.delete();
+          setState(() {
+            _selectedDataDir = result;
+          });
+          await _settingsProvider.updateBitcoinCoreDataDir(result);
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Selected directory is not writable: $e'),
+                backgroundColor: SailTheme.of(context).colors.error,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting directory: $e'),
+            backgroundColor: SailTheme.of(context).colors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSelectingDataDir = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _clearDataDir() async {
+    await _settingsProvider.updateBitcoinCoreDataDir(null);
+    setState(() {
+      _selectedDataDir = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final isMainnet = _settingsProvider.network == Network.NETWORK_MAINNET;
+    final showDataDir = isMainnet || _selectedDataDir != null;
+
     return SailColumn(
       spacing: SailStyleValues.padding32,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Profile section header
+        // Section header
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.primary20('General'),
-            SailText.secondary13('Enable or disable various settings'),
-          ],
-        ),
-
-        // Debug Mode Dropdown
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Debug Mode'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<bool>(
-              value: _settingsProvider.debugMode,
-              items: [
-                SailDropdownItem<bool>(
-                  value: false,
-                  label: 'Disabled',
-                ),
-                SailDropdownItem<bool>(
-                  value: true,
-                  label: 'Enabled',
-                ),
-              ],
-              onChanged: (bool? newValue) async {
-                if (newValue == true) {
-                  await _showDebugModeWarning();
-                } else {
-                  await _settingsProvider.updateDebugMode(false);
-                }
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'When enabled, detailed error reporting will be collected to fix bugs hastily.',
-            ),
+            SailText.primary20('Network & Node'),
+            SailText.secondary13('Configure Bitcoin network and node settings'),
           ],
         ),
 
@@ -215,98 +254,64 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.primary15('Connect to Bitcoin mainnet'),
+            SailText.primary15('Bitcoin Network'),
             const SailSpacing(SailStyleValues.padding08),
             SailToggle(
-              label: 'Enable Mainnet',
-              value: _settingsProvider.network == Network.NETWORK_MAINNET,
+              label: 'Use Mainnet',
+              value: isMainnet,
               onChanged: (value) async {
                 await _handleMainnetToggle(value);
               },
             ),
-          ],
-        ),
-
-        // Test Sidechains Toggle
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Download and run alternative frontends for sidechains.'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailToggle(
-              label: 'Use Test Sidechains',
-              value: _settingsProvider.useTestSidechains,
-              onChanged: (value) async {
-                await _settingsProvider.updateUseTestSidechains(value);
-              },
-            ),
-          ],
-        ),
-
-        // Theme Toggle
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Theme'),
-            const SailSpacing(SailStyleValues.padding08),
-            ToggleThemeButton(),
-          ],
-        ),
-
-        // Font Dropdown
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Font'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<SailFontValues>(
-              value: _settingsProvider.font,
-              items: [
-                SailDropdownItem<SailFontValues>(
-                  value: SailFontValues.inter,
-                  label: 'Inter',
-                ),
-                SailDropdownItem<SailFontValues>(
-                  value: SailFontValues.sourceCodePro,
-                  label: 'Source Code Pro',
-                ),
-              ],
-
-              onChanged: (SailFontValues? newValue) async {
-                if (newValue != null) {
-                  await _settingsProvider.updateFont(newValue);
-                  // Trigger immediate font reload in SailApp
-                  if (context.mounted) {
-                    final app = SailApp.of(context);
-                    await app.loadFont(newValue);
-                  }
-                }
-              },
-            ),
             const SailSpacing(4),
+            SailText.secondary12('Switch between mainnet and signet test network'),
           ],
         ),
+
+        // Bitcoin Data Directory (visible when mainnet is enabled or has value)
+        if (showDataDir)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary15('Bitcoin Data Directory'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(SailStyleValues.padding12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.colors.border),
+                        borderRadius: SailStyleValues.borderRadiusSmall,
+                      ),
+                      child: SailText.secondary13(
+                        _selectedDataDir ?? 'Default directory',
+                      ),
+                    ),
+                  ),
+                  SailButton(
+                    label: 'Browse',
+                    small: true,
+                    loading: _isSelectingDataDir,
+                    onPressed: () async => await _selectDataDirectory(),
+                  ),
+                  if (_selectedDataDir != null)
+                    SailButton(
+                      label: 'Clear',
+                      small: true,
+                      variant: ButtonVariant.secondary,
+                      onPressed: () async => await _clearDataDir(),
+                    ),
+                ],
+              ),
+              const SailSpacing(4),
+              SailText.secondary12('Location where Bitcoin blockchain data is stored (2.5TB+ for mainnet)'),
+            ],
+          ),
 
         SailSpacing(SailStyleValues.padding64),
       ],
-    );
-  }
-
-  Future<void> _showDebugModeWarning() async {
-    await showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Enable Debug Mode?',
-        subtitle:
-            'Enabling debug mode will send detailed error reports Sentry.\r\n\r\nEvery time a component crashes or an error is thrown, '
-            'Sentry will collect technical information about your device, app usage patterns, and error details.'
-            '\r\n\r\nIt is very helpful to the devs, but it also includes information such as your IP address, device type, and location. '
-            'If you dont trust Sentry with this information, enable a VPN, or press Cancel.',
-        onConfirm: () async {
-          await _settingsProvider.updateDebugMode(true);
-          if (context.mounted) Navigator.of(context).pop();
-        },
-      ),
     );
   }
 }
@@ -417,19 +422,225 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
   }
 }
 
-class _InfoSettingsContent extends StatefulWidget {
+class _AppearanceSettingsContent extends StatefulWidget {
   @override
-  State<_InfoSettingsContent> createState() => _InfoSettingsContentState();
+  State<_AppearanceSettingsContent> createState() => _AppearanceSettingsContentState();
 }
 
-class _InfoSettingsContentState extends State<_InfoSettingsContent> {
+class _AppearanceSettingsContentState extends State<_AppearanceSettingsContent> {
+  final _settingsProvider = GetIt.I.get<SettingsProvider>();
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsProvider.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding32,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('Appearance'),
+            SailText.secondary13('Customize the look and feel of the application'),
+          ],
+        ),
+
+        // Theme Toggle
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Theme'),
+            const SailSpacing(SailStyleValues.padding08),
+            ToggleThemeButton(),
+            const SailSpacing(4),
+            SailText.secondary12('Switch between light and dark modes'),
+          ],
+        ),
+
+        // Font Selection
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Font'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<SailFontValues>(
+              value: _settingsProvider.font,
+              items: [
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.inter,
+                  label: 'Inter',
+                ),
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.sourceCodePro,
+                  label: 'Source Code Pro',
+                ),
+              ],
+              onChanged: (SailFontValues? newValue) async {
+                if (newValue != null) {
+                  await _settingsProvider.updateFont(newValue);
+                  if (context.mounted) {
+                    final app = SailApp.of(context);
+                    await app.loadFont(newValue);
+                  }
+                }
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12('Choose your preferred font style'),
+          ],
+        ),
+
+        SailSpacing(SailStyleValues.padding64),
+      ],
+    );
+  }
+}
+
+class _AdvancedSettingsContent extends StatefulWidget {
+  @override
+  State<_AdvancedSettingsContent> createState() => _AdvancedSettingsContentState();
+}
+
+class _AdvancedSettingsContentState extends State<_AdvancedSettingsContent> {
+  final _settingsProvider = GetIt.I.get<SettingsProvider>();
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsProvider.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    setState(() {});
+  }
+
+  Future<void> _showDebugModeWarning() async {
+    await showDialog(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Enable Debug Mode?',
+        subtitle:
+            'Enabling debug mode will send detailed error reports Sentry.\r\n\r\nEvery time a component crashes or an error is thrown, '
+            'Sentry will collect technical information about your device, app usage patterns, and error details.'
+            '\r\n\r\nIt is very helpful to the devs, but it also includes information such as your IP address, device type, and location. '
+            'If you dont trust Sentry with this information, enable a VPN, or press Cancel.',
+        onConfirm: () async {
+          await _settingsProvider.updateDebugMode(true);
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding32,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('Advanced'),
+            SailText.secondary13('Developer options and experimental features'),
+          ],
+        ),
+
+        // Debug Mode
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Debug Mode'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<bool>(
+              value: _settingsProvider.debugMode,
+              items: [
+                SailDropdownItem<bool>(
+                  value: false,
+                  label: 'Disabled',
+                ),
+                SailDropdownItem<bool>(
+                  value: true,
+                  label: 'Enabled',
+                ),
+              ],
+              onChanged: (bool? newValue) async {
+                if (newValue == true) {
+                  await _showDebugModeWarning();
+                } else {
+                  await _settingsProvider.updateDebugMode(false);
+                }
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'When enabled, detailed error reporting will be collected to fix bugs hastily.',
+            ),
+          ],
+        ),
+
+        // Test Sidechains
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Test Sidechains'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailToggle(
+              label: 'Use Test Sidechains',
+              value: _settingsProvider.useTestSidechains,
+              onChanged: (value) async {
+                await _settingsProvider.updateUseTestSidechains(value);
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'Download and run alternative frontends for sidechains',
+            ),
+          ],
+        ),
+
+        SailSpacing(SailStyleValues.padding64),
+      ],
+    );
+  }
+}
+
+class _AboutSettingsContent extends StatefulWidget {
+  @override
+  State<_AboutSettingsContent> createState() => _AboutSettingsContentState();
+}
+
+class _AboutSettingsContentState extends State<_AboutSettingsContent> {
   @override
   Widget build(BuildContext context) {
     return SailColumn(
       spacing: SailStyleValues.padding20,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary20('Info'),
+        SailText.primary20('About'),
         SailText.secondary13('Application version and build information'),
 
         // Version Information
@@ -493,7 +704,12 @@ class _DatadirSelectionDialogState extends State<DatadirSelectionDialog> {
     });
 
     try {
-      final result = await FilePicker.platform.getDirectoryPath();
+      // Get the default Bitcoin Core datadir to use as initial directory
+      final defaultDir = BitcoinCore().datadir();
+
+      final result = await FilePicker.platform.getDirectoryPath(
+        initialDirectory: defaultDir,
+      );
       if (result != null) {
         // Validate that the directory is writable
         final testFile = File(path.join(result, '.bitwindow_test'));
