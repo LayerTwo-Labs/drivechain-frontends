@@ -487,8 +487,8 @@ class _AppearanceSettingsContentState extends State<_AppearanceSettingsContent> 
                   label: 'Inter',
                 ),
                 SailDropdownItem<SailFontValues>(
-                  value: SailFontValues.sourceCodePro,
-                  label: 'Source Code Pro',
+                  value: SailFontValues.ibmMono,
+                  label: 'IBM Plex Mono',
                 ),
               ],
               onChanged: (SailFontValues? newValue) async {

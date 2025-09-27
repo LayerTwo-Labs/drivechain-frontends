@@ -180,7 +180,7 @@ class SailDropdownItem<T> extends StatelessWidget {
           label,
           style: SailStyleValues.thirteen.copyWith(
             color: SailTheme.of(context).colors.text,
-            fontFamily: monospace ? 'SourceCodePro' : 'Inter',
+            fontFamily: monospace ? 'IBMPlexMono' : 'Inter',
           ),
         ),
       ),
