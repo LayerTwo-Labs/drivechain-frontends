@@ -72,7 +72,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     final bitwBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
 
     // now set the bitcoincore host with correct ports
-    switch (GetIt.I.get<SettingsProvider>().network) {
+    switch (GetIt.I.get<BitcoinConfProvider>().network) {
       case Network.NETWORK_REGTEST:
         log.i('Network is regtest, adding extra args');
         bitwBinary.addBootArg('--bitcoincore.host=localhost:18443');

@@ -1,10 +1,8 @@
 import 'dart:io';
 
-import 'package:bitwindow/models/bitcoin_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
 enum ViewMode {
@@ -13,8 +11,9 @@ enum ViewMode {
   raw,
 }
 
-class BitcoinConfigProvider extends ChangeNotifier {
+class BitcoinConfigEditorViewModel extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
+  final BitcoinConfProvider confProvider = GetIt.I.get<BitcoinConfProvider>();
 
   BitcoinConfig? originalConfig;
   BitcoinConfig? workingConfig;
@@ -33,17 +32,8 @@ class BitcoinConfigProvider extends ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
-      final confFile = await _getConfigPath();
-      final file = File(confFile);
-
-      String content = '';
-      if (await file.exists()) {
-        content = await file.readAsString();
-      } else {
-        // Use the default config if no file exists
-        content = _getDefaultConfigContent();
-      }
-
+      // Get content from ConfProvider
+      final content = confProvider.getCurrentConfigContent();
       originalConfig = BitcoinConfig.parse(content);
       workingConfig = BitcoinConfig.fromConfig(originalConfig!);
 
@@ -55,50 +45,6 @@ class BitcoinConfigProvider extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
-  }
-
-  Future<String> _getConfigPath() async {
-    return path.join(BitcoinCore().datadir(), 'bitwindow-bitcoin.conf');
-  }
-
-  String _getDefaultConfigContent() {
-    final settingsProvider = GetIt.I.get<SettingsProvider>();
-    final datadirLine = settingsProvider.bitcoinCoreDataDir != null
-        ? 'datadir=${settingsProvider.bitcoinCoreDataDir}'
-        : '';
-
-    return '''# Generated code. Any changes to this file *will* get overwritten.
-# source: bitwindow bitcoin config editor
-
-# Common settings for all networks
-rpcuser=user
-rpcpassword=password
-server=1
-listen=1
-txindex=1
-zmqpubsequence=tcp://0.0.0.0:29000
-rpcthreads=20
-rpcworkqueue=100
-rest=1
-fallbackfee=0.00021
-$datadirLine
-
-# Mainnet-specific settings
-[main]
-
-# Testnet-specific settings
-[test]
-
-# Signet-specific settings
-[signet]
-addnode=172.105.148.135:38333
-signetblocktime=60
-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
-acceptnonstdtxn=1
-
-# Regtest-specific settings
-[regtest]
-''';
   }
 
   void updateSetting(String key, dynamic value, {String? section}) {
@@ -122,11 +68,8 @@ acceptnonstdtxn=1
       errorMessage = null;
       notifyListeners();
 
-      final confFile = await _getConfigPath();
-      final file = File(confFile);
-      // Write new config
-      await file.writeAsString(workingConfig!.serialize());
-      log.i('Saved config to $confFile');
+      // Delegate to ConfProvider
+      await confProvider.writeConfig(workingConfig!.serialize());
 
       // Update original config to match
       originalConfig = BitcoinConfig.fromConfig(workingConfig!);
@@ -142,38 +85,42 @@ acceptnonstdtxn=1
   }
 
   void applyPreset(ConfigPreset preset) {
-    if (workingConfig == null) return;
+    if (preset == ConfigPreset.defaultPreset) {
+      // Use the default config from ConfProvider
+      final defaultContent = confProvider.getDefaultConfig();
+      workingConfig = BitcoinConfig.parse(defaultContent);
+    } else {
+      if (workingConfig == null) return;
+
+      final presetSettings = ConfigPresets.getPresetSettings(preset);
+
+      // Clear existing global settings
+      workingConfig!.globalSettings.clear();
+
+      // Apply preset settings
+      for (final entry in presetSettings.entries) {
+        workingConfig!.setSetting(entry.key, entry.value);
+      }
+
+      // Add network-specific settings for certain presets
+      if (preset == ConfigPreset.performance || preset == ConfigPreset.storageOptimized) {
+        // Add signet configuration
+        workingConfig!.setSetting('addnode', '172.105.148.135:38333', section: 'signet');
+        workingConfig!.setSetting('signetblocktime', '60', section: 'signet');
+        workingConfig!.setSetting('signetchallenge', '00141551188e5153533b4fdd555449e640d9cc129456', section: 'signet');
+        workingConfig!.setSetting('acceptnonstdtxn', '1', section: 'signet');
+      }
+
+      // Add datadir if not on Windows
+      if (!Platform.isWindows) {
+        workingConfig!.setSetting('datadir', BitcoinCore().datadir());
+      }
+
+      // Add ZMQ settings
+      workingConfig!.setSetting('zmqpubsequence', 'tcp://0.0.0.0:29000');
+    }
 
     currentPreset = preset;
-    final presetSettings = ConfigPresets.getPresetSettings(preset);
-
-    // Clear existing global settings
-    workingConfig!.globalSettings.clear();
-
-    // Apply preset settings
-    for (final entry in presetSettings.entries) {
-      workingConfig!.setSetting(entry.key, entry.value);
-    }
-
-    // Add network-specific settings for certain presets
-    if (preset == ConfigPreset.defaultPreset ||
-        preset == ConfigPreset.performance ||
-        preset == ConfigPreset.storageOptimized) {
-      // Add signet configuration
-      workingConfig!.setSetting('addnode', '172.105.148.135:38333', section: 'signet');
-      workingConfig!.setSetting('signetblocktime', '60', section: 'signet');
-      workingConfig!.setSetting('signetchallenge', '00141551188e5153533b4fdd555449e640d9cc129456', section: 'signet');
-      workingConfig!.setSetting('acceptnonstdtxn', '1', section: 'signet');
-    }
-
-    // Add datadir if not on Windows
-    if (!Platform.isWindows) {
-      workingConfig!.setSetting('datadir', BitcoinCore().datadir());
-    }
-
-    // Add ZMQ settings
-    workingConfig!.setSetting('zmqpubsequence', 'tcp://0.0.0.0:29000');
-
     notifyListeners();
   }
 

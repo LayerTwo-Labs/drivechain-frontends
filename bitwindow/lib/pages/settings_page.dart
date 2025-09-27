@@ -109,52 +109,65 @@ class _NetworkSettingsContent extends StatefulWidget {
 
 class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   final _settingsProvider = GetIt.I.get<SettingsProvider>();
+  BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   String? _selectedDataDir;
   bool _isSelectingDataDir = false;
 
   @override
   void initState() {
     super.initState();
-    // Listen to settings changes
-    _settingsProvider.addListener(_onSettingsChanged);
-    _selectedDataDir = _settingsProvider.bitcoinCoreDataDir;
+    // Listen to provider changes
+    _settingsProvider.addListener(setstate);
+    _confProvider.addListener(setstate);
+    _selectedDataDir = _confProvider.detectedDataDir;
   }
 
   @override
   void dispose() {
-    _settingsProvider.removeListener(_onSettingsChanged);
+    _settingsProvider.removeListener(setstate);
+    _confProvider.removeListener(setstate);
     super.dispose();
   }
 
-  void _onSettingsChanged() {
-    setState(() {
-      // Rebuild when settings change
-      _selectedDataDir = _settingsProvider.bitcoinCoreDataDir;
-    });
+  void setstate() {
+    setState(() {});
   }
 
-  Future<void> _handleMainnetToggle(bool value) async {
-    final targetNetwork = value ? Network.NETWORK_MAINNET : Network.NETWORK_SIGNET;
+  Future<void> _handleNetworkChange(Network? network) async {
+    if (network == null) return;
 
-    // If switching TO mainnet, check if we need to require a datadir
-    if (value && _settingsProvider.network != Network.NETWORK_MAINNET) {
-      // Check if user has their own bitcoin.conf (if so, we respect it and don't interfere)
-      final hasUserBitcoinConf = BitcoinCore().confFile() == 'bitcoin.conf';
-      // Check if we already have a datadir configured
-      final hasDatadirConfigured = _settingsProvider.bitcoinCoreDataDir != null;
+    // Check if user config controls network
+    if (_confProvider.hasPrivateBitcoinConf) {
+      // Show info that network is controlled by bitcoin.conf
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Network is controlled by your bitcoin.conf file. To change network in bitwindow, delete your own bitcoin.conf file.',
+            ),
+            backgroundColor: SailTheme.of(context).colors.info,
+          ),
+        );
+      }
+      return;
+    }
 
-      if (!hasUserBitcoinConf && !hasDatadirConfigured) {
-        // User have not created their own bitcoin.conf, and have not been
-        // asked about specifying a datadir yet, ask!
+    // If switching TO mainnet, check if we need to require a blocks directory
+    if (network == Network.NETWORK_MAINNET && _confProvider.network != Network.NETWORK_MAINNET) {
+      // Check if we already have a custom datadir configured
+      final hasDataDirConfigured = _selectedDataDir != null;
+
+      if (!hasDataDirConfigured) {
+        // Ask for data directory for mainnet
         final selectedPath = await showDialog<String>(
           context: context,
           barrierDismissible: false,
-          builder: (context) => const DatadirSelectionDialog(),
+          builder: (context) => const DataDirSelectionDialog(),
         );
 
         if (selectedPath != null) {
-          // Save the selected datadir
-          await _settingsProvider.updateBitcoinCoreDataDir(selectedPath);
+          // Save the selected data directory
+          await _confProvider.updateDataDir(selectedPath);
         } else {
           // User cancelled, don't switch to mainnet
           return;
@@ -162,13 +175,14 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
       }
     }
 
-    // We have ensured we have a datadir, proceed with network change
-    await _settingsProvider.updateBitwindowNetwork(targetNetwork);
+    // Update network in config (saves automatically)
+    await _confProvider.updateNetwork(network);
+    await _confProvider.restartServicesForMainnet();
 
     // Reload theme with new accent color for the network
     if (mounted) {
       final app = SailApp.of(context);
-      final newAccentColor = getNetworkAccentColor(targetNetwork);
+      final newAccentColor = getNetworkAccentColor(network);
       app.reloadThemeWithCurrentSettings(newAccentColor);
     }
   }
@@ -194,7 +208,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           setState(() {
             _selectedDataDir = result;
           });
-          await _settingsProvider.updateBitcoinCoreDataDir(result);
+          await _confProvider.updateDataDir(result);
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -225,7 +239,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   }
 
   Future<void> _clearDataDir() async {
-    await _settingsProvider.updateBitcoinCoreDataDir(null);
+    await _confProvider.updateDataDir(null);
     setState(() {
       _selectedDataDir = null;
     });
@@ -234,8 +248,8 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final isMainnet = _settingsProvider.network == Network.NETWORK_MAINNET;
-    final showDataDir = isMainnet || _selectedDataDir != null;
+    final showDataDir = _confProvider.network == Network.NETWORK_MAINNET || _selectedDataDir != null;
+    final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
     return SailColumn(
       spacing: SailStyleValues.padding32,
@@ -250,21 +264,45 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           ],
         ),
 
-        // Mainnet Toggle
+        // Network Dropdown
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailText.primary15('Bitcoin Network'),
             const SailSpacing(SailStyleValues.padding08),
-            SailToggle(
-              label: 'Use Mainnet',
-              value: isMainnet,
-              onChanged: (value) async {
-                await _handleMainnetToggle(value);
+            SailDropdownButton<Network>(
+              value: _confProvider.network,
+              enabled: _confProvider.canEditNetwork,
+              items: [
+                SailDropdownItem<Network>(
+                  value: Network.NETWORK_MAINNET,
+                  label: 'Mainnet',
+                ),
+                SailDropdownItem<Network>(
+                  value: Network.NETWORK_SIGNET,
+                  label: 'Signet',
+                ),
+                SailDropdownItem<Network>(
+                  value: Network.NETWORK_TESTNET,
+                  label: 'Testnet',
+                ),
+                SailDropdownItem<Network>(
+                  value: Network.NETWORK_REGTEST,
+                  label: 'Regtest',
+                ),
+              ],
+              onChanged: (Network? network) async {
+                if (network != null && _confProvider.canEditNetwork) {
+                  await _handleNetworkChange(network);
+                }
               },
             ),
             const SailSpacing(4),
-            SailText.secondary12('Switch between mainnet and signet test network'),
+            SailText.secondary12(
+              _confProvider.canEditNetwork
+                  ? 'Select the Bitcoin network to connect to'
+                  : 'Network is controlled by your bitcoin.conf file (${_confProvider.currentConfigFile})',
+            ),
           ],
         ),
 
@@ -284,31 +322,60 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
                       decoration: BoxDecoration(
                         border: Border.all(color: theme.colors.border),
                         borderRadius: SailStyleValues.borderRadiusSmall,
+                        color: canEditDataDir ? null : theme.colors.backgroundSecondary,
                       ),
                       child: SailText.secondary13(
-                        _selectedDataDir ?? 'Default directory',
+                        _confProvider.detectedDataDir ?? _selectedDataDir ?? 'Default directory',
                       ),
                     ),
                   ),
-                  SailButton(
-                    label: 'Browse',
-                    small: true,
-                    loading: _isSelectingDataDir,
-                    onPressed: () async => await _selectDataDirectory(),
-                  ),
-                  if (_selectedDataDir != null)
+                  if (canEditDataDir) ...[
                     SailButton(
-                      label: 'Clear',
+                      label: 'Browse',
                       small: true,
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async => await _clearDataDir(),
+                      loading: _isSelectingDataDir,
+                      onPressed: () async => await _selectDataDirectory(),
                     ),
+                    if (_selectedDataDir != null)
+                      SailButton(
+                        label: 'Clear',
+                        small: true,
+                        variant: ButtonVariant.secondary,
+                        onPressed: () async => await _clearDataDir(),
+                      ),
+                  ],
                 ],
               ),
               const SailSpacing(4),
-              SailText.secondary12('Location where Bitcoin blockchain data is stored (2.5TB+ for mainnet)'),
+              SailText.secondary12(
+                canEditDataDir
+                    ? 'Directory where Bitcoin block files are stored (2.5TB+ for mainnet)'
+                    : 'Blocks directory is controlled by your bitcoin.conf file',
+              ),
             ],
           ),
+
+        // Bitcoin Configuration
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Bitcoin Conf Configuration'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailButton(
+              label: 'Edit Bitcoin Core Settings',
+              onPressed: () async {
+                // Add small delay to allow proper widget cleanup
+                await Future.delayed(const Duration(milliseconds: 100));
+                final router = GetIt.I.get<AppRouter>();
+                await router.push(const BitcoinConfEditorRoute());
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'Configure your Bitcoin Core conf',
+            ),
+          ],
+        ),
 
         SailSpacing(SailStyleValues.padding64),
       ],
@@ -602,28 +669,6 @@ class _AdvancedSettingsContentState extends State<_AdvancedSettingsContent> {
           ],
         ),
 
-        // Bitcoin Configuration
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Bitcoin Configuration'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailButton(
-              label: 'Edit Bitcoin Core Settings',
-              onPressed: () async {
-                // Add small delay to allow proper widget cleanup
-                await Future.delayed(const Duration(milliseconds: 100));
-                final router = GetIt.I.get<AppRouter>();
-                await router.push(const BitcoinConfEditorRoute());
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'Configure your Bitcoin Core conf',
-            ),
-          ],
-        ),
-
         // Test Sidechains
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -709,14 +754,14 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
   }
 }
 
-class DatadirSelectionDialog extends StatefulWidget {
-  const DatadirSelectionDialog({super.key});
+class DataDirSelectionDialog extends StatefulWidget {
+  const DataDirSelectionDialog({super.key});
 
   @override
-  State<DatadirSelectionDialog> createState() => _DatadirSelectionDialogState();
+  State<DataDirSelectionDialog> createState() => _DataDirSelectionDialogState();
 }
 
-class _DatadirSelectionDialogState extends State<DatadirSelectionDialog> {
+class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
   String? selectedPath;
   bool isSelecting = false;
 
@@ -778,11 +823,11 @@ class _DatadirSelectionDialogState extends State<DatadirSelectionDialog> {
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 350),
 
         child: SailCard(
-          title: 'Select Bitcoin Data Directory',
+          title: 'Select Bitcoin Blocks Directory',
           subtitle:
               'Bitcoin mainnet requires substantial storage space (approximately 2.5TB). '
-              'Please select a directory with enough free space to store the Bitcoin blockchain data.\n\n'
-              'This directory will be used for both mainnet and signet networks.',
+              'Please select a directory with enough free space to store the Bitcoin block files.\n\n'
+              'This directory will be used for all networks and contains the blockchain data.',
           withCloseButton: true,
           child: SailColumn(
             spacing: SailStyleValues.padding16,

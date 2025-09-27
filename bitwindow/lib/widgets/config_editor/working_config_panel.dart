@@ -1,31 +1,40 @@
-import 'package:bitwindow/providers/bitcoin_config_provider.dart';
+import 'package:bitwindow/viewmodels/bitcoin_config_editor_viewmodel.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
-class WorkingConfigPanel extends StatefulWidget {
+class WorkingConfigPanel extends ViewModelWidget<BitcoinConfigEditorViewModel> {
   const WorkingConfigPanel({super.key});
 
   @override
-  State<WorkingConfigPanel> createState() => _WorkingConfigPanelState();
+  Widget build(BuildContext context, BitcoinConfigEditorViewModel viewModel) {
+    return _WorkingConfigPanelContent(viewModel: viewModel);
+  }
 }
 
-class _WorkingConfigPanelState extends State<WorkingConfigPanel> {
-  late final BitcoinConfigProvider _configProvider;
+class _WorkingConfigPanelContent extends StatefulWidget {
+  final BitcoinConfigEditorViewModel viewModel;
+
+  const _WorkingConfigPanelContent({required this.viewModel});
+
+  @override
+  State<_WorkingConfigPanelContent> createState() => _WorkingConfigPanelContentState();
+}
+
+class _WorkingConfigPanelContentState extends State<_WorkingConfigPanelContent> {
   late final TextEditingController _textController;
 
   @override
   void initState() {
     super.initState();
-    _configProvider = GetIt.I.get<BitcoinConfigProvider>();
     _textController = TextEditingController();
-    _configProvider.addListener(_onConfigChanged);
+    widget.viewModel.addListener(_onConfigChanged);
     _updateTextController();
   }
 
   @override
   void dispose() {
-    _configProvider.removeListener(_onConfigChanged);
+    widget.viewModel.removeListener(_onConfigChanged);
     _textController.dispose();
     super.dispose();
   }
@@ -38,14 +47,14 @@ class _WorkingConfigPanelState extends State<WorkingConfigPanel> {
   }
 
   void _updateTextController() {
-    final newText = _configProvider.workingConfigText;
+    final newText = widget.viewModel.workingConfigText;
     if (_textController.text != newText) {
       _textController.text = newText;
     }
   }
 
   void _onTextChanged(String value) {
-    _configProvider.updateFromRawText(value);
+    widget.viewModel.updateFromRawText(value);
   }
 
   @override
@@ -68,8 +77,8 @@ class _WorkingConfigPanelState extends State<WorkingConfigPanel> {
                 ),
                 const Spacer(),
                 SailText.secondary12(
-                  _configProvider.hasUnsavedChanges ? '• Modified' : '• Saved',
-                  color: _configProvider.hasUnsavedChanges ? theme.colors.orange : theme.colors.success,
+                  widget.viewModel.hasUnsavedChanges ? '• Modified' : '• Saved',
+                  color: widget.viewModel.hasUnsavedChanges ? theme.colors.orange : theme.colors.success,
                 ),
               ],
             ),
@@ -82,7 +91,7 @@ class _WorkingConfigPanelState extends State<WorkingConfigPanel> {
 
           // Config content
           Expanded(
-            child: _configProvider.workingConfig == null
+            child: widget.viewModel.workingConfig == null
                 ? const Center(
                     child: CircularProgressIndicator(),
                   )

@@ -19,8 +19,7 @@ class SettingsProvider extends ChangeNotifier {
   SailFontValues font = SailFontValues.inter;
 
   // Convenience getters for individual bitwindow settings
-  Network get network => bitwindowSettings.network;
-  String? get bitcoinCoreDataDir => bitwindowSettings.bitcoinCoreDataDir;
+  // Note: blocks directory is managed by BitcoinConfProvider
 
   // Private constructor
   SettingsProvider._create();
@@ -115,108 +114,6 @@ class SettingsProvider extends ChangeNotifier {
       bitwindowSettings = BitwindowSettings();
     }
     notifyListeners();
-  }
-
-  /// Internal method to update bitwindow settings
-  Future<void> _updateBitwindowSettings(BitwindowSettings value) async {
-    final oldSettings = bitwindowSettings;
-    try {
-      bitwindowSettings = value;
-      notifyListeners();
-      final setting = BitwindowSettingValue(newValue: value);
-      await bitwindowClientSettings.setValue(setting);
-    } catch (e) {
-      // Revert on error
-      bitwindowSettings = oldSettings;
-      notifyListeners();
-      log.e('Failed to update bitwindow settings', error: e);
-      rethrow;
-    }
-  }
-
-  /// Update bitwindow network setting
-  Future<void> updateBitwindowNetwork(Network network) async {
-    if (bitwindowSettings.network == network) {
-      return;
-    }
-
-    final oldNetwork = bitwindowSettings.network;
-    final newSettings = bitwindowSettings.copyWith(network: network);
-    await _updateBitwindowSettings(newSettings);
-
-    // Regenerate bitcoin config for the new network
-    _regenerateBitcoinConf();
-
-    // When changing network, restart all services with data cleanup if needed
-    final isMainnetChange = (oldNetwork == Network.NETWORK_MAINNET) != (network == Network.NETWORK_MAINNET);
-    if (isMainnetChange) {
-      log.i('Network changed from ${oldNetwork.name} to ${network.name}, restarting services...');
-      await _restartServicesForMainnet();
-    }
-  }
-
-  /// Update Bitcoin Core datadir setting
-  Future<void> updateBitcoinCoreDataDir(String? dataDir) async {
-    if (bitwindowSettings.bitcoinCoreDataDir == dataDir) {
-      return;
-    }
-
-    final newSettings = bitwindowSettings.copyWith(bitcoinCoreDataDir: dataDir);
-    await _updateBitwindowSettings(newSettings);
-
-    // Regenerate bitcoin config to include the new datadir
-    _regenerateBitcoinConf();
-  }
-
-  /// Regenerate bitcoin configuration file with current settings
-  void _regenerateBitcoinConf() {
-    try {
-      // Call the static method to regenerate the config
-      MainchainRPCLive.writeConfFileSync();
-    } catch (e) {
-      log.e('Failed to regenerate bitcoin config: $e');
-    }
-  }
-
-  /// Restart all services when mainnet toggle changes
-  Future<void> _restartServicesForMainnet() async {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-
-    final binaries = [
-      BitcoinCore(),
-      Enforcer(),
-      BitWindow(),
-    ];
-
-    log.i('Stopping core, enforcer, and bitwindow...');
-    final stopFutures = <Future>[];
-    for (final binary in binaries) {
-      stopFutures.add(binaryProvider.stop(binary));
-    }
-    await Future.wait(stopFutures);
-
-    // Wait for processes to fully stop
-    log.i('Waiting for processes to stop...');
-    await Future.delayed(const Duration(seconds: 10));
-
-    // Delete enforcer and bitwindow data
-    log.i('Deleting enforcer and bitwindow data...');
-    final enforcer = Enforcer();
-    final bitwindow = BitWindow();
-    await Future.wait([
-      enforcer.wipeAppDir(),
-      bitwindow.wipeAppDir(),
-    ]);
-
-    // Restart all services
-    log.i('Restarting services...');
-    final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
-    await binaryProvider.startWithEnforcer(
-      bitwindowBinary,
-      bootExtraBinaryImmediately: true,
-    );
-
-    log.i('Service restart completed');
   }
 
   /// Load font setting

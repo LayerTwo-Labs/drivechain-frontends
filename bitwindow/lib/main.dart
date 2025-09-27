@@ -12,7 +12,6 @@ import 'package:bitwindow/pages/wallet/wallet_hd.dart';
 import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
-import 'package:bitwindow/providers/bitcoin_config_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -111,6 +110,12 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => BitwindowClientSettings(store: storage, log: log));
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
+
+  // Initialize BitcoinConfProvider eagerly to load config before UI renders
+  // (need correct net)
+  final bitcoinConfProvider = await BitcoinConfProvider.create();
+  GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
+
   GetIt.I.registerLazySingleton<ContentProvider>(() => ContentProvider());
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
@@ -158,7 +163,6 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   // Register the abstract HomepageProvider as an alias to the concrete implementation
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
-  GetIt.I.registerLazySingleton<BitcoinConfigProvider>(() => BitcoinConfigProvider());
 
   return (applicationDir, logFile, log);
 }
@@ -338,8 +342,8 @@ class _BitwindowAppState extends State<BitwindowApp> {
   @override
   Widget build(BuildContext context) {
     final router = GetIt.I.get<AppRouter>();
-    final settingsProvider = GetIt.I.get<SettingsProvider>();
-    final accentColor = getNetworkAccentColor(settingsProvider.network);
+    final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
+    final accentColor = getNetworkAccentColor(bitcoinConfProvider.network);
 
     return SailApp(
       log: widget.log,

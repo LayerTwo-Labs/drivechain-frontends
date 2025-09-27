@@ -201,14 +201,14 @@ class CoreConnectionSettings extends ChangeNotifier {
 
 CoreConnectionSettings readMainchainConf() {
   final log = GetIt.I.get<Logger>();
-  final settingsProvider = GetIt.I.get<SettingsProvider>();
+  final confProvider = GetIt.I.get<BitcoinConfProvider>();
 
   CoreConnectionSettings conf = CoreConnectionSettings.empty();
   try {
     final datadir = BitcoinCore().datadir();
     final confFileName = BitcoinCore().confFile();
 
-    conf = readRPCConfig(datadir, confFileName, BitcoinCore(), settingsProvider.network);
+    conf = readRPCConfig(datadir, confFileName, BitcoinCore(), confProvider.network);
     log.i('Using $confFileName for mainchain configuration');
   } catch (error) {
     log.e('could not read mainchain conf: $error');

@@ -8,30 +8,16 @@ import 'package:sail_ui/sail_ui.dart';
 // settings that can be accessed by bitwindow (duh), but also all sidechains!
 // magic
 class BitwindowSettings {
-  final Network network;
-  final String? bitcoinCoreDataDir;
   // Add more settings fields here as needed in the future
 
-  BitwindowSettings({
-    this.network = Network.NETWORK_SIGNET,
-    this.bitcoinCoreDataDir,
-  });
+  BitwindowSettings();
 
   Map<String, dynamic> toMap() {
-    return {
-      'network': network.name,
-      'bitcoinCoreDataDir': bitcoinCoreDataDir,
-    };
+    return {};
   }
 
   factory BitwindowSettings.fromMap(Map<String, dynamic> map) {
-    return BitwindowSettings(
-      network: Network.values.firstWhere(
-        (e) => e.name == map['network'],
-        orElse: () => Network.NETWORK_SIGNET,
-      ),
-      bitcoinCoreDataDir: map['bitcoinCoreDataDir'] as String?,
-    );
+    return BitwindowSettings();
   }
 
   String toJson() => json.encode(toMap());
@@ -45,14 +31,8 @@ class BitwindowSettings {
     }
   }
 
-  BitwindowSettings copyWith({
-    Network? network,
-    String? bitcoinCoreDataDir,
-  }) {
-    return BitwindowSettings(
-      network: network ?? this.network,
-      bitcoinCoreDataDir: bitcoinCoreDataDir ?? this.bitcoinCoreDataDir,
-    );
+  BitwindowSettings copyWith() {
+    return BitwindowSettings();
   }
 }
 

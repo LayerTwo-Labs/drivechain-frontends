@@ -317,7 +317,7 @@ class NodeConnectionViewModel extends BaseViewModel {
   late Network network;
 
   Future<void> _initNetwork() async {
-    network = GetIt.I.get<SettingsProvider>().network;
+    network = GetIt.I.get<BitcoinConfProvider>().network;
   }
 
   NodeConnectionViewModel() {

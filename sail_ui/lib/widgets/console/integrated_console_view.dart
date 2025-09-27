@@ -68,7 +68,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       // Insert the default parameters after bitcoin-cli
       final parts = trimmed.split(' ');
       if (parts.isNotEmpty && parts[0] == 'bitcoin-cli') {
-        final network = GetIt.I.get<SettingsProvider>().network;
+        final network = GetIt.I.get<BitcoinConfProvider>().network;
         final confFile = BitcoinCore().confFile();
         parts.insert(3, '-conf=$confFile');
 
@@ -89,7 +89,6 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
             break;
 
           default:
-            parts.insert(4, '-regtest');
             break;
         }
 

@@ -1,5 +1,6 @@
 export 'bitcoin.dart';
 export 'classes/node_connection_settings.dart';
+export 'models/bitcoin_config.dart';
 export 'models/homepage_configuration.dart';
 export 'classes/rpc_config.dart';
 export 'classes/rpc_connection.dart';
@@ -65,6 +66,7 @@ export 'pages/log_page.dart';
 export 'pages/shutdown_page.dart';
 export 'pages/sidechains/parent_chain_page.dart';
 export 'pages/configure_homepage_page.dart';
+export 'providers/bitcoin_conf_provider.dart';
 export 'providers/balance_provider.dart';
 export 'providers/settings_provider.dart';
 export 'providers/window_provider.dart';
