@@ -619,7 +619,7 @@ class _AdvancedSettingsContentState extends State<_AdvancedSettingsContent> {
             ),
             const SailSpacing(4),
             SailText.secondary12(
-              'Configure Bitcoin Core settings through an intuitive interface',
+              'Configure your Bitcoin Core conf',
             ),
           ],
         ),
