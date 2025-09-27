@@ -206,7 +206,7 @@ class _SailTableState extends State<SailTable> {
     if (widget is SailTableCell) {
       text = widget.value;
       // Use the actual style from SailText.primary12
-      textStyle = SailStyleValues.twelve.copyWith(fontFamily: widget.monospace ? 'SourceCodePro' : 'Inter');
+      textStyle = SailStyleValues.twelve.copyWith(fontFamily: widget.monospace ? 'IBMPlexMono' : 'Inter');
     } else if (widget is SailTableHeaderCell) {
       text = widget.name;
       // Headers might use a different style - adjust as needed

@@ -240,7 +240,7 @@ class SettingsProvider extends ChangeNotifier {
       await clientSettings.setValue(setting);
     } catch (e) {
       // Revert on error
-      font = font == SailFontValues.inter ? SailFontValues.sourceCodePro : SailFontValues.inter;
+      font = font == SailFontValues.inter ? SailFontValues.ibmMono : SailFontValues.inter;
       notifyListeners();
       log.e('Failed to update font', error: e);
       rethrow;

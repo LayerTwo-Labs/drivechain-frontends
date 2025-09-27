@@ -101,37 +101,35 @@ flutter:
         - asset: ./assets/fonts/Inter-Black.ttf
           weight: 700
 
-    - family: SourceCodePro
+    - family: IBMPlexMono
       fonts:
-        - asset: ./assets/fonts/SourceCodePro-ExtraLight.ttf
+        - asset: ./assets/fonts/IBMPlexMono-ExtraLight.ttf
           weight: 200
-        - asset: ./assets/fonts/SourceCodePro-Light.ttf
+        - asset: ./assets/fonts/IBMPlexMono-Light.ttf
           weight: 300
-        - asset: ./assets/fonts/SourceCodePro-Regular.ttf
+        - asset: ./assets/fonts/IBMPlexMono-Regular.ttf
           weight: 400
-        - asset: ./assets/fonts/SourceCodePro-Medium.ttf
+        - asset: ./assets/fonts/IBMPlexMono-Medium.ttf
           weight: 500
-        - asset: ./assets/fonts/SourceCodePro-Bold.ttf
+        - asset: ./assets/fonts/IBMPlexMono-Bold.ttf
           weight: 600
-        - asset: ./assets/fonts/SourceCodePro-Black.ttf
-          weight: 700
 
-        - asset: ./assets/fonts/SourceCodePro-ExtraLightItalic.ttf
+        - asset: ./assets/fonts/IBMPlexMono-ExtraLightItalic.ttf
           style: italic
           weight: 200
-        - asset: ./assets/fonts/SourceCodePro-LightItalic.ttf
+        - asset: ./assets/fonts/IBMPlexMono-LightItalic.ttf
           style: italic
           weight: 300
-        - asset: ./assets/fonts/SourceCodePro-Italic.ttf
+        - asset: ./assets/fonts/IBMPlexMono-Italic.ttf
           style: italic
           weight: 400
-        - asset: ./assets/fonts/SourceCodePro-MediumItalic.ttf
+        - asset: ./assets/fonts/IBMPlexMono-MediumItalic.ttf
           style: italic
           weight: 500
-        - asset: ./assets/fonts/SourceCodePro-BoldItalic.ttf
+        - asset: ./assets/fonts/IBMPlexMono-BoldItalic.ttf
           style: italic
           weight: 600
-        - asset: ./assets/fonts/SourceCodePro-BlackItalic.ttf
+        - asset: ./assets/fonts/IBMPlexMono-BoldItalic.ttf
           style: italic
           weight: 600
 
