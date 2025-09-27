@@ -61,33 +61,20 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
         children: [
           // Header with search and filters
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.secondary13(
-                  'Configurator',
-                  bold: true,
+            padding: const EdgeInsets.all(5.5),
+            child: SailTextField(
+              controller: _searchController,
+              hintText: 'Search config options',
+              prefixIcon: SailPadding(
+                padding: EdgeInsets.only(left: 8),
+                child: SailSVG.fromAsset(
+                  SailSVGAsset.search,
+                  height: 13,
+                  width: 13,
+                  color: theme.colors.textSecondary,
                 ),
-                const SailSpacing(SailStyleValues.padding12),
-
-                // Search bar
-                SailTextField(
-                  controller: _searchController,
-                  hintText: 'Search options...',
-                  prefixIcon: SailPadding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: SailSVG.fromAsset(
-                      SailSVGAsset.search,
-                      height: 13,
-                      width: 13,
-                      color: theme.colors.textSecondary,
-                    ),
-                  ),
-                  prefixIconConstraints: BoxConstraints(maxWidth: 21, maxHeight: 13),
-                ),
-                const SailSpacing(SailStyleValues.padding12),
-              ],
+              ),
+              prefixIconConstraints: BoxConstraints(maxWidth: 21, maxHeight: 13),
             ),
           ),
 
