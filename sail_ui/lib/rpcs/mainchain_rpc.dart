@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -55,7 +52,6 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   static MainchainRPCLive create() {
-    writeConfFileSync();
     return MainchainRPCLive._internal();
   }
 
@@ -67,57 +63,6 @@ class MainchainRPCLive extends MainchainRPC {
     pollIBDStatus();
     // must test connection before moving on, in case it is already running!
     startConnectionTimer();
-  }
-
-  static void writeConfFileSync() {
-    // Get datadir from settings if configured
-    final settingsProvider = GetIt.I.get<SettingsProvider>();
-    final datadirLine = settingsProvider.bitcoinCoreDataDir != null
-        ? 'datadir=${settingsProvider.bitcoinCoreDataDir}'
-        : '';
-
-    final confContent =
-        '''# Generated code. Any changes to this file *will* get overwritten.
-# source: sail_ui/lib/rpcs/mainchain_rpc.dart (writeConfFileSync())
-
-# Common settings for all networks
-rpcuser=user
-rpcpassword=password
-server=1
-listen=1
-txindex=1
-zmqpubsequence=tcp://0.0.0.0:29000
-rpcthreads=20
-rpcworkqueue=100
-rest=1
-fallbackfee=0.00021
-$datadirLine
-
-# Mainnet-specific settings
-[main]
-
-# Testnet-specific settings
-[test]
-
-# Signet-specific settings
-[signet]
-addnode=172.105.148.135:38333
-signetblocktime=60
-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
-acceptnonstdtxn=1
-
-# Regtest-specific settings
-[regtest]
-''';
-
-    final dataDir = BitcoinCore().datadir();
-    // Ensure the data directory exists before writing the config file
-    Directory(dataDir).createSync(recursive: true);
-    final confPath = path.join(dataDir, 'bitwindow-bitcoin.conf');
-    File(confPath).writeAsStringSync(confContent);
-
-    final log = GetIt.I.get<Logger>();
-    log.i('Wrote bitwindow-bitcoin.conf to $confPath');
   }
 
   void pollIBDStatus() {
@@ -202,10 +147,8 @@ acceptnonstdtxn=1
   @override
   Future<List<String>> binaryArgs() async {
     // Check if mainnet mode is enabled
-    final settingsProvider = GetIt.I.get<SettingsProvider>();
     final coreBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
 
-    // Determine network args based on current network setting
     final List<String> networkArgs = [];
     var confFile = '';
     try {
@@ -214,26 +157,6 @@ acceptnonstdtxn=1
       networkArgs.add('-conf=$confFile');
     } catch (error) {
       log.w('could not read conf file to get core binary args: $error');
-    }
-
-    // Set the correct network. Bitwindows own bitcoin.conf configures
-    // network values for all nets, so the only thing required
-    // to get up and running is to boot into the correct network!
-    switch (settingsProvider.network) {
-      case Network.NETWORK_MAINNET:
-        break;
-      case Network.NETWORK_SIGNET:
-        networkArgs.add('-signet');
-        break;
-      case Network.NETWORK_REGTEST:
-        networkArgs.add('-regtest');
-        break;
-      case Network.NETWORK_TESTNET:
-        networkArgs.add('-testnet');
-        break;
-      default:
-        networkArgs.add('-signet');
-        break;
     }
 
     log.i('Using $confFile with network args: $networkArgs');

@@ -80,7 +80,7 @@ class EnforcerLive extends EnforcerRPC {
     binary.addBootArg(walletArg);
 
     // now set the esplora-url
-    switch (GetIt.I.get<SettingsProvider>().network) {
+    switch (GetIt.I.get<BitcoinConfProvider>().network) {
       case Network.NETWORK_REGTEST:
         binary.addBootArg('--wallet-esplora-url=http://localhost:3003');
 

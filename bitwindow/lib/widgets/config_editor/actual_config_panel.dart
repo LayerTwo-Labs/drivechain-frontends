@@ -1,39 +1,13 @@
-import 'package:bitwindow/providers/bitcoin_config_provider.dart';
+import 'package:bitwindow/viewmodels/bitcoin_config_editor_viewmodel.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
-class ActualConfigPanel extends StatefulWidget {
+class ActualConfigPanel extends ViewModelWidget<BitcoinConfigEditorViewModel> {
   const ActualConfigPanel({super.key});
 
   @override
-  State<ActualConfigPanel> createState() => _ActualConfigPanelState();
-}
-
-class _ActualConfigPanelState extends State<ActualConfigPanel> {
-  late final BitcoinConfigProvider _configProvider;
-
-  @override
-  void initState() {
-    super.initState();
-    _configProvider = GetIt.I.get<BitcoinConfigProvider>();
-    _configProvider.addListener(_onConfigChanged);
-  }
-
-  @override
-  void dispose() {
-    _configProvider.removeListener(_onConfigChanged);
-    super.dispose();
-  }
-
-  void _onConfigChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, BitcoinConfigEditorViewModel viewModel) {
     final theme = SailTheme.of(context);
 
     return Container(
@@ -57,19 +31,19 @@ class _ActualConfigPanelState extends State<ActualConfigPanel> {
 
           // Diff content
           Expanded(
-            child: _configProvider.originalConfig == null
+            child: viewModel.originalConfig == null
                 ? Center(
                     child: SailText.secondary13('No config file loaded'),
                   )
-                : _buildDiffView(theme),
+                : _buildDiffView(theme, viewModel),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDiffView(SailThemeData theme) {
-    final diff = _getDiffLines();
+  Widget _buildDiffView(SailThemeData theme, BitcoinConfigEditorViewModel viewModel) {
+    final diff = _getDiffLines(viewModel);
 
     if (diff.isEmpty) {
       return Center(
@@ -117,13 +91,13 @@ class _ActualConfigPanelState extends State<ActualConfigPanel> {
     );
   }
 
-  List<DiffLine> _getDiffLines() {
-    if (_configProvider.originalConfig == null || _configProvider.workingConfig == null) {
+  List<DiffLine> _getDiffLines(BitcoinConfigEditorViewModel viewModel) {
+    if (viewModel.originalConfig == null || viewModel.workingConfig == null) {
       return [];
     }
 
-    final originalLines = _configProvider.originalConfigText.split('\n');
-    final workingLines = _configProvider.workingConfigText.split('\n');
+    final originalLines = viewModel.originalConfigText.split('\n');
+    final workingLines = viewModel.workingConfigText.split('\n');
 
     return _computeDiff(originalLines, workingLines);
   }

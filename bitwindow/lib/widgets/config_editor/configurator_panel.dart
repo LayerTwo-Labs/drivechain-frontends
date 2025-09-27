@@ -1,21 +1,31 @@
 import 'dart:io';
 import 'package:bitwindow/models/bitcoin_config_options.dart';
-import 'package:bitwindow/providers/bitcoin_config_provider.dart';
+import 'package:bitwindow/viewmodels/bitcoin_config_editor_viewmodel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
-class ConfiguratorPanel extends StatefulWidget {
+class ConfiguratorPanel extends ViewModelWidget<BitcoinConfigEditorViewModel> {
   const ConfiguratorPanel({super.key});
 
   @override
-  State<ConfiguratorPanel> createState() => _ConfiguratorPanelState();
+  Widget build(BuildContext context, BitcoinConfigEditorViewModel viewModel) {
+    return _ConfiguratorPanelContent(viewModel: viewModel);
+  }
 }
 
-class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
-  late final BitcoinConfigProvider _configProvider;
+class _ConfiguratorPanelContent extends StatefulWidget {
+  final BitcoinConfigEditorViewModel viewModel;
+
+  const _ConfiguratorPanelContent({required this.viewModel});
+
+  @override
+  State<_ConfiguratorPanelContent> createState() => _ConfiguratorPanelContentState();
+}
+
+class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedCategory;
@@ -25,14 +35,13 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
   @override
   void initState() {
     super.initState();
-    _configProvider = GetIt.I.get<BitcoinConfigProvider>();
-    _configProvider.addListener(_onConfigChanged);
+    widget.viewModel.addListener(_onConfigChanged);
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    _configProvider.removeListener(_onConfigChanged);
+    widget.viewModel.removeListener(_onConfigChanged);
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -85,7 +94,7 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
 
           // Options list
           Expanded(
-            child: _configProvider.workingConfig == null
+            child: widget.viewModel.workingConfig == null
                 ? Center(
                     child: SailText.secondary13('No config loaded'),
                   )
@@ -249,7 +258,7 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
   }
 
   Widget _buildOptionWidget(BitcoinConfigOption option) {
-    final currentValue = _configProvider.workingConfig!.getSetting(option.key);
+    final currentValue = widget.viewModel.workingConfig!.getSetting(option.key);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -299,7 +308,7 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
         );
       }).toList(),
       onChanged: (value) {
-        _configProvider.updateSetting(option.key, value);
+        widget.viewModel.updateSetting(option.key, value);
       },
     );
   }
@@ -311,7 +320,7 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
       label: option.key,
       value: boolValue,
       onChanged: (value) {
-        _configProvider.updateSetting(option.key, value ? '1' : '0');
+        widget.viewModel.updateSetting(option.key, value ? '1' : '0');
       },
     );
   }
@@ -322,9 +331,9 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        _configProvider.updateSetting(option.key, null);
+        widget.viewModel.updateSetting(option.key, null);
       } else {
-        _configProvider.updateSetting(option.key, value);
+        widget.viewModel.updateSetting(option.key, value);
       }
     });
 
@@ -343,9 +352,9 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        _configProvider.updateSetting(option.key, null);
+        widget.viewModel.updateSetting(option.key, null);
       } else {
-        _configProvider.updateSetting(option.key, value);
+        widget.viewModel.updateSetting(option.key, value);
       }
     });
 
@@ -364,9 +373,9 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        _configProvider.updateSetting(option.key, null);
+        widget.viewModel.updateSetting(option.key, null);
       } else {
-        _configProvider.updateSetting(option.key, value);
+        widget.viewModel.updateSetting(option.key, value);
       }
     });
 
@@ -385,9 +394,9 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        _configProvider.updateSetting(option.key, null);
+        widget.viewModel.updateSetting(option.key, null);
       } else {
-        _configProvider.updateSetting(option.key, value);
+        widget.viewModel.updateSetting(option.key, value);
       }
     });
 
@@ -454,7 +463,7 @@ class _ConfiguratorPanelState extends State<ConfiguratorPanel> {
         }
 
         controller.text = result;
-        _configProvider.updateSetting(option.key, result);
+        widget.viewModel.updateSetting(option.key, result);
       }
     } catch (e) {
       if (mounted) {

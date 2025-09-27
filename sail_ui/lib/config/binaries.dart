@@ -713,10 +713,10 @@ extension BinaryPaths on Binary {
   }
 
   String _getBitcoinLogPath() {
-    final settingsProvider = GetIt.I.get<SettingsProvider>();
+    final confProvider = GetIt.I.get<BitcoinConfProvider>();
 
     // Get network-specific subdirectory
-    final networkDir = switch (settingsProvider.network) {
+    final networkDir = switch (confProvider.network) {
       Network.NETWORK_MAINNET => '', // mainnet uses root datadir
       Network.NETWORK_SIGNET => 'signet',
       Network.NETWORK_REGTEST => 'regtest',
@@ -724,11 +724,7 @@ extension BinaryPaths on Binary {
       _ => 'signet', // default to signet for unknown networks
     };
 
-    if (networkDir.isEmpty) {
-      return filePath([datadir(), 'debug.log']);
-    } else {
-      return filePath([datadir(), networkDir, 'debug.log']);
-    }
+    return filePath([datadir(), networkDir, 'debug.log']);
   }
 
   String _findLatestEnforcerLog() {
