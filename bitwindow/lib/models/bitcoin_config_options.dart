@@ -82,7 +82,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Reduce storage requirements by enabling pruning (deleting) of old blocks. This allows the pruneblockchain RPC to be called to delete specific blocks and enables automatic pruning of old blocks if a target size in MiB is provided. (default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=550 = automatically prune block files)',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 0,
       min: 0,
       unit: 'MiB',
@@ -94,7 +93,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Maximum database cache size <n> MiB (minimum 4, default: 450). Make sure you have enough RAM. In addition, unused memory allocated to the mempool is shared with this cache (see -maxmempool).',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 450,
       min: 4,
       unit: 'MiB',
@@ -120,7 +118,6 @@ class BitcoinConfigOptions {
       description: 'Max Mempool Size',
       tooltip: 'Keep the transaction memory pool below <n> megabytes (default: 300)',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 300,
       min: 1,
       unit: 'MB',
@@ -154,7 +151,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Add a node to connect to and attempt to keep the connection open. This option can be specified multiple times to add multiple nodes; connections are limited to 8 at a time and are counted separately from the -maxconnections limit.',
       inputType: ConfigInputType.ipAddress,
-      isUseful: true,
     ),
     BitcoinConfigOption(
       key: 'maxconnections',
@@ -163,7 +159,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Maintain at most <n> automatic connections to peers (default: 125). This limit does not apply to connections manually added via -addnode or the addnode RPC, which have a separate limit of 8.',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 125,
       min: 0,
     ),
@@ -263,7 +258,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Group outputs by address, selecting many (possibly all) or none, instead of selecting on a per-output basis. Privacy is improved as addresses are mostly swept with fewer transactions and outputs are aggregated in clean change addresses. Always enabled for wallets with "avoid_reuse" enabled, otherwise default: 0.',
       inputType: ConfigInputType.boolean,
-      isUseful: true,
       defaultValue: false,
     ),
     BitcoinConfigOption(
@@ -338,7 +332,6 @@ class BitcoinConfigOptions {
       description: 'ZMQ Sequence',
       tooltip: 'Enable publish hash block and tx sequence in <address>',
       inputType: ConfigInputType.network,
-      isUseful: true,
     ),
     BitcoinConfigOption(
       key: 'zmqpubhashblock',
@@ -429,6 +422,7 @@ class BitcoinConfigOptions {
       description: 'REST API',
       tooltip: 'Accept public REST requests (default: 0)',
       inputType: ConfigInputType.boolean,
+      isUseful: true,
       defaultValue: false,
     ),
     BitcoinConfigOption(
