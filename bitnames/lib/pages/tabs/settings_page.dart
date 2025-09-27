@@ -206,8 +206,8 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
                   label: 'Inter',
                 ),
                 SailDropdownItem<SailFontValues>(
-                  value: SailFontValues.sourceCodePro,
-                  label: 'Source Code Pro',
+                  value: SailFontValues.ibmMono,
+                  label: 'IBM Plex Mono',
                 ),
               ],
               onChanged: (SailFontValues? newValue) async {

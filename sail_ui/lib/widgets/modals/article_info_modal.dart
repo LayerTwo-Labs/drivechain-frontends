@@ -88,7 +88,7 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                               ),
                               code: SailStyleValues.thirteen.copyWith(
                                 color: SailColorScheme.white,
-                                fontFamily: 'SourceCodePro',
+                                fontFamily: 'IBMPlexMono',
                               ),
                               codeblockPadding: const EdgeInsets.all(16),
                             ),

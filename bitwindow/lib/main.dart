@@ -31,6 +31,7 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -68,6 +69,7 @@ void main(List<String> args) async {
 
 Future<(Directory, File, Logger)> init(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  addFontLicense();
   await findSystemLocale();
   await initializeDateFormatting();
 
@@ -366,7 +368,7 @@ class _BitwindowAppContent extends StatelessWidget {
       title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
       theme: ThemeData(
         visualDensity: VisualDensity.compact,
-        fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
+        fontFamily: font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter',
       ),
       builder: (context, child) {
         return _ErrorBoundary(

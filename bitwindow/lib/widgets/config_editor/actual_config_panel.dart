@@ -1,7 +1,6 @@
 import 'package:bitwindow/providers/bitcoin_config_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ActualConfigPanel extends StatefulWidget {
@@ -111,13 +110,9 @@ class _ActualConfigPanelState extends State<ActualConfigPanel> {
       width: double.infinity,
       color: backgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      child: Text(
+      child: SailText.primary12(
         line.content,
-        style: GoogleFonts.sourceCodePro(
-          fontSize: 12,
-          color: textColor,
-          height: 1.4,
-        ),
+        color: textColor,
       ),
     );
   }
