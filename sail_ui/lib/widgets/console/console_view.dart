@@ -322,7 +322,7 @@ class _ConsoleViewState extends State<ConsoleView> {
                       return TextField(
                         controller: controller,
                         focusNode: focusNode,
-                        style: TextStyle(color: theme.colors.text, fontFamily: 'SourceCodePro'),
+                        style: TextStyle(color: theme.colors.text, fontFamily: 'IBMPlexMono'),
                         decoration: InputDecoration(
                           prefixIcon: Container(
                             margin: const EdgeInsets.only(left: 8),
@@ -422,7 +422,7 @@ class ConsoleEntryWidget extends StatelessWidget {
           Expanded(
             child: SelectableText(
               entry.content,
-              style: TextStyle(color: getColor(), fontFamily: 'SourceCodePro', fontSize: 13),
+              style: TextStyle(color: getColor(), fontFamily: 'IBMPlexMono', fontSize: 13),
             ),
           ),
         ],

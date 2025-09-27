@@ -10,6 +10,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/console/integrated_console_view.dart';
@@ -32,6 +33,7 @@ void main(List<String> args) async {
 
 Future<(Directory, File, Logger)> init(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  addFontLicense();
 
   Directory? applicationDir;
   File? logFile;
@@ -208,7 +210,7 @@ class _BitAssetsAppContent extends StatelessWidget {
       routeInformationParser: router.defaultRouteParser(),
       title: bitassets.chain.name,
       theme: ThemeData(
-        fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
+        fontFamily: font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter',
         colorScheme: ColorScheme.fromSwatch().copyWith(secondary: bitassets.chain.color),
       ),
     );

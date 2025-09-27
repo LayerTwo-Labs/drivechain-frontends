@@ -76,11 +76,11 @@ class SettingsTabPage extends StatelessWidget {
                                       disabled: settingsmodel.font == SailFontValues.inter,
                                     ),
                                     SailButton(
-                                      label: 'Source Code Pro',
+                                      label: 'IBM Plex Mono',
                                       onPressed: () async {
-                                        settingsmodel.setFont(SailFontValues.sourceCodePro);
+                                        settingsmodel.setFont(SailFontValues.ibmMono);
                                       },
-                                      disabled: settingsmodel.font == SailFontValues.sourceCodePro,
+                                      disabled: settingsmodel.font == SailFontValues.ibmMono,
                                     ),
                                   ],
                                 ),

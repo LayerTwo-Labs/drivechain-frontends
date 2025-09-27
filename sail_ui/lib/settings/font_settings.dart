@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-enum SailFontValues { sourceCodePro, inter }
+enum SailFontValues { ibmMono, inter }
 
 class FontSetting extends SettingValue<SailFontValues> {
   FontSetting({super.newValue});
@@ -10,7 +10,7 @@ class FontSetting extends SettingValue<SailFontValues> {
   String get key => 'font';
 
   @override
-  SailFontValues defaultValue() => SailFontValues.inter;
+  SailFontValues defaultValue() => SailFontValues.ibmMono;
 
   @override
   String toJson() {

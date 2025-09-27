@@ -161,7 +161,7 @@ class _BitcoinConfEditorPageState extends State<BitcoinConfEditorPage> {
 
     return Row(
       children: [
-        // Left panel - Your Changes
+        // Left panel - Changes
         Expanded(
           flex: 1,
           child: WorkingConfigPanel(),
@@ -172,7 +172,7 @@ class _BitcoinConfEditorPageState extends State<BitcoinConfEditorPage> {
           color: theme.colors.divider,
         ),
 
-        // Middle panel - Actual File
+        // Middle panel - Saved File + Any Diff
         Expanded(
           flex: 1,
           child: ActualConfigPanel(),

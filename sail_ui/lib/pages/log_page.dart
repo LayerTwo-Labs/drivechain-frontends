@@ -76,7 +76,7 @@ class _LogPageState extends State<LogPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
                 child: Text.rich(
                   _parseAnsiCodes(_logLines[index]),
-                  style: const TextStyle(fontFamily: 'SourceCodePro', fontSize: 10, color: SailColorScheme.whiteDark),
+                  style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 10, color: SailColorScheme.whiteDark),
                 ),
               );
             },
@@ -197,7 +197,7 @@ class _LogPageState extends State<LogPage> {
             style: SailStyleValues.twelve.copyWith(
               color: currentColor,
               fontWeight: currentBold ? SailStyleValues.boldWeight : null,
-              fontFamily: 'SourceCodePro',
+              fontFamily: 'IBMPlexMono',
             ),
           ),
         );
@@ -241,7 +241,7 @@ class _LogPageState extends State<LogPage> {
           style: SailStyleValues.twelve.copyWith(
             color: currentColor,
             fontWeight: currentBold ? SailStyleValues.boldWeight : null,
-            fontFamily: 'SourceCodePro',
+            fontFamily: 'IBMPlexMono',
           ),
         ),
       );

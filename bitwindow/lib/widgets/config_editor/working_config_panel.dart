@@ -1,7 +1,6 @@
 import 'package:bitwindow/providers/bitcoin_config_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class WorkingConfigPanel extends StatefulWidget {
@@ -94,7 +93,8 @@ class _WorkingConfigPanelState extends State<WorkingConfigPanel> {
                       maxLines: null,
                       expands: true,
                       textAlignVertical: TextAlignVertical.top,
-                      style: GoogleFonts.sourceCodePro(
+                      style: TextStyle(
+                        fontFamily: 'IBMPlexMono',
                         fontSize: 12,
                         color: theme.colors.text,
                         height: 1.4,
@@ -105,7 +105,8 @@ class _WorkingConfigPanelState extends State<WorkingConfigPanel> {
                         focusedBorder: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
                         hintText: 'Edit your Bitcoin configuration here...',
-                        hintStyle: GoogleFonts.sourceCodePro(
+                        hintStyle: TextStyle(
+                          fontFamily: 'IBMPlexMono',
                           fontSize: 12,
                           color: theme.colors.textTertiary,
                           height: 1.4,

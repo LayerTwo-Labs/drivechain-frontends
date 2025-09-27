@@ -82,7 +82,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Reduce storage requirements by enabling pruning (deleting) of old blocks. This allows the pruneblockchain RPC to be called to delete specific blocks and enables automatic pruning of old blocks if a target size in MiB is provided. (default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=550 = automatically prune block files)',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 0,
       min: 0,
       unit: 'MiB',
@@ -94,7 +93,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Maximum database cache size <n> MiB (minimum 4, default: 450). Make sure you have enough RAM. In addition, unused memory allocated to the mempool is shared with this cache (see -maxmempool).',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 450,
       min: 4,
       unit: 'MiB',
@@ -120,7 +118,6 @@ class BitcoinConfigOptions {
       description: 'Max Mempool Size',
       tooltip: 'Keep the transaction memory pool below <n> megabytes (default: 300)',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 300,
       min: 1,
       unit: 'MB',
@@ -154,7 +151,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Add a node to connect to and attempt to keep the connection open. This option can be specified multiple times to add multiple nodes; connections are limited to 8 at a time and are counted separately from the -maxconnections limit.',
       inputType: ConfigInputType.ipAddress,
-      isUseful: true,
     ),
     BitcoinConfigOption(
       key: 'maxconnections',
@@ -163,7 +159,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Maintain at most <n> automatic connections to peers (default: 125). This limit does not apply to connections manually added via -addnode or the addnode RPC, which have a separate limit of 8.',
       inputType: ConfigInputType.number,
-      isUseful: true,
       defaultValue: 125,
       min: 0,
     ),
@@ -263,7 +258,6 @@ class BitcoinConfigOptions {
       tooltip:
           'Group outputs by address, selecting many (possibly all) or none, instead of selecting on a per-output basis. Privacy is improved as addresses are mostly swept with fewer transactions and outputs are aggregated in clean change addresses. Always enabled for wallets with "avoid_reuse" enabled, otherwise default: 0.',
       inputType: ConfigInputType.boolean,
-      isUseful: true,
       defaultValue: false,
     ),
     BitcoinConfigOption(
@@ -338,7 +332,6 @@ class BitcoinConfigOptions {
       description: 'ZMQ Sequence',
       tooltip: 'Enable publish hash block and tx sequence in <address>',
       inputType: ConfigInputType.network,
-      isUseful: true,
     ),
     BitcoinConfigOption(
       key: 'zmqpubhashblock',
@@ -429,6 +422,7 @@ class BitcoinConfigOptions {
       description: 'REST API',
       tooltip: 'Accept public REST requests (default: 0)',
       inputType: ConfigInputType.boolean,
+      isUseful: true,
       defaultValue: false,
     ),
     BitcoinConfigOption(
@@ -607,6 +601,59 @@ class BitcoinConfigOptions {
       tooltip:
           'Specify additional configuration file, relative to the -datadir path (only useable from configuration file, not command line)',
       inputType: ConfigInputType.file,
+    ),
+    BitcoinConfigOption(
+      key: 'allowignoredconf',
+      category: 'General',
+      description: 'Allow Ignored Config',
+      tooltip:
+          'For backwards compatibility, treat an unused bitcoin.conf file in the datadir as a warning, not an error.',
+      inputType: ConfigInputType.boolean,
+      defaultValue: false,
+    ),
+    BitcoinConfigOption(
+      key: 'blockreconstructionextratxn',
+      category: 'General',
+      description: 'Block Reconstruction Extra Txn',
+      tooltip: 'Extra transactions to keep in memory for compact block reconstructions (default: 100)',
+      inputType: ConfigInputType.number,
+      defaultValue: 100,
+      min: 0,
+    ),
+    BitcoinConfigOption(
+      key: 'blocksxor',
+      category: 'General',
+      description: 'Blocks XOR',
+      tooltip:
+          'Whether an XOR-key applies to blocksdir *.dat files. The created XOR-key will be zeros for an existing blocksdir or when `-blocksxor=0` is set, and random for a freshly initialized blocksdir. (default: 1)',
+      inputType: ConfigInputType.boolean,
+      defaultValue: true,
+    ),
+    BitcoinConfigOption(
+      key: 'daemonwait',
+      category: 'General',
+      description: 'Daemon Wait',
+      tooltip: 'Wait for initialization to be finished before exiting. This implies -daemon (default: 0)',
+      inputType: ConfigInputType.boolean,
+      defaultValue: false,
+    ),
+    BitcoinConfigOption(
+      key: 'persistmempoolv1',
+      category: 'General',
+      description: 'Persist Mempool V1',
+      tooltip:
+          'Whether a mempool.dat file created by -persistmempool or the savemempool RPC will be written in the legacy format (version 1) or the current format (version 2). This temporary option will be removed in the future. (default: 0)',
+      inputType: ConfigInputType.boolean,
+      defaultValue: false,
+    ),
+    BitcoinConfigOption(
+      key: 'reindex-chainstate',
+      category: 'General',
+      description: 'Reindex Chainstate',
+      tooltip:
+          'If enabled, wipe chain state, and rebuild it from blk*.dat files on disk. If an assumeutxo snapshot was loaded, its chainstate will be wiped as well. The snapshot can then be reloaded via RPC.',
+      inputType: ConfigInputType.boolean,
+      defaultValue: false,
     ),
     BitcoinConfigOption(
       key: 'persistmempool',
@@ -811,6 +858,57 @@ class BitcoinConfigOptions {
           'Bind to the given address and add permission flags to the peers connecting to it. Use [host]:port notation for IPv6.',
       inputType: ConfigInputType.network,
     ),
+    BitcoinConfigOption(
+      key: 'asmap',
+      category: 'Connection',
+      description: 'AS Map',
+      tooltip:
+          'Specify asn mapping used for bucketing of the peers (default: ip_asn.map). Relative paths will be prefixed by the net-specific datadir location.',
+      inputType: ConfigInputType.file,
+      defaultValue: 'ip_asn.map',
+    ),
+    BitcoinConfigOption(
+      key: 'cjdnsreachable',
+      category: 'Connection',
+      description: 'CJDNS Reachable',
+      tooltip:
+          'If set, then this host is configured for CJDNS (connecting to fc00::/8 addresses would lead us to the CJDNS network, see doc/cjdns.md) (default: 0)',
+      inputType: ConfigInputType.boolean,
+      defaultValue: false,
+    ),
+    BitcoinConfigOption(
+      key: 'i2pacceptincoming',
+      category: 'Connection',
+      description: 'I2P Accept Incoming',
+      tooltip:
+          'Whether to accept inbound I2P connections (default: 1). Ignored if -i2psam is not set. Listening for inbound I2P connections is done through the SAM proxy, not by binding to a local address and port.',
+      inputType: ConfigInputType.boolean,
+      defaultValue: true,
+    ),
+    BitcoinConfigOption(
+      key: 'natpmp',
+      category: 'Connection',
+      description: 'NAT-PMP',
+      tooltip: 'Use PCP or NAT-PMP to map the listening port (default: 0)',
+      inputType: ConfigInputType.boolean,
+      defaultValue: false,
+    ),
+    BitcoinConfigOption(
+      key: 'proxyrandomize',
+      category: 'Connection',
+      description: 'Proxy Randomize',
+      tooltip: 'Randomize credentials for every proxy connection. This enables Tor stream isolation (default: 1)',
+      inputType: ConfigInputType.boolean,
+      defaultValue: true,
+    ),
+    BitcoinConfigOption(
+      key: 'v2transport',
+      category: 'Connection',
+      description: 'V2 Transport',
+      tooltip: 'Support v2 transport (default: 1)',
+      inputType: ConfigInputType.boolean,
+      defaultValue: true,
+    ),
 
     // More Wallet Options
     BitcoinConfigOption(
@@ -928,13 +1026,23 @@ class BitcoinConfigOptions {
       inputType: ConfigInputType.text,
     ),
     BitcoinConfigOption(
-      key: 'rpcworkqueue',
+      key: 'rpccookieperms',
       category: 'RPC Server',
-      description: 'RPC Work Queue',
-      tooltip: 'Set the depth of the work queue to service RPC calls (default: 16)',
-      inputType: ConfigInputType.number,
-      defaultValue: 16,
-      min: 1,
+      description: 'RPC Cookie Permissions',
+      tooltip:
+          'Set permissions on the RPC auth cookie file so that it is readable by [owner|group|all] (default: owner [via umask 0077])',
+      inputType: ConfigInputType.dropdown,
+      defaultValue: 'owner',
+      dropdownValues: ['owner', 'group', 'all'],
+    ),
+    BitcoinConfigOption(
+      key: 'rpcwhitelistdefault',
+      category: 'RPC Server',
+      description: 'RPC Whitelist Default',
+      tooltip:
+          'Sets default behavior for rpc whitelisting. Unless rpcwhitelistdefault is set to 0, if any -rpcwhitelist is set, the rpc server acts as if all rpc users are subject to empty-unless-otherwise-specified whitelists. If rpcwhitelistdefault is set to 1 and no -rpcwhitelist is set, rpc server acts as if all rpc users are subject to empty whitelists.',
+      inputType: ConfigInputType.boolean,
+      defaultValue: false,
     ),
 
     // More ZeroMQ Options with HWM settings
