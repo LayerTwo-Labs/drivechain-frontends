@@ -57,8 +57,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     });
 
     terminal.onOutput = (data) {
-      final processedData = _processCommand(data);
-      pty.write(const Utf8Encoder().convert(processedData));
+      pty.write(const Utf8Encoder().convert(data));
     };
 
     terminal.onResize = (w, h, pw, ph) {
@@ -67,40 +66,36 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
   }
 
   void _createEnforcerAlias() {
-    // Create an alias for enforcer-cli that works in bash, zsh, and fish
+    // Create aliases for enforcer-cli and conditionally bitcoin-cli
     final shell = _getShell();
-    String aliasCommand;
+    final confFile = BitcoinCore().confFile();
+    String aliasCommands;
+
+    // Only create bitcoin-cli alias if we're not using the default bitcoin.conf
+    final needsBitcoinAlias = confFile != 'bitcoin.conf';
 
     if (shell.contains('fish')) {
       // Fish shell uses functions instead of aliases for complex commands
-      aliasCommand = 'function enforcer-cli; grpcurl -plaintext localhost:50051 \$argv; end\n';
+      aliasCommands = 'function enforcer-cli; grpcurl -plaintext localhost:50051 \$argv; end\n';
+      if (needsBitcoinAlias) {
+        aliasCommands += 'function bitcoin-cli; command bitcoin-cli -conf=$confFile \$argv; end\n';
+      }
     } else if (shell.contains('bash') || shell.contains('zsh')) {
-      // Bash and Zsh use standard alias syntax
-      aliasCommand = "alias enforcer-cli='grpcurl -plaintext localhost:50051'\n";
+      // Bash and Zsh use standard alias syntax for simple cases, functions for complex ones
+      aliasCommands = "alias enforcer-cli='grpcurl -plaintext localhost:50051'\n";
+      if (needsBitcoinAlias) {
+        aliasCommands += 'bitcoin-cli() { command bitcoin-cli -conf=$confFile "\$@"; }\n';
+      }
     } else {
-      // Default to bash-style alias
-      aliasCommand = "alias enforcer-cli='grpcurl -plaintext localhost:50051'\n";
-    }
-
-    // Send the alias command to the shell (output will be filtered)
-    pty.write(const Utf8Encoder().convert(aliasCommand));
-  }
-
-  String _processCommand(String data) {
-    // Check if the command starts with bitcoin-cli and doesn't already have the required params
-    final trimmed = data.trim();
-    if (trimmed.startsWith('bitcoin-cli') && !trimmed.contains('-rpcuser=')) {
-      // Insert the default parameters after bitcoin-cli
-      final parts = trimmed.split(' ');
-      if (parts.isNotEmpty && parts[0] == 'bitcoin-cli') {
-        final confFile = BitcoinCore().confFile();
-        parts.insert(3, '-conf=$confFile');
-
-        return '${parts.join(' ')}\n';
+      // Default to bash-style
+      aliasCommands = "alias enforcer-cli='grpcurl -plaintext localhost:50051'\n";
+      if (needsBitcoinAlias) {
+        aliasCommands += 'bitcoin-cli() { command bitcoin-cli -conf=$confFile "\$@"; }\n';
       }
     }
 
-    return data;
+    // Send the alias commands to the shell
+    pty.write(const Utf8Encoder().convert(aliasCommands));
   }
 
   Future<Map<String, String>> _setupTerminal() async {
