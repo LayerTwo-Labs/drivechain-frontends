@@ -79,14 +79,6 @@ class BitcoinConfig {
       'regtest': '[regtest]',
     };
 
-    buffer.writeln('# [Sections]');
-    buffer.writeln('# Most options automatically apply to mainnet, testnet, and regtest networks.');
-    buffer.writeln('# If you want to confine an option to just one network, you should add it in the');
-    buffer.writeln('# relevant section.');
-    buffer.writeln('# EXCEPTIONS: The options addnode, connect, port, bind, rpcport, rpcbind');
-    buffer.writeln('# and wallet');
-    buffer.writeln('# only apply to mainnet unless they appear in the appropriate section below.');
-    buffer.writeln();
 
     for (final network in networkSettings.keys) {
       final settings = networkSettings[network]!;

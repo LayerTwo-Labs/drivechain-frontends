@@ -51,6 +51,11 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       }),
     );
 
+    // Create enforcer-cli alias after shell starts
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _createEnforcerAlias();
+    });
+
     terminal.onOutput = (data) {
       final processedData = _processCommand(data);
       pty.write(const Utf8Encoder().convert(processedData));
@@ -61,6 +66,26 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     };
   }
 
+  void _createEnforcerAlias() {
+    // Create an alias for enforcer-cli that works in bash, zsh, and fish
+    final shell = _getShell();
+    String aliasCommand;
+
+    if (shell.contains('fish')) {
+      // Fish shell uses functions instead of aliases for complex commands
+      aliasCommand = 'function enforcer-cli; grpcurl -plaintext localhost:50051 \$argv; end\n';
+    } else if (shell.contains('bash') || shell.contains('zsh')) {
+      // Bash and Zsh use standard alias syntax
+      aliasCommand = "alias enforcer-cli='grpcurl -plaintext localhost:50051'\n";
+    } else {
+      // Default to bash-style alias
+      aliasCommand = "alias enforcer-cli='grpcurl -plaintext localhost:50051'\n";
+    }
+
+    // Send the alias command to the shell (output will be filtered)
+    pty.write(const Utf8Encoder().convert(aliasCommand));
+  }
+
   String _processCommand(String data) {
     // Check if the command starts with bitcoin-cli and doesn't already have the required params
     final trimmed = data.trim();
@@ -68,37 +93,11 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       // Insert the default parameters after bitcoin-cli
       final parts = trimmed.split(' ');
       if (parts.isNotEmpty && parts[0] == 'bitcoin-cli') {
-        final network = GetIt.I.get<BitcoinConfProvider>().network;
         final confFile = BitcoinCore().confFile();
         parts.insert(3, '-conf=$confFile');
 
-        switch (network) {
-          case Network.NETWORK_REGTEST:
-            parts.insert(4, '-regtest');
-            break;
-
-          case Network.NETWORK_TESTNET:
-            parts.insert(4, '-testnet');
-            break;
-
-          case Network.NETWORK_SIGNET:
-            parts.insert(4, '-signet');
-            break;
-
-          case Network.NETWORK_MAINNET:
-            break;
-
-          default:
-            break;
-        }
-
         return '${parts.join(' ')}\n';
       }
-    }
-
-    if (trimmed.startsWith('enforcer-cli')) {
-      // TODO: CREATE AN ALIAS for enforcier-cli
-      // WHEN THE USER TYPES IN enforcer-cli, TRANSLATE IT TO grpcurl -plaintext localhost:50051
     }
 
     return data;
@@ -125,7 +124,6 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     final allBinaries = [BitWindow(), Thunder(), BitNames(), BitAssets(), ZSide()];
     final binaryToCLI = {
       'BitcoinCore': 'bitcoin-cli',
-      'Enforcer': 'drivechain-cli',
       'BitWindow': 'bitwindow-cli',
       'Thunder': 'thunder-cli',
       'BitNames': 'bitnames-cli',
@@ -221,7 +219,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
 
     if (availableCLIs['bitcoin-cli'] == true) {
       terminal.write(
-        '\r\n\x1b[93mTo get started, try typing `bitcoin-cli help` or `bitcoin-cli getblockchaininfo`\x1b[0m\r\n\r\n',
+        '\r\n\x1b[93mTo get started, try typing `bitcoin-cli help` or `enforcer-cli describe`\x1b[0m\r\n\r\n',
       );
     } else {
       terminal.write('\r\n');
