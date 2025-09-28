@@ -373,6 +373,18 @@ rest=1
 fallbackfee=0.00021
 chain=signet
 
+# [Sections]
+# Most options automatically apply to mainnet, testnet,
+# and regtest.
+
+# If you want to confine an option to just one network,
+# you should add it in the relevant section.
+
+# EXCEPTIONS: The options addnode, connect, port, bind,
+# rpcport, rpcbind and wallet
+# only apply to mainnet unless they appear in the
+# appropriate section below.
+
 # Mainnet-specific settings
 [main]
 
