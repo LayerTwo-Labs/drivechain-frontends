@@ -110,8 +110,8 @@ class _NetworkSettingsContent extends StatefulWidget {
 class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   final _settingsProvider = GetIt.I.get<SettingsProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
-  String? _selectedDataDir;
-  bool _isSelectingDataDir = false;
+  String? _selectedBlocksDir;
+  bool _isSelectingBlocksDir = false;
 
   @override
   void initState() {
@@ -119,7 +119,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     // Listen to provider changes
     _settingsProvider.addListener(setstate);
     _confProvider.addListener(setstate);
-    _selectedDataDir = _confProvider.detectedDataDir;
+    _selectedBlocksDir = _confProvider.detectedBlocksDir;
   }
 
   @override
@@ -154,20 +154,20 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
 
     // If switching TO mainnet, check if we need to require a blocks directory
     if (network == Network.NETWORK_MAINNET) {
-      // Check if we already have a custom datadir configured
-      final hasDataDirConfigured = _selectedDataDir != null;
+      // Check if we already have a custom blocksdir configured
+      final hasBlocksDirConfigured = _selectedBlocksDir != null;
 
-      if (!hasDataDirConfigured) {
-        // Ask for data directory for mainnet
+      if (!hasBlocksDirConfigured) {
+        // Ask for blocksdir for mainnet
         final selectedPath = await showDialog<String>(
           context: context,
           barrierDismissible: false,
-          builder: (context) => const DataDirSelectionDialog(),
+          builder: (context) => const BlocksDirSelectionDialog(),
         );
 
         if (selectedPath != null) {
           // Save the selected data directory
-          await _confProvider.updateDataDir(selectedPath);
+          await _confProvider.updateBlocksDir(selectedPath);
         } else {
           // User cancelled, don't switch to mainnet
           return;
@@ -187,9 +187,9 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     }
   }
 
-  Future<void> _selectDataDirectory() async {
+  Future<void> _selectBlocksDirectory() async {
     setState(() {
-      _isSelectingDataDir = true;
+      _isSelectingBlocksDir = true;
     });
 
     try {
@@ -206,9 +206,9 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           await testFile.writeAsString('test');
           await testFile.delete();
           setState(() {
-            _selectedDataDir = result;
+            _selectedBlocksDir = result;
           });
-          await _confProvider.updateDataDir(result);
+          await _confProvider.updateBlocksDir(result);
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -232,24 +232,24 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     } finally {
       if (mounted) {
         setState(() {
-          _isSelectingDataDir = false;
+          _isSelectingBlocksDir = false;
         });
       }
     }
   }
 
-  Future<void> _clearDataDir() async {
-    await _confProvider.updateDataDir(null);
+  Future<void> _clearBlocksDir() async {
+    await _confProvider.updateBlocksDir(null);
     setState(() {
-      _selectedDataDir = null;
+      _selectedBlocksDir = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final showDataDir = _confProvider.network == Network.NETWORK_MAINNET || _selectedDataDir != null;
-    final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
+    final showBlocksDir = _confProvider.network == Network.NETWORK_MAINNET || _selectedBlocksDir != null;
+    final canEditBlocksDir = !_confProvider.hasPrivateBitcoinConf;
 
     return SailColumn(
       spacing: SailStyleValues.padding32,
@@ -328,12 +328,12 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           ],
         ),
 
-        // Bitcoin Data Directory (visible when mainnet is enabled or has value)
-        if (showDataDir)
+        // Bitcoin Blocks Directory (visible when mainnet is enabled or has value)
+        if (showBlocksDir)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SailText.primary15('Bitcoin Data Directory'),
+              SailText.primary15('Bitcoin Blocks Directory'),
               const SailSpacing(SailStyleValues.padding08),
               SailRow(
                 spacing: SailStyleValues.padding08,
@@ -344,33 +344,33 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
                       decoration: BoxDecoration(
                         border: Border.all(color: theme.colors.border),
                         borderRadius: SailStyleValues.borderRadiusSmall,
-                        color: canEditDataDir ? null : theme.colors.backgroundSecondary,
+                        color: canEditBlocksDir ? null : theme.colors.backgroundSecondary,
                       ),
                       child: SailText.secondary13(
-                        _confProvider.detectedDataDir ?? _selectedDataDir ?? 'Default directory',
+                        _confProvider.detectedBlocksDir ?? _selectedBlocksDir ?? 'Default directory',
                       ),
                     ),
                   ),
-                  if (canEditDataDir) ...[
+                  if (canEditBlocksDir) ...[
                     SailButton(
                       label: 'Browse',
                       small: true,
-                      loading: _isSelectingDataDir,
-                      onPressed: () async => await _selectDataDirectory(),
+                      loading: _isSelectingBlocksDir,
+                      onPressed: () async => await _selectBlocksDirectory(),
                     ),
-                    if (_selectedDataDir != null)
+                    if (_selectedBlocksDir != null)
                       SailButton(
                         label: 'Clear',
                         small: true,
                         variant: ButtonVariant.secondary,
-                        onPressed: () async => await _clearDataDir(),
+                        onPressed: () async => await _clearBlocksDir(),
                       ),
                   ],
                 ],
               ),
               const SailSpacing(4),
               SailText.secondary12(
-                canEditDataDir
+                canEditBlocksDir
                     ? 'Directory where Bitcoin block files are stored (2.5TB+ for mainnet)'
                     : 'Blocks directory is controlled by your bitcoin.conf file',
               ),
@@ -754,14 +754,14 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
   }
 }
 
-class DataDirSelectionDialog extends StatefulWidget {
-  const DataDirSelectionDialog({super.key});
+class BlocksDirSelectionDialog extends StatefulWidget {
+  const BlocksDirSelectionDialog({super.key});
 
   @override
-  State<DataDirSelectionDialog> createState() => _DataDirSelectionDialogState();
+  State<BlocksDirSelectionDialog> createState() => _BlocksDirSelectionDialogState();
 }
 
-class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
+class _BlocksDirSelectionDialogState extends State<BlocksDirSelectionDialog> {
   String? selectedPath;
   bool isSelecting = false;
 
@@ -827,7 +827,7 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
           subtitle:
               'Bitcoin mainnet requires substantial storage space (approximately 2.5TB). '
               'Please select a directory with enough free space to store the Bitcoin block files.\n\n'
-              'This directory will be used for all networks and contains the blockchain data.',
+              'This directory will be used for all networks, but only for blocks-data',
           withCloseButton: true,
           child: SailColumn(
             spacing: SailStyleValues.padding16,

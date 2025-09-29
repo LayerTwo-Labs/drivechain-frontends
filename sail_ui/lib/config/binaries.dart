@@ -429,7 +429,22 @@ abstract class Binary {
     log.i('Binary: $message');
   }
 
-  String get connectionString => '$name :$port';
+  String get connectionString {
+    // For BitcoinCore, get the actual port from BitcoinConfProvider which handles
+    // both network defaults and user's custom rpcport setting
+    if (type == BinaryType.bitcoinCore && port == 0) {
+      try {
+        final confProvider = GetIt.I.get<BitcoinConfProvider>();
+        // The provider should expose the actual port being used
+        final actualPort = confProvider.rpcPort;
+        return '$name :$actualPort';
+      } catch (e) {
+        // Fallback if BitcoinConfProvider is not available
+        return '$name :$port';
+      }
+    }
+    return '$name :$port';
+  }
 
   void addBootArg(String arg) {
     if (extraBootArgs.contains(arg)) {

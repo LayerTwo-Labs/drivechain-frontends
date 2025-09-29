@@ -29,16 +29,6 @@ class SettingsTabPage extends StatelessWidget {
           return SailColumn(
             spacing: SailStyleValues.padding64,
             children: [
-              TweakNodeConnectionSettings(
-                name: 'Parent Chain',
-                chain: BitcoinCore(),
-                connected: model.mainRPC.connected,
-                settings: model.mainRPC.conf,
-                testConnectionValues: model.reconnectMainchain,
-                connectionError: model.mainRPC.connectionError,
-                readError: model.mainRPC.conf.readError,
-                loading: model._mainchainBusy,
-              ),
               ViewModelBuilder.reactive(
                 viewModelBuilder: () => ThemeSettingsViewModel(),
                 builder: ((context, settingsmodel, child) {
@@ -199,120 +189,11 @@ class SettingsTabPage extends StatelessWidget {
   }
 }
 
-class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
-  final Binary chain;
-  final String name;
-  final bool connected;
-  final CoreConnectionSettings settings;
-  final VoidCallback testConnectionValues;
-  final String? connectionError;
-  final String? readError;
-  final bool loading;
-
-  const TweakNodeConnectionSettings({
-    super.key,
-    required this.name,
-    required this.connected,
-    required this.settings,
-    required this.testConnectionValues,
-    required this.connectionError,
-    required this.readError,
-    required this.loading,
-    required this.chain,
-  });
-
-  @override
-  Widget build(BuildContext context, NodeConnectionViewModel viewModel) {
-    final theme = SailTheme.of(context);
-    return SailColumn(
-      spacing: SailStyleValues.padding25,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SailColumn(
-          spacing: SailStyleValues.padding08,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                SailText.primary15(name),
-                SailErrorShadow(
-                  enabled: !connected,
-                  child: SailSVG.fromAsset(
-                    SailSVGAsset.iconGlobe,
-                    width: SailStyleValues.iconSizePrimary,
-                    color: connected ? theme.colors.success : theme.colors.error,
-                  ),
-                ),
-              ],
-            ),
-            if (connectionError != null) SailText.secondary12(connectionError!),
-            if (readError != null) SailText.secondary12(readError!),
-          ],
-        ),
-        SailTextField(
-          label: 'Config path',
-          controller: settings.configPathController,
-          hintText: '/the/path/to/your/somethingchain.conf',
-          suffixWidget: SailButton(
-            label: 'Read file',
-            variant: ButtonVariant.ghost,
-            onPressed: () async => settings.readAndSetValuesFromFile(chain, viewModel.network),
-          ),
-        ),
-        SailTextField(
-          label: 'Host',
-          controller: settings.hostController,
-          hintText: 'host',
-        ),
-        SailTextField(
-          label: 'Port',
-          controller: settings.portController,
-          hintText: 'port',
-        ),
-        SailTextField(
-          label: 'Username',
-          controller: settings.usernameController,
-          hintText: 'username',
-        ),
-        SailTextField(
-          label: 'Password',
-          controller: settings.passwordController,
-          hintText: 'password',
-        ),
-        SailRow(
-          spacing: SailStyleValues.padding10,
-          children: [
-            Expanded(child: Container()),
-            SailButton(
-              label: 'Reset to config file values',
-              disabled: !settings.inputDifferentThanFile,
-              onPressed: () async {
-                settings.resetToFileValues();
-              },
-              variant: ButtonVariant.secondary,
-            ),
-            SailButton(
-              label: 'Test connection',
-              loading: loading,
-              onPressed: () async {
-                testConnectionValues();
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 enum ConnectionStatus { connected, unconnected }
 
 class NodeConnectionViewModel extends BaseViewModel {
   ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
   MainchainRPC get mainRPC => GetIt.I.get<MainchainRPC>();
-
-  bool _mainchainBusy = false;
 
   late Network network;
 
@@ -342,15 +223,9 @@ class NodeConnectionViewModel extends BaseViewModel {
   }
 
   void reconnectMainchain() async {
-    _mainchainBusy = true;
-    notifyListeners();
-
     // calling this will propagate the results to the local
     // mainchainConnected bool
     await mainRPC.testConnection();
-
-    _mainchainBusy = false;
-    notifyListeners();
   }
 
   @override
