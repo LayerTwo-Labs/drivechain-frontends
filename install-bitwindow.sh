@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # BitWindow Installer Script
-# 
+#
 # Usage:
 #   curl -sSL https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/master/install-bitwindow.sh | bash
 #   or
@@ -43,7 +43,7 @@ print_warning() {
 # Header
 echo ""
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║     BitWindow AppImage Installer      ║${NC}"
+echo -e "${BLUE}║     BitWindow AppImage Installer       ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -115,7 +115,7 @@ if [ -z "$ICON_PATH" ] || [ ! -f "$ICON_PATH" ]; then
     cd "$temp_dir"
     "$APPIMAGE_PATH" --appimage-extract .DirIcon >/dev/null 2>&1 || \
     "$APPIMAGE_PATH" --appimage-extract "$APP_NAME_LOWER.png" >/dev/null 2>&1 || true
-    
+
     if [ -f "squashfs-root/.DirIcon" ]; then
         cp "squashfs-root/.DirIcon" "$HOME/.local/share/icons/$APP_NAME_LOWER.png"
         ICON_PATH="$HOME/.local/share/icons/$APP_NAME_LOWER.png"
@@ -125,7 +125,7 @@ if [ -z "$ICON_PATH" ] || [ ! -f "$ICON_PATH" ]; then
     else
         print_warning "Could not extract icon, application will use default icon"
     fi
-    
+
     cd - >/dev/null
     rm -rf "$temp_dir"
 fi
@@ -196,13 +196,13 @@ else
     echo ""
     print_warning "To run 'bitwindow' from anywhere, you need to add ~/.local/bin to your PATH"
     echo ""
-    
+
     # Detect current shell
     current_shell=$(basename "$SHELL")
-    
+
     echo "Run this command to add bitwindow to your PATH:"
     echo ""
-    
+
     case "$current_shell" in
         bash)
             echo "    echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
