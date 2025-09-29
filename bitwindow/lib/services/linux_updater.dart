@@ -18,8 +18,10 @@ enum UpdateStatus {
 
 class LinuxUpdater {
   final Logger log;
-  static const String githubReleasesUrl = 'https://api.github.com/repos/LayerTwo-Labs/drivechain-frontends/releases/latest';
-  static const String installScriptUrl = 'https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/refs/heads/master/install-bitwindow.sh';
+  static const String githubReleasesUrl =
+      'https://api.github.com/repos/LayerTwo-Labs/drivechain-frontends/releases/latest';
+  static const String installScriptUrl =
+      'https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/refs/heads/master/install-bitwindow.sh';
 
   UpdateStatus _status = UpdateStatus.idle;
   String? _latestVersion;

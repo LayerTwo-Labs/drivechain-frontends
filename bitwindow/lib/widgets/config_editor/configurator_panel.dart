@@ -233,7 +233,7 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
   Widget _buildCategorySection(String category, List<BitcoinConfigOption> options) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(0),
       decoration: BoxDecoration(
         color: SailTheme.of(context).colors.background,
         borderRadius: SailStyleValues.borderRadius,
