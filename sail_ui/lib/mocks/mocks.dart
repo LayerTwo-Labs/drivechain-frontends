@@ -6,7 +6,11 @@ import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
 class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
-    : super(conf: CoreConnectionSettings.empty(Network.NETWORK_SIGNET), binaryType: BinaryType.bitcoinCore, restartOnFailure: false);
+    : super(
+        conf: CoreConnectionSettings.empty(Network.NETWORK_SIGNET),
+        binaryType: BinaryType.bitcoinCore,
+        restartOnFailure: false,
+      );
 
   bool _connected = false;
   bool _initializing = false;
