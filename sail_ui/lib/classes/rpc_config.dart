@@ -42,25 +42,74 @@ CoreConnectionSettings readRPCConfig(
 
   final cookie = File(filePath([networkDir, '.cookie']));
 
-  var settings = CoreConnectionSettings(
-    conf.path,
-    '127.0.0.1',
-    chain.port,
-    'user',
-    'password',
-    network == Network.NETWORK_REGTEST,
-  );
+  // Use correct default port based on network
+  final defaultPort = switch (network) {
+    Network.NETWORK_MAINNET => 8332,
+    Network.NETWORK_TESTNET => 18332,
+    Network.NETWORK_SIGNET => 38332,
+    Network.NETWORK_REGTEST => 18443,
+    _ => 38332, // fallback to signet for unknown networks
+  };
+
+  // Default values
+  String host = '127.0.0.1';
+  int port = defaultPort;
+  String username = 'user';
+  String password = 'password';
+  Map<String, String> configValues = {};
+  Set<String> configFromFile = {};
 
   if (conf.existsSync()) {
     log.i('rpc: reading conf file at $conf');
     final confContent = conf.readAsStringSync();
     final lines = confContent.split('\n').map((e) => e.trim()).toList();
 
-    // Read all config values, overwrite
-    // default 'host' 'port' 'user' 'password' if set
-    settings.readConfigFromFile(lines);
+    // Parse config file
+    for (final line in lines) {
+      if (line.startsWith('#') || !line.contains('=')) continue;
 
-    return settings;
+      final parts = line.split('=');
+      if (parts.length != 2) continue;
+
+      final key = parts[0].trim();
+      final value = parts[1].trim();
+
+      // Handle special RPC settings
+      switch (key) {
+        case 'rpcuser':
+          username = value;
+          configFromFile.add('rpcuser');
+          break;
+        case 'rpcpassword':
+          password = value;
+          configFromFile.add('rpcpassword');
+          break;
+        case 'rpcport':
+          port = int.tryParse(value) ?? defaultPort;
+          configFromFile.add('rpcport');
+          break;
+        case 'rpcconnect':
+        case 'rpchost':
+          host = value;
+          configFromFile.add(key);
+          break;
+        default:
+          // Store other config values
+          configValues[key] = value;
+          configFromFile.add(key);
+      }
+    }
+
+    return CoreConnectionSettings.fromParsedConfig(
+      confPath: conf.path,
+      host: host,
+      port: port,
+      username: username,
+      password: password,
+      network: network,
+      configValues: configValues,
+      configFromFile: configFromFile,
+    );
   }
 
   if (useCookieAuth && cookie.existsSync()) {
@@ -69,37 +118,44 @@ CoreConnectionSettings readRPCConfig(
     if (parts.length != 2) {
       throw 'unexpected cookie file: $data';
     }
-    final [username, password] = parts;
+    final [cookieUsername, cookiePassword] = parts;
 
     // Make sure to not include password here
     log.t('rpc: read password from cookie file at $cookie');
-    log.i('resolved conf: $username@${settings.host}:${settings.port} on ${network.toReadableNet()}');
+    log.i('resolved conf: $cookieUsername@$host:$port on ${network.toReadableNet()}');
     return CoreConnectionSettings(
-      conf.path,
-      settings.host,
-      settings.port,
-      username,
-      password,
-      network == Network.NETWORK_REGTEST,
+      '', // no conf file path when using cookie
+      host,
+      port,
+      cookieUsername,
+      cookiePassword,
+      network,
+      configValues,
     );
   }
 
   log.i('missing both conf ($conf) and cookie ($cookie), returning default settings');
-  return settings;
+  return CoreConnectionSettings(
+    '',
+    host,
+    port,
+    username,
+    password,
+    network,
+    configValues,
+  );
 }
 
 List<String> bitcoinCoreBinaryArgs(CoreConnectionSettings conf) {
   // Only include non-config args in the base args
   final args = [
-    conf.isLocalNetwork ? '-regtest' : '',
     conf.username.isNotEmpty && !conf.isFromConfigFile('rpcuser') ? '-rpcuser=${conf.username}' : '',
     conf.password.isNotEmpty && !conf.isFromConfigFile('rpcpassword') ? '-rpcpassword=${conf.password}' : '',
-    conf.port != 0 && !conf.isFromConfigFile('rpcport') ? '-rpcport=${conf.port}' : '',
   ];
 
   // Add all additional config values that aren't from config file
   args.addAll(
-    conf.getConfigArgs().where((arg) {
+    conf.getCliConfigArgs().where((arg) {
       final paramName = arg.split('=')[0].replaceFirst('-', '');
       return !conf.isFromConfigFile(paramName);
     }),
