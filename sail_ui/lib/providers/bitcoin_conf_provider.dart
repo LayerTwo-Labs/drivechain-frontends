@@ -9,7 +9,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for Bitcoin Core configuration settings integration.
 /// Handles detection of bitcoin.conf (user) vs bitwindow-bitcoin.conf (generated) files.
-/// Provides network and datadir settings for the settings page.
+/// Provides network and blocksdir settings for the settings page.
 class BitcoinConfProvider extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
 
@@ -21,7 +21,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   bool _hasPrivateBitcoinConf = false;
   String? _currentConfigPath;
   Network _detectedNetwork = Network.NETWORK_MAINNET;
-  String? _detectedDataDir;
+  String? _detectedBlocksDir;
   BitcoinConfig? _currentConfig;
 
   // Getters for settings integration
@@ -30,9 +30,31 @@ class BitcoinConfProvider extends ChangeNotifier {
     return _detectedNetwork;
   }
 
-  String? get detectedDataDir => _detectedDataDir;
+  String? get detectedBlocksDir => _detectedBlocksDir;
   bool get canEditNetwork => !_hasPrivateBitcoinConf;
   String get currentConfigFile => _hasPrivateBitcoinConf ? 'bitcoin.conf' : 'bitwindow-bitcoin.conf';
+
+  /// Get the actual RPC port being used (respects user's rpcport setting)
+  int get rpcPort {
+    if (_currentConfig != null) {
+      final rpcPortSetting = _currentConfig!.getSetting('rpcport');
+      if (rpcPortSetting != null) {
+        final customPort = int.tryParse(rpcPortSetting);
+        if (customPort != null) {
+          return customPort;
+        }
+      }
+    }
+
+    // Fall back to network defaults if no custom port set
+    return switch (_detectedNetwork) {
+      Network.NETWORK_MAINNET => 8332,
+      Network.NETWORK_TESTNET => 18332,
+      Network.NETWORK_SIGNET => 38332,
+      Network.NETWORK_REGTEST => 18443,
+      _ => 38332, // fallback to signet
+    };
+  }
 
   // Private constructor
   BitcoinConfProvider._create();
@@ -56,10 +78,10 @@ class BitcoinConfProvider extends ChangeNotifier {
       // Determine which config file to use
       final confInfo = _getConfigFileInfo();
       _hasPrivateBitcoinConf = confInfo.hasPrivateConf;
-      _currentConfigPath = confInfo.activePath;
+      _currentConfigPath = confInfo.path;
 
       // Load the active config file
-      final file = File(confInfo.activePath);
+      final file = File(confInfo.path);
       String content = '';
       if (await file.exists()) {
         content = await file.readAsString();
@@ -85,10 +107,13 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       // Extract network and blocksdir from the config
       _detectNetworkFromConfig();
-      _detectDataDirFromConfig();
+      _detectBlocksDirFromConfig();
 
       // Set up file watching
       _setupFileWatching();
+
+      // Update MainchainRPC configuration on initial load
+      _updateMainchainRPCConfig();
 
       notifyListeners();
     } catch (e) {
@@ -138,6 +163,8 @@ class BitcoinConfProvider extends ChangeNotifier {
     // Save the config
     await _saveConfig();
 
+    _updateMainchainRPCConfig();
+
     notifyListeners();
   }
 
@@ -171,6 +198,18 @@ class BitcoinConfProvider extends ChangeNotifier {
       bitwindow.wipeAppDir(),
     ]);
 
+    // Update MainchainRPC configuration with new network settings
+    try {
+      final mainchainRPC = GetIt.I.get<MainchainRPC>();
+      final newConf = readMainchainConf();
+      mainchainRPC.updateConf(newConf);
+      log.i(
+        'Updated MainchainRPC configuration for network ${_detectedNetwork.toReadableNet()} with port ${newConf.port}',
+      );
+    } catch (e) {
+      log.e('Failed to update MainchainRPC configuration: $e');
+    }
+
     // Restart all services
     log.i('Restarting services...');
     final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
@@ -183,19 +222,19 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Update datadir
-  Future<void> updateDataDir(String? dataDir) async {
+  Future<void> updateBlocksDir(String? blocksDir) async {
     if (_hasPrivateBitcoinConf) {
-      log.w('Cannot update datadir - controlled by private bitcoin.conf');
+      log.w('Cannot update blocksdir - controlled by private bitcoin.conf');
       return;
     }
 
     if (_currentConfig == null) return;
 
-    if (dataDir == null || dataDir.isEmpty) {
-      _currentConfig!.removeSetting('datadir');
+    if (blocksDir == null || blocksDir.isEmpty) {
+      _currentConfig!.removeSetting('blocksdir');
     } else {
-      _currentConfig!.setSetting('datadir', dataDir);
-      _detectedDataDir = dataDir;
+      _currentConfig!.setSetting('blocksdir', blocksDir);
+      _detectedBlocksDir = blocksDir;
     }
 
     // Save the config
@@ -212,8 +251,8 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
 
     try {
-      final confFile = _getCurrentConfigPath();
-      final file = File(confFile);
+      final confFile = _getConfigFileInfo();
+      final file = File(confFile.path);
 
       // Write new config
       await file.writeAsString(_currentConfig!.serialize());
@@ -224,21 +263,16 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
   }
 
-  ({bool hasPrivateConf, String activePath}) _getConfigFileInfo() {
+  ({bool hasPrivateConf, String path}) _getConfigFileInfo() {
     final datadir = BitcoinCore().datadir();
 
     if (BitcoinCore().confFile() == 'bitcoin.conf') {
-      return (hasPrivateConf: true, activePath: path.join(datadir, 'bitcoin.conf'));
+      return (hasPrivateConf: true, path: path.join(datadir, 'bitcoin.conf'));
     }
 
     // Fall back to our generated config
     final bitwindowConfPath = path.join(datadir, 'bitwindow-bitcoin.conf');
-    return (hasPrivateConf: false, activePath: bitwindowConfPath);
-  }
-
-  String _getCurrentConfigPath() {
-    final datadir = BitcoinCore().datadir();
-    return _hasPrivateBitcoinConf ? path.join(datadir, 'bitcoin.conf') : path.join(datadir, 'bitwindow-bitcoin.conf');
+    return (hasPrivateConf: false, path: bitwindowConfPath);
   }
 
   void _detectNetworkFromConfig() {
@@ -283,9 +317,9 @@ class BitcoinConfProvider extends ChangeNotifier {
     _detectedNetwork = Network.NETWORK_MAINNET;
   }
 
-  void _detectDataDirFromConfig() {
+  void _detectBlocksDirFromConfig() {
     if (_currentConfig == null) return;
-    _detectedDataDir ??= _currentConfig!.getSetting('datadir');
+    _detectedBlocksDir ??= _currentConfig!.getSetting('blocksdir');
   }
 
   void _setupFileWatching() {
@@ -331,13 +365,13 @@ class BitcoinConfProvider extends ChangeNotifier {
       _hasPrivateBitcoinConf = confInfo.hasPrivateConf;
 
       // If the controlling file changed (e.g., user created bitcoin.conf), reload everything
-      if (hadUserConf != _hasPrivateBitcoinConf || confInfo.activePath != _currentConfigPath) {
+      if (hadUserConf != _hasPrivateBitcoinConf || confInfo.path != _currentConfigPath) {
         await loadConfig();
         return;
       }
 
       // Otherwise just reload the current config content
-      final file = File(confInfo.activePath);
+      final file = File(confInfo.path);
       if (await file.exists()) {
         final content = await file.readAsString();
         final newConfig = BitcoinConfig.parse(content);
@@ -346,7 +380,11 @@ class BitcoinConfProvider extends ChangeNotifier {
         if (newConfig != _currentConfig) {
           _currentConfig = newConfig;
           _detectNetworkFromConfig();
-          _detectDataDirFromConfig();
+          _detectBlocksDirFromConfig();
+
+          // Update MainchainRPC configuration when config changes
+          _updateMainchainRPCConfig();
+
           notifyListeners();
         }
       }
@@ -422,15 +460,15 @@ acceptnonstdtxn=1
       final config = BitcoinConfig.parse(content);
       _currentConfig = config;
 
-      final confFile = _getCurrentConfigPath();
-      final file = File(confFile);
+      final confFile = _getConfigFileInfo();
+      final file = File(confFile.path);
       await file.writeAsString(content);
 
       log.i('Saved config to $confFile');
 
-      // Update detected network and datadir
+      // Update detected network and blocksdir
       _detectNetworkFromConfig();
-      _detectDataDirFromConfig();
+      _detectBlocksDirFromConfig();
 
       notifyListeners();
     } catch (e) {
@@ -441,5 +479,44 @@ acceptnonstdtxn=1
 
   String _defaultConf() {
     return getDefaultConfig();
+  }
+
+  /// Update MainchainRPC configuration when config changes
+  void _updateMainchainRPCConfig() {
+    try {
+      final mainchainRPC = GetIt.I.get<MainchainRPC>();
+      final newConf = _createConnectionSettings();
+      mainchainRPC.updateConf(newConf);
+      log.i('Updated MainchainRPC configuration: ${newConf.host}:${newConf.port}');
+    } catch (e) {
+      log.w('Could not update MainchainRPC configuration: $e');
+    }
+  }
+
+  /// Create CoreConnectionSettings from the current parsed config
+  CoreConnectionSettings _createConnectionSettings() {
+    final confInfo = _getConfigFileInfo();
+
+    // Get connection settings from current config
+    String host = '127.0.0.1';
+    String username = 'user';
+    String password = 'password';
+
+    if (_currentConfig != null) {
+      host = _currentConfig!.getSetting('rpcconnect') ?? _currentConfig!.getSetting('rpchost') ?? host;
+      username = _currentConfig!.getSetting('rpcuser') ?? username;
+      password = _currentConfig!.getSetting('rpcpassword') ?? password;
+    }
+
+    return CoreConnectionSettings.fromParsedConfig(
+      confPath: confInfo.path,
+      host: host,
+      port: rpcPort, // Use the getter which already handles network-specific logic
+      username: username,
+      password: password,
+      network: _detectedNetwork,
+      configValues: _currentConfig?.globalSettings ?? {},
+      configFromFile: _currentConfig?.globalSettings.keys.toSet() ?? {},
+    );
   }
 }

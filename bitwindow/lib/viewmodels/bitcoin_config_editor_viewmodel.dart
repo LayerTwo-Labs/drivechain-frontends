@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -126,11 +124,6 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
         workingConfig!.setSetting('signetblocktime', '60', section: 'signet');
         workingConfig!.setSetting('signetchallenge', '00141551188e5153533b4fdd555449e640d9cc129456', section: 'signet');
         workingConfig!.setSetting('acceptnonstdtxn', '1', section: 'signet');
-      }
-
-      // Add datadir if not on Windows
-      if (!Platform.isWindows) {
-        workingConfig!.setSetting('datadir', BitcoinCore().datadir());
       }
 
       // Add ZMQ settings

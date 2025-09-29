@@ -19,6 +19,12 @@ abstract class MainchainRPC extends RPCConnection {
 
   final chain = BitcoinCore();
 
+  /// Update the connection configuration with new settings
+  void updateConf(CoreConnectionSettings newConf) {
+    conf = newConf;
+    notifyListeners();
+  }
+
   bool inIBD = true;
   bool inHeaderSync = true;
   bool inSync = true;
