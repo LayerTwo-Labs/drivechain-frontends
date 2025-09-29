@@ -113,7 +113,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       _setupFileWatching();
 
       // Update MainchainRPC configuration on initial load
-      _updateMainchainRPCConfig();
+      _updateMainchainRPCConfig(_createConnectionSettings());
 
       notifyListeners();
     } catch (e) {
@@ -163,7 +163,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     // Save the config
     await _saveConfig();
 
-    _updateMainchainRPCConfig();
+    _updateMainchainRPCConfig(_createConnectionSettings());
 
     notifyListeners();
   }
@@ -199,16 +199,8 @@ class BitcoinConfProvider extends ChangeNotifier {
     ]);
 
     // Update MainchainRPC configuration with new network settings
-    try {
-      final mainchainRPC = GetIt.I.get<MainchainRPC>();
-      final newConf = readMainchainConf();
-      mainchainRPC.updateConf(newConf);
-      log.i(
-        'Updated MainchainRPC configuration for network ${_detectedNetwork.toReadableNet()} with port ${newConf.port}',
-      );
-    } catch (e) {
-      log.e('Failed to update MainchainRPC configuration: $e');
-    }
+    final newConf = readMainchainConf();
+    _updateMainchainRPCConfig(newConf);
 
     // Restart all services
     log.i('Restarting services...');
@@ -383,7 +375,7 @@ class BitcoinConfProvider extends ChangeNotifier {
           _detectBlocksDirFromConfig();
 
           // Update MainchainRPC configuration when config changes
-          _updateMainchainRPCConfig();
+          _updateMainchainRPCConfig(_createConnectionSettings());
 
           notifyListeners();
         }
@@ -482,12 +474,23 @@ acceptnonstdtxn=1
   }
 
   /// Update MainchainRPC configuration when config changes
-  void _updateMainchainRPCConfig() {
+  void _updateMainchainRPCConfig(CoreConnectionSettings newConf) {
     try {
       final mainchainRPC = GetIt.I.get<MainchainRPC>();
-      final newConf = _createConnectionSettings();
       mainchainRPC.updateConf(newConf);
       log.i('Updated MainchainRPC configuration: ${newConf.host}:${newConf.port}');
+
+      // Also update the Binary's port to keep it in sync
+      try {
+        final binaryProvider = GetIt.I.get<BinaryProvider>();
+        binaryProvider.updateBinary(
+          BinaryType.bitcoinCore,
+          (binary) => binary.copyWith(port: newConf.port),
+        );
+        log.i('Updated Bitcoin Core binary port to ${newConf.port}');
+      } catch (e) {
+        log.w('Could not update Bitcoin Core binary port: $e');
+      }
     } catch (e) {
       log.w('Could not update MainchainRPC configuration: $e');
     }

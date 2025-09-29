@@ -387,6 +387,11 @@ class BinaryProvider extends ChangeNotifier {
     return _downloadManager.getProgress(type);
   }
 
+  /// Update a binary using a transformer function
+  void updateBinary(BinaryType type, Binary Function(Binary) updater) {
+    _downloadManager.updateBinary(type, updater);
+  }
+
   List<Binary> get runningBinaries => _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
   // Returns true if the app currently has a succesful connection to the binary
