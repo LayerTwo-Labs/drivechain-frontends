@@ -73,16 +73,6 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     await settings.setValue(FontSetting(newValue: fontToLoad));
   }
 
-  /// Reload theme with current settings (useful when accent color changes)
-  void reloadThemeWithCurrentSettings([Color? newAccentColor]) {
-    // Get current font setting
-    final currentFont = theme.font;
-    // Rebuild theme with current settings but new accent color
-    final accentColor = newAccentColor ?? widget.accentColor;
-    theme = _themeDataFromTheme(theme.type, widget.dense, currentFont, accentColor);
-    setState(() {});
-  }
-
   SailThemeData _themeDataFromTheme(SailThemeValues themeType, bool dense, SailFontValues font, [Color? accentColor]) {
     final color = accentColor ?? widget.accentColor;
     switch (themeType) {

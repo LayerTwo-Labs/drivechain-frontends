@@ -178,13 +178,6 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     // Update network in config (saves automatically)
     await _confProvider.updateNetwork(network);
     await _confProvider.restartServicesForMainnet();
-
-    // Reload theme with new accent color for the network
-    if (mounted) {
-      final app = SailApp.of(context);
-      final newAccentColor = getNetworkAccentColor(network);
-      app.reloadThemeWithCurrentSettings(newAccentColor);
-    }
   }
 
   Future<void> _selectBlocksDirectory() async {
