@@ -9,7 +9,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for Bitcoin Core configuration settings integration.
 /// Handles detection of bitcoin.conf (user) vs bitwindow-bitcoin.conf (generated) files.
-/// Provides network and blocksdir settings for the settings page.
+/// Provides network and datadir settings for the settings page.
 class BitcoinConfProvider extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
 
@@ -21,7 +21,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   bool _hasPrivateBitcoinConf = false;
   String? _currentConfigPath;
   Network _detectedNetwork = Network.NETWORK_MAINNET;
-  String _detectedDataDir = BitcoinCore().datadir();
+  String? _detectedDataDir;
   BitcoinConfig? _currentConfig;
 
   // Getters for settings integration
@@ -85,7 +85,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       // Extract network and blocksdir from the config
       _detectNetworkFromConfig();
-      _detectBlocksDirFromConfig();
+      _detectDataDirFromConfig();
 
       // Set up file watching
       _setupFileWatching();
@@ -182,10 +182,10 @@ class BitcoinConfProvider extends ChangeNotifier {
     log.i('Service restart completed');
   }
 
-  /// Update blocks directory setting
+  /// Update datadir
   Future<void> updateDataDir(String? dataDir) async {
     if (_hasPrivateBitcoinConf) {
-      log.w('Cannot update datadir - controlled by user bitcoin.conf');
+      log.w('Cannot update datadir - controlled by private bitcoin.conf');
       return;
     }
 
@@ -283,9 +283,9 @@ class BitcoinConfProvider extends ChangeNotifier {
     _detectedNetwork = Network.NETWORK_MAINNET;
   }
 
-  void _detectBlocksDirFromConfig() {
+  void _detectDataDirFromConfig() {
     if (_currentConfig == null) return;
-    _detectedDataDir = _currentConfig!.getSetting('blocksdir') ?? _detectedDataDir;
+    _detectedDataDir ??= _currentConfig!.getSetting('datadir');
   }
 
   void _setupFileWatching() {
@@ -346,7 +346,7 @@ class BitcoinConfProvider extends ChangeNotifier {
         if (newConfig != _currentConfig) {
           _currentConfig = newConfig;
           _detectNetworkFromConfig();
-          _detectBlocksDirFromConfig();
+          _detectDataDirFromConfig();
           notifyListeners();
         }
       }
@@ -430,7 +430,7 @@ acceptnonstdtxn=1
 
       // Update detected network and datadir
       _detectNetworkFromConfig();
-      _detectBlocksDirFromConfig();
+      _detectDataDirFromConfig();
 
       notifyListeners();
     } catch (e) {

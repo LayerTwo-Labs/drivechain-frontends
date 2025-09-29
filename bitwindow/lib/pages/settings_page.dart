@@ -153,7 +153,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     }
 
     // If switching TO mainnet, check if we need to require a blocks directory
-    if (network == Network.NETWORK_MAINNET && _confProvider.network != Network.NETWORK_MAINNET) {
+    if (network == Network.NETWORK_MAINNET) {
       // Check if we already have a custom datadir configured
       final hasDataDirConfigured = _selectedDataDir != null;
 
@@ -306,6 +306,28 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           ],
         ),
 
+        // Bitcoin Configuration
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Bitcoin Conf Configuration'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailButton(
+              label: 'Edit Bitcoin Core Settings',
+              onPressed: () async {
+                // Add small delay to allow proper widget cleanup
+                await Future.delayed(const Duration(milliseconds: 100));
+                final router = GetIt.I.get<AppRouter>();
+                await router.push(const BitcoinConfEditorRoute());
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'Configure your Bitcoin Core conf',
+            ),
+          ],
+        ),
+
         // Bitcoin Data Directory (visible when mainnet is enabled or has value)
         if (showDataDir)
           Column(
@@ -354,28 +376,6 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
               ),
             ],
           ),
-
-        // Bitcoin Configuration
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Bitcoin Conf Configuration'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailButton(
-              label: 'Edit Bitcoin Core Settings',
-              onPressed: () async {
-                // Add small delay to allow proper widget cleanup
-                await Future.delayed(const Duration(milliseconds: 100));
-                final router = GetIt.I.get<AppRouter>();
-                await router.push(const BitcoinConfEditorRoute());
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'Configure your Bitcoin Core conf',
-            ),
-          ],
-        ),
 
         SailSpacing(SailStyleValues.padding64),
       ],
