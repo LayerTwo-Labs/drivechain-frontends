@@ -339,11 +339,35 @@ class BitwindowApp extends StatefulWidget {
 }
 
 class _BitwindowAppState extends State<BitwindowApp> {
+  late BitcoinConfProvider _bitcoinConfProvider;
+  Network? _currentNetwork;
+
+  @override
+  void initState() {
+    super.initState();
+    _bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
+    _currentNetwork = _bitcoinConfProvider.network;
+    _bitcoinConfProvider.addListener(_onProviderChanged);
+  }
+
+  @override
+  void dispose() {
+    _bitcoinConfProvider.removeListener(_onProviderChanged);
+    super.dispose();
+  }
+
+  void _onProviderChanged() {
+    final newNetwork = _bitcoinConfProvider.network;
+    if (newNetwork != _currentNetwork) {
+      _currentNetwork = newNetwork;
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final router = GetIt.I.get<AppRouter>();
-    final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
-    final accentColor = getNetworkAccentColor(bitcoinConfProvider.network);
+    final accentColor = getNetworkAccentColor(_bitcoinConfProvider.network);
 
     return SailApp(
       log: widget.log,
