@@ -1,192 +1,94 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class CoreConnectionSettings extends ChangeNotifier {
-  /// On local networks (i.e. regtest, simnet) we can mine blocks
-  /// on the mainchain and activate new sidechains. That's NOT
-  /// possible on global networks.
-  late final bool isLocalNetwork;
+  // Core connection properties
+  final String confPath;
+  final String host;
+  final int port;
+  final String username;
+  final String password;
+  final bool ssl = false;
+  final Network network;
 
-  final configPathController = TextEditingController();
-  final hostController = TextEditingController();
-  final portController = TextEditingController();
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
+  // Map to store arbitrary config values from config file
+  final Map<String, String> configValues;
 
-  String get host => hostController.text;
-  int get port => int.tryParse(portController.text) ?? 0;
-  String get username => usernameController.text;
-  String get password => passwordController.text;
-  final ssl = false;
-  bool hasConfFile = false;
-
-  String? readError;
-
-  late String confPath;
-  late String fileHost;
-  late int filePort;
-  late String fileUsername;
-  late String filePassword;
-  bool get inputDifferentThanFile =>
-      configPathController.text != confPath ||
-      hostController.text != fileHost ||
-      portController.text != filePort.toString() ||
-      usernameController.text != fileUsername ||
-      passwordController.text != filePassword;
-
-  // Add a map to store arbitrary config values
-  final Map<String, String> configValues = {};
-
-  // Add a set to track which config values came from file
-  final Set<String> configFromFile = {};
+  // Set to track which config values came from config file
+  final Set<String> configFromFile;
 
   CoreConnectionSettings(
-    String path,
-    String host,
-    int port,
-    String username,
-    String password,
-    bool localNetwork, [
+    this.confPath,
+    this.host,
+    this.port,
+    this.username,
+    this.password,
+    this.network, [
     Map<String, String>? additionalConfig,
-  ]) {
-    _setFileValues(path, host, port, username, password);
-    isLocalNetwork = localNetwork;
-    if (additionalConfig != null) {
-      configValues.addAll(additionalConfig);
-    }
-
-    configPathController.text = path;
-    hostController.text = host;
-    portController.text = port.toString();
-    usernameController.text = username;
-    passwordController.text = password;
-
-    configPathController.addListener(notifyListeners);
-    hostController.addListener(notifyListeners);
-    portController.addListener(notifyListeners);
-    usernameController.addListener(notifyListeners);
-    passwordController.addListener(notifyListeners);
+  ]) : configValues = additionalConfig ?? {},
+       configFromFile = {} {
+    // Process additional config to track which values came from config file
+    _processConfigFromFile();
   }
 
-  void _setFileValues(String path, String host, int port, String username, String password) {
-    confPath = path;
-    fileHost = host;
-    filePort = port;
-    fileUsername = username;
-    filePassword = password;
+  /// Factory constructor for creating an empty/default config
+  static CoreConnectionSettings empty([Network network = Network.NETWORK_SIGNET]) {
+    // Use correct default port based on network
+    final defaultPort = switch (network) {
+      Network.NETWORK_MAINNET => 8332,
+      Network.NETWORK_TESTNET => 18332,
+      Network.NETWORK_SIGNET => 38332,
+      Network.NETWORK_REGTEST => 18443,
+      _ => 38332, // fallback to signet
+    };
+
+    return CoreConnectionSettings(
+      '',
+      '127.0.0.1',
+      defaultPort,
+      'user',
+      'password',
+      network,
+      {},
+    );
   }
 
-  void resetToFileValues() {
-    configPathController.text = confPath;
-    hostController.text = fileHost;
-    portController.text = filePort.toString();
-    usernameController.text = fileUsername;
-    passwordController.text = filePassword;
-
-    notifyListeners();
+  /// Factory constructor for creating config from parsed file content
+  factory CoreConnectionSettings.fromParsedConfig({
+    required String confPath,
+    required String host,
+    required int port,
+    required String username,
+    required String password,
+    required Network network,
+    required Map<String, String> configValues,
+    required Set<String> configFromFile,
+  }) {
+    final settings = CoreConnectionSettings(
+      confPath,
+      host,
+      port,
+      username,
+      password,
+      network,
+      configValues,
+    );
+    settings.configFromFile.addAll(configFromFile);
+    return settings;
   }
 
-  void readAndSetValuesFromFile(Binary chain, Network network) async {
-    try {
-      var parts = splitPath(configPathController.text);
-      String dataDir = parts.$1;
-      String confFile = parts.$2;
-      readError = null;
-
-      final config = readRPCConfig(dataDir, confFile, chain, network);
-      configPathController.text = config.confPath;
-      hostController.text = config.host;
-      portController.text = config.port.toString();
-      usernameController.text = config.username;
-      passwordController.text = config.password;
-
-      _setFileValues(config.confPath, config.host, config.port, config.username, config.password);
-    } catch (error) {
-      readError = error.toString();
-    }
-
-    notifyListeners();
+  void _processConfigFromFile() {
+    // All config values are assumed to come from file
+    configValues.keys.forEach(configFromFile.add);
   }
 
-  (String, String) splitPath(String path) {
-    final sep = Platform.pathSeparator;
-    if (!path.contains(sep)) {
-      return ('', '');
-    }
-    String directory = path.substring(0, path.lastIndexOf(sep));
-    String fileName = path.split(sep).last;
-
-    return (directory, fileName);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    configPathController.removeListener(notifyListeners);
-    hostController.removeListener(notifyListeners);
-    portController.removeListener(notifyListeners);
-    usernameController.removeListener(notifyListeners);
-    passwordController.removeListener(notifyListeners);
-  }
-
-  static CoreConnectionSettings empty() {
-    return CoreConnectionSettings('', '127.0.0.1', 38332, 'user', 'password', true, {});
-  }
-
-  // Add method to get config value
-  String? getConfigValue(String key) => configValues[key];
-
-  // Add method to set config value
-  void setConfigValue(String key, String value) {
-    configValues[key] = value;
-    notifyListeners();
-  }
-
-  // Modify readConfigFromFile to track the source
-  void readConfigFromFile(List<String> lines) {
-    configValues.clear();
-    configFromFile.clear(); // Reset the tracking set
-    hasConfFile = true;
-
-    for (final line in lines) {
-      if (line.startsWith('#') || !line.contains('=')) continue;
-
-      final parts = line.split('=');
-      if (parts.length != 2) continue;
-
-      final key = parts[0].trim();
-      final value = parts[1].trim();
-
-      // Handle special cases
-      switch (key) {
-        case 'rpcuser':
-          usernameController.text = value;
-          configFromFile.add('rpcuser');
-          break;
-        case 'rpcpassword':
-          passwordController.text = value;
-          configFromFile.add('rpcpassword');
-          break;
-        case 'rpcport':
-          portController.text = value;
-          configFromFile.add('rpcport');
-          break;
-        default:
-          configValues[key] = value;
-          configFromFile.add(key);
-      }
-    }
-    notifyListeners();
-  }
-
-  // Add method to check if a config came from file
+  /// Check if a config parameter came from the config file
   bool isFromConfigFile(String key) => configFromFile.contains(key);
 
-  List<String> getConfigArgs() {
+  /// Get additional config arguments for command line
+  List<String> getCliConfigArgs() {
     final args = <String>[];
     configValues.forEach((key, value) {
       if (value == '1') {
@@ -203,7 +105,8 @@ CoreConnectionSettings readMainchainConf() {
   final log = GetIt.I.get<Logger>();
   final confProvider = GetIt.I.get<BitcoinConfProvider>();
 
-  CoreConnectionSettings conf = CoreConnectionSettings.empty();
+  // Create empty config with correct network-specific defaults
+  CoreConnectionSettings conf = CoreConnectionSettings.empty(confProvider.network);
   try {
     final datadir = BitcoinCore().datadir();
     final confFileName = BitcoinCore().confFile();
@@ -212,7 +115,7 @@ CoreConnectionSettings readMainchainConf() {
     log.i('Using $confFileName for mainchain configuration');
   } catch (error) {
     log.e('could not read mainchain conf: $error');
-    // do nothing
+    // Return the network-appropriate default config
   }
 
   return conf;

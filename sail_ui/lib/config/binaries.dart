@@ -484,7 +484,9 @@ class BitcoinCore extends Binary {
                binaryPath: null,
                updateable: false,
              ),
-         port: port ?? 38332,
+         // Port is determined by network
+         // mainnet: 8332, testnet: 18332, signet: 38332, regtest: 18443
+         port: port ?? 0, // 0 means use network default
        );
 
   @override
