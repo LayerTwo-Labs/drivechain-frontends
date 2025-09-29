@@ -83,10 +83,15 @@ class ActualConfigPanel extends ViewModelWidget<BitcoinConfigEditorViewModel> {
     return Container(
       width: double.infinity,
       color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      child: SailText.primary12(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      child: Text(
         line.content,
-        color: textColor,
+        style: TextStyle(
+          fontFamily: 'IBMPlexMono',
+          fontSize: 12,
+          color: textColor,
+          height: 1.4,
+        ),
       ),
     );
   }

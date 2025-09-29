@@ -759,7 +759,8 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
       context: context,
       builder: (context) => SailAlertCard(
         title: 'Update BitWindow?',
-        subtitle: 'The application will download and install version ${_linuxUpdater!.latestVersion}, then restart automatically.',
+        subtitle:
+            'The application will download and install version ${_linuxUpdater!.latestVersion}, then restart automatically.',
         onConfirm: () async => Navigator.of(context).pop(true),
       ),
     );
@@ -850,7 +851,10 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
               children: [
                 SailButton(
                   label: 'Check for Updates',
-                  loading: _updateStatus == UpdateStatus.checking || _updateStatus == UpdateStatus.downloading || _updateStatus == UpdateStatus.installing,
+                  loading:
+                      _updateStatus == UpdateStatus.checking ||
+                      _updateStatus == UpdateStatus.downloading ||
+                      _updateStatus == UpdateStatus.installing,
                   onPressed: () async => await _checkForUpdates(),
                 ),
                 if (_updateStatus == UpdateStatus.updateAvailable && Platform.isLinux)
