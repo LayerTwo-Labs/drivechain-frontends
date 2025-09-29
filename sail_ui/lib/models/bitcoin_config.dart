@@ -79,7 +79,6 @@ class BitcoinConfig {
       'regtest': '[regtest]',
     };
 
-
     for (final network in networkSettings.keys) {
       final settings = networkSettings[network]!;
       if (settings.isNotEmpty) {
