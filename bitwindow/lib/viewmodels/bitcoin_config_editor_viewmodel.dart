@@ -17,14 +17,21 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
 
   BitcoinConfig? originalConfig;
   BitcoinConfig? workingConfig;
+  String? _rawConfigText; // Store raw text separately for manual editing
   ConfigPreset currentPreset = ConfigPreset.custom;
   ViewMode viewMode = ViewMode.settings;
   String? errorMessage;
   bool isLoading = false;
 
-  String get workingConfigText => workingConfig?.serialize() ?? '';
+  String get workingConfigText => _rawConfigText ?? workingConfig?.serialize() ?? '';
   String get originalConfigText => originalConfig?.serialize() ?? '';
-  bool get hasUnsavedChanges => workingConfig != originalConfig;
+  bool get hasUnsavedChanges {
+    // Check both structured config and raw text changes
+    if (_rawConfigText != null) {
+      return _rawConfigText != originalConfigText;
+    }
+    return workingConfig != originalConfig;
+  }
 
   Future<void> loadConfig() async {
     try {
@@ -56,23 +63,30 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
       workingConfig!.setSetting(key, value.toString(), section: section);
     }
 
+    // Clear raw text when updating via structured settings
+    _rawConfigText = null;
     currentPreset = ConfigPreset.custom;
     notifyListeners();
   }
 
   Future<void> saveConfig() async {
-    if (workingConfig == null) return;
+    if (workingConfig == null && _rawConfigText == null) return;
 
     try {
       isLoading = true;
       errorMessage = null;
       notifyListeners();
 
-      // Delegate to ConfProvider
-      await confProvider.writeConfig(workingConfig!.serialize());
+      // Use raw text if available, otherwise use structured config
+      final configText = _rawConfigText ?? workingConfig!.serialize();
 
-      // Update original config to match
-      originalConfig = BitcoinConfig.fromConfig(workingConfig!);
+      // Delegate to ConfProvider
+      await confProvider.writeConfig(configText);
+
+      // Parse the saved config to update our structured representation
+      originalConfig = BitcoinConfig.parse(configText);
+      workingConfig = BitcoinConfig.fromConfig(originalConfig!);
+      _rawConfigText = null; // Clear raw text after saving
 
       isLoading = false;
       notifyListeners();
@@ -85,6 +99,9 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
   }
 
   void applyPreset(ConfigPreset preset) {
+    // Clear raw text when applying preset
+    _rawConfigText = null;
+
     if (preset == ConfigPreset.defaultPreset) {
       // Use the default config from ConfProvider
       final defaultContent = confProvider.getDefaultConfig();
@@ -132,29 +149,38 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
   void resetChanges() {
     if (originalConfig != null) {
       workingConfig = BitcoinConfig.fromConfig(originalConfig!);
+      _rawConfigText = null; // Clear any raw text edits
       currentPreset = ConfigPreset.custom;
       notifyListeners();
     }
   }
 
   void updateFromRawText(String rawText) {
+    // Store the raw text exactly as entered by the user
+    _rawConfigText = rawText;
+    currentPreset = ConfigPreset.custom;
+
+    // Try to parse for validation purposes, but keep the raw text regardless
     try {
       workingConfig = BitcoinConfig.parse(rawText);
-      currentPreset = ConfigPreset.custom;
-      notifyListeners();
     } catch (e) {
-      log.e('Failed to parse config from raw text: $e');
-      // Keep the existing config if parsing fails
+      // Parsing failed but we still keep the raw text for user editing
+      log.d('Config parsing failed during editing (this is ok): $e');
     }
+
+    notifyListeners();
   }
 
   String getDiff() {
-    if (originalConfig == null || workingConfig == null) {
+    if (originalConfig == null) {
       return '';
     }
 
     final originalLines = originalConfig!.serialize().split('\n');
-    final workingLines = workingConfig!.serialize().split('\n');
+
+    // Use raw text if available, otherwise use structured config
+    final workingText = _rawConfigText ?? workingConfig?.serialize() ?? '';
+    final workingLines = workingText.split('\n');
 
     final buffer = StringBuffer();
     int maxLines = originalLines.length > workingLines.length ? originalLines.length : workingLines.length;
