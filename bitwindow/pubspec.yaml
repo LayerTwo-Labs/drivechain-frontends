@@ -3,7 +3,7 @@ description:
   "A frontend for interacting with a Drivechain-enabled layer 1 bitcoin network."
 publish_to: "none"
 
-version: 0.0.36
+version: 0.0.37
 
 environment:
   sdk: 3.9.2
