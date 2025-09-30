@@ -214,7 +214,27 @@ class MainchainRPCLive extends MainchainRPC {
 
   @override
   List<String> startupErrors() {
-    return ['Loading block index'];
+    return [
+      'Loading block index',
+      'Opening LevelDB',
+      'Rewinding blocks',
+      'Verifying blocks',
+      'Loading block database',
+      'Switching active chainstate',
+      'Checking all blk files are present',
+      'Pruning blockstore',
+      'Loading block filter index',
+      'Loading wallet',
+      'Verifying wallet',
+      'Rescanning',
+      'Loading P2P addresses',
+      'Loading banlist',
+      'Starting network threads',
+      'HTTP: starting',
+      'Creating work queue',
+      'RPC warming up',
+      'Done loading',
+    ];
   }
 
   @override

@@ -146,10 +146,12 @@ abstract class RPCConnection extends ChangeNotifier {
 
       connected = false;
 
-      // finally set the error variable based on what type of error it is
-      if (newError != null && startupErrors().any((error) => newError!.contains(error))) {
-        startupError = newError;
+      if (extractStartupError(newError) != null) {
+        startupError = extractStartupError(newError); // warmup message
+      } else if (newError != null && startupErrors().any((error) => newError!.contains(error))) {
+        startupError = newError; // some sort of rpc-specific typical startup-error
       } else {
+        // finally set the error variable based on what type of error it is
         connectionError = newError;
       }
     } finally {
@@ -348,6 +350,25 @@ abstract class RPCConnection extends ChangeNotifier {
 
       notifyListeners();
     }
+  }
+
+  String? extractStartupError(String? newError) {
+    if (newError == null) return null;
+
+    if (newError.contains('-28')) {
+      // we have an error like getblockcount([]): -28 - Loading block index…
+      // look for last " - " and take everything after it
+      final idx = newError.lastIndexOf(' - ');
+      if (idx != -1 && idx + 3 < newError.length) {
+        final msg = newError.substring(idx + 3).trim();
+        return msg;
+      }
+      // fallback if not found
+      final msg = newError.trim();
+      return msg;
+    }
+
+    return null;
   }
 
   @override
