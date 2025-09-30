@@ -9,7 +9,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for Bitcoin Core configuration settings integration.
 /// Handles detection of bitcoin.conf (user) vs bitwindow-bitcoin.conf (generated) files.
-/// Provides network and blocksdir settings for the settings page.
+/// Provides network and datadir settings for the settings page.
 class BitcoinConfProvider extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
 
@@ -21,7 +21,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   bool _hasPrivateBitcoinConf = false;
   String? _currentConfigPath;
   Network _detectedNetwork = Network.NETWORK_MAINNET;
-  String? _detectedBlocksDir;
+  String? _detectedDataDir;
   BitcoinConfig? _currentConfig;
 
   // Getters for settings integration
@@ -30,7 +30,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     return _detectedNetwork;
   }
 
-  String? get detectedBlocksDir => _detectedBlocksDir;
+  String? get detectedDataDir => _detectedDataDir;
   bool get canEditNetwork => !_hasPrivateBitcoinConf;
   String get currentConfigFile => _hasPrivateBitcoinConf ? 'bitcoin.conf' : 'bitwindow-bitcoin.conf';
 
@@ -105,9 +105,9 @@ class BitcoinConfProvider extends ChangeNotifier {
       // Parse config to detect settings
       _currentConfig = BitcoinConfig.parse(content);
 
-      // Extract network and blocksdir from the config
+      // Extract network and datadir from the config
       _detectNetworkFromConfig();
-      _detectBlocksDirFromConfig();
+      _detectDataDirFromConfig();
 
       // Set up file watching
       _setupFileWatching();
@@ -214,19 +214,19 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Update datadir
-  Future<void> updateBlocksDir(String? blocksDir) async {
+  Future<void> updateDataDir(String? dataDir) async {
     if (_hasPrivateBitcoinConf) {
-      log.w('Cannot update blocksdir - controlled by private bitcoin.conf');
+      log.w('Cannot update datadir - controlled by your private bitcoin.conf');
       return;
     }
 
     if (_currentConfig == null) return;
 
-    if (blocksDir == null || blocksDir.isEmpty) {
-      _currentConfig!.removeSetting('blocksdir');
+    if (dataDir == null || dataDir.isEmpty) {
+      _currentConfig!.removeSetting('datadir');
     } else {
-      _currentConfig!.setSetting('blocksdir', blocksDir);
-      _detectedBlocksDir = blocksDir;
+      _currentConfig!.setSetting('datadir', dataDir);
+      _detectedDataDir = dataDir;
     }
 
     // Save the config
@@ -309,9 +309,9 @@ class BitcoinConfProvider extends ChangeNotifier {
     _detectedNetwork = Network.NETWORK_MAINNET;
   }
 
-  void _detectBlocksDirFromConfig() {
+  void _detectDataDirFromConfig() {
     if (_currentConfig == null) return;
-    _detectedBlocksDir ??= _currentConfig!.getSetting('blocksdir');
+    _detectedDataDir ??= _currentConfig!.getSetting('datadir');
   }
 
   void _setupFileWatching() {
@@ -372,7 +372,7 @@ class BitcoinConfProvider extends ChangeNotifier {
         if (newConfig != _currentConfig) {
           _currentConfig = newConfig;
           _detectNetworkFromConfig();
-          _detectBlocksDirFromConfig();
+          _detectDataDirFromConfig();
 
           // Update MainchainRPC configuration when config changes
           _updateMainchainRPCConfig(_createConnectionSettings());
@@ -458,9 +458,9 @@ acceptnonstdtxn=1
 
       log.i('Saved config to $confFile');
 
-      // Update detected network and blocksdir
+      // Update detected network and datadir
       _detectNetworkFromConfig();
-      _detectBlocksDirFromConfig();
+      _detectDataDirFromConfig();
 
       notifyListeners();
     } catch (e) {
