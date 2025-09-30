@@ -61,7 +61,8 @@ jobs:
     name: go-build
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # use windows-2022 because we need Inno Setup. -2022-image is heavier than latest
+        os: [ubuntu-latest, macos-latest, windows-2022]
     runs-on: ${{ matrix.os }}
     defaults:
       run:

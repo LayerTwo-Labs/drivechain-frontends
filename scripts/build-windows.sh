@@ -18,10 +18,18 @@ lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 cd "$client_dir"
 
 cmd="fastforge release --name prod --jobs windows-exe"
-powershell.exe -Command "& {$cmd; exit}"
+powershell.exe -Command "& {$cmd; if (\$LASTEXITCODE -ne 0) { exit \$LASTEXITCODE }}"
+if [ $? -ne 0 ]; then
+    echo "Error: fastforge release failed"
+    exit 1
+fi
 
 mkdir -p release
 
 # Copy installer from versioned subdirectory to main release directory
 # Fastforge creates the installer in release/VERSION/ subdirectory
-powershell.exe -Command "Get-ChildItem -Path release -Filter '*-windows-setup.exe' -Recurse | Select-Object -First 1 | Move-Item -Destination release\\$lower_app_name.exe"
+powershell.exe -Command "Get-ChildItem -Path release -Filter '*-windows-setup.exe' -Recurse | Select-Object -First 1 | Move-Item -Destination release\\$lower_app_name.exe; if (\$LASTEXITCODE -ne 0) { exit \$LASTEXITCODE }"
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to copy installer"
+    exit 1
+fi

@@ -81,19 +81,20 @@ jobs:
           add_client_configs() {
             local client=$1
             local build_flag=$2
-            
+
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
-              for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
+                    # use windows-2022 because we need Inno Setup. -2022-image is heavier than latest
+              for os in "ubuntu-latest" "macos-latest" "windows-2022"; do
                 # Skip macOS and linux for PRs
                 if [[ "${{ github.event_name }}" == "pull_request" && "$os" == "ubuntu-latest" ]]; then
                   continue
                 fi
-                
+
                 # Skip Windows for zside
-                if [[ "$client" == "zside" && "$os" == "windows-latest" ]]; then
+                if [[ "$client" == "zside" && "$os" == "windows-2022" ]]; then
                   continue
                 fi
-                
+
                 # No chains - just add the basic config
                 configurations+=("{\"os\":\"$os\",\"client\":\"$client\"}")
               done
@@ -309,27 +310,27 @@ jobs:
             # Map GitHub runner OS to platform name
             case "${{ matrix.os }}" in
               ubuntu-latest) platform="linux" ;;
-              macos-latest) platform="macos" ;;  
-              windows-latest) platform="windows" ;;
+              macos-latest) platform="macos" ;;
+              windows-2022) platform="windows" ;;
               *) platform="${{ matrix.os }}" ;;
             esac
-            
+
             # Get all version info from lib/gen/version.dart (must exist)
             if [ ! -f "${{ matrix.client }}/lib/gen/version.dart" ]; then
               echo "ERROR: ${{ matrix.client }}/lib/gen/version.dart does not exist!"
               exit 1
             fi
-            
+
             version=$(grep 'const String version =' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
             commit_hash=$(grep 'const String commit =' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
             commit_full=$(grep 'const String commitFull' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
             build_date=$(grep 'const String buildDate' "${{ matrix.client }}/lib/gen/version.dart" | sed "s/.*= '\(.*\)';.*/\1/")
-            
+
             # Get file size and download URL
             file_size=$(stat -c%s "$built_file" 2>/dev/null || stat -f%z "$built_file" 2>/dev/null || wc -c < "$built_file")
-            
+
             download_url=$(basename "$built_file")
-            
+
             # Create version.json
             printf '{\n  "%s": {\n    "%s": {\n      "version": "%s",\n      "commit": "%s",\n      "commitFull": "%s",\n      "buildDate": "%s",\n      "downloadUrl": "%s",\n      "size": %s\n    }\n  }\n}\n' \
               "${{ matrix.client }}" "$platform" "$version" "$commit_hash" "$commit_full" "$build_date" "$download_url" "$file_size" \
@@ -366,7 +367,7 @@ jobs:
               ../scripts/appcast/generate-macos.sh ${{ matrix.client }} "../sparkle_macos_key.pem" "${{ matrix.client }}/release/$(basename "$built_file")" || echo "Failed to generate macOS appcast fragment"
               rm -f ../sparkle_macos_key.pem
               ;;
-            windows-latest)
+            windows-2022)
               echo "Generating appcast fragment for Windows"
               built_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.exe" | head -1)
               if [ -z "$built_file" ]; then
@@ -395,7 +396,7 @@ jobs:
             macos-latest)
               fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-macos-fragment.xml"
               ;;
-            windows-latest)
+            windows-2022)
               fragment_file="${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-windows-fragment.xml"
               ;;
           esac
@@ -429,38 +430,38 @@ jobs:
           compare_versions() {
             local v1="$1"
             local v2="$2"
-            
+
             echo "[DEBUG] Comparing versions: '$v1' vs '$v2'"
-            
+
             # Store original versions for debugging
             local orig_v1="$v1"
             local orig_v2="$v2"
-            
+
             # Remove 'v' prefix if present and any '+' suffix (like 0.0.4+1)
             v1="${v1#v}"
             v1="${v1%%+*}"
             v2="${v2#v}"
             v2="${v2%%+*}"
-            
+
             echo "[DEBUG] After cleanup: '$v1' vs '$v2'"
-            
+
             # Split versions into arrays
             IFS='.' read -ra V1_PARTS <<< "$v1"
             IFS='.' read -ra V2_PARTS <<< "$v2"
-            
+
             echo "[DEBUG] V1 parts: ${V1_PARTS[@]}"
             echo "[DEBUG] V2 parts: ${V2_PARTS[@]}"
-            
+
             # Pad arrays to same length with zeros
             local max_len=$((${#V1_PARTS[@]} > ${#V2_PARTS[@]} ? ${#V1_PARTS[@]} : ${#V2_PARTS[@]}))
             echo "[DEBUG] Max length for comparison: $max_len"
-            
+
             for ((i=0; i<max_len; i++)); do
               local part1="${V1_PARTS[i]:-0}"
               local part2="${V2_PARTS[i]:-0}"
-              
+
               echo "[DEBUG] Comparing part $i: $part1 vs $part2"
-              
+
               # Compare numerically
               if ((part1 > part2)); then
                 echo "[DEBUG] Part $part1 > $part2, returning v1 > v2"
@@ -470,7 +471,7 @@ jobs:
                 return 1  # v1 < v2
               fi
             done
-            
+
             echo "[DEBUG] All parts equal, returning v1 == v2"
             return 2  # versions are equal
           }
@@ -530,17 +531,17 @@ jobs:
             echo "[DEBUG] Full output (first 500 chars):"
             echo "$REVISION_OUTPUT" | head -c 500
             echo ""
-            
+
             if [ -n "$REVISION_OUTPUT" ]; then
               echo "[DEBUG] Filtering for edge channel entries..."
               EDGE_LINES=$(echo "$REVISION_OUTPUT" | grep 'edge' || true)
               echo "[DEBUG] Edge channel lines:"
               echo "$EDGE_LINES"
-              
+
               # Look for edge channel entries and get the version
               CURRENT_VERSION=$(echo "$REVISION_OUTPUT" | grep -E '^\s*[0-9]+\s+' | grep 'edge' | head -1 | awk '{print $3}' || true)
               echo "[DEBUG] Extracted version: '$CURRENT_VERSION'"
-              
+
               if [ -n "$CURRENT_VERSION" ]; then
                 echo "✓ Found version via list-revisions: $CURRENT_VERSION"
               else
@@ -563,16 +564,16 @@ jobs:
             echo "[DEBUG] Exit code: $STATUS_EXIT_CODE"
             echo "[DEBUG] Full output:"
             echo "$STATUS_OUTPUT"
-            
+
             if [ -n "$STATUS_OUTPUT" ]; then
               echo "[DEBUG] Looking for edge channel line..."
               EDGE_LINE=$(echo "$STATUS_OUTPUT" | grep -E '^\s*edge\s+' || true)
               echo "[DEBUG] Edge line: '$EDGE_LINE'"
-              
+
               # Extract version from edge channel line
               CURRENT_VERSION=$(echo "$STATUS_OUTPUT" | grep -E '^\s*edge\s+' | awk '{print $2}' | cut -d' ' -f1 || true)
               echo "[DEBUG] Extracted version: '$CURRENT_VERSION'"
-              
+
               if [ -n "$CURRENT_VERSION" ]; then
                 echo "✓ Found version via status: $CURRENT_VERSION"
               else
@@ -596,17 +597,17 @@ jobs:
             echo "[DEBUG] Full output (first 1000 chars):"
             echo "$SNAP_INFO" | head -c 1000
             echo ""
-            
+
             if [ -n "$SNAP_INFO" ]; then
               echo "[DEBUG] Looking for edge channel info..."
               EDGE_SECTION=$(echo "$SNAP_INFO" | grep -A3 'edge:' || true)
               echo "[DEBUG] Edge section:"
               echo "$EDGE_SECTION"
-              
+
               # Look for edge channel version
               CURRENT_VERSION=$(echo "$SNAP_INFO" | grep -A1 'edge:' | tail -1 | awk '{print $1}' | grep -E '^[0-9]+\.[0-9]+' || true)
               echo "[DEBUG] Extracted version: '$CURRENT_VERSION'"
-              
+
               if [ -n "$CURRENT_VERSION" ]; then
                 echo "✓ Found version via snap info: $CURRENT_VERSION"
               else
@@ -640,7 +641,7 @@ jobs:
             echo "New version from pubspec.yaml: '$NEW_VERSION'"
             echo ""
             echo "Running semantic version comparison..."
-            
+
             # Use semantic version comparison
             if compare_versions "$NEW_VERSION" "$CURRENT_VERSION"; then
               echo ""
@@ -671,16 +672,16 @@ jobs:
             echo ""
             echo "==== STEP 7: Finding snap file ===="
             echo "Searching in: ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/"
-            
+
             # List all files in release directory for debugging
             echo "Contents of release directory:"
             ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" 2>/dev/null || echo "Directory doesn't exist"
-            
+
             # Find the snap file
             echo ""
             echo "Looking for *.snap files..."
             snap_file=$(find "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" -name "*.snap" -type f 2>/dev/null | head -1)
-            
+
             if [ -z "$snap_file" ] || [ ! -f "$snap_file" ]; then
               echo "ERROR: No snap file found!"
               echo "Search command: find ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/ -name '*.snap' -type f"
@@ -689,18 +690,18 @@ jobs:
               find "${{ env.BUILD_DIR }}/${{ matrix.client }}/" -type f -name "*.snap" 2>/dev/null || echo "No snap files found anywhere"
               exit 1
             fi
-            
+
             echo "✓ Found snap file: $snap_file"
             echo "File details:"
             ls -lh "$snap_file"
             echo "File size: $(du -h "$snap_file" | cut -f1)"
             echo "File type: $(file "$snap_file")"
-            
+
             # Upload with error handling
             echo ""
             echo "==== STEP 8: Uploading to snap store ===="
             echo "Executing: snapcraft upload \"$snap_file\" --release edge"
-            
+
             if snapcraft upload "$snap_file" --release edge; then
               echo ""
               echo "=========================================="
@@ -745,9 +746,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: |
-      always() && 
-      github.event_name == 'push' && 
-      github.ref == 'refs/heads/master' && 
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
       github.repository_owner == 'LayerTwo-Labs'
     steps:
       - name: Download artifacts
@@ -793,9 +794,9 @@ jobs:
             # Get highest version from new and existing
             new_ver=$(jq -r ".$client // {} | to_entries | map(.value.version) | max // \"0.0.0\"" new_versions.json)
             existing_ver=$(jq -r ".$client // {} | to_entries | map(.value.version) | max // \"0.0.0\"" existing_versions.json)
-            
+
             echo "$client: new=$new_ver, existing=$existing_ver"
-            
+
             if [ "$(printf '%s\n' "$new_ver" "$existing_ver" | sort -V | tail -1)" = "$new_ver" ] && [ "$new_ver" != "$existing_ver" ]; then
               echo "UPLOAD_${client^^}=true" >> $GITHUB_ENV
               echo "$client version increased, will upload"
@@ -889,14 +890,14 @@ jobs:
           else
             echo "Found version files:"
             echo "$version_files"
-            
+
             # Only merge version files for clients that have version updates
             echo "$version_files" | while read version_file; do
               if [ -n "$version_file" ]; then
-                # Extract client name from version file (e.g., thunder-windows-latest-version.json -> thunder)
+                # Extract client name from version file (e.g., thunder-windows-2022-version.json -> thunder)
                 client_name=$(basename "$version_file" | sed 's/-[^-]*-latest-version\.json$//')
                 upload_var="UPLOAD_${client_name^^}"
-                
+
                 if [ "${!upload_var}" = "true" ]; then
                   echo "Merging $version_file for $client_name (version increased)..."
                   # Use jq to merge the individual version file into the main versions.json
@@ -923,17 +924,17 @@ jobs:
               echo "Skipping $client appcast generation (version not increased)"
               continue
             fi
-            
+
             echo "Looking for $client appcast fragments in artifact directories..."
-            
+
             macos_fragment=$(find . -name "*${client}*macos*fragment*.xml" -type f 2>/dev/null | head -1 || true)
             windows_fragment=$(find . -name "*${client}*windows*fragment*.xml" -type f 2>/dev/null | head -1 || true)
-            
+
             if [ -n "$macos_fragment" ] || [ -n "$windows_fragment" ]; then
               echo "Found appcast fragments for $client:"
               [ -n "$macos_fragment" ] && echo "  macOS: $macos_fragment"
               [ -n "$windows_fragment" ] && echo "  Windows: $windows_fragment"
-              
+
               # Start building the appcast XML
               echo '<?xml version="1.0" encoding="UTF-8"?>' > "$client-appcast.xml"
               echo '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">' >> "$client-appcast.xml"
@@ -942,22 +943,22 @@ jobs:
               echo '    <link>https://releases.drivechain.info/</link>' >> "$client-appcast.xml"
               echo "    <description>$client - Drivechain Application</description>" >> "$client-appcast.xml"
               echo '    <language>en</language>' >> "$client-appcast.xml"
-              
+
               # Add Windows fragment if it exists
               if [ -n "$windows_fragment" ] && [ -f "$windows_fragment" ]; then
                 echo "    <!-- Windows fragment -->" >> "$client-appcast.xml"
                 cat "$windows_fragment" >> "$client-appcast.xml"
               fi
-              
+
               # Add macOS fragment if it exists
               if [ -n "$macos_fragment" ] && [ -f "$macos_fragment" ]; then
                 cat "$macos_fragment" >> "$client-appcast.xml"
               fi
-              
+
               # Close the XML
               echo '  </channel>' >> "$client-appcast.xml"
               echo '</rss>' >> "$client-appcast.xml"
-              
+
               echo "Generated $client-appcast.xml"
               cat "$client-appcast.xml"
             else
