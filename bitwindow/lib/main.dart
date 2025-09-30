@@ -112,7 +112,6 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
-  // (need correct net)
   final bitcoinConfProvider = await BitcoinConfProvider.create();
   GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
 

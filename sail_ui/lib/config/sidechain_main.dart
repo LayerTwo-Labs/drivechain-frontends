@@ -32,6 +32,10 @@ Future<void> initSidechainDependencies({
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
 
+  // Initialize BitcoinConfProvider eagerly to load config before UI renders
+  final bitcoinConfProvider = await BitcoinConfProvider.create();
+  GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
+
   // first of all, write all binaries to the assets/bin directory
   await copyBinariesFromAssets(log, applicationDir);
 

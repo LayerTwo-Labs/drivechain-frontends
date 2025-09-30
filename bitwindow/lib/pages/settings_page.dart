@@ -180,9 +180,6 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
       }
     }
 
-    // Update network in config (saves automatically)
-    await _confProvider.updateNetwork(network);
-
     // Show progress dialog and perform restart
     if (mounted) {
       await showDialog(
@@ -192,7 +189,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           fromNetwork: fromNetwork,
           toNetwork: network,
           swapFunction: (updateStatus) async {
-            await _confProvider.restartServicesWithProgress(updateStatus);
+            await _confProvider.restartServicesWithProgress(network, updateStatus);
           },
         ),
       );
@@ -1265,9 +1262,7 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
       'Updating bitcoin.conf',
       'Cleaning enforcer data',
       'Cleaning bitwindow data',
-      'Starting Bitcoin Core',
-      'Starting Enforcer',
-      'Starting BitWindow',
+      'Starting Core, Enforcer and BitWindow',
       'Network swap complete',
     ];
 
