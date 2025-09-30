@@ -88,7 +88,11 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     StaticField(label: 'Binary Arguments', value: args.join(' \\\n'), copyable: true),
                   StaticField(
                     label: 'Chain Layer',
-                    value: viewModel.binary.chainLayer == 1 ? 'Layer 1' : 'Layer 2',
+                    value: viewModel.binary.chainLayer == 0
+                        ? 'Utility'
+                        : viewModel.binary.chainLayer == 1
+                        ? 'Layer 1'
+                        : 'Layer 2',
                     copyable: true,
                   ),
                   if (baseDir != null) StaticField(label: 'Installation Directory', value: baseDir, copyable: true),

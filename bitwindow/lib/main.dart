@@ -625,6 +625,18 @@ Future<void> bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
   final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
 
+  // Download grpcurl in background (needed for enforcer-cli in console)
+  final grpcurl = binaryProvider.binaries.firstWhere((b) => b is GRPCurl);
+  unawaited(() async {
+    try {
+      log.i('Downloading grpcurl in background');
+      await binaryProvider.download(grpcurl, shouldUpdate: true);
+      log.i('grpcurl download complete');
+    } catch (e) {
+      log.w('Failed to download grpcurl: $e');
+    }
+  }());
+
   final mainchainRPC = GetIt.I.get<MainchainRPC>();
   final enforcerRPC = GetIt.I.get<EnforcerRPC>();
 
@@ -759,6 +771,7 @@ List<Binary> initalBinaries() {
     BitNames(),
     Thunder(),
     ZSide(),
+    GRPCurl(),
   ];
 }
 

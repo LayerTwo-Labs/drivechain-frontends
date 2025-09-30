@@ -19,6 +19,7 @@ enum BinaryType {
   thunder,
   bitnames,
   bitassets,
+  grpcurl,
 }
 
 extension BinaryTypeExtension on BinaryType {
@@ -31,6 +32,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.thunder => Thunder(),
     BinaryType.bitnames => BitNames(),
     BinaryType.bitassets => BitAssets(),
+    BinaryType.grpcurl => GRPCurl(),
   };
 }
 
@@ -162,6 +164,7 @@ abstract class Binary {
 
       case BinaryType.testSidechain:
       case BinaryType.zSide:
+      case BinaryType.grpcurl:
         // No specific cleanup for these types yet
         break;
     }
@@ -191,6 +194,7 @@ abstract class Binary {
       case BinaryType.bitcoinCore:
       case BinaryType.bitWindow:
       case BinaryType.testSidechain:
+      case BinaryType.grpcurl:
         // No wallet for these types
         break;
     }
@@ -281,6 +285,7 @@ abstract class Binary {
 
       case BinaryType.testSidechain:
       case BinaryType.zSide:
+      case BinaryType.grpcurl:
         // No extra files for these types
         break;
     }
@@ -695,6 +700,85 @@ class Enforcer extends Binary {
   }
 }
 
+class GRPCurl extends Binary {
+  GRPCurl({
+    super.name = 'grpcurl',
+    super.version = 'latest',
+    super.description = 'Command-line tool for interacting with gRPC servers',
+    super.repoUrl = 'https://github.com/fullstorydev/grpcurl',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    int? port,
+    super.chainLayer = 0, // Layer 0 = utility, not a blockchain
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs,
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: {
+                 OS.linux: 'grpcurl',
+                 OS.macos: 'grpcurl',
+                 OS.windows: 'grpcurl',
+               },
+               flutterFrontend: {
+                 OS.linux: 'grpcurl', // filled in so it just follows same code-path
+                 OS.macos: 'grpcurl', // filled in so it just follows same code-path
+                 OS.windows: 'grpcurl', // filled in so it just follows same code-path
+               },
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://api.github.com/repos/fullstorydev/grpcurl/releases/latest',
+                 binary: 'grpcurl',
+                 files: {
+                   OS.linux: r'grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz',
+                   OS.macos: r'grpcurl_\d+\.\d+\.\d+_osx_x86_64\.tar\.gz',
+                   OS.windows: r'grpcurl_\d+\.\d+\.\d+_windows_x86_64\.zip',
+                 },
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+         port: port ?? 0, // No port needed for utility binary
+       );
+
+  @override
+  BinaryType get type => BinaryType.grpcurl;
+
+  @override
+  Color get color => SailColorScheme.green;
+
+  @override
+  GRPCurl copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+  }) {
+    return GRPCurl(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+    );
+  }
+}
+
 extension BinaryPaths on Binary {
   String confFile() {
     return switch (type) {
@@ -726,6 +810,7 @@ extension BinaryPaths on Binary {
       BinaryType.bitWindow => filePath([datadir(), 'server.log']),
       BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
+      BinaryType.grpcurl => '', // No log file for grpcurl
     };
   }
 

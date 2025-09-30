@@ -115,7 +115,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     final paths = <String>[];
     final Map<String, bool> availableCLIs = {};
 
-    final allBinaries = [BitWindow(), Thunder(), BitNames(), BitAssets(), ZSide()];
+    final allBinaries = [BitWindow(), Thunder(), BitNames(), BitAssets(), ZSide(), GRPCurl()];
     final binaryToCLI = {
       'BitcoinCore': 'bitcoin-cli',
       'BitWindow': 'bitwindow-cli',
@@ -123,6 +123,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       'BitNames': 'bitnames-cli',
       'BitAssets': 'bitassets-cli',
       'ZSide': 'zside-cli',
+      'GRPCurl': 'grpcurl',
     };
 
     for (final binary in allBinaries) {
@@ -179,8 +180,8 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
 
     final binaryPaths = paths.where((p) => Directory(p).existsSync()).toList();
 
-    // enforcer-cli is just a grpcurl-wrapper, so they always have it
-    availableCLIs['enforcer-cli'] = true;
+    // enforcer-cli is just a grpcurl-wrapper, so it's available if grpcurl is available
+    availableCLIs['enforcer-cli'] = availableCLIs['grpcurl'] ?? false;
     _sendWelcomeMessage(availableCLIs);
 
     return binaryPaths;
