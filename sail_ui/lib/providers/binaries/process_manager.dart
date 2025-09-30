@@ -199,40 +199,80 @@ class ProcessManager extends ChangeNotifier {
     log.i('attempting nice shutdown for pid=${process.pid}');
 
     try {
-      // Try nice shutdown with timeout
-      await Future.any([
-        process.cleanup(),
-        Future.delayed(const Duration(seconds: 2)).then((_) => throw TimeoutException('Nice shutdown timed out')),
-      ]);
+      // first try being nice
+      await process.cleanup();
       log.d('nice shutdown successful for pid=${process.pid} binary=${process.binary.name}');
     } catch (error) {
-      // If nice shutdown fails or times out, force kill
+      // if being nice didnt work, be mean
+      await killPid(process.pid);
       log.e('nice shutdown failed, force killing pid=${process.pid}: $error');
-
-      // Cross-platform process killing
-      if (Platform.isWindows) {
-        // On Windows, use taskkill or just kill without signal
-        try {
-          await Process.run('taskkill', ['/F', '/PID', '${process.pid}']);
-        } catch (e) {
-          // Fallback to Process.killPid without signal on Windows
-          Process.killPid(process.pid);
-        }
-      } else {
-        // On Unix-like systems, use SIGTERM first, then SIGKILL if needed
-        try {
-          Process.killPid(process.pid, ProcessSignal.sigterm);
-          // Wait a bit for graceful shutdown
-          await Future.delayed(const Duration(milliseconds: 500));
-          // If still running, use SIGKILL
-          Process.killPid(process.pid, ProcessSignal.sigkill);
-        } catch (e) {
-          log.e('Failed to kill process ${process.pid}: $e');
-        }
-      }
     } finally {
       runningProcesses.remove(process.binary.name);
       notifyListeners();
+    }
+  }
+
+  /// Check if a PID is still alive
+  Future<bool> isPidAlive(int pid) async {
+    try {
+      if (Platform.isWindows) {
+        // On Windows, use tasklist to check if process exists
+        final result = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/NH']);
+        return result.stdout.toString().contains('$pid');
+      }
+
+      // On Unix-like systems, use ps to check if process exists
+      final result = await Process.run('ps', ['-p', '$pid']);
+      return result.exitCode == 0;
+    } catch (e) {
+      log.e('Could not check if PID $pid is alive: $e');
+      return false;
+    }
+  }
+
+  /// Wait for a PID to die, with timeout
+  /// Returns true if PID died within timeout, false if still alive after timeout
+  Future<bool> waitForPidDeath(int pid, Duration timeout) async {
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < timeout) {
+      final alive = await isPidAlive(pid);
+      if (!alive) {
+        log.d('PID $pid died after ${DateTime.now().difference(startTime).inMilliseconds}ms');
+        return true;
+      }
+
+      // Poll every 100ms
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    log.w('PID $pid still alive after ${timeout.inSeconds}s timeout');
+    return false;
+  }
+
+  /// Kill a process by PID (cross-platform force kill)
+  Future<void> killPid(int pid) async {
+    log.i('Force killing PID $pid');
+    // Cross-platform process killing
+    if (Platform.isWindows) {
+      // On Windows, use taskkill or just kill without signal
+      try {
+        await Process.run('taskkill', ['/F', '/PID', '$pid']);
+      } catch (e) {
+        // Fallback to Process.killPid without signal on Windows
+        Process.killPid(pid);
+      }
+    } else {
+      // On Unix-like systems, use SIGTERM first, then SIGKILL after a slight delay
+      try {
+        Process.killPid(pid, ProcessSignal.sigterm);
+        // Wait a bit for graceful shutdown
+        await Future.delayed(const Duration(milliseconds: 500));
+        // If still running, use SIGKILL
+        Process.killPid(pid, ProcessSignal.sigkill);
+      } catch (e) {
+        log.e('Failed to kill process $pid: $e');
+      }
     }
   }
 }

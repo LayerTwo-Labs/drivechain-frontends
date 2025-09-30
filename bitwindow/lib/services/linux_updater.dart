@@ -154,7 +154,7 @@ class LinuxUpdater {
     try {
       // Start a new instance of the application
       // The executable should be in PATH after installation via the script
-      Process.start('bitwindow', [], mode: ProcessStartMode.detached);
+      await Process.start('bitwindow', [], mode: ProcessStartMode.detached);
 
       // Exit current instance
       exit(0);
