@@ -210,7 +210,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Restart services with detailed progress updates for UI
-  Future<void> restartServicesWithProgress(void Function(String) updateStatus) async {
+  Future<void> restartServicesWithProgress(Network newNetwork, void Function(String) updateStatus) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
 
     final binaries = [
@@ -234,6 +234,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     updateStatus('Updating bitcoin.conf');
     // Config already updated by updateNetwork() before this is called
+    await updateNetwork(newNetwork);
 
     // Delete enforcer and bitwindow data
     updateStatus('Cleaning enforcer data');
@@ -249,13 +250,8 @@ class BitcoinConfProvider extends ChangeNotifier {
     _updateMainchainRPCConfig(newConf);
 
     // Restart all services
-    updateStatus('Starting Bitcoin Core');
+    updateStatus('Starting Core, Enforcer and BitWindow');
     final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
-
-    updateStatus('Starting Enforcer');
-    // startWithEnforcer handles both enforcer and bitwindow
-
-    updateStatus('Starting BitWindow');
     await binaryProvider.startWithEnforcer(
       bitwindowBinary,
       bootExtraBinaryImmediately: true,
