@@ -9,6 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.gr.dart';
+import 'package:sail_ui/providers/binaries/bitcoin_core_pid_tracker.dart';
 import 'package:sail_ui/providers/binaries/download_manager.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:synchronized/synchronized.dart';
@@ -93,6 +94,9 @@ class BinaryProvider extends ChangeNotifier {
 
   // Per-binary locks to ensure sequential processing
   final Map<BinaryType, Lock> _updateLocks = {};
+
+  // BitcoinCore has it's very own bitcoin.pid we can track to check aliveness!
+  final BitcoinCorePidTracker _bitcoinCorePidTracker = BitcoinCorePidTracker();
 
   // Connection status getters
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
@@ -216,6 +220,8 @@ class BinaryProvider extends ChangeNotifier {
 
     // Set up periodic release date checks
     _releaseCheckTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkReleaseDates());
+
+    _bitcoinCorePidTracker.startWatching();
 
     try {
       _setupDirectoryWatcher();
@@ -347,6 +353,7 @@ class BinaryProvider extends ChangeNotifier {
   // Stops the binary you pass. First gracefully,
   // then forcefully.
   Future<void> stop(Binary binary) async {
+    // Step 1: Call RPC stop()
     try {
       switch (binary) {
         case BitcoinCore():
@@ -368,12 +375,50 @@ class BinaryProvider extends ChangeNotifier {
       log.e('could not stop ${binary.name}: $e');
     }
 
-    // If the process exited, don't bother killing it
-    if (exited(binary) != null) {
+    // Step 2: Determine the PID to wait for and timeout duration
+    int? pidToWaitFor;
+    Duration timeout;
+
+    if (binary.type == BinaryType.bitcoinCore) {
+      // For Bitcoin Core, use the PID from our very special tracker
+      // and use a 30s timeout because there can be a lot to clean up
+      // on mainnet
+      pidToWaitFor = _bitcoinCorePidTracker.currentPid;
+      timeout = const Duration(seconds: 30);
+      log.i('Waiting for Bitcoin Core PID ${pidToWaitFor ?? "unknown"} to exit (30s timeout)');
+    } else {
+      // For other binaries, use the PID from process manager with 10s timeout
+      // If the binary wasnt booted by sailui, there will be no PID, and we
+      // wont wait
+      final process = _processManager.runningProcesses[binary.name];
+      pidToWaitFor = process?.pid;
+      timeout = const Duration(seconds: 10);
+      log.i('Waiting for ${binary.name} PID ${pidToWaitFor ?? "unknown"} to exit (10s timeout)');
+    }
+
+    // Step 3: If we have a PID, wait for it to die
+    if (pidToWaitFor != null) {
+      final died = await _processManager.waitForPidDeath(pidToWaitFor, timeout);
+
+      if (died) {
+        log.i('${binary.name} shut down gracefully');
+        return;
+      }
+
+      // Still alive after timeout, force kill it
+      log.w('${binary.name} PID $pidToWaitFor still alive after ${timeout.inSeconds}s, force killing');
+      await _processManager.killPid(pidToWaitFor);
       return;
     }
 
-    log.w('Killing process, graceful shutdown failed');
+    // Step 4: No PID available, check if process already exited
+    if (exited(binary) != null) {
+      log.i('${binary.name} already exited');
+      return;
+    }
+
+    // Final Step: Use process manager's kill method
+    log.w('No PID found for ${binary.name}, killing with process manager');
     await _processManager.kill(binary);
   }
 
@@ -628,6 +673,7 @@ class BinaryProvider extends ChangeNotifier {
   @override
   void dispose() {
     _releaseCheckTimer?.cancel();
+    _bitcoinCorePidTracker.dispose();
     _dirWatcher?.cancel();
     _downloadManager.removeListener(notifyListeners);
     mainchainRPC?.removeListener(notifyListeners);
