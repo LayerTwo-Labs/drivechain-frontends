@@ -83,12 +83,24 @@ Future<File> getLogFile(Directory appDir) async {
 void bootBinaries(Logger log, Binary sidechain) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
 
+  // Download grpcurl in background (needed for enforcer-cli in console)
+  final grpcurl = binaryProvider.binaries.firstWhere((b) => b is GRPCurl);
+  unawaited(() async {
+    try {
+      log.i('Downloading grpcurl in background');
+      await binaryProvider.download(grpcurl, shouldUpdate: true);
+      log.i('grpcurl download complete');
+    } catch (e) {
+      log.w('Failed to download grpcurl: $e');
+    }
+  }());
+
   await binaryProvider.startWithEnforcer(sidechain);
 }
 
 List<Binary> _initialBinaries(Binary sidechain) {
   // Register all binaries
-  var binaries = [BitcoinCore(), Enforcer(), sidechain];
+  var binaries = [BitcoinCore(), Enforcer(), GRPCurl(), sidechain];
 
   // make sidechain boot in headless-mode
   binaries[2].addBootArg('--headless');
