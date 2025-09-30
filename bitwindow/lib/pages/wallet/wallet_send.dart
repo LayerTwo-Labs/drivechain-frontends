@@ -250,8 +250,27 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
       title: 'Fee',
       child: SailTextField(
         controller: viewModel.feeController,
-        hintText: 'Hard-coded fee (in sats)',
-        suffixWidget: SailText.primary13('sats'),
+        hintText: 'Fee (in sats)',
+        suffixWidget: SailRow(
+          spacing: 0,
+          children: [
+            SailText.primary13('sats'),
+            SailDropdownButton<int>(
+              value: null,
+              hint: 'Estimate',
+              items: [
+                SailDropdownItem(value: 1, label: 'Low (1 block)'),
+                SailDropdownItem(value: 3, label: 'Medium (3 blocks)'),
+                SailDropdownItem(value: 6, label: 'High (6 blocks)'),
+              ],
+              onChanged: (value) async {
+                if (value != null) {
+                  await viewModel.estimateFee(value);
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -516,6 +535,28 @@ class SendPageViewModel extends BaseViewModel {
       selectedRecipientIndex = index - 1;
     }
     notifyListeners();
+  }
+
+  Future<void> estimateFee(int confTarget) async {
+    try {
+      final response = await bitwindowd.bitcoind.estimateSmartFee(confTarget);
+      if (response.hasFeeRate()) {
+        // Convert BTC/kvB to sats/byte, then estimate for a typical transaction
+        final btcPerKvb = response.feeRate;
+        final satsPerByte = (btcPerKvb * 100000000) / 1000;
+
+        // Estimate transaction size: base (10) + inputs (~148 each) + outputs (~34 each)
+        final numInputs = selectedUtxos.isEmpty ? 2 : selectedUtxos.length;
+        final numOutputs = recipients.length + 1; // recipients + change
+        final estimatedSize = 10 + (numInputs * 148) + (numOutputs * 34);
+
+        final estimatedFee = (satsPerByte * estimatedSize).ceil();
+        feeController.text = estimatedFee.toString();
+        notifyListeners();
+      }
+    } catch (error) {
+      log.e('Error estimating fee: $error');
+    }
   }
 }
 
