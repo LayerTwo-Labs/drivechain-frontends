@@ -185,10 +185,6 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
     await Future.wait(stopFutures);
 
-    // Wait for processes to fully stop
-    log.i('Waiting for processes to stop...');
-    await Future.delayed(const Duration(seconds: 10));
-
     // Delete enforcer and bitwindow data
     log.i('Deleting enforcer and bitwindow data...');
     final enforcer = Enforcer();
@@ -210,6 +206,62 @@ class BitcoinConfProvider extends ChangeNotifier {
       bootExtraBinaryImmediately: true,
     );
 
+    log.i('Service restart completed');
+  }
+
+  /// Restart services with detailed progress updates for UI
+  Future<void> restartServicesWithProgress(void Function(String) updateStatus) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+
+    final binaries = [
+      BitcoinCore(),
+      Enforcer(),
+      BitWindow(),
+    ];
+
+    // Stop all services
+    updateStatus('Stopping Bitcoin Core');
+    await binaryProvider.stop(binaries[0]);
+
+    updateStatus('Stopping Enforcer');
+    await binaryProvider.stop(binaries[1]);
+
+    updateStatus('Stopping BitWindow');
+    await binaryProvider.stop(binaries[2]);
+
+    updateStatus('Waiting for processes to exit');
+    // The binary provider's stop() already waits for PIDs to die, so this is informational
+
+    updateStatus('Updating bitcoin.conf');
+    // Config already updated by updateNetwork() before this is called
+
+    // Delete enforcer and bitwindow data
+    updateStatus('Cleaning enforcer data');
+    final enforcer = Enforcer();
+    await enforcer.wipeAppDir();
+
+    updateStatus('Cleaning bitwindow data');
+    final bitwindow = BitWindow();
+    await bitwindow.wipeAppDir();
+
+    // Update MainchainRPC configuration with new network settings
+    final newConf = readMainchainConf();
+    _updateMainchainRPCConfig(newConf);
+
+    // Restart all services
+    updateStatus('Starting Bitcoin Core');
+    final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
+
+    updateStatus('Starting Enforcer');
+    // startWithEnforcer handles both enforcer and bitwindow
+
+    updateStatus('Starting BitWindow');
+    await binaryProvider.startWithEnforcer(
+      bitwindowBinary,
+      bootExtraBinaryImmediately: true,
+    );
+
+    updateStatus('Network swap complete');
     log.i('Service restart completed');
   }
 

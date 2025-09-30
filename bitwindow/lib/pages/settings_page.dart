@@ -138,6 +138,9 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   Future<void> _handleNetworkChange(Network? network) async {
     if (network == null) return;
 
+    // Save the current network before switching
+    final fromNetwork = _confProvider.network;
+
     // Check if user config controls network
     if (_confProvider.hasPrivateBitcoinConf) {
       // Show info that network is controlled by bitcoin.conf
@@ -179,7 +182,21 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
 
     // Update network in config (saves automatically)
     await _confProvider.updateNetwork(network);
-    await _confProvider.restartServicesForMainnet();
+
+    // Show progress dialog and perform restart
+    if (mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => NetworkSwapProgressDialog(
+          fromNetwork: fromNetwork,
+          toNetwork: network,
+          swapFunction: (updateStatus) async {
+            await _confProvider.restartServicesWithProgress(updateStatus);
+          },
+        ),
+      );
+    }
   }
 
   Future<void> _selectDataDirectory() async {
@@ -1193,6 +1210,223 @@ class _ResetProgressDialogState extends State<ResetProgressDialog> {
           ),
       ],
     );
+  }
+}
+
+class NetworkSwapStep {
+  String name;
+  DateTime startTime;
+  DateTime? endTime;
+
+  NetworkSwapStep({
+    required this.name,
+    required this.startTime,
+  });
+
+  bool get isCompleted => endTime != null;
+  Duration? get duration => endTime?.difference(startTime);
+}
+
+class NetworkSwapProgressDialog extends StatefulWidget {
+  final Network fromNetwork;
+  final Network toNetwork;
+  final Future<void> Function(void Function(String) updateStatus) swapFunction;
+
+  const NetworkSwapProgressDialog({
+    super.key,
+    required this.fromNetwork,
+    required this.toNetwork,
+    required this.swapFunction,
+  });
+
+  @override
+  State<NetworkSwapProgressDialog> createState() => _NetworkSwapProgressDialogState();
+}
+
+class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
+  final List<NetworkSwapStep> _steps = [];
+  bool get _isCompleted => _steps.isNotEmpty && _steps.every((step) => step.isCompleted);
+  String? _error;
+  int _currentStepIndex = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAllSteps();
+    _startSwap();
+  }
+
+  void _initializeAllSteps() {
+    final stepNames = [
+      'Stopping Bitcoin Core',
+      'Stopping Enforcer',
+      'Stopping BitWindow',
+      'Waiting for processes to exit',
+      'Updating bitcoin.conf',
+      'Cleaning enforcer data',
+      'Cleaning bitwindow data',
+      'Starting Bitcoin Core',
+      'Starting Enforcer',
+      'Starting BitWindow',
+      'Network swap complete',
+    ];
+
+    setState(() {
+      _steps.addAll(
+        stepNames.map(
+          (name) => NetworkSwapStep(
+            name: name,
+            startTime: DateTime.now(),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _startSwap() async {
+    try {
+      await widget.swapFunction((status) {
+        setState(() {
+          // Complete current step
+          if (_currentStepIndex >= 0 && _currentStepIndex < _steps.length) {
+            _steps[_currentStepIndex].endTime = DateTime.now();
+          }
+
+          // Move to next step
+          _currentStepIndex++;
+
+          if (_currentStepIndex < _steps.length) {
+            _steps[_currentStepIndex].startTime = DateTime.now();
+          }
+        });
+      });
+
+      // Complete the FINAL step (the one that's currently active)
+      setState(() {
+        if (_currentStepIndex >= 0 && _currentStepIndex < _steps.length) {
+          _steps[_currentStepIndex].endTime = DateTime.now();
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final fromNetworkName = _networkDisplayName(widget.fromNetwork);
+    final toNetworkName = _networkDisplayName(widget.toNetwork);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 550, maxHeight: 650),
+        child: SailCard(
+          title: 'Switching Network',
+          subtitle: _isCompleted
+              ? 'Successfully switched from $fromNetworkName to $toNetworkName!'
+              : _error != null
+              ? 'Network swap failed: $_error'
+              : 'Switching from $fromNetworkName to $toNetworkName...',
+          withCloseButton: true,
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ..._steps.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final step = entry.value;
+                  final isActive = index == _currentStepIndex && !step.isCompleted;
+                  return _buildStepTile(step, theme, index, isActive);
+                }),
+                if (_isCompleted) const SailSpacing(SailStyleValues.padding08),
+                if (_isCompleted)
+                  SailButton(
+                    label: 'Close',
+                    variant: ButtonVariant.primary,
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                if (_error != null) const SailSpacing(SailStyleValues.padding08),
+                if (_error != null)
+                  SailButton(
+                    label: 'Close',
+                    variant: ButtonVariant.secondary,
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepTile(NetworkSwapStep step, SailThemeData theme, int index, bool isActive) {
+    Widget iconWidget;
+    String timeText = '';
+
+    if (step.isCompleted) {
+      iconWidget = SailSVG.fromAsset(SailSVGAsset.circleCheck, color: SailColorScheme.green, width: 16, height: 16);
+      if (step.duration != null) {
+        final duration = step.duration!;
+        if (duration.inSeconds > 0) {
+          timeText = '${duration.inSeconds}.${(duration.inMilliseconds % 1000).toString().padLeft(3, '0')}s';
+        } else {
+          timeText = '${duration.inMilliseconds}ms';
+        }
+      }
+    } else if (isActive) {
+      iconWidget = SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          strokeWidth: 1,
+          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
+        ),
+      );
+    } else {
+      iconWidget = SailSVG.fromAsset(SailSVGAsset.circle, color: theme.colors.textSecondary, width: 16, height: 16);
+    }
+
+    return SailRow(
+      spacing: SailStyleValues.padding04,
+      children: [
+        SizedBox(width: 16, child: iconWidget),
+        Expanded(
+          child: SailText.primary13(
+            step.name,
+            color: isActive
+                ? theme.colors.primary
+                : step.isCompleted
+                ? SailColorScheme.green
+                : theme.colors.textSecondary,
+          ),
+        ),
+        if (timeText.isNotEmpty)
+          SailText.secondary12(
+            timeText,
+            color: SailColorScheme.green,
+          ),
+      ],
+    );
+  }
+
+  String _networkDisplayName(Network network) {
+    return switch (network) {
+      Network.NETWORK_MAINNET => 'Mainnet',
+      Network.NETWORK_TESTNET => 'Testnet',
+      Network.NETWORK_SIGNET => 'Signet',
+      Network.NETWORK_REGTEST => 'Regtest',
+      _ => 'Unknown',
+    };
   }
 }
 
