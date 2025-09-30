@@ -178,7 +178,8 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       }
     }
 
-    final binaryPaths = paths.where((p) => Directory(p).existsSync()).toList();
+    // toSet removes duplicates
+    final binaryPaths = paths.where((p) => Directory(p).existsSync()).toSet().toList();
 
     // enforcer-cli is just a grpcurl-wrapper, so it's available if grpcurl is available
     availableCLIs['enforcer-cli'] = availableCLIs['grpcurl'] ?? false;
