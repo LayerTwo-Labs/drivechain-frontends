@@ -18,7 +18,7 @@ notarization_issuer_id="$7"
 
 # Convert github actions os names names to a format we expect
 case "$os" in
-    windows-latest) os="windows" ;;
+    windows-2022) os="windows" ;;
     linux-latest)   os="linux" ;;
     macos-latest)   os="macos" ;;
 esac
