@@ -227,6 +227,15 @@ class _CopyButtonState extends State<CopyButton> {
   Timer? _resetTimer;
 
   @override
+  void didUpdateWidget(CopyButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text && _copied) {
+      setState(() => _copied = false);
+      _resetTimer?.cancel();
+    }
+  }
+
+  @override
   void dispose() {
     _resetTimer?.cancel();
     super.dispose();
