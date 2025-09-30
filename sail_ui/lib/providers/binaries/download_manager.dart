@@ -388,6 +388,9 @@ class DownloadManager extends ChangeNotifier {
     if (fileName.endsWith('.zip')) {
       // extract the zip file
       await _extractZipFile(extractDir, filePath, downloadsDir, binary);
+    } else if (fileName.endsWith('.tar.gz') || fileName.endsWith('.tgz')) {
+      // extract the tar.gz file
+      await _extractTarGzFile(extractDir, filePath, downloadsDir, binary);
     } else {
       // move the raw binary
       await _processRawBinary(extractDir, filePath, binary);
@@ -443,6 +446,90 @@ class DownloadManager extends ChangeNotifier {
         for (final entity in innerDir.listSync()) {
           final newPath = path.join(extractDir.path, path.basename(entity.path));
           await safeMove(entity, newPath);
+        }
+        await innerDir.delete(recursive: true);
+      }
+    } catch (e) {
+      log.e('Extraction error: $e\nStack trace: ${StackTrace.current}');
+      rethrow;
+    }
+  }
+
+  /// Extract tar.gz file
+  Future<void> _extractTarGzFile(Directory extractDir, String tarGzPath, Directory downloadsDir, Binary binary) async {
+    // Create a temporary directory for extraction
+    final tempDir = Directory(path.join(extractDir.path, 'temp', path.basenameWithoutExtension(binary.binary)));
+    try {
+      await tempDir.delete(recursive: true);
+    } catch (e) {
+      // directory probably doesn't exist, swallow!
+    }
+    await tempDir.create(recursive: true);
+
+    // Read the file bytes, decode gzip, then decode tar
+    final bytes = await File(tarGzPath).readAsBytes();
+    final gzipBytes = GZipDecoder().decodeBytes(bytes);
+    final archive = TarDecoder().decodeBytes(gzipBytes);
+
+    try {
+      await extractArchiveToDisk(archive, tempDir.path);
+
+      log.d('Moving files from temp directory to final location');
+      await for (final entity in tempDir.list()) {
+        final baseName = path.basename(entity.path);
+        final targetPath = path.join(extractDir.path, baseName);
+
+        // Handle nested directory structure
+        if (entity is Directory &&
+            baseName == path.basenameWithoutExtension(path.basenameWithoutExtension(tarGzPath))) {
+          await for (final innerEntity in entity.list()) {
+            final innerBaseName = path.basename(innerEntity.path);
+
+            // Only extract the binary itself, skip LICENSE and other files
+            if (innerBaseName == binary.binary ||
+                innerBaseName == '${binary.binary}.exe' ||
+                innerBaseName == path.basenameWithoutExtension(binary.binary)) {
+              final targetFile = path.join(extractDir.path, innerBaseName);
+              await safeMove(innerEntity, targetFile);
+
+              // Make binary executable on Unix-like systems
+              if (!Platform.isWindows && innerEntity is File) {
+                await Process.run('chmod', ['+x', targetFile]);
+              }
+            }
+          }
+          await entity.delete(recursive: true);
+          continue;
+        }
+
+        await safeMove(entity, targetPath);
+      }
+
+      // Clean up temp directory
+      await tempDir.delete(recursive: true);
+
+      // Get the tar.gz name without extension
+      final tarGzBaseName = path.basenameWithoutExtension(path.basenameWithoutExtension(tarGzPath));
+      final expectedDirPath = path.join(extractDir.path, tarGzBaseName);
+
+      if (await Directory(expectedDirPath).exists()) {
+        final innerDir = Directory(expectedDirPath);
+
+        for (final entity in innerDir.listSync()) {
+          final entityBaseName = path.basename(entity.path);
+
+          // Only extract the binary itself, skip LICENSE and other files
+          if (entityBaseName == binary.binary ||
+              entityBaseName == '${binary.binary}.exe' ||
+              entityBaseName == path.basenameWithoutExtension(binary.binary)) {
+            final newPath = path.join(extractDir.path, entityBaseName);
+            await safeMove(entity, newPath);
+
+            // Make binary executable on Unix-like systems
+            if (!Platform.isWindows && entity is File) {
+              await Process.run('chmod', ['+x', newPath]);
+            }
+          }
         }
         await innerDir.delete(recursive: true);
       }
