@@ -100,9 +100,25 @@ class EnforcerLive extends EnforcerRPC {
       '--node-rpc-pass=${mainchainConf.password}',
       '--node-rpc-user=${mainchainConf.username}',
       '--node-rpc-addr=$host:${mainchainConf.port}',
+      '--node-blocks-dir=${coreBlocksDir(mainchainConf)}',
       '--enable-wallet',
       if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
     ];
+  }
+
+  String coreBlocksDir(CoreConnectionSettings mainchainConf) {
+    // Determine the blocks directory
+    if (mainchainConf.configValues.containsKey('blocksdir')) {
+      // If blocksdir is explicitly set, use it directly
+      return path.join(mainchainConf.configValues['blocksdir']!, 'blocks');
+    } else if (mainchainConf.configValues.containsKey('datadir')) {
+      // If datadir is set, use datadir/blocks
+      return path.join(mainchainConf.configValues['datadir']!, 'blocks');
+    } else {
+      // If neither is set, use default datadir/blocks
+      final defaultDatadir = BitcoinCore().datadir();
+      return path.join(defaultDatadir, 'blocks');
+    }
   }
 
   @override
