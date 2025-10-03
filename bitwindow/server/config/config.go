@@ -11,11 +11,21 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+type Network string
+
+const (
+	NetworkMainnet Network = "main"
+	NetworkRegtest Network = "regtest"
+	NetworkSignet  Network = "signet"
+	NetworkTestnet Network = "test"
+)
+
 type Config struct {
-	BitcoinCoreHost        string `long:"bitcoincore.host" description:"host:port for connecting to Bitcoin Core" default:"localhost:38332"`
-	BitcoinCoreCookie      string `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
-	BitcoinCoreRpcUser     string `long:"bitcoincore.rpcuser" default:"user"`
-	BitcoinCoreRpcPassword string `long:"bitcoincore.rpcpassword" default:"password"`
+	BitcoinCoreHost        string  `long:"bitcoincore.host" description:"host:port for connecting to Bitcoin Core" default:"localhost:38332"`
+	BitcoinCoreCookie      string  `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
+	BitcoinCoreRpcUser     string  `long:"bitcoincore.rpcuser" default:"user"`
+	BitcoinCoreRpcPassword string  `long:"bitcoincore.rpcpassword" default:"password"`
+	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" default:"main" choice:"main" choice:"regtest" choice:"signet" choice:"testnet"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
@@ -66,15 +76,57 @@ func Parse() (Config, error) {
 		conf.Datadir = datadir
 	}
 
-	if conf.LogPath == "" {
-		conf.LogPath = filepath.Join(conf.Datadir, "server.log")
+	// If network is not explicitly set, try to derive it from the bitcoincore.host port
+	if conf.BitcoinCoreNetwork == "" {
+		derivedNetwork, err := deriveNetworkFromHost(conf.BitcoinCoreHost)
+		if err != nil {
+			return Config{}, err
+		}
+		conf.BitcoinCoreNetwork = derivedNetwork
 	}
 
-	// Ensure the directory exists
-	err := os.MkdirAll(conf.Datadir, 0755)
+	if conf.LogPath == "" {
+		conf.LogPath = filepath.Join(conf.NetworkDatadir(), "server.log")
+	}
+
+	// Ensure the network-specific directory exists
+	err := os.MkdirAll(conf.NetworkDatadir(), 0755)
 	if err != nil && !os.IsExist(err) {
 		return Config{}, fmt.Errorf("create data directory: %w", err)
 	}
 
 	return conf, nil
+}
+
+// deriveNetworkFromHost attempts to derive the network from the Bitcoin Core host's port
+func deriveNetworkFromHost(host string) (Network, error) {
+	// Extract port from host:port string
+	parts := strings.Split(host, ":")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("could not derive network from bitcoincore.host %q: please specify --network flag", host)
+	}
+
+	port := parts[1]
+	switch port {
+	case "8332":
+		return NetworkMainnet, nil
+	case "18332":
+		return NetworkTestnet, nil
+	case "38332":
+		return NetworkSignet, nil
+	case "18443":
+		return NetworkRegtest, nil
+	default:
+		return "", fmt.Errorf("could not derive network from bitcoincore.host port %q: please specify --network flag", port)
+	}
+}
+
+// NetworkDatadir returns the network-specific data directory.
+// Mainnet uses the root datadir, while other networks (signet, regtest, testnet)
+// use a subdirectory matching the network name.
+func (c Config) NetworkDatadir() string {
+	if c.BitcoinCoreNetwork == "" || c.BitcoinCoreNetwork == NetworkMainnet {
+		return c.Datadir
+	}
+	return filepath.Join(c.Datadir, string(c.BitcoinCoreNetwork))
 }
