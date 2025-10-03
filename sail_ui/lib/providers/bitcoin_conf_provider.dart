@@ -540,7 +540,7 @@ acceptnonstdtxn=1
     final confInfo = _getConfigFileInfo();
 
     // Get connection settings from current config
-    String host = '127.0.0.1';
+    String host = 'localhost';
     String username = 'user';
     String password = 'password';
 

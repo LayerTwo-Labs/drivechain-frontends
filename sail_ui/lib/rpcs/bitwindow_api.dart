@@ -310,7 +310,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   void _recreateConnection() {
     log.w('Recreating HTTP/2 connection for bitwindowd');
-    _initializeConnection(host: '127.0.0.1', port: binary.port);
+    _initializeConnection(host: 'localhost', port: binary.port);
   }
 
   Future<T> _withRecreate<T>(Future<T> Function() operation) async {

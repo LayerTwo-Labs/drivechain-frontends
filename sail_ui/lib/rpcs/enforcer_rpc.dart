@@ -35,7 +35,7 @@ class EnforcerLive extends EnforcerRPC {
   void _initializeConnection() {
     // Create new HTTP/2 transport and client
     final httpClient = createHttpClient();
-    final baseUrl = 'http://127.0.0.1:${binary.port}';
+    final baseUrl = 'http://localhost:${binary.port}';
     _grpcTransport = grpc.Transport(
       baseUrl: baseUrl,
       codec: const ProtoCodec(),
@@ -48,7 +48,7 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<List<String>> binaryArgs() async {
-    var host = '127.0.0.1';
+    var host = 'localhost';
     if (host == 'localhost' && !Platform.isWindows) {
       host = '0.0.0.0';
     }

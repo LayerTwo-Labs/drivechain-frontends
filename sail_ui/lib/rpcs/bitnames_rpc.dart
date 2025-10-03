@@ -120,7 +120,7 @@ abstract class BitnamesRPC extends SidechainRPC {
 class BitnamesLive extends BitnamesRPC {
   RPCClient _client() {
     final client = RPCClient(
-      host: '127.0.0.1',
+      host: 'localhost',
       port: binary.port,
       username: 'N/A',
       password: 'N/A',
