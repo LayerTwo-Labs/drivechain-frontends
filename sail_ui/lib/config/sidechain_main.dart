@@ -102,8 +102,8 @@ List<Binary> _initialBinaries(Binary sidechain) {
   // Register all binaries
   var binaries = [BitcoinCore(), Enforcer(), GRPCurl(), sidechain];
 
-  // make sidechain boot in headless-mode
-  binaries[2].addBootArg('--headless');
+  // make sidechain boot in headlessmode
+  binaries[3].addBootArg('--headless');
 
   return binaries;
 }
