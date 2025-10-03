@@ -90,7 +90,7 @@ class ZSideLive extends ZSideRPC {
 
   RPCClient _client() {
     final client = RPCClient(
-      host: '127.0.0.1',
+      host: 'localhost',
       port: binary.port,
       username: 'N/A',
       password: 'N/A',

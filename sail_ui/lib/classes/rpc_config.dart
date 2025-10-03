@@ -52,7 +52,7 @@ CoreConnectionSettings readRPCConfig(
   };
 
   // Default values
-  String host = '127.0.0.1';
+  String host = 'localhost';
   int port = defaultPort;
   String username = 'user';
   String password = 'password';

@@ -46,7 +46,7 @@ class CoreConnectionSettings extends ChangeNotifier {
 
     return CoreConnectionSettings(
       '',
-      '127.0.0.1',
+      'localhost',
       defaultPort,
       'user',
       'password',
