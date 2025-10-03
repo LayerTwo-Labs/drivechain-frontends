@@ -236,15 +236,6 @@ class BitcoinConfProvider extends ChangeNotifier {
     // Config already updated by updateNetwork() before this is called
     await updateNetwork(newNetwork);
 
-    // Delete enforcer and bitwindow data
-    updateStatus('Cleaning enforcer data');
-    final enforcer = Enforcer();
-    await enforcer.wipeAppDir();
-
-    updateStatus('Cleaning bitwindow data');
-    final bitwindow = BitWindow();
-    await bitwindow.wipeAppDir();
-
     // Update MainchainRPC configuration with new network settings
     final newConf = readMainchainConf();
     _updateMainchainRPCConfig(newConf);
