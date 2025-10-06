@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -8,6 +9,7 @@ import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
+import 'package:bitwindow/widgets/cpu_mining_modal.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
@@ -498,6 +500,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Base58Check Decoder',
                       onSelected: null,
                     ),
+                    PlatformMenuItem(
+                      label: 'CPU Mining',
+                      onSelected: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (context) => const CpuMiningModal(),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -587,6 +598,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           ),
                           SailButton(
                             onPressed: () async {
+                              await _showBlockTemplateModal(context);
+                            },
+                            variant: ButtonVariant.ghost,
+                            label: 'Block Template',
+                            small: true,
+                          ),
+                          SailButton(
+                            onPressed: () async {
                               await launchUrl(Uri.parse('https://t.me/DcInsiders'));
                             },
                             variant: ButtonVariant.icon,
@@ -624,6 +643,164 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         ),
       ],
     );
+  }
+
+  Future<void> _showBlockTemplateModal(BuildContext context) async {
+    final enforcer = GetIt.I.get<EnforcerRPC>();
+    final theme = SailTheme.of(context);
+    final log = GetIt.I.get<Logger>();
+
+    // Show loading dialog
+    unawaited(
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          backgroundColor: theme.colors.backgroundSecondary,
+          shape: RoundedRectangleBorder(
+            borderRadius: SailStyleValues.borderRadiusSmall,
+            side: BorderSide(
+              color: theme.colors.border,
+              width: 1,
+            ),
+          ),
+          child: Container(
+            width: 300,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.primary20('Loading Block Template...'),
+                const SizedBox(height: 16),
+                CircularProgressIndicator(color: theme.colors.primary),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final blockTemplate = await enforcer.getBlockTemplate();
+
+      // Close loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+
+      // Show result dialog
+      if (context.mounted) {
+        unawaited(
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor: theme.colors.backgroundSecondary,
+              shape: RoundedRectangleBorder(
+                borderRadius: SailStyleValues.borderRadiusSmall,
+                side: BorderSide(
+                  color: theme.colors.border,
+                  width: 1,
+                ),
+              ),
+              child: Container(
+                width: 800,
+                height: 600,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SailText.primary20('Block Template'),
+                        IconButton(
+                          icon: Icon(Icons.close, color: theme.colors.text),
+                          onPressed: () async => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          JsonEncoder.withIndent('  ').convert(blockTemplate),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colors.text,
+                            fontFamily: 'IBMPlexMono',
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: SailButton(
+                        onPressed: () async => Navigator.of(context).pop(),
+                        label: 'Close',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      log.e('Failed to get block template: $e');
+
+      // Close loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+
+      // Show error dialog
+      if (context.mounted) {
+        unawaited(
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor: theme.colors.backgroundSecondary,
+              shape: RoundedRectangleBorder(
+                borderRadius: SailStyleValues.borderRadiusSmall,
+                side: BorderSide(
+                  color: theme.colors.border,
+                  width: 1,
+                ),
+              ),
+              child: Container(
+                width: 400,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.primary20('Error'),
+                    const SizedBox(height: 16),
+                    SelectableText(
+                      'Failed to get block template:\n$e',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colors.error,
+                        fontFamily: 'IBMPlexMono',
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: SailButton(
+                        onPressed: () async => Navigator.of(context).pop(),
+                        label: 'OK',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override

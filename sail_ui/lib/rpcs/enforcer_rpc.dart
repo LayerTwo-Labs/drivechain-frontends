@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:connectrpc/http2.dart';
@@ -19,6 +20,7 @@ abstract class EnforcerRPC extends RPCConnection {
   ValidatorServiceClient get validator;
 
   Future<dynamic> callRAW(String url, [String body = '{}']);
+  Future<Map<String, dynamic>> getBlockTemplate();
   List<String> getMethods();
 }
 
@@ -82,7 +84,7 @@ class EnforcerLive extends EnforcerRPC {
     // now set the esplora-url
     switch (GetIt.I.get<BitcoinConfProvider>().network) {
       case Network.NETWORK_REGTEST:
-        binary.addBootArg('--wallet-esplora-url=http://localhost:3003');
+        binary.addBootArg('--wallet-esplora-url=http://localhost:3002');
 
       case Network.NETWORK_TESTNET:
         throw Exception('testnet not supported for enforcer');
@@ -101,6 +103,7 @@ class EnforcerLive extends EnforcerRPC {
       '--node-rpc-user=${mainchainConf.username}',
       '--node-rpc-addr=$host:${mainchainConf.port}',
       '--enable-wallet',
+      '--enable-mempool', // Required for getblocktemplate support
       if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
     ];
   }
@@ -139,8 +142,9 @@ class EnforcerLive extends EnforcerRPC {
   Future<BlockchainInfo> getBlockchainInfo() async {
     return await _withRecreate(() async {
       final res = await validator.getChainTip(GetChainTipRequest());
+
       return BlockchainInfo(
-        chain: 'signet',
+        chain: GetIt.I.get<BitcoinConfProvider>().network.toReadableNet(),
         blocks: res.blockHeaderInfo.height,
         headers: res.blockHeaderInfo.height,
         bestBlockHash: res.blockHeaderInfo.blockHash.hex.toString(),
@@ -155,6 +159,47 @@ class EnforcerLive extends EnforcerRPC {
         warnings: [],
       );
     });
+  }
+
+  @override
+  Future<Map<String, dynamic>> getBlockTemplate() async {
+    // Call the enforcer's JSON-RPC server for getblocktemplate
+    // Port 8122 serves RPCs like getblocktemplate (not 8123 which serves other JSON-RPC methods)
+    final response = await http.post(
+      Uri.parse('http://127.0.0.1:8122/'),
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode({
+        'jsonrpc': '2.0',
+        'method': 'getblocktemplate',
+        'params': [
+          {
+            'rules': ['segwit'],
+          },
+        ],
+        'id': 1,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('getblocktemplate request failed: ${response.body}');
+    }
+
+    final jsonResponse = jsonDecode(response.body);
+    if (jsonResponse['error'] != null) {
+      throw Exception('getblocktemplate error: ${jsonResponse['error']}');
+    }
+
+    final blockTemplate = jsonResponse['result'] ?? {};
+
+    // Log the block template for debugging
+    log.i('Block template received from enforcer:');
+    log.i('Height: ${blockTemplate['height']}');
+    log.i('Previous block hash: ${blockTemplate['previousblockhash']}');
+    log.i('Transactions count: ${blockTemplate['transactions']?.length ?? 0}');
+    log.i('Coinbase value: ${blockTemplate['coinbasevalue']}');
+    log.i('Full template: ${jsonEncode(blockTemplate)}');
+
+    return blockTemplate;
   }
 
   @override

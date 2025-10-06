@@ -40,6 +40,7 @@ abstract class MainchainRPC extends RPCConnection {
   Future<NetworkInfo> getNetworkInfo();
   Future<MiningInfo> getMiningInfo();
   Future<String> getDataDir();
+  Future<void> submitBlock(String blockData);
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -435,6 +436,11 @@ class MainchainRPCLive extends MainchainRPC {
     final logPath = info['logpath'] as String;
     // Remove debug.log from path
     return logPath.replaceAll('/debug.log', '');
+  }
+
+  @override
+  Future<void> submitBlock(String blockData) async {
+    await _client().call('submitblock', [blockData]);
   }
 }
 

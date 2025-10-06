@@ -148,6 +148,11 @@ class MockMainchainRPC extends MainchainRPC {
   Future<void> waitForSync() async {
     return;
   }
+
+  @override
+  Future<void> submitBlock(String blockData) async {
+    return;
+  }
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
@@ -230,6 +235,16 @@ class MockEnforcerRPC extends EnforcerRPC {
   @override
   List<String> getMethods() {
     return [];
+  }
+
+  @override
+  Future<Map<String, dynamic>> getBlockTemplate() {
+    return Future.value({
+      'version': 4,
+      'height': 100,
+      'transactions': [],
+      'coinbasevalue': 5000000000,
+    });
   }
 }
 
