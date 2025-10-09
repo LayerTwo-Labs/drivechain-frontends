@@ -170,6 +170,23 @@ class MainchainRPCLive extends MainchainRPC {
 
     final finalArgs = cleanArgs(conf, [...networkArgs, ...coreBinary.extraBootArgs]);
 
+    // If -reindex was added due to a block database error, remove it from extraBootArgs
+    // so it's only used for this one boot attempt
+    if (coreBinary.extraBootArgs.contains('-reindex')) {
+      log.i('Clearing -reindex flag from extraBootArgs after adding to args');
+      coreBinary.extraBootArgs = List<String>.from(coreBinary.extraBootArgs)..remove('-reindex');
+
+      // Update the binary in the provider to persist the change
+      GetIt.I.get<BinaryProvider>().updateBinary(
+            coreBinary.type,
+            (currentBinary) {
+              final updated = currentBinary.copyWith();
+              updated.extraBootArgs = coreBinary.extraBootArgs;
+              return updated;
+            },
+          );
+    }
+
     log.i('Final binary args: $finalArgs');
     return finalArgs;
   }

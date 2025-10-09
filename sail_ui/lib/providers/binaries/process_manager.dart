@@ -22,9 +22,11 @@ class ProcessManager extends ChangeNotifier {
   final Map<String, Stream<String>> _stdoutStreams = {};
   final Map<String, Stream<String>> _stderrStreams = {};
   final Map<String, String> _finalErr = {};
+  final Map<String, List<String>> _stderrLogs = {}; // Buffer stderr logs for error detection
 
   Stream<String>? stdout(Binary binary) => _stdoutStreams[binary.name];
   Stream<String>? stderr(Binary binary) => _stderrStreams[binary.name];
+  List<String>? stderrLogs(Binary binary) => _stderrLogs[binary.name];
   bool running(Binary binary) => runningProcesses.containsKey(binary.name);
 
   Future<int> start(
@@ -56,6 +58,7 @@ class ProcessManager extends ChangeNotifier {
       cleanup: cleanup,
     );
     _exitTuples.remove(binary.name);
+    _stderrLogs[binary.name] = []; // Initialize stderr log buffer
 
     // Let output streaming chug in the background
 
@@ -89,6 +92,14 @@ class ProcessManager extends ChangeNotifier {
         .listen(
           (data) {
             stderrController.add(data);
+            // Buffer stderr for error detection later (keep only last 100 lines)
+            final buffer = _stderrLogs[binary.name];
+            if (buffer != null) {
+              buffer.add(data);
+              if (buffer.length > 100) {
+                buffer.removeAt(0); // Remove oldest line
+              }
+            }
             if (!isSpam(data)) {
               // Strip ANSI color codes from the log output
               final cleanData = data.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
