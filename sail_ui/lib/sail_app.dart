@@ -44,6 +44,17 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     widget.initMethod?.call(context);
   }
 
+  @override
+  void didUpdateWidget(SailApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Rebuild theme if accent color changed
+    if (oldWidget.accentColor != widget.accentColor) {
+      theme = _themeDataFromTheme(theme.type, widget.dense, theme.font);
+      setState(() {});
+    }
+  }
+
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
     themeToLoad ??= (await settings.getValue(ThemeSetting())).value;
     if (themeToLoad == SailThemeValues.system) {
