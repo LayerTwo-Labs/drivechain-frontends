@@ -357,6 +357,17 @@ class SyncProvider extends ChangeNotifier {
     await Future.wait([_fetchMainchain(), _fetchEnforcer(), if (additionalConnection != null) _fetchAdditional()]);
   }
 
+  /// Clear all sync state - useful when network changes or services restart
+  void clearState() {
+    mainchainSyncInfo = null;
+    mainchainError = null;
+    enforcerSyncInfo = null;
+    enforcerError = null;
+    additionalSyncInfo = null;
+    additionalError = null;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _mainchainTimer?.cancel();
