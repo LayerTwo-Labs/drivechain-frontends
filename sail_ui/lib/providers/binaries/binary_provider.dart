@@ -328,7 +328,7 @@ class BinaryProvider extends ChangeNotifier {
 
         // We've quit! Assuming there's error logs, somewhere.
         if (!isRunning(binary) && connectionError(binary) == null) {
-          final logs = await stderr(binary)?.toList();
+          final logs = _processManager.stderrLogs(binary);
           log.e('$binary exited before we could connect, dumping logs');
           for (var line in logs ?? []) {
             log.e('$binary: $line');
@@ -336,6 +336,24 @@ class BinaryProvider extends ChangeNotifier {
 
           var lastLine = _stripFromString(logs?.last ?? '', ': ');
           error = lastLine;
+
+          // Check if this is a Bitcoin Core reindex error by searching through ALL logs
+          if (binary is BitcoinCore && logs != null) {
+            final needsReindex = logs.any((line) => line.contains('Please restart with -reindex'));
+            if (needsReindex) {
+              log.w('Bitcoin Core needs reindex, adding -reindex flag for next boot attempt');
+
+              // Add -reindex flag for the next boot attempt
+              final updatedBinary = binary.copyWith();
+              updatedBinary.addBootArg('-reindex');
+
+              // Update the binary in download manager
+              _downloadManager.updateBinary(
+                binary.type,
+                (currentBinary) => updatedBinary,
+              );
+            }
+          }
         } else {
           error ??= err.toString();
         }
