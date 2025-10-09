@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 // Messages for isolate communication
@@ -542,11 +542,11 @@ Uint8List _calculateMerkleTreeRoot(List<Uint8List> txIds) {
 class MiningProvider extends ChangeNotifier {
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get _enforcer => GetIt.I.get<EnforcerRPC>();
+  Logger get log => GetIt.I.get<Logger>();
 
   Timer? _pollTimer;
   Timer? _miningOutputTimer;
   Timer? _templateRefreshTimer;
-  File? _logFile;
   Map<String, dynamic>? _currentTemplate;
   int _currentTemplateHeight = 0;
 
@@ -602,32 +602,8 @@ class MiningProvider extends ChangeNotifier {
   double get hashRate => _hashRate;
 
   MiningProvider() {
-    _initializeLogging();
+    log.i('Mining provider initialized');
     _startPolling();
-  }
-
-  Future<void> _initializeLogging() async {
-    try {
-      final directory = await getApplicationSupportDirectory();
-      _logFile = File('${directory.path}/mining.txt');
-      await _logFile!.writeAsString('=== Mining Log Started ===\n', mode: FileMode.write);
-      await _log('Mining provider initialized');
-    } catch (e) {
-      debugPrint('Failed to initialize mining log file: $e');
-    }
-  }
-
-  Future<void> _log(String message, {bool alwaysShow = false}) async {
-    final timestamp = DateTime.now().toIso8601String();
-    final logMessage = '[$timestamp] $message\n';
-    if (alwaysShow) {
-      debugPrint('MINING: $message');
-    }
-    try {
-      await _logFile?.writeAsString(logMessage, mode: FileMode.append);
-    } catch (e) {
-      // Ignore file write errors - logging is non-critical
-    }
   }
 
   void _startPolling() {
@@ -663,7 +639,7 @@ class MiningProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      await _log('Failed to update mining info: $e');
+      log.e('Failed to update mining info: $e');
     }
   }
 
@@ -684,7 +660,7 @@ class MiningProvider extends ChangeNotifier {
         throw Exception('CPU mining is not available on signet networks. Please connect to testnet or mainnet.');
       }
 
-      await _log('CPU mining started with $threads thread${threads > 1 ? 's' : ''}', alwaysShow: true);
+      log.i('CPU mining started with $threads thread${threads > 1 ? 's' : ''}');
       _threadCount = threads;
       _isMining = true;
       _blockFound = false;
@@ -739,7 +715,7 @@ class MiningProvider extends ChangeNotifier {
       _receivePorts.clear();
       _sendPorts.clear();
 
-      await _log('Mining stopped', alwaysShow: true);
+      log.i('Mining stopped');
       notifyListeners();
     } catch (e) {
       throw Exception('Failed to stop mining: $e');
@@ -748,14 +724,16 @@ class MiningProvider extends ChangeNotifier {
 
   Future<void> _startMiningThread(int threadId) async {
     try {
-      await _log('Mining thread $threadId starting...', alwaysShow: true);
+      log.i('Mining thread $threadId starting...');
 
       // Get block template
       final blockTemplate = await _getBlockTemplate();
       if (blockTemplate == null) {
-        await _log('Failed to get block template for thread $threadId');
+        log.e('Failed to get block template for thread $threadId');
         return;
       }
+
+      log.d('block template is ${blockTemplate.toString()}');
 
       // Create receive port for this isolate
       final receivePort = ReceivePort();
@@ -768,14 +746,14 @@ class MiningProvider extends ChangeNotifier {
       );
       _miningIsolates.add(isolate);
 
-      await _log('Mining thread $threadId isolate spawned', alwaysShow: true);
+      log.i('Mining thread $threadId isolate spawned');
 
       // Listen for messages from the isolate
       receivePort.listen((message) async {
         if (message is IsolateReady) {
           // Store the isolate's SendPort so we can send commands to it
           _sendPorts.add(message.isolateSendPort);
-          await _log('Mining thread $threadId ready, SendPort received', alwaysShow: true);
+          log.i('Mining thread $threadId ready, SendPort received');
         } else if (message is MiningUpdate) {
           _nonce = message.nonce;
           _currentHash = message.currentHash;
@@ -791,7 +769,7 @@ class MiningProvider extends ChangeNotifier {
           notifyListeners();
         } else if (message is MiningResult) {
           if (message.blockFound && message.blockData != null) {
-            await _log('BLOCK FOUND by thread $threadId! Submitting...', alwaysShow: true);
+            log.i('BLOCK FOUND by thread $threadId! Submitting...');
             _blockFound = true;
             _isMining = false;
             _bestHash = message.bestHash;
@@ -810,7 +788,7 @@ class MiningProvider extends ChangeNotifier {
         }
       });
     } catch (e) {
-      await _log('Failed to start mining thread $threadId: $e', alwaysShow: true);
+      log.e('Failed to start mining thread $threadId: $e');
     }
   }
 
@@ -829,11 +807,11 @@ class MiningProvider extends ChangeNotifier {
       // Update target hash from template
       _targetHash = template['target'] as String? ?? '';
 
-      await _log('New block template fetched for height $_currentTemplateHeight');
+      log.d('New block template fetched for height $_currentTemplateHeight');
       notifyListeners();
       return template;
     } catch (e) {
-      await _log('Failed to get block template: $e');
+      log.e('Failed to get block template: $e');
       return null;
     }
   }
@@ -841,7 +819,7 @@ class MiningProvider extends ChangeNotifier {
   Future<void> _refreshTemplate() async {
     if (!_isMining) return;
 
-    await _log('Refreshing block template...');
+    log.d('Refreshing block template...');
     final template = await _enforcer.getBlockTemplate();
     _currentTemplate = template;
     _currentTemplateHeight = template['height'] as int? ?? _currentHeight;
@@ -849,7 +827,7 @@ class MiningProvider extends ChangeNotifier {
     // Update target hash from refreshed template
     _targetHash = template['target'] as String? ?? '';
 
-    await _log('Block template refreshed for height $_currentTemplateHeight');
+    log.d('Block template refreshed for height $_currentTemplateHeight');
     notifyListeners();
   }
 
@@ -857,9 +835,9 @@ class MiningProvider extends ChangeNotifier {
     try {
       // Use standard submitblock RPC via mainchain for non-signet networks
       await _rpc.submitBlock(blockData);
-      await _log('Block successfully submitted to network!', alwaysShow: true);
+      log.i('Block successfully submitted to network!');
     } catch (e) {
-      await _log('Block submission failed: $e', alwaysShow: true);
+      log.e('Block submission failed: $e');
     }
   }
 
@@ -880,7 +858,7 @@ class MiningProvider extends ChangeNotifier {
       for (final sendPort in _sendPorts) {
         sendPort.send(SpeedChangeCommand(_hashingSpeed));
       }
-      debugPrint('MINING: Speed changed to $_hashingSpeed%, sent to ${_sendPorts.length} isolates');
+      log.d('Speed changed to $_hashingSpeed%, sent to ${_sendPorts.length} isolates');
     }
 
     notifyListeners();

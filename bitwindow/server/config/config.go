@@ -25,12 +25,12 @@ type Config struct {
 	BitcoinCoreCookie      string  `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
 	BitcoinCoreRpcUser     string  `long:"bitcoincore.rpcuser" default:"user"`
 	BitcoinCoreRpcPassword string  `long:"bitcoincore.rpcpassword" default:"password"`
-	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" default:"main" choice:"main" choice:"regtest" choice:"signet" choice:"testnet"`
+	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" choice:"main" choice:"regtest" choice:"signet" choice:"testnet"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
 	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:2122"`
-	Datadir string `long:"datadir" description:"Path to the data directory" default:""`
+	Datadir string `long:"datadir" description:"Path to the data directory"`
 
 	LogPath  string `long:"log.path" description:"Path to write logs to"`
 	LogLevel string `long:"log.level" description:"Log level" default:"info" env:"LOG_LEVEL"`
@@ -68,6 +68,17 @@ func Parse() (Config, error) {
 		conf.BitcoinCoreRpcPassword = password
 	}
 
+	// If network is not explicitly set, try to derive it from the bitcoincore.host port
+	if conf.BitcoinCoreNetwork == "" {
+		derivedNetwork, err := deriveNetworkFromHost(conf.BitcoinCoreHost)
+		if err != nil {
+			// network was not set, nor could we derive it, tell the user
+			// to add a valid configuration!
+			return Config{}, err
+		}
+		conf.BitcoinCoreNetwork = derivedNetwork
+	}
+
 	if conf.Datadir == "" {
 		datadir, err := dir.DefaultDataDir()
 		if err != nil {
@@ -76,21 +87,17 @@ func Parse() (Config, error) {
 		conf.Datadir = datadir
 	}
 
-	// If network is not explicitly set, try to derive it from the bitcoincore.host port
-	if conf.BitcoinCoreNetwork == "" {
-		derivedNetwork, err := deriveNetworkFromHost(conf.BitcoinCoreHost)
-		if err != nil {
-			return Config{}, err
-		}
-		conf.BitcoinCoreNetwork = derivedNetwork
+	// Append network subdirectory for non-mainnet networks
+	if conf.BitcoinCoreNetwork != NetworkMainnet {
+		conf.Datadir = filepath.Join(conf.Datadir, string(conf.BitcoinCoreNetwork))
 	}
 
 	if conf.LogPath == "" {
-		conf.LogPath = filepath.Join(conf.NetworkDatadir(), "server.log")
+		conf.LogPath = filepath.Join(conf.Datadir, "server.log")
 	}
 
-	// Ensure the network-specific directory exists
-	err := os.MkdirAll(conf.NetworkDatadir(), 0755)
+	// Ensure the data directory exists
+	err := os.MkdirAll(conf.Datadir, 0755)
 	if err != nil && !os.IsExist(err) {
 		return Config{}, fmt.Errorf("create data directory: %w", err)
 	}
@@ -119,14 +126,4 @@ func deriveNetworkFromHost(host string) (Network, error) {
 	default:
 		return "", fmt.Errorf("could not derive network from bitcoincore.host port %q: please specify --network flag", port)
 	}
-}
-
-// NetworkDatadir returns the network-specific data directory.
-// Mainnet uses the root datadir, while other networks (signet, regtest, testnet)
-// use a subdirectory matching the network name.
-func (c Config) NetworkDatadir() string {
-	if c.BitcoinCoreNetwork == "" || c.BitcoinCoreNetwork == NetworkMainnet {
-		return c.Datadir
-	}
-	return filepath.Join(c.Datadir, string(c.BitcoinCoreNetwork))
 }
