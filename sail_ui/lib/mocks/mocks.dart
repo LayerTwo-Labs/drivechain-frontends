@@ -895,6 +895,9 @@ class MockSyncProvider implements SyncProvider {
   void listenDownloads() {
     return;
   }
+
+  @override
+  void clearState() {}
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

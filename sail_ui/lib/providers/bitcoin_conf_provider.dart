@@ -185,6 +185,15 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
     await Future.wait(stopFutures);
 
+    // Clear sync state from old network
+    try {
+      final syncProvider = GetIt.I.get<SyncProvider>();
+      syncProvider.clearState();
+      log.i('Cleared sync provider state');
+    } catch (e) {
+      log.w('Could not clear sync provider state: $e');
+    }
+
     // Delete enforcer and bitwindow data
     log.i('Deleting enforcer and bitwindow data...');
     final enforcer = Enforcer();
@@ -232,13 +241,18 @@ class BitcoinConfProvider extends ChangeNotifier {
     updateStatus('Waiting for processes to exit');
     // The binary provider's stop() already waits for PIDs to die, so this is informational
 
+    // Clear sync state from old network
+    try {
+      final syncProvider = GetIt.I.get<SyncProvider>();
+      syncProvider.clearState();
+      log.i('Cleared sync provider state');
+    } catch (e) {
+      log.w('Could not clear sync provider state: $e');
+    }
+
     updateStatus('Updating bitcoin.conf');
     // Config already updated by updateNetwork() before this is called
     await updateNetwork(newNetwork);
-
-    // Update MainchainRPC configuration with new network settings
-    final newConf = readMainchainConf();
-    _updateMainchainRPCConfig(newConf);
 
     // Restart all services
     updateStatus('Starting Core, Enforcer and BitWindow');
