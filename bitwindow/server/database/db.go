@@ -13,7 +13,7 @@ import (
 
 // New creates a new SQLite database and runs all migrations
 func New(ctx context.Context, conf config.Config) (*sql.DB, error) {
-	dbpath := filepath.Join(conf.NetworkDatadir(), "bitwindow.db")
+	dbpath := filepath.Join(conf.Datadir, "bitwindow.db")
 
 	zerolog.Ctx(ctx).Debug().
 		Str("path", dbpath).
