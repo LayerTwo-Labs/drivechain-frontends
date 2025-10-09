@@ -1260,8 +1260,6 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
       'Stopping BitWindow',
       'Waiting for processes to exit',
       'Updating bitcoin.conf',
-      'Cleaning enforcer data',
-      'Cleaning bitwindow data',
       'Starting Core, Enforcer and BitWindow',
       'Network swap complete',
     ];
