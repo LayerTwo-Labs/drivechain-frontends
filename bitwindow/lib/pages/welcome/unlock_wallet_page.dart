@@ -1,8 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/encryption_provider.dart';
+import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -16,6 +18,7 @@ class UnlockWalletPage extends StatefulWidget {
 class _UnlockWalletPageState extends State<UnlockWalletPage> {
   final TextEditingController _passwordController = TextEditingController();
   final EncryptionProvider _encryptionProvider = GetIt.I.get<EncryptionProvider>();
+  final Logger _logger = GetIt.I.get<Logger>();
   String? _errorMessage;
   bool _isUnlocking = false;
 
@@ -130,7 +133,16 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
       if (!mounted) return;
 
       if (success) {
-        // Unlock successful, navigate to main app
+        // Unlock successful, sync starter files so binaries can use the wallet
+        try {
+          final walletProvider = GetIt.I.get<WalletProvider>();
+          await walletProvider.syncStarterFiles();
+          _logger.i('Synced starter files after wallet unlock');
+        } catch (e) {
+          _logger.e('Failed to sync starter files after unlock: $e');
+        }
+
+        // Navigate to main app
         await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
       } else {
         setState(() {
