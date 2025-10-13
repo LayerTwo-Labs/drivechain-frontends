@@ -29,6 +29,7 @@ class SailTextField extends StatelessWidget {
   final int? maxLines;
   final List<TextInputFormatter>? inputFormatters;
   final LoadingDetails? loading;
+  final bool obscureText;
 
   const SailTextField({
     super.key,
@@ -54,6 +55,7 @@ class SailTextField extends StatelessWidget {
     this.maxLines,
     this.inputFormatters,
     this.loading,
+    this.obscureText = false,
   });
 
   @override
@@ -73,6 +75,7 @@ class SailTextField extends StatelessWidget {
           child: TextField(
             autofocus: autofocus,
             enabled: enabled,
+            obscureText: obscureText,
             mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
             cursorColor: theme.colors.primary,
             controller: controller,

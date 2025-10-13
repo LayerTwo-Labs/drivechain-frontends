@@ -555,15 +555,13 @@ class BinaryProvider extends ChangeNotifier {
     // one itself
     while (true) {
       final bitwindowAppDir = Directory(path.join(appDir.parent.path, 'bitwindow'));
-      final walletDir = getWalletDir(bitwindowAppDir);
+      final walletFile = getWalletFile(bitwindowAppDir);
       log.i(
-        '[T+${getElapsed()}ms] STARTUP: Waiting for l1 starter..., walletDir: $walletDir, bitwindowAppDir: $bitwindowAppDir appDir: $appDir',
+        '[T+${getElapsed()}ms] STARTUP: Waiting for l1 starter..., walletDir: $walletFile, bitwindowAppDir: $bitwindowAppDir appDir: $appDir',
       );
-      if (walletDir != null) {
-        final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
-        if (await mnemonicFile.exists()) {
-          break;
-        }
+
+      if (walletFile != null && await walletFile.exists()) {
+        break;
       }
       await Future.delayed(const Duration(seconds: 1));
     }

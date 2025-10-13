@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -12,7 +13,6 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
-import 'package:sail_ui/sail_ui.dart';
 
 class HDWalletProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
@@ -72,22 +72,15 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<void> _loadMnemonic() async {
     try {
-      final walletDir = getWalletDir(appDir);
-      if (walletDir == null) {
-        throw Exception("Couldn't sync to wallet for HD Explorer");
+      // Use WalletProvider to load L1 mnemonic (supports both old and new structure)
+      final walletProvider = GetIt.I.get<WalletProvider>();
+      final l1Mnemonic = await walletProvider.getL1Starter();
+
+      if (l1Mnemonic == null || l1Mnemonic.isEmpty) {
+        throw Exception('Could not load L1 wallet mnemonic');
       }
 
-      final l1Path = path.join(walletDir.path, 'l1_starter.txt');
-      final file = File(l1Path);
-      if (!await file.exists()) {
-        throw Exception('could not find l1_starter.txt');
-      }
-
-      final fileContent = await file.readAsString();
-      _mnemonic = fileContent.trim();
-      if (_mnemonic == null || _mnemonic!.isEmpty) {
-        throw Exception('l1_starter.txt does not contain mnemonic');
-      }
+      _mnemonic = l1Mnemonic.trim();
 
       final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
       _seedHex = hex.encode(mnemonicObj.seed);

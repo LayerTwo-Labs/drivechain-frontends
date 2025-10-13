@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/main.dart';
+import 'package:bitwindow/models/wallet_data.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
+import 'package:bitwindow/providers/encryption_provider.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -20,6 +22,7 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:synchronized/synchronized.dart';
 
 class WalletProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
@@ -32,55 +35,279 @@ class WalletProvider extends ChangeNotifier {
   final _logger = GetIt.I.get<Logger>();
   static const String defaultBip32Path = "m/44'/0'/0'";
 
+  // Cached wallet data with thread-safe access
+  WalletData? _cachedWallet;
+  final Lock _walletLock = Lock();
+
+  // File watcher for wallet.json changes
+  StreamSubscription<FileSystemEvent>? _fileWatcher;
+
+  Future<void> init() async {
+    await migrate();
+
+    await _walletLock.synchronized(() async {
+      _logger.i('init: Initializing wallet provider');
+      await _loadAndCacheWallet();
+      _logger.i('init: Wallet provider initialized');
+    });
+
+    // Sync starter files from wallet.json
+    await syncStarterFiles();
+
+    // Set up file watcher for wallet.json
+    _setupFileWatcher();
+  }
+
+  /// Set up file watcher to reload cache when wallet.json changes
+  void _setupFileWatcher() {
+    try {
+      final walletFile = _getWalletJsonFile();
+      _fileWatcher = walletFile
+          .watch(events: FileSystemEvent.all)
+          .listen(
+            (event) async {
+              _logger.i('File watcher: wallet.json ${event.type} event detected');
+
+              // Reload cache when file is modified or created
+              if (event.type == FileSystemEvent.modify || event.type == FileSystemEvent.create) {
+                await _walletLock.synchronized(() async {
+                  _logger.i('File watcher: Reloading wallet into cache');
+                  await _loadAndCacheWallet();
+                  notifyListeners();
+                });
+
+                // Sync starter files so enforcer and sidechains pick up changes
+                _logger.i('File watcher: Syncing starter files after wallet.json change');
+                await syncStarterFiles();
+              }
+              // Clear cache when file is deleted
+              else if (event.type == FileSystemEvent.delete) {
+                await _walletLock.synchronized(() async {
+                  _logger.i('File watcher: Wallet deleted, clearing cache');
+                  _cachedWallet = null;
+                  notifyListeners();
+                });
+              }
+            },
+            onError: (error) {
+              _logger.e('File watcher error: $error');
+            },
+          );
+      _logger.i('File watcher: Started watching wallet.json');
+    } catch (e, stack) {
+      _logger.e('File watcher: Failed to set up file watcher: $e\n$stack');
+    }
+  }
+
+  @override
+  void dispose() {
+    _fileWatcher?.cancel();
+    _logger.i('File watcher: Stopped watching wallet.json');
+    super.dispose();
+  }
+
+  /// Load wallet from disk and cache it (must be called within lock)
+  Future<void> _loadAndCacheWallet() async {
+    try {
+      final walletFile = _getWalletJsonFile();
+      if (!await walletFile.exists()) {
+        _cachedWallet = null;
+        _logger.i('_loadAndCacheWallet: No wallet file found');
+        return;
+      }
+
+      // Check if wallet is encrypted
+      final encryptionProvider = GetIt.I.get<EncryptionProvider>();
+      final isEncrypted = await encryptionProvider.isWalletEncrypted();
+
+      if (isEncrypted) {
+        // Wallet is encrypted - get decrypted data from EncryptionProvider
+        if (encryptionProvider.isWalletUnlocked) {
+          final decryptedJson = encryptionProvider.decryptedWalletJson;
+          if (decryptedJson != null) {
+            _logger.i('_loadAndCacheWallet: Loading encrypted wallet from memory');
+            _cachedWallet = WalletData.fromJsonString(decryptedJson);
+            _logger.i('_loadAndCacheWallet: Encrypted wallet cached successfully');
+          } else {
+            _logger.w('_loadAndCacheWallet: Wallet is encrypted but no decrypted data available');
+            _cachedWallet = null;
+          }
+        } else {
+          _logger.i('_loadAndCacheWallet: Wallet is encrypted and locked');
+          _cachedWallet = null;
+        }
+      } else {
+        // Wallet is not encrypted - read directly from disk
+        _logger.i('_loadAndCacheWallet: Loading unencrypted wallet from disk');
+        final json = await walletFile.readAsString();
+        _cachedWallet = WalletData.fromJsonString(json);
+        _logger.i('_loadAndCacheWallet: Wallet cached successfully');
+      }
+    } catch (e, stack) {
+      _logger.e('_loadAndCacheWallet: Error loading wallet: $e\n$stack');
+      _cachedWallet = null;
+      rethrow;
+    }
+  }
+
   Future<bool> hasExistingWallet() async {
-    return (await getMasterStarter()) != null;
+    final walletFile = _getWalletJsonFile();
+    return await walletFile.exists();
   }
 
-  Future<bool> hasLauncherModeDir() async {
-    var walletDir = path.join(bitwindowAppDir.path, 'wallet_starters');
-    return Directory(walletDir).existsSync();
+  /// Load wallet - returns cached wallet (thread-safe)
+  Future<WalletData?> loadWallet() async {
+    return await _walletLock.synchronized(() async {
+      return _cachedWallet;
+    });
   }
 
-  Future<File?> getMasterStarter() async {
-    final walletFile = await _getWalletFile('master_starter.json');
-    if (walletFile == null || !await walletFile.exists()) return null;
+  /// Save wallet to new wallet.json structure and refresh cache
+  Future<void> saveWallet(WalletData wallet) async {
+    await _walletLock.synchronized(() async {
+      try {
+        _logger.i('saveWallet: Saving wallet to wallet.json');
 
-    final walletJson = await walletFile.readAsString();
-    final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
+        // Ensure bitwindowAppDir exists
+        if (!await bitwindowAppDir.exists()) {
+          await bitwindowAppDir.create(recursive: true);
+        }
 
-    if (!walletData.containsKey('mnemonic') || !walletData.containsKey('seed_hex')) {
-      throw Exception('Invalid wallet data format');
+        final jsonString = wallet.toJsonString();
+
+        // Check if wallet is encrypted
+        final encryptionProvider = GetIt.I.get<EncryptionProvider>();
+        final isEncrypted = await encryptionProvider.isWalletEncrypted();
+
+        if (isEncrypted) {
+          // Wallet is encrypted - use EncryptionProvider to update and re-encrypt
+          _logger.i('saveWallet: Wallet is encrypted, updating via EncryptionProvider');
+          await encryptionProvider.updateEncryptedWallet(jsonString);
+          _logger.i('saveWallet: Encrypted wallet updated successfully');
+        } else {
+          // Wallet is not encrypted - write plaintext to disk
+          final walletFile = _getWalletJsonFile();
+
+          // Write atomically by writing to temp file first
+          final tempFile = File('${walletFile.path}.tmp');
+          await tempFile.writeAsString(jsonString);
+          await tempFile.rename(walletFile.path);
+
+          _logger.i('saveWallet: Wallet saved successfully to ${walletFile.path}');
+        }
+
+        // Update cache
+        _cachedWallet = wallet;
+        _logger.i('saveWallet: Cache updated');
+      } catch (e, stack) {
+        _logger.e('saveWallet: Error saving wallet: $e\n$stack');
+        rethrow;
+      }
+    });
+  }
+
+  /// Get the wallet.json file reference
+  File _getWalletJsonFile() {
+    return File(path.join(bitwindowAppDir.path, 'wallet.json'));
+  }
+
+  /// Get the wallet_starters directory (create if needed)
+  Future<Directory> _getStarterDirectory() async {
+    final starterDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters'));
+    if (!await starterDir.exists()) {
+      await starterDir.create(recursive: true);
+      _logger.i('Created wallet_starters directory');
     }
-
-    return walletFile;
+    return starterDir;
   }
 
-  Future<void> moveMasterWalletDir() async {
-    final hasLauncherDir = await hasLauncherModeDir();
-    if (!hasLauncherDir) {
-      return;
+  /// Write L1 starter file
+  Future<void> _writeL1StarterFile(String mnemonic) async {
+    try {
+      final starterDir = await _getStarterDirectory();
+      final l1File = File(path.join(starterDir.path, 'l1_starter.txt'));
+      await l1File.writeAsString(mnemonic);
+      _logger.i('Wrote l1_starter.txt');
+    } catch (e, stack) {
+      _logger.e('Failed to write l1_starter.txt: $e\n$stack');
+      rethrow;
     }
-
-    final newName = await _findAvailableName(bitwindowAppDir.path, 'wallet_starters');
-    final newPath = path.join(bitwindowAppDir.path, newName);
-    await getWalletDir(bitwindowAppDir)!.rename(newPath);
-    _logger.i('Moved wallet_starters directory to $newName');
   }
 
-  Future<String> _findAvailableName(String dir, String originalName) async {
-    final baseName = path.basenameWithoutExtension(originalName);
-    final extension = path.extension(originalName);
-
-    // Try the original name first
-    String candidateName = originalName;
-    int counter = 2;
-
-    while (await Directory(path.join(dir, candidateName)).exists()) {
-      candidateName = '$baseName-$counter$extension';
-      counter++;
+  /// Write sidechain starter file
+  Future<void> _writeSidechainStarterFile(int slot, String mnemonic) async {
+    try {
+      final starterDir = await _getStarterDirectory();
+      final scFile = File(path.join(starterDir.path, 'sidechain_${slot}_starter.txt'));
+      await scFile.writeAsString(mnemonic);
+      _logger.i('Wrote sidechain_${slot}_starter.txt');
+    } catch (e, stack) {
+      _logger.e('Failed to write sidechain_${slot}_starter.txt: $e\n$stack');
+      rethrow;
     }
+  }
 
-    return candidateName;
+  /// Sync all starter files from wallet.json
+  /// Creates/updates all l1_starter.txt and sidechain_*_starter.txt files
+  /// Public method for use by restore process and other external callers
+  Future<void> syncStarterFiles() async {
+    try {
+      _logger.i('_syncStarterFiles: Starting sync');
+      final wallet = await loadWallet();
+      if (wallet == null) {
+        _logger.i('_syncStarterFiles: No wallet to sync');
+        return;
+      }
+
+      // Write L1 starter
+      await _writeL1StarterFile(wallet.l1.mnemonic);
+
+      // Write all sidechain starters
+      for (final sc in wallet.sidechains) {
+        await _writeSidechainStarterFile(sc.slot, sc.mnemonic);
+      }
+
+      _logger.i('_syncStarterFiles: Synced ${wallet.sidechains.length + 1} starter files');
+    } catch (e, stack) {
+      _logger.e('_syncStarterFiles: Failed to sync starter files: $e\n$stack');
+      rethrow;
+    }
+  }
+
+  Future<File?> getWallet() async {
+    // This method is deprecated and only used by legacy code
+    // New code should use loadWallet() instead
+    final wallet = await loadWallet();
+    if (wallet == null) return null;
+
+    // Return a dummy file reference since some legacy code expects a File
+    return File(path.join(bitwindowAppDir.path, 'wallet.json'));
+  }
+
+  /// Backup wallet.json by renaming it with a timestamp
+  /// Used when deleting all wallets to preserve the current wallet
+  Future<void> moveWallet() async {
+    await _walletLock.synchronized(() async {
+      try {
+        final walletFile = _getWalletJsonFile();
+        if (!await walletFile.exists()) {
+          _logger.i('moveMasterWalletDir: No wallet.json to backup');
+          return;
+        }
+
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final backupPath = path.join(bitwindowAppDir.path, 'wallet.json.backup_$timestamp');
+
+        await walletFile.rename(backupPath);
+        _logger.i('moveMasterWalletDir: Backed up wallet.json to $backupPath');
+
+        // Clear the cached wallet since it no longer exists
+        _cachedWallet = null;
+      } catch (e, stack) {
+        _logger.e('moveMasterWalletDir: Error backing up wallet: $e\n$stack');
+        rethrow;
+      }
+    });
   }
 
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
@@ -137,11 +364,8 @@ class WalletProvider extends ChangeNotifier {
 
     _logger.i('_genWallet: Wallet data generated from isolate');
 
-    _logger.i('_genWallet: About to save master wallet');
+    _logger.i('_genWallet: About to save master wallet (includes all chains)');
     await saveMasterWallet(walletData);
-
-    _logger.i('_genWallet: Master wallet saved, generating starters for chains');
-    await generateStartersForDownloadedChains();
 
     _logger.i('_genWallet: Notifying listeners once after all wallets generated');
     notifyListeners();
@@ -183,7 +407,6 @@ class WalletProvider extends ChangeNotifier {
 
     if (!doNotSave) {
       await saveMasterWallet(wallet);
-      await generateStartersForDownloadedChains();
 
       // Reset HD wallet provider to pick up new wallet data
       try {
@@ -268,7 +491,7 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<void> saveMasterWallet(Map<String, dynamic> walletData) async {
-    _logger.i('saveMasterWallet: Starting');
+    _logger.i('saveMasterWallet: Starting (will save to new wallet.json structure)');
 
     walletData['name'] = 'Master';
 
@@ -279,28 +502,74 @@ class WalletProvider extends ChangeNotifier {
       }
     }
 
-    _logger.i('saveMasterWallet: About to ensure wallet dir');
-    await _ensureWalletDir();
+    // Create MasterWallet from the map
+    final masterWallet = MasterWallet(
+      mnemonic: walletData['mnemonic'] as String,
+      seedHex: walletData['seed_hex'] as String,
+      masterKey: walletData['master_key'] as String,
+      chainCode: walletData['chain_code'] as String,
+      bip39Binary: walletData['bip39_binary'] as String?,
+      bip39Checksum: walletData['bip39_checksum'] as String?,
+      bip39ChecksumHex: walletData['bip39_checksum_hex'] as String?,
+      name: walletData['name'] as String,
+    );
 
-    _logger.i('saveMasterWallet: Getting wallet file');
-    final walletFile = await _getWalletFile('master_starter.json');
+    // Derive L1 starter
+    _logger.i('saveMasterWallet: Deriving L1 starter');
+    final l1StarterData = await compute(_deriveStarter, {
+      'seedHex': walletData['seed_hex'],
+      'derivationPath': "m/44'/0'/256'",
+      'name': 'Bitcoin Core (Patched)',
+    });
+    final l1Wallet = L1Wallet(
+      mnemonic: l1StarterData['mnemonic'] as String,
+      name: 'Bitcoin Core (Patched)',
+    );
 
-    if (walletFile == null) {
-      _logger.e('saveMasterWallet: Wallet file is null!');
-      throw Exception('Could not find wallet file, even after ensured');
+    // Derive sidechain starters
+    _logger.i('saveMasterWallet: Deriving sidechain starters');
+    final sidechainWallets = <SidechainWallet>[];
+    final l2Chains = binaryProvider.binaries.where((b) => b.chainLayer == 2).whereType<Sidechain>();
+
+    for (final chain in l2Chains) {
+      try {
+        final starterData = await compute(_deriveStarter, {
+          'seedHex': walletData['seed_hex'],
+          'derivationPath': "m/44'/0'/${chain.slot}'",
+          'name': chain.name,
+        });
+        sidechainWallets.add(
+          SidechainWallet(
+            slot: chain.slot,
+            name: chain.name,
+            mnemonic: starterData['mnemonic'] as String,
+          ),
+        );
+        _logger.i('saveMasterWallet: Derived sidechain starter for ${chain.name}');
+      } catch (e) {
+        _logger.e('saveMasterWallet: Could not derive starter for ${chain.name}: $e');
+      }
     }
 
-    _logger.i('saveMasterWallet: Writing wallet data to file');
-    await walletFile.writeAsString(jsonEncode(walletData));
+    // Create complete WalletData structure
+    final completeWallet = WalletData(
+      version: 1,
+      master: masterWallet,
+      l1: l1Wallet,
+      sidechains: sidechainWallets,
+    );
 
-    // Don't notify listeners here - will be done after all wallets are generated
-    _logger.i('saveMasterWallet: Complete (skipping notification)');
+    // Save to wallet.json
+    await saveWallet(completeWallet);
+
+    // Sync all starter files
+    await syncStarterFiles();
 
     _logger.i('saveMasterWallet: Complete');
   }
 
   Future<void> deleteWallet() async {
-    final walletFile = await getMasterStarter();
+    final walletFile = await getWallet();
     if (walletFile != null) {
       await walletFile.delete();
       notifyListeners();
@@ -308,155 +577,80 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>?> loadMasterStarter() async {
-    final walletFile = await getMasterStarter();
-    if (walletFile == null) return null;
-
-    final walletJson = await walletFile.readAsString();
-    final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
-
-    if (!walletData.containsKey('mnemonic') || !walletData.containsKey('master_key')) {
-      throw Exception('Invalid wallet data format');
+    final wallet = await loadWallet();
+    if (wallet != null) {
+      return {
+        'mnemonic': wallet.master.mnemonic,
+        'seed_hex': wallet.master.seedHex,
+        'master_key': wallet.master.masterKey,
+        'chain_code': wallet.master.chainCode,
+        'bip39_binary': wallet.master.bip39Binary,
+        'bip39_checksum': wallet.master.bip39Checksum,
+        'bip39_checksum_hex': wallet.master.bip39ChecksumHex,
+        'name': wallet.master.name,
+      };
     }
-
-    return walletData;
+    return null;
   }
 
   Future<String?> getL1Starter() async {
-    return _loadMnemonicStarter('l1_starter.txt');
+    final wallet = await loadWallet();
+    return wallet?.l1.mnemonic;
   }
 
   Future<String?> getSidechainStarter(int sidechainSlot) async {
-    return _loadMnemonicStarter('sidechain_${sidechainSlot}_starter.txt');
-  }
+    final wallet = await loadWallet();
+    if (wallet == null) return null;
 
-  Future<String?> _loadMnemonicStarter(String fileName) async {
-    try {
-      final file = await _getWalletFile(fileName);
-      if (file == null || !file.existsSync()) {
-        return null;
-      }
-
-      return await file.readAsString();
-    } catch (e) {
-      _logger.e('Error loading starter $fileName: $e');
-      return null;
+    // Check if sidechain wallet already exists
+    final existingSidechain = wallet.sidechains.where((s) => s.slot == sidechainSlot).firstOrNull;
+    if (existingSidechain != null) {
+      return existingSidechain.mnemonic;
     }
-  }
 
-  Future<void> _saveMnemonicStarter(String fileName, String mnemonic) async {
-    _logger.i('_saveMnemonicStarter: Starting for $fileName');
+    // Sidechain doesn't exist yet - generate it
+    _logger.i('getSidechainStarter: Sidechain for slot $sidechainSlot not found, generating...');
 
-    try {
-      await _ensureWalletDir();
-
-      _logger.i('_saveMnemonicStarter: Getting wallet file for $fileName');
-      final file = await _getWalletFile(fileName);
-
-      if (file == null) {
-        _logger.e('_saveMnemonicStarter: File is null for $fileName!');
-        throw Exception('Could not find wallet file, even after ensured');
-      }
-
-      _logger.i('_saveMnemonicStarter: Writing mnemonic to ${file.path}');
-      await file.writeAsString(mnemonic);
-
-      // Don't notify listeners here - will be done after all wallets are generated
-
-      _logger.i('_saveMnemonicStarter: Complete for $fileName');
-    } catch (e, stackTrace) {
-      _logger.e('_saveMnemonicStarter: Error saving $fileName: $e\n$stackTrace');
-      rethrow;
-    }
-  }
-
-  Future<File?> _getWalletFile(String fileName) async {
-    _logger.i('_getWalletFile: Getting file $fileName');
-
-    final walletDir = getWalletDir(bitwindowAppDir);
-    if (walletDir == null) {
-      _logger.e('_getWalletFile: walletDir is null for $fileName');
+    // Find the sidechain binary configuration
+    final sidechainBinary = binaryProvider.binaries
+        .whereType<Sidechain>()
+        .where((s) => s.slot == sidechainSlot)
+        .firstOrNull;
+    if (sidechainBinary == null) {
+      _logger.w('getSidechainStarter: No sidechain binary configured for slot $sidechainSlot');
       return null;
     }
 
-    final file = File(path.join(walletDir.path, fileName));
-    _logger.i('_getWalletFile: Returning file at ${file.path}');
-    return file;
-  }
+    // Derive the new sidechain starter from master wallet
+    final starterData = await compute(_deriveStarter, {
+      'seedHex': wallet.master.seedHex,
+      'derivationPath': "m/44'/0'/$sidechainSlot'",
+      'name': sidechainBinary.name,
+    });
 
-  Future<void> _ensureWalletDir() async {
-    _logger.i('_ensureWalletDir: Starting');
+    // Create the new sidechain wallet
+    final newSidechain = SidechainWallet(
+      slot: sidechainSlot,
+      name: sidechainBinary.name,
+      mnemonic: starterData['mnemonic'] as String,
+    );
 
-    var walletDir = getWalletDir(bitwindowAppDir);
-    if (walletDir == null) {
-      _logger.e('_ensureWalletDir: Could not find wallet dir, creating new one');
-      walletDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters'));
-    } else {
-      _logger.i('_ensureWalletDir: Found wallet dir: ${walletDir.path}');
-      return;
-    }
+    // Update wallet with the new sidechain
+    final updatedWallet = WalletData(
+      version: wallet.version,
+      master: wallet.master,
+      l1: wallet.l1,
+      sidechains: [...wallet.sidechains, newSidechain],
+    );
 
-    _logger.i('_ensureWalletDir: Creating directory at ${walletDir.path}');
-    await walletDir.create(recursive: true);
+    // Save updated wallet
+    await saveWallet(updatedWallet);
+    _logger.i('getSidechainStarter: Generated and saved sidechain wallet for slot $sidechainSlot');
 
-    _logger.i('_ensureWalletDir: Directory created');
-  }
+    // Write starter file for the new sidechain
+    await _writeSidechainStarterFile(sidechainSlot, newSidechain.mnemonic);
 
-  Future<void> generateStartersForDownloadedChains() async {
-    _logger.i('generateStartersForDownloadedChains: Starting');
-
-    try {
-      // Load master wallet once for all derivations
-      final masterWallet = await loadMasterStarter();
-      if (masterWallet == null) {
-        throw Exception('Master starter not found');
-      }
-      if (!masterWallet.containsKey('seed_hex')) {
-        throw Exception('Master starter is missing required field: seed_hex');
-      }
-
-      // first derive for L1 in isolate
-      _logger.i('generateStartersForDownloadedChains: Deriving L1 starter');
-      final l1StarterData = await compute(_deriveStarter, {
-        'seedHex': masterWallet['seed_hex'],
-        'derivationPath': "m/44'/0'/256'",
-        'name': 'Bitcoin Core (Patched)',
-      });
-      l1StarterData['chain_layer'] = 1;
-      await _saveMnemonicStarter('l1_starter.txt', l1StarterData['mnemonic']);
-
-      // For each L2 chain in binaries
-      final l2Chains = binaryProvider.binaries.where((b) => b.chainLayer == 2);
-      _logger.i('generateStartersForDownloadedChains: Found ${l2Chains.length} L2 chains');
-
-      // then derive for L2s in parallel using isolates
-      final derivationFutures = l2Chains
-          .whereType<Sidechain>()
-          .map(
-            (chain) => () async {
-              try {
-                _logger.i('generateStartersForDownloadedChains: Deriving starter for ${chain.name}');
-                final starterData = await compute(_deriveStarter, {
-                  'seedHex': masterWallet['seed_hex'],
-                  'derivationPath': "m/44'/0'/${chain.slot}'",
-                  'name': chain.name,
-                });
-                await _saveMnemonicStarter('sidechain_${chain.slot}_starter.txt', starterData['mnemonic']);
-              } catch (e) {
-                _logger.e('could not derive starter for ${chain.name}: $e');
-              }
-            }(),
-          )
-          .toList();
-
-      _logger.i('generateStartersForDownloadedChains: Waiting for ${derivationFutures.length} futures');
-      await Future.wait(derivationFutures);
-
-      // Don't notify listeners here anymore - moved to _genWallet
-
-      _logger.i('generateStartersForDownloadedChains: Complete');
-    } catch (e, stack) {
-      _logger.e('generateStartersForDownloadedChains: Error: $e\n$stack');
-    }
+    return newSidechain.mnemonic;
   }
 
   // Delete Bitcoin Core wallet directories in Drivechain/signet
@@ -540,7 +734,7 @@ class WalletProvider extends ChangeNotifier {
     onStatusUpdate?.call('Moving master wallet directory');
 
     try {
-      await moveMasterWalletDir();
+      await moveWallet();
     } catch (e) {
       _logger.e('could not move master wallet dir: $e');
     }
@@ -566,6 +760,151 @@ class WalletProvider extends ChangeNotifier {
     // then restart all sidechains we stopped
     for (final binary in runningBinaries) {
       unawaited(binaryProvider.start(binary));
+    }
+  }
+
+  /// Migrate from old wallet structure to new wallet.json
+  /// Checks if migration is needed and performs it if necessary
+  Future<void> migrate() async {
+    try {
+      // Check if wallet.json already exists (new structure)
+      final walletJsonFile = _getWalletJsonFile();
+      if (await walletJsonFile.exists()) {
+        _logger.i('migrate: Wallet is already in new format');
+        return;
+      }
+
+      // Check if old structure exists
+      final oldMasterFile = File(path.join(bitwindowAppDir.path, 'wallet_starters', 'master_starter.json'));
+      if (!await oldMasterFile.exists()) {
+        _logger.i('migrate: No wallet found to migrate');
+        return;
+      }
+
+      _logger.i('migrate: Detected old wallet structure, starting migration...');
+
+      // Helper function to read from old file structure
+      Future<String?> readOldMnemonicFile(String fileName) async {
+        try {
+          final file = File(path.join(bitwindowAppDir.path, 'wallet_starters', fileName));
+          if (await file.exists()) {
+            return await file.readAsString();
+          }
+          return null;
+        } catch (e) {
+          _logger.e('Error reading $fileName: $e');
+          return null;
+        }
+      }
+
+      // 1. Load all old files directly from old structure
+      _logger.i('migrate: Loading old wallet files...');
+
+      // Load master_starter.json
+      final masterFile = File(path.join(bitwindowAppDir.path, 'wallet_starters', 'master_starter.json'));
+      if (!await masterFile.exists()) {
+        throw Exception('Could not load master_starter.json for migration');
+      }
+      final masterJson = await masterFile.readAsString();
+      final masterData = jsonDecode(masterJson) as Map<String, dynamic>;
+
+      // Load l1_starter.txt
+      final l1Mnemonic = await readOldMnemonicFile('l1_starter.txt');
+      if (l1Mnemonic == null) {
+        throw Exception('Could not load l1_starter.txt for migration');
+      }
+
+      // Load sidechain starters
+      final sidechains = <SidechainWallet>[];
+      for (final binary in binaryProvider.binaries.whereType<Sidechain>()) {
+        final mnemonic = await readOldMnemonicFile('sidechain_${binary.slot}_starter.txt');
+        if (mnemonic != null) {
+          sidechains.add(
+            SidechainWallet(
+              slot: binary.slot,
+              name: binary.name,
+              mnemonic: mnemonic,
+            ),
+          );
+          _logger.i('migrate: Loaded sidechain starter for ${binary.name}');
+        }
+      }
+
+      // 2. Create new WalletData structure
+      _logger.i('migrate: Creating new wallet structure...');
+      final walletData = WalletData(
+        version: 1,
+        master: MasterWallet(
+          mnemonic: masterData['mnemonic'] as String,
+          seedHex: masterData['seed_hex'] as String,
+          masterKey: masterData['master_key'] as String,
+          chainCode: masterData['chain_code'] as String,
+          bip39Binary: masterData['bip39_binary'] as String?,
+          bip39Checksum: masterData['bip39_checksum'] as String?,
+          bip39ChecksumHex: masterData['bip39_checksum_hex'] as String?,
+          name: masterData['name'] as String? ?? 'Master',
+        ),
+        l1: L1Wallet(
+          mnemonic: l1Mnemonic,
+          name: 'Bitcoin Core (Patched)',
+        ),
+        sidechains: sidechains,
+      );
+
+      // 3. Backup old files before any changes
+      _logger.i('migrate: Backing up old wallet files...');
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final backupDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters_backup_$timestamp'));
+      await backupDir.create(recursive: true);
+
+      final walletDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters'));
+      if (await walletDir.exists()) {
+        await for (final entity in walletDir.list()) {
+          if (entity is File) {
+            final basename = path.basename(entity.path);
+            if (basename.endsWith('.json') || basename.endsWith('.txt')) {
+              final newPath = path.join(backupDir.path, basename);
+              await entity.copy(newPath);
+              _logger.i('migrate: Backed up $basename');
+            }
+          }
+        }
+      }
+      _logger.i('migrate: Backup created at ${backupDir.path}');
+
+      // 4. Save to new wallet.json
+      _logger.i('migrate: Saving new wallet.json...');
+      await saveWallet(walletData);
+
+      // 5. Verify new wallet can be loaded
+      _logger.i('migrate: Verifying new wallet...');
+      final verifyWallet = await loadWallet();
+      if (verifyWallet == null) {
+        throw Exception('Failed to verify newly migrated wallet');
+      }
+
+      // 6. Delete old files only after successful verification
+      _logger.i('migrate: Deleting old wallet files...');
+      if (await walletDir.exists()) {
+        await for (final entity in walletDir.list()) {
+          if (entity is File) {
+            final basename = path.basename(entity.path);
+            // Delete master_starter.json (old format)
+            // Delete old .txt files (will be regenerated from wallet.json by _syncStarterFiles)
+            if (basename == 'master_starter.json' || basename.endsWith('.txt')) {
+              await entity.delete();
+              _logger.i('migrate: Deleted $basename');
+            }
+          }
+        }
+      }
+
+      _logger.i('migrate: Migration completed successfully!');
+      _logger.i('migrate: Starter .txt files will be regenerated from wallet.json');
+    } catch (e, stackTrace) {
+      _logger.e('migrate: Failed to migrate wallet: $e\n$stackTrace');
+      _logger.e('migrate: Old wallet files preserved. Please check backup.');
+      // Don't throw - let the app continue
     }
   }
 }

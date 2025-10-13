@@ -7,6 +7,7 @@ import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
+import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/widgets/cpu_mining_modal.dart';
@@ -323,6 +324,24 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: () {
                         final windowProvider = GetIt.I.get<WindowProvider>();
                         windowProvider.open(SubWindowTypes.hdWallet);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Backup Wallet',
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const BackupWalletDialog(),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Restore Wallet',
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const RestoreWalletDialog(),
+                        );
                       },
                     ),
                   ],

@@ -223,6 +223,22 @@ class SidechainsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [UnlockWalletPage]
+class UnlockWalletRoute extends PageRouteInfo<void> {
+  const UnlockWalletRoute({List<PageRouteInfo>? children})
+    : super(UnlockWalletRoute.name, initialChildren: children);
+
+  static const String name = 'UnlockWalletRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const UnlockWalletPage();
+    },
+  );
+}
+
+/// generated route for
 /// [WalletPage]
 class WalletRoute extends PageRouteInfo<void> {
   const WalletRoute({List<PageRouteInfo>? children})

@@ -11,7 +11,9 @@ import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
+import 'package:bitwindow/pages/welcome/unlock_wallet_page.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:bitwindow/routing/password_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -72,7 +74,7 @@ class AppRouter extends RootStackRouter {
           page: SettingsRoute.page,
         ),
       ],
-      guards: [WalletGuard()],
+      guards: [WalletGuard(), PasswordGuard()],
     ),
     AutoRoute(
       path: '/log',
@@ -89,6 +91,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/create-wallet',
       page: CreateWalletRoute.page,
+    ),
+    AutoRoute(
+      path: '/unlock-wallet',
+      page: UnlockWalletRoute.page,
     ),
     AutoRoute(
       path: '/bitcoin-config',
