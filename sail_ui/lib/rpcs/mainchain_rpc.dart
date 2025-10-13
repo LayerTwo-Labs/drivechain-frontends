@@ -178,13 +178,13 @@ class MainchainRPCLive extends MainchainRPC {
 
       // Update the binary in the provider to persist the change
       GetIt.I.get<BinaryProvider>().updateBinary(
-            coreBinary.type,
-            (currentBinary) {
-              final updated = currentBinary.copyWith();
-              updated.extraBootArgs = coreBinary.extraBootArgs;
-              return updated;
-            },
-          );
+        coreBinary.type,
+        (currentBinary) {
+          final updated = currentBinary.copyWith();
+          updated.extraBootArgs = coreBinary.extraBootArgs;
+          return updated;
+        },
+      );
     }
 
     log.i('Final binary args: $finalArgs');

@@ -16,6 +16,7 @@ import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
+import 'package:bitwindow/providers/encryption_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
@@ -143,7 +144,15 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<ThunderRPC>(() => ThunderLive());
   GetIt.I.registerLazySingleton<ZSideRPC>(() => ZSideLive());
 
-  GetIt.I.registerLazySingleton<WalletProvider>(() => WalletProvider(bitwindowAppDir: applicationDir!));
+  final walletProvider = WalletProvider(bitwindowAppDir: applicationDir);
+  GetIt.I.registerLazySingleton<WalletProvider>(() => walletProvider);
+
+  // Register EncryptionProvider before initializing WalletProvider
+  final encryptionProvider = EncryptionProvider(bitwindowAppDir: applicationDir);
+  GetIt.I.registerLazySingleton<EncryptionProvider>(() => encryptionProvider);
+
+  await walletProvider.init();
+
   GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [bitwindow]));
   GetIt.I.registerLazySingleton<SyncProvider>(
     () => SyncProvider(

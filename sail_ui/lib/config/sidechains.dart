@@ -108,7 +108,7 @@ abstract class Sidechain extends Binary {
   }
 
   String? getMnemonicPath(Directory appDir) {
-    final walletDir = getWalletDir(appDir);
+    final walletDir = getWalletFile(appDir);
     if (walletDir == null) {
       return null;
     }
@@ -158,6 +158,11 @@ abstract class Sidechain extends Binary {
       return null;
     }
   }
+}
+
+File? getWalletFile(Directory appDir) {
+  final walletDir = File(path.join(appDir.path, 'wallet.json'));
+  return walletDir.existsSync() ? walletDir : null;
 }
 
 Directory? getWalletDir(Directory appDir) {

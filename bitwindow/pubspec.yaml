@@ -46,6 +46,7 @@ dependencies:
   url_launcher: ^6.3.2
   pointycastle: ^3.9.1
   crypto: ^3.0.6
+  encrypt: ^5.0.3
   connectrpc: ^1.0.0
   desktop_multi_window: ^0.2.1
   convert: ^3.1.2
@@ -56,6 +57,7 @@ dependencies:
   bitcoin_base: ^6.9.0
   blockchain_utils: ^5.2.0
   bech32: ^0.2.2
+  archive: ^4.0.7
 
 dev_dependencies:
   sentry_dart_plugin: ^3.1.1
