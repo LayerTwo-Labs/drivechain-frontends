@@ -12,7 +12,7 @@ require (
 	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.34.0
-	github.com/samber/lo v1.51.0
+	github.com/samber/lo v1.52.0
 	github.com/sourcegraph/conc v0.3.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.46.0
