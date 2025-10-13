@@ -10,7 +10,7 @@ environment:
   flutter: 3.35.4
 
 dependencies:
-  sentry_flutter: ^9.6.0
+  sentry_flutter: ^9.7.0
   flutter:
     sdk: flutter
   file_picker: ^10.3.2
