@@ -301,12 +301,25 @@ class EncryptionProvider extends ChangeNotifier {
     });
   }
 
-  /// Lock wallet (clear decrypted data from memory)
-  void lockWallet() {
-    _lock.synchronized(() {
+  /// Lock wallet (clear decrypted data from memory and cleanup temp files)
+  Future<void> lockWallet() async {
+    await _lock.synchronized(() async {
       _logger.i('lockWallet: Locking wallet');
       _decryptedWalletJson = null;
       _encryptionKey = null;
+
+      // Clean up temporary starter files
+      try {
+        final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
+        if (await tmpDir.exists()) {
+          await tmpDir.delete(recursive: true);
+          _logger.i('lockWallet: Cleaned up temporary starter files');
+        }
+      } catch (e, stack) {
+        _logger.w('lockWallet: Failed to cleanup starter files: $e\n$stack');
+        // Don't rethrow - cleanup failures shouldn't prevent locking
+      }
+
       _logger.i('lockWallet: Wallet locked');
       notifyListeners();
     });

@@ -103,6 +103,10 @@ class WalletProvider extends ChangeNotifier {
   void dispose() {
     _fileWatcher?.cancel();
     _logger.i('File watcher: Stopped watching wallet.json');
+
+    // Clean up temporary starter files from /tmp
+    cleanupStarterFiles();
+
     super.dispose();
   }
 
@@ -211,14 +215,25 @@ class WalletProvider extends ChangeNotifier {
     return File(path.join(bitwindowAppDir.path, 'wallet.json'));
   }
 
-  /// Get the wallet_starters directory (create if needed)
+  /// Get the temporary starter directory (create if needed)
+  /// Uses process-specific directory for security and isolation
   Future<Directory> _getStarterDirectory() async {
-    final starterDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters'));
-    if (!await starterDir.exists()) {
-      await starterDir.create(recursive: true);
-      _logger.i('Created wallet_starters directory');
+    final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
+    if (!await tmpDir.exists()) {
+      await tmpDir.create(recursive: true);
+      // Set restrictive permissions (owner only: rwx------)
+      if (!Platform.isWindows) {
+        await Process.run('chmod', ['700', tmpDir.path]);
+      }
+      _logger.i('Created temporary starter directory: ${tmpDir.path}');
     }
-    return starterDir;
+    return tmpDir;
+  }
+
+  /// Static helper to get the tmp starter directory path
+  /// Used by other packages that need to know where starter files are located
+  static Directory getTmpStarterDirectory() {
+    return Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
   }
 
   /// Write L1 starter file
@@ -271,6 +286,21 @@ class WalletProvider extends ChangeNotifier {
     } catch (e, stack) {
       _logger.e('_syncStarterFiles: Failed to sync starter files: $e\n$stack');
       rethrow;
+    }
+  }
+
+  /// Clean up temporary starter files from /tmp
+  /// Called when locking wallet or disposing provider
+  Future<void> cleanupStarterFiles() async {
+    try {
+      final tmpDir = getTmpStarterDirectory();
+      if (await tmpDir.exists()) {
+        await tmpDir.delete(recursive: true);
+        _logger.i('Cleaned up temporary starter directory: ${tmpDir.path}');
+      }
+    } catch (e, stack) {
+      _logger.w('Failed to cleanup starter files: $e\n$stack');
+      // Don't rethrow - cleanup failures shouldn't break the app
     }
   }
 
