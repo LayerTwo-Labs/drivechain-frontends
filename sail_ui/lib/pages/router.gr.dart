@@ -9,23 +9,24 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:auto_route/auto_route.dart' as _i5;
-import 'package:collection/collection.dart' as _i8;
-import 'package:flutter/material.dart' as _i6;
+import 'package:auto_route/auto_route.dart' as _i6;
+import 'package:collection/collection.dart' as _i9;
+import 'package:flutter/material.dart' as _i7;
 import 'package:sail_ui/pages/log_page.dart' as _i1;
 import 'package:sail_ui/pages/shutdown_page.dart' as _i3;
 import 'package:sail_ui/pages/sidechains/parent_chain_page.dart' as _i2;
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart' as _i4;
-import 'package:sail_ui/sail_ui.dart' as _i7;
+import 'package:sail_ui/pages/unlock_wallet_page.dart' as _i5;
+import 'package:sail_ui/sail_ui.dart' as _i8;
 
 /// generated route for
 /// [_i1.LogPage]
-class LogRoute extends _i5.PageRouteInfo<LogRouteArgs> {
+class LogRoute extends _i6.PageRouteInfo<LogRouteArgs> {
   LogRoute({
-    _i6.Key? key,
+    _i7.Key? key,
     required String logPath,
     required String title,
-    List<_i5.PageRouteInfo>? children,
+    List<_i6.PageRouteInfo>? children,
   }) : super(
          LogRoute.name,
          args: LogRouteArgs(key: key, logPath: logPath, title: title),
@@ -34,7 +35,7 @@ class LogRoute extends _i5.PageRouteInfo<LogRouteArgs> {
 
   static const String name = 'LogRoute';
 
-  static _i5.PageInfo page = _i5.PageInfo(
+  static _i6.PageInfo page = _i6.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<LogRouteArgs>();
@@ -50,7 +51,7 @@ class LogRoute extends _i5.PageRouteInfo<LogRouteArgs> {
 class LogRouteArgs {
   const LogRouteArgs({this.key, required this.logPath, required this.title});
 
-  final _i6.Key? key;
+  final _i7.Key? key;
 
   final String logPath;
 
@@ -74,13 +75,13 @@ class LogRouteArgs {
 
 /// generated route for
 /// [_i2.ParentChainPage]
-class ParentChainRoute extends _i5.PageRouteInfo<void> {
-  const ParentChainRoute({List<_i5.PageRouteInfo>? children})
+class ParentChainRoute extends _i6.PageRouteInfo<void> {
+  const ParentChainRoute({List<_i6.PageRouteInfo>? children})
     : super(ParentChainRoute.name, initialChildren: children);
 
   static const String name = 'ParentChainRoute';
 
-  static _i5.PageInfo page = _i5.PageInfo(
+  static _i6.PageInfo page = _i6.PageInfo(
     name,
     builder: (data) {
       return const _i2.ParentChainPage();
@@ -90,12 +91,12 @@ class ParentChainRoute extends _i5.PageRouteInfo<void> {
 
 /// generated route for
 /// [_i3.ShutDownPage]
-class ShutDownRoute extends _i5.PageRouteInfo<ShutDownRouteArgs> {
+class ShutDownRoute extends _i6.PageRouteInfo<ShutDownRouteArgs> {
   ShutDownRoute({
-    _i6.Key? key,
-    required List<_i7.Binary> binaries,
-    required _i6.VoidCallback onComplete,
-    List<_i5.PageRouteInfo>? children,
+    _i7.Key? key,
+    required List<_i8.Binary> binaries,
+    required _i7.VoidCallback onComplete,
+    List<_i6.PageRouteInfo>? children,
   }) : super(
          ShutDownRoute.name,
          args: ShutDownRouteArgs(
@@ -108,7 +109,7 @@ class ShutDownRoute extends _i5.PageRouteInfo<ShutDownRouteArgs> {
 
   static const String name = 'ShutDownRoute';
 
-  static _i5.PageInfo page = _i5.PageInfo(
+  static _i6.PageInfo page = _i6.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<ShutDownRouteArgs>();
@@ -128,11 +129,11 @@ class ShutDownRouteArgs {
     required this.onComplete,
   });
 
-  final _i6.Key? key;
+  final _i7.Key? key;
 
-  final List<_i7.Binary> binaries;
+  final List<_i8.Binary> binaries;
 
-  final _i6.VoidCallback onComplete;
+  final _i7.VoidCallback onComplete;
 
   @override
   String toString() {
@@ -144,29 +145,45 @@ class ShutDownRouteArgs {
     if (identical(this, other)) return true;
     if (other is! ShutDownRouteArgs) return false;
     return key == other.key &&
-        const _i8.ListEquality().equals(binaries, other.binaries) &&
+        const _i9.ListEquality().equals(binaries, other.binaries) &&
         onComplete == other.onComplete;
   }
 
   @override
   int get hashCode =>
       key.hashCode ^
-      const _i8.ListEquality().hash(binaries) ^
+      const _i9.ListEquality().hash(binaries) ^
       onComplete.hashCode;
 }
 
 /// generated route for
 /// [_i4.SidechainOverviewTabPage]
-class SidechainOverviewTabRoute extends _i5.PageRouteInfo<void> {
-  const SidechainOverviewTabRoute({List<_i5.PageRouteInfo>? children})
+class SidechainOverviewTabRoute extends _i6.PageRouteInfo<void> {
+  const SidechainOverviewTabRoute({List<_i6.PageRouteInfo>? children})
     : super(SidechainOverviewTabRoute.name, initialChildren: children);
 
   static const String name = 'SidechainOverviewTabRoute';
 
-  static _i5.PageInfo page = _i5.PageInfo(
+  static _i6.PageInfo page = _i6.PageInfo(
     name,
     builder: (data) {
       return const _i4.SidechainOverviewTabPage();
+    },
+  );
+}
+
+/// generated route for
+/// [_i5.UnlockWalletPage]
+class UnlockWalletRoute extends _i6.PageRouteInfo<void> {
+  const UnlockWalletRoute({List<_i6.PageRouteInfo>? children})
+    : super(UnlockWalletRoute.name, initialChildren: children);
+
+  static const String name = 'UnlockWalletRoute';
+
+  static _i6.PageInfo page = _i6.PageInfo(
+    name,
+    builder: (data) {
+      return const _i5.UnlockWalletPage();
     },
   );
 }

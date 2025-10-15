@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
+import 'package:sail_ui/routing/password_guard.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
 import 'package:zside/pages/tabs/sidechain_overview_page.dart';
@@ -17,7 +18,7 @@ part 'router.gr.dart';
 *  In replaceInRouteName we replace the Page suffix with Route in all generated
 *  routes. e.g: The annotated HomePage class will be generated as HomeRoute. HomeRoute
 *  is the component you route to.
-*  
+*
 *  Use the [watch] flag to watch the files' system for edits and rebuild as necessary.
 *  $ dart run build_runner watch
 *  if you want the generator to run one time and exit, use
@@ -26,6 +27,8 @@ part 'router.gr.dart';
 */
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
 class AppRouter extends RootStackRouter {
+  AppRouter();
+
   @override
   RouteType get defaultRouteType => const RouteType.adaptive();
 
@@ -36,6 +39,9 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       page: HomeRoute.page,
       initial: true,
+      guards: [
+        PasswordGuard(),
+      ],
       children: [
         AutoRoute(
           page: ParentChainRoute.page,

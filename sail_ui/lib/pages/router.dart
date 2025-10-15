@@ -12,6 +12,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: ParentChainRoute.page),
     AutoRoute(page: LogRoute.page),
     AutoRoute(page: ShutDownRoute.page),
+    AutoRoute(page: UnlockWalletRoute.page),
   ];
 
   @override

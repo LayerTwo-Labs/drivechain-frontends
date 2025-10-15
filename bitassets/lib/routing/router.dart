@@ -8,6 +8,7 @@ import 'package:bitassets/pages/tabs/settings_page.dart';
 import 'package:bitassets/pages/test_page.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
+import 'package:sail_ui/routing/password_guard.dart';
 
 part 'router.gr.dart';
 
@@ -34,6 +35,9 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       page: HomeRoute.page,
       initial: true,
+      guards: [
+        PasswordGuard(),
+      ],
       children: [
         AutoRoute(
           page: ParentChainRoute.page,

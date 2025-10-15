@@ -527,7 +527,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                   final result = await EncryptWalletDialog.show(context);
                   if (result == true) {
                     await _checkEncryptionStatus();
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Wallet encrypted successfully'),
@@ -574,7 +574,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                 label: 'Change Password',
                 onPressed: () async {
                   final result = await ChangePasswordDialog.show(context);
-                  if (result == true && mounted) {
+                  if (result == true && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text('Password changed successfully'),
