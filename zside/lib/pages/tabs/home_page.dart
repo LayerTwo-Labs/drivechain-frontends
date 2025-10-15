@@ -123,10 +123,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
       child: Scaffold(
         backgroundColor: theme.colors.background,
         body: auto_router.AutoTabsRouter.builder(
-          homeIndex: Tabs.ParentChainPeg.index,
+          homeIndex: Tabs.ZSideHomepage.index,
           routes: [
             // parent chain routes
             ParentChainRoute(),
+
+            // zside homepage
+            ZSideHomepageRoute(),
 
             // sidechain balance/transfer route
             ZSideHomepageRoute(),
