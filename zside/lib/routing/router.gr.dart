@@ -122,6 +122,38 @@ class ZSideBillRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [ZSideConfigureHomepagePage]
+class ZSideConfigureHomepageRoute extends PageRouteInfo<void> {
+  const ZSideConfigureHomepageRoute({List<PageRouteInfo>? children})
+    : super(ZSideConfigureHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'ZSideConfigureHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZSideConfigureHomepagePage();
+    },
+  );
+}
+
+/// generated route for
+/// [ZSideHomepagePage]
+class ZSideHomepageRoute extends PageRouteInfo<void> {
+  const ZSideHomepageRoute({List<PageRouteInfo>? children})
+    : super(ZSideHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'ZSideHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZSideHomepagePage();
+    },
+  );
+}
+
+/// generated route for
 /// [ZSideMeltCastTabPage]
 class ZSideMeltCastTabRoute extends PageRouteInfo<void> {
   const ZSideMeltCastTabRoute({List<PageRouteInfo>? children})

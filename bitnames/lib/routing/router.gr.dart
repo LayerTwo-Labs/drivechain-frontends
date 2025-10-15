@@ -11,6 +11,38 @@
 part of 'router.dart';
 
 /// generated route for
+/// [BitnamesConfigureHomepagePage]
+class BitnamesConfigureHomepageRoute extends PageRouteInfo<void> {
+  const BitnamesConfigureHomepageRoute({List<PageRouteInfo>? children})
+    : super(BitnamesConfigureHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'BitnamesConfigureHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitnamesConfigureHomepagePage();
+    },
+  );
+}
+
+/// generated route for
+/// [BitnamesHomepagePage]
+class BitnamesHomepageRoute extends PageRouteInfo<void> {
+  const BitnamesHomepageRoute({List<PageRouteInfo>? children})
+    : super(BitnamesHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'BitnamesHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitnamesHomepagePage();
+    },
+  );
+}
+
+/// generated route for
 /// [BitnamesTabPage]
 class BitnamesTabRoute extends PageRouteInfo<void> {
   const BitnamesTabRoute({List<PageRouteInfo>? children})

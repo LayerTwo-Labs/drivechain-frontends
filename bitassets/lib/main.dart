@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitassets/config/runtime_args.dart';
+import 'package:bitassets/providers/bitassets_homepage_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:bitassets/rpc/models/active_sidechains.dart';
@@ -79,6 +80,11 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<BitAssetsProvider>(
     () => BitAssetsProvider(),
   );
+
+  // Register homepage provider
+  final bitassetsHomepageProvider = BitAssetsHomepageProvider();
+  GetIt.I.registerLazySingleton<BitAssetsHomepageProvider>(() => bitassetsHomepageProvider);
+  GetIt.I.registerLazySingleton<HomepageProvider>(() => bitassetsHomepageProvider);
 
   return (applicationDir, logFile, log);
 }

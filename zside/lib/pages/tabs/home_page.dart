@@ -20,8 +20,8 @@ enum Tabs {
   // parent chain routes
   ParentChainPeg,
 
-  // sidechain balance/transfer route
-  SidechainOverview,
+  // zside homepage
+  ZSideHomepage,
 
   // zside routes
   ZSideShieldDeshield,
@@ -129,7 +129,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             ParentChainRoute(),
 
             // sidechain balance/transfer route
-            SidechainOverviewTabRoute(),
+            ZSideHomepageRoute(),
 
             // zside routes
             ZSideShieldDeshieldTabRoute(),
@@ -154,9 +154,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         },
                       ),
                       TopNavRoute(
-                        label: 'Overview',
+                        label: 'Home',
+                        optionalKey: Tabs.ZSideHomepage.index,
                         onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+                          tabsRouter.setActiveIndex(Tabs.ZSideHomepage.index);
                         },
                       ),
                       TopNavRoute(
@@ -174,6 +175,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         },
                       ),
                     ],
+                    endWidget: SailButton(
+                      label: 'Configure Homepage',
+                      small: true,
+                      onPressed: () async {
+                        await GetIt.I.get<AppRouter>().push(ZSideConfigureHomepageRoute());
+                      },
+                    ),
                   ),
                   body: Column(
                     children: [

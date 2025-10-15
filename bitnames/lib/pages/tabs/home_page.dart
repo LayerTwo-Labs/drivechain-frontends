@@ -20,8 +20,8 @@ enum Tabs {
   // parent chain routes
   ParentChainPeg,
 
-  // sidechain balance/transfer route
-  SidechainOverview,
+  // bitnames homepage
+  BitnamesHomepage,
 
   // sidechain balance/transfer route
   Bitnames,
@@ -131,12 +131,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
           child: Scaffold(
             backgroundColor: theme.colors.background,
             body: auto_router.AutoTabsRouter.builder(
-              homeIndex: Tabs.ParentChainPeg.index,
+              homeIndex: Tabs.BitnamesHomepage.index,
               routes: [
                 // parent chain routes
                 ParentChainRoute(),
-                // sidechain balance/transfer route
-                SidechainOverviewTabRoute(),
+                // bitnames homepage
+                BitnamesHomepageRoute(),
                 // bitnames route
                 BitnamesTabRoute(),
                 // bitnames messaging route
@@ -162,10 +162,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             },
                           ),
                           TopNavRoute(
-                            label: 'Overview',
-                            optionalKey: Tabs.SidechainOverview.index,
+                            label: 'Home',
+                            optionalKey: Tabs.BitnamesHomepage.index,
                             onTap: () {
-                              tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+                              tabsRouter.setActiveIndex(Tabs.BitnamesHomepage.index);
                             },
                           ),
                           TopNavRoute(
@@ -193,6 +193,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             icon: SailSVGAsset.settings,
                           ),
                         ],
+                        endWidget: SailButton(
+                          label: 'Configure Homepage',
+                          small: true,
+                          onPressed: () async {
+                            await GetIt.I.get<AppRouter>().push(BitnamesConfigureHomepageRoute());
+                          },
+                        ),
                       ),
                       body: Column(
                         children: [

@@ -1,4 +1,6 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitnames/pages/tabs/bitnames_configure_homepage_page.dart';
+import 'package:bitnames/pages/tabs/bitnames_homepage.dart';
 import 'package:bitnames/pages/tabs/console_page.dart';
 import 'package:bitnames/pages/tabs/home_page.dart';
 import 'package:bitnames/pages/tabs/messaging_page.dart';
@@ -42,8 +44,11 @@ class AppRouter extends RootStackRouter {
           page: ParentChainRoute.page,
         ),
         AutoRoute(
-          page: SidechainOverviewTabRoute.page,
+          page: BitnamesHomepageRoute.page,
           initial: true,
+        ),
+        AutoRoute(
+          page: SidechainOverviewTabRoute.page,
         ),
         AutoRoute(
           page: BitnamesTabRoute.page,
@@ -58,6 +63,9 @@ class AppRouter extends RootStackRouter {
           page: ConsoleTabRoute.page,
         ),
       ],
+    ),
+    AutoRoute(
+      page: BitnamesConfigureHomepageRoute.page,
     ),
     AutoRoute(
       page: LogRoute.page,

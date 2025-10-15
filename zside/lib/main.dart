@@ -14,6 +14,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:zside/config/runtime_args.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/transactions_provider.dart';
+import 'package:zside/providers/zside_homepage_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/rpc/models/active_sidechains.dart';
@@ -88,6 +89,10 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
   );
+
+  final zsideHomepageProvider = ZSideHomepageProvider();
+  GetIt.I.registerLazySingleton<ZSideHomepageProvider>(() => zsideHomepageProvider);
+  GetIt.I.registerLazySingleton<HomepageProvider>(() => zsideHomepageProvider);
 
   return (applicationDir, logFile, log);
 }
