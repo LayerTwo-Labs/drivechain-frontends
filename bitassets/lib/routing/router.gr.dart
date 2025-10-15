@@ -11,6 +11,38 @@
 part of 'router.dart';
 
 /// generated route for
+/// [BitAssetsConfigureHomepagePage]
+class BitAssetsConfigureHomepageRoute extends PageRouteInfo<void> {
+  const BitAssetsConfigureHomepageRoute({List<PageRouteInfo>? children})
+    : super(BitAssetsConfigureHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'BitAssetsConfigureHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitAssetsConfigureHomepagePage();
+    },
+  );
+}
+
+/// generated route for
+/// [BitAssetsHomepagePage]
+class BitAssetsHomepageRoute extends PageRouteInfo<void> {
+  const BitAssetsHomepageRoute({List<PageRouteInfo>? children})
+    : super(BitAssetsHomepageRoute.name, initialChildren: children);
+
+  static const String name = 'BitAssetsHomepageRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitAssetsHomepagePage();
+    },
+  );
+}
+
+/// generated route for
 /// [BitAssetsTabPage]
 class BitAssetsTabRoute extends PageRouteInfo<void> {
   const BitAssetsTabRoute({List<PageRouteInfo>? children})

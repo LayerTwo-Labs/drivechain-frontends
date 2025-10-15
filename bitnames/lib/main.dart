@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitnames/config/runtime_args.dart';
+import 'package:bitnames/providers/bitnames_homepage_provider.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:bitnames/routing/router.dart';
 import 'package:bitnames/rpc/models/active_sidechains.dart';
@@ -148,6 +149,11 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<BitnamesProvider>(
     () => BitnamesProvider(),
   );
+
+  // Register homepage provider
+  final bitnamesHomepageProvider = BitnamesHomepageProvider();
+  GetIt.I.registerLazySingleton<BitnamesHomepageProvider>(() => bitnamesHomepageProvider);
+  GetIt.I.registerLazySingleton<HomepageProvider>(() => bitnamesHomepageProvider);
 
   return (applicationDir, logFile, log);
 }

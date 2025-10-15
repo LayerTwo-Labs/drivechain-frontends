@@ -10,6 +10,8 @@ import 'package:zside/pages/tabs/zside/zside_melt_cast_page.dart';
 import 'package:zside/pages/tabs/zside/zside_rpc_tab_page.dart';
 import 'package:zside/pages/tabs/zside/zside_shield_deshield_page.dart';
 import 'package:zside/pages/tabs/zside/zside_transfer_page.dart';
+import 'package:zside/pages/tabs/zside_configure_homepage_page.dart';
+import 'package:zside/pages/tabs/zside_homepage.dart';
 import 'package:zside/pages/test_page.dart';
 
 part 'router.gr.dart';
@@ -47,8 +49,11 @@ class AppRouter extends RootStackRouter {
           page: ParentChainRoute.page,
         ),
         AutoRoute(
-          page: SidechainOverviewTabRoute.page,
+          page: ZSideHomepageRoute.page,
           initial: true,
+        ),
+        AutoRoute(
+          page: SidechainOverviewTabRoute.page,
         ),
         AutoRoute(
           page: ZSideMeltCastTabRoute.page,
@@ -66,6 +71,9 @@ class AppRouter extends RootStackRouter {
           page: SettingsTabRoute.page,
         ),
       ],
+    ),
+    AutoRoute(
+      page: ZSideConfigureHomepageRoute.page,
     ),
     AutoRoute(
       page: ZSideBillRoute.page,

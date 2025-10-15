@@ -1,4 +1,6 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitassets/pages/tabs/bitassets_configure_homepage_page.dart';
+import 'package:bitassets/pages/tabs/bitassets_homepage.dart';
 import 'package:bitassets/pages/tabs/console_page.dart';
 import 'package:bitassets/pages/tabs/dutch_auction_page.dart';
 import 'package:bitassets/pages/tabs/home_page.dart';
@@ -43,8 +45,11 @@ class AppRouter extends RootStackRouter {
           page: ParentChainRoute.page,
         ),
         AutoRoute(
-          page: SidechainOverviewTabRoute.page,
+          page: BitAssetsHomepageRoute.page,
           initial: true,
+        ),
+        AutoRoute(
+          page: SidechainOverviewTabRoute.page,
         ),
         AutoRoute(
           page: BitAssetsTabRoute.page,
@@ -62,6 +67,9 @@ class AppRouter extends RootStackRouter {
           page: ConsoleTabRoute.page,
         ),
       ],
+    ),
+    AutoRoute(
+      page: BitAssetsConfigureHomepageRoute.page,
     ),
     AutoRoute(
       page: LogRoute.page,

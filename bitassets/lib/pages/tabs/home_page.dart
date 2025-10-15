@@ -20,8 +20,8 @@ enum Tabs {
   // parent chain routes
   ParentChainPeg,
 
-  // sidechain balance/transfer route
-  SidechainOverview,
+  // bitassets homepage
+  BitAssetsHomepage,
 
   // sidechain balance/transfer route
   BitAssets,
@@ -134,12 +134,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
           child: Scaffold(
             backgroundColor: theme.colors.background,
             body: auto_router.AutoTabsRouter.builder(
-              homeIndex: Tabs.ParentChainPeg.index,
+              homeIndex: Tabs.BitAssetsHomepage.index,
               routes: [
                 // parent chain routes
                 ParentChainRoute(),
-                // sidechain balance/transfer route
-                SidechainOverviewTabRoute(),
+                // bitassets homepage
+                BitAssetsHomepageRoute(),
                 // bitassets route
                 BitAssetsTabRoute(),
                 // bitassets messaging route
@@ -167,10 +167,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             },
                           ),
                           TopNavRoute(
-                            label: 'Overview',
-                            optionalKey: Tabs.SidechainOverview.index,
+                            label: 'Home',
+                            optionalKey: Tabs.BitAssetsHomepage.index,
                             onTap: () {
-                              tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+                              tabsRouter.setActiveIndex(Tabs.BitAssetsHomepage.index);
                             },
                           ),
                           TopNavRoute(
@@ -205,6 +205,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             icon: SailSVGAsset.settings,
                           ),
                         ],
+                        endWidget: SailButton(
+                          label: 'Configure Homepage',
+                          small: true,
+                          onPressed: () async {
+                            await GetIt.I.get<AppRouter>().push(BitAssetsConfigureHomepageRoute());
+                          },
+                        ),
                       ),
                       body: Column(
                         children: [
