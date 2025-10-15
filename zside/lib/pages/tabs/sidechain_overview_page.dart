@@ -68,13 +68,13 @@ class SidechainOverviewTabPage extends StatelessWidget {
                       ),
 
                       SailCard(
-                        title: 'Receive on Sidechain',
+                        title: 'Receive on Sidechain - Transparent Address',
                         error: model.receiveError,
                         child: SailColumn(
                           spacing: SailStyleValues.padding04,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (model.isGeneratingAddress)
+                            if (model.isGeneratingTransparentAddress)
                               const Center(child: LoadingIndicator())
                             else ...[
                               SailColumn(
@@ -82,11 +82,39 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SailTextField(
-                                    controller: TextEditingController(text: model.receiveAddress),
-                                    hintText: 'Generating deposit address...',
+                                    controller: TextEditingController(text: model.transparentReceiveAddress),
+                                    hintText: 'Generating transparent address...',
                                     readOnly: true,
                                     suffixWidget: CopyButton(
-                                      text: model.receiveAddress ?? '',
+                                      text: model.transparentReceiveAddress ?? '',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      SailCard(
+                        title: 'Receive on Sidechain - Private Address',
+                        error: model.shieldedReceiveError,
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding04,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (model.isGeneratingShieldedAddress)
+                              const Center(child: LoadingIndicator())
+                            else ...[
+                              SailColumn(
+                                mainAxisSize: MainAxisSize.max,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailTextField(
+                                    controller: TextEditingController(text: model.shieldedReceiveAddress),
+                                    hintText: 'Generating private address...',
+                                    readOnly: true,
+                                    suffixWidget: CopyButton(
+                                      text: model.shieldedReceiveAddress ?? '',
                                     ),
                                   ),
                                 ],
@@ -101,10 +129,23 @@ class SidechainOverviewTabPage extends StatelessWidget {
                         child: SailColumn(
                           spacing: SailStyleValues.padding16,
                           children: [
-                            SailText.secondary15('Pay to'),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                SailText.secondary15('Pay to'),
+                                if (model.addressType.isNotEmpty) ...[
+                                  SailText.secondary13(
+                                    '(${model.addressType})',
+                                    color: model.isShieldedAddress
+                                      ? SailTheme.of(context).colors.success
+                                      : SailTheme.of(context).colors.info,
+                                  ),
+                                ],
+                              ],
+                            ),
                             SailTextField(
                               controller: model.bitcoinAddressController,
-                              hintText: 'Enter a bitcoin address',
+                              hintText: 'Enter a transparent or private address',
                             ),
                             NumericField(
                               label: 'Amount',
@@ -112,8 +153,8 @@ class SidechainOverviewTabPage extends StatelessWidget {
                               hintText: '0.00',
                             ),
                             SailButton(
-                              label: 'Send',
-                              onPressed: () => model.executeSendOnSidechain(context),
+                              label: model.isShieldedAddress ? 'Send Private' : 'Send Transparent',
+                              onPressed: () async => model.executeSendOnSidechain(context),
                               loading: model.isSending,
                             ),
                           ],
@@ -145,10 +186,48 @@ class OverviewTabViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   final labelController = TextEditingController();
 
-  String? receiveAddress;
+  // Address type detection
+  bool _isValidBitcoinAddress(String address) {
+    if (address.isEmpty) return false;
+
+    // Bitcoin/transparent addresses typically:
+    // - Start with 1, 3, bc1, tb1, or t (for testnet transparent)
+    // - Have specific length ranges (25-62 for base58, up to 90 for bech32)
+    // - Use base58 or bech32 character sets
+
+    final validPrefixes = ['1', '3', 'bc1', 'tb1', 't'];
+    final hasValidPrefix = validPrefixes.any((prefix) => address.startsWith(prefix));
+
+    if (!hasValidPrefix) return false;
+
+    // Reasonable length check for Bitcoin addresses
+    if (address.length < 25 || address.length > 90) return false;
+
+    // Check for valid base58 or bech32 characters
+    final base58Regex = RegExp(r'^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$');
+    final bech32Regex = RegExp(r'^[a-z0-9]+$');
+
+    return base58Regex.hasMatch(address) || bech32Regex.hasMatch(address);
+  }
+
+  bool get isShieldedAddress {
+    final address = bitcoinAddressController.text.trim();
+    // If it looks like a valid Bitcoin/transparent address, it's transparent
+    // Otherwise assume it's shielded/private
+    return !_isValidBitcoinAddress(address) && address.isNotEmpty;
+  }
+
+  String get addressType {
+    if (bitcoinAddressController.text.trim().isEmpty) return '';
+    return isShieldedAddress ? 'Private' : 'Transparent';
+  }
+
+  String? transparentReceiveAddress;
+  String? shieldedReceiveAddress;
   double? sidechainFee;
   String? sendError;
   String? receiveError;
+  String? shieldedReceiveError;
 
   // Properties for sending
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
@@ -166,18 +245,17 @@ class OverviewTabViewModel extends BaseViewModel {
   double get pendingBalance => _balanceProvider.pendingBalance;
   double get totalBalance => balance + pendingBalance;
 
-  bool _sendingTransaction = false;
-  bool _generatingAddress = false;
-
-  bool get isSending => _sendingTransaction;
-  bool get isGeneratingAddress => _generatingAddress;
+  bool isSending = false;
+  bool isGeneratingTransparentAddress = false;
+  bool isGeneratingShieldedAddress = false;
 
   OverviewTabViewModel() {
     _initControllers();
     _initFees();
     _transactionsProvider.addListener(ensureAddress);
     _balanceProvider.addListener(ensureAddress);
-    generateReceiveAddress();
+    generateTransparentAddress();
+    generateShieldedAddress();
   }
 
   void _initControllers() {
@@ -190,8 +268,11 @@ class OverviewTabViewModel extends BaseViewModel {
   }
 
   void ensureAddress() {
-    if (receiveAddress == null) {
-      generateReceiveAddress();
+    if (transparentReceiveAddress == null) {
+      generateTransparentAddress();
+    }
+    if (shieldedReceiveAddress == null) {
+      generateShieldedAddress();
     }
     notifyListeners();
   }
@@ -212,19 +293,36 @@ class OverviewTabViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<void> generateReceiveAddress() async {
-    _generatingAddress = true;
+  Future<void> generateTransparentAddress() async {
+    isGeneratingTransparentAddress = true;
     receiveError = null;
     notifyListeners();
 
     try {
-      receiveAddress = await _rpc.getSideAddress();
+      transparentReceiveAddress = await _rpc.getNewTransparentAddress();
     } catch (error) {
-      log.e('Failed to generate receive address', error: error);
+      log.e('Failed to generate transparent address', error: error);
       receiveError = error.toString();
-      receiveAddress = null;
+      transparentReceiveAddress = null;
     } finally {
-      _generatingAddress = false;
+      isGeneratingTransparentAddress = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> generateShieldedAddress() async {
+    isGeneratingShieldedAddress = true;
+    shieldedReceiveError = null;
+    notifyListeners();
+
+    try {
+      shieldedReceiveAddress = await _rpc.getNewShieldedAddress();
+    } catch (error) {
+      log.e('Failed to generate shielded address', error: error);
+      shieldedReceiveError = error.toString();
+      shieldedReceiveAddress = null;
+    } finally {
+      isGeneratingShieldedAddress = false;
       notifyListeners();
     }
   }
@@ -253,7 +351,7 @@ class OverviewTabViewModel extends BaseViewModel {
 
     if (!context.mounted) return;
 
-    _sendingTransaction = true;
+    isSending = true;
     notifyListeners();
 
     try {
@@ -274,27 +372,41 @@ class OverviewTabViewModel extends BaseViewModel {
       log.e('Send failed', error: error);
       sendError = error.toString();
     } finally {
-      _sendingTransaction = false;
+      isSending = false;
       notifyListeners();
     }
   }
 
   Future<String> _doSidechainSend(BuildContext context, String address, double amount) async {
-    log.i('doing sidechain withdrawal: $amount $ticker to $address with $sidechainFee SC fee');
+    final isShielded = isShieldedAddress;
+    final transferType = isShielded ? 'shielded' : 'transparent';
+    log.i('doing sidechain $transferType transfer: $amount $ticker to $address with $sidechainFee SC fee');
 
     try {
-      final sendTXID = await _rpc.sideSend(
-        address,
-        amount,
-        false,
-      );
+      final String sendTXID;
+
+      if (isShielded) {
+        // Use shielded transfer for private addresses
+        sendTXID = await _rpc.sendShielded(
+          address,
+          btcToSatoshi(amount).toDouble(),
+          btcToSatoshi(sidechainFee ?? 0.00001).toDouble(),
+        );
+      } else {
+        // Use transparent transfer for transparent addresses
+        sendTXID = await _rpc.sendTransparent(
+          address,
+          btcToSatoshi(amount).toDouble(),
+          btcToSatoshi(sidechainFee ?? 0.00001).toDouble(),
+        );
+      }
 
       unawaited(_balanceProvider.fetch());
       unawaited(_transactionsProvider.fetch());
 
       return sendTXID;
     } catch (error) {
-      log.e('Could not execute withdrawal', error: error);
+      log.e('Could not execute $transferType transfer', error: error);
       rethrow;
     }
   }
