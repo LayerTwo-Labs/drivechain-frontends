@@ -70,56 +70,56 @@ class SidechainOverviewTabPage extends StatelessWidget {
                       SailCard(
                         title: 'Receive on Sidechain - Transparent Address',
                         error: model.receiveError,
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding04,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: SailRow(
+                          spacing: SailStyleValues.padding08,
                           children: [
-                            if (model.isGeneratingTransparentAddress)
-                              const Center(child: LoadingIndicator())
-                            else ...[
-                              SailColumn(
-                                mainAxisSize: MainAxisSize.max,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SailTextField(
-                                    controller: TextEditingController(text: model.transparentReceiveAddress),
-                                    hintText: 'Generating transparent address...',
-                                    readOnly: true,
-                                    suffixWidget: CopyButton(
-                                      text: model.transparentReceiveAddress ?? '',
-                                    ),
-                                  ),
-                                ],
+                            Expanded(
+                              child: SailTextField(
+                                controller: TextEditingController(text: model.transparentReceiveAddress),
+                                hintText: 'Generating transparent address...',
+                                readOnly: true,
+                                suffixWidget: model.isGeneratingTransparentAddress
+                                    ? const Padding(
+                                        padding: EdgeInsets.only(right: 8),
+                                        child: SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: LoadingIndicator(),
+                                        ),
+                                      )
+                                    : CopyButton(
+                                        text: model.transparentReceiveAddress ?? '',
+                                      ),
                               ),
-                            ],
+                            ),
                           ],
                         ),
                       ),
                       SailCard(
                         title: 'Receive on Sidechain - Private Address',
                         error: model.shieldedReceiveError,
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding04,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: SailRow(
+                          spacing: SailStyleValues.padding08,
                           children: [
-                            if (model.isGeneratingShieldedAddress)
-                              const Center(child: LoadingIndicator())
-                            else ...[
-                              SailColumn(
-                                mainAxisSize: MainAxisSize.max,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SailTextField(
-                                    controller: TextEditingController(text: model.shieldedReceiveAddress),
-                                    hintText: 'Generating private address...',
-                                    readOnly: true,
-                                    suffixWidget: CopyButton(
-                                      text: model.shieldedReceiveAddress ?? '',
-                                    ),
-                                  ),
-                                ],
+                            Expanded(
+                              child: SailTextField(
+                                controller: TextEditingController(text: model.shieldedReceiveAddress),
+                                hintText: 'Generating private address...',
+                                readOnly: true,
+                                suffixWidget: model.isGeneratingShieldedAddress
+                                    ? const Padding(
+                                        padding: EdgeInsets.only(right: 8),
+                                        child: SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: LoadingIndicator(),
+                                        ),
+                                      )
+                                    : CopyButton(
+                                        text: model.shieldedReceiveAddress ?? '',
+                                      ),
                               ),
-                            ],
+                            ),
                           ],
                         ),
                       ),
@@ -137,8 +137,8 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                   SailText.secondary13(
                                     '(${model.addressType})',
                                     color: model.isShieldedAddress
-                                      ? SailTheme.of(context).colors.success
-                                      : SailTheme.of(context).colors.info,
+                                        ? SailTheme.of(context).colors.success
+                                        : SailTheme.of(context).colors.info,
                                   ),
                                 ],
                               ],
@@ -254,8 +254,21 @@ class OverviewTabViewModel extends BaseViewModel {
     _initFees();
     _transactionsProvider.addListener(ensureAddress);
     _balanceProvider.addListener(ensureAddress);
+    _rpc.addListener(_onRpcConnectionChanged);
     generateTransparentAddress();
     generateShieldedAddress();
+  }
+
+  void _onRpcConnectionChanged() {
+    // When RPC connection status changes, try to generate addresses if they're missing
+    if (_rpc.connected) {
+      if (transparentReceiveAddress == null && !isGeneratingTransparentAddress) {
+        generateTransparentAddress();
+      }
+      if (shieldedReceiveAddress == null && !isGeneratingShieldedAddress) {
+        generateShieldedAddress();
+      }
+    }
   }
 
   void _initControllers() {
@@ -294,12 +307,21 @@ class OverviewTabViewModel extends BaseViewModel {
   }
 
   Future<void> generateTransparentAddress() async {
-    isGeneratingTransparentAddress = true;
-    receiveError = null;
-    notifyListeners();
-
     try {
+      isGeneratingTransparentAddress = true;
+      receiveError = null;
+      notifyListeners();
+
+      // Check if RPC is connected before attempting to generate address
+      if (!_rpc.connected) {
+        log.d('RPC not connected yet, waiting for connection...');
+        receiveError = 'Waiting for ZSide connection...';
+        transparentReceiveAddress = null;
+        return;
+      }
+
       transparentReceiveAddress = await _rpc.getNewTransparentAddress();
+      receiveError = null;
     } catch (error) {
       log.e('Failed to generate transparent address', error: error);
       receiveError = error.toString();
@@ -311,12 +333,21 @@ class OverviewTabViewModel extends BaseViewModel {
   }
 
   Future<void> generateShieldedAddress() async {
-    isGeneratingShieldedAddress = true;
-    shieldedReceiveError = null;
-    notifyListeners();
-
     try {
+      isGeneratingShieldedAddress = true;
+      shieldedReceiveError = null;
+      notifyListeners();
+
+      // Check if RPC is connected before attempting to generate address
+      if (!_rpc.connected) {
+        log.d('RPC not connected yet, waiting for connection...');
+        shieldedReceiveError = 'Waiting for ZSide connection...';
+        shieldedReceiveAddress = null;
+        return;
+      }
+
       shieldedReceiveAddress = await _rpc.getNewShieldedAddress();
+      shieldedReceiveError = null;
     } catch (error) {
       log.e('Failed to generate shielded address', error: error);
       shieldedReceiveError = error.toString();
@@ -427,6 +458,7 @@ class OverviewTabViewModel extends BaseViewModel {
     labelController.dispose();
     _transactionsProvider.removeListener(ensureAddress);
     _balanceProvider.removeListener(ensureAddress);
+    _rpc.removeListener(_onRpcConnectionChanged);
     super.dispose();
   }
 }

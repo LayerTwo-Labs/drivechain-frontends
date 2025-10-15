@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/wallet/wallet_reader.dart';
 
 abstract class Sidechain extends Binary {
   Sidechain({
@@ -107,16 +108,50 @@ abstract class Sidechain extends Binary {
   }
 
   String? getMnemonicPath(Directory appDir) {
-    final walletDir = getWalletDir(appDir);
-    if (walletDir == null) {
+    // 1. Check if starter file already exists in tmp directory
+    final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
+    final mnemonicPath = path.join(tmpDir.path, 'sidechain_${slot}_starter.txt');
+    final mnemonicFile = File(mnemonicPath);
+
+    if (mnemonicFile.existsSync()) {
+      return mnemonicPath;
+    }
+
+    // 2. Try to read from wallet.json and regenerate
+    final bitwindowAppDir = Directory(path.join(appDir.parent.path, 'bitwindow'));
+    final walletReader = WalletReader(bitwindowAppDir);
+
+    // 3. Check if wallet exists
+    if (!walletReader.walletExists()) {
       return null;
     }
 
-    final mnemonicPath = path.normalize(path.join(walletDir.path, 'sidechain_${slot}_starter.txt'));
+    // 4. If encrypted, return null (wallet must be unlocked in bitwindow first)
+    if (walletReader.isEncrypted()) {
+      return null;
+    }
 
-    // Return path if the file exists, otherwise null
-    // Files are created by syncStarterFiles() when wallet is unlocked
-    return File(mnemonicPath).existsSync() ? mnemonicPath : null;
+    // 5. Read mnemonic from unencrypted wallet
+    final mnemonic = walletReader.getSidechainMnemonic(slot);
+    if (mnemonic == null) {
+      return null;
+    }
+
+    // 6. Write to tmp file and return path
+    try {
+      if (!tmpDir.existsSync()) {
+        tmpDir.createSync(recursive: true);
+        // Set restrictive permissions (owner only: rwx------)
+        if (!Platform.isWindows) {
+          Process.runSync('chmod', ['700', tmpDir.path]);
+        }
+      }
+
+      mnemonicFile.writeAsStringSync(mnemonic);
+      return mnemonicPath;
+    } catch (e) {
+      return null;
+    }
   }
 }
 

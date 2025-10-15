@@ -23,6 +23,7 @@ dependencies:
   archive: ^4.0.7
   intl: ^0.20.2
   crypto: ^3.0.6
+  encrypt: ^5.0.3
   logger: ^2.6.1
   stacked: ^3.5.0
   skeletonizer: ^2.1.0+1
