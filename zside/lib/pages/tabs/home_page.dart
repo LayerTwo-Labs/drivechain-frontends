@@ -154,6 +154,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         },
                       ),
                       TopNavRoute(
+                        label: 'Overview',
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+                        },
+                      ),
+                      TopNavRoute(
                         label: 'Shield/Deshield',
                         optionalKey: Tabs.ZSideShieldDeshield.index,
                         onTap: () {
