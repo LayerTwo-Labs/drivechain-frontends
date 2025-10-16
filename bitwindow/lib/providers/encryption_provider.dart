@@ -78,72 +78,88 @@ class EncryptionProvider extends ChangeNotifier {
     return File(path.join(bitwindowAppDir.path, 'wallet.json'));
   }
 
+  /// Internal helper to check encryption status (no lock)
+  Future<bool> _isWalletEncryptedInternal() async {
+    final metadataFile = _getMetadataFile();
+    if (!await metadataFile.exists()) {
+      return false;
+    }
+
+    try {
+      final metadataJson = await metadataFile.readAsString();
+      final metadata = EncryptionMetadata.fromJsonString(metadataJson);
+      return metadata.encrypted;
+    } catch (e, stack) {
+      _logger.e('_isWalletEncryptedInternal: Error reading metadata: $e\n$stack');
+      return false;
+    }
+  }
+
   /// Check if wallet is encrypted
   Future<bool> isWalletEncrypted() async {
     return await _lock.synchronized(() async {
-      final metadataFile = _getMetadataFile();
-      if (!await metadataFile.exists()) {
-        return false;
-      }
-
-      try {
-        final metadataJson = await metadataFile.readAsString();
-        final metadata = EncryptionMetadata.fromJsonString(metadataJson);
-        return metadata.encrypted;
-      } catch (e, stack) {
-        _logger.e('isWalletEncrypted: Error reading metadata: $e\n$stack');
-        return false;
-      }
+      return await _isWalletEncryptedInternal();
     });
   }
 
   /// Check if wallet is currently unlocked (decrypted in memory)
   bool get isWalletUnlocked => _decryptedWalletJson != null;
 
-  /// Derive encryption key from password using PBKDF2
-  Uint8List _deriveKey(String password, Uint8List salt, int iterations) {
+  /// Derive encryption key from password using PBKDF2 in an isolate
+  Future<Uint8List> _deriveKey(String password, Uint8List salt, int iterations) async {
+    // Run expensive PBKDF2 computation in isolate to avoid blocking UI
+    return await compute(_deriveKeyIsolate, {
+      'password': password,
+      'salt': salt,
+      'iterations': iterations,
+      'keyLength': _keyLength,
+    });
+  }
+
+  /// PBKDF2 implementation (runs in isolate)
+  static Uint8List _deriveKeyIsolate(Map<String, dynamic> params) {
+    final password = params['password'] as String;
+    final salt = params['salt'] as Uint8List;
+    final iterations = params['iterations'] as int;
+    final keyLength = params['keyLength'] as int;
+
     final passwordBytes = utf8.encode(password);
 
-    // PBKDF2 implementation
-    Uint8List pbkdf2(Uint8List password, Uint8List salt, int iterations, int keyLength) {
-      final result = Uint8List(keyLength);
-      var blockIndex = 1;
-      var offset = 0;
+    final result = Uint8List(keyLength);
+    var blockIndex = 1;
+    var offset = 0;
 
-      while (offset < keyLength) {
-        // Create block: salt + block index (big-endian)
-        final block = Uint8List(salt.length + 4);
-        block.setAll(0, salt);
-        block[salt.length] = (blockIndex >> 24) & 0xff;
-        block[salt.length + 1] = (blockIndex >> 16) & 0xff;
-        block[salt.length + 2] = (blockIndex >> 8) & 0xff;
-        block[salt.length + 3] = blockIndex & 0xff;
+    while (offset < keyLength) {
+      // Create block: salt + block index (big-endian)
+      final block = Uint8List(salt.length + 4);
+      block.setAll(0, salt);
+      block[salt.length] = (blockIndex >> 24) & 0xff;
+      block[salt.length + 1] = (blockIndex >> 16) & 0xff;
+      block[salt.length + 2] = (blockIndex >> 8) & 0xff;
+      block[salt.length + 3] = blockIndex & 0xff;
 
-        // First iteration: U1 = PRF(password, salt || block_index)
-        var u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(block).bytes);
-        var f = Uint8List.fromList(u);
+      // First iteration: U1 = PRF(password, salt || block_index)
+      var u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(block).bytes);
+      var f = Uint8List.fromList(u);
 
-        // Remaining iterations: Un = PRF(password, Un-1)
-        for (var i = 1; i < iterations; i++) {
-          u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(u).bytes);
-          // XOR with accumulated value
-          for (var j = 0; j < f.length; j++) {
-            f[j] ^= u[j];
-          }
+      // Remaining iterations: Un = PRF(password, Un-1)
+      for (var i = 1; i < iterations; i++) {
+        u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(u).bytes);
+        // XOR with accumulated value
+        for (var j = 0; j < f.length; j++) {
+          f[j] ^= u[j];
         }
-
-        // Copy block to result
-        final remaining = keyLength - offset;
-        final toCopy = remaining < f.length ? remaining : f.length;
-        result.setRange(offset, offset + toCopy, f);
-        offset += toCopy;
-        blockIndex++;
       }
 
-      return result;
+      // Copy block to result
+      final remaining = keyLength - offset;
+      final toCopy = remaining < f.length ? remaining : f.length;
+      result.setRange(offset, offset + toCopy, f);
+      offset += toCopy;
+      blockIndex++;
     }
 
-    return pbkdf2(passwordBytes, salt, iterations, _keyLength);
+    return result;
   }
 
   /// Generate random salt
@@ -191,7 +207,7 @@ class EncryptionProvider extends ChangeNotifier {
         _logger.i('encryptWallet: Starting wallet encryption');
 
         // Check if already encrypted
-        if (await isWalletEncrypted()) {
+        if (await _isWalletEncryptedInternal()) {
           throw Exception('Wallet is already encrypted');
         }
 
@@ -206,7 +222,7 @@ class EncryptionProvider extends ChangeNotifier {
 
         // 2. Generate salt and derive key
         final salt = _generateSalt();
-        final key = _deriveKey(password, salt, _defaultIterations);
+        final key = await _deriveKey(password, salt, _defaultIterations);
         _logger.i('encryptWallet: Derived encryption key');
 
         // 3. Encrypt the wallet data
@@ -272,7 +288,7 @@ class EncryptionProvider extends ChangeNotifier {
 
         // Derive key from password
         final salt = base64.decode(metadata.salt);
-        final key = _deriveKey(password, salt, metadata.iterations);
+        final key = await _deriveKey(password, salt, metadata.iterations);
         _logger.i('unlockWallet: Derived key from password');
 
         // Try to decrypt
@@ -347,7 +363,7 @@ class EncryptionProvider extends ChangeNotifier {
 
         // Generate new salt and derive new key
         final newSalt = _generateSalt();
-        final newKey = _deriveKey(newPassword, newSalt, _defaultIterations);
+        final newKey = await _deriveKey(newPassword, newSalt, _defaultIterations);
         _logger.i('changePassword: Derived new encryption key');
 
         // Encrypt with new key

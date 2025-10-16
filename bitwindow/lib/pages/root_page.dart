@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
@@ -324,6 +325,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: () {
                         final windowProvider = GetIt.I.get<WindowProvider>();
                         windowProvider.open(SubWindowTypes.hdWallet);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Encrypt Wallet',
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const EncryptWalletDialog(),
+                        );
                       },
                     ),
                     PlatformMenuItem(
