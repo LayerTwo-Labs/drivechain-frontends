@@ -105,7 +105,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             const SizedBox(height: 24),
             SailTextField(
               controller: _oldPasswordController,
-              label: 'Current Password',
+              label: 'Current Encryption Password',
               hintText: 'Enter your current password',
               obscureText: _obscureOldPassword,
               enabled: !_isChanging,
@@ -122,7 +122,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             const SizedBox(height: 16),
             SailTextField(
               controller: _newPasswordController,
-              label: 'New Password',
+              label: 'New Encryption Password',
               hintText: 'Choose a new password',
               obscureText: _obscureNewPassword,
               enabled: !_isChanging,
@@ -138,7 +138,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             const SizedBox(height: 16),
             SailTextField(
               controller: _confirmPasswordController,
-              label: 'Confirm New Password',
+              label: 'Confirm New Encryption Password',
               hintText: 'Confirm your new password',
               obscureText: _obscureConfirmPassword,
               enabled: !_isChanging,
