@@ -187,6 +187,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             textColor: textColor,
           ),
           SailTableCell(
+            key: buttonWidget?.key,
             value: '  Update  ',
             child: buttonWidget,
           ),
@@ -308,6 +309,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             textColor: textColor,
           ),
           SailTableCell(
+            key: buttonWidget?.key,
             value: buttonWidget?.toString() ?? '',
             child: buttonWidget,
           ),
@@ -524,6 +526,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (stopping) {
       return SailButton(
+        key: ValueKey('stopping_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Stopping...',
         onPressed: null,
         insideTable: true,
@@ -542,6 +545,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (isInitializing) {
       return SailButton(
+        key: ValueKey('launching_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Launching...',
         onPressed: null,
         insideTable: true,
@@ -577,6 +581,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     return SailButton(
+      key: ValueKey('error_slot_${sidechain.slot}_${sidechain.name}'),
       label: 'Devs did you wrong...',
       onPressed: () => throw Exception('Send them this error'),
       insideTable: true,
