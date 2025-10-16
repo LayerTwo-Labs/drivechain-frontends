@@ -1682,24 +1682,6 @@ class _AdvancedSettingsContentState extends State<_AdvancedSettingsContent> {
     setState(() {});
   }
 
-  Future<void> _showDebugModeWarning() async {
-    await showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Enable Debug Mode?',
-        subtitle:
-            'Enabling debug mode will send detailed error reports Sentry.\r\n\r\nEvery time a component crashes or an error is thrown, '
-            'Sentry will collect technical information about your device, app usage patterns, and error details.'
-            '\r\n\r\nIt is very helpful to the devs, but it also includes information such as your IP address, device type, and location. '
-            'If you dont trust Sentry with this information, enable a VPN, or press Cancel.',
-        onConfirm: () async {
-          await _settingsProvider.updateDebugMode(true);
-          if (context.mounted) Navigator.of(context).pop();
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return SailColumn(
@@ -1712,39 +1694,6 @@ class _AdvancedSettingsContentState extends State<_AdvancedSettingsContent> {
           children: [
             SailText.primary20('Advanced'),
             SailText.secondary13('Developer options and experimental features'),
-          ],
-        ),
-
-        // Debug Mode
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Debug Mode'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<bool>(
-              value: _settingsProvider.debugMode,
-              items: [
-                SailDropdownItem<bool>(
-                  value: false,
-                  label: 'Disabled',
-                ),
-                SailDropdownItem<bool>(
-                  value: true,
-                  label: 'Enabled',
-                ),
-              ],
-              onChanged: (bool? newValue) async {
-                if (newValue == true) {
-                  await _showDebugModeWarning();
-                } else {
-                  await _settingsProvider.updateDebugMode(false);
-                }
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'When enabled, detailed error reporting will be collected to fix bugs hastily.',
-            ),
           ],
         ),
 
