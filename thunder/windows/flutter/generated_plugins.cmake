@@ -6,14 +6,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   auto_updater_windows
   desktop_multi_window
   screen_retriever_windows
-  sentry_flutter
   url_launcher_windows
   window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   flutter_pty
-  jni
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)
