@@ -50,11 +50,6 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
       return;
     }
 
-    if (_newPasswordController.text.length < 8) {
-      setState(() => _errorMessage = 'New password must be at least 8 characters');
-      return;
-    }
-
     if (_newPasswordController.text != _confirmPasswordController.text) {
       setState(() => _errorMessage = 'New passwords do not match');
       return;
@@ -108,49 +103,54 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
               'Enter your current password and choose a new password for your wallet.',
             ),
             const SizedBox(height: 24),
-            TextField(
+            SailTextField(
               controller: _oldPasswordController,
+              label: 'Current Password',
+              hintText: 'Enter your current password',
               obscureText: _obscureOldPassword,
               enabled: !_isChanging,
-              decoration: InputDecoration(
-                labelText: 'Current Password',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureOldPassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
+              autofocus: true,
+              maxLines: 1,
+              suffixWidget: GestureDetector(
+                onTap: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
+                child: Icon(
+                  _obscureOldPassword ? Icons.visibility : Icons.visibility_off,
+                  color: SailTheme.of(context).colors.text,
                 ),
               ),
-              autofocus: true,
             ),
             const SizedBox(height: 16),
-            TextField(
+            SailTextField(
               controller: _newPasswordController,
+              label: 'New Password',
+              hintText: 'Choose a new password',
               obscureText: _obscureNewPassword,
               enabled: !_isChanging,
-              decoration: InputDecoration(
-                labelText: 'New Password',
-                helperText: 'At least 8 characters',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureNewPassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+              maxLines: 1,
+              suffixWidget: GestureDetector(
+                onTap: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+                child: Icon(
+                  _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                  color: SailTheme.of(context).colors.text,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
+            SailTextField(
               controller: _confirmPasswordController,
+              label: 'Confirm New Password',
+              hintText: 'Confirm your new password',
               obscureText: _obscureConfirmPassword,
               enabled: !_isChanging,
-              decoration: InputDecoration(
-                labelText: 'Confirm New Password',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              maxLines: 1,
+              onSubmitted: (_) => _changePassword(),
+              suffixWidget: GestureDetector(
+                onTap: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                child: Icon(
+                  _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                  color: SailTheme.of(context).colors.text,
                 ),
               ),
-              onSubmitted: (_) => _changePassword(),
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),

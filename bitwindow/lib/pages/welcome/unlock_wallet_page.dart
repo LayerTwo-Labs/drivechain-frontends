@@ -76,6 +76,7 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
                       enabled: !_isUnlocking,
                       onSubmitted: (_) => _handleUnlock(),
                       autofocus: true,
+                      maxLines: 1,
                     ),
                     if (_errorMessage != null) ...[
                       const SizedBox(height: 8),
