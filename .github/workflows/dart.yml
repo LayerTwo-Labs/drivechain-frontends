@@ -29,7 +29,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.35.4
+          flutter-version: 3.35.6
 
       - uses: dart-lang/setup-dart@v1
         with:
@@ -76,7 +76,7 @@ jobs:
       - name: Build Flutter app
         run: |
           if [ "${{ matrix.package }}" == "faucet" ]; then
-            flutter build web 
+            flutter build web
           else
-            flutter build 
+            flutter build
           fi
