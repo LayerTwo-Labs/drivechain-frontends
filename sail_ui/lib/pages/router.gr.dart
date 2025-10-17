@@ -9,8 +9,10 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'dart:async' as _i9;
+
 import 'package:auto_route/auto_route.dart' as _i6;
-import 'package:collection/collection.dart' as _i9;
+import 'package:collection/collection.dart' as _i10;
 import 'package:flutter/material.dart' as _i7;
 import 'package:sail_ui/pages/log_page.dart' as _i1;
 import 'package:sail_ui/pages/shutdown_page.dart' as _i3;
@@ -95,6 +97,7 @@ class ShutDownRoute extends _i6.PageRouteInfo<ShutDownRouteArgs> {
   ShutDownRoute({
     _i7.Key? key,
     required List<_i8.Binary> binaries,
+    required _i9.Stream<_i8.ShutdownProgress> shutdownStream,
     required _i7.VoidCallback onComplete,
     List<_i6.PageRouteInfo>? children,
   }) : super(
@@ -102,6 +105,7 @@ class ShutDownRoute extends _i6.PageRouteInfo<ShutDownRouteArgs> {
          args: ShutDownRouteArgs(
            key: key,
            binaries: binaries,
+           shutdownStream: shutdownStream,
            onComplete: onComplete,
          ),
          initialChildren: children,
@@ -116,6 +120,7 @@ class ShutDownRoute extends _i6.PageRouteInfo<ShutDownRouteArgs> {
       return _i3.ShutDownPage(
         key: args.key,
         binaries: args.binaries,
+        shutdownStream: args.shutdownStream,
         onComplete: args.onComplete,
       );
     },
@@ -126,6 +131,7 @@ class ShutDownRouteArgs {
   const ShutDownRouteArgs({
     this.key,
     required this.binaries,
+    required this.shutdownStream,
     required this.onComplete,
   });
 
@@ -133,11 +139,13 @@ class ShutDownRouteArgs {
 
   final List<_i8.Binary> binaries;
 
+  final _i9.Stream<_i8.ShutdownProgress> shutdownStream;
+
   final _i7.VoidCallback onComplete;
 
   @override
   String toString() {
-    return 'ShutDownRouteArgs{key: $key, binaries: $binaries, onComplete: $onComplete}';
+    return 'ShutDownRouteArgs{key: $key, binaries: $binaries, shutdownStream: $shutdownStream, onComplete: $onComplete}';
   }
 
   @override
@@ -145,14 +153,16 @@ class ShutDownRouteArgs {
     if (identical(this, other)) return true;
     if (other is! ShutDownRouteArgs) return false;
     return key == other.key &&
-        const _i9.ListEquality().equals(binaries, other.binaries) &&
+        const _i10.ListEquality().equals(binaries, other.binaries) &&
+        shutdownStream == other.shutdownStream &&
         onComplete == other.onComplete;
   }
 
   @override
   int get hashCode =>
       key.hashCode ^
-      const _i9.ListEquality().hash(binaries) ^
+      const _i10.ListEquality().hash(binaries) ^
+      shutdownStream.hashCode ^
       onComplete.hashCode;
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -5,61 +7,89 @@ import 'package:sail_ui/sail_ui.dart';
 @RoutePage()
 class ShutDownPage extends StatefulWidget {
   final List<Binary> binaries;
+  final Stream<ShutdownProgress> shutdownStream;
   final VoidCallback onComplete;
 
-  const ShutDownPage({super.key, required this.binaries, required this.onComplete});
+  const ShutDownPage({
+    super.key,
+    required this.binaries,
+    required this.shutdownStream,
+    required this.onComplete,
+  });
 
   @override
   State<ShutDownPage> createState() => _ShutDownPageState();
 }
 
-class _ShutDownPageState extends State<ShutDownPage> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _progressAnimation;
+class _ShutDownPageState extends State<ShutDownPage> {
+  double _progress = 0.0;
   String _currentMessage = '';
+  StreamSubscription<ShutdownProgress>? _streamSubscription;
+  Timer? _slowShutdownTimer;
+  bool _isSlowShutdown = false;
 
   @override
   void initState() {
     super.initState();
 
-    final totalSteps = widget.binaries.length + 1;
-    final duration = Duration(seconds: totalSteps);
-
-    _controller = AnimationController(duration: duration, vsync: this);
-
-    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
-
-    _controller.addListener(_updateMessage);
-
     if (widget.binaries.isEmpty) {
-      setState(() {
-        _currentMessage = 'Until we meet again';
-      });
+      _currentMessage = 'Until we meet again';
+      _progress = 1.0;
+      Future.microtask(() => widget.onComplete());
+      return;
     }
 
-    // Start the animation for normal case
-    _controller.forward().then((_) {
-      if (mounted) {
-        widget.onComplete();
-      }
-    });
-  }
+    _currentMessage = 'Starting shutdown...';
 
-  void _updateMessage() {
-    final totalSteps = widget.binaries.length + 1;
-    final step = (_controller.value * totalSteps).floor();
-    setState(() {
-      if (step < widget.binaries.length) {
-        _currentMessage = 'Shutting down ${widget.binaries[step].name}...';
-      } else {
-        _currentMessage = 'Until we meet again';
-      }
+    // Start timer to detect slow shutdown after 3 seconds
+    _slowShutdownTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted || _progress >= 1.0) return;
+      setState(() {
+        _isSlowShutdown = true;
+      });
     });
+
+    _streamSubscription = widget.shutdownStream.listen(
+      (progress) {
+        if (!mounted) return;
+
+        setState(() {
+          _progress = progress.completedCount / progress.totalCount;
+          if (progress.currentBinary != null) {
+            if (_isSlowShutdown) {
+              _currentMessage = 'Shutting down ${progress.currentBinary} is taking longer than usual. Hang tight...';
+            } else {
+              _currentMessage = 'Shutting down ${progress.currentBinary}...';
+            }
+          } else if (progress.completedCount == progress.totalCount) {
+            _currentMessage = 'Until we meet again';
+            _slowShutdownTimer?.cancel();
+          }
+        });
+      },
+      onDone: () {
+        if (!mounted) return;
+        _slowShutdownTimer?.cancel();
+        setState(() {
+          _progress = 1.0;
+          _currentMessage = 'Until we meet again';
+        });
+        widget.onComplete();
+      },
+      onError: (error) {
+        if (!mounted) return;
+        _slowShutdownTimer?.cancel();
+        setState(() {
+          _currentMessage = 'Error during shutdown: $error';
+        });
+      },
+    );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _slowShutdownTimer?.cancel();
+    _streamSubscription?.cancel();
     super.dispose();
   }
 
@@ -87,7 +117,7 @@ class _ShutDownPageState extends State<ShutDownPage> with SingleTickerProviderSt
                   SizedBox(
                     width: 200,
                     child: ProgressBar(
-                      current: _progressAnimation.value,
+                      current: _progress,
                       goal: 1,
                       hideProgressInside: true,
                       small: true,

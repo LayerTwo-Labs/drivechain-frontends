@@ -1294,6 +1294,19 @@ class MetadataConfig {
   }
 }
 
+/// Represents shutdown progress information
+class ShutdownProgress {
+  final int totalCount;
+  final int completedCount;
+  final String? currentBinary;
+
+  const ShutdownProgress({
+    required this.totalCount,
+    required this.completedCount,
+    this.currentBinary,
+  });
+}
+
 /// Represents the download status and information for a binary
 class DownloadInfo {
   final double progress;
