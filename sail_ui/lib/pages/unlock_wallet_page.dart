@@ -22,11 +22,52 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
   final Logger _logger = GetIt.I.get<Logger>();
   String? _errorMessage;
   bool _isUnlocking = false;
+  String? _pendingPassword;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_onPasswordChanged);
+  }
 
   @override
   void dispose() {
+    _passwordController.removeListener(_onPasswordChanged);
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Automatically attempt decryption on each keystroke
+  void _onPasswordChanged() {
+    final password = _passwordController.text;
+    if (password.isEmpty || _isUnlocking) return;
+
+    // Store the password we're attempting to decrypt with
+    _pendingPassword = password;
+
+    // Try decryption in background without blocking UI
+    _tryAutoDecrypt(password);
+  }
+
+  /// Attempt automatic decryption in background
+  Future<void> _tryAutoDecrypt(String password) async {
+    try {
+      final encryptionProvider = GetIt.I.get<EncryptionProvider>();
+
+      // Try to decrypt (non-blocking validation)
+      final success = await encryptionProvider.tryDecryptWallet(password);
+
+      // Only proceed if this is still the current password
+      if (!mounted || _pendingPassword != password) return;
+
+      if (success) {
+        _logger.i('Auto-decrypt succeeded, unlocking wallet');
+        await _handleUnlock();
+      }
+    } catch (e) {
+      // Silently fail - user can still manually submit
+      _logger.d('Auto-decrypt attempt failed: $e');
+    }
   }
 
   @override
