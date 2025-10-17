@@ -5,6 +5,192 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
+class RevealSeedWarningDialog extends StatefulWidget {
+  final String starterName;
+
+  const RevealSeedWarningDialog({
+    super.key,
+    required this.starterName,
+  });
+
+  @override
+  State<RevealSeedWarningDialog> createState() => _RevealSeedWarningDialogState();
+
+  static Future<bool?> show(BuildContext context, String starterName) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RevealSeedWarningDialog(starterName: starterName),
+    );
+  }
+}
+
+class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
+  bool _understoodRisk = false;
+  bool _verifiedEnvironment = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final canReveal = _understoodRisk && _verifiedEnvironment;
+
+    return SailDialog(
+      title: 'Reveal Seed Phrase',
+      subtitle: 'Security Warning',
+      actions: [
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.secondary,
+          onPressed: () async => Navigator.of(context).pop(false),
+        ),
+        SailButton(
+          label: 'Reveal Seed Phrase',
+          onPressed: canReveal ? () async => Navigator.of(context).pop(true) : null,
+        ),
+      ],
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Warning section
+          Container(
+            padding: const EdgeInsets.all(SailStyleValues.padding12),
+            decoration: BoxDecoration(
+              color: theme.colors.orangeLight,
+              borderRadius: SailStyleValues.borderRadiusSmall,
+              border: Border.all(color: theme.colors.orange),
+            ),
+            child: SailColumn(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: theme.colors.orange,
+                      size: 20,
+                    ),
+                    const SizedBox(width: SailStyleValues.padding08),
+                    SailText.primary15(
+                      'CRITICAL SECURITY WARNING',
+                      color: theme.colors.orange,
+                      bold: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: SailStyleValues.padding08),
+                SailText.secondary13(
+                  'You are about to reveal the seed phrase for ${widget.starterName}. '
+                  'Please read and understand the following:',
+                ),
+              ],
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.all(SailStyleValues.padding12),
+            decoration: BoxDecoration(
+              color: theme.colors.backgroundSecondary,
+              borderRadius: SailStyleValues.borderRadiusSmall,
+              border: Border.all(color: theme.colors.border),
+            ),
+            child: SailColumn(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBulletPoint(
+                  context,
+                  'Anyone with this seed phrase can steal ALL your funds',
+                ),
+                _buildBulletPoint(
+                  context,
+                  'Never share this seed phrase with anyone, ever',
+                ),
+                _buildBulletPoint(
+                  context,
+                  'Make sure no cameras, phones, or observers can see your screen',
+                ),
+                _buildBulletPoint(
+                  context,
+                  'Disable screen recording and screenshot tools',
+                ),
+                _buildBulletPoint(
+                  context,
+                  'Be in a secure, private location before proceeding',
+                ),
+              ],
+            ),
+          ),
+
+          // Checkboxes
+          GestureDetector(
+            onTap: () => setState(() => _understoodRisk = !_understoodRisk),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailCheckbox(
+                  value: _understoodRisk,
+                  onChanged: (value) => setState(() => _understoodRisk = value),
+                ),
+                const SizedBox(width: SailStyleValues.padding08),
+                Expanded(
+                  child: SailText.secondary13(
+                    'I understand that anyone with this seed phrase can steal my funds',
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          GestureDetector(
+            onTap: () => setState(() => _verifiedEnvironment = !_verifiedEnvironment),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailCheckbox(
+                  value: _verifiedEnvironment,
+                  onChanged: (value) => setState(() => _verifiedEnvironment = value),
+                ),
+                const SizedBox(width: SailStyleValues.padding08),
+                Expanded(
+                  child: SailText.secondary13(
+                    'I have verified this is a secure, private environment',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulletPoint(BuildContext context, String text) {
+    final theme = SailTheme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Container(
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colors.text,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        const SizedBox(width: SailStyleValues.padding08),
+        Expanded(
+          child: SailText.secondary13(text),
+        ),
+      ],
+    );
+  }
+}
+
 class StartersTab extends StatelessWidget {
   const StartersTab({super.key});
 
@@ -209,13 +395,13 @@ TableRow mnemonicRow(
               if (!isRevealed)
                 SailButton(
                   label: 'Reveal',
-                  onPressed: () async => viewModel.toggleStarterReveal(name, true),
+                  onPressed: () async => viewModel.toggleStarterReveal(context, name, true),
                   variant: ButtonVariant.secondary,
                 )
               else
                 SailButton(
                   label: 'Hide',
-                  onPressed: () async => viewModel.toggleStarterReveal(name, false),
+                  onPressed: () async => viewModel.toggleStarterReveal(context, name, false),
                   variant: ButtonVariant.secondary,
                 ),
               const SizedBox(width: 8),
@@ -284,9 +470,21 @@ class StartersPageViewModel extends BaseViewModel {
     return starterName != null && _revealedStarters.contains(starterName);
   }
 
-  void toggleStarterReveal(String? starterName, bool reveal) {
+  Future<void> toggleStarterReveal(BuildContext context, String? starterName, bool reveal) async {
     if (starterName == null) return;
-    reveal ? _revealedStarters.add(starterName) : _revealedStarters.remove(starterName);
+
+    if (reveal) {
+      // Show warning dialog before revealing
+      final confirmed = await RevealSeedWarningDialog.show(context, starterName);
+      if (confirmed != true) {
+        // User cancelled, don't reveal
+        return;
+      }
+      _revealedStarters.add(starterName);
+    } else {
+      _revealedStarters.remove(starterName);
+    }
+
     notifyListeners();
   }
 

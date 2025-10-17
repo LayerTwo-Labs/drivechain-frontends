@@ -19,11 +19,14 @@ class ChainSettingsModal extends StatefulWidget {
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
   List<String> args = [];
   String deleteMessage = '';
+  String? _binaryVersion;
+  bool _loadingVersion = true;
 
   @override
   void initState() {
     super.initState();
     _loadArgs();
+    _loadBinaryVersion();
     setState(() {
       deleteMessage = 'Delete ${widget.connection.binary.name} data';
     });
@@ -36,6 +39,31 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       setState(() {
         args = loadedArgs;
       });
+    }
+  }
+
+  Future<void> _loadBinaryVersion() async {
+    setState(() {
+      _loadingVersion = true;
+    });
+
+    try {
+      final binaryProvider = GetIt.I.get<BinaryProvider>();
+      final version = await widget.connection.binary.binaryVersion(binaryProvider.appDir);
+
+      if (mounted) {
+        setState(() {
+          _binaryVersion = version;
+          _loadingVersion = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _binaryVersion = 'Error: $e';
+          _loadingVersion = false;
+        });
+      }
     }
   }
 
@@ -79,7 +107,11 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  StaticField(label: 'Version', value: viewModel.binary.version, copyable: true),
+                  StaticField(
+                    label: 'Version',
+                    value: _loadingVersion ? 'Loading...' : (_binaryVersion ?? viewModel.binary.version),
+                    copyable: true,
+                  ),
                   if (viewModel.binary.repoUrl.isNotEmpty)
                     StaticField(label: 'Repository', value: viewModel.binary.repoUrl, copyable: true),
                   StaticField(label: 'Host', value: 'localhost', copyable: true),
