@@ -43,43 +43,38 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: SailCard(
-          title: 'Open Bitcoin URI',
-          subtitle: 'Enter a Bitcoin URI to parse',
-          error: _error,
-          withCloseButton: true,
-          child: SailColumn(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: SailStyleValues.padding16,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailTextField(
-                label: 'Bitcoin URI',
-                controller: _controller,
-                hintText: 'bitcoin:<address>?amount=1.23',
-              ),
-              if (_parsedURI != null) ...[
-                SailText.primary13('Address: ${_parsedURI!.address}'),
-                if (_parsedURI!.amount != null) SailText.primary13('Amount: ${_parsedURI!.amount} BTC'),
-                if (_parsedURI!.label != null) SailText.primary13('Label: ${_parsedURI!.label}'),
-                if (_parsedURI!.message != null) SailText.primary13('Message: ${_parsedURI!.message}'),
-              ],
-              SailButton(
-                label: 'Use',
-                onPressed: () async {
-                  if (_parsedURI != null) {
-                    Navigator.of(context).pop(_parsedURI);
-                  }
-                },
-                disabled: _parsedURI == null,
-              ),
-            ],
+    return SailDialog(
+      title: 'Open Bitcoin URI',
+      subtitle: 'Enter a Bitcoin URI to parse',
+      error: _error,
+      maxWidth: 400,
+      maxHeight: 600,
+      child: SailColumn(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: SailStyleValues.padding16,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SailTextField(
+            label: 'Bitcoin URI',
+            controller: _controller,
+            hintText: 'bitcoin:<address>?amount=1.23',
           ),
-        ),
+          if (_parsedURI != null) ...[
+            SailText.primary13('Address: ${_parsedURI!.address}'),
+            if (_parsedURI!.amount != null) SailText.primary13('Amount: ${_parsedURI!.amount} BTC'),
+            if (_parsedURI!.label != null) SailText.primary13('Label: ${_parsedURI!.label}'),
+            if (_parsedURI!.message != null) SailText.primary13('Message: ${_parsedURI!.message}'),
+          ],
+          SailButton(
+            label: 'Use',
+            onPressed: () async {
+              if (_parsedURI != null) {
+                Navigator.of(context).pop(_parsedURI);
+              }
+            },
+            disabled: _parsedURI == null,
+          ),
+        ],
       ),
     );
   }
