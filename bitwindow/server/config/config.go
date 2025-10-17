@@ -21,6 +21,8 @@ const (
 )
 
 type Config struct {
+	Version bool `long:"version" short:"v" description:"Print version information and exit"`
+
 	BitcoinCoreHost        string  `long:"bitcoincore.host" description:"host:port for connecting to Bitcoin Core" default:"localhost:38332"`
 	BitcoinCoreCookie      string  `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
 	BitcoinCoreRpcUser     string  `long:"bitcoincore.rpcuser" default:"user"`
