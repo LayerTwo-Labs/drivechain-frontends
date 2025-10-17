@@ -11,7 +11,6 @@ import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
-import 'package:bitwindow/pages/welcome/unlock_wallet_page.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/password_guard.dart';
 import 'package:flutter/material.dart';

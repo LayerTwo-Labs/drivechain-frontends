@@ -11,7 +11,7 @@ import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
-import 'package:bitwindow/providers/encryption_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/services/linux_updater.dart';
@@ -22,7 +22,6 @@ import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/sidechain_main.dart' hide bootBinaries;
-import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class SettingsPage extends StatefulWidget {

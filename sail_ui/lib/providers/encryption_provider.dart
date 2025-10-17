@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
@@ -51,17 +52,19 @@ class EncryptionMetadata {
 }
 
 /// Provider for wallet encryption/decryption using AES-256-GCM
-/// Shared across all apps for unlocking encrypted wallets
 class EncryptionProvider extends ChangeNotifier {
   final Directory appDir;
   final _logger = GetIt.I.get<Logger>();
 
-  // In-memory storage for decrypted wallet data
+  // In-memory storage for decrypted wallet data and encryption key
   String? _decryptedWalletJson;
+  Uint8List? _encryptionKey;
   final Lock _lock = Lock();
 
   // Encryption configuration
   static const int _keyLength = 32; // 256 bits for AES-256
+  static const int _saltLength = 32; // 32 bytes
+  static const int _defaultIterations = 100000; // PBKDF2 iterations
 
   EncryptionProvider({required this.appDir});
 
@@ -75,72 +78,110 @@ class EncryptionProvider extends ChangeNotifier {
     return File(path.join(appDir.path, 'wallet.json'));
   }
 
+  /// Internal helper to check encryption status (no lock)
+  Future<bool> _isWalletEncryptedInternal() async {
+    final metadataFile = _getMetadataFile();
+    if (!await metadataFile.exists()) {
+      return false;
+    }
+
+    try {
+      final metadataJson = await metadataFile.readAsString();
+      final metadata = EncryptionMetadata.fromJsonString(metadataJson);
+      return metadata.encrypted;
+    } catch (e, stack) {
+      _logger.e('_isWalletEncryptedInternal: Error reading metadata: $e\n$stack');
+      return false;
+    }
+  }
+
   /// Check if wallet is encrypted
   Future<bool> isWalletEncrypted() async {
     return await _lock.synchronized(() async {
-      final metadataFile = _getMetadataFile();
-      if (!await metadataFile.exists()) {
-        return false;
-      }
-
-      try {
-        final metadataJson = await metadataFile.readAsString();
-        final metadata = EncryptionMetadata.fromJsonString(metadataJson);
-        return metadata.encrypted;
-      } catch (e, stack) {
-        _logger.e('isWalletEncrypted: Error reading metadata: $e\n$stack');
-        return false;
-      }
+      return await _isWalletEncryptedInternal();
     });
   }
 
   /// Check if wallet is currently unlocked (decrypted in memory)
   bool get isWalletUnlocked => _decryptedWalletJson != null;
 
-  /// Derive encryption key from password using PBKDF2
-  Uint8List _deriveKey(String password, Uint8List salt, int iterations) {
+  /// Derive encryption key from password using PBKDF2 in an isolate
+  Future<Uint8List> _deriveKey(String password, Uint8List salt, int iterations) async {
+    // Run expensive PBKDF2 computation in isolate to avoid blocking UI
+    return await compute(_deriveKeyIsolate, {
+      'password': password,
+      'salt': salt,
+      'iterations': iterations,
+      'keyLength': _keyLength,
+    });
+  }
+
+  /// PBKDF2 implementation (runs in isolate)
+  static Uint8List _deriveKeyIsolate(Map<String, dynamic> params) {
+    final password = params['password'] as String;
+    final salt = params['salt'] as Uint8List;
+    final iterations = params['iterations'] as int;
+    final keyLength = params['keyLength'] as int;
+
     final passwordBytes = utf8.encode(password);
 
-    // PBKDF2 implementation
-    Uint8List pbkdf2(Uint8List password, Uint8List salt, int iterations, int keyLength) {
-      final result = Uint8List(keyLength);
-      var blockIndex = 1;
-      var offset = 0;
+    final result = Uint8List(keyLength);
+    var blockIndex = 1;
+    var offset = 0;
 
-      while (offset < keyLength) {
-        // Create block: salt + block index (big-endian)
-        final block = Uint8List(salt.length + 4);
-        block.setAll(0, salt);
-        block[salt.length] = (blockIndex >> 24) & 0xff;
-        block[salt.length + 1] = (blockIndex >> 16) & 0xff;
-        block[salt.length + 2] = (blockIndex >> 8) & 0xff;
-        block[salt.length + 3] = blockIndex & 0xff;
+    while (offset < keyLength) {
+      // Create block: salt + block index (big-endian)
+      final block = Uint8List(salt.length + 4);
+      block.setAll(0, salt);
+      block[salt.length] = (blockIndex >> 24) & 0xff;
+      block[salt.length + 1] = (blockIndex >> 16) & 0xff;
+      block[salt.length + 2] = (blockIndex >> 8) & 0xff;
+      block[salt.length + 3] = blockIndex & 0xff;
 
-        // First iteration: U1 = PRF(password, salt || block_index)
-        var u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(block).bytes);
-        var f = Uint8List.fromList(u);
+      // First iteration: U1 = PRF(password, salt || block_index)
+      var u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(block).bytes);
+      var f = Uint8List.fromList(u);
 
-        // Remaining iterations: Un = PRF(password, Un-1)
-        for (var i = 1; i < iterations; i++) {
-          u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(u).bytes);
-          // XOR with accumulated value
-          for (var j = 0; j < f.length; j++) {
-            f[j] ^= u[j];
-          }
+      // Remaining iterations: Un = PRF(password, Un-1)
+      for (var i = 1; i < iterations; i++) {
+        u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(u).bytes);
+        // XOR with accumulated value
+        for (var j = 0; j < f.length; j++) {
+          f[j] ^= u[j];
         }
-
-        // Copy block to result
-        final remaining = keyLength - offset;
-        final toCopy = remaining < f.length ? remaining : f.length;
-        result.setRange(offset, offset + toCopy, f);
-        offset += toCopy;
-        blockIndex++;
       }
 
-      return result;
+      // Copy block to result
+      final remaining = keyLength - offset;
+      final toCopy = remaining < f.length ? remaining : f.length;
+      result.setRange(offset, offset + toCopy, f);
+      offset += toCopy;
+      blockIndex++;
     }
 
-    return pbkdf2(passwordBytes, salt, iterations, _keyLength);
+    return result;
+  }
+
+  /// Generate random salt
+  Uint8List _generateSalt() {
+    final random = Random.secure();
+    final salt = Uint8List(_saltLength);
+    for (var i = 0; i < _saltLength; i++) {
+      salt[i] = random.nextInt(256);
+    }
+    return salt;
+  }
+
+  /// Encrypt data using AES-256-GCM
+  String _encrypt(String plaintext, Uint8List key) {
+    final keyObj = Key(key);
+    final iv = IV.fromSecureRandom(16); // 128-bit IV for GCM
+    final encrypter = Encrypter(AES(keyObj, mode: AESMode.gcm));
+
+    final encrypted = encrypter.encrypt(plaintext, iv: iv);
+
+    // Return IV + encrypted data (both base64 encoded, separated by ':')
+    return '${iv.base64}:${encrypted.base64}';
   }
 
   /// Decrypt data using AES-256-GCM
@@ -159,94 +200,104 @@ class EncryptionProvider extends ChangeNotifier {
     return encrypter.decrypt(encrypted, iv: iv);
   }
 
-  /// Try to decrypt wallet with password (without storing result)
-  /// Returns true if decryption succeeds and data is valid JSON
-  Future<bool> tryDecryptWallet(String password) async {
-    if (password.isEmpty) return false;
-
-    try {
-      // Check if wallet is encrypted
-      final metadata = await _loadMetadata();
-      if (metadata == null || !metadata.encrypted) {
-        return false;
-      }
-
-      // Read encrypted wallet
-      final walletFile = _getWalletFile();
-      if (!await walletFile.exists()) {
-        return false;
-      }
-
-      final encryptedData = await walletFile.readAsString();
-
-      // Derive key from password
-      final salt = base64.decode(metadata.salt);
-      final key = _deriveKey(password, salt, metadata.iterations);
-
-      // Try to decrypt
+  /// Encrypt the wallet with a password
+  Future<void> encryptWallet(String password) async {
+    await _lock.synchronized(() async {
       try {
-        final decryptedJson = _decrypt(encryptedData, key);
+        // Check if already encrypted
+        if (await _isWalletEncryptedInternal()) {
+          throw Exception('Wallet is already encrypted');
+        }
 
-        // Validate that it's valid JSON
-        jsonDecode(decryptedJson);
+        final walletFile = _getWalletFile();
+        if (!await walletFile.exists()) {
+          throw Exception('No wallet file found to encrypt');
+        }
 
-        return true;
-      } catch (e) {
-        // Decryption failed or invalid JSON
-        return false;
+        // 1. Read the current wallet file
+        final walletJson = await walletFile.readAsString();
+
+        // 2. Generate salt and derive key
+        final salt = _generateSalt();
+        final key = await _deriveKey(password, salt, _defaultIterations);
+
+        // 3. Encrypt the wallet data
+        final encryptedData = _encrypt(walletJson, key);
+
+        // 4. Create backup of unencrypted wallet
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final backupFile = File(path.join(appDir.path, 'wallet.json.backup_before_encryption_$timestamp'));
+        await walletFile.copy(backupFile.path);
+
+        // 5. Write encrypted wallet
+        final tempFile = File('${walletFile.path}.tmp');
+        await tempFile.writeAsString(encryptedData);
+        await tempFile.rename(walletFile.path);
+
+        // 6. Create and save metadata
+        final metadata = EncryptionMetadata(
+          salt: base64.encode(salt),
+          iterations: _defaultIterations,
+          encrypted: true,
+        );
+        final metadataFile = _getMetadataFile();
+        await metadataFile.writeAsString(metadata.toJsonString());
+
+        // 7. Keep decrypted copy in memory
+        _decryptedWalletJson = walletJson;
+        _encryptionKey = key;
+
+        notifyListeners();
+      } catch (e, stack) {
+        _logger.e('encryptWallet: Failed to encrypt wallet: $e\n$stack');
+        rethrow;
       }
-    } catch (e) {
-      return false;
-    }
+    });
   }
 
   /// Unlock wallet with password (decrypt into memory)
   Future<bool> unlockWallet(String password) async {
+    if (password.isEmpty) {
+      return false;
+    }
+
     return await _lock.synchronized(() async {
       try {
-        _logger.i('unlockWallet: Attempting to unlock wallet');
-
         // Check if wallet is encrypted
         final metadata = await _loadMetadata();
         if (metadata == null || !metadata.encrypted) {
-          _logger.w('unlockWallet: Wallet is not encrypted');
           return false;
         }
 
         // Read encrypted wallet
         final walletFile = _getWalletFile();
         if (!await walletFile.exists()) {
-          throw Exception('Wallet file not found');
+          return false;
         }
 
         final encryptedData = await walletFile.readAsString();
-        _logger.i('unlockWallet: Read encrypted wallet file');
 
-        // Derive key from password
+        // Derive key from password (runs in isolate, non-blocking)
         final salt = base64.decode(metadata.salt);
-        final key = _deriveKey(password, salt, metadata.iterations);
-        _logger.i('unlockWallet: Derived key from password');
+        final key = await _deriveKey(password, salt, metadata.iterations);
 
         // Try to decrypt
         try {
           final decryptedJson = _decrypt(encryptedData, key);
-          _logger.i('unlockWallet: Successfully decrypted wallet');
 
           // Validate that it's valid JSON
           jsonDecode(decryptedJson);
 
           // Store in memory
           _decryptedWalletJson = decryptedJson;
-
-          _logger.i('unlockWallet: Wallet unlocked successfully');
+          _encryptionKey = key;
           notifyListeners();
           return true;
         } catch (e) {
-          _logger.w('unlockWallet: Failed to decrypt (wrong password?): $e');
           return false;
         }
       } catch (e, stack) {
-        _logger.e('unlockWallet: Error unlocking wallet: $e\n$stack');
+        _logger.e('unlockWallet: Unexpected error: $e\n$stack');
         return false;
       }
     });
@@ -255,28 +306,113 @@ class EncryptionProvider extends ChangeNotifier {
   /// Lock wallet (clear decrypted data from memory and cleanup temp files)
   Future<void> lockWallet() async {
     await _lock.synchronized(() async {
-      _logger.i('lockWallet: Locking wallet');
       _decryptedWalletJson = null;
+      _encryptionKey = null;
 
       // Clean up temporary starter files
       try {
         final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
         if (await tmpDir.exists()) {
           await tmpDir.delete(recursive: true);
-          _logger.i('lockWallet: Cleaned up temporary starter files');
         }
       } catch (e, stack) {
         _logger.w('lockWallet: Failed to cleanup starter files: $e\n$stack');
         // Don't rethrow - cleanup failures shouldn't prevent locking
       }
 
-      _logger.i('lockWallet: Wallet locked');
       notifyListeners();
+    });
+  }
+
+  /// Change wallet password
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    await _lock.synchronized(() async {
+      try {
+        // Check if wallet is encrypted
+        final metadata = await _loadMetadata();
+        if (metadata == null || !metadata.encrypted) {
+          throw Exception('Wallet is not encrypted');
+        }
+
+        // Try to unlock with old password
+        final unlocked = await unlockWallet(oldPassword);
+        if (!unlocked || _decryptedWalletJson == null) {
+          throw Exception('Incorrect old password');
+        }
+
+        // Generate new salt and derive new key
+        final newSalt = _generateSalt();
+        final newKey = await _deriveKey(newPassword, newSalt, _defaultIterations);
+
+        // Encrypt with new key
+        final newEncryptedData = _encrypt(_decryptedWalletJson!, newKey);
+
+        // Write encrypted wallet
+        final walletFile = _getWalletFile();
+        final tempFile = File('${walletFile.path}.tmp');
+        await tempFile.writeAsString(newEncryptedData);
+        await tempFile.rename(walletFile.path);
+
+        // Update metadata
+        final newMetadata = EncryptionMetadata(
+          salt: base64.encode(newSalt),
+          iterations: _defaultIterations,
+          encrypted: true,
+        );
+        final metadataFile = _getMetadataFile();
+        await metadataFile.writeAsString(newMetadata.toJsonString());
+
+        // Update key in memory
+        _encryptionKey = newKey;
+
+        notifyListeners();
+      } catch (e, stack) {
+        _logger.e('changePassword: Failed to change password: $e\n$stack');
+        rethrow;
+      }
     });
   }
 
   /// Get decrypted wallet JSON (only available when unlocked)
   String? get decryptedWalletJson => _decryptedWalletJson;
+
+  /// Update wallet data and re-encrypt to disk (only for already encrypted wallets)
+  /// This should be called after wallet modifications when wallet is encrypted
+  Future<void> updateEncryptedWallet(String newWalletJson) async {
+    await _lock.synchronized(() async {
+      try {
+        // Check if wallet is encrypted
+        final metadata = await _loadMetadata();
+        if (metadata == null || !metadata.encrypted) {
+          throw Exception('Wallet is not encrypted');
+        }
+
+        // Check if wallet is unlocked
+        if (_encryptionKey == null) {
+          throw Exception('Wallet is locked');
+        }
+
+        // Validate that new data is valid JSON
+        jsonDecode(newWalletJson);
+
+        // Update in-memory copy
+        _decryptedWalletJson = newWalletJson;
+
+        // Re-encrypt and save to disk
+        final encryptedData = _encrypt(newWalletJson, _encryptionKey!);
+
+        final walletFile = _getWalletFile();
+        final tempFile = File('${walletFile.path}.tmp');
+        await tempFile.writeAsString(encryptedData);
+        await tempFile.rename(walletFile.path);
+
+        notifyListeners();
+      } catch (e, stack) {
+        _logger.e('updateEncryptedWallet: Failed to update encrypted wallet: $e\n$stack');
+        rethrow;
+      }
+    });
+  }
 
   /// Load encryption metadata
   Future<EncryptionMetadata?> _loadMetadata() async {
@@ -298,6 +434,7 @@ class EncryptionProvider extends ChangeNotifier {
   void dispose() {
     // Clear sensitive data on dispose
     _decryptedWalletJson = null;
+    _encryptionKey = null;
     super.dispose();
   }
 }

@@ -403,19 +403,16 @@ class BinaryProvider extends ChangeNotifier {
     int? pidToWaitFor;
     Duration timeout;
 
+    // Always try process manager first
+    final process = _processManager.runningProcesses[binary.name];
+    pidToWaitFor = process?.pid;
+
     if (binary.type == BinaryType.bitcoinCore) {
-      // For Bitcoin Core, use the PID from our very special tracker
-      // and use a 30s timeout because there can be a lot to clean up
-      // on mainnet
-      pidToWaitFor = _bitcoinCorePidTracker.currentPid;
+      // For Bitcoin Core, fallback to PID tracker if process manager doesn't have it
+      pidToWaitFor ??= _bitcoinCorePidTracker.currentPid;
       timeout = const Duration(seconds: 30);
       log.i('Waiting for Bitcoin Core PID ${pidToWaitFor ?? "unknown"} to exit (30s timeout)');
     } else {
-      // For other binaries, use the PID from process manager with 10s timeout
-      // If the binary wasnt booted by sailui, there will be no PID, and we
-      // wont wait
-      final process = _processManager.runningProcesses[binary.name];
-      pidToWaitFor = process?.pid;
       timeout = const Duration(seconds: 10);
       log.i('Waiting for ${binary.name} PID ${pidToWaitFor ?? "unknown"} to exit (10s timeout)');
     }
@@ -613,7 +610,21 @@ class BinaryProvider extends ChangeNotifier {
       int completedCount = 0;
       final totalCount = _processManager.runningProcesses.length;
 
-      for (final process in _processManager.runningProcesses.values) {
+      // Create a snapshot to avoid concurrent modification during iteration
+      // Sort so Bitcoin Core is stopped first, then Enforcer, then everything else
+      final processesToStop = _processManager.runningProcesses.values.toList()
+        ..sort((a, b) {
+          // Bitcoin Core should be first
+          if (a.binary is BitcoinCore) return -1;
+          if (b.binary is BitcoinCore) return 1;
+          // Enforcer should be second
+          if (a.binary is Enforcer) return -1;
+          if (b.binary is Enforcer) return 1;
+          // Everything else in arbitrary order
+          return 0;
+        });
+
+      for (final process in processesToStop) {
         log.i('Stopping ${process.binary.name}...');
         progressController?.add(
           ShutdownProgress(

@@ -26,7 +26,7 @@ class PasswordGuard extends AutoRouteGuard {
     }
 
     // Wallet is encrypted and locked - navigate to unlock page
-    await router.push(const UnlockWalletRoute());
+    await router.push(UnlockWalletRoute());
 
     // After returning from unlock page, check if wallet was unlocked
     if (encryptionProvider.isWalletUnlocked) {

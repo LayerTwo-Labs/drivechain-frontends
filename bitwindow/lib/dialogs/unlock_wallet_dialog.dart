@@ -1,9 +1,8 @@
-import 'package:bitwindow/providers/encryption_provider.dart';
 import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/sail_ui.dart';
 
 /// Dialog for unlocking an encrypted wallet
 class UnlockWalletDialog extends StatefulWidget {
