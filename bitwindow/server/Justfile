@@ -1,6 +1,18 @@
 build-go:
+    #!/usr/bin/env bash
+    set -euo pipefail
     # We need CGO due to the go-sqlite3 and zeromq dependencies.
-    CGO_ENABLED=1 go build -v -o ./bin/bitwindowd .
+    # Get version information
+    VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+    COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # Build with version information embedded via ldflags
+    CGO_ENABLED=1 go build -v \
+        -ldflags="-X 'github.com/LayerTwo-Labs/sidesail/bitwindow/server/version.Version=${VERSION}' \
+                  -X 'github.com/LayerTwo-Labs/sidesail/bitwindow/server/version.Commit=${COMMIT}' \
+                  -X 'github.com/LayerTwo-Labs/sidesail/bitwindow/server/version.BuildDate=${BUILD_DATE}'" \
+        -o ./bin/bitwindowd .
 
 build: download-enforcer build-go
 

@@ -16,6 +16,7 @@ import (
 	engines "github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/version"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -56,6 +57,13 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 			return nil
 		}
 		return fmt.Errorf("read config: %w", err)
+	}
+
+	// Handle version flag
+	if conf.Version {
+		//nolint:forbidigo
+		fmt.Println(version.String())
+		return nil
 	}
 
 	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
