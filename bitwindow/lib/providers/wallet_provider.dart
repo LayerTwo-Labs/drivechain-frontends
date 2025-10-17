@@ -6,7 +6,7 @@ import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/models/wallet_data.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
-import 'package:bitwindow/providers/encryption_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -18,9 +18,6 @@ import 'package:pointycastle/digests/sha512.dart';
 import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:synchronized/synchronized.dart';
 

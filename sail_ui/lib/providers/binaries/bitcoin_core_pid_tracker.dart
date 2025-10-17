@@ -32,7 +32,7 @@ class BitcoinCorePidTracker {
     }
 
     log.d('Starting Bitcoin Core PID file watcher');
-    _watcher = Timer.periodic(const Duration(seconds: 1), (_) => _checkPidFile());
+    _watcher = Timer.periodic(const Duration(seconds: 10), (_) => _checkPidFile());
 
     // Do an immediate check
     _checkPidFile();
@@ -72,7 +72,7 @@ class BitcoinCorePidTracker {
       // Build the path to bitcoin.pid based on the network
       final datadir = BitcoinCore().datadir();
       final networkSubdir = _getNetworkSubdir(network);
-      final pidFile = File(path.join(datadir, networkSubdir, 'bitcoin.pid'));
+      final pidFile = File(path.join(datadir, networkSubdir, 'bitcoind.pid'));
 
       if (await pidFile.exists()) {
         final pidString = await pidFile.readAsString();
@@ -83,14 +83,14 @@ class BitcoinCorePidTracker {
           _currentPid = pid;
         }
       } else {
-        // PID file doesn't exist, clear our cached PID
+        // PID file doesnt or no longer, clear our cached PID
         if (_currentPid != null) {
           log.d('bitcoin.pid file no longer exists at ${pidFile.path}, clearing cached PID');
           _currentPid = null;
         }
       }
     } catch (e) {
-      // Silently ignore errors - the file might not exist yet or be temporarily inaccessible
+      log.e('Error checking Bitcoin Core PID file: $e');
     }
   }
 

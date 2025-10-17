@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/providers/encryption_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/wallet/wallet_reader.dart';
 
 @RoutePage()
 class UnlockWalletPage extends StatefulWidget {
-  const UnlockWalletPage({super.key});
+  final Future<void> Function(EncryptionProvider)? onUnlock;
+
+  const UnlockWalletPage({super.key, this.onUnlock});
 
   @override
   State<UnlockWalletPage> createState() => _UnlockWalletPageState();
@@ -54,19 +55,41 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
     try {
       final encryptionProvider = GetIt.I.get<EncryptionProvider>();
 
-      // Try to decrypt (non-blocking validation)
-      final success = await encryptionProvider.tryDecryptWallet(password);
+      // Try to unlock wallet (runs PBKDF2 in background isolate)
+      final success = await encryptionProvider.unlockWallet(password);
 
       // Only proceed if this is still the current password
-      if (!mounted || _pendingPassword != password) return;
+      if (!mounted) {
+        return;
+      }
+      if (_pendingPassword != password) {
+        return;
+      }
 
       if (success) {
-        _logger.i('Auto-decrypt succeeded, unlocking wallet');
-        await _handleUnlock();
+        // Call custom onUnlock handler if provided, otherwise use default behavior
+        if (widget.onUnlock != null) {
+          await widget.onUnlock!(encryptionProvider);
+        } else {
+          // Default behavior: sync starter files and trigger binary boot
+          try {
+            await _syncStarterFiles(encryptionProvider);
+          } catch (e) {
+            _logger.e('Failed to sync starter files: $e');
+          }
+
+          try {
+            await _triggerDeferredBinaryBoot();
+          } catch (e) {
+            _logger.e('Failed to trigger deferred binary boot: $e');
+          }
+        }
+      } else {
+        _logger.d('_tryAutoDecrypt: Wrong password (length ${password.length})');
       }
-    } catch (e) {
+    } catch (e, stack) {
       // Silently fail - user can still manually submit
-      _logger.d('Auto-decrypt attempt failed: $e');
+      _logger.e('Auto-decrypt error: $e\n$stack');
     }
   }
 
@@ -173,24 +196,22 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
       if (!mounted) return;
 
       if (success) {
-        // Unlock successful, sync starter files so binaries can use the wallet
-        try {
-          await _syncStarterFiles(encryptionProvider);
-          _logger.i('Synced starter files after wallet unlock');
-        } catch (e) {
-          _logger.e('Failed to sync starter files after unlock: $e');
-        }
+        // Call custom onUnlock handler if provided, otherwise use default behavior
+        if (widget.onUnlock != null) {
+          await widget.onUnlock!(encryptionProvider);
+        } else {
+          // Default behavior: sync starter files and trigger binary boot
+          try {
+            await _syncStarterFiles(encryptionProvider);
+          } catch (e) {
+            _logger.e('Failed to sync starter files after unlock: $e');
+          }
 
-        // Trigger deferred binary boot if needed
-        try {
-          await _triggerDeferredBinaryBoot();
-        } catch (e) {
-          _logger.e('Failed to trigger deferred binary boot: $e');
-        }
-
-        // Pop the unlock page - navigation will proceed
-        if (mounted) {
-          await context.router.maybePop();
+          try {
+            await _triggerDeferredBinaryBoot();
+          } catch (e) {
+            _logger.e('Failed to trigger deferred binary boot: $e');
+          }
         }
       } else {
         setState(() {
@@ -220,12 +241,8 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
         (b) => b.name == sidechainRPC.chain.name,
       );
 
-      _logger.i('Triggering deferred binary boot for ${sidechainBinary.name}');
-
       // Boot using the bootBinaries function
       await binaryProvider.startWithEnforcer(sidechainBinary);
-
-      _logger.i('Deferred binary boot completed successfully');
     } catch (e) {
       if (e.toString().contains('No element')) {
         // Binary might already be booted or not found - this is okay

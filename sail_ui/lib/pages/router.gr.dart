@@ -19,6 +19,7 @@ import 'package:sail_ui/pages/shutdown_page.dart' as _i3;
 import 'package:sail_ui/pages/sidechains/parent_chain_page.dart' as _i2;
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart' as _i4;
 import 'package:sail_ui/pages/unlock_wallet_page.dart' as _i5;
+import 'package:sail_ui/providers/encryption_provider.dart' as _i11;
 import 'package:sail_ui/sail_ui.dart' as _i8;
 
 /// generated route for
@@ -184,16 +185,49 @@ class SidechainOverviewTabRoute extends _i6.PageRouteInfo<void> {
 
 /// generated route for
 /// [_i5.UnlockWalletPage]
-class UnlockWalletRoute extends _i6.PageRouteInfo<void> {
-  const UnlockWalletRoute({List<_i6.PageRouteInfo>? children})
-    : super(UnlockWalletRoute.name, initialChildren: children);
+class UnlockWalletRoute extends _i6.PageRouteInfo<UnlockWalletRouteArgs> {
+  UnlockWalletRoute({
+    _i7.Key? key,
+    _i9.Future<void> Function(_i11.EncryptionProvider)? onUnlock,
+    List<_i6.PageRouteInfo>? children,
+  }) : super(
+         UnlockWalletRoute.name,
+         args: UnlockWalletRouteArgs(key: key, onUnlock: onUnlock),
+         initialChildren: children,
+       );
 
   static const String name = 'UnlockWalletRoute';
 
   static _i6.PageInfo page = _i6.PageInfo(
     name,
     builder: (data) {
-      return const _i5.UnlockWalletPage();
+      final args = data.argsAs<UnlockWalletRouteArgs>(
+        orElse: () => const UnlockWalletRouteArgs(),
+      );
+      return _i5.UnlockWalletPage(key: args.key, onUnlock: args.onUnlock);
     },
   );
+}
+
+class UnlockWalletRouteArgs {
+  const UnlockWalletRouteArgs({this.key, this.onUnlock});
+
+  final _i7.Key? key;
+
+  final _i9.Future<void> Function(_i11.EncryptionProvider)? onUnlock;
+
+  @override
+  String toString() {
+    return 'UnlockWalletRouteArgs{key: $key, onUnlock: $onUnlock}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! UnlockWalletRouteArgs) return false;
+    return key == other.key;
+  }
+
+  @override
+  int get hashCode => key.hashCode;
 }

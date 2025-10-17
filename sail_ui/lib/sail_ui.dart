@@ -68,6 +68,7 @@ export 'pages/sidechains/parent_chain_page.dart';
 export 'pages/configure_homepage_page.dart';
 export 'providers/bitcoin_conf_provider.dart';
 export 'providers/balance_provider.dart';
+export 'providers/encryption_provider.dart';
 export 'providers/settings_provider.dart';
 export 'providers/window_provider.dart';
 export 'providers/parentchain/bmm_provider.dart';
