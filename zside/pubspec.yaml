@@ -2,7 +2,7 @@ name: zside
 description: UI for Drivechain (BIP300/301) based sidechains
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.20
+version: 1.0.21
 
 environment:
   sdk: 3.9.2
