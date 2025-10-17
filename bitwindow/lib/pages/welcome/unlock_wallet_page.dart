@@ -57,7 +57,7 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
             mainAxisSize: MainAxisSize.max,
             children: [
               const BootTitle(
-                title: 'Unlock Your Wallet',
+                title: 'Decrypt Your Wallet',
                 subtitle: 'Your wallet is encrypted. Please enter your password to unlock it and continue.',
               ),
               const Spacer(),

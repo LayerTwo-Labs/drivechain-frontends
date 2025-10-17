@@ -248,7 +248,13 @@ class BinaryProvider extends ChangeNotifier {
         binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
         _downloadManager.updateBinary(
           binary.type,
-          (currentBinary) => binary,
+          (currentBinary) {
+            // Don't replace the entire binary! Just update the boot args
+            // The currentBinary has the correct metadata from downloads/watcher
+            final updated = currentBinary as Sidechain;
+            updated.extraBootArgs = binary.extraBootArgs;
+            return updated;
+          },
         );
       }
     }

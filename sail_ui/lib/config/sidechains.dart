@@ -214,7 +214,7 @@ class TestSidechain extends Sidechain {
        );
 
   @override
-  int slot = 0;
+  final int slot = 0;
 
   @override
   BinaryType get type => BinaryType.testSidechain;
@@ -303,7 +303,7 @@ class ZSide extends Sidechain {
        );
 
   @override
-  int slot = 98;
+  final int slot = 98;
 
   @override
   BinaryType get type => BinaryType.zSide;
@@ -391,7 +391,7 @@ class Thunder extends Sidechain {
        );
 
   @override
-  int slot = 9;
+  final int slot = 9;
 
   @override
   BinaryType get type => BinaryType.thunder;
@@ -479,7 +479,7 @@ class BitNames extends Sidechain {
        );
 
   @override
-  int slot = 2;
+  final int slot = 2;
 
   @override
   BinaryType get type => BinaryType.bitnames;
@@ -571,7 +571,7 @@ class BitAssets extends Sidechain {
        );
 
   @override
-  int slot = 4;
+  final int slot = 4;
 
   @override
   BinaryType get type => BinaryType.bitassets;
