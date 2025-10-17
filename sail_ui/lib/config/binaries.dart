@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -970,6 +971,71 @@ extension BinaryPaths on Binary {
 
     final appDir = appdir();
     return filePath([appDir, subdir]);
+  }
+
+  /// Fetch the binary's version by running it with --version flag
+  Future<String> binaryVersion(Directory appDir) async {
+    if (binary.endsWith('.app')) {
+      return 'N/A';
+    }
+
+    try {
+      final binaryFile = await resolveBinaryPath(appDir);
+
+      final result =
+          await Process.run(
+            binaryFile.path,
+            ['--version'],
+            runInShell: true,
+          ).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => throw TimeoutException('Version check timed out'),
+          );
+
+      if (result.exitCode != 0) {
+        return 'Version unavailable';
+      }
+
+      final output = result.stdout.toString().trim();
+      if (output.isEmpty) {
+        return 'Unknown';
+      }
+
+      final lines = output.split('\n');
+      if (lines.isEmpty) {
+        return 'Unknown';
+      }
+
+      if (type == BinaryType.enforcer) {
+        final versionLine = lines.firstWhere((line) => line.contains('bip300301_enforcer_lib'), orElse: () => '');
+        final commitLine = lines.firstWhere((line) => line.trim().startsWith('commit:'), orElse: () => '');
+
+        if (versionLine.isEmpty) {
+          return lines.first;
+        }
+
+        final versionMatch = RegExp(r'v?(\d+\.\d+\.\d+)').firstMatch(versionLine);
+        final commitMatch = RegExp(r'commit:\s*([a-f0-9]+)').firstMatch(commitLine);
+
+        if (versionMatch != null && commitMatch != null) {
+          return '${versionMatch.group(1)!} (${commitMatch.group(1)!})';
+        } else if (versionMatch != null) {
+          return versionMatch.group(1)!;
+        }
+
+        return versionLine;
+      }
+
+      final versionMatch = RegExp(r'v?(\d+\.\d+\.\d+)').firstMatch(output);
+      if (versionMatch != null) {
+        return versionMatch.group(1)!;
+      }
+
+      return lines.first;
+    } catch (e) {
+      log.w('Failed to get version for $name: $e');
+      return 'Error: $e';
+    }
   }
 }
 
