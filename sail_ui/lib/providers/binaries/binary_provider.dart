@@ -589,7 +589,11 @@ class BinaryProvider extends ChangeNotifier {
       final runningBinaries = _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
       final showShutdownPage = shutdownOptions != null && shutdownOptions.showShutdownPage;
+
+      StreamController<ShutdownProgress>? progressController;
       if (showShutdownPage) {
+        progressController = StreamController<ShutdownProgress>();
+
         // don't show the shutting down page if it's already shown!
         if (shutdownOptions.router.current.name != ShutDownRoute.name) {
           // Show shutdown page with running binaries
@@ -597,6 +601,7 @@ class BinaryProvider extends ChangeNotifier {
             shutdownOptions.router.push(
               ShutDownRoute(
                 binaries: runningBinaries,
+                shutdownStream: progressController.stream,
                 onComplete: shutdownOptions.onComplete,
               ),
             ),
@@ -604,14 +609,35 @@ class BinaryProvider extends ChangeNotifier {
         }
       }
 
-      final futures = <Future>[];
-      // Only stop binaries that are started by bitwindow
+      // Stop binaries sequentially and report progress
+      int completedCount = 0;
+      final totalCount = _processManager.runningProcesses.length;
+
       for (final process in _processManager.runningProcesses.values) {
-        futures.add(stop(process.binary));
+        log.i('Stopping ${process.binary.name}...');
+        progressController?.add(
+          ShutdownProgress(
+            totalCount: totalCount,
+            completedCount: completedCount,
+            currentBinary: process.binary.name,
+          ),
+        );
+
+        await stop(process.binary);
+        completedCount++;
+
+        log.i('${process.binary.name} stopped ($completedCount/$totalCount)');
       }
 
-      // Wait for all stop operations to complete
-      await Future.wait(futures);
+      // Close the stream to signal completion
+      progressController?.add(
+        ShutdownProgress(
+          totalCount: totalCount,
+          completedCount: completedCount,
+          currentBinary: null,
+        ),
+      );
+      await progressController?.close();
 
       if (!showShutdownPage) {
         // the shutdown doesnt call it, then we must!
