@@ -159,6 +159,47 @@ class EncryptionProvider extends ChangeNotifier {
     return encrypter.decrypt(encrypted, iv: iv);
   }
 
+  /// Try to decrypt wallet with password (without storing result)
+  /// Returns true if decryption succeeds and data is valid JSON
+  Future<bool> tryDecryptWallet(String password) async {
+    if (password.isEmpty) return false;
+
+    try {
+      // Check if wallet is encrypted
+      final metadata = await _loadMetadata();
+      if (metadata == null || !metadata.encrypted) {
+        return false;
+      }
+
+      // Read encrypted wallet
+      final walletFile = _getWalletFile();
+      if (!await walletFile.exists()) {
+        return false;
+      }
+
+      final encryptedData = await walletFile.readAsString();
+
+      // Derive key from password
+      final salt = base64.decode(metadata.salt);
+      final key = _deriveKey(password, salt, metadata.iterations);
+
+      // Try to decrypt
+      try {
+        final decryptedJson = _decrypt(encryptedData, key);
+
+        // Validate that it's valid JSON
+        jsonDecode(decryptedJson);
+
+        return true;
+      } catch (e) {
+        // Decryption failed or invalid JSON
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Unlock wallet with password (decrypt into memory)
   Future<bool> unlockWallet(String password) async {
     return await _lock.synchronized(() async {
