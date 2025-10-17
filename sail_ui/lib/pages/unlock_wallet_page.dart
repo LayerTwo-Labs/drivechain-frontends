@@ -96,15 +96,11 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: 200,
-                    height: 48,
-                    child: SailButton(
-                      label: 'Unlock Wallet',
-                      variant: ButtonVariant.primary,
-                      loading: _isUnlocking,
-                      onPressed: _handleUnlock,
-                    ),
+                  SailButton(
+                    label: 'Decrypt Wallet',
+                    variant: ButtonVariant.primary,
+                    loading: _isUnlocking,
+                    onPressed: _handleUnlock,
                   ),
                 ],
               ),

@@ -159,3 +159,56 @@ class DialogButtons extends StatelessWidget {
     );
   }
 }
+
+/// A standardized dialog widget using Dialog + SailCard pattern
+/// This provides consistent styling for dialogs across all applications
+class SailDialog extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final String? error;
+  final Widget child;
+  final List<Widget>? actions;
+  final double maxWidth;
+  final double maxHeight;
+
+  const SailDialog({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.error,
+    required this.child,
+    this.actions,
+    this.maxWidth = 600,
+    this.maxHeight = 600,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
+        child: SailCard(
+          title: title,
+          subtitle: subtitle,
+          error: error,
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                child,
+                if (actions != null && actions!.isNotEmpty)
+                  SailRow(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    spacing: SailStyleValues.padding08,
+                    children: actions!,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

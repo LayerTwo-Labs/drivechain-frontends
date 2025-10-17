@@ -91,93 +91,10 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return AlertDialog(
-      title: SailText.primary20('Change Password'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary13(
-              'Enter your current password and choose a new password for your wallet.',
-            ),
-            const SizedBox(height: 24),
-            SailTextField(
-              controller: _oldPasswordController,
-              label: 'Current Encryption Password',
-              hintText: 'Enter your current password',
-              obscureText: _obscureOldPassword,
-              enabled: !_isChanging,
-              autofocus: true,
-              maxLines: 1,
-              suffixWidget: GestureDetector(
-                onTap: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
-                child: Icon(
-                  _obscureOldPassword ? Icons.visibility : Icons.visibility_off,
-                  color: SailTheme.of(context).colors.text,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SailTextField(
-              controller: _newPasswordController,
-              label: 'New Encryption Password',
-              hintText: 'Choose a new password',
-              obscureText: _obscureNewPassword,
-              enabled: !_isChanging,
-              maxLines: 1,
-              suffixWidget: GestureDetector(
-                onTap: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
-                child: Icon(
-                  _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
-                  color: SailTheme.of(context).colors.text,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SailTextField(
-              controller: _confirmPasswordController,
-              label: 'Confirm New Encryption Password',
-              hintText: 'Confirm your new password',
-              obscureText: _obscureConfirmPassword,
-              enabled: !_isChanging,
-              maxLines: 1,
-              onSubmitted: (_) => _changePassword(),
-              suffixWidget: GestureDetector(
-                onTap: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                child: Icon(
-                  _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                  color: SailTheme.of(context).colors.text,
-                ),
-              ),
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colors.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: theme.colors.error),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline, color: theme.colors.error, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SailText.primary12(
-                        _errorMessage!,
-                        color: theme.colors.error,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+    return SailDialog(
+      title: 'Change Encryption Password',
+      subtitle: 'Enter your current password and choose a new password for your wallet.',
+      error: _errorMessage,
       actions: [
         SailButton(
           label: 'Cancel',
@@ -190,6 +107,59 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
           onPressed: () async => _changePassword(),
         ),
       ],
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailTextField(
+            controller: _oldPasswordController,
+            label: 'Current Encryption Password',
+            hintText: 'Enter your current encryption password',
+            obscureText: _obscureOldPassword,
+            enabled: !_isChanging,
+            autofocus: true,
+            maxLines: 1,
+            suffixWidget: GestureDetector(
+              onTap: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
+              child: Icon(
+                _obscureOldPassword ? Icons.visibility : Icons.visibility_off,
+                color: theme.colors.text,
+              ),
+            ),
+          ),
+          SailTextField(
+            controller: _newPasswordController,
+            label: 'New Encryption Password',
+            hintText: 'Choose a new encryption password',
+            obscureText: _obscureNewPassword,
+            enabled: !_isChanging,
+            maxLines: 1,
+            suffixWidget: GestureDetector(
+              onTap: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+              child: Icon(
+                _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                color: theme.colors.text,
+              ),
+            ),
+          ),
+          SailTextField(
+            controller: _confirmPasswordController,
+            label: 'Confirm New Encryption Password',
+            hintText: 'Confirm your new encryption password',
+            obscureText: _obscureConfirmPassword,
+            enabled: !_isChanging,
+            maxLines: 1,
+            onSubmitted: (_) => _changePassword(),
+            suffixWidget: GestureDetector(
+              onTap: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              child: Icon(
+                _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                color: theme.colors.text,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

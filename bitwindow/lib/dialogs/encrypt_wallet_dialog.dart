@@ -73,98 +73,84 @@ class _EncryptWalletDialogState extends State<EncryptWalletDialog> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
-        child: SailCard(
-          title: 'Encrypt Wallet',
-          subtitle: 'Protect your wallet with a password',
-          error: _errorMessage,
-          child: SingleChildScrollView(
+    return SailDialog(
+      title: 'Encrypt Wallet',
+      subtitle: 'Protect your wallet with a password',
+      error: _errorMessage,
+      actions: [
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.secondary,
+          onPressed: _isEncrypting ? null : () async => Navigator.of(context).pop(false),
+        ),
+        SailButton(
+          label: 'Encrypt Wallet',
+          loading: _isEncrypting,
+          onPressed: () async => _encrypt(),
+        ),
+      ],
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Info section
+          Container(
+            padding: const EdgeInsets.all(SailStyleValues.padding12),
+            decoration: BoxDecoration(
+              color: theme.colors.backgroundSecondary,
+              borderRadius: SailStyleValues.borderRadiusSmall,
+              border: Border.all(color: theme.colors.border),
+            ),
             child: SailColumn(
-              spacing: SailStyleValues.padding16,
+              spacing: SailStyleValues.padding08,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Info section
-                Container(
-                  padding: const EdgeInsets.all(SailStyleValues.padding12),
-                  decoration: BoxDecoration(
-                    color: theme.colors.backgroundSecondary,
-                    borderRadius: SailStyleValues.borderRadiusSmall,
-                    border: Border.all(color: theme.colors.border),
-                  ),
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding08,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailText.primary13(
-                        'You will need to enter this password every time you start BitWindow.',
-                      ),
-                      SailText.secondary12(
-                        'WARNING: If you lose your password, you will need to restore your wallet '
-                        'using your seed phrase. Make sure to keep your seed phrase safe!',
-                      ),
-                    ],
-                  ),
+                SailText.primary13(
+                  'You will need to enter this password every time you start BitWindow.',
                 ),
-
-                // Password fields
-                SailTextField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  hintText: 'Enter a password',
-                  obscureText: _obscurePassword,
-                  enabled: !_isEncrypting,
-                  autofocus: true,
-                  maxLines: 1,
-                  suffixWidget: GestureDetector(
-                    onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-                    child: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                      color: theme.colors.text,
-                    ),
-                  ),
-                ),
-
-                SailTextField(
-                  controller: _confirmPasswordController,
-                  label: 'Confirm Password',
-                  hintText: 'Confirm password',
-                  obscureText: _obscureConfirmPassword,
-                  enabled: !_isEncrypting,
-                  maxLines: 1,
-                  onSubmitted: (_) => _encrypt(),
-                  suffixWidget: GestureDetector(
-                    onTap: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                    child: Icon(
-                      _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                      color: theme.colors.text,
-                    ),
-                  ),
-                ),
-
-                // Action buttons
-                SailRow(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailButton(
-                      label: 'Cancel',
-                      variant: ButtonVariant.secondary,
-                      onPressed: _isEncrypting ? null : () async => Navigator.of(context).pop(false),
-                    ),
-                    SailButton(
-                      label: 'Encrypt Wallet',
-                      loading: _isEncrypting,
-                      onPressed: () async => _encrypt(),
-                    ),
-                  ],
+                SailText.secondary12(
+                  'WARNING: If you lose your password, you will need to restore your wallet '
+                  'using your seed phrase. Make sure to keep your seed phrase safe!',
                 ),
               ],
             ),
           ),
-        ),
+
+          // Password fields
+          SailTextField(
+            controller: _passwordController,
+            label: 'Password',
+            hintText: 'Enter a password',
+            obscureText: _obscurePassword,
+            enabled: !_isEncrypting,
+            autofocus: true,
+            maxLines: 1,
+            suffixWidget: GestureDetector(
+              onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+              child: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                color: theme.colors.text,
+              ),
+            ),
+          ),
+
+          SailTextField(
+            controller: _confirmPasswordController,
+            label: 'Confirm Password',
+            hintText: 'Confirm password',
+            obscureText: _obscureConfirmPassword,
+            enabled: !_isEncrypting,
+            maxLines: 1,
+            onSubmitted: (_) => _encrypt(),
+            suffixWidget: GestureDetector(
+              onTap: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              child: Icon(
+                _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                color: theme.colors.text,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

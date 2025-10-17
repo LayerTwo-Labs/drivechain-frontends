@@ -583,6 +583,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                     );
                   }
                 },
+                skipLoading: true,
               ),
               const SailSpacing(4),
               SailText.secondary12(

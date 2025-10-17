@@ -61,125 +61,107 @@ class _DenialDialogState extends State<DenialDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.sailTheme;
-
-    return Dialog(
-      backgroundColor: theme.colors.backgroundSecondary,
-      child: IntrinsicHeight(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
-          child: SailCard(
-            title: 'Start Automatic Denial',
-            child: SailColumn(
-              spacing: SailStyleValues.padding12,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Delay input row
-                SailText.primary15('Send coins to yourself...'),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailText.primary15('...with random delays of up to'),
-                    Expanded(
-                      child: SailTextField(
-                        controller: minutesController,
-                        size: TextFieldSize.small,
-                        textFieldType: TextFieldType.number,
-                        hintText: '0',
-                      ),
-                    ),
-                    SailText.primary15('min'),
-                    Expanded(
-                      child: SailTextField(
-                        controller: hoursController,
-                        size: TextFieldSize.small,
-                        textFieldType: TextFieldType.number,
-                        hintText: '0',
-                      ),
-                    ),
-                    SailText.primary15('hr'),
-                    Expanded(
-                      child: SailTextField(
-                        controller: daysController,
-                        size: TextFieldSize.small,
-                        textFieldType: TextFieldType.number,
-                        hintText: '0',
-                      ),
-                    ),
-                    SailText.primary15('day(s)...'),
-                  ],
-                ),
-
-                // Hops input row
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailText.primary15('...and stop after'),
-                    SizedBox(
-                      width: 90,
-                      child: SailTextField(
-                        controller: hopsController,
-                        size: TextFieldSize.small,
-                        textFieldType: TextFieldType.number,
-                        hintText: '3 hops',
-                      ),
-                    ),
-                    SailText.primary15('hops.'),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Default buttons
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailText.primary15('Defaults:'),
-                    SailButton(
-                      label: 'Normal',
-                      onPressed: setNormalDefaults,
-                      variant: ButtonVariant.secondary,
-                    ),
-                    SailButton(
-                      label: 'Paranoid',
-                      onPressed: setParanoidDefaults,
-                      variant: ButtonVariant.secondary,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Action buttons
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SailButton(
-                      label: 'Start',
-                      onPressed: () async {
-                        final hops = int.tryParse(hopsController.text) ?? 3;
-                        await api.bitwindowd.createDenial(
-                          txid: widget.output.split(':').first,
-                          vout: int.parse(widget.output.split(':').last),
-                          numHops: hops,
-                          delaySeconds: getTotalSeconds(),
-                        );
-                        await transactionProvider.fetch();
-                        if (context.mounted) Navigator.pop(context);
-                      },
-                    ),
-                    SailButton(
-                      label: 'Cancel',
-                      onPressed: () async => Navigator.pop(context),
-                      variant: ButtonVariant.ghost,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+    return SailDialog(
+      title: 'Start Automatic Denial',
+      maxWidth: 700,
+      maxHeight: 600,
+      actions: [
+        SailButton(
+          label: 'Cancel',
+          onPressed: () async => Navigator.pop(context),
+          variant: ButtonVariant.secondary,
         ),
+        SailButton(
+          label: 'Start',
+          onPressed: () async {
+            final hops = int.tryParse(hopsController.text) ?? 3;
+            await api.bitwindowd.createDenial(
+              txid: widget.output.split(':').first,
+              vout: int.parse(widget.output.split(':').last),
+              numHops: hops,
+              delaySeconds: getTotalSeconds(),
+            );
+            await transactionProvider.fetch();
+            if (context.mounted) Navigator.pop(context);
+          },
+        ),
+      ],
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Delay input row
+          SailText.primary15('Send coins to yourself...'),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailText.primary15('...with random delays of up to'),
+              Expanded(
+                child: SailTextField(
+                  controller: minutesController,
+                  size: TextFieldSize.small,
+                  textFieldType: TextFieldType.number,
+                  hintText: '0',
+                ),
+              ),
+              SailText.primary15('min'),
+              Expanded(
+                child: SailTextField(
+                  controller: hoursController,
+                  size: TextFieldSize.small,
+                  textFieldType: TextFieldType.number,
+                  hintText: '0',
+                ),
+              ),
+              SailText.primary15('hr'),
+              Expanded(
+                child: SailTextField(
+                  controller: daysController,
+                  size: TextFieldSize.small,
+                  textFieldType: TextFieldType.number,
+                  hintText: '0',
+                ),
+              ),
+              SailText.primary15('day(s)...'),
+            ],
+          ),
+
+          // Hops input row
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailText.primary15('...and stop after'),
+              SizedBox(
+                width: 90,
+                child: SailTextField(
+                  controller: hopsController,
+                  size: TextFieldSize.small,
+                  textFieldType: TextFieldType.number,
+                  hintText: '3 hops',
+                ),
+              ),
+              SailText.primary15('hops.'),
+            ],
+          ),
+
+          // Default buttons
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailText.primary15('Defaults:'),
+              SailButton(
+                label: 'Normal',
+                onPressed: setNormalDefaults,
+                variant: ButtonVariant.secondary,
+              ),
+              SailButton(
+                label: 'Paranoid',
+                onPressed: setParanoidDefaults,
+                variant: ButtonVariant.secondary,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
