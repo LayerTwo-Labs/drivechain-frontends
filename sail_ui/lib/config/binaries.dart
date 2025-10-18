@@ -276,16 +276,18 @@ abstract class Binary {
         ]);
 
       case BinaryType.bitnames:
-        await _deleteFilesInDir(dir, ['bitnames-cli', 'logs']);
+        await _deleteFilesInDir(dir, ['bitnames-cli']);
 
       case BinaryType.bitassets:
-        await _deleteFilesInDir(dir, ['bitassets-cli', 'logs']);
+        await _deleteFilesInDir(dir, ['bitassets-cli']);
 
       case BinaryType.thunder:
         await _deleteFilesInDir(dir, ['thunder-cli']);
 
-      case BinaryType.testSidechain:
       case BinaryType.zSide:
+        await _deleteFilesInDir(dir, ['thunder-orchard']);
+
+      case BinaryType.testSidechain:
       case BinaryType.grpcurl:
         // No extra files for these types
         break;
@@ -1261,19 +1263,29 @@ class MetadataConfig {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is MetadataConfig &&
-          _downloadConfig == other._downloadConfig &&
-          _alternativeDownloadConfig == other._alternativeDownloadConfig &&
-          updateable == other.updateable &&
-          remoteTimestamp == other.remoteTimestamp &&
-          downloadedTimestamp == other.downloadedTimestamp &&
-          binaryPath?.path == other.binaryPath?.path &&
-          _mapEquals(_downloadConfig.files, other._downloadConfig.files) &&
-          (_alternativeDownloadConfig != null &&
-              other._alternativeDownloadConfig != null &&
-              _mapEquals(_alternativeDownloadConfig.files, other._alternativeDownloadConfig.files));
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! MetadataConfig) return false;
+
+    // Check alternative download config equality
+    bool alternativeConfigsEqual;
+    if (_alternativeDownloadConfig == null && other._alternativeDownloadConfig == null) {
+      alternativeConfigsEqual = true;
+    } else if (_alternativeDownloadConfig != null && other._alternativeDownloadConfig != null) {
+      alternativeConfigsEqual = _mapEquals(_alternativeDownloadConfig.files, other._alternativeDownloadConfig.files);
+    } else {
+      // One is null, the other isn't
+      alternativeConfigsEqual = false;
+    }
+
+    return _downloadConfig == other._downloadConfig &&
+        updateable == other.updateable &&
+        remoteTimestamp == other.remoteTimestamp &&
+        downloadedTimestamp == other.downloadedTimestamp &&
+        binaryPath?.path == other.binaryPath?.path &&
+        _mapEquals(_downloadConfig.files, other._downloadConfig.files) &&
+        alternativeConfigsEqual;
+  }
 
   @override
   int get hashCode => Object.hash(
