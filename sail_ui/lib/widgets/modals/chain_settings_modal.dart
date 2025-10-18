@@ -34,10 +34,12 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
   Future<void> _loadArgs() async {
     final loadedArgs = await widget.connection.binaryArgs();
-    loadedArgs.removeWhere((arg) => arg.contains('pass'));
+    // Create a mutable copy since extraBootArgs may be const
+    final mutableArgs = List<String>.from(loadedArgs);
+    mutableArgs.removeWhere((arg) => arg.contains('pass'));
     if (mounted) {
       setState(() {
-        args = loadedArgs;
+        args = mutableArgs;
       });
     }
   }
@@ -166,6 +168,12 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                           final appDir = GetIt.I.get<BinaryProvider>().appDir;
 
                           setState(() {
+                            deleteMessage = 'Stopping binary';
+                          });
+
+                          await binaryProvider.stop(widget.connection.binary);
+
+                          setState(() {
                             deleteMessage = 'Deleting data';
                           });
 
@@ -173,17 +181,6 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                           await widget.connection.binary.wipeAppDir();
                           await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
 
-                          setState(() {
-                            deleteMessage = 'Rebooting';
-                          });
-
-                          // everything's deleted, reboot the binary
-                          await binaryProvider.stop(widget.connection.binary);
-                          await Future.delayed(const Duration(seconds: 5));
-                          await binaryProvider.start(widget.connection.binary);
-                          setState(() {
-                            deleteMessage = 'Delete complete';
-                          });
                           if (context.mounted) {
                             Navigator.of(context).pop();
                           }

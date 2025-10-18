@@ -676,14 +676,16 @@ class BinaryProvider extends ChangeNotifier {
     // Watch the assets directory for changes
     _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) {
       // Find which binary changed
-      final changedBinary = allBinaries.firstWhereOrNull((binary) => event.path.endsWith(binary.binary));
+      final changedBinary = allBinaries.firstWhereOrNull(
+        (binary) => path.basename(event.path).toLowerCase().contains(binary.binary.toLowerCase()),
+      );
 
       // The event is not related to a binary, ignore it
       if (changedBinary == null) {
         return;
       }
 
-      log.d('File system event for ${changedBinary.name}: ${event.type}');
+      log.d('File system event for ${changedBinary.name}: ${event.type} (${event.path})');
 
       // Get or create lock for this binary
       final lock = _updateLocks.putIfAbsent(changedBinary.type, () => Lock());
