@@ -321,44 +321,9 @@ class _AddressBookContentState extends State<AddressBookContent> {
     widget.viewModel.prepareEdit(entry);
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: SailCard(
-            title: 'Edit Label',
-            subtitle: '',
-            withCloseButton: true,
-            error: widget.viewModel.error('edit'),
-            child: SailColumn(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: SailStyleValues.padding16,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailTextField(
-                  label: 'Label',
-                  controller: widget.viewModel.editLabelController,
-                  hintText: 'Enter a new label',
-                  size: TextFieldSize.small,
-                ),
-                SailButton(
-                  label: 'Update',
-                  onPressed: () async {
-                    try {
-                      await widget.viewModel.updateLabel(entry.id);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                    } catch (e) {
-                      // Error is handled by the model
-                    }
-                  },
-                  disabled: widget.viewModel.editLabelController.text.isEmpty,
-                ),
-              ],
-            ),
-          ),
-        ),
+      builder: (context) => _EditDialog(
+        viewModel: widget.viewModel,
+        entry: entry,
       ),
     );
   }
@@ -366,48 +331,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
   void _showCreateDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: SailCard(
-            title: widget.viewModel.direction == Direction.DIRECTION_SEND
-                ? 'New Sending Address'
-                : 'New Receiving Address',
-            subtitle: '',
-            withCloseButton: true,
-            error: widget.viewModel.error('create'),
-            child: SailColumn(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: SailStyleValues.padding16,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailTextField(
-                  label: 'Address',
-                  controller: widget.viewModel.addressController,
-                  hintText: 'Enter a Bitcoin address',
-                  size: TextFieldSize.small,
-                ),
-                SailTextField(
-                  label: 'Label',
-                  controller: widget.viewModel.labelController,
-                  hintText: 'Enter a label for this address',
-                  size: TextFieldSize.small,
-                ),
-                SailButton(
-                  label: 'Create',
-                  onPressed: () async {
-                    await widget.viewModel.createEntry();
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                  disabled:
-                      widget.viewModel.labelController.text.isEmpty || widget.viewModel.addressController.text.isEmpty,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      builder: (context) => _CreateDialog(viewModel: widget.viewModel),
     );
   }
 
@@ -452,6 +376,157 @@ class _AddressBookContentState extends State<AddressBookContent> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateDialog extends StatefulWidget {
+  final AddressBookViewModel viewModel;
+
+  const _CreateDialog({
+    required this.viewModel,
+  });
+
+  @override
+  State<_CreateDialog> createState() => _CreateDialogState();
+}
+
+class _CreateDialogState extends State<_CreateDialog> {
+  @override
+  void initState() {
+    super.initState();
+    widget.viewModel.labelController.addListener(_onTextChanged);
+    widget.viewModel.addressController.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.viewModel.labelController.removeListener(_onTextChanged);
+    widget.viewModel.addressController.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SailCard(
+          title: widget.viewModel.direction == Direction.DIRECTION_SEND
+              ? 'New Sending Address'
+              : 'New Receiving Address',
+          subtitle: '',
+          withCloseButton: true,
+          error: widget.viewModel.error('create'),
+          child: SailColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: SailStyleValues.padding16,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailTextField(
+                label: 'Address',
+                controller: widget.viewModel.addressController,
+                hintText: 'Enter a Bitcoin address',
+                size: TextFieldSize.small,
+              ),
+              SailTextField(
+                label: 'Label',
+                controller: widget.viewModel.labelController,
+                hintText: 'Enter a label for this address',
+                size: TextFieldSize.small,
+              ),
+              SailButton(
+                label: 'Create',
+                onPressed: () async {
+                  await widget.viewModel.createEntry();
+                  if (context.mounted) Navigator.pop(context);
+                },
+                disabled: widget.viewModel.labelController.text.isEmpty ||
+                    widget.viewModel.addressController.text.isEmpty,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditDialog extends StatefulWidget {
+  final AddressBookViewModel viewModel;
+  final AddressBookEntry entry;
+
+  const _EditDialog({
+    required this.viewModel,
+    required this.entry,
+  });
+
+  @override
+  State<_EditDialog> createState() => _EditDialogState();
+}
+
+class _EditDialogState extends State<_EditDialog> {
+  @override
+  void initState() {
+    super.initState();
+    widget.viewModel.editLabelController.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.viewModel.editLabelController.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SailCard(
+          title: 'Edit Label',
+          subtitle: '',
+          withCloseButton: true,
+          error: widget.viewModel.error('edit'),
+          child: SailColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: SailStyleValues.padding16,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailTextField(
+                label: 'Label',
+                controller: widget.viewModel.editLabelController,
+                hintText: 'Enter a new label',
+                size: TextFieldSize.small,
+              ),
+              SailButton(
+                label: 'Update',
+                onPressed: () async {
+                  try {
+                    await widget.viewModel.updateLabel(widget.entry.id);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    // Error is handled by the model
+                  }
+                },
+                disabled: widget.viewModel.editLabelController.text.isEmpty,
+              ),
+            ],
           ),
         ),
       ),
