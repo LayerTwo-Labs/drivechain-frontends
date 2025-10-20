@@ -24,7 +24,7 @@ dependencies:
   flutter_highlighter: ^0.1.1
   logger: ^2.6.0
   dio: 5.9.0
-  auto_route: ^10.1.0
+  auto_route: ^10.2.0
   get_it: ^8.2.0
   qr_flutter: ^4.1.0
   window_manager: ^0.5.0
