@@ -1,6 +1,7 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/utils/format_utils.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -48,7 +49,7 @@ class ReceiveTab extends StatelessWidget {
                                     enabled: model.address.isEmpty,
                                     description: 'Waiting for enforcer to start and wallet to sync..',
                                   ),
-                                  controller: TextEditingController(text: model.address),
+                                  controller: TextEditingController(text: formatBitcoinAddress(model.address)),
                                   hintText: 'A Drivechain address',
                                   readOnly: true,
                                   suffixWidget: CopyButton(
@@ -102,7 +103,7 @@ class ReceiveTab extends StatelessWidget {
                               enabled: model.address.isEmpty,
                               description: 'Waiting for enforcer to start and wallet to sync..',
                             ),
-                            controller: TextEditingController(text: model.bip47PaymentCode),
+                            controller: TextEditingController(text: formatBitcoinAddress(model.bip47PaymentCode)),
                             hintText: 'A Drivechain address',
                             readOnly: true,
                             suffixWidget: CopyButton(
@@ -231,7 +232,10 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                             ? 'Never'
                             : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
                       ),
-                      SailTableCell(value: utxo.address),
+                      SailTableCell(
+                        value: formatBitcoinAddress(utxo.address),
+                        copyValue: utxo.address,
+                      ),
                       SailTableCell(value: utxo.label),
                       SailTableCell(value: formattedAmount, monospace: true),
                     ];
