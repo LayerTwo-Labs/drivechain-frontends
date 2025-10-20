@@ -586,6 +586,7 @@ class BinaryProvider extends ChangeNotifier {
       final runningBinaries = _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
       final showShutdownPage = shutdownOptions != null && shutdownOptions.showShutdownPage;
+      final forceKill = shutdownOptions?.forceKill ?? false;
 
       StreamController<ShutdownProgress>? progressController;
       if (showShutdownPage) {
@@ -624,20 +625,62 @@ class BinaryProvider extends ChangeNotifier {
           return 0;
         });
 
-      for (final process in processesToStop) {
-        log.i('Stopping ${process.binary.name}...');
-        progressController?.add(
-          ShutdownProgress(
-            totalCount: totalCount,
-            completedCount: completedCount,
-            currentBinary: process.binary.name,
-          ),
-        );
+      if (forceKill) {
+        // Force-kill mode: immediately kill all processes without graceful shutdown
+        // Animate progress over 1 second for UX feedback
+        log.i('Force-killing all ${processesToStop.length} processes...');
 
-        await stop(process.binary);
-        completedCount++;
+        final startTime = DateTime.now();
+        const animationDuration = Duration(seconds: 1);
 
-        log.i('${process.binary.name} stopped ($completedCount/$totalCount)');
+        // Kill all processes immediately
+        for (final process in processesToStop) {
+          log.i('Force-killing ${process.binary.name} (PID: ${process.pid})...');
+          await _processManager.killPid(process.pid);
+        }
+
+        // Animate progress smoothly over 1 second
+        final progressTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+          final elapsed = DateTime.now().difference(startTime);
+          final progress = (elapsed.inMilliseconds / animationDuration.inMilliseconds).clamp(0.0, 1.0);
+          final animatedCompletedCount = (progress * totalCount).round();
+
+          progressController?.add(
+            ShutdownProgress(
+              totalCount: totalCount,
+              completedCount: animatedCompletedCount,
+              currentBinary: null,
+              isForceKill: true,
+            ),
+          );
+
+          if (progress >= 1.0) {
+            timer.cancel();
+          }
+        });
+
+        // Wait for animation to complete
+        await Future.delayed(animationDuration);
+        progressTimer.cancel();
+
+        completedCount = totalCount;
+      } else {
+        // Graceful shutdown mode
+        for (final process in processesToStop) {
+          log.i('Stopping ${process.binary.name}...');
+          progressController?.add(
+            ShutdownProgress(
+              totalCount: totalCount,
+              completedCount: completedCount,
+              currentBinary: process.binary.name,
+            ),
+          );
+
+          await stop(process.binary);
+          completedCount++;
+
+          log.i('${process.binary.name} stopped ($completedCount/$totalCount)');
+        }
       }
 
       // Close the stream to signal completion
@@ -646,6 +689,7 @@ class BinaryProvider extends ChangeNotifier {
           totalCount: totalCount,
           completedCount: completedCount,
           currentBinary: null,
+          isForceKill: forceKill,
         ),
       );
       await progressController?.close();
@@ -753,11 +797,13 @@ class ShutdownOptions {
   final RootStackRouter router;
   final VoidCallback onComplete;
   final bool showShutdownPage;
+  final bool forceKill;
 
   const ShutdownOptions({
     required this.router,
     required this.onComplete,
     required this.showShutdownPage,
+    this.forceKill = false,
   });
 }
 

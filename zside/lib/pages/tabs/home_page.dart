@@ -44,6 +44,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
+  bool _shutdownInProgress = false;
 
   @override
   void initState() {
@@ -222,6 +223,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
+    // If shutdown is already in progress, trigger force-kill
+    if (_shutdownInProgress) {
+      await GetIt.I.get<BinaryProvider>().onShutdown(
+        shutdownOptions: ShutdownOptions(
+          router: GetIt.I.get<AppRouter>(),
+          onComplete: () async {},
+          showShutdownPage: false,
+          forceKill: true,
+        ),
+      );
+      return AppExitResponse.exit;
+    }
+
+    _shutdownInProgress = true;
     await GetIt.I.get<BinaryProvider>().onShutdown();
     return AppExitResponse.exit;
   }
@@ -230,6 +245,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   void onWindowClose() async {
     bool isPreventClose = await windowManager.isPreventClose();
     if (isPreventClose) {
+      // If shutdown is already in progress, trigger force-kill
+      if (_shutdownInProgress) {
+        await GetIt.I.get<BinaryProvider>().onShutdown(
+          shutdownOptions: ShutdownOptions(
+            router: GetIt.I.get<AppRouter>(),
+            onComplete: () async {
+              if (isPreventClose) {
+                await windowManager.destroy();
+              }
+            },
+            showShutdownPage: false,
+            forceKill: true,
+          ),
+        );
+        return;
+      }
+
+      _shutdownInProgress = true;
       await GetIt.I.get<BinaryProvider>().onShutdown(
         shutdownOptions: ShutdownOptions(
           router: GetIt.I.get<AppRouter>(),

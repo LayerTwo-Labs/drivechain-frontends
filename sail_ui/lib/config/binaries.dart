@@ -1310,11 +1310,13 @@ class ShutdownProgress {
   final int totalCount;
   final int completedCount;
   final String? currentBinary;
+  final bool isForceKill;
 
   const ShutdownProgress({
     required this.totalCount,
     required this.completedCount,
     this.currentBinary,
+    this.isForceKill = false,
   });
 }
 
