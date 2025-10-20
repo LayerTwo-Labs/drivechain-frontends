@@ -808,10 +808,9 @@ extension BinaryPaths on Binary {
   String logPath() {
     return switch (type) {
       BinaryType.testSidechain => filePath([datadir(), 'debug.log']),
-      BinaryType.zSide => filePath([datadir(), 'regtest', 'debug.log']),
       BinaryType.bitcoinCore => _getBitcoinLogPath(),
       BinaryType.bitWindow => filePath([datadir(), 'server.log']),
-      BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets => _findLatestDirVersionedLog(),
+      BinaryType.thunder || BinaryType.bitnames || BinaryType.bitassets || BinaryType.zSide => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
       BinaryType.grpcurl => '', // No log file for grpcurl
     };
