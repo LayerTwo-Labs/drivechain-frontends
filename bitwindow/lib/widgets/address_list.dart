@@ -1,4 +1,5 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/utils/format_utils.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -256,7 +257,8 @@ class _AddressBookContentState extends State<AddressBookContent> {
               italic: entry.label == '',
             ),
             SailTableCell(
-              value: entry.address,
+              value: formatBitcoinAddress(entry.address),
+              copyValue: entry.address,
               monospace: true,
             ),
             SailTableCell(
@@ -449,8 +451,8 @@ class _CreateDialogState extends State<_CreateDialog> {
                   await widget.viewModel.createEntry();
                   if (context.mounted) Navigator.pop(context);
                 },
-                disabled: widget.viewModel.labelController.text.isEmpty ||
-                    widget.viewModel.addressController.text.isEmpty,
+                disabled:
+                    widget.viewModel.labelController.text.isEmpty || widget.viewModel.addressController.text.isEmpty,
               ),
             ],
           ),
