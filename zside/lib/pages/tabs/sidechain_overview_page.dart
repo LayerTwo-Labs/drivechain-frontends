@@ -16,159 +16,164 @@ class SidechainOverviewTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => OverviewTabViewModel(),
       builder: ((context, model, child) {
-        return QtPage(
-          child: SailRow(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: SailStyleValues.padding08,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      // Top row with balance and receive
-                      SizedBox(
-                        height: 181, // Fixed height for top section
-                        child: SailRow(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Balance card
-                            Expanded(
-                              child: SailCard(
-                                title: 'Balance',
-                                child: SailColumn(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SailText.primary24(
-                                      '${formatBitcoin(model.totalBalance)} ${model.ticker}',
-                                      bold: true,
-                                    ),
-                                    const SizedBox(height: 4), // Further reduced spacing
-                                    BalanceRow(
-                                      label: 'Available',
-                                      amount: model.balance,
-                                      ticker: model.ticker,
-                                    ),
-                                    BalanceRow(
-                                      label: 'Pending',
-                                      amount: model.pendingBalance,
-                                      ticker: model.ticker,
-                                    ),
-                                  ],
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, child) => QtPage(
+            child: SailRow(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        // Top row with balance and receive
+                        SizedBox(
+                          height: 181, // Fixed height for top section
+                          child: SailRow(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Balance card
+                              Expanded(
+                                child: SailCard(
+                                  title: 'Balance',
+                                  child: SailColumn(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary24(
+                                        '${formatter.formatBTC(model.totalBalance)} ${model.ticker}',
+                                        bold: true,
+                                      ),
+                                      const SizedBox(height: 4), // Further reduced spacing
+                                      BalanceRow(
+                                        label: 'Available',
+                                        amount: model.balance,
+                                        ticker: model.ticker,
+                                      ),
+                                      BalanceRow(
+                                        label: 'Pending',
+                                        amount: model.pendingBalance,
+                                        ticker: model.ticker,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
-                      SailCard(
-                        title: 'Receive on Sidechain - Transparent Address',
-                        error: model.receiveError,
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            Expanded(
-                              child: SailTextField(
-                                controller: TextEditingController(text: model.transparentReceiveAddress),
-                                hintText: 'Generating transparent address...',
-                                readOnly: true,
-                                suffixWidget: model.isGeneratingTransparentAddress
-                                    ? const Padding(
-                                        padding: EdgeInsets.only(right: 8),
-                                        child: SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: LoadingIndicator(),
+                        SailCard(
+                          title: 'Receive on Sidechain - Transparent Address',
+                          error: model.receiveError,
+                          child: SailRow(
+                            spacing: SailStyleValues.padding08,
+                            children: [
+                              Expanded(
+                                child: SailTextField(
+                                  controller: TextEditingController(text: model.transparentReceiveAddress),
+                                  hintText: 'Generating transparent address...',
+                                  readOnly: true,
+                                  suffixWidget: model.isGeneratingTransparentAddress
+                                      ? const Padding(
+                                          padding: EdgeInsets.only(right: 8),
+                                          child: SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: LoadingIndicator(),
+                                          ),
+                                        )
+                                      : CopyButton(
+                                          text: model.transparentReceiveAddress ?? '',
                                         ),
-                                      )
-                                    : CopyButton(
-                                        text: model.transparentReceiveAddress ?? '',
-                                      ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      SailCard(
-                        title: 'Receive on Sidechain - Private Address',
-                        error: model.shieldedReceiveError,
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            Expanded(
-                              child: SailTextField(
-                                controller: TextEditingController(text: model.shieldedReceiveAddress),
-                                hintText: 'Generating private address...',
-                                readOnly: true,
-                                suffixWidget: model.isGeneratingShieldedAddress
-                                    ? const Padding(
-                                        padding: EdgeInsets.only(right: 8),
-                                        child: SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: LoadingIndicator(),
+                        SailCard(
+                          title: 'Receive on Sidechain - Private Address',
+                          error: model.shieldedReceiveError,
+                          child: SailRow(
+                            spacing: SailStyleValues.padding08,
+                            children: [
+                              Expanded(
+                                child: SailTextField(
+                                  controller: TextEditingController(text: model.shieldedReceiveAddress),
+                                  hintText: 'Generating private address...',
+                                  readOnly: true,
+                                  suffixWidget: model.isGeneratingShieldedAddress
+                                      ? const Padding(
+                                          padding: EdgeInsets.only(right: 8),
+                                          child: SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: LoadingIndicator(),
+                                          ),
+                                        )
+                                      : CopyButton(
+                                          text: model.shieldedReceiveAddress ?? '',
                                         ),
-                                      )
-                                    : CopyButton(
-                                        text: model.shieldedReceiveAddress ?? '',
-                                      ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      SailCard(
-                        title: 'Send on Sidechain',
-                        error: model.sendError,
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding16,
-                          children: [
-                            SailRow(
-                              spacing: SailStyleValues.padding08,
-                              children: [
-                                SailText.secondary15('Pay to'),
-                                if (model.addressType.isNotEmpty) ...[
-                                  SailText.secondary13(
-                                    '(${model.addressType})',
-                                    color: model.isShieldedAddress
-                                        ? SailTheme.of(context).colors.success
-                                        : SailTheme.of(context).colors.info,
-                                  ),
+                        SailCard(
+                          title: 'Send on Sidechain',
+                          error: model.sendError,
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding16,
+                            children: [
+                              SailRow(
+                                spacing: SailStyleValues.padding08,
+                                children: [
+                                  SailText.secondary15('Pay to'),
+                                  if (model.addressType.isNotEmpty) ...[
+                                    SailText.secondary13(
+                                      '(${model.addressType})',
+                                      color: model.isShieldedAddress
+                                          ? SailTheme.of(context).colors.success
+                                          : SailTheme.of(context).colors.info,
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                            SailTextField(
-                              controller: model.bitcoinAddressController,
-                              hintText: 'Enter a transparent or private address',
-                            ),
-                            NumericField(
-                              label: 'Amount',
-                              controller: model.bitcoinAmountController,
-                              hintText: '0.00',
-                            ),
-                            SailButton(
-                              label: model.isShieldedAddress ? 'Send Private' : 'Send Transparent',
-                              onPressed: () async => model.executeSendOnSidechain(context),
-                              loading: model.isSending,
-                            ),
-                          ],
+                              ),
+                              SailTextField(
+                                controller: model.bitcoinAddressController,
+                                hintText: 'Enter a transparent or private address',
+                              ),
+                              NumericField(
+                                label: 'Amount',
+                                controller: model.bitcoinAmountController,
+                                hintText: '0.00',
+                              ),
+                              SailButton(
+                                label: model.isShieldedAddress ? 'Send Private' : 'Send Transparent',
+                                onPressed: () async => model.executeSendOnSidechain(context),
+                                loading: model.isSending,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              // Transaction history
-              Expanded(
-                child: TransactionsTab(),
-              ),
-            ],
+                // Transaction history
+                Expanded(
+                  child: TransactionsTab(),
+                ),
+              ],
+            ),
           ),
         );
       }),
@@ -236,10 +241,10 @@ class OverviewTabViewModel extends BaseViewModel {
   String get sidechainName => _rpc.chain.name;
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
 
-  String get totalBitcoinAmount => formatBitcoin(
-    ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)),
-    symbol: ticker,
-  );
+  String get totalBitcoinAmount {
+    final formatter = GetIt.I<FormatterProvider>();
+    return '${formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0))} $ticker';
+  }
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
@@ -559,89 +564,95 @@ class _TransactionTableState extends State<TransactionTable> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return SailCard(
-          title: 'Wallet Transaction History',
-          bottomPadding: false,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SailStyleValues.padding16,
-                ),
-                child: widget.searchWidget,
-              ),
-              Expanded(
-                child: SailTable(
-                  getRowId: (index) => widget.entries[index].txid,
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Conf Height',
-                      onSort: () => onSort('height'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Amount',
-                      onSort: () => onSort('amount'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'TxID',
-                      onSort: () => onSort('txid'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Date',
-                      onSort: () => onSort('date'),
-                    ),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final entry = widget.entries[row];
-                    final amount = formatBitcoin(satoshiToBTC(entry.amount.toInt()));
+    final formatter = GetIt.I<FormatterProvider>();
 
-                    return [
-                      SailTableCell(
-                        value: entry.confirmations == 0 ? 'Unconfirmed' : entry.confirmations.toString(),
-                      ),
-                      SailTableCell(
-                        value: amount,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: '${entry.txid.substring(0, 6)}..:${entry.vout}',
-                        copyValue: '${entry.txid}:${entry.vout}',
-                      ),
-                      SailTableCell(
-                        value: DateTime.fromMillisecondsSinceEpoch(entry.blocktime * 1000).toLocal().toString(),
-                      ),
-                    ];
-                  },
-                  rowCount: widget.entries.length,
-                  drawGrid: true,
-                  sortColumnIndex: [
-                    'height',
-                    'date',
-                    'txid',
-                    'amount',
-                  ].indexOf(sortColumn),
-                  sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
-                  },
-                  onDoubleTap: (rowId) {
-                    final utxo = widget.entries.firstWhere(
-                      (u) => u.txid == rowId,
-                    );
-                    _showUtxoDetails(context, utxo);
-                  },
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return SailCard(
+            title: 'Wallet Transaction History',
+            bottomPadding: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: SailStyleValues.padding16,
+                  ),
+                  child: widget.searchWidget,
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+                Expanded(
+                  child: SailTable(
+                    getRowId: (index) => widget.entries[index].txid,
+                    headerBuilder: (context) => [
+                      SailTableHeaderCell(
+                        name: 'Conf Height',
+                        onSort: () => onSort('height'),
+                      ),
+                      SailTableHeaderCell(
+                        name: 'Amount',
+                        onSort: () => onSort('amount'),
+                      ),
+                      SailTableHeaderCell(
+                        name: 'TxID',
+                        onSort: () => onSort('txid'),
+                      ),
+                      SailTableHeaderCell(
+                        name: 'Date',
+                        onSort: () => onSort('date'),
+                      ),
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      final entry = widget.entries[row];
+                      final amount = formatter.formatBTC(satoshiToBTC(entry.amount.toInt()));
+
+                      return [
+                        SailTableCell(
+                          value: entry.confirmations == 0 ? 'Unconfirmed' : entry.confirmations.toString(),
+                        ),
+                        SailTableCell(
+                          value: amount,
+                          monospace: true,
+                        ),
+                        SailTableCell(
+                          value: '${entry.txid.substring(0, 6)}..:${entry.vout}',
+                          copyValue: '${entry.txid}:${entry.vout}',
+                        ),
+                        SailTableCell(
+                          value: DateTime.fromMillisecondsSinceEpoch(entry.blocktime * 1000).toLocal().toString(),
+                        ),
+                      ];
+                    },
+                    rowCount: widget.entries.length,
+                    drawGrid: true,
+                    sortColumnIndex: [
+                      'height',
+                      'date',
+                      'txid',
+                      'amount',
+                    ].indexOf(sortColumn),
+                    sortAscending: sortAscending,
+                    onSort: (columnIndex, ascending) {
+                      onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
+                    },
+                    onDoubleTap: (rowId) {
+                      final utxo = widget.entries.firstWhere(
+                        (u) => u.txid == rowId,
+                      );
+                      _showUtxoDetails(context, utxo);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
   void _showUtxoDetails(BuildContext context, CoreTransaction utxo) {
+    final formatter = GetIt.I<FormatterProvider>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -657,7 +668,7 @@ class _TransactionTableState extends State<TransactionTable> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DetailRow(label: 'TxID', value: utxo.txid),
-                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.amount.toInt()))),
+                  DetailRow(label: 'Amount', value: formatter.formatBTC(satoshiToBTC(utxo.amount.toInt()))),
                   DetailRow(label: 'Date', value: utxo.time.toLocal().format()),
                   DetailRow(label: 'Confirmation Height', value: utxo.confirmations.toString()),
                 ],
@@ -755,14 +766,19 @@ class BalanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SailText.secondary15(label),
-          SailText.secondary15('${formatBitcoin(amount)} $ticker'),
-        ],
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SailText.secondary15(label),
+            SailText.secondary15('${formatter.formatBTC(amount)} $ticker'),
+          ],
+        ),
       ),
     );
   }

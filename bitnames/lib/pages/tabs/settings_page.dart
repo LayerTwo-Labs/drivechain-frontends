@@ -176,6 +176,35 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
             ),
           ],
         ),
+
+        // Bitcoin Unit Dropdown
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Bitcoin Unit'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<BitcoinUnit>(
+              value: _settingsProvider.bitcoinUnit,
+              items: const [
+                SailDropdownItem<BitcoinUnit>(
+                  value: BitcoinUnit.btc,
+                  label: 'BTC',
+                ),
+                SailDropdownItem<BitcoinUnit>(
+                  value: BitcoinUnit.sats,
+                  label: 'Satoshis',
+                ),
+              ],
+              onChanged: (BitcoinUnit? newValue) async {
+                if (newValue != null) {
+                  await _settingsProvider.updateBitcoinUnit(newValue);
+                }
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12('Choose how Bitcoin amounts are displayed'),
+          ],
+        ),
       ],
     );
   }

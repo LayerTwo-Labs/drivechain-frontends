@@ -14,6 +14,7 @@ class NumericField extends StatefulWidget {
   final String? error;
   final Widget? suffixWidget;
   final List<TextInputFormatter>? inputFormatters;
+  final TextFieldType textFieldType;
 
   const NumericField({
     super.key,
@@ -28,6 +29,7 @@ class NumericField extends StatefulWidget {
     this.error = '',
     this.suffixWidget,
     this.inputFormatters,
+    this.textFieldType = TextFieldType.bitcoin,
   });
 
   @override
@@ -53,7 +55,7 @@ class _NumericFieldState extends State<NumericField> {
       controller: _controller,
       hintText: widget.hintText,
       focusNode: _focusNode,
-      textFieldType: TextFieldType.bitcoin,
+      textFieldType: widget.textFieldType,
       size: TextFieldSize.small,
       enabled: widget.enabled,
       suffixWidget: widget.suffixWidget,

@@ -35,6 +35,7 @@ Future<void> initSidechainDependencies({
 
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
+  GetIt.I.registerLazySingleton<FormatterProvider>(() => FormatterProvider(settingsProvider));
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
   final bitcoinConfProvider = await BitcoinConfProvider.create();

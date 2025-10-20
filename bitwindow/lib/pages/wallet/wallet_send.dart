@@ -48,14 +48,12 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
   }
 }
 
-String calculateLabel(RecipientModel recipient, int index) {
+String calculateLabel(RecipientModel recipient, int index, BitcoinUnit currentUnit) {
   if (recipient.amountController.text.isEmpty &&
       recipient.addressController.text.isEmpty &&
       recipient.matchingAddressLabel.isEmpty) {
     return 'Recipient ${index + 1}';
   }
-
-  final amount = double.tryParse(recipient.amountController.text);
 
   final recipientLabel = recipient.matchingAddressLabel.isNotEmpty
       ? recipient.matchingAddressLabel
@@ -63,7 +61,14 @@ String calculateLabel(RecipientModel recipient, int index) {
       ? '<Unknown>'
       : recipient.addressController.text.substring(0, min(recipient.addressController.text.length, 10));
 
-  return '$recipientLabel ${amount != null ? '(${formatBitcoin(amount)})' : ''}';
+  if (recipient.amountController.text.isEmpty) {
+    return recipientLabel;
+  }
+
+  final amountBTC = parseAmountInUnit(recipient.amountController.text, currentUnit);
+  final formattedAmount = formatBitcoinWithUnit(amountBTC, currentUnit);
+
+  return '$recipientLabel ($formattedAmount)';
 }
 
 class PayToCard extends ViewModelWidget<SendPageViewModel> {
@@ -75,7 +80,7 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
     final List<TabItem> tabs = [
       for (int i = 0; i < viewModel.recipients.length; i++)
         SingleTabItem(
-          label: calculateLabel(viewModel.recipients[i], i),
+          label: calculateLabel(viewModel.recipients[i], i, viewModel.currentUnit),
           child: _RecipientFields(
             key: ValueKey('recipient_fields_${viewModel.recipients[i].id}'),
             index: i,
@@ -89,6 +94,7 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
               viewModel.recipients[i].subtractFee = val;
               viewModel.notifyListeners();
             },
+            currentUnit: viewModel.currentUnit,
           ),
           icon: SailSVGAsset.iconClose,
           onIconTap: () => viewModel.removeRecipient(i),
@@ -131,6 +137,7 @@ class _RecipientFields extends StatelessWidget {
   final bool subtractFee;
   final ValueChanged<bool> onSubtractFeeChanged;
   final int index;
+  final BitcoinUnit currentUnit;
 
   const _RecipientFields({
     super.key,
@@ -142,6 +149,7 @@ class _RecipientFields extends StatelessWidget {
     required this.onUseAvailableBalance,
     required this.subtractFee,
     required this.onSubtractFeeChanged,
+    required this.currentUnit,
   });
 
   @override
@@ -188,8 +196,9 @@ class _RecipientFields extends StatelessWidget {
         ),
         NumericField(
           key: Key('recipient_amount_$key'),
-          label: 'Amount',
+          label: 'Amount (${currentUnit.symbol})',
           controller: recipient.amountController,
+          textFieldType: currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
           suffixWidget: SailButton(
             label: 'MAX',
             variant: ButtonVariant.link,
@@ -250,11 +259,12 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
       title: 'Fee',
       child: SailTextField(
         controller: viewModel.feeController,
-        hintText: 'Fee (in sats)',
+        hintText: 'Fee (in ${viewModel.currentUnit.symbol})',
+        textFieldType: viewModel.currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
         suffixWidget: SailRow(
           spacing: 0,
           children: [
-            SailText.primary13('sats'),
+            SailText.primary13(viewModel.currentUnit.symbol),
             SailDropdownButton<int>(
               value: null,
               hint: 'Estimate',
@@ -313,11 +323,14 @@ class SendPageViewModel extends BaseViewModel {
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
   AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
   BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
+  SettingsProvider get settingsProvider => GetIt.I<SettingsProvider>();
+
+  BitcoinUnit get currentUnit => settingsProvider.bitcoinUnit;
 
   List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
   AddressBookEntry? selectedEntry;
   TextEditingController selectedUTXOs = TextEditingController();
-  TextEditingController feeController = TextEditingController(text: '10000');
+  late TextEditingController feeController;
   List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted(
     (a, b) {
       final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
@@ -330,14 +343,55 @@ class SendPageViewModel extends BaseViewModel {
 
   List<RecipientModel> recipients = [];
   int selectedRecipientIndex = 0;
+  BitcoinUnit? _previousUnit;
 
   void _onRecipientChanged() {
     notifyListeners();
   }
 
+  void _onUnitChanged() {
+    final newUnit = currentUnit;
+    if (_previousUnit != null && _previousUnit != newUnit) {
+      _convertAllAmountsToNewUnit(_previousUnit!, newUnit);
+    }
+    _previousUnit = newUnit;
+    notifyListeners();
+  }
+
+  void _convertAllAmountsToNewUnit(BitcoinUnit fromUnit, BitcoinUnit toUnit) {
+    // Convert fee
+    if (feeController.text.isNotEmpty) {
+      final feeSats = parseAmountToSatoshis(feeController.text, fromUnit);
+      if (toUnit == BitcoinUnit.btc) {
+        feeController.text = satoshiToBTC(feeSats).toStringAsFixed(8);
+      } else {
+        feeController.text = feeSats.toString();
+      }
+    }
+
+    // Convert all recipient amounts
+    for (final recipient in recipients) {
+      if (recipient.amountController.text.isNotEmpty) {
+        final amountSats = parseAmountToSatoshis(recipient.amountController.text, fromUnit);
+        if (toUnit == BitcoinUnit.btc) {
+          recipient.amountController.text = satoshiToBTC(amountSats).toStringAsFixed(8);
+        } else {
+          recipient.amountController.text = amountSats.toString();
+        }
+      }
+    }
+  }
+
   SendPageViewModel() {
+    _previousUnit = currentUnit;
+    if (currentUnit == BitcoinUnit.btc) {
+      feeController = TextEditingController(text: '0.00010000');
+    } else {
+      feeController = TextEditingController(text: '10000');
+    }
     addressBookProvider.addListener(notifyListeners);
     transactionsProvider.addListener(_clearStaleSelectedUTXOs);
+    settingsProvider.addListener(_onUnitChanged);
     init();
     final initialRecipient = RecipientModel();
     initialRecipient.addListener(_onRecipientChanged);
@@ -367,6 +421,7 @@ class SendPageViewModel extends BaseViewModel {
       recipient.removeListener(_onRecipientChanged);
     }
     addressBookProvider.removeListener(notifyListeners);
+    settingsProvider.removeListener(_onUnitChanged);
     super.dispose();
   }
 
@@ -383,19 +438,29 @@ class SendPageViewModel extends BaseViewModel {
       double sumOtherRecipients = 0.0;
       for (int i = 0; i < recipients.length; i++) {
         if (i == index) continue;
-        final amt = double.tryParse(recipients[i].amountController.text) ?? 0.0;
-        sumOtherRecipients += amt;
+        final amountBTC = parseAmountInUnit(recipients[i].amountController.text, currentUnit);
+        sumOtherRecipients += amountBTC;
       }
 
       // 2. Calculate available balance minus fee
-      final available = availableAmount - satoshiToBTC((int.tryParse(feeController.text) ?? 10000));
+      final feeSats = parseAmountToSatoshis(feeController.text.isEmpty ? '0' : feeController.text, currentUnit);
+      final available = availableAmount - satoshiToBTC(feeSats);
 
       // 3. Set the remaining amount for the recipient at 'index'
       final remaining = available - sumOtherRecipients;
       if (remaining < 0) {
-        recipients[index].amountController.text = '0.00';
+        if (currentUnit == BitcoinUnit.btc) {
+          recipients[index].amountController.text = '0.00';
+        } else {
+          recipients[index].amountController.text = '0';
+        }
       } else {
-        recipients[index].amountController.text = remaining.toStringAsFixed(8);
+        if (currentUnit == BitcoinUnit.btc) {
+          recipients[index].amountController.text = remaining.toStringAsFixed(8);
+        } else {
+          final sats = btcToSatoshi(remaining);
+          recipients[index].amountController.text = sats.toString();
+        }
       }
 
       notifyListeners();
@@ -428,8 +493,8 @@ class SendPageViewModel extends BaseViewModel {
       return;
     }
 
-    final fee = int.tryParse(feeController.text);
-    if (fee == null) {
+    final feeSats = parseAmountToSatoshis(feeController.text, currentUnit);
+    if (feeSats <= 0) {
       showSnackBar(context, 'Please enter a valid fee.');
       setBusy(false);
       return;
@@ -440,9 +505,8 @@ class SendPageViewModel extends BaseViewModel {
       final destinations = <String, int>{};
       for (int i = 0; i < recipients.length; i++) {
         final r = recipients[i];
-        var amount = double.tryParse(r.amountController.text) ?? 0.0;
         final address = r.addressController.text;
-        final satoshis = btcToSatoshi(amount);
+        final satoshis = parseAmountToSatoshis(r.amountController.text, currentUnit);
 
         // Sum amounts for duplicate addresses
         destinations[address] = (destinations[address] ?? 0) + satoshis;
@@ -450,7 +514,7 @@ class SendPageViewModel extends BaseViewModel {
 
       final txid = await bitwindowd.wallet.sendTransaction(
         destinations,
-        fixedFeeSats: int.tryParse(feeController.text),
+        fixedFeeSats: feeSats,
         requiredInputs: selectedUtxos,
       );
       await clearAll();
@@ -484,7 +548,11 @@ class SendPageViewModel extends BaseViewModel {
     initialRecipient.addListener(_onRecipientChanged);
     recipients.add(initialRecipient);
     selectedRecipientIndex = 0;
-    feeController.text = '10000';
+    if (currentUnit == BitcoinUnit.btc) {
+      feeController.text = '0.00010000';
+    } else {
+      feeController.text = '10000';
+    }
     selectedUtxos = [];
 
     notifyListeners();
@@ -550,8 +618,12 @@ class SendPageViewModel extends BaseViewModel {
         final numOutputs = recipients.length + 1; // recipients + change
         final estimatedSize = 10 + (numInputs * 148) + (numOutputs * 34);
 
-        final estimatedFee = (satsPerByte * estimatedSize).ceil();
-        feeController.text = estimatedFee.toString();
+        final estimatedFeeSats = (satsPerByte * estimatedSize).ceil();
+        if (currentUnit == BitcoinUnit.btc) {
+          feeController.text = satoshiToBTC(estimatedFeeSats).toStringAsFixed(8);
+        } else {
+          feeController.text = estimatedFeeSats.toString();
+        }
         notifyListeners();
       }
     } catch (error) {

@@ -63,6 +63,9 @@ Future<void> initDependencies() async {
   GetIt.I.registerLazySingleton<SettingsProvider>(
     () => settingsProvider,
   );
+  GetIt.I.registerLazySingleton<FormatterProvider>(
+    () => FormatterProvider(settingsProvider),
+  );
 
   // api must be registered first, because other singletons depend on it
   GetIt.I.registerLazySingleton<API>(

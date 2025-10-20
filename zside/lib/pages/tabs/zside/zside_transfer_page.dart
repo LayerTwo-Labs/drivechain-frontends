@@ -414,88 +414,94 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return SailCard(
-          title: 'Transparent UTXOs',
-          subtitle: 'List of unspent transaction outputs in your transparent address',
-          bottomPadding: false,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SailStyleValues.padding16,
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return SailCard(
+            title: 'Transparent UTXOs',
+            subtitle: 'List of unspent transaction outputs in your transparent address',
+            bottomPadding: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: SailStyleValues.padding16,
+                  ),
+                  child: widget.searchWidget,
                 ),
-                child: widget.searchWidget,
-              ),
-              Expanded(
-                child: SailTable(
-                  getRowId: (index) => widget.entries[index].txid,
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Confirmations',
-                      onSort: () => onSort('confirmations'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Amount',
-                      onSort: () => onSort('amount'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Address',
-                      onSort: () => onSort('address'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'TxID',
-                      onSort: () => onSort('txid'),
-                    ),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final entry = widget.entries[row];
-                    return [
-                      SailTableCell(
-                        value: entry.confirmations.toString(),
+                Expanded(
+                  child: SailTable(
+                    getRowId: (index) => widget.entries[index].txid,
+                    headerBuilder: (context) => [
+                      SailTableHeaderCell(
+                        name: 'Confirmations',
+                        onSort: () => onSort('confirmations'),
                       ),
-                      SailTableCell(
-                        value: formatBitcoin(entry.amount),
-                        monospace: true,
+                      SailTableHeaderCell(
+                        name: 'Amount',
+                        onSort: () => onSort('amount'),
                       ),
-                      SailTableCell(
-                        value: entry.address,
+                      SailTableHeaderCell(
+                        name: 'Address',
+                        onSort: () => onSort('address'),
                       ),
-                      SailTableCell(
-                        value: entry.txid.substring(0, 6),
-                        copyValue: entry.txid,
+                      SailTableHeaderCell(
+                        name: 'TxID',
+                        onSort: () => onSort('txid'),
                       ),
-                    ];
-                  },
-                  rowCount: widget.entries.length,
-                  drawGrid: true,
-                  sortColumnIndex: [
-                    'confirmations',
-                    'amount',
-                    'address',
-                    'txid',
-                  ].indexOf(sortColumn),
-                  sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['confirmations', 'amount', 'address', 'txid'][columnIndex]);
-                  },
-                  onDoubleTap: (rowId) {
-                    final utxo = widget.entries.firstWhere(
-                      (u) => u.txid == rowId,
-                    );
-                    _showUtxoDetails(context, utxo);
-                  },
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      final entry = widget.entries[row];
+                      return [
+                        SailTableCell(
+                          value: entry.confirmations.toString(),
+                        ),
+                        SailTableCell(
+                          value: formatter.formatBTC(entry.amount),
+                          monospace: true,
+                        ),
+                        SailTableCell(
+                          value: entry.address,
+                        ),
+                        SailTableCell(
+                          value: entry.txid.substring(0, 6),
+                          copyValue: entry.txid,
+                        ),
+                      ];
+                    },
+                    rowCount: widget.entries.length,
+                    drawGrid: true,
+                    sortColumnIndex: [
+                      'confirmations',
+                      'amount',
+                      'address',
+                      'txid',
+                    ].indexOf(sortColumn),
+                    sortAscending: sortAscending,
+                    onSort: (columnIndex, ascending) {
+                      onSort(['confirmations', 'amount', 'address', 'txid'][columnIndex]);
+                    },
+                    onDoubleTap: (rowId) {
+                      final utxo = widget.entries.firstWhere(
+                        (u) => u.txid == rowId,
+                      );
+                      _showUtxoDetails(context, utxo);
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
   void _showUtxoDetails(BuildContext context, UnshieldedUTXO utxo) {
+    final formatter = GetIt.I<FormatterProvider>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -511,7 +517,7 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DetailRow(label: 'TxID', value: utxo.txid),
-                  DetailRow(label: 'Amount', value: formatBitcoin(utxo.amount)),
+                  DetailRow(label: 'Amount', value: formatter.formatBTC(utxo.amount)),
                   DetailRow(label: 'Address', value: utxo.address),
                   DetailRow(label: 'Confirmations', value: utxo.confirmations.toString()),
                 ],
@@ -596,81 +602,87 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return SailCard(
-          title: 'Private UTXOs',
-          subtitle: 'List of unspent transaction outputs in your private address',
-          bottomPadding: false,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SailStyleValues.padding16,
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return SailCard(
+            title: 'Private UTXOs',
+            subtitle: 'List of unspent transaction outputs in your private address',
+            bottomPadding: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: SailStyleValues.padding16,
+                  ),
+                  child: widget.searchWidget,
                 ),
-                child: widget.searchWidget,
-              ),
-              Expanded(
-                child: SailTable(
-                  getRowId: (index) => widget.entries[index].txid,
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Confirmations',
-                      onSort: () => onSort('confirmations'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Amount',
-                      onSort: () => onSort('amount'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'TxID',
-                      onSort: () => onSort('txid'),
-                    ),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final entry = widget.entries[row];
-                    return [
-                      SailTableCell(
-                        value: entry.confirmations.toString(),
+                Expanded(
+                  child: SailTable(
+                    getRowId: (index) => widget.entries[index].txid,
+                    headerBuilder: (context) => [
+                      SailTableHeaderCell(
+                        name: 'Confirmations',
+                        onSort: () => onSort('confirmations'),
                       ),
-                      SailTableCell(
-                        value: formatBitcoin(entry.amount),
-                        monospace: true,
-                        textColor: getCastColor(entry.amount),
+                      SailTableHeaderCell(
+                        name: 'Amount',
+                        onSort: () => onSort('amount'),
                       ),
-                      SailTableCell(
-                        value: entry.txid.substring(0, 6),
-                        copyValue: entry.txid,
+                      SailTableHeaderCell(
+                        name: 'TxID',
+                        onSort: () => onSort('txid'),
                       ),
-                    ];
-                  },
-                  rowCount: widget.entries.length,
-                  drawGrid: true,
-                  sortColumnIndex: [
-                    'confirmations',
-                    'amount',
-                    'txid',
-                  ].indexOf(sortColumn),
-                  sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['confirmations', 'amount', 'txid'][columnIndex]);
-                  },
-                  onDoubleTap: (rowId) {
-                    final utxo = widget.entries.firstWhere(
-                      (u) => u.txid == rowId,
-                    );
-                    _showUtxoDetails(context, utxo);
-                  },
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      final entry = widget.entries[row];
+                      return [
+                        SailTableCell(
+                          value: entry.confirmations.toString(),
+                        ),
+                        SailTableCell(
+                          value: formatter.formatBTC(entry.amount),
+                          monospace: true,
+                          textColor: getCastColor(entry.amount),
+                        ),
+                        SailTableCell(
+                          value: entry.txid.substring(0, 6),
+                          copyValue: entry.txid,
+                        ),
+                      ];
+                    },
+                    rowCount: widget.entries.length,
+                    drawGrid: true,
+                    sortColumnIndex: [
+                      'confirmations',
+                      'amount',
+                      'txid',
+                    ].indexOf(sortColumn),
+                    sortAscending: sortAscending,
+                    onSort: (columnIndex, ascending) {
+                      onSort(['confirmations', 'amount', 'txid'][columnIndex]);
+                    },
+                    onDoubleTap: (rowId) {
+                      final utxo = widget.entries.firstWhere(
+                        (u) => u.txid == rowId,
+                      );
+                      _showUtxoDetails(context, utxo);
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
   void _showUtxoDetails(BuildContext context, ShieldedUTXO utxo) {
+    final formatter = GetIt.I<FormatterProvider>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -686,7 +698,7 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DetailRow(label: 'TxID', value: utxo.txid),
-                  DetailRow(label: 'Amount', value: formatBitcoin(utxo.amount)),
+                  DetailRow(label: 'Amount', value: formatter.formatBTC(utxo.amount)),
                   DetailRow(label: 'Confirmations', value: utxo.confirmations.toString()),
                 ],
               ),

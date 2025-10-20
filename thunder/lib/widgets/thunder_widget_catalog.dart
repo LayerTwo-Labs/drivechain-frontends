@@ -15,36 +15,41 @@ class ThunderWidgetCatalog {
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
-          return SizedBox(
-            height: 200, // Fixed height to prevent layout issues
-            child: SailCard(
-              title: 'Balance',
-              child: SailColumn(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailSkeletonizer(
-                    enabled: !model.balanceInitialized,
-                    description: 'Waiting for thunder to boot...',
-                    child: SailText.primary24(
-                      '${formatBitcoin(model.totalBalance)} ${model.ticker}',
-                      bold: true,
+          final formatter = GetIt.I<FormatterProvider>();
+
+          return ListenableBuilder(
+            listenable: formatter,
+            builder: (context, child) => SizedBox(
+              height: 200, // Fixed height to prevent layout issues
+              child: SailCard(
+                title: 'Balance',
+                child: SailColumn(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailSkeletonizer(
+                      enabled: !model.balanceInitialized,
+                      description: 'Waiting for thunder to boot...',
+                      child: SailText.primary24(
+                        '${formatter.formatBTC(model.totalBalance)} ${model.ticker}',
+                        bold: true,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  BalanceRow(
-                    label: 'Available',
-                    amount: model.balance,
-                    ticker: model.ticker,
-                    loading: !model.balanceInitialized,
-                  ),
-                  BalanceRow(
-                    label: 'Pending',
-                    amount: model.pendingBalance,
-                    ticker: model.ticker,
-                    loading: !model.balanceInitialized,
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    BalanceRow(
+                      label: 'Available',
+                      amount: model.balance,
+                      ticker: model.ticker,
+                      loading: !model.balanceInitialized,
+                    ),
+                    BalanceRow(
+                      label: 'Pending',
+                      amount: model.pendingBalance,
+                      ticker: model.ticker,
+                      loading: !model.balanceInitialized,
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -169,18 +174,23 @@ class BalanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SailText.secondary15(label),
-          SailSkeletonizer(
-            enabled: loading,
-            description: 'Waiting for thunder to boot...',
-            child: SailText.secondary15('${formatBitcoin(amount)} $ticker'),
-          ),
-        ],
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SailText.secondary15(label),
+            SailSkeletonizer(
+              enabled: loading,
+              description: 'Waiting for thunder to boot...',
+              child: SailText.secondary15('${formatter.formatBTC(amount)} $ticker'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -267,6 +277,8 @@ class _UTXOTableState extends State<UTXOTable> {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return SailCard(
       title: 'Your UTXOs',
       bottomPadding: false,
@@ -276,35 +288,40 @@ class _UTXOTableState extends State<UTXOTable> {
             child: SailSkeletonizer(
               description: 'Waiting for enforcer to start and wallet to sync..',
               enabled: widget.model.loading,
-              child: SailTable(
-                shrinkWrap: true,
-                getRowId: (index) => widget.entries[index].outpoint.split(':').first,
-                headerBuilder: (context) => [
-                  SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
-                  SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
-                  SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
-                  SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
-                ],
-                rowBuilder: (context, row, selected) {
-                  final utxo = widget.entries[row];
-                  final formattedAmount = formatBitcoin(satoshiToBTC(utxo.valueSats), symbol: '');
-                  return [
-                    SailTableCell(value: utxo.type.name, monospace: true),
-                    SailTableCell(
-                      value: '${utxo.outpoint.substring(0, 6)}..:${utxo.outpoint.split(':').last}',
-                      copyValue: utxo.outpoint,
-                    ),
-                    SailTableCell(value: utxo.address, monospace: true),
-                    SailTableCell(value: formattedAmount, monospace: true),
-                  ];
-                },
-                rowCount: widget.entries.length,
-                drawGrid: true,
-                sortColumnIndex: ['type', 'output', 'address', 'value'].indexOf(sortColumn),
-                sortAscending: sortAscending,
-                onSort: (columnIndex, ascending) {
-                  onSort(['type', 'output', 'address', 'value'][columnIndex]);
-                },
+              child: ListenableBuilder(
+                listenable: formatter,
+                builder: (context, child) => SailTable(
+                  shrinkWrap: true,
+                  getRowId: (index) => widget.entries[index].outpoint.split(':').first,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
+                    SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
+                    SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                    SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final utxo = widget.entries[row];
+                    final formattedAmount = formatter
+                        .formatSats(utxo.valueSats.toInt())
+                        .replaceAll(' ${formatter.currentUnit.symbol}', '');
+                    return [
+                      SailTableCell(value: utxo.type.name, monospace: true),
+                      SailTableCell(
+                        value: '${utxo.outpoint.substring(0, 6)}..:${utxo.outpoint.split(':').last}',
+                        copyValue: utxo.outpoint,
+                      ),
+                      SailTableCell(value: utxo.address, monospace: true),
+                      SailTableCell(value: formattedAmount, monospace: true),
+                    ];
+                  },
+                  rowCount: widget.entries.length,
+                  drawGrid: true,
+                  sortColumnIndex: ['type', 'output', 'address', 'value'].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['type', 'output', 'address', 'value'][columnIndex]);
+                  },
+                ),
               ),
             ),
           ),

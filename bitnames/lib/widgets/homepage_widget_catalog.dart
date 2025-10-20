@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart';
 import 'package:stacked/stacked.dart';
@@ -14,36 +15,41 @@ class BitnamesWidgetCatalog {
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
-          return SizedBox(
-            height: 200,
-            child: SailCard(
-              title: 'Balance',
-              child: SailColumn(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailSkeletonizer(
-                    enabled: !model.balanceInitialized,
-                    description: 'Waiting for bitnames to boot...',
-                    child: SailText.primary24(
-                      '${formatBitcoin(model.totalBalance)} ${model.ticker}',
-                      bold: true,
+          final formatter = GetIt.I<FormatterProvider>();
+
+          return ListenableBuilder(
+            listenable: formatter,
+            builder: (context, child) => SizedBox(
+              height: 200,
+              child: SailCard(
+                title: 'Balance',
+                child: SailColumn(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailSkeletonizer(
+                      enabled: !model.balanceInitialized,
+                      description: 'Waiting for bitnames to boot...',
+                      child: SailText.primary24(
+                        '${formatter.formatBTC(model.totalBalance)} ${model.ticker}',
+                        bold: true,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  BalanceRow(
-                    label: 'Available',
-                    amount: model.balance,
-                    ticker: model.ticker,
-                    loading: !model.balanceInitialized,
-                  ),
-                  BalanceRow(
-                    label: 'Pending',
-                    amount: model.pendingBalance,
-                    ticker: model.ticker,
-                    loading: !model.balanceInitialized,
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    BalanceRow(
+                      label: 'Available',
+                      amount: model.balance,
+                      ticker: model.ticker,
+                      loading: !model.balanceInitialized,
+                    ),
+                    BalanceRow(
+                      label: 'Pending',
+                      amount: model.pendingBalance,
+                      ticker: model.ticker,
+                      loading: !model.balanceInitialized,
+                    ),
+                  ],
+                ),
               ),
             ),
           );
