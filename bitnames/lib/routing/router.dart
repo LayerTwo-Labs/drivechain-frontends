@@ -48,9 +48,6 @@ class AppRouter extends RootStackRouter {
           initial: true,
         ),
         AutoRoute(
-          page: SidechainOverviewTabRoute.page,
-        ),
-        AutoRoute(
           page: BitnamesTabRoute.page,
         ),
         AutoRoute(
