@@ -46,6 +46,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
+  bool _shutdownInProgress = false;
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -852,6 +853,22 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void onWindowClose() async {
+    // If shutdown is already in progress, trigger force-kill
+    if (_shutdownInProgress) {
+      await GetIt.I.get<BinaryProvider>().onShutdown(
+        shutdownOptions: ShutdownOptions(
+          router: GetIt.I.get<AppRouter>(),
+          onComplete: () async {
+            await windowManager.destroy();
+          },
+          showShutdownPage: false,
+          forceKill: true,
+        ),
+      );
+      return;
+    }
+
+    _shutdownInProgress = true;
     await GetIt.I.get<BinaryProvider>().onShutdown(
       shutdownOptions: ShutdownOptions(
         router: GetIt.I.get<AppRouter>(),
