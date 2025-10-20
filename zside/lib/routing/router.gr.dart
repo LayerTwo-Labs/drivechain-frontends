@@ -90,22 +90,6 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [SidechainOverviewTabPage]
-class SidechainOverviewTabRoute extends PageRouteInfo<void> {
-  const SidechainOverviewTabRoute({List<PageRouteInfo>? children})
-    : super(SidechainOverviewTabRoute.name, initialChildren: children);
-
-  static const String name = 'SidechainOverviewTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const SidechainOverviewTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [ZSideBillPage]
 class ZSideBillRoute extends PageRouteInfo<void> {
   const ZSideBillRoute({List<PageRouteInfo>? children})
