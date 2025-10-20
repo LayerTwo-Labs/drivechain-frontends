@@ -131,9 +131,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             // zside homepage
             ZSideHomepageRoute(),
 
-            // sidechain balance/transfer route
-            ZSideHomepageRoute(),
-
             // zside routes
             ZSideShieldDeshieldTabRoute(),
             ZSideMeltCastTabRoute(),

@@ -9,27 +9,25 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i9;
+import 'dart:async' as _i8;
 
-import 'package:auto_route/auto_route.dart' as _i6;
-import 'package:collection/collection.dart' as _i10;
-import 'package:flutter/material.dart' as _i7;
+import 'package:auto_route/auto_route.dart' as _i5;
+import 'package:collection/collection.dart' as _i9;
+import 'package:flutter/material.dart' as _i6;
 import 'package:sail_ui/pages/log_page.dart' as _i1;
 import 'package:sail_ui/pages/shutdown_page.dart' as _i3;
 import 'package:sail_ui/pages/sidechains/parent_chain_page.dart' as _i2;
-import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart' as _i4;
-import 'package:sail_ui/pages/unlock_wallet_page.dart' as _i5;
-import 'package:sail_ui/providers/encryption_provider.dart' as _i11;
-import 'package:sail_ui/sail_ui.dart' as _i8;
+import 'package:sail_ui/pages/unlock_wallet_page.dart' as _i4;
+import 'package:sail_ui/sail_ui.dart' as _i7;
 
 /// generated route for
 /// [_i1.LogPage]
-class LogRoute extends _i6.PageRouteInfo<LogRouteArgs> {
+class LogRoute extends _i5.PageRouteInfo<LogRouteArgs> {
   LogRoute({
-    _i7.Key? key,
+    _i6.Key? key,
     required String logPath,
     required String title,
-    List<_i6.PageRouteInfo>? children,
+    List<_i5.PageRouteInfo>? children,
   }) : super(
          LogRoute.name,
          args: LogRouteArgs(key: key, logPath: logPath, title: title),
@@ -38,7 +36,7 @@ class LogRoute extends _i6.PageRouteInfo<LogRouteArgs> {
 
   static const String name = 'LogRoute';
 
-  static _i6.PageInfo page = _i6.PageInfo(
+  static _i5.PageInfo page = _i5.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<LogRouteArgs>();
@@ -54,7 +52,7 @@ class LogRoute extends _i6.PageRouteInfo<LogRouteArgs> {
 class LogRouteArgs {
   const LogRouteArgs({this.key, required this.logPath, required this.title});
 
-  final _i7.Key? key;
+  final _i6.Key? key;
 
   final String logPath;
 
@@ -78,13 +76,13 @@ class LogRouteArgs {
 
 /// generated route for
 /// [_i2.ParentChainPage]
-class ParentChainRoute extends _i6.PageRouteInfo<void> {
-  const ParentChainRoute({List<_i6.PageRouteInfo>? children})
+class ParentChainRoute extends _i5.PageRouteInfo<void> {
+  const ParentChainRoute({List<_i5.PageRouteInfo>? children})
     : super(ParentChainRoute.name, initialChildren: children);
 
   static const String name = 'ParentChainRoute';
 
-  static _i6.PageInfo page = _i6.PageInfo(
+  static _i5.PageInfo page = _i5.PageInfo(
     name,
     builder: (data) {
       return const _i2.ParentChainPage();
@@ -94,13 +92,13 @@ class ParentChainRoute extends _i6.PageRouteInfo<void> {
 
 /// generated route for
 /// [_i3.ShutDownPage]
-class ShutDownRoute extends _i6.PageRouteInfo<ShutDownRouteArgs> {
+class ShutDownRoute extends _i5.PageRouteInfo<ShutDownRouteArgs> {
   ShutDownRoute({
-    _i7.Key? key,
-    required List<_i8.Binary> binaries,
-    required _i9.Stream<_i8.ShutdownProgress> shutdownStream,
-    required _i7.VoidCallback onComplete,
-    List<_i6.PageRouteInfo>? children,
+    _i6.Key? key,
+    required List<_i7.Binary> binaries,
+    required _i8.Stream<_i7.ShutdownProgress> shutdownStream,
+    required _i6.VoidCallback onComplete,
+    List<_i5.PageRouteInfo>? children,
   }) : super(
          ShutDownRoute.name,
          args: ShutDownRouteArgs(
@@ -114,7 +112,7 @@ class ShutDownRoute extends _i6.PageRouteInfo<ShutDownRouteArgs> {
 
   static const String name = 'ShutDownRoute';
 
-  static _i6.PageInfo page = _i6.PageInfo(
+  static _i5.PageInfo page = _i5.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<ShutDownRouteArgs>();
@@ -136,13 +134,13 @@ class ShutDownRouteArgs {
     required this.onComplete,
   });
 
-  final _i7.Key? key;
+  final _i6.Key? key;
 
-  final List<_i8.Binary> binaries;
+  final List<_i7.Binary> binaries;
 
-  final _i9.Stream<_i8.ShutdownProgress> shutdownStream;
+  final _i8.Stream<_i7.ShutdownProgress> shutdownStream;
 
-  final _i7.VoidCallback onComplete;
+  final _i6.VoidCallback onComplete;
 
   @override
   String toString() {
@@ -154,7 +152,7 @@ class ShutDownRouteArgs {
     if (identical(this, other)) return true;
     if (other is! ShutDownRouteArgs) return false;
     return key == other.key &&
-        const _i10.ListEquality().equals(binaries, other.binaries) &&
+        const _i9.ListEquality<_i7.Binary>().equals(binaries, other.binaries) &&
         shutdownStream == other.shutdownStream &&
         onComplete == other.onComplete;
   }
@@ -162,34 +160,18 @@ class ShutDownRouteArgs {
   @override
   int get hashCode =>
       key.hashCode ^
-      const _i10.ListEquality().hash(binaries) ^
+      const _i9.ListEquality<_i7.Binary>().hash(binaries) ^
       shutdownStream.hashCode ^
       onComplete.hashCode;
 }
 
 /// generated route for
-/// [_i4.SidechainOverviewTabPage]
-class SidechainOverviewTabRoute extends _i6.PageRouteInfo<void> {
-  const SidechainOverviewTabRoute({List<_i6.PageRouteInfo>? children})
-    : super(SidechainOverviewTabRoute.name, initialChildren: children);
-
-  static const String name = 'SidechainOverviewTabRoute';
-
-  static _i6.PageInfo page = _i6.PageInfo(
-    name,
-    builder: (data) {
-      return const _i4.SidechainOverviewTabPage();
-    },
-  );
-}
-
-/// generated route for
-/// [_i5.UnlockWalletPage]
-class UnlockWalletRoute extends _i6.PageRouteInfo<UnlockWalletRouteArgs> {
+/// [_i4.UnlockWalletPage]
+class UnlockWalletRoute extends _i5.PageRouteInfo<UnlockWalletRouteArgs> {
   UnlockWalletRoute({
-    _i7.Key? key,
-    _i9.Future<void> Function(_i11.EncryptionProvider)? onUnlock,
-    List<_i6.PageRouteInfo>? children,
+    _i6.Key? key,
+    _i8.Future<void> Function(_i7.EncryptionProvider)? onUnlock,
+    List<_i5.PageRouteInfo>? children,
   }) : super(
          UnlockWalletRoute.name,
          args: UnlockWalletRouteArgs(key: key, onUnlock: onUnlock),
@@ -198,13 +180,13 @@ class UnlockWalletRoute extends _i6.PageRouteInfo<UnlockWalletRouteArgs> {
 
   static const String name = 'UnlockWalletRoute';
 
-  static _i6.PageInfo page = _i6.PageInfo(
+  static _i5.PageInfo page = _i5.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<UnlockWalletRouteArgs>(
         orElse: () => const UnlockWalletRouteArgs(),
       );
-      return _i5.UnlockWalletPage(key: args.key, onUnlock: args.onUnlock);
+      return _i4.UnlockWalletPage(key: args.key, onUnlock: args.onUnlock);
     },
   );
 }
@@ -212,9 +194,9 @@ class UnlockWalletRoute extends _i6.PageRouteInfo<UnlockWalletRouteArgs> {
 class UnlockWalletRouteArgs {
   const UnlockWalletRouteArgs({this.key, this.onUnlock});
 
-  final _i7.Key? key;
+  final _i6.Key? key;
 
-  final _i9.Future<void> Function(_i11.EncryptionProvider)? onUnlock;
+  final _i8.Future<void> Function(_i7.EncryptionProvider)? onUnlock;
 
   @override
   String toString() {

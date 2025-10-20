@@ -4,7 +4,6 @@ import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/routing/password_guard.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
-import 'package:zside/pages/tabs/sidechain_overview_page.dart';
 import 'package:zside/pages/tabs/zside/zside_bill_page.dart';
 import 'package:zside/pages/tabs/zside/zside_melt_cast_page.dart';
 import 'package:zside/pages/tabs/zside/zside_rpc_tab_page.dart';
@@ -51,9 +50,6 @@ class AppRouter extends RootStackRouter {
         AutoRoute(
           page: ZSideHomepageRoute.page,
           initial: true,
-        ),
-        AutoRoute(
-          page: SidechainOverviewTabRoute.page,
         ),
         AutoRoute(
           page: ZSideMeltCastTabRoute.page,
