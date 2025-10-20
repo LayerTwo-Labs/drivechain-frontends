@@ -84,6 +84,11 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
             _logger.e('Failed to trigger deferred binary boot: $e');
           }
         }
+
+        // Successfully unlocked - pop back to guarded route
+        if (mounted) {
+          context.router.pop();
+        }
       } else {
         _logger.d('_tryAutoDecrypt: Wrong password (length ${password.length})');
       }
@@ -212,6 +217,11 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
           } catch (e) {
             _logger.e('Failed to trigger deferred binary boot: $e');
           }
+        }
+
+        // Successfully unlocked - pop back to guarded route
+        if (mounted) {
+          context.router.pop();
         }
       } else {
         setState(() {
