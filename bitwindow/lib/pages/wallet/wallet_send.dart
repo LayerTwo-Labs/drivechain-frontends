@@ -95,6 +95,7 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
               viewModel.notifyListeners();
             },
             currentUnit: viewModel.currentUnit,
+            onSaveToAddressBook: viewModel.saveToAddressBook,
           ),
           icon: SailSVGAsset.iconClose,
           onIconTap: () => viewModel.removeRecipient(i),
@@ -138,6 +139,7 @@ class _RecipientFields extends StatelessWidget {
   final ValueChanged<bool> onSubtractFeeChanged;
   final int index;
   final BitcoinUnit currentUnit;
+  final Future<void> Function(BuildContext context, String address) onSaveToAddressBook;
 
   const _RecipientFields({
     super.key,
@@ -150,6 +152,7 @@ class _RecipientFields extends StatelessWidget {
     required this.subtractFee,
     required this.onSubtractFeeChanged,
     required this.currentUnit,
+    required this.onSaveToAddressBook,
   });
 
   @override
@@ -172,25 +175,33 @@ class _RecipientFields extends StatelessWidget {
                   recipient.addressController.text = text;
                 },
               ),
-              if (addressBookEntries.isNotEmpty)
-                Flexible(
-                  child: SailDropdownButton<AddressBookEntry>(
-                    value: null,
-                    hint: selectedEntry?.label ?? 'Address Book',
-                    items: addressBookEntries.map((entry) {
-                      return SailDropdownItem<AddressBookEntry>(
-                        value: entry,
-                        label: entry.label,
-                      );
-                    }).toList(),
-                    icon: SailSVG.fromAsset(
-                      SailSVGAsset.bookUser,
-                      width: 13,
-                      color: theme.colors.inactiveNavText,
-                    ),
-                    onChanged: onAddressSelected,
-                  ),
+              if (recipient.addressController.text.isNotEmpty &&
+                  !addressBookEntries.any((e) => e.address == recipient.addressController.text))
+                SailButton(
+                  label: 'Save',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => onSaveToAddressBook(context, recipient.addressController.text),
                 ),
+              Flexible(
+                child: SailDropdownButton<AddressBookEntry>(
+                  value: null,
+                  hint: addressBookEntries.isEmpty ? 'No Addresses Saved' : (selectedEntry?.label ?? 'Address Book'),
+                  items: addressBookEntries.isEmpty
+                      ? []
+                      : addressBookEntries.map((entry) {
+                          return SailDropdownItem<AddressBookEntry>(
+                            value: entry,
+                            label: entry.label,
+                          );
+                        }).toList(),
+                  icon: SailSVG.fromAsset(
+                    SailSVGAsset.bookUser,
+                    width: 13,
+                    color: theme.colors.inactiveNavText,
+                  ),
+                  onChanged: onAddressSelected,
+                ),
+              ),
             ],
           ),
         ),
@@ -561,8 +572,23 @@ class SendPageViewModel extends BaseViewModel {
   void onAddressSelected(AddressBookEntry? entry) {
     if (entry != null) {
       selectedEntry = entry;
+      recipients[selectedRecipientIndex].addressController.text = entry.address;
       notifyListeners();
     }
+  }
+
+  Future<void> saveToAddressBook(BuildContext context, String address) async {
+    if (address.isEmpty) return;
+    if (!context.mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => _SaveToAddressBookDialog(
+        address: address,
+        addressBookProvider: addressBookProvider,
+        log: log,
+      ),
+    );
   }
 
   void handleBitcoinURI(BitcoinURI uri) async {
@@ -711,6 +737,100 @@ class _UTXOSelectorState extends State<UTXOSelector> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _SaveToAddressBookDialog extends StatefulWidget {
+  final String address;
+  final AddressBookProvider addressBookProvider;
+  final Logger log;
+
+  const _SaveToAddressBookDialog({
+    required this.address,
+    required this.addressBookProvider,
+    required this.log,
+  });
+
+  @override
+  State<_SaveToAddressBookDialog> createState() => _SaveToAddressBookDialogState();
+}
+
+class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
+  final TextEditingController labelController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    labelController.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    labelController.removeListener(_onTextChanged);
+    labelController.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SailCard(
+          title: 'Save to Address Book',
+          subtitle: '',
+          withCloseButton: true,
+          child: SailColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: SailStyleValues.padding16,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailTextField(
+                label: 'Address',
+                controller: TextEditingController(text: widget.address),
+                hintText: widget.address,
+                readOnly: true,
+                size: TextFieldSize.small,
+              ),
+              SailTextField(
+                label: 'Label',
+                controller: labelController,
+                hintText: 'Enter a label for this address',
+                size: TextFieldSize.small,
+              ),
+              SailButton(
+                label: 'Save',
+                onPressed: () async {
+                  if (labelController.text.isEmpty) return;
+                  try {
+                    await widget.addressBookProvider.createEntry(
+                      labelController.text,
+                      widget.address,
+                      Direction.DIRECTION_SEND,
+                    );
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      showSnackBar(context, 'Address saved to address book');
+                    }
+                  } catch (e) {
+                    widget.log.e('Error saving to address book: $e');
+                    if (context.mounted) {
+                      showSnackBar(context, 'Failed to save address: $e');
+                    }
+                  }
+                },
+                disabled: labelController.text.isEmpty,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
