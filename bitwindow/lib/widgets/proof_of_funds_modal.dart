@@ -421,106 +421,110 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
+    final formatter = GetIt.I<FormatterProvider>();
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(SailStyleValues.padding16),
-        child: SailColumn(
-          spacing: SailStyleValues.padding20,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailColumn(
-              spacing: SailStyleValues.padding12,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.primary15('Input Configuration', bold: true),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: SailTextField(
-                        controller: _filePathController,
-                        label: 'Input File',
-                        hintText: 'Select CSV file to verify signatures',
-                        readOnly: true,
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(SailStyleValues.padding16),
+          child: SailColumn(
+            spacing: SailStyleValues.padding20,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailColumn(
+                spacing: SailStyleValues.padding12,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary15('Input Configuration', bold: true),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: SailTextField(
+                          controller: _filePathController,
+                          label: 'Input File',
+                          hintText: 'Select CSV file to verify signatures',
+                          readOnly: true,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: SailButton(
-                        onPressed: _selectFile,
-                        label: 'Browse',
-                        icon: SailSVGAsset.iconSearch,
+                      const SizedBox(width: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: SailButton(
+                          onPressed: _selectFile,
+                          label: 'Browse',
+                          icon: SailSVGAsset.iconSearch,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (_isVerifying) ...[
+                SailColumn(
+                  spacing: SailStyleValues.padding12,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.primary15('Progress', bold: true),
+                    SailCard(
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding12,
+                        children: [
+                          ProgressBar(
+                            current: _progress,
+                            goal: 1.0,
+                            justPercent: true,
+                          ),
+                          SailText.secondary12(_progressText),
+                          SailText.secondary12('${(_progress * 100).toStringAsFixed(1)}%'),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ],
-            ),
-            if (_isVerifying) ...[
-              SailColumn(
-                spacing: SailStyleValues.padding12,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailText.primary15('Progress', bold: true),
-                  SailCard(
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding12,
-                      children: [
-                        ProgressBar(
-                          current: _progress,
-                          goal: 1.0,
-                          justPercent: true,
-                        ),
-                        SailText.secondary12(_progressText),
-                        SailText.secondary12('${(_progress * 100).toStringAsFixed(1)}%'),
-                      ],
-                    ),
+              Center(
+                child: SailButton(
+                  onPressed: _isVerifying ? null : _verifyReport,
+                  label: 'Verify Proof of Funds Report',
+                  loadingLabel: 'Verifying Signatures',
+                  icon: SailSVGAsset.iconCheck,
+                  loading: _isVerifying,
+                ),
+              ),
+              if (_error != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
-              ),
-            ],
-            Center(
-              child: SailButton(
-                onPressed: _isVerifying ? null : _verifyReport,
-                label: 'Verify Proof of Funds Report',
-                loadingLabel: 'Verifying Signatures',
-                icon: SailSVGAsset.iconCheck,
-                loading: _isVerifying,
-              ),
-            ),
-            if (_error != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colors.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error, color: theme.colors.error, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SailText.primary13(
-                        _error!,
-                        color: theme.colors.error,
+                  child: Row(
+                    children: [
+                      Icon(Icons.error, color: theme.colors.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SailText.primary13(
+                          _error!,
+                          color: theme.colors.error,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
+              if (_result != null) ...[
+                _buildVerificationResults(theme, formatter),
+              ],
             ],
-            if (_result != null) ...[
-              _buildVerificationResults(theme),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildVerificationResults(SailThemeData theme) {
+  Widget _buildVerificationResults(SailThemeData theme, FormatterProvider formatter) {
     final result = _result!;
     final isValid = result.validCount == result.totalCount;
     final color = isValid ? theme.colors.success : theme.colors.error;
@@ -571,7 +575,7 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                   Expanded(
                     child: _buildStatCard(
                       'Total BTC',
-                      formatBitcoin(result.totalBTC, symbol: ''),
+                      formatter.formatBTC(result.totalBTC).replaceAll(' ${formatter.currentUnit.symbol}', ''),
                       theme.colors.primary,
                     ),
                   ),
@@ -626,7 +630,7 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                               Expanded(
                                 flex: 2,
                                 child: SailText.primary12(
-                                  formatBitcoin(detail.amount, symbol: ''),
+                                  formatter.formatBTC(detail.amount).replaceAll(' ${formatter.currentUnit.symbol}', ''),
                                   textAlign: TextAlign.right,
                                 ),
                               ),

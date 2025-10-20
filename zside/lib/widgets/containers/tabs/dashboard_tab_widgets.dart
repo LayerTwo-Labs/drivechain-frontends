@@ -21,44 +21,49 @@ class SendOnSidechainAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => SendOnSidechainViewModel(
         customSendAction: customSendAction,
         maxAmount: maxAmount,
       ),
       builder: ((context, model, child) {
-        return DashboardActionModal(
-          'Send on sidechain',
-          endActionButton: SailButton(
-            variant: ButtonVariant.primary,
-            label: 'Execute send',
-            disabled: model.bitcoinAddressController.text.isEmpty || model.bitcoinAmountController.text.isEmpty,
-            loading: model.isBusy,
-            onPressed: () async {
-              model.executeSendOnSidechain(context);
-            },
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, child) => DashboardActionModal(
+            'Send on sidechain',
+            endActionButton: SailButton(
+              variant: ButtonVariant.primary,
+              label: 'Execute send',
+              disabled: model.bitcoinAddressController.text.isEmpty || model.bitcoinAmountController.text.isEmpty,
+              loading: model.isBusy,
+              onPressed: () async {
+                model.executeSendOnSidechain(context);
+              },
+            ),
+            children: [
+              LargeEmbeddedInput(
+                controller: model.bitcoinAddressController,
+                hintText: 'Enter a sidechain-address',
+                autofocus: true,
+              ),
+              LargeEmbeddedInput(
+                controller: model.bitcoinAmountController,
+                hintText: 'Enter a ${model.ticker}-amount',
+                suffixText: model.ticker,
+                bitcoinInput: true,
+              ),
+              StaticActionField(
+                label: 'Fee',
+                value: ('${formatter.formatBTC(model.sidechainExpectedFee ?? 0)} ${model.ticker}'),
+              ),
+              StaticActionField(
+                label: 'Total amount',
+                value: model.totalBitcoinAmount,
+              ),
+            ],
           ),
-          children: [
-            LargeEmbeddedInput(
-              controller: model.bitcoinAddressController,
-              hintText: 'Enter a sidechain-address',
-              autofocus: true,
-            ),
-            LargeEmbeddedInput(
-              controller: model.bitcoinAmountController,
-              hintText: 'Enter a ${model.ticker}-amount',
-              suffixText: model.ticker,
-              bitcoinInput: true,
-            ),
-            StaticActionField(
-              label: 'Fee',
-              value: (formatBitcoin(model.sidechainExpectedFee ?? 0, symbol: model.ticker)),
-            ),
-            StaticActionField(
-              label: 'Total amount',
-              value: model.totalBitcoinAmount,
-            ),
-          ],
         );
       }),
     );
@@ -75,10 +80,11 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount => formatBitcoin(
-    ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
-    symbol: ticker,
-  );
+  String get totalBitcoinAmount {
+    final formatter = GetIt.I<FormatterProvider>();
+    return '${formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0))} $ticker';
+  }
+
   String get ticker => _rpc.chain.ticker;
 
   double? sidechainExpectedFee;

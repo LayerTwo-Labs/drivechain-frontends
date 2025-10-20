@@ -415,47 +415,52 @@ class PendingMeltTable extends StatefulWidget {
 class _PendingMeltTableState extends State<PendingMeltTable> {
   @override
   Widget build(BuildContext context) {
-    return SailTable(
-      getRowId: (index) => widget.entries[index].utxo.raw,
-      headerBuilder: (context) => const [
-        SailTableHeaderCell(name: 'Amount'),
-        SailTableHeaderCell(name: 'Address'),
-        SailTableHeaderCell(name: 'Date'),
-        SailTableHeaderCell(name: '# Conf'),
-      ],
-      contextMenuItems: (rowId) => [
-        SailMenuItem(
-          child: Row(
-            children: [
-              SailSVG.icon(SailSVGAsset.iconSearch, width: 16),
-              const SizedBox(width: 8),
-              const Text('View Details'),
-            ],
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SailTable(
+        getRowId: (index) => widget.entries[index].utxo.raw,
+        headerBuilder: (context) => const [
+          SailTableHeaderCell(name: 'Amount'),
+          SailTableHeaderCell(name: 'Address'),
+          SailTableHeaderCell(name: 'Date'),
+          SailTableHeaderCell(name: '# Conf'),
+        ],
+        contextMenuItems: (rowId) => [
+          SailMenuItem(
+            child: Row(
+              children: [
+                SailSVG.icon(SailSVGAsset.iconSearch, width: 16),
+                const SizedBox(width: 8),
+                const Text('View Details'),
+              ],
+            ),
+            onSelected: () {
+              final entry = widget.entries.firstWhere((e) => e.utxo.raw == rowId);
+              showDialog(
+                context: context,
+                builder: (context) => Dialog(
+                  child: PendingMeltView(tx: entry),
+                ),
+              );
+            },
           ),
-          onSelected: () {
-            final entry = widget.entries.firstWhere((e) => e.utxo.raw == rowId);
-            showDialog(
-              context: context,
-              builder: (context) => Dialog(
-                child: PendingMeltView(tx: entry),
-              ),
-            );
-          },
-        ),
-      ],
-      rowBuilder: (context, row, selected) {
-        final entry = widget.entries[row];
-        return [
-          SailTableCell(
-            value: formatBitcoin(entry.utxo.amount),
-          ),
-          SailTableCell(value: entry.utxo.address),
-          SailTableCell(value: entry.executeTime.format()),
-          SailTableCell(value: entry.utxo.confirmations.toString()),
-        ];
-      },
-      rowCount: widget.entries.length,
-      drawGrid: true,
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = widget.entries[row];
+          return [
+            SailTableCell(
+              value: formatter.formatBTC(entry.utxo.amount),
+            ),
+            SailTableCell(value: entry.utxo.address),
+            SailTableCell(value: entry.executeTime.format()),
+            SailTableCell(value: entry.utxo.confirmations.toString()),
+          ];
+        },
+        rowCount: widget.entries.length,
+        drawGrid: true,
+      ),
     );
   }
 }
@@ -532,59 +537,65 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
 
   @override
   Widget build(BuildContext context) {
-    return SailTable(
-      getRowId: (index) => entries[index].powerOf.toString(),
-      headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Bill Amount',
-          onSort: () => onSort('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Broadcast Day',
-          onSort: () => onSort('executeTime'),
-        ),
-        SailTableHeaderCell(
-          name: 'Power',
-          onSort: () => onSort('powerOf'),
-        ),
-        const SailTableHeaderCell(name: 'ETA'),
-      ],
-      rowBuilder: (context, row, selected) {
-        final entry = entries[row];
-        return [
-          SailTableCell(
-            value: formatBitcoin(entry.castAmount),
-            monospace: true,
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SailTable(
+        getRowId: (index) => entries[index].powerOf.toString(),
+        headerBuilder: (context) => [
+          SailTableHeaderCell(
+            name: 'Bill Amount',
+            onSort: () => onSort('amount'),
           ),
-          SailTableCell(
-            value: entry.executeTime.toLocal().format(),
+          SailTableHeaderCell(
+            name: 'Broadcast Day',
+            onSort: () => onSort('executeTime'),
           ),
-          SailTableCell(
-            value: entry.powerOf.toString(),
+          SailTableHeaderCell(
+            name: 'Power',
+            onSort: () => onSort('powerOf'),
           ),
-          SailTableCell(
-            value: formatExecuteIn(entry.executeIn),
-          ),
-        ];
-      },
-      rowCount: entries.length,
-      drawGrid: true,
-      sortColumnIndex: [
-        'amount',
-        'executeTime',
-        'powerOf',
-      ].indexOf(sortColumn),
-      sortAscending: sortAscending,
-      onDoubleTap: (rowId) {
-        final bill = entries.firstWhere(
-          (b) => b.powerOf.toString() == rowId,
-        );
-        _showBillDetails(context, bill);
-      },
+          const SailTableHeaderCell(name: 'ETA'),
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = entries[row];
+          return [
+            SailTableCell(
+              value: formatter.formatBTC(entry.castAmount.toDouble()),
+              monospace: true,
+            ),
+            SailTableCell(
+              value: entry.executeTime.toLocal().format(),
+            ),
+            SailTableCell(
+              value: entry.powerOf.toString(),
+            ),
+            SailTableCell(
+              value: formatExecuteIn(entry.executeIn),
+            ),
+          ];
+        },
+        rowCount: entries.length,
+        drawGrid: true,
+        sortColumnIndex: [
+          'amount',
+          'executeTime',
+          'powerOf',
+        ].indexOf(sortColumn),
+        sortAscending: sortAscending,
+        onDoubleTap: (rowId) {
+          final bill = entries.firstWhere(
+            (b) => b.powerOf.toString() == rowId,
+          );
+          _showBillDetails(context, bill);
+        },
+      ),
     );
   }
 
   void _showBillDetails(BuildContext context, PendingCastBill bill) {
+    final formatter = GetIt.I<FormatterProvider>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -599,7 +610,7 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DetailRow(label: 'Amount', value: formatBitcoin(bill.castAmount)),
+                  DetailRow(label: 'Amount', value: formatter.formatBTC(bill.castAmount.toDouble())),
                   DetailRow(label: 'Execute Time', value: bill.executeTime.toLocal().format()),
                   DetailRow(label: 'Power', value: bill.powerOf.toString()),
                   DetailRow(label: 'ETA', value: formatExecuteIn(bill.executeIn)),
@@ -816,123 +827,129 @@ class _UTXOsTableState extends State<UTXOsTable> {
   @override
   Widget build(BuildContext context) {
     final container = GetIt.I.get<ZSideRPC>();
+    final formatter = GetIt.I<FormatterProvider>();
 
-    return SailTable(
-      getRowId: (index) => entries[index] is UnshieldedUTXO
-          ? (entries[index] as UnshieldedUTXO).address
-          : (entries[index] as ShieldedUTXO).txid,
-      headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Amount',
-          onSort: () => onSort('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Status',
-          onSort: () => onSort('type'),
-        ),
-        SailTableHeaderCell(
-          name: 'Confirmations',
-          onSort: () => onSort('confirmations'),
-        ),
-        const SailTableHeaderCell(name: 'Actions'),
-      ],
-      rowBuilder: (context, row, selected) {
-        final entry = entries[row];
-        final isUnshielded = entry is UnshieldedUTXO;
-        final amount = isUnshielded ? entry.amount : entry.amount;
-        final confirmations = isUnshielded ? entry.confirmations : entry.confirmations;
-        final isSafeAmount = isCastAmount(amount);
-        final color = getCastColor(amount);
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SailTable(
+        getRowId: (index) => entries[index] is UnshieldedUTXO
+            ? (entries[index] as UnshieldedUTXO).address
+            : (entries[index] as ShieldedUTXO).txid,
+        headerBuilder: (context) => [
+          SailTableHeaderCell(
+            name: 'Amount',
+            onSort: () => onSort('amount'),
+          ),
+          SailTableHeaderCell(
+            name: 'Status',
+            onSort: () => onSort('type'),
+          ),
+          SailTableHeaderCell(
+            name: 'Confirmations',
+            onSort: () => onSort('confirmations'),
+          ),
+          const SailTableHeaderCell(name: 'Actions'),
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = entries[row];
+          final isUnshielded = entry is UnshieldedUTXO;
+          final amount = isUnshielded ? entry.amount : entry.amount;
+          final confirmations = isUnshielded ? entry.confirmations : entry.confirmations;
+          final isSafeAmount = isCastAmount(amount);
+          final color = getCastColor(amount);
 
-        return [
-          SailTableCell(
-            value: formatBitcoin(amount, symbol: container.chain.ticker),
-            child: Tooltip(
-              message: isUnshielded
-                  ? (isSafeAmount ? 'Melted, safe UTXO' : 'Not melted, unsafe amount')
-                  : (isSafeAmount ? 'Casted, safe UTXO' : 'Not casted, unsafe UTXO'),
-              child: SailText.primary13(
-                formatBitcoin(amount, symbol: container.chain.ticker),
-                color: color,
-                monospace: true,
+          return [
+            SailTableCell(
+              value: '${formatter.formatBTC(amount)} ${container.chain.ticker}',
+              child: Tooltip(
+                message: isUnshielded
+                    ? (isSafeAmount ? 'Melted, safe UTXO' : 'Not melted, unsafe amount')
+                    : (isSafeAmount ? 'Casted, safe UTXO' : 'Not casted, unsafe UTXO'),
+                child: SailText.primary13(
+                  '${formatter.formatBTC(amount)} ${container.chain.ticker}',
+                  color: color,
+                  monospace: true,
+                ),
               ),
             ),
-          ),
-          SailTableCell(
-            value: isUnshielded ? 'Unshielded' : 'Shielded',
-            child: Row(
-              children: [
-                SailText.primary13(
-                  isUnshielded ? 'Unshielded' : 'Shielded',
-                  monospace: true,
-                ),
-                const SizedBox(width: 8),
-                Tooltip(
-                  message: isUnshielded
-                      ? (isSafeAmount ? 'Melted' : 'Not melted')
-                      : (isSafeAmount ? 'Casted' : 'Not casted'),
-                  child: SailSVG.icon(
-                    isSafeAmount ? SailSVGAsset.iconSuccess : SailSVGAsset.iconWarning,
-                    width: 13,
+            SailTableCell(
+              value: isUnshielded ? 'Unshielded' : 'Shielded',
+              child: Row(
+                children: [
+                  SailText.primary13(
+                    isUnshielded ? 'Unshielded' : 'Shielded',
+                    monospace: true,
                   ),
-                ),
-              ],
-            ),
-          ),
-          SailTableCell(
-            value: confirmations.toString(),
-            child: Row(
-              children: [
-                SailText.primary13(
-                  confirmations.toString(),
-                  monospace: true,
-                ),
-                const SizedBox(width: 8),
-                Tooltip(
-                  message: confirmations >= 1 ? '$confirmations confirmations' : 'Unconfirmed',
-                  child: SailSVG.icon(
-                    confirmations >= 1 ? SailSVGAsset.iconSuccess : SailSVGAsset.iconPending,
-                    width: 13,
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: isUnshielded
+                        ? (isSafeAmount ? 'Melted' : 'Not melted')
+                        : (isSafeAmount ? 'Casted' : 'Not casted'),
+                    child: SailSVG.icon(
+                      isSafeAmount ? SailSVGAsset.iconSuccess : SailSVGAsset.iconWarning,
+                      width: 13,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          SailTableCell(
-            value: '',
-            child: SailButton(
-              variant: ButtonVariant.secondary,
-              label: isUnshielded ? 'Melt' : 'Cast',
-              onPressed: () async {
-                if (isUnshielded) {
-                  await widget.onMeltSingle(context, entry);
-                } else {
-                  await widget.onCastSingle(context, entry);
-                }
-              },
-              disabled: amount <= zsideFee,
+            SailTableCell(
+              value: confirmations.toString(),
+              child: Row(
+                children: [
+                  SailText.primary13(
+                    confirmations.toString(),
+                    monospace: true,
+                  ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: confirmations >= 1 ? '$confirmations confirmations' : 'Unconfirmed',
+                    child: SailSVG.icon(
+                      confirmations >= 1 ? SailSVGAsset.iconSuccess : SailSVGAsset.iconPending,
+                      width: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ];
-      },
-      rowCount: entries.length,
-      drawGrid: true,
-      sortColumnIndex: [
-        'amount',
-        'type',
-        'confirmations',
-      ].indexOf(sortColumn),
-      sortAscending: sortAscending,
-      onDoubleTap: (rowId) {
-        final utxo = entries.firstWhere(
-          (u) => (u is UnshieldedUTXO ? u.address : u.txid) == rowId,
-        );
-        _showUTXODetails(context, utxo);
-      },
+            SailTableCell(
+              value: '',
+              child: SailButton(
+                variant: ButtonVariant.secondary,
+                label: isUnshielded ? 'Melt' : 'Cast',
+                onPressed: () async {
+                  if (isUnshielded) {
+                    await widget.onMeltSingle(context, entry);
+                  } else {
+                    await widget.onCastSingle(context, entry);
+                  }
+                },
+                disabled: amount <= zsideFee,
+              ),
+            ),
+          ];
+        },
+        rowCount: entries.length,
+        drawGrid: true,
+        sortColumnIndex: [
+          'amount',
+          'type',
+          'confirmations',
+        ].indexOf(sortColumn),
+        sortAscending: sortAscending,
+        onDoubleTap: (rowId) {
+          final utxo = entries.firstWhere(
+            (u) => (u is UnshieldedUTXO ? u.address : u.txid) == rowId,
+          );
+          _showUTXODetails(context, utxo);
+        },
+      ),
     );
   }
 
   void _showUTXODetails(BuildContext context, dynamic utxo) {
+    final formatter = GetIt.I<FormatterProvider>();
+    final container = GetIt.I.get<ZSideRPC>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -949,10 +966,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
                 children: [
                   DetailRow(
                     label: 'Amount',
-                    value: formatBitcoin(
-                      utxo.amount,
-                      symbol: GetIt.I.get<ZSideRPC>().chain.ticker,
-                    ),
+                    value: '${formatter.formatBTC(utxo.amount)} ${container.chain.ticker}',
                   ),
                   DetailRow(
                     label: 'Type',
@@ -987,6 +1001,7 @@ class PendingMeltView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final container = GetIt.I.get<ZSideRPC>();
+    final formatter = GetIt.I<FormatterProvider>();
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -1002,7 +1017,7 @@ class PendingMeltView extends StatelessWidget {
               children: [
                 DetailRow(
                   label: 'Amount',
-                  value: formatBitcoin(tx.utxo.amount, symbol: container.chain.ticker),
+                  value: '${formatter.formatBTC(tx.utxo.amount)} ${container.chain.ticker}',
                 ),
                 DetailRow(
                   label: 'From Address',

@@ -114,6 +114,8 @@ class _UTXOTableState extends State<UTXOTable> {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return SailCard(
       title: 'Your UTXOs',
       bottomPadding: false,
@@ -123,80 +125,80 @@ class _UTXOTableState extends State<UTXOTable> {
             child: SailSkeletonizer(
               description: 'Waiting for enforcer to start and wallet to sync..',
               enabled: widget.model.loading,
-              child: SailTable(
-                rowBackgroundColor: (index) {
-                  final utxo = sortedEntries[index];
-                  return isDenied(utxo) ? Colors.green.withValues(alpha: 0.1) : null;
-                },
-                getRowId: (index) => sortedEntries[index].output.split(':').first,
-                headerBuilder: (context) => [
-                  SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
-                  SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
-                  SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
-                  SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-                  SailTableHeaderCell(name: 'Denied Times', onSort: () => onSort('isDenied')),
-                  SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
-                ],
-                rowBuilder: (context, row, selected) {
-                  final utxo = sortedEntries[row];
-                  final formattedAmount = formatBitcoin(
-                    satoshiToBTC(utxo.valueSats.toInt()),
-                    symbol: '',
-                  );
-                  final isUtxoDenied = isDenied(utxo);
+              child: ListenableBuilder(
+                listenable: formatter,
+                builder: (context, child) => SailTable(
+                  rowBackgroundColor: (index) {
+                    final utxo = sortedEntries[index];
+                    return isDenied(utxo) ? Colors.green.withValues(alpha: 0.1) : null;
+                  },
+                  getRowId: (index) => sortedEntries[index].output.split(':').first,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
+                    SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
+                    SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                    SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
+                    SailTableHeaderCell(name: 'Denied Times', onSort: () => onSort('isDenied')),
+                    SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final utxo = sortedEntries[row];
+                    final formattedAmount = formatter.formatSats(utxo.valueSats.toInt());
+                    final isUtxoDenied = isDenied(utxo);
 
-                  return [
-                    SailTableCell(
-                      value: formatDate(utxo.receivedAt.toDateTime().toLocal()),
-                    ),
-                    SailTableCell(
-                      value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
-                      copyValue: utxo.output,
-                    ),
-                    SailTableCell(
-                      value: utxo.address,
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: utxo.label,
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: isUtxoDenied ? utxo.denialInfo.hopsCompleted.toString() : '',
-                      monospace: true,
-                    ),
-                    SailTableCell(
-                      value: formattedAmount,
-                      monospace: true,
-                    ),
-                  ];
-                },
-                rowCount: sortedEntries.length,
-                drawGrid: true,
-                sortColumnIndex: [
-                  'date',
-                  'output',
-                  'address',
-                  'label',
-                  'isDenied',
-                  'value',
-                ].indexOf(sortColumn),
-                sortAscending: sortAscending,
-                onSort: (columnIndex, ascending) {
-                  onSort(['date', 'output', 'address', 'label', 'isDenied', 'value'][columnIndex]);
-                },
-                onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
-                contextMenuItems: (rowId) {
-                  return [
-                    SailMenuItem(
-                      onSelected: () async {
-                        await showTransactionDetails(context, rowId);
-                      },
-                      child: SailText.primary12('Show Details'),
-                    ),
-                    MempoolMenuItem(txid: rowId),
-                  ];
-                },
+                    return [
+                      SailTableCell(
+                        value: formatDate(utxo.receivedAt.toDateTime().toLocal()),
+                      ),
+                      SailTableCell(
+                        value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
+                        copyValue: utxo.output,
+                      ),
+                      SailTableCell(
+                        value: utxo.address,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: utxo.label,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: isUtxoDenied ? utxo.denialInfo.hopsCompleted.toString() : '',
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: formattedAmount,
+                        monospace: true,
+                      ),
+                    ];
+                  },
+                  rowCount: sortedEntries.length,
+                  drawGrid: true,
+                  sortColumnIndex: [
+                    'date',
+                    'output',
+                    'address',
+                    'label',
+                    'isDenied',
+                    'value',
+                  ].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['date', 'output', 'address', 'label', 'isDenied', 'value'][columnIndex]);
+                  },
+                  onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+                  contextMenuItems: (rowId) {
+                    return [
+                      SailMenuItem(
+                        onSelected: () async {
+                          await showTransactionDetails(context, rowId);
+                        },
+                        child: SailText.primary12('Show Details'),
+                      ),
+                      MempoolMenuItem(txid: rowId),
+                    ];
+                  },
+                ),
               ),
             ),
           ),
@@ -209,6 +211,7 @@ class _UTXOTableState extends State<UTXOTable> {
 class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
+
   List<UnspentOutput> get entries {
     if (loading) {
       return [

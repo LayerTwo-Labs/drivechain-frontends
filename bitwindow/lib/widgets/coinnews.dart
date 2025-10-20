@@ -890,76 +890,81 @@ class CoinNewsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return SailSkeletonizer(
       description: 'Waiting for backend to boot and load coin news..',
       enabled: loading,
       duration: const Duration(seconds: 3),
-      child: SailTable(
-        shrinkWrap: shrinkWrap,
-        getRowId: (index) => index.toString(),
-        headerBuilder: (context) => [
-          if (condensed) ...[
-            const SailTableHeaderCell(name: 'Date'),
-            const SailTableHeaderCell(name: 'Fee'),
-            const SailTableHeaderCell(name: 'Title'),
-          ] else ...[
-            const SailTableHeaderCell(name: 'Date'),
-            const SailTableHeaderCell(name: 'Topic'),
-            const SailTableHeaderCell(name: 'Title'),
-            const SailTableHeaderCell(name: 'Read time'),
-          ],
-        ],
-        rowBuilder: (context, row, selected) {
-          final entry = entries[row];
-          final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
-
-          return [
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, child) => SailTable(
+          shrinkWrap: shrinkWrap,
+          getRowId: (index) => index.toString(),
+          headerBuilder: (context) => [
             if (condensed) ...[
-              SailTableCell(value: formatDate(entry.createTime.toDateTime())),
-              SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSats.toInt()))),
-              SailTableCell(value: entry.headline),
+              const SailTableHeaderCell(name: 'Date'),
+              const SailTableHeaderCell(name: 'Fee'),
+              const SailTableHeaderCell(name: 'Title'),
             ] else ...[
-              SailTableCell(value: formatDate(entry.createTime.toDateTime())),
-              SailTableCell(value: matchingTopic?.name ?? entry.topic),
-              SailTableCell(value: entry.headline),
-              SailTableCell(value: expectedReadTime(entry.content)),
+              const SailTableHeaderCell(name: 'Date'),
+              const SailTableHeaderCell(name: 'Topic'),
+              const SailTableHeaderCell(name: 'Title'),
+              const SailTableHeaderCell(name: 'Read time'),
             ],
-          ];
-        },
-        rowCount: entries.length,
-        drawGrid: true,
-        onSort: (columnIndex, ascending) {
-          onSort(['date', 'topic', 'title', 'readtime'][columnIndex]);
-        },
-        onDoubleTap: (rowId) {
-          final news = entries[int.parse(rowId)];
+          ],
+          rowBuilder: (context, row, selected) {
+            final entry = entries[row];
+            final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
 
-          final article = Article(
-            title: news.headline,
-            markdown: news.content,
-            filename: '',
-          );
+            return [
+              if (condensed) ...[
+                SailTableCell(value: formatDate(entry.createTime.toDateTime())),
+                SailTableCell(value: formatter.formatSats(entry.feeSats.toInt())),
+                SailTableCell(value: entry.headline),
+              ] else ...[
+                SailTableCell(value: formatDate(entry.createTime.toDateTime())),
+                SailTableCell(value: matchingTopic?.name ?? entry.topic),
+                SailTableCell(value: entry.headline),
+                SailTableCell(value: expectedReadTime(entry.content)),
+              ],
+            ];
+          },
+          rowCount: entries.length,
+          drawGrid: true,
+          onSort: (columnIndex, ascending) {
+            onSort(['date', 'topic', 'title', 'readtime'][columnIndex]);
+          },
+          onDoubleTap: (rowId) {
+            final news = entries[int.parse(rowId)];
 
-          showArticleDetails(context, article, 'Coin News');
-        },
-        contextMenuItems: (rowId) {
-          return [
-            SailMenuItem(
-              onSelected: () {
-                final news = entries[int.parse(rowId)];
+            final article = Article(
+              title: news.headline,
+              markdown: news.content,
+              filename: '',
+            );
 
-                final article = Article(
-                  title: news.headline,
-                  markdown: news.content,
-                  filename: '',
-                );
+            showArticleDetails(context, article, 'Coin News');
+          },
+          contextMenuItems: (rowId) {
+            return [
+              SailMenuItem(
+                onSelected: () {
+                  final news = entries[int.parse(rowId)];
 
-                showArticleDetails(context, article, 'Coin News');
-              },
-              child: SailText.primary12('Show Details'),
-            ),
-          ];
-        },
+                  final article = Article(
+                    title: news.headline,
+                    markdown: news.content,
+                    filename: '',
+                  );
+
+                  showArticleDetails(context, article, 'Coin News');
+                },
+                child: SailText.primary12('Show Details'),
+              ),
+            ];
+          },
+        ),
       ),
     );
   }

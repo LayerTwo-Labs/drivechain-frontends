@@ -86,6 +86,8 @@ class _UTXOTableState extends State<UTXOTable> {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return SailCard(
       title: 'Your UTXOs',
       bottomPadding: false,
@@ -95,40 +97,42 @@ class _UTXOTableState extends State<UTXOTable> {
             child: SailSkeletonizer(
               description: 'Waiting for enforcer to start and wallet to sync..',
               enabled: widget.model.loading,
-              child: SailTable(
-                shrinkWrap: true,
-                getRowId: (index) => widget.entries[index].outpoint.split(':').first,
-                headerBuilder: (context) => [
-                  SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
-                  SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
-                  SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
-                ],
-                rowBuilder: (context, row, selected) {
-                  final utxo = widget.entries[row];
-                  final formattedAmount = formatBitcoin(
-                    satoshiToBTC(utxo.valueSats),
-                    symbol: '',
-                  );
-                  return [
-                    SailTableCell(
-                      value: '${utxo.outpoint.substring(0, 6)}..:${utxo.outpoint.split(':').last}',
-                      copyValue: utxo.outpoint,
-                    ),
-                    SailTableCell(value: utxo.address, monospace: true),
-                    SailTableCell(value: formattedAmount, monospace: true),
-                  ];
-                },
-                rowCount: widget.entries.length,
-                drawGrid: true,
-                sortColumnIndex: [
-                  'output',
-                  'address',
-                  'value',
-                ].indexOf(sortColumn),
-                sortAscending: sortAscending,
-                onSort: (columnIndex, ascending) {
-                  onSort(['output', 'address', 'value'][columnIndex]);
-                },
+              child: ListenableBuilder(
+                listenable: formatter,
+                builder: (context, child) => SailTable(
+                  shrinkWrap: true,
+                  getRowId: (index) => widget.entries[index].outpoint.split(':').first,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
+                    SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                    SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final utxo = widget.entries[row];
+                    final formattedAmount = formatter
+                        .formatSats(utxo.valueSats.toInt())
+                        .replaceAll(' ${formatter.currentUnit.symbol}', '');
+                    return [
+                      SailTableCell(
+                        value: '${utxo.outpoint.substring(0, 6)}..:${utxo.outpoint.split(':').last}',
+                        copyValue: utxo.outpoint,
+                      ),
+                      SailTableCell(value: utxo.address, monospace: true),
+                      SailTableCell(value: formattedAmount, monospace: true),
+                    ];
+                  },
+                  rowCount: widget.entries.length,
+                  drawGrid: true,
+                  sortColumnIndex: [
+                    'output',
+                    'address',
+                    'value',
+                  ].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['output', 'address', 'value'][columnIndex]);
+                  },
+                ),
               ),
             ),
           ),

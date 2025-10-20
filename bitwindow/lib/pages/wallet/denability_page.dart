@@ -30,6 +30,7 @@ class DeniabilityTab extends StatelessWidget {
               newWindowButton: newWindowButton,
               error: error,
               utxos: model.utxos,
+              model: model,
               onDeny: (output) => model.showDenyDialog(context, output),
               onCancel: model.cancelDenial,
             );
@@ -46,11 +47,13 @@ class DeniabilityTable extends StatefulWidget {
   final List<UnspentOutput> utxos;
   final void Function(String output) onDeny;
   final void Function(Int64) onCancel;
+  final DeniabilityViewModel model;
 
   const DeniabilityTable({
     super.key,
     required this.error,
     required this.utxos,
+    required this.model,
     required this.onDeny,
     required this.onCancel,
     required this.newWindowButton,
@@ -66,6 +69,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return SailCard(
       title: 'Your UTXOs with denial info',
       subtitle: 'List of your UTXOs with information about their deniability status.',
@@ -76,153 +81,156 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
         children: [
           SailSpacing(SailStyleValues.padding16),
           Expanded(
-            child: SailTable(
-              getRowId: (index) => widget.utxos.isEmpty
-                  ? '0'
-                  : '${widget.utxos[index].output}:${widget.utxos[index].denialInfo.executions.length}',
-              headerBuilder: (context) => [
-                SailTableHeaderCell(
-                  name: 'Denial ID',
-                  onSort: () => onSort('id'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Hops',
-                  onSort: () => onSort('hops'),
-                ),
-                SailTableHeaderCell(
-                  name: 'UTXO',
-                  onSort: () => onSort('txid'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Amount',
-                  onSort: () => onSort('amount'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Next Execution',
-                  onSort: () => onSort('next'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Status',
-                  onSort: () => onSort('status'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Timestamp',
-                  onSort: () => onSort('timestamp'),
-                ),
-                const SailTableHeaderCell(name: 'Actions'),
-              ],
-              cellHeight: 36.0,
-              rowBuilder: (context, row, selected) {
-                // If there are no UTXOs, return a single row with an empty cell message
-                if (widget.utxos.isEmpty) {
+            child: ListenableBuilder(
+              listenable: formatter,
+              builder: (context, child) => SailTable(
+                getRowId: (index) => widget.utxos.isEmpty
+                    ? '0'
+                    : '${widget.utxos[index].output}:${widget.utxos[index].denialInfo.executions.length}',
+                headerBuilder: (context) => [
+                  SailTableHeaderCell(
+                    name: 'Denial ID',
+                    onSort: () => onSort('id'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Hops',
+                    onSort: () => onSort('hops'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'UTXO',
+                    onSort: () => onSort('txid'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Amount',
+                    onSort: () => onSort('amount'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Next Execution',
+                    onSort: () => onSort('next'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Status',
+                    onSort: () => onSort('status'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Timestamp',
+                    onSort: () => onSort('timestamp'),
+                  ),
+                  const SailTableHeaderCell(name: 'Actions'),
+                ],
+                cellHeight: 36.0,
+                rowBuilder: (context, row, selected) {
+                  // If there are no UTXOs, return a single row with an empty cell message
+                  if (widget.utxos.isEmpty) {
+                    return [
+                      const SailTableCell(value: 'No UTXOs available'),
+                      const SailTableCell(value: ''),
+                      const SailTableCell(value: ''),
+                      const SailTableCell(value: ''),
+                      const SailTableCell(value: ''),
+                      const SailTableCell(value: ''),
+                      const SailTableCell(value: ''),
+                    ];
+                  }
+
+                  final utxo = widget.utxos[row];
+                  final hasDenialInfo = utxo.hasDenialInfo();
+
+                  String status = '-';
+                  String nextExecution = '-';
+                  String hops = '0';
+                  bool canCancel = false;
+
+                  if (hasDenialInfo) {
+                    final completedHops = utxo.denialInfo.hopsCompleted;
+                    final totalHops = utxo.denialInfo.numHops;
+                    hops = '$completedHops/$totalHops';
+                    if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) {
+                      hops = '$completedHops';
+                    }
+
+                    status = utxo.denialInfo.hasCancelTime()
+                        ? 'Cancelled'
+                        : utxo.denialInfo.nextExecutionTime.toDateTime().second == 0
+                        ? 'Completed'
+                        : 'Ongoing';
+                    nextExecution = utxo.denialInfo.hasNextExecutionTime()
+                        ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString()
+                        : '-';
+                    canCancel = status == 'Ongoing';
+
+                    if (status == 'Cancelled') {
+                      hops = '$completedHops';
+                    }
+                  }
+
                   return [
-                    const SailTableCell(value: 'No UTXOs available'),
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                    const SailTableCell(value: ''),
-                  ];
-                }
-
-                final utxo = widget.utxos[row];
-                final hasDenialInfo = utxo.hasDenialInfo();
-
-                String status = '-';
-                String nextExecution = '-';
-                String hops = '0';
-                bool canCancel = false;
-
-                if (hasDenialInfo) {
-                  final completedHops = utxo.denialInfo.hopsCompleted;
-                  final totalHops = utxo.denialInfo.numHops;
-                  hops = '$completedHops/$totalHops';
-                  if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) {
-                    hops = '$completedHops';
-                  }
-
-                  status = utxo.denialInfo.hasCancelTime()
-                      ? 'Cancelled'
-                      : utxo.denialInfo.nextExecutionTime.toDateTime().second == 0
-                      ? 'Completed'
-                      : 'Ongoing';
-                  nextExecution = utxo.denialInfo.hasNextExecutionTime()
-                      ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString()
-                      : '-';
-                  canCancel = status == 'Ongoing';
-
-                  if (status == 'Cancelled') {
-                    hops = '$completedHops';
-                  }
-                }
-
-                return [
-                  SailTableCell(
-                    value: '${utxo.denialInfo.id == 0 ? '-' : utxo.denialInfo.id}',
-                    copyValue: utxo.denialInfo.id.toString(),
-                  ),
-                  SailTableCell(
-                    value: hops,
-                  ),
-                  SailTableCell(
-                    value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
-                    copyValue: utxo.output,
-                  ),
-                  SailTableCell(
-                    value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
-                    monospace: true,
-                  ),
-                  SailTableCell(
-                    value: nextExecution,
-                  ),
-                  Tooltip(
-                    message: utxo.denialInfo.cancelReason,
-                    child: SailTableCell(
-                      value: status,
+                    SailTableCell(
+                      value: '${utxo.denialInfo.id == 0 ? '-' : utxo.denialInfo.id}',
+                      copyValue: utxo.denialInfo.id.toString(),
                     ),
-                  ),
-                  SailTableCell(
-                    value: formatDate(utxo.receivedAt.toDateTime()),
-                  ),
-                  SailTableCell(
-                    value: canCancel ? 'Cancel' : '-',
-                    child: canCancel
-                        ? SailButton(
-                            label: 'Cancel',
-                            onPressed: () async => widget.onCancel(utxo.denialInfo.id),
-                            insideTable: true,
-                          )
-                        : SailButton(
-                            label: 'Deny',
-                            onPressed: () async => widget.onDeny(utxo.output),
-                            insideTable: true,
-                          ),
-                  ),
-                ];
-              },
-              rowCount: widget.utxos.isEmpty ? 1 : widget.utxos.length, // Show one row when empty
-              drawGrid: true,
-              sortColumnIndex: [
-                'id',
-                'txid',
-                'vout',
-                'amount',
-                'next',
-                'status',
-                'actions',
-              ].indexOf(sortColumn),
-              sortAscending: sortAscending,
-              onSort: (columnIndex, ascending) {
-                onSort(['id', 'txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
-              },
-              onDoubleTap: (rowId) {
-                if (widget.utxos.isEmpty) return;
-                final utxo = widget.utxos.firstWhere(
-                  (u) => u.output == rowId,
-                );
-                _showUtxoDetails(context, utxo);
-              },
+                    SailTableCell(
+                      value: hops,
+                    ),
+                    SailTableCell(
+                      value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
+                      copyValue: utxo.output,
+                    ),
+                    SailTableCell(
+                      value: formatter.formatSats(utxo.valueSats.toInt()),
+                      monospace: true,
+                    ),
+                    SailTableCell(
+                      value: nextExecution,
+                    ),
+                    Tooltip(
+                      message: utxo.denialInfo.cancelReason,
+                      child: SailTableCell(
+                        value: status,
+                      ),
+                    ),
+                    SailTableCell(
+                      value: formatDate(utxo.receivedAt.toDateTime()),
+                    ),
+                    SailTableCell(
+                      value: canCancel ? 'Cancel' : '-',
+                      child: canCancel
+                          ? SailButton(
+                              label: 'Cancel',
+                              onPressed: () async => widget.onCancel(utxo.denialInfo.id),
+                              insideTable: true,
+                            )
+                          : SailButton(
+                              label: 'Deny',
+                              onPressed: () async => widget.onDeny(utxo.output),
+                              insideTable: true,
+                            ),
+                    ),
+                  ];
+                },
+                rowCount: widget.utxos.isEmpty ? 1 : widget.utxos.length, // Show one row when empty
+                drawGrid: true,
+                sortColumnIndex: [
+                  'id',
+                  'txid',
+                  'vout',
+                  'amount',
+                  'next',
+                  'status',
+                  'actions',
+                ].indexOf(sortColumn),
+                sortAscending: sortAscending,
+                onSort: (columnIndex, ascending) {
+                  onSort(['id', 'txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
+                },
+                onDoubleTap: (rowId) {
+                  if (widget.utxos.isEmpty) return;
+                  final utxo = widget.utxos.firstWhere(
+                    (u) => u.output == rowId,
+                  );
+                  _showUtxoDetails(context, utxo);
+                },
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -296,6 +304,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   }
 
   void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -312,7 +322,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                 children: [
                   DetailRow(label: 'TxID', value: utxo.output.split(':').first),
                   DetailRow(label: 'Output Index', value: utxo.output.split(':').last),
-                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt()))),
+                  DetailRow(label: 'Amount', value: formatter.formatSats(utxo.valueSats.toInt())),
                   if (utxo.hasDenialInfo()) ...[
                     const SailSpacing(SailStyleValues.padding16),
                     BorderedSection(

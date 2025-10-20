@@ -1,5 +1,6 @@
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class BitcoinURIDialog extends StatefulWidget {
@@ -43,38 +44,43 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
     return SailDialog(
       title: 'Open Bitcoin URI',
       subtitle: 'Enter a Bitcoin URI to parse',
       error: _error,
       maxWidth: 400,
       maxHeight: 600,
-      child: SailColumn(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: SailStyleValues.padding16,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SailTextField(
-            label: 'Bitcoin URI',
-            controller: _controller,
-            hintText: 'bitcoin:<address>?amount=1.23',
-          ),
-          if (_parsedURI != null) ...[
-            SailText.primary13('Address: ${_parsedURI!.address}'),
-            if (_parsedURI!.amount != null) SailText.primary13('Amount: ${_parsedURI!.amount} BTC'),
-            if (_parsedURI!.label != null) SailText.primary13('Label: ${_parsedURI!.label}'),
-            if (_parsedURI!.message != null) SailText.primary13('Message: ${_parsedURI!.message}'),
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, child) => SailColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailTextField(
+              label: 'Bitcoin URI',
+              controller: _controller,
+              hintText: 'bitcoin:<address>?amount=1.23',
+            ),
+            if (_parsedURI != null) ...[
+              SailText.primary13('Address: ${_parsedURI!.address}'),
+              if (_parsedURI!.amount != null) SailText.primary13('Amount: ${formatter.formatBTC(_parsedURI!.amount!)}'),
+              if (_parsedURI!.label != null) SailText.primary13('Label: ${_parsedURI!.label}'),
+              if (_parsedURI!.message != null) SailText.primary13('Message: ${_parsedURI!.message}'),
+            ],
+            SailButton(
+              label: 'Use',
+              onPressed: () async {
+                if (_parsedURI != null) {
+                  Navigator.of(context).pop(_parsedURI);
+                }
+              },
+              disabled: _parsedURI == null,
+            ),
           ],
-          SailButton(
-            label: 'Use',
-            onPressed: () async {
-              if (_parsedURI != null) {
-                Navigator.of(context).pop(_parsedURI);
-              }
-            },
-            disabled: _parsedURI == null,
-          ),
-        ],
+        ),
       ),
     );
   }

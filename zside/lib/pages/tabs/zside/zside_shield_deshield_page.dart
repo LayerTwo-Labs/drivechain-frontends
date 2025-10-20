@@ -210,36 +210,41 @@ class _UnshieldedUTXOTableState extends State<UnshieldedUTXOTable> {
 
   @override
   Widget build(BuildContext context) {
-    return SailTable(
-      getRowId: (index) => widget.entries[index].txid,
-      headerBuilder: (context) => [
-        const SailTableHeaderCell(name: 'Actions'),
-        SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
-        SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
-      ],
-      rowBuilder: (context, row, selected) {
-        final entry = widget.entries[row];
-        return [
-          SailTableCell(
-            value: '',
-            child: SailButton(
-              label: 'Shield',
-              variant: ButtonVariant.secondary,
-              padding: const EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 2,
-                bottom: 2,
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SailTable(
+        getRowId: (index) => widget.entries[index].txid,
+        headerBuilder: (context) => [
+          const SailTableHeaderCell(name: 'Actions'),
+          SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+          SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = widget.entries[row];
+          return [
+            SailTableCell(
+              value: '',
+              child: SailButton(
+                label: 'Shield',
+                variant: ButtonVariant.secondary,
+                padding: const EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  top: 2,
+                  bottom: 2,
+                ),
+                onPressed: () => widget.onShield(entry),
               ),
-              onPressed: () => widget.onShield(entry),
             ),
-          ),
-          SailTableCell(value: formatBitcoin(entry.amount)),
-          SailTableCell(value: entry.txid),
-        ];
-      },
-      rowCount: widget.entries.length,
-      drawGrid: true,
+            SailTableCell(value: formatter.formatBTC(entry.amount)),
+            SailTableCell(value: entry.txid),
+          ];
+        },
+        rowCount: widget.entries.length,
+        drawGrid: true,
+      ),
     );
   }
 }
@@ -301,36 +306,41 @@ class _ShieldedUTXOTableState extends State<ShieldedUTXOTable> {
 
   @override
   Widget build(BuildContext context) {
-    return SailTable(
-      getRowId: (index) => widget.entries[index].txid,
-      headerBuilder: (context) => [
-        const SailTableHeaderCell(name: 'Actions'),
-        SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
-        SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
-      ],
-      rowBuilder: (context, row, selected) {
-        final entry = widget.entries[row];
-        return [
-          SailTableCell(
-            value: '',
-            child: SailButton(
-              label: 'Deshield',
-              variant: ButtonVariant.secondary,
-              padding: const EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 2,
-                bottom: 2,
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SailTable(
+        getRowId: (index) => widget.entries[index].txid,
+        headerBuilder: (context) => [
+          const SailTableHeaderCell(name: 'Actions'),
+          SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+          SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = widget.entries[row];
+          return [
+            SailTableCell(
+              value: '',
+              child: SailButton(
+                label: 'Deshield',
+                variant: ButtonVariant.secondary,
+                padding: const EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  top: 2,
+                  bottom: 2,
+                ),
+                onPressed: () => widget.onDeshield(entry),
               ),
-              onPressed: () => widget.onDeshield(entry),
             ),
-          ),
-          SailTableCell(value: formatBitcoin(entry.amount)),
-          SailTableCell(value: entry.txid),
-        ];
-      },
-      rowCount: widget.entries.length,
-      drawGrid: true,
+            SailTableCell(value: formatter.formatBTC(entry.amount)),
+            SailTableCell(value: entry.txid),
+          ];
+        },
+        rowCount: widget.entries.length,
+        drawGrid: true,
+      ),
     );
   }
 }

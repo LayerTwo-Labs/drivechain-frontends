@@ -953,31 +953,35 @@ class GraffitiTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final formatter = GetIt.I<FormatterProvider>();
 
-    return SailTable(
-      backgroundColor: theme.colors.backgroundSecondary,
-      getRowId: (index) => entries[index].id.toString(),
-      headerBuilder: (context) => [
-        SailTableHeaderCell(name: 'Fee', onSort: () => onSort('fee')),
-        SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
-        SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
-        SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
-        SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
-      ],
-      rowBuilder: (context, row, selected) {
-        final entry = entries[row];
-        return [
-          SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSats.toInt()))),
-          SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
-          SailTableCell(value: entry.height == 0 ? '-' : entry.height.toString()),
-          SailTableCell(value: entry.txid),
-          SailTableCell(value: entry.message),
-        ];
-      },
-      rowCount: entries.length,
-      onSort: (columnIndex, ascending) {
-        onSort(['fee', 'message', 'time', 'height'][columnIndex]);
-      },
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SailTable(
+        backgroundColor: theme.colors.backgroundSecondary,
+        getRowId: (index) => entries[index].id.toString(),
+        headerBuilder: (context) => [
+          SailTableHeaderCell(name: 'Fee', onSort: () => onSort('fee')),
+          SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
+          SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
+          SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
+          SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = entries[row];
+          return [
+            SailTableCell(value: formatter.formatSats(entry.feeSats.toInt())),
+            SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
+            SailTableCell(value: entry.height == 0 ? '-' : entry.height.toString()),
+            SailTableCell(value: entry.txid),
+            SailTableCell(value: entry.message),
+          ];
+        },
+        rowCount: entries.length,
+        onSort: (columnIndex, ascending) {
+          onSort(['fee', 'message', 'time', 'height'][columnIndex]);
+        },
+      ),
     );
   }
 }

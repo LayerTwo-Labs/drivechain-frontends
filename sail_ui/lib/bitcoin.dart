@@ -1,6 +1,39 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/widgets.dart';
+import 'package:get_it/get_it.dart';
+import 'package:sail_ui/providers/settings_provider.dart';
+
+enum BitcoinUnit {
+  btc,
+  sats;
+
+  String get symbol => this == BitcoinUnit.btc ? 'BTC' : 'sats';
+  String get label => this == BitcoinUnit.btc ? 'BTC' : 'Satoshis';
+}
+
+/// Utility class for Bitcoin amount formatting based on user's unit preference
+/// Use this directly in views instead of going through ViewModels
+class BitcoinFormatting {
+  /// Format satoshis according to the current user preference
+  static String formatSatsWithUnit(BuildContext context, int sats) {
+    final settings = GetIt.I<SettingsProvider>();
+    return formatBitcoinWithUnit(satoshiToBTC(sats), settings.bitcoinUnit);
+  }
+
+  /// Format BTC according to the current user preference
+  static String formatBTCWithUnit(BuildContext context, double btc) {
+    final settings = GetIt.I<SettingsProvider>();
+    return formatBitcoinWithUnit(btc, settings.bitcoinUnit);
+  }
+
+  /// Get the current unit from settings
+  static BitcoinUnit currentUnit(BuildContext context) {
+    final settings = GetIt.I<SettingsProvider>();
+    return settings.bitcoinUnit;
+  }
+}
 
 double satoshiToBTC(int sats) {
   const int satoshiPerBitcoin = 100000000;
@@ -61,4 +94,66 @@ double cleanAmount(double amount) {
   final cleanAmount = double.parse(amount.toStringAsFixed(8));
 
   return cleanAmount;
+}
+
+String formatBitcoinWithUnit(double btc, BitcoinUnit unit) {
+  if (unit == BitcoinUnit.btc) {
+    return formatBitcoin(btc);
+  } else {
+    final sats = btcToSatoshi(btc);
+    return formatSatoshis(sats);
+  }
+}
+
+String formatSatoshis(int sats) {
+  if (sats == 0) {
+    return '0 sats';
+  }
+
+  bool isNegative = sats < 0;
+  sats = sats.abs();
+
+  String satsStr = sats.toString();
+  String formatted = '';
+
+  int count = 0;
+  for (int i = satsStr.length - 1; i >= 0; i--) {
+    if (count > 0 && count % 3 == 0) {
+      formatted = ' $formatted';
+    }
+    formatted = satsStr[i] + formatted;
+    count++;
+  }
+
+  return '${isNegative ? '-' : ''}$formatted sats';
+}
+
+double parseAmountInUnit(String input, BitcoinUnit unit) {
+  if (input.isEmpty) {
+    return 0.0;
+  }
+
+  String cleanInput = input.replaceAll(' ', '').replaceAll(',', '');
+
+  if (unit == BitcoinUnit.btc) {
+    return double.tryParse(cleanInput) ?? 0.0;
+  } else {
+    final sats = int.tryParse(cleanInput) ?? 0;
+    return satoshiToBTC(sats);
+  }
+}
+
+int parseAmountToSatoshis(String input, BitcoinUnit unit) {
+  if (input.isEmpty) {
+    return 0;
+  }
+
+  String cleanInput = input.replaceAll(' ', '').replaceAll(',', '');
+
+  if (unit == BitcoinUnit.btc) {
+    final btc = double.tryParse(cleanInput) ?? 0.0;
+    return btcToSatoshi(btc);
+  } else {
+    return int.tryParse(cleanInput) ?? 0;
+  }
 }

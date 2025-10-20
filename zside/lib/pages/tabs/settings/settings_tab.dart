@@ -89,6 +89,40 @@ class SettingsTabPage extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          SailText.primary20('Bitcoin Unit'),
+                          SailText.secondary13('Choose how Bitcoin amounts are displayed'),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 640),
+                            child: SailDropdownButton<BitcoinUnit>(
+                              value: settingsmodel.bitcoinUnit,
+                              items: const [
+                                SailDropdownItem<BitcoinUnit>(
+                                  value: BitcoinUnit.btc,
+                                  label: 'BTC',
+                                ),
+                                SailDropdownItem<BitcoinUnit>(
+                                  value: BitcoinUnit.sats,
+                                  label: 'Satoshis',
+                                ),
+                              ],
+                              onChanged: (BitcoinUnit? newValue) async {
+                                if (newValue != null) {
+                                  await settingsmodel.setBitcoinUnit(newValue);
+                                }
+                              },
+                            ),
+                          ),
+                          Expanded(child: Container()),
+                        ],
+                      ),
+                      const SailSpacing(SailStyleValues.padding20),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           SailText.primary20('Log file'),
                           SailText.secondary13('View application logs and debugging information'),
                         ],
@@ -242,9 +276,11 @@ class NodeConnectionViewModel extends BaseViewModel {
 
 class ThemeSettingsViewModel extends BaseViewModel {
   ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
+  SettingsProvider get _settingsProvider => GetIt.I.get<SettingsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
 
   ThemeSettingsViewModel() {
+    _settingsProvider.addListener(notifyListeners);
     _init();
   }
 
@@ -252,6 +288,7 @@ class ThemeSettingsViewModel extends BaseViewModel {
   SailThemeValues theme = SailThemeValues.light;
   SailFontValues font = SailFontValues.inter;
   SailFontValues fontOnLoad = SailFontValues.inter;
+  BitcoinUnit get bitcoinUnit => _settingsProvider.bitcoinUnit;
 
   void setTheme(SailThemeValues newTheme) async {
     theme = newTheme;
@@ -274,6 +311,10 @@ class ThemeSettingsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  Future<void> setBitcoinUnit(BitcoinUnit newUnit) async {
+    await _settingsProvider.updateBitcoinUnit(newUnit);
+  }
+
   Future<void> openLogRoute() async {
     await _router.push(
       LogRoute(
@@ -281,5 +322,11 @@ class ThemeSettingsViewModel extends BaseViewModel {
         logPath: logdir,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(notifyListeners);
+    super.dispose();
   }
 }

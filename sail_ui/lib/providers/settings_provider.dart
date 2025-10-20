@@ -17,6 +17,7 @@ class SettingsProvider extends ChangeNotifier {
   bool useTestSidechains = false;
   BitwindowSettings bitwindowSettings = BitwindowSettings();
   SailFontValues font = SailFontValues.inter;
+  BitcoinUnit bitcoinUnit = BitcoinUnit.btc;
 
   // Convenience getters for individual bitwindow settings
   // Note: blocks directory is managed by BitcoinConfProvider
@@ -37,6 +38,7 @@ class SettingsProvider extends ChangeNotifier {
     await _loadUseTestSidechains();
     await _loadBitwindowSettings();
     await _loadFont();
+    await _loadBitcoinUnit();
   }
 
   /// Load debug mode setting
@@ -140,6 +142,34 @@ class SettingsProvider extends ChangeNotifier {
       font = font == SailFontValues.inter ? SailFontValues.ibmMono : SailFontValues.inter;
       notifyListeners();
       log.e('Failed to update font', error: e);
+      rethrow;
+    }
+  }
+
+  /// Load bitcoin unit setting
+  Future<void> _loadBitcoinUnit() async {
+    final setting = BitcoinUnitSetting();
+    final loadedSetting = await clientSettings.getValue(setting);
+    bitcoinUnit = loadedSetting.value;
+    notifyListeners();
+  }
+
+  /// Update bitcoin unit setting
+  Future<void> updateBitcoinUnit(BitcoinUnit value) async {
+    if (bitcoinUnit == value) {
+      return;
+    }
+
+    try {
+      bitcoinUnit = value;
+      notifyListeners();
+      final setting = BitcoinUnitSetting(newValue: value);
+      await clientSettings.setValue(setting);
+    } catch (e) {
+      // Revert on error
+      bitcoinUnit = bitcoinUnit == BitcoinUnit.btc ? BitcoinUnit.sats : BitcoinUnit.btc;
+      notifyListeners();
+      log.e('Failed to update bitcoin unit', error: e);
       rethrow;
     }
   }

@@ -315,7 +315,11 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
 
   @override
   Widget build(BuildContext context) {
-    return SailTable(
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => SailTable(
       getRowId: (index) => entries[index].txid,
       headerBuilder: (context) => [
         SailTableHeaderCell(
@@ -356,7 +360,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
               ),
             ),
           ),
-          SailTableCell(value: formatBitcoin(entry.amount.toInt())),
+          SailTableCell(value: formatter.formatSats(entry.amount.toInt())),
           SailTableCell(value: entry.confirmations.toString()),
         ];
       },
@@ -372,6 +376,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       onSort: (columnIndex, ascending) {
         onSort(['time', 'amount', 'category', 'confirmations', 'txid'][columnIndex]);
       },
+    ),
     );
   }
 
