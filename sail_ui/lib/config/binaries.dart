@@ -193,7 +193,10 @@ abstract class Binary {
         await _renameWalletDir(dir, 'wallet.mdb');
 
       case BinaryType.bitWindow:
-      case BinaryType.testSidechain:
+        await _renameWalletDir(dir, 'wallet.json');
+        await _renameWalletDir(dir, 'wallet_encryption.json');
+
+      case BinaryType.bitcoinCore:
       case BinaryType.grpcurl:
         // No wallet for these types
         break;
@@ -205,18 +208,23 @@ abstract class Binary {
     final walletFile = File(walletPath);
     final walletDir = Directory(walletPath);
 
+    final backupsDir = Directory(path.join(dir, 'wallet_backups'));
+    if (!await backupsDir.exists()) {
+      await backupsDir.create(recursive: true);
+    }
+
     if (await walletFile.exists()) {
       // Handle wallet file
-      final newName = await _findAvailableName(dir, walletName);
-      final newPath = path.join(dir, newName);
+      final newName = await _findAvailableName(backupsDir.path, walletName);
+      final newPath = path.join(backupsDir.path, newName);
       await walletFile.rename(newPath);
-      _log('Renamed wallet file $walletName to $newName');
+      _log('Renamed wallet file $walletName to $newName in wallet_backups');
     } else if (await walletDir.exists()) {
       // Handle wallet directory
-      final newName = await _findAvailableName(dir, walletName);
-      final newPath = path.join(dir, newName);
+      final newName = await _findAvailableName(backupsDir.path, walletName);
+      final newPath = path.join(backupsDir.path, newName);
       await walletDir.rename(newPath);
-      _log('Renamed wallet directory $walletName to $newName');
+      _log('Renamed wallet directory $walletName to $newName in wallet_backups');
     } else {
       _log('No wallet found at $walletPath');
     }
@@ -259,7 +267,10 @@ abstract class Binary {
         ]);
 
       case BinaryType.enforcer:
-        // nothing extra
+        // nothing extra for the enforcer itself, but also delete
+        // grpcurl-stuff
+        await _deleteFilesInDir(dir, ['LICENSE', 'grpcurl']);
+
         break;
 
       case BinaryType.bitWindow:
