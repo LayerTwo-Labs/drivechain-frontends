@@ -140,9 +140,9 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
 
     // Filter to only show filled slots
     final filledSlots = <int>[];
-    for (int i = 0; i < viewModel.sidechains.length; i++) {
-      if (viewModel.sidechains[i] != null) {
-        filledSlots.add(i);
+    for (int slotNumber = 0; slotNumber < viewModel.sidechains.length; slotNumber++) {
+      if (viewModel.sidechains[slotNumber] != null) {
+        filledSlots.add(slotNumber);
       }
     }
 
@@ -195,41 +195,55 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             ),
             if (binary != null)
               SailTableCell(
-                value: '', // Use spaces to represent the width needed for the settings button
-                child: Stack(
-                  children: [
-                    SailButton(
-                      variant: ButtonVariant.outline,
-                      label: '',
-                      icon: SailSVGAsset.settings,
-                      insideTable: true,
-                      onPressed: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => ChainSettingsModal(
-                            connection: viewModel.rpcForSlot(slot)!,
+                value: '    ',
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: 40,
+                    maxHeight: 40,
+                  ),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Stack(
+                        clipBehavior: Clip.hardEdge,
+                        children: [
+                          SailButton(
+                            variant: ButtonVariant.outline,
+                            label: '',
+                            icon: SailSVGAsset.settings,
+                            insideTable: true,
+                            onPressed: () async {
+                              await showDialog(
+                                context: context,
+                                builder: (context) => ChainSettingsModal(
+                                  connection: viewModel.rpcForSlot(slot)!,
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                    if (updateAvailable)
-                      Positioned(
-                        top: 4,
-                        right: 6,
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                          if (updateAvailable)
+                            Positioned(
+                              top: 4,
+                              right: 6,
+                              child: Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
+                    ),
+                  ),
                 ),
               )
             else
-              Container(),
+              SailTableCell(value: ''),
           ];
         },
         rowCount: filledSlots.length, // Only show filled slots
@@ -237,6 +251,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
         sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
         onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
         selectedRowId: viewModel.selectedIndex?.toString(),
+        // rowId is the SLOT NUMBER (e.g., "2", "4", "98") from getRowId
         onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
         onDoubleTap: (rowId) {
           final sidechain = viewModel.sidechains[int.parse(rowId)];
