@@ -14,7 +14,7 @@ import (
 type Network string
 
 const (
-	NetworkMainnet Network = "mainnet"
+	NetworkForknet Network = "forknet"
 	NetworkRegtest Network = "regtest"
 	NetworkSignet  Network = "signet"
 	NetworkTestnet Network = "testnet"
@@ -27,7 +27,7 @@ type Config struct {
 	BitcoinCoreCookie      string  `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
 	BitcoinCoreRpcUser     string  `long:"bitcoincore.rpcuser" default:"user"`
 	BitcoinCoreRpcPassword string  `long:"bitcoincore.rpcpassword" default:"password"`
-	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" choice:"mainnet" choice:"regtest" choice:"signet" choice:"testnet"`
+	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" choice:"forknet" choice:"regtest" choice:"signet" choice:"testnet"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
@@ -115,8 +115,8 @@ func deriveNetworkFromHost(host string) (Network, error) {
 
 	port := parts[1]
 	switch port {
-	case "8332":
-		return NetworkMainnet, nil
+	case "18301":
+		return NetworkForknet, nil
 	case "18332":
 		return NetworkTestnet, nil
 	case "38332":

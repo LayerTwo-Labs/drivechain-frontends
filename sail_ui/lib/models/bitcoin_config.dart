@@ -117,6 +117,19 @@ class BitcoinConfig {
     return globalSettings[key];
   }
 
+  /// Get the effective setting value for a network (section overrides global)
+  String? getEffectiveSetting(String key, String network) {
+    // Check network-specific setting first
+    if (networkSettings.containsKey(network)) {
+      final networkValue = networkSettings[network]![key];
+      if (networkValue != null) {
+        return networkValue;
+      }
+    }
+    // Fall back to global setting
+    return globalSettings[key];
+  }
+
   bool hasSetting(String key, {String? section}) {
     if (section != null && networkSettings.containsKey(section)) {
       return networkSettings[section]!.containsKey(key);

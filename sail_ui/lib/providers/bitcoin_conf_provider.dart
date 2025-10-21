@@ -33,11 +33,13 @@ class BitcoinConfProvider extends ChangeNotifier {
   String? get detectedDataDir => _detectedDataDir;
   bool get canEditNetwork => !_hasPrivateBitcoinConf;
   String get currentConfigFile => _hasPrivateBitcoinConf ? 'bitcoin.conf' : 'bitwindow-bitcoin.conf';
+  BitcoinConfig? get currentConfig => _currentConfig;
 
-  /// Get the actual RPC port being used (respects user's rpcport setting)
+  /// Get the actual RPC port being used (respects user's rpcport setting from config + network section)
   int get rpcPort {
     if (_currentConfig != null) {
-      final rpcPortSetting = _currentConfig!.getSetting('rpcport');
+      // Get effective setting (network section overrides global)
+      final rpcPortSetting = _currentConfig!.getEffectiveSetting('rpcport', _detectedNetwork.toCoreNetwork());
       if (rpcPortSetting != null) {
         final customPort = int.tryParse(rpcPortSetting);
         if (customPort != null) {
@@ -48,7 +50,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     // Fall back to network defaults if no custom port set
     return switch (_detectedNetwork) {
-      Network.NETWORK_MAINNET => 8332,
+      Network.NETWORK_MAINNET => 18301, // forknet default
       Network.NETWORK_TESTNET => 18332,
       Network.NETWORK_SIGNET => 38332,
       Network.NETWORK_REGTEST => 18443,
@@ -153,8 +155,8 @@ class BitcoinConfProvider extends ChangeNotifier {
         break;
       case Network.NETWORK_UNKNOWN:
       case Network.NETWORK_UNSPECIFIED:
-        // Use mainnet as default for unknown/unspecified networks
-        _currentConfig!.setSetting('chain', 'main');
+        // Use signet as default for unknown/unspecified networks
+        _currentConfig!.setSetting('chain', 'signet');
         break;
     }
 
@@ -358,8 +360,8 @@ class BitcoinConfProvider extends ChangeNotifier {
       return;
     }
 
-    // Default to mainnet if no network specified
-    _detectedNetwork = Network.NETWORK_MAINNET;
+    // Default to signet if no network specified
+    _detectedNetwork = Network.NETWORK_SIGNET;
   }
 
   void _detectDataDirFromConfig() {
@@ -454,7 +456,7 @@ rpcthreads=20
 rpcworkqueue=100
 rest=1
 fallbackfee=0.00021
-chain=signet
+chain=signet # default network!
 
 # [Sections]
 # Most options automatically apply to mainnet, testnet,
@@ -468,18 +470,37 @@ chain=signet
 # only apply to mainnet unless they appear in the
 # appropriate section below.
 
-# Mainnet-specific settings
-[main]
-
-# Testnet-specific settings
-[test]
-
 # Signet-specific settings
 [signet]
 addnode=172.105.148.135:38333
 signetblocktime=60
 signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
 acceptnonstdtxn=1
+
+# Mainnet-specific settings (forknet)
+[main]
+port=8300
+rpcport=18301
+rpcbind=0.0.0.0
+rpcallowip=0.0.0.0/0
+zmqpubhashblock=tcp://0.0.0.0:29001
+zmqpubhashtx=tcp://0.0.0.0:29002
+zmqpubrawblock=tcp://0.0.0.0:29003
+zmqpubrawtx=tcp://0.0.0.0:29004
+assumevalid=0000000000000000000000000000000000000000000000000000000000000000
+minimumchainwork=0x00
+maxconnections=500
+loglevel=trace
+logips=1
+logtimestamps=1
+printtoconsole=1
+debug=0
+onion=0
+listenonion=0
+drivechain=1
+
+# Testnet-specific settings
+[test]
 
 # Regtest-specific settings
 [regtest]
