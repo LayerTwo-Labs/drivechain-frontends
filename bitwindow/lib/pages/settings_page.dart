@@ -9,10 +9,10 @@ import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
-import 'package:bitwindow/main.dart';
+import 'package:bitwindow/main.dart' show bootBinaries;
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/services/linux_updater.dart';
 import 'package:file_picker/file_picker.dart';
@@ -21,7 +21,6 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/sidechain_main.dart' hide bootBinaries;
 
 @RoutePage()
 class SettingsPage extends StatefulWidget {
@@ -407,7 +406,7 @@ class _SecuritySettingsContent extends StatefulWidget {
 }
 
 class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
-  final EncryptionProvider _encryptionProvider = GetIt.I.get<EncryptionProvider>();
+  final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
   bool _isEncrypted = false;
   bool _isCheckingEncryption = true;
 
@@ -415,12 +414,12 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
   void initState() {
     super.initState();
     _checkEncryptionStatus();
-    _encryptionProvider.addListener(_onEncryptionChanged);
+    _walletReader.addListener(_onEncryptionChanged);
   }
 
   @override
   void dispose() {
-    _encryptionProvider.removeListener(_onEncryptionChanged);
+    _walletReader.removeListener(_onEncryptionChanged);
     super.dispose();
   }
 
@@ -429,7 +428,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
   }
 
   Future<void> _checkEncryptionStatus() async {
-    final encrypted = await _encryptionProvider.isWalletEncrypted();
+    final encrypted = await _walletReader.isWalletEncrypted();
     if (mounted) {
       setState(() {
         _isEncrypted = encrypted;
@@ -601,7 +600,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
 Future<String> createWalletBackup({
   required String destinationPath,
   required Logger log,
-  required WalletProvider walletProvider,
+  required WalletWriterProvider walletProvider,
 }) async {
   final archive = Archive();
 
@@ -678,7 +677,7 @@ class BackupWalletDialog extends StatefulWidget {
 
 class _BackupWalletDialogState extends State<BackupWalletDialog> {
   Logger get log => GetIt.I.get<Logger>();
-  WalletProvider get walletProvider => GetIt.I.get<WalletProvider>();
+  WalletWriterProvider get walletProvider => GetIt.I.get<WalletWriterProvider>();
 
   String? _selectedPath;
   bool _isCreatingBackup = false;
@@ -954,7 +953,7 @@ Future<BackupValidationResult> validateBackupZip({
 }
 
 // Check if current wallet exists
-Future<bool> hasCurrentWallet(WalletProvider walletProvider) async {
+Future<bool> hasCurrentWallet(WalletWriterProvider walletProvider) async {
   final walletJsonFile = File(path.join(walletProvider.bitwindowAppDir.path, 'wallet.json'));
   return await walletJsonFile.exists();
 }
@@ -991,7 +990,7 @@ class RestoreProgressDialog extends StatefulWidget {
 
 class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
   final Logger log = GetIt.I.get<Logger>();
-  final WalletProvider walletProvider = GetIt.I.get<WalletProvider>();
+  final WalletWriterProvider walletProvider = GetIt.I.get<WalletWriterProvider>();
 
   final List<RestoreProgressStep> _steps = [];
   bool get _isCompleted => _steps.isNotEmpty && _steps.every((step) => step.isCompleted);
@@ -1125,10 +1124,8 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
       // Clean up temp
       await tempDir.delete(recursive: true);
 
-      // 7. Recreate sidechain starter files
-      _updateStatus('Recreating sidechain starter files');
-      await walletProvider.syncStarterFiles();
-      log.i('Regenerated sidechain starter files from wallet.json');
+      // 7. Wallet is restored - starter files will be created on-demand by WalletReaderProvider
+      log.i('Wallet restored from backup');
 
       // 8. Verify restored wallet
       _updateStatus('Verifying restored wallet');
@@ -1288,7 +1285,7 @@ class RestoreWalletDialog extends StatefulWidget {
 
 class _RestoreWalletDialogState extends State<RestoreWalletDialog> {
   Logger get log => GetIt.I.get<Logger>();
-  WalletProvider get walletProvider => GetIt.I.get<WalletProvider>();
+  WalletWriterProvider get walletProvider => GetIt.I.get<WalletWriterProvider>();
 
   File? _selectedFile;
   String? _error;
@@ -2479,7 +2476,7 @@ Future<void> _resetWallets(
   final logger = GetIt.I.get<Logger>();
 
   try {
-    await GetIt.I.get<WalletProvider>().deleteAllWallets(
+    await GetIt.I.get<WalletWriterProvider>().deleteAllWallets(
       beforeBoot: beforeBoot,
       onStatusUpdate: onStatusUpdate,
     );

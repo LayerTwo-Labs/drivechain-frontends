@@ -52,8 +52,8 @@ class _EncryptWalletDialogState extends State<EncryptWalletDialog> {
     });
 
     try {
-      final encryptionProvider = GetIt.I.get<EncryptionProvider>();
-      await encryptionProvider.encryptWallet(_passwordController.text);
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
+      await walletReader.encryptWallet(_passwordController.text);
 
       if (!mounted) return;
 

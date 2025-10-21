@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert' show utf8;
 import 'dart:math';
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:crypto/crypto.dart' show sha256;
@@ -35,7 +35,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   late WelcomeScreen _currentScreen;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
-  final WalletProvider _walletProvider = GetIt.I.get<WalletProvider>();
+  final WalletWriterProvider _walletProvider = GetIt.I.get<WalletWriterProvider>();
   bool _isHexMode = false;
   bool _isValidInput = false;
   Map<String, dynamic> _currentWalletData = {};

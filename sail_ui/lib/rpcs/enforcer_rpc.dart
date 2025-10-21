@@ -6,7 +6,6 @@ import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -60,26 +59,11 @@ class EnforcerLive extends EnforcerRPC {
       throw Exception('Could not determine downloads directory');
     }
 
-    final appDir = await getApplicationSupportDirectory();
-    final walletDir = getWalletDir(appDir);
+    binary.extraBootArgs = binary.extraBootArgs.where((arg) => !arg.startsWith('--wallet-seed-file')).toList();
 
-    // Remove any existing wallet arguments before setting new ones
-    binary.extraBootArgs = binary.extraBootArgs
-        .where((arg) => !arg.startsWith('--wallet-auto-create') && !arg.startsWith('--wallet-seed-file'))
-        .toList();
-
-    var walletArg = '--wallet-auto-create';
-    if (walletDir != null) {
-      // we have a bitwindow wallet dir, and the enforcer does NOT have a wallet loaded
-      // we should add a fitting arg!
-      final mnemonicFile = File(path.join(walletDir.path, 'l1_starter.txt'));
-
-      if (mnemonicFile.existsSync()) {
-        // we have a mnemonic file! Use that seed
-        walletArg = '--wallet-seed-file=${mnemonicFile.path}';
-      }
-    }
-    binary.addBootArg(walletArg);
+    final walletReader = GetIt.I.get<WalletReaderProvider>();
+    final mnemonicFile = await walletReader.writeL1Starter();
+    binary.addBootArg('--wallet-seed-file=${mnemonicFile.path}');
 
     // now set the esplora-url
     switch (GetIt.I.get<BitcoinConfProvider>().network) {

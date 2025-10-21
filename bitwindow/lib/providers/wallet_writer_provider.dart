@@ -21,185 +21,57 @@ import 'package:pointycastle/macs/hmac.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:synchronized/synchronized.dart';
 
-class WalletProvider extends ChangeNotifier {
+class WalletWriterProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
   final Directory bitwindowAppDir;
 
-  WalletProvider({
+  WalletWriterProvider({
     required this.bitwindowAppDir,
   });
 
   final _logger = GetIt.I.get<Logger>();
   static const String defaultBip32Path = "m/44'/0'/0'";
 
-  // Cached wallet data with thread-safe access
-  WalletData? _cachedWallet;
+  // Thread-safe access lock
   final Lock _walletLock = Lock();
 
-  // File watcher for wallet.json changes
-  StreamSubscription<FileSystemEvent>? _fileWatcher;
+  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   Future<void> init() async {
     await migrate();
+    _logger.i('init: Wallet writer provider initialized');
 
-    await _walletLock.synchronized(() async {
-      _logger.i('init: Initializing wallet provider');
-      await _loadAndCacheWallet();
-      _logger.i('init: Wallet provider initialized');
-    });
-
-    // Sync starter files from wallet.json
-    await syncStarterFiles();
-
-    // Set up file watcher for wallet.json
-    _setupFileWatcher();
-  }
-
-  /// Set up file watcher to reload cache when wallet.json changes
-  void _setupFileWatcher() {
-    try {
-      final walletFile = _getWalletJsonFile();
-      _fileWatcher = walletFile
-          .watch(events: FileSystemEvent.all)
-          .listen(
-            (event) async {
-              _logger.i('File watcher: wallet.json ${event.type} event detected');
-
-              // Reload cache when file is modified or created
-              if (event.type == FileSystemEvent.modify || event.type == FileSystemEvent.create) {
-                await _walletLock.synchronized(() async {
-                  _logger.i('File watcher: Reloading wallet into cache');
-                  await _loadAndCacheWallet();
-                  notifyListeners();
-                });
-
-                // Sync starter files so enforcer and sidechains pick up changes
-                _logger.i('File watcher: Syncing starter files after wallet.json change');
-                await syncStarterFiles();
-              }
-              // Clear cache when file is deleted
-              else if (event.type == FileSystemEvent.delete) {
-                await _walletLock.synchronized(() async {
-                  _logger.i('File watcher: Wallet deleted, clearing cache');
-                  _cachedWallet = null;
-                  notifyListeners();
-                });
-              }
-            },
-            onError: (error) {
-              _logger.e('File watcher error: $error');
-            },
-          );
-      _logger.i('File watcher: Started watching wallet.json');
-    } catch (e, stack) {
-      _logger.e('File watcher: Failed to set up file watcher: $e\n$stack');
-    }
-  }
-
-  @override
-  void dispose() {
-    _fileWatcher?.cancel();
-    _logger.i('File watcher: Stopped watching wallet.json');
-
-    // Clean up temporary starter files from /tmp
-    cleanupStarterFiles();
-
-    super.dispose();
-  }
-
-  /// Load wallet from disk and cache it (must be called within lock)
-  Future<void> _loadAndCacheWallet() async {
-    try {
-      final walletFile = _getWalletJsonFile();
-      if (!await walletFile.exists()) {
-        _cachedWallet = null;
-        _logger.i('_loadAndCacheWallet: No wallet file found');
-        return;
-      }
-
-      // Check if wallet is encrypted
-      final encryptionProvider = GetIt.I.get<EncryptionProvider>();
-      final isEncrypted = await encryptionProvider.isWalletEncrypted();
-
-      if (isEncrypted) {
-        // Wallet is encrypted - get decrypted data from EncryptionProvider
-        if (encryptionProvider.isWalletUnlocked) {
-          final decryptedJson = encryptionProvider.decryptedWalletJson;
-          if (decryptedJson != null) {
-            _logger.i('_loadAndCacheWallet: Loading encrypted wallet from memory');
-            _cachedWallet = WalletData.fromJsonString(decryptedJson);
-            _logger.i('_loadAndCacheWallet: Encrypted wallet cached successfully');
-          } else {
-            _logger.w('_loadAndCacheWallet: Wallet is encrypted but no decrypted data available');
-            _cachedWallet = null;
-          }
-        } else {
-          _logger.i('_loadAndCacheWallet: Wallet is encrypted and locked');
-          _cachedWallet = null;
-        }
-      } else {
-        // Wallet is not encrypted - read directly from disk
-        _logger.i('_loadAndCacheWallet: Loading unencrypted wallet from disk');
-        final json = await walletFile.readAsString();
-        _cachedWallet = WalletData.fromJsonString(json);
-        _logger.i('_loadAndCacheWallet: Wallet cached successfully');
-      }
-    } catch (e, stack) {
-      _logger.e('_loadAndCacheWallet: Error loading wallet: $e\n$stack');
-      _cachedWallet = null;
-      rethrow;
-    }
+    // Listen to WalletReaderProvider changes and propagate to our listeners
+    _walletReader.addListener(notifyListeners);
   }
 
   Future<bool> hasExistingWallet() async {
-    final walletFile = _getWalletJsonFile();
-    return await walletFile.exists();
+    return await _walletReader.getWalletFile().exists();
   }
 
-  /// Load wallet - returns cached wallet (thread-safe)
+  /// Load wallet - reads from WalletReaderProvider cache (thread-safe)
   Future<WalletData?> loadWallet() async {
     return await _walletLock.synchronized(() async {
-      return _cachedWallet;
+      final walletJson = _walletReader.walletJson;
+      if (walletJson == null) return null;
+      return WalletData.fromJson(walletJson);
     });
   }
 
-  /// Save wallet to new wallet.json structure and refresh cache
+  /// Save wallet to new wallet.json structure using WalletReaderProvider
   Future<void> saveWallet(WalletData wallet) async {
     await _walletLock.synchronized(() async {
       try {
-        _logger.i('saveWallet: Saving wallet to wallet.json');
+        _logger.i('saveWallet: Saving wallet to wallet.json via WalletReaderProvider');
 
         // Ensure bitwindowAppDir exists
         if (!await bitwindowAppDir.exists()) {
           await bitwindowAppDir.create(recursive: true);
         }
 
-        final jsonString = wallet.toJsonString();
-
-        // Check if wallet is encrypted
-        final encryptionProvider = GetIt.I.get<EncryptionProvider>();
-        final isEncrypted = await encryptionProvider.isWalletEncrypted();
-
-        if (isEncrypted) {
-          // Wallet is encrypted - use EncryptionProvider to update and re-encrypt
-          _logger.i('saveWallet: Wallet is encrypted, updating via EncryptionProvider');
-          await encryptionProvider.updateEncryptedWallet(jsonString);
-          _logger.i('saveWallet: Encrypted wallet updated successfully');
-        } else {
-          // Wallet is not encrypted - write plaintext to disk
-          final walletFile = _getWalletJsonFile();
-
-          // Write atomically by writing to temp file first
-          final tempFile = File('${walletFile.path}.tmp');
-          await tempFile.writeAsString(jsonString);
-          await tempFile.rename(walletFile.path);
-
-          _logger.i('saveWallet: Wallet saved successfully to ${walletFile.path}');
-        }
-
-        // Update cache
-        _cachedWallet = wallet;
-        _logger.i('saveWallet: Cache updated');
+        // Use WalletReaderProvider to update wallet (handles encryption/decryption)
+        await _walletReader.updateWalletJson(wallet.toJson());
+        _logger.i('saveWallet: Wallet saved successfully via WalletReaderProvider');
       } catch (e, stack) {
         _logger.e('saveWallet: Error saving wallet: $e\n$stack');
         rethrow;
@@ -207,116 +79,12 @@ class WalletProvider extends ChangeNotifier {
     });
   }
 
-  /// Get the wallet.json file reference
-  File _getWalletJsonFile() {
-    return File(path.join(bitwindowAppDir.path, 'wallet.json'));
-  }
-
-  /// Get the temporary starter directory (create if needed)
-  /// Uses process-specific directory for security and isolation
-  Future<Directory> _getStarterDirectory() async {
-    final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
-    if (!await tmpDir.exists()) {
-      await tmpDir.create(recursive: true);
-      // Set restrictive permissions (owner only: rwx------)
-      if (!Platform.isWindows) {
-        await Process.run('chmod', ['700', tmpDir.path]);
-      }
-      _logger.i('Created temporary starter directory: ${tmpDir.path}');
-    }
-    return tmpDir;
-  }
-
-  /// Static helper to get the tmp starter directory path
-  /// Used by other packages that need to know where starter files are located
-  static Directory getTmpStarterDirectory() {
-    return Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
-  }
-
-  /// Write L1 starter file
-  Future<void> _writeL1StarterFile(String mnemonic) async {
-    try {
-      final starterDir = await _getStarterDirectory();
-      final l1File = File(path.join(starterDir.path, 'l1_starter.txt'));
-      await l1File.writeAsString(mnemonic);
-      _logger.i('Wrote l1_starter.txt');
-    } catch (e, stack) {
-      _logger.e('Failed to write l1_starter.txt: $e\n$stack');
-      rethrow;
-    }
-  }
-
-  /// Write sidechain starter file
-  Future<void> _writeSidechainStarterFile(int slot, String mnemonic) async {
-    try {
-      final starterDir = await _getStarterDirectory();
-      final scFile = File(path.join(starterDir.path, 'sidechain_${slot}_starter.txt'));
-      await scFile.writeAsString(mnemonic);
-      _logger.i('Wrote sidechain_${slot}_starter.txt');
-    } catch (e, stack) {
-      _logger.e('Failed to write sidechain_${slot}_starter.txt: $e\n$stack');
-      rethrow;
-    }
-  }
-
-  /// Sync all starter files from wallet.json
-  /// Creates/updates all l1_starter.txt and sidechain_*_starter.txt files
-  /// Public method for use by restore process and other external callers
-  Future<void> syncStarterFiles() async {
-    try {
-      _logger.i('_syncStarterFiles: Starting sync');
-      final wallet = await loadWallet();
-      if (wallet == null) {
-        _logger.i('_syncStarterFiles: No wallet to sync');
-        return;
-      }
-
-      // Write L1 starter
-      await _writeL1StarterFile(wallet.l1.mnemonic);
-
-      // Write all sidechain starters
-      for (final sc in wallet.sidechains) {
-        await _writeSidechainStarterFile(sc.slot, sc.mnemonic);
-      }
-
-      _logger.i('_syncStarterFiles: Synced ${wallet.sidechains.length + 1} starter files');
-    } catch (e, stack) {
-      _logger.e('_syncStarterFiles: Failed to sync starter files: $e\n$stack');
-      rethrow;
-    }
-  }
-
-  /// Clean up temporary starter files from /tmp
-  /// Called when locking wallet or disposing provider
-  Future<void> cleanupStarterFiles() async {
-    try {
-      final tmpDir = getTmpStarterDirectory();
-      if (await tmpDir.exists()) {
-        await tmpDir.delete(recursive: true);
-        _logger.i('Cleaned up temporary starter directory: ${tmpDir.path}');
-      }
-    } catch (e, stack) {
-      _logger.w('Failed to cleanup starter files: $e\n$stack');
-      // Don't rethrow - cleanup failures shouldn't break the app
-    }
-  }
-
-  Future<File?> getWallet() async {
-    // This method is deprecated and only used by legacy code
-    // New code should use loadWallet() instead
-    final wallet = await loadWallet();
-    if (wallet == null) return null;
-
-    // Return a dummy file reference since some legacy code expects a File
-    return File(path.join(bitwindowAppDir.path, 'wallet.json'));
-  }
-
   /// Backup wallet.json by renaming it with a timestamp
   /// Used when deleting all wallets to preserve the current wallet
   Future<void> moveWallet() async {
     await _walletLock.synchronized(() async {
       try {
-        final walletFile = _getWalletJsonFile();
+        final walletFile = _walletReader.getWalletFile();
         if (!await walletFile.exists()) {
           _logger.i('moveMasterWalletDir: No wallet.json to backup');
           return;
@@ -328,8 +96,7 @@ class WalletProvider extends ChangeNotifier {
         await walletFile.rename(backupPath);
         _logger.i('moveMasterWalletDir: Backed up wallet.json to $backupPath');
 
-        // Clear the cached wallet since it no longer exists
-        _cachedWallet = null;
+        // WalletReaderProvider manages its own cache
       } catch (e, stack) {
         _logger.e('moveMasterWalletDir: Error backing up wallet: $e\n$stack');
         rethrow;
@@ -589,18 +356,7 @@ class WalletProvider extends ChangeNotifier {
     // Save to wallet.json
     await saveWallet(completeWallet);
 
-    // Sync all starter files
-    await syncStarterFiles();
-
     _logger.i('saveMasterWallet: Complete');
-  }
-
-  Future<void> deleteWallet() async {
-    final walletFile = await getWallet();
-    if (walletFile != null) {
-      await walletFile.delete();
-      notifyListeners();
-    }
   }
 
   Future<Map<String, dynamic>?> loadMasterStarter() async {
@@ -673,9 +429,6 @@ class WalletProvider extends ChangeNotifier {
     // Save updated wallet
     await saveWallet(updatedWallet);
     _logger.i('getSidechainStarter: Generated and saved sidechain wallet for slot $sidechainSlot');
-
-    // Write starter file for the new sidechain
-    await _writeSidechainStarterFile(sidechainSlot, newSidechain.mnemonic);
 
     return newSidechain.mnemonic;
   }
@@ -795,8 +548,7 @@ class WalletProvider extends ChangeNotifier {
   Future<void> migrate() async {
     try {
       // Check if wallet.json already exists (new structure)
-      final walletJsonFile = _getWalletJsonFile();
-      if (await walletJsonFile.exists()) {
+      if (await _walletReader.getWalletFile().exists()) {
         _logger.i('migrate: Wallet is already in new format');
         return;
       }
@@ -933,5 +685,11 @@ class WalletProvider extends ChangeNotifier {
       _logger.e('migrate: Old wallet files preserved. Please check backup.');
       // Don't throw - let the app continue
     }
+  }
+
+  @override
+  void dispose() {
+    _walletReader.removeListener(notifyListeners);
+    super.dispose();
   }
 }

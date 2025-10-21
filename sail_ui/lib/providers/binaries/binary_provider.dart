@@ -238,25 +238,23 @@ class BinaryProvider extends ChangeNotifier {
     if (binary.chainLayer == 2 && !settings.useTestSidechains) {
       binary = binary as Sidechain;
       log.i('booting sidechain ${binary.name}');
-      // We're booting some sort of sidechain. Check the wallet-starter-directory for
-      // a starter seed, but always bitwindow!
-      final bitwindowAppDir = Directory(path.join(appDir.parent.path, 'bitwindow'));
-      final mnemonicPath = binary.getMnemonicPath(bitwindowAppDir);
+
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
+      final mnemonicPath = (await walletReader.writeSidechainStarter(binary.slot)).path;
       log.i('mnemonic path: $mnemonicPath');
-      if (mnemonicPath != null) {
-        log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
-        binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
-        _downloadManager.updateBinary(
-          binary.type,
-          (currentBinary) {
-            // Don't replace the entire binary! Just update the boot args
-            // The currentBinary has the correct metadata from downloads/watcher
-            final updated = currentBinary as Sidechain;
-            updated.extraBootArgs = binary.extraBootArgs;
-            return updated;
-          },
-        );
-      }
+
+      log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
+      binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
+      _downloadManager.updateBinary(
+        binary.type,
+        (currentBinary) {
+          // Don't replace the entire binary! Just update the boot args
+          // The currentBinary has the correct metadata from downloads/watcher
+          final updated = currentBinary as Sidechain;
+          updated.extraBootArgs = binary.extraBootArgs;
+          return updated;
+        },
+      );
     }
 
     var rpcConnection = switch (binary) {
@@ -552,22 +550,15 @@ class BinaryProvider extends ChangeNotifier {
     await start(bitcoinCore);
     log.i('[T+${getElapsed()}ms] STARTUP: Started bitcoin core...');
 
-    // if in launcher mode, we must await in a loop here UNTIL
-    // the wallet has a starter! This is because we need to pass
-    // the l1 mnemonic to the enforcer, to avoid it from generating
-    // one itself
-    while (true) {
-      final bitwindowAppDir = Directory(path.join(appDir.parent.path, 'bitwindow'));
-      final walletFile = getWalletFile(bitwindowAppDir);
-      log.i(
-        '[T+${getElapsed()}ms] STARTUP: Waiting for l1 starter..., walletDir: $walletFile, bitwindowAppDir: $bitwindowAppDir appDir: $appDir',
-      );
-
-      if (walletFile != null && await walletFile.exists()) {
-        break;
-      }
+    // Wait for wallet to be unlocked before starting enforcer
+    // This ensures L1 starter file is written before enforcer starts
+    // isWalletUnlocked is true for both unencrypted wallets and unlocked encrypted wallets
+    final walletReader = GetIt.I.get<WalletReaderProvider>();
+    while (!walletReader.isWalletUnlocked) {
+      log.i('[T+${getElapsed()}ms] STARTUP: Waiting for wallet to be unlocked');
       await Future.delayed(const Duration(seconds: 1));
     }
+    log.i('[T+${getElapsed()}ms] STARTUP: Wallet is unlocked, proceeding with enforcer start');
 
     await start(enforcer);
     log.i('[T+${getElapsed()}ms] STARTUP: Started enforcer');

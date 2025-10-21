@@ -29,9 +29,10 @@ Future<void> initSidechainDependencies({
   final bitwindowClientSettings = BitwindowClientSettings(store: bitwindowStore, log: log);
   GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => bitwindowClientSettings);
 
-  // Register EncryptionProvider pointing to bitwindow directory
-  final encryptionProvider = EncryptionProvider(appDir: bitwindowDir);
-  GetIt.I.registerLazySingleton<EncryptionProvider>(() => encryptionProvider);
+  // Register WalletReaderProvider pointing to bitwindow directory
+  final walletReader = WalletReaderProvider(bitwindowDir);
+  GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
+  await walletReader.init();
 
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
@@ -58,21 +59,8 @@ Future<void> initSidechainDependencies({
   final sidechainConnection = createSidechainConnection(binary);
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
-  // Check if wallet is encrypted and determine if we should defer binary boot
-  final isEncrypted = await encryptionProvider.isWalletEncrypted();
-  final shouldDeferBinaryBoot = isEncrypted && !encryptionProvider.isWalletUnlocked;
-
   // Boot binaries
-  if (!shouldDeferBinaryBoot) {
-    // Boot all binaries (Bitcoin Core + enforcer + sidechain) immediately
-    bootBinaries(log, binary);
-  } else {
-    // Wallet is encrypted - boot Bitcoin Core now, defer enforcer+sidechain until after unlock
-    log.i('Wallet encrypted - booting Bitcoin Core now, deferring enforcer+sidechain until unlock');
-    final bitcoinCore = binaries.firstWhere((b) => b is BitcoinCore);
-    await binaryProvider.start(bitcoinCore);
-    log.i('Bitcoin Core started - enforcer and sidechain will start after wallet unlock');
-  }
+  bootBinaries(log, binary);
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());

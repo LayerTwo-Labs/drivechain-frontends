@@ -11,11 +11,11 @@ import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
-import 'package:bitwindow/providers/wallet_provider.dart';
-import 'package:bitwindow/routing/password_guard.dart';
+import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
+import 'package:sail_ui/routing/password_guard.dart';
 
 part 'router.gr.dart';
 
@@ -105,7 +105,7 @@ class AppRouter extends RootStackRouter {
 class WalletGuard extends AutoRouteGuard {
   @override
   void onNavigation(NavigationResolver resolver, StackRouter router) async {
-    if (await GetIt.I.get<WalletProvider>().hasExistingWallet()) {
+    if (await GetIt.I.get<WalletWriterProvider>().hasExistingWallet()) {
       resolver.next(true);
     } else {
       await router.push(CreateWalletRoute());
