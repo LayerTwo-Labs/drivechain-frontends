@@ -18,7 +18,6 @@ class ChainSettingsModal extends StatefulWidget {
 
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
   List<String> args = [];
-  String deleteMessage = '';
   String? _binaryVersion;
   bool _loadingVersion = true;
 
@@ -27,9 +26,6 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     super.initState();
     _loadArgs();
     _loadBinaryVersion();
-    setState(() {
-      deleteMessage = 'Delete ${widget.connection.binary.name} data';
-    });
   }
 
   Future<void> _loadArgs() async {
@@ -106,6 +102,24 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                           loading: viewModel.isUpdating,
                           loadingLabel: 'Updating',
                         ),
+                      SailButton(
+                        onPressed: () async {
+                          final binaryProvider = GetIt.I.get<BinaryProvider>();
+                          final appDir = GetIt.I.get<BinaryProvider>().appDir;
+
+                          await binaryProvider.stop(widget.connection.binary);
+
+                          await widget.connection.binary.wipeAsset(binDir(appDir.path));
+                          await widget.connection.binary.wipeAppDir();
+                          await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
+
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        variant: ButtonVariant.icon,
+                        icon: SailSVGAsset.trash,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -161,34 +175,6 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     spacing: SailStyleValues.padding08,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      SailButton(
-                        label: 'Delete ${widget.connection.binary.name} data',
-                        onPressed: () async {
-                          final binaryProvider = GetIt.I.get<BinaryProvider>();
-                          final appDir = GetIt.I.get<BinaryProvider>().appDir;
-
-                          setState(() {
-                            deleteMessage = 'Stopping binary';
-                          });
-
-                          await binaryProvider.stop(widget.connection.binary);
-
-                          setState(() {
-                            deleteMessage = 'Deleting data';
-                          });
-
-                          await widget.connection.binary.wipeAsset(binDir(appDir.path));
-                          await widget.connection.binary.wipeAppDir();
-                          await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
-
-                          if (context.mounted) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-
-                        variant: ButtonVariant.destructive,
-                        loadingLabel: deleteMessage,
-                      ),
                       SailButton(label: 'Close', onPressed: () async => Navigator.pop(context)),
                     ],
                   ),
