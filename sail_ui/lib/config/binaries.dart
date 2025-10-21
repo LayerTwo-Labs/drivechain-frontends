@@ -150,7 +150,8 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['validator']);
 
       case BinaryType.bitWindow:
-        await _deleteFilesInDir(dir, ['bitwindow.db', 'bitdrive']);
+        final network = GetIt.I<BitcoinConfProvider>().network;
+        await _deleteFilesInDir(dir, ['bitdrive', network.toReadableNet(), 'debug.log', 'mining.txt']);
 
       case BinaryType.bitnames:
         await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
@@ -800,9 +801,11 @@ extension BinaryPaths on Binary {
   }
 
   String logPath() {
+    final networkDir = GetIt.I.get<BitcoinConfProvider>().network;
+
     return switch (type) {
       BinaryType.bitcoinCore => _getBitcoinLogPath(),
-      BinaryType.bitWindow => filePath([datadir(), 'server.log']),
+      BinaryType.bitWindow => filePath([datadir(), networkDir.toReadableNet(), 'server.log']),
       BinaryType.thunder ||
       BinaryType.bitnames ||
       BinaryType.bitassets ||

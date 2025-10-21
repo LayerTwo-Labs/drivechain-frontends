@@ -14,10 +14,10 @@ import (
 type Network string
 
 const (
-	NetworkMainnet Network = "main"
+	NetworkMainnet Network = "mainnet"
 	NetworkRegtest Network = "regtest"
 	NetworkSignet  Network = "signet"
-	NetworkTestnet Network = "test"
+	NetworkTestnet Network = "testnet"
 )
 
 type Config struct {
@@ -27,7 +27,7 @@ type Config struct {
 	BitcoinCoreCookie      string  `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
 	BitcoinCoreRpcUser     string  `long:"bitcoincore.rpcuser" default:"user"`
 	BitcoinCoreRpcPassword string  `long:"bitcoincore.rpcpassword" default:"password"`
-	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" choice:"main" choice:"regtest" choice:"signet" choice:"testnet"`
+	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" choice:"mainnet" choice:"regtest" choice:"signet" choice:"testnet"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
@@ -89,10 +89,8 @@ func Parse() (Config, error) {
 		conf.Datadir = datadir
 	}
 
-	// Append network subdirectory for non-mainnet networks
-	if conf.BitcoinCoreNetwork != NetworkMainnet {
-		conf.Datadir = filepath.Join(conf.Datadir, string(conf.BitcoinCoreNetwork))
-	}
+	// Append network subdirectory
+	conf.Datadir = filepath.Join(conf.Datadir, string(conf.BitcoinCoreNetwork))
 
 	if conf.LogPath == "" {
 		conf.LogPath = filepath.Join(conf.Datadir, "server.log")
