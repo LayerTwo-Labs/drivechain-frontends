@@ -15,7 +15,6 @@ enum BinaryType {
   bitcoinCore,
   bitWindow,
   enforcer,
-  testSidechain,
   zSide,
   thunder,
   bitnames,
@@ -28,7 +27,6 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.bitcoinCore => BitcoinCore(),
     BinaryType.bitWindow => BitWindow(),
     BinaryType.enforcer => Enforcer(),
-    BinaryType.testSidechain => TestSidechain(),
     BinaryType.zSide => ZSide(),
     BinaryType.thunder => Thunder(),
     BinaryType.bitnames => BitNames(),
@@ -163,7 +161,6 @@ abstract class Binary {
       case BinaryType.thunder:
         await _deleteFilesInDir(dir, ['data.mdb', 'logs', 'start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']);
 
-      case BinaryType.testSidechain:
       case BinaryType.zSide:
       case BinaryType.grpcurl:
         // No specific cleanup for these types yet
@@ -287,7 +284,6 @@ abstract class Binary {
       case BinaryType.zSide:
         await _deleteFilesInDir(dir, ['thunder-orchard']);
 
-      case BinaryType.testSidechain:
       case BinaryType.grpcurl:
         // No extra files for these types
         break;
@@ -785,10 +781,8 @@ class GRPCurl extends Binary {
 extension BinaryPaths on Binary {
   String confFile() {
     return switch (type) {
-      BinaryType.testSidechain => 'testchain.conf',
-      BinaryType.zSide => 'zside.conf',
       BinaryType.bitcoinCore => _getBitcoinConfFile(),
-      _ => throw 'unsupported binary type: $type',
+      _ => throw 'binary does not have a config file: $type',
     };
   }
 
@@ -807,7 +801,6 @@ extension BinaryPaths on Binary {
 
   String logPath() {
     return switch (type) {
-      BinaryType.testSidechain => filePath([datadir(), 'debug.log']),
       BinaryType.bitcoinCore => _getBitcoinLogPath(),
       BinaryType.bitWindow => filePath([datadir(), 'server.log']),
       BinaryType.thunder ||
