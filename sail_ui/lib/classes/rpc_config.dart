@@ -44,7 +44,7 @@ CoreConnectionSettings readRPCConfig(
 
   // Use correct default port based on network
   final defaultPort = switch (network) {
-    Network.NETWORK_MAINNET => 8332,
+    Network.NETWORK_MAINNET => 18301, // forknet
     Network.NETWORK_TESTNET => 18332,
     Network.NETWORK_SIGNET => 38332,
     Network.NETWORK_REGTEST => 18443,
@@ -62,43 +62,44 @@ CoreConnectionSettings readRPCConfig(
   if (conf.existsSync()) {
     log.i('rpc: reading conf file at $conf');
     final confContent = conf.readAsStringSync();
-    final lines = confContent.split('\n').map((e) => e.trim()).toList();
 
-    // Parse config file
-    for (final line in lines) {
-      if (line.startsWith('#') || !line.contains('=')) continue;
+    // Parse config with section support
+    final config = BitcoinConfig.parse(confContent);
+    final networkSection = network.toCoreNetwork();
 
-      final parts = line.split('=');
-      if (parts.length != 2) continue;
-
-      final key = parts[0].trim();
-      final value = parts[1].trim();
-
-      // Handle special RPC settings
-      switch (key) {
-        case 'rpcuser':
-          username = value;
-          configFromFile.add('rpcuser');
-          break;
-        case 'rpcpassword':
-          password = value;
-          configFromFile.add('rpcpassword');
-          break;
-        case 'rpcport':
-          port = int.tryParse(value) ?? defaultPort;
-          configFromFile.add('rpcport');
-          break;
-        case 'rpcconnect':
-        case 'rpchost':
-          host = value;
-          configFromFile.add(key);
-          break;
-        default:
-          // Store other config values
-          configValues[key] = value;
-          configFromFile.add(key);
-      }
+    // Get effective values (network section overrides global)
+    final rpcUser = config.getEffectiveSetting('rpcuser', networkSection);
+    if (rpcUser != null) {
+      username = rpcUser;
+      configFromFile.add('rpcuser');
     }
+
+    final rpcPassword = config.getEffectiveSetting('rpcpassword', networkSection);
+    if (rpcPassword != null) {
+      password = rpcPassword;
+      configFromFile.add('rpcpassword');
+    }
+
+    final rpcPortStr = config.getEffectiveSetting('rpcport', networkSection);
+    if (rpcPortStr != null) {
+      port = int.tryParse(rpcPortStr) ?? defaultPort;
+      configFromFile.add('rpcport');
+    }
+
+    final rpcHost =
+        config.getEffectiveSetting('rpcconnect', networkSection) ??
+        config.getEffectiveSetting('rpchost', networkSection);
+    if (rpcHost != null) {
+      host = rpcHost;
+      configFromFile.add('rpchost');
+    }
+
+    // Store all config values (global + network-specific merged)
+    configValues = Map.from(config.globalSettings);
+    if (config.networkSettings.containsKey(networkSection)) {
+      configValues.addAll(config.networkSettings[networkSection]!);
+    }
+    configFromFile.addAll(configValues.keys);
 
     return CoreConnectionSettings.fromParsedConfig(
       confPath: conf.path,
@@ -191,13 +192,30 @@ extension NetworkExtensions on Network {
   String toReadableNet() {
     switch (this) {
       case Network.NETWORK_MAINNET:
-        return 'mainnet';
+        return 'forknet';
       case Network.NETWORK_SIGNET:
         return 'signet';
       case Network.NETWORK_REGTEST:
         return 'regtest';
       case Network.NETWORK_TESTNET:
         return 'testnet';
+      case Network.NETWORK_UNSPECIFIED || Network.NETWORK_UNKNOWN:
+      default:
+        return 'unknown';
+    }
+  }
+
+  /// Get the Bitcoin Core config section name for this network
+  String toCoreNetwork() {
+    switch (this) {
+      case Network.NETWORK_MAINNET:
+        return 'main';
+      case Network.NETWORK_SIGNET:
+        return 'signet';
+      case Network.NETWORK_REGTEST:
+        return 'regtest';
+      case Network.NETWORK_TESTNET:
+        return 'test';
       case Network.NETWORK_UNSPECIFIED || Network.NETWORK_UNKNOWN:
       default:
         return 'unknown';

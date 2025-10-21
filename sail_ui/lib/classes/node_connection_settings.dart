@@ -105,18 +105,38 @@ CoreConnectionSettings readMainchainConf() {
   final log = GetIt.I.get<Logger>();
   final confProvider = GetIt.I.get<BitcoinConfProvider>();
 
-  // Create empty config with correct network-specific defaults
-  CoreConnectionSettings conf = CoreConnectionSettings.empty(confProvider.network);
-  try {
-    final datadir = BitcoinCore().datadir();
-    final confFileName = BitcoinCore().confFile();
-
-    conf = readRPCConfig(datadir, confFileName, BitcoinCore(), confProvider.network);
-    log.i('Using $confFileName for mainchain configuration');
-  } catch (error) {
-    log.e('could not read mainchain conf: $error');
-    // Return the network-appropriate default config
+  if (confProvider.currentConfig == null) {
+    log.w('No config loaded, using defaults');
+    return CoreConnectionSettings.empty(confProvider.network);
   }
 
-  return conf;
+  final config = confProvider.currentConfig!;
+  final networkSection = confProvider.network.toCoreNetwork();
+
+  // Read all connection settings from BitcoinConfProvider (single source of truth)
+  final username = config.getEffectiveSetting('rpcuser', networkSection) ?? 'user';
+  final password = config.getEffectiveSetting('rpcpassword', networkSection) ?? 'password';
+  final host =
+      config.getEffectiveSetting('rpcconnect', networkSection) ??
+      config.getEffectiveSetting('rpchost', networkSection) ??
+      'localhost';
+  final port = confProvider.rpcPort; // Uses the getter that already handles sections
+
+  log.i('Using ${confProvider.currentConfigFile} for mainchain configuration: $username@$host:$port');
+
+  // Merge global + network-specific config values
+  final configValues = Map<String, String>.from(config.globalSettings);
+  if (config.networkSettings.containsKey(networkSection)) {
+    configValues.addAll(config.networkSettings[networkSection]!);
+  }
+
+  return CoreConnectionSettings(
+    confProvider.currentConfigFile,
+    host,
+    port,
+    username,
+    password,
+    confProvider.network,
+    configValues,
+  );
 }
