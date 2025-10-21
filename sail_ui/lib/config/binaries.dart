@@ -163,6 +163,8 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['data.mdb', 'logs', 'start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']);
 
       case BinaryType.zSide:
+        await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
+
       case BinaryType.grpcurl:
         // No specific cleanup for these types yet
         break;
@@ -190,7 +192,6 @@ abstract class Binary {
       case BinaryType.zSide:
         await _renameWalletDir(dir, 'wallet.mdb');
 
-      case BinaryType.bitcoinCore:
       case BinaryType.bitWindow:
       case BinaryType.testSidechain:
       case BinaryType.grpcurl:
