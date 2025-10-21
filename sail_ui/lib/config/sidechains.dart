@@ -23,9 +23,6 @@ abstract class Sidechain extends Binary {
 
   static Sidechain? fromString(String input) {
     switch (input.toLowerCase()) {
-      case 'testchain':
-        return TestSidechain();
-
       case 'zside':
         return ZSide();
 
@@ -43,18 +40,6 @@ abstract class Sidechain extends Binary {
 
   static Sidechain fromBinary(Binary binary) {
     switch (binary.name) {
-      case 'Test Sidechain':
-        return TestSidechain(
-          name: binary.name,
-          version: binary.version,
-          description: binary.description,
-          repoUrl: binary.repoUrl,
-          directories: binary.directories,
-          metadata: binary.metadata,
-          port: binary.port,
-          chainLayer: binary.chainLayer,
-        );
-
       case 'zSide':
         return ZSide(
           name: binary.name,
@@ -165,86 +150,6 @@ Directory? getWalletDir(Directory appDir) {
   // Process ID is included to avoid conflicts between multiple instances
   final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
   return tmpDir.existsSync() ? tmpDir : null;
-}
-
-class TestSidechain extends Sidechain {
-  TestSidechain({
-    super.name = 'Test Sidechain',
-    super.version = '0.1.0',
-    super.description = 'Test Sidechain',
-    super.repoUrl = '',
-    DirectoryConfig? directories,
-    MetadataConfig? metadata,
-    super.port = 38332,
-    super.chainLayer = 2,
-    super.downloadInfo = const DownloadInfo(),
-    super.extraBootArgs = const [],
-  }) : super(
-         directories:
-             directories ??
-             DirectoryConfig(
-               binary: {
-                 OS.linux: '.testchain',
-                 OS.macos: 'testchain',
-                 OS.windows: 'testchain',
-               },
-               flutterFrontend: {
-                 OS.linux: '', // N/A
-                 OS.macos: '', // N/A
-                 OS.windows: '', // N/A
-               },
-             ),
-         metadata:
-             metadata ??
-             MetadataConfig(
-               downloadConfig: DownloadConfig(
-                 binary: 'testchaind',
-                 baseUrl: 'https://releases.drivechain.info/',
-                 files: {
-                   OS.linux: 'testchain-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'testchain-latest-x86_64-apple-darwin.zip',
-                   OS.windows: 'testchain-latest-x86_64-pc-windows-msvc.zip',
-                 },
-               ),
-               remoteTimestamp: null,
-               downloadedTimestamp: null,
-               binaryPath: null,
-               updateable: false,
-             ),
-       );
-
-  @override
-  final int slot = 0;
-
-  @override
-  BinaryType get type => BinaryType.testSidechain;
-
-  @override
-  Color color = SailColorScheme.orange;
-
-  @override
-  TestSidechain copyWith({
-    String? version,
-    String? description,
-    String? repoUrl,
-    DirectoryConfig? directories,
-    MetadataConfig? metadata,
-    String? binary,
-    int? port,
-    int? chainLayer,
-    DownloadInfo? downloadInfo,
-  }) {
-    return TestSidechain(
-      version: version ?? this.version,
-      description: description ?? this.description,
-      repoUrl: repoUrl ?? this.repoUrl,
-      directories: directories ?? this.directories,
-      metadata: metadata ?? this.metadata,
-      port: port ?? this.port,
-      chainLayer: chainLayer ?? this.chainLayer,
-      downloadInfo: downloadInfo ?? this.downloadInfo,
-    );
-  }
 }
 
 class ZSide extends Sidechain {

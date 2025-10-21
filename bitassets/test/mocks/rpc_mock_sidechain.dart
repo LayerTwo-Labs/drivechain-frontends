@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
     : super(
-        binaryType: BinaryType.testSidechain,
+        binaryType: BinaryType.bitassets,
         restartOnFailure: false,
       );
 

@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 class MockZSideRPC extends ZSideRPC {
   MockZSideRPC()
     : super(
-        binaryType: BinaryType.testSidechain,
+        binaryType: BinaryType.zSide,
         restartOnFailure: false,
       );
 

@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/pages/router.gr.dart' hide SidechainOverviewTabRoute;
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:window_manager/window_manager.dart';
