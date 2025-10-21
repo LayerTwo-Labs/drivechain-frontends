@@ -794,8 +794,8 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
             children: [
               SailTextField(
                 label: 'Address',
-                controller: TextEditingController(text: formatBitcoinAddress(widget.address)),
-                hintText: formatBitcoinAddress(widget.address),
+                controller: TextEditingController(text: widget.address),
+                hintText: widget.address,
                 readOnly: true,
                 size: TextFieldSize.small,
                 suffixWidget: CopyButton(

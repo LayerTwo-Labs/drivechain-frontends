@@ -257,7 +257,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
               italic: entry.label == '',
             ),
             SailTableCell(
-              value: formatBitcoinAddress(entry.address),
+              value: entry.address,
               copyValue: entry.address,
               monospace: true,
             ),
