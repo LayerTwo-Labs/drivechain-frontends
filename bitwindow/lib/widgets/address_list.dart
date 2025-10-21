@@ -1,5 +1,4 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
-import 'package:bitwindow/utils/format_utils.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
