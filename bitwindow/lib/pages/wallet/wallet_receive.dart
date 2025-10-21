@@ -49,7 +49,7 @@ class ReceiveTab extends StatelessWidget {
                                     enabled: model.address.isEmpty,
                                     description: 'Waiting for enforcer to start and wallet to sync..',
                                   ),
-                                  controller: TextEditingController(text: formatBitcoinAddress(model.address)),
+                                  controller: TextEditingController(text: model.address),
                                   hintText: 'A Drivechain address',
                                   readOnly: true,
                                   suffixWidget: CopyButton(
@@ -103,7 +103,7 @@ class ReceiveTab extends StatelessWidget {
                               enabled: model.address.isEmpty,
                               description: 'Waiting for enforcer to start and wallet to sync..',
                             ),
-                            controller: TextEditingController(text: formatBitcoinAddress(model.bip47PaymentCode)),
+                            controller: TextEditingController(text: model.bip47PaymentCode),
                             hintText: 'A Drivechain address',
                             readOnly: true,
                             suffixWidget: CopyButton(
@@ -233,7 +233,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                             : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
                       ),
                       SailTableCell(
-                        value: formatBitcoinAddress(utxo.address),
+                        value: utxo.address,
                         copyValue: utxo.address,
                       ),
                       SailTableCell(value: utxo.label),

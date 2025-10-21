@@ -156,7 +156,7 @@ class _UTXOTableState extends State<UTXOTable> {
                         copyValue: utxo.output,
                       ),
                       SailTableCell(
-                        value: formatBitcoinAddress(utxo.address),
+                        value: utxo.address,
                         copyValue: utxo.address,
                         monospace: true,
                       ),
