@@ -320,63 +320,63 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
     return ListenableBuilder(
       listenable: formatter,
       builder: (context, child) => SailTable(
-      getRowId: (index) => entries[index].txid,
-      headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'Time',
-          onSort: () => onSort('time'),
-        ),
-        SailTableHeaderCell(
-          name: 'TxID',
-          onSort: () => onSort('txid'),
-        ),
-        SailTableHeaderCell(
-          name: 'Amount',
-          onSort: () => onSort('amount'),
-        ),
-        SailTableHeaderCell(
-          name: 'Confirmations',
-          onSort: () => onSort('confirmations'),
-        ),
-      ],
-      rowBuilder: (context, row, selected) {
-        final entry = entries[row];
+        getRowId: (index) => entries[index].txid,
+        headerBuilder: (context) => [
+          SailTableHeaderCell(
+            name: 'Time',
+            onSort: () => onSort('time'),
+          ),
+          SailTableHeaderCell(
+            name: 'TxID',
+            onSort: () => onSort('txid'),
+          ),
+          SailTableHeaderCell(
+            name: 'Amount',
+            onSort: () => onSort('amount'),
+          ),
+          SailTableHeaderCell(
+            name: 'Confirmations',
+            onSort: () => onSort('confirmations'),
+          ),
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = entries[row];
 
-        final url = 'https://explorer.drivechain.info/tx/${entry.txid}';
-        return [
-          SailTableCell(value: formatTime(entry.time)),
-          SailTableCell(
-            value: '',
-            copyValue: entry.txid,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => launchUrl(Uri.parse(url)),
-                child: SailText.primary12(
-                  '${entry.txid.substring(0, 10)}...',
-                  color: context.sailTheme.colors.info,
-                  decoration: TextDecoration.underline,
+          final url = 'https://explorer.drivechain.info/tx/${entry.txid}';
+          return [
+            SailTableCell(value: formatTime(entry.time)),
+            SailTableCell(
+              value: '',
+              copyValue: entry.txid,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => launchUrl(Uri.parse(url)),
+                  child: SailText.primary12(
+                    '${entry.txid.substring(0, 10)}...',
+                    color: context.sailTheme.colors.info,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
             ),
-          ),
-          SailTableCell(value: formatter.formatSats(entry.amount.toInt())),
-          SailTableCell(value: entry.confirmations.toString()),
-        ];
-      },
-      contextMenuItems: (rowId) {
-        return [
-          MempoolMenuItem(txid: rowId),
-        ];
-      },
-      rowCount: entries.length,
-      drawGrid: true,
-      sortColumnIndex: ['time', 'amount', 'category', 'confirmations', 'txid'].indexOf(sortColumn),
-      sortAscending: sortAscending,
-      onSort: (columnIndex, ascending) {
-        onSort(['time', 'amount', 'category', 'confirmations', 'txid'][columnIndex]);
-      },
-    ),
+            SailTableCell(value: formatter.formatSats(entry.amount.toInt())),
+            SailTableCell(value: entry.confirmations.toString()),
+          ];
+        },
+        contextMenuItems: (rowId) {
+          return [
+            MempoolMenuItem(txid: rowId),
+          ];
+        },
+        rowCount: entries.length,
+        drawGrid: true,
+        sortColumnIndex: ['time', 'amount', 'category', 'confirmations', 'txid'].indexOf(sortColumn),
+        sortAscending: sortAscending,
+        onSort: (columnIndex, ascending) {
+          onSort(['time', 'amount', 'category', 'confirmations', 'txid'][columnIndex]);
+        },
+      ),
     );
   }
 
