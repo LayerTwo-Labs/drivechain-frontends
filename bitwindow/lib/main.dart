@@ -21,7 +21,7 @@ import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
@@ -31,7 +31,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
-import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
@@ -143,14 +142,13 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<ThunderRPC>(() => ThunderLive());
   GetIt.I.registerLazySingleton<ZSideRPC>(() => ZSideLive());
 
-  final walletProvider = WalletProvider(bitwindowAppDir: applicationDir);
-  GetIt.I.registerLazySingleton<WalletProvider>(() => walletProvider);
+  final walletReader = WalletReaderProvider(applicationDir);
+  GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
+  await walletReader.init();
 
-  // Register EncryptionProvider before initializing WalletProvider
-  final encryptionProvider = EncryptionProvider(appDir: applicationDir);
-  GetIt.I.registerLazySingleton<EncryptionProvider>(() => encryptionProvider);
-
-  await walletProvider.init();
+  final walletWriter = WalletWriterProvider(bitwindowAppDir: applicationDir);
+  GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
+  await walletWriter.init();
 
   GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [bitwindow]));
   GetIt.I.registerLazySingleton<SyncProvider>(

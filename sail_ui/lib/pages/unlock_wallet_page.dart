@@ -1,18 +1,12 @@
-import 'dart:io';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/wallet/wallet_reader.dart';
 
 @RoutePage()
 class UnlockWalletPage extends StatefulWidget {
-  final Future<void> Function(EncryptionProvider)? onUnlock;
-
-  const UnlockWalletPage({super.key, this.onUnlock});
+  const UnlockWalletPage({super.key});
 
   @override
   State<UnlockWalletPage> createState() => _UnlockWalletPageState();
@@ -53,12 +47,11 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
   /// Attempt automatic decryption in background
   Future<void> _tryAutoDecrypt(String password) async {
     try {
-      final encryptionProvider = GetIt.I.get<EncryptionProvider>();
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
 
       // Try to unlock wallet (runs PBKDF2 in background isolate)
-      final success = await encryptionProvider.unlockWallet(password);
+      final success = await walletReader.unlockWallet(password);
 
-      // Only proceed if this is still the current password
       if (!mounted) {
         return;
       }
@@ -67,25 +60,6 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
       }
 
       if (success) {
-        // Call custom onUnlock handler if provided, otherwise use default behavior
-        if (widget.onUnlock != null) {
-          await widget.onUnlock!(encryptionProvider);
-        } else {
-          // Default behavior: sync starter files and trigger binary boot
-          try {
-            await _syncStarterFiles(encryptionProvider);
-          } catch (e) {
-            _logger.e('Failed to sync starter files: $e');
-          }
-
-          try {
-            await _triggerDeferredBinaryBoot();
-          } catch (e) {
-            _logger.e('Failed to trigger deferred binary boot: $e');
-          }
-        }
-
-        // Successfully unlocked - pop back to guarded route
         if (mounted) {
           context.router.pop();
         }
@@ -195,31 +169,12 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
     });
 
     try {
-      final encryptionProvider = GetIt.I.get<EncryptionProvider>();
-      final success = await encryptionProvider.unlockWallet(_passwordController.text);
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
+      final success = await walletReader.unlockWallet(_passwordController.text);
 
       if (!mounted) return;
 
       if (success) {
-        // Call custom onUnlock handler if provided, otherwise use default behavior
-        if (widget.onUnlock != null) {
-          await widget.onUnlock!(encryptionProvider);
-        } else {
-          // Default behavior: sync starter files and trigger binary boot
-          try {
-            await _syncStarterFiles(encryptionProvider);
-          } catch (e) {
-            _logger.e('Failed to sync starter files after unlock: $e');
-          }
-
-          try {
-            await _triggerDeferredBinaryBoot();
-          } catch (e) {
-            _logger.e('Failed to trigger deferred binary boot: $e');
-          }
-        }
-
-        // Successfully unlocked - pop back to guarded route
         if (mounted) {
           context.router.pop();
         }
@@ -236,75 +191,6 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
         _errorMessage = 'Error unlocking wallet: $e';
         _isUnlocking = false;
       });
-    }
-  }
-
-  /// Trigger deferred binary boot after wallet unlock
-  Future<void> _triggerDeferredBinaryBoot() async {
-    try {
-      // Get the sidechain binary that was deferred
-      final binaryProvider = GetIt.I.get<BinaryProvider>();
-      final sidechainRPC = GetIt.I.get<SidechainRPC>();
-
-      // Find the sidechain binary by matching chain name
-      final sidechainBinary = binaryProvider.binaries.firstWhere(
-        (b) => b.name == sidechainRPC.chain.name,
-      );
-
-      // Boot using the bootBinaries function
-      await binaryProvider.startWithEnforcer(sidechainBinary);
-    } catch (e) {
-      if (e.toString().contains('No element')) {
-        // Binary might already be booted or not found - this is okay
-        _logger.i('Binary boot not needed or already running');
-      } else {
-        rethrow;
-      }
-    }
-  }
-
-  /// Sync starter files to tmp directory for sidechain binaries
-  Future<void> _syncStarterFiles(EncryptionProvider encryptionProvider) async {
-    final decryptedWalletJson = encryptionProvider.decryptedWalletJson;
-    if (decryptedWalletJson == null) {
-      _logger.w('Cannot sync starter files - wallet not decrypted');
-      return;
-    }
-
-    try {
-      final walletReader = WalletReader(encryptionProvider.appDir);
-
-      // Create tmp directory
-      final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
-      if (!tmpDir.existsSync()) {
-        tmpDir.createSync(recursive: true);
-        // Set restrictive permissions (owner only: rwx------)
-        if (!Platform.isWindows) {
-          Process.runSync('chmod', ['700', tmpDir.path]);
-        }
-      }
-
-      // Write L1 mnemonic
-      final l1Mnemonic = walletReader.getL1Mnemonic();
-      if (l1Mnemonic != null) {
-        final l1File = File(path.join(tmpDir.path, 'l1_starter.txt'));
-        l1File.writeAsStringSync(l1Mnemonic);
-        _logger.i('Wrote L1 starter file');
-      }
-
-      // Write sidechain mnemonics for all known slots
-      final knownSlots = [0, 2, 4, 9, 98]; // testchain, bitnames, bitassets, thunder, zside
-      for (final slot in knownSlots) {
-        final mnemonic = walletReader.getSidechainMnemonic(slot);
-        if (mnemonic != null) {
-          final sidechainFile = File(path.join(tmpDir.path, 'sidechain_${slot}_starter.txt'));
-          sidechainFile.writeAsStringSync(mnemonic);
-          _logger.i('Wrote sidechain $slot starter file');
-        }
-      }
-    } catch (e, stack) {
-      _logger.e('Error syncing starter files: $e\n$stack');
-      rethrow;
     }
   }
 }

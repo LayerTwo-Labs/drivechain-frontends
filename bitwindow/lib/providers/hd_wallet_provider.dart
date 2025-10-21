@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
-import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -72,8 +72,8 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<void> _loadMnemonic() async {
     try {
-      // Use WalletProvider to load L1 mnemonic (supports both old and new structure)
-      final walletProvider = GetIt.I.get<WalletProvider>();
+      // Use WalletWriterProvider to load L1 mnemonic (supports both old and new structure)
+      final walletProvider = GetIt.I.get<WalletWriterProvider>();
       final l1Mnemonic = await walletProvider.getL1Starter();
 
       if (l1Mnemonic == null || l1Mnemonic.isEmpty) {

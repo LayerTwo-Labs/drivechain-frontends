@@ -1,4 +1,4 @@
-import 'package:bitwindow/providers/wallet_provider.dart';
+import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -415,7 +415,7 @@ TableRow mnemonicRow(
 
 class StartersPageViewModel extends BaseViewModel {
   final Set<String> _revealedStarters = {};
-  final WalletProvider _walletProvider = GetIt.I.get<WalletProvider>();
+  final WalletWriterProvider _walletProvider = GetIt.I.get<WalletWriterProvider>();
 
   /// Controllers for user input
   final TextEditingController mainchainAddressController = TextEditingController();

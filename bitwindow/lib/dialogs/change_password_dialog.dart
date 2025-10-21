@@ -65,8 +65,8 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     });
 
     try {
-      final encryptionProvider = GetIt.I.get<EncryptionProvider>();
-      await encryptionProvider.changePassword(
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
+      await walletReader.changePassword(
         _oldPasswordController.text,
         _newPasswordController.text,
       );
