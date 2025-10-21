@@ -140,8 +140,8 @@ jobs:
 
       - name: Setup build directory
         run: |
-          # Create build directory name, to avoid caching assets/bin across OSes
-          BUILD_DIR="b-${{ matrix.os }}"
+          # Create build directory name, isolated per OS AND client to avoid race conditions
+          BUILD_DIR="b-${{ matrix.os }}-${{ matrix.client }}"
           rm -rf "$BUILD_DIR"
           mkdir -p "$BUILD_DIR"
           # Copy source files to build directory
