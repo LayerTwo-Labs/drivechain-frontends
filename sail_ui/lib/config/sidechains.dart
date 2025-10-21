@@ -114,7 +114,7 @@ class ZSide extends Sidechain {
              directories ??
              DirectoryConfig(
                binary: {
-                 OS.linux: '.thunder-orchard',
+                 OS.linux: 'thunder-orchard',
                  OS.macos: 'thunder-orchard',
                  OS.windows: 'thunder-orchard',
                },
