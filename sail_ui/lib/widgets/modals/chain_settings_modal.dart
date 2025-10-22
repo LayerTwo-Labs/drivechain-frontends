@@ -46,6 +46,19 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
     try {
       final binaryProvider = GetIt.I.get<BinaryProvider>();
+      final settingsProvider = GetIt.I.get<SettingsProvider>();
+
+      // Skip version check for test sidechains (Flutter apps don't support --version)
+      if (settingsProvider.useTestSidechains && widget.connection.binary.chainLayer == 2) {
+        if (mounted) {
+          setState(() {
+            _binaryVersion = 'Test Sidechain';
+            _loadingVersion = false;
+          });
+        }
+        return;
+      }
+
       final version = await widget.connection.binary.binaryVersion(binaryProvider.appDir);
 
       if (mounted) {
