@@ -442,6 +442,8 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   /// Get the default configuration content
   String getDefaultConfig() {
+    final currentNetwork = _detectedNetwork.toCoreNetwork();
+
     return '''# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
@@ -456,7 +458,7 @@ rpcthreads=20
 rpcworkqueue=100
 rest=1
 fallbackfee=0.00021
-chain=signet # default network!
+chain=$currentNetwork # current network
 
 # [Sections]
 # Most options automatically apply to mainnet, testnet,
