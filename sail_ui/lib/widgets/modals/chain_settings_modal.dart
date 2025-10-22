@@ -131,6 +131,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                         },
                         variant: ButtonVariant.icon,
                         icon: SailSVGAsset.trash,
+                        textColor: SailColorScheme.red,
                       ),
                     ],
                   ),
