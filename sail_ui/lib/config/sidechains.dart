@@ -144,7 +144,11 @@ class ZSide extends Sidechain {
                    OS.macos: 'test-zside-x86_64-apple-darwin.zip',
                    OS.windows: '', // zside not available for windows
                  },
-                 extractSubfolder: 'zside',
+                 extractSubfolder: {
+                  OS.linux: 'zside',
+                  OS.macos: '',
+                  OS.windows: '',
+                },
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -233,7 +237,11 @@ class Thunder extends Sidechain {
                    OS.macos: 'test-thunder-x86_64-apple-darwin.zip',
                    OS.windows: 'test-thunder-x86_64-windows.exe', // thunder not available for windows
                  },
-                 extractSubfolder: 'thunder',
+                 extractSubfolder: {
+                  OS.linux: 'thunder',
+                  OS.macos: '',
+                  OS.windows: '',
+                },
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -322,7 +330,11 @@ class BitNames extends Sidechain {
                    OS.macos: 'test-bitnames-x86_64-apple-darwin.zip',
                    OS.windows: 'test-bitnames-x86_64-windows.exe',
                  },
-                 extractSubfolder: 'bitnames',
+                 extractSubfolder: {
+                  OS.linux: 'bitnames',
+                  OS.macos: '',
+                  OS.windows: '',
+                },
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -415,7 +427,11 @@ class BitAssets extends Sidechain {
                    OS.macos: 'test-bitassets-x86_64-apple-darwin.zip',
                    OS.windows: 'test-bitassets-x86_64-windows.exe',
                  },
-                 extractSubfolder: 'bitassets',
+                 extractSubfolder: {
+                  OS.linux: 'bitassets',
+                  OS.macos: '',
+                  OS.windows: '',
+                },
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,

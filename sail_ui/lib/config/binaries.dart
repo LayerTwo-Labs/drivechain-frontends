@@ -345,44 +345,24 @@ abstract class Binary {
 
   List<String> _getPossibleBinaryPaths(String baseBinary, Directory appDir) {
     final paths = <String>[];
-    final subfolder = metadata.downloadConfig.extractSubfolder;
+    final subfolder = metadata.downloadConfig.extractSubfolder?[OS.current] ?? '';
 
     if (kDebugMode) {
-      // In debug mode, check pwd/bin first
-      if (subfolder != null) {
-        paths.addAll([path.join(binDir(Directory.current.path).path, subfolder, baseBinary)]);
-      } else {
-        paths.addAll([path.join(binDir(Directory.current.path).path, baseBinary)]);
-      }
+      paths.addAll([path.join(binDir(Directory.current.path).path, subfolder, baseBinary)]);
     }
 
-    // Check the folder where binaries are downloaded to
-    if (subfolder != null) {
-      // ONLY check in subfolder - don't fall back to root
-      paths.addAll([path.join(binDir(appDir.path).path, subfolder, baseBinary)]);
-    } else {
-      // No subfolder specified - check root level
-      paths.addAll([path.join(binDir(appDir.path).path, baseBinary)]);
-    }
+    paths.addAll([path.join(binDir(appDir.path).path, subfolder, baseBinary)]);
 
     // finally check .app bundle on macos
     if (Platform.isMacOS) {
       if (!baseBinary.endsWith('.app')) {
-        if (subfolder != null) {
-          paths.addAll([path.join(binDir(appDir.path).path, subfolder, '$baseBinary.app')]);
-        } else {
-          paths.addAll([path.join(binDir(appDir.path).path, '$baseBinary.app')]);
-        }
+        paths.addAll([path.join(binDir(appDir.path).path, subfolder, '$baseBinary.app')]);
       }
     }
     // or .exe on windows
     if (Platform.isWindows) {
       if (!baseBinary.endsWith('.exe')) {
-        if (subfolder != null) {
-          paths.addAll([path.join(binDir(appDir.path).path, subfolder, '$baseBinary.exe')]);
-        } else {
-          paths.addAll([path.join(binDir(appDir.path).path, '$baseBinary.exe')]);
-        }
+        paths.addAll([path.join(binDir(appDir.path).path, subfolder, '$baseBinary.exe')]);
       }
     }
 
@@ -1239,7 +1219,7 @@ class DownloadConfig {
   final String baseUrl;
   final String binary;
   final Map<OS, String> files;
-  final String? extractSubfolder;
+  final Map<OS, String>? extractSubfolder;
 
   const DownloadConfig({
     required this.baseUrl,
