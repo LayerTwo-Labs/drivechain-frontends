@@ -144,6 +144,7 @@ class ZSide extends Sidechain {
                    OS.macos: 'test-zside-x86_64-apple-darwin.zip',
                    OS.windows: '', // zside not available for windows
                  },
+                 extractSubfolder: 'zside',
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -232,6 +233,7 @@ class Thunder extends Sidechain {
                    OS.macos: 'test-thunder-x86_64-apple-darwin.zip',
                    OS.windows: 'test-thunder-x86_64-windows.exe', // thunder not available for windows
                  },
+                 extractSubfolder: 'thunder',
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -320,6 +322,7 @@ class BitNames extends Sidechain {
                    OS.macos: 'test-bitnames-x86_64-apple-darwin.zip',
                    OS.windows: 'test-bitnames-x86_64-windows.exe',
                  },
+                 extractSubfolder: 'bitnames',
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -412,6 +415,7 @@ class BitAssets extends Sidechain {
                    OS.macos: 'test-bitassets-x86_64-apple-darwin.zip',
                    OS.windows: 'test-bitassets-x86_64-windows.exe',
                  },
+                 extractSubfolder: 'bitassets',
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
