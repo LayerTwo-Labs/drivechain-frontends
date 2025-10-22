@@ -109,12 +109,23 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
 
       final presetSettings = ConfigPresets.getPresetSettings(preset);
 
+      // Preserve current network setting before clearing
+      final currentChain = workingConfig!.getSetting('chain');
+
       // Clear existing global settings
       workingConfig!.globalSettings.clear();
 
       // Apply preset settings
       for (final entry in presetSettings.entries) {
         workingConfig!.setSetting(entry.key, entry.value);
+      }
+
+      // Restore network setting to maintain current network
+      if (currentChain != null) {
+        workingConfig!.setSetting('chain', currentChain);
+      } else {
+        // If no chain was set, use current network from provider
+        workingConfig!.setSetting('chain', confProvider.network.toCoreNetwork());
       }
 
       // Add network-specific settings for certain presets
