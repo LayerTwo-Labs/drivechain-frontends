@@ -28,8 +28,16 @@ echo Zipping into $zip_name
 # Create subfolder structure to prevent conflicts when extracting multiple sidechains
 # bitwindow doesn't need a subfolder since it's the main app
 if [ "$lower_app_name" != "bitwindow" ]; then
+    # Rename the binary temporarily if it exists as a file to avoid conflict with directory
+    if [ -f "$lower_app_name" ]; then
+        mv "$lower_app_name" "${lower_app_name}.tmp"
+    fi
     mkdir -p "$lower_app_name"
-    # Move all files into the subfolder
+    # Move back the renamed binary first
+    if [ -f "${lower_app_name}.tmp" ]; then
+        mv "${lower_app_name}.tmp" "$lower_app_name/"
+    fi
+    # Move all other files into the subfolder
     find . -maxdepth 1 -not -name "$lower_app_name" -not -name "." -exec mv {} "$lower_app_name/" \;
     zip -q -r $zip_name "$lower_app_name"
 else
