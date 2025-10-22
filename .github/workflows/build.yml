@@ -315,6 +315,12 @@ jobs:
               *) platform="${{ matrix.os }}" ;;
             esac
 
+            # Normalize OS name for version file (always use -latest suffix)
+            case "${{ matrix.os }}" in
+              windows-2022) normalized_os="windows-latest" ;;
+              *) normalized_os="${{ matrix.os }}" ;;
+            esac
+
             # Get all version info from lib/gen/version.dart (must exist)
             if [ ! -f "${{ matrix.client }}/lib/gen/version.dart" ]; then
               echo "ERROR: ${{ matrix.client }}/lib/gen/version.dart does not exist!"
@@ -334,12 +340,12 @@ jobs:
             # Create version.json
             printf '{\n  "%s": {\n    "%s": {\n      "version": "%s",\n      "commit": "%s",\n      "commitFull": "%s",\n      "buildDate": "%s",\n      "downloadUrl": "%s",\n      "size": %s\n    }\n  }\n}\n' \
               "${{ matrix.client }}" "$platform" "$version" "$commit_hash" "$commit_full" "$build_date" "$download_url" "$file_size" \
-              > "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
-            cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
+              > "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$normalized_os-version.json"
+            cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$normalized_os-version.json"
           fi
 
           echo "Content of created file:"
-          cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-${{ matrix.os }}-version.json"
+          cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$normalized_os-version.json"
 
       - name: Generate appcast fragment for this build
         continue-on-error: true
@@ -894,7 +900,7 @@ jobs:
             # Only merge version files for clients that have version updates
             echo "$version_files" | while read version_file; do
               if [ -n "$version_file" ]; then
-                # Extract client name from version file (e.g., thunder-windows-2022-version.json -> thunder)
+                # Extract client name from version file (e.g., thunder-windows-latest-version.json -> thunder)
                 client_name=$(basename "$version_file" | sed 's/-[^-]*-latest-version\.json$//')
                 upload_var="UPLOAD_${client_name^^}"
 
