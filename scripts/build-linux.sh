@@ -33,9 +33,9 @@ if [ "$lower_app_name" != "bitwindow" ]; then
         mv "$lower_app_name" "${lower_app_name}.tmp"
     fi
     mkdir -p "$lower_app_name"
-    # Move back the renamed binary first
+    # Move back the renamed binary first, restoring original name
     if [ -f "${lower_app_name}.tmp" ]; then
-        mv "${lower_app_name}.tmp" "$lower_app_name/"
+        mv "${lower_app_name}.tmp" "$lower_app_name/$lower_app_name"
     fi
     # Move all other files into the subfolder
     find . -maxdepth 1 -not -name "$lower_app_name" -not -name "." -exec mv {} "$lower_app_name/" \;
