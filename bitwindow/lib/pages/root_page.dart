@@ -3,7 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/dialogs/base58_decoder_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
+import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
+import 'package:bitwindow/dialogs/paper_check_dialog.dart';
+import 'package:bitwindow/dialogs/paper_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
@@ -446,6 +450,28 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                   ],
                 ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Paper Wallet',
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const PaperWalletDialog(),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Write a Check',
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const PaperCheckDialog(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
 
@@ -458,6 +484,41 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Broadcast CoinNews',
                       onSelected: () => displayBroadcastNewsDialog(context),
+                    ),
+                    PlatformMenuItem(
+                      label: 'Timestamp File(s)',
+                      onSelected: null,
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenu(
+                      label: 'Blockchain Data Storage',
+                      menus: [
+                        PlatformMenuItem(
+                          label: 'OP_RETURN Graffiti',
+                          onSelected: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const Dialog(
+                                child: SizedBox(
+                                  width: 900,
+                                  height: 700,
+                                  child: GraffitiExplorerView(),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        PlatformMenuItem(
+                          label: 'BitDrive',
+                          onSelected: () {
+                            final windowProvider = GetIt.I.get<WindowProvider>();
+                            windowProvider.open(SubWindowTypes.bitDrive);
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -498,6 +559,44 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               ],
             ),
 
+            // Work for Bitcoin menu
+            PlatformMenu(
+              label: 'Work for Bitcoin',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Solo Mine',
+                      onSelected: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (context) => const CpuMiningModal(),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Mining Pools',
+                      onSelected: null,
+                    ),
+                    PlatformMenuItem(
+                      label: 'Network Statistics',
+                      onSelected: null,
+                    ),
+                    PlatformMenuItem(
+                      label: 'Sidechain Activation',
+                      onSelected: () {
+                        GetIt.I.get<AppRouter>().push(SidechainActivationManagementRoute());
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Sidechain Withdrawal Admin',
+                      onSelected: null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
             // Crypto Tools menu
             PlatformMenu(
               label: 'Crypto Tools',
@@ -520,7 +619,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Merkle Tree',
-                      onSelected: null,
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const MerkleTreeDialog(),
+                        );
+                      },
                     ),
                     PlatformMenuItem(
                       label: 'Signatures',
@@ -562,6 +666,21 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         await windowProvider.open(SubWindowTypes.debug);
                       },
                     ),
+                    PlatformMenuItem(
+                      label: 'Options',
+                      onSelected: () {
+                        final tabsRouter = _routerKey.currentState?.controller;
+                        tabsRouter?.setActiveIndex(5);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Command-line options',
+                      onSelected: null,
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
                     PlatformMenuItem(
                       label: 'View Logs',
                       onSelected: () async {
