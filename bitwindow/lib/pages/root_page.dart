@@ -528,7 +528,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Base58Check Decoder',
-                      onSelected: null,
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const Base58DecoderDialog(),
+                        );
+                      },
                     ),
                     PlatformMenuItem(
                       label: 'CPU Mining',
