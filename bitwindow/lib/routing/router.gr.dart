@@ -27,6 +27,57 @@ class BitcoinConfEditorRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [ChequeDetailPage]
+class ChequeDetailRoute extends PageRouteInfo<ChequeDetailRouteArgs> {
+  ChequeDetailRoute({
+    Key? key,
+    required int chequeId,
+    List<PageRouteInfo>? children,
+  }) : super(
+         ChequeDetailRoute.name,
+         args: ChequeDetailRouteArgs(key: key, chequeId: chequeId),
+         rawPathParams: {'id': chequeId},
+         initialChildren: children,
+       );
+
+  static const String name = 'ChequeDetailRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<ChequeDetailRouteArgs>(
+        orElse: () => ChequeDetailRouteArgs(chequeId: pathParams.getInt('id')),
+      );
+      return ChequeDetailPage(key: args.key, chequeId: args.chequeId);
+    },
+  );
+}
+
+class ChequeDetailRouteArgs {
+  const ChequeDetailRouteArgs({this.key, required this.chequeId});
+
+  final Key? key;
+
+  final int chequeId;
+
+  @override
+  String toString() {
+    return 'ChequeDetailRouteArgs{key: $key, chequeId: $chequeId}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ChequeDetailRouteArgs) return false;
+    return key == other.key && chequeId == other.chequeId;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ chequeId.hashCode;
+}
+
+/// generated route for
 /// [ConfigureHomePage]
 class ConfigureHomeRoute extends PageRouteInfo<void> {
   const ConfigureHomeRoute({List<PageRouteInfo>? children})
@@ -54,6 +105,22 @@ class ConsoleRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const ConsolePage();
+    },
+  );
+}
+
+/// generated route for
+/// [CreateChequePage]
+class CreateChequeRoute extends PageRouteInfo<void> {
+  const CreateChequeRoute({List<PageRouteInfo>? children})
+    : super(CreateChequeRoute.name, initialChildren: children);
+
+  static const String name = 'CreateChequeRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CreateChequePage();
     },
   );
 }

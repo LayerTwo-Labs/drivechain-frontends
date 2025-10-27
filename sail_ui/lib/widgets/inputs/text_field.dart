@@ -102,7 +102,8 @@ class SailTextField extends StatelessWidget {
                 borderRadius: SailStyleValues.borderRadius,
                 borderSide: BorderSide(color: theme.colors.text),
               ),
-              suffixStyle: TextStyle(color: SailTheme.of(context).colors.textTertiary, fontSize: textSize),
+              suffixStyle: TextStyle(color: SailTheme.of(context).colors.inactiveNavText, fontSize: textSize),
+              suffixText: suffix,
               border: OutlineInputBorder(
                 borderRadius: SailStyleValues.borderRadius,
                 borderSide: BorderSide(color: theme.colors.border),
@@ -112,15 +113,17 @@ class SailTextField extends StatelessWidget {
                       message: loading!.description,
                       child: Padding(padding: EdgeInsets.all(SailStyleValues.padding08), child: LoadingIndicator()),
                     )
-                  : Align(
+                  : suffixWidget != null
+                  ? Align(
                       alignment: Alignment.center,
                       widthFactor: 1.0,
                       child: Padding(
                         padding: EdgeInsets.only(top: 1, bottom: 1, left: 1, right: 8),
-                        child: suffixWidget ?? Container(alignment: Alignment.centerRight, width: 10, height: 10),
+                        child: suffixWidget,
                       ),
-                    ),
-              prefixStyle: TextStyle(color: SailTheme.of(context).colors.textTertiary, fontSize: textSize),
+                    )
+                  : null,
+              prefixStyle: TextStyle(color: SailTheme.of(context).colors.inactiveNavText, fontSize: textSize),
               prefixText: prefix,
               prefix: prefixWidget,
               prefixIcon: prefixIcon,

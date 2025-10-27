@@ -127,6 +127,13 @@ abstract final class WalletService {
     walletv1wallet.GetChequeResponse.new,
   );
 
+  static const getChequePrivateKey = connect.Spec(
+    '/$name/GetChequePrivateKey',
+    connect.StreamType.unary,
+    walletv1wallet.GetChequePrivateKeyRequest.new,
+    walletv1wallet.GetChequePrivateKeyResponse.new,
+  );
+
   static const listCheques = connect.Spec(
     '/$name/ListCheques',
     connect.StreamType.unary,

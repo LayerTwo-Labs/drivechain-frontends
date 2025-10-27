@@ -422,6 +422,31 @@ final $typed_data.Uint8List getChequeResponseDescriptor = $convert.base64Decode(
     'ChFHZXRDaGVxdWVSZXNwb25zZRIpCgZjaGVxdWUYASABKAsyES53YWxsZXQudjEuQ2hlcXVlUg'
     'ZjaGVxdWU=');
 
+@$core.Deprecated('Use getChequePrivateKeyRequestDescriptor instead')
+const GetChequePrivateKeyRequest$json = {
+  '1': 'GetChequePrivateKeyRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+  ],
+};
+
+/// Descriptor for `GetChequePrivateKeyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getChequePrivateKeyRequestDescriptor = $convert.base64Decode(
+    'ChpHZXRDaGVxdWVQcml2YXRlS2V5UmVxdWVzdBIOCgJpZBgBIAEoA1ICaWQ=');
+
+@$core.Deprecated('Use getChequePrivateKeyResponseDescriptor instead')
+const GetChequePrivateKeyResponse$json = {
+  '1': 'GetChequePrivateKeyResponse',
+  '2': [
+    {'1': 'private_key_wif', '3': 1, '4': 1, '5': 9, '10': 'privateKeyWif'},
+  ],
+};
+
+/// Descriptor for `GetChequePrivateKeyResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getChequePrivateKeyResponseDescriptor = $convert.base64Decode(
+    'ChtHZXRDaGVxdWVQcml2YXRlS2V5UmVzcG9uc2USJgoPcHJpdmF0ZV9rZXlfd2lmGAEgASgJUg'
+    '1wcml2YXRlS2V5V2lm');
+
 @$core.Deprecated('Use chequeDescriptor instead')
 const Cheque$json = {
   '1': 'Cheque',
@@ -435,11 +460,13 @@ const Cheque$json = {
     {'1': 'actual_amount_sats', '3': 7, '4': 1, '5': 4, '9': 1, '10': 'actualAmountSats', '17': true},
     {'1': 'created_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
     {'1': 'funded_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 2, '10': 'fundedAt', '17': true},
+    {'1': 'private_key_wif', '3': 10, '4': 1, '5': 9, '9': 3, '10': 'privateKeyWif', '17': true},
   ],
   '8': [
     {'1': '_funded_txid'},
     {'1': '_actual_amount_sats'},
     {'1': '_funded_at'},
+    {'1': '_private_key_wif'},
   ],
 };
 
@@ -451,8 +478,9 @@ final $typed_data.Uint8List chequeDescriptor = $convert.base64Decode(
     'QSJAoLZnVuZGVkX3R4aWQYBiABKAlIAFIKZnVuZGVkVHhpZIgBARIxChJhY3R1YWxfYW1vdW50'
     'X3NhdHMYByABKARIAVIQYWN0dWFsQW1vdW50U2F0c4gBARI5CgpjcmVhdGVkX2F0GAggASgLMh'
     'ouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjwKCWZ1bmRlZF9hdBgJIAEo'
-    'CzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAlIIZnVuZGVkQXSIAQFCDgoMX2Z1bmRlZF'
-    '90eGlkQhUKE19hY3R1YWxfYW1vdW50X3NhdHNCDAoKX2Z1bmRlZF9hdA==');
+    'CzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAlIIZnVuZGVkQXSIAQESKwoPcHJpdmF0ZV'
+    '9rZXlfd2lmGAogASgJSANSDXByaXZhdGVLZXlXaWaIAQFCDgoMX2Z1bmRlZF90eGlkQhUKE19h'
+    'Y3R1YWxfYW1vdW50X3NhdHNCDAoKX2Z1bmRlZF9hdEISChBfcHJpdmF0ZV9rZXlfd2lm');
 
 @$core.Deprecated('Use listChequesResponseDescriptor instead')
 const ListChequesResponse$json = {
@@ -559,6 +587,7 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'IsWalletUnlocked', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
     {'1': 'CreateCheque', '2': '.wallet.v1.CreateChequeRequest', '3': '.wallet.v1.CreateChequeResponse'},
     {'1': 'GetCheque', '2': '.wallet.v1.GetChequeRequest', '3': '.wallet.v1.GetChequeResponse'},
+    {'1': 'GetChequePrivateKey', '2': '.wallet.v1.GetChequePrivateKeyRequest', '3': '.wallet.v1.GetChequePrivateKeyResponse'},
     {'1': 'ListCheques', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListChequesResponse'},
     {'1': 'CheckChequeFunding', '2': '.wallet.v1.CheckChequeFundingRequest', '3': '.wallet.v1.CheckChequeFundingResponse'},
     {'1': 'SweepCheque', '2': '.wallet.v1.SweepChequeRequest', '3': '.wallet.v1.SweepChequeResponse'},
@@ -600,6 +629,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.GetChequeRequest': GetChequeRequest$json,
   '.wallet.v1.GetChequeResponse': GetChequeResponse$json,
   '.wallet.v1.Cheque': Cheque$json,
+  '.wallet.v1.GetChequePrivateKeyRequest': GetChequePrivateKeyRequest$json,
+  '.wallet.v1.GetChequePrivateKeyResponse': GetChequePrivateKeyResponse$json,
   '.wallet.v1.ListChequesResponse': ListChequesResponse$json,
   '.wallet.v1.CheckChequeFundingRequest': CheckChequeFundingRequest$json,
   '.wallet.v1.CheckChequeFundingResponse': CheckChequeFundingResponse$json,
@@ -633,11 +664,12 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'bXB0eRoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJPCgxDcmVhdGVDaGVxdWUSHi53YWxsZXQudj'
     'EuQ3JlYXRlQ2hlcXVlUmVxdWVzdBofLndhbGxldC52MS5DcmVhdGVDaGVxdWVSZXNwb25zZRJG'
     'CglHZXRDaGVxdWUSGy53YWxsZXQudjEuR2V0Q2hlcXVlUmVxdWVzdBocLndhbGxldC52MS5HZX'
-    'RDaGVxdWVSZXNwb25zZRJFCgtMaXN0Q2hlcXVlcxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRoe'
-    'LndhbGxldC52MS5MaXN0Q2hlcXVlc1Jlc3BvbnNlEmEKEkNoZWNrQ2hlcXVlRnVuZGluZxIkLn'
-    'dhbGxldC52MS5DaGVja0NoZXF1ZUZ1bmRpbmdSZXF1ZXN0GiUud2FsbGV0LnYxLkNoZWNrQ2hl'
-    'cXVlRnVuZGluZ1Jlc3BvbnNlEkwKC1N3ZWVwQ2hlcXVlEh0ud2FsbGV0LnYxLlN3ZWVwQ2hlcX'
-    'VlUmVxdWVzdBoeLndhbGxldC52MS5Td2VlcENoZXF1ZVJlc3BvbnNlEkYKDERlbGV0ZUNoZXF1'
-    'ZRIeLndhbGxldC52MS5EZWxldGVDaGVxdWVSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcH'
-    'R5');
+    'RDaGVxdWVSZXNwb25zZRJkChNHZXRDaGVxdWVQcml2YXRlS2V5EiUud2FsbGV0LnYxLkdldENo'
+    'ZXF1ZVByaXZhdGVLZXlSZXF1ZXN0GiYud2FsbGV0LnYxLkdldENoZXF1ZVByaXZhdGVLZXlSZX'
+    'Nwb25zZRJFCgtMaXN0Q2hlcXVlcxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRoeLndhbGxldC52'
+    'MS5MaXN0Q2hlcXVlc1Jlc3BvbnNlEmEKEkNoZWNrQ2hlcXVlRnVuZGluZxIkLndhbGxldC52MS'
+    '5DaGVja0NoZXF1ZUZ1bmRpbmdSZXF1ZXN0GiUud2FsbGV0LnYxLkNoZWNrQ2hlcXVlRnVuZGlu'
+    'Z1Jlc3BvbnNlEkwKC1N3ZWVwQ2hlcXVlEh0ud2FsbGV0LnYxLlN3ZWVwQ2hlcXVlUmVxdWVzdB'
+    'oeLndhbGxldC52MS5Td2VlcENoZXF1ZVJlc3BvbnNlEkYKDERlbGV0ZUNoZXF1ZRIeLndhbGxl'
+    'dC52MS5EZWxldGVDaGVxdWVSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5');
 

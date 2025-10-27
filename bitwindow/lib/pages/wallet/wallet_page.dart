@@ -6,6 +6,7 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_hd.dart';
 import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
+import 'package:bitwindow/pages/wallet/wallet_cheques.dart';
 import 'package:bitwindow/pages/wallet/wallet_overview.dart';
 import 'package:bitwindow/pages/wallet/wallet_receive.dart';
 import 'package:bitwindow/pages/wallet/wallet_send.dart';
@@ -124,6 +125,10 @@ class WalletPage extends StatelessWidget {
                 const SingleTabItem(
                   label: 'UTXOs',
                   child: UTXOsTab(),
+                ),
+                const SingleTabItem(
+                  label: 'Cheques',
+                  child: ChequesTab(),
                 ),
                 MultiSelectTabItem(
                   title: 'Tools',

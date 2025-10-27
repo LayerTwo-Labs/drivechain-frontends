@@ -1875,6 +1875,106 @@ class GetChequeResponse extends $pb.GeneratedMessage {
   Cheque ensureCheque() => $_ensure(0);
 }
 
+class GetChequePrivateKeyRequest extends $pb.GeneratedMessage {
+  factory GetChequePrivateKeyRequest({
+    $fixnum.Int64? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
+  GetChequePrivateKeyRequest._() : super();
+  factory GetChequePrivateKeyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetChequePrivateKeyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetChequePrivateKeyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetChequePrivateKeyRequest clone() => GetChequePrivateKeyRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetChequePrivateKeyRequest copyWith(void Function(GetChequePrivateKeyRequest) updates) => super.copyWith((message) => updates(message as GetChequePrivateKeyRequest)) as GetChequePrivateKeyRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetChequePrivateKeyRequest create() => GetChequePrivateKeyRequest._();
+  GetChequePrivateKeyRequest createEmptyInstance() => create();
+  static $pb.PbList<GetChequePrivateKeyRequest> createRepeated() => $pb.PbList<GetChequePrivateKeyRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetChequePrivateKeyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetChequePrivateKeyRequest>(create);
+  static GetChequePrivateKeyRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+}
+
+class GetChequePrivateKeyResponse extends $pb.GeneratedMessage {
+  factory GetChequePrivateKeyResponse({
+    $core.String? privateKeyWif,
+  }) {
+    final $result = create();
+    if (privateKeyWif != null) {
+      $result.privateKeyWif = privateKeyWif;
+    }
+    return $result;
+  }
+  GetChequePrivateKeyResponse._() : super();
+  factory GetChequePrivateKeyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetChequePrivateKeyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetChequePrivateKeyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'privateKeyWif')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetChequePrivateKeyResponse clone() => GetChequePrivateKeyResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetChequePrivateKeyResponse copyWith(void Function(GetChequePrivateKeyResponse) updates) => super.copyWith((message) => updates(message as GetChequePrivateKeyResponse)) as GetChequePrivateKeyResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetChequePrivateKeyResponse create() => GetChequePrivateKeyResponse._();
+  GetChequePrivateKeyResponse createEmptyInstance() => create();
+  static $pb.PbList<GetChequePrivateKeyResponse> createRepeated() => $pb.PbList<GetChequePrivateKeyResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetChequePrivateKeyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetChequePrivateKeyResponse>(create);
+  static GetChequePrivateKeyResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get privateKeyWif => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set privateKeyWif($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPrivateKeyWif() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPrivateKeyWif() => clearField(1);
+}
+
 class Cheque extends $pb.GeneratedMessage {
   factory Cheque({
     $fixnum.Int64? id,
@@ -1886,6 +1986,7 @@ class Cheque extends $pb.GeneratedMessage {
     $fixnum.Int64? actualAmountSats,
     $0.Timestamp? createdAt,
     $0.Timestamp? fundedAt,
+    $core.String? privateKeyWif,
   }) {
     final $result = create();
     if (id != null) {
@@ -1915,6 +2016,9 @@ class Cheque extends $pb.GeneratedMessage {
     if (fundedAt != null) {
       $result.fundedAt = fundedAt;
     }
+    if (privateKeyWif != null) {
+      $result.privateKeyWif = privateKeyWif;
+    }
     return $result;
   }
   Cheque._() : super();
@@ -1931,6 +2035,7 @@ class Cheque extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(7, _omitFieldNames ? '' : 'actualAmountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
     ..aOM<$0.Timestamp>(9, _omitFieldNames ? '' : 'fundedAt', subBuilder: $0.Timestamp.create)
+    ..aOS(10, _omitFieldNames ? '' : 'privateKeyWif')
     ..hasRequiredFields = false
   ;
 
@@ -2039,6 +2144,15 @@ class Cheque extends $pb.GeneratedMessage {
   void clearFundedAt() => clearField(9);
   @$pb.TagNumber(9)
   $0.Timestamp ensureFundedAt() => $_ensure(8);
+
+  @$pb.TagNumber(10)
+  $core.String get privateKeyWif => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set privateKeyWif($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasPrivateKeyWif() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearPrivateKeyWif() => clearField(10);
 }
 
 class ListChequesResponse extends $pb.GeneratedMessage {
@@ -2458,6 +2572,9 @@ class WalletServiceApi {
   ;
   $async.Future<GetChequeResponse> getCheque($pb.ClientContext? ctx, GetChequeRequest request) =>
     _client.invoke<GetChequeResponse>(ctx, 'WalletService', 'GetCheque', request, GetChequeResponse())
+  ;
+  $async.Future<GetChequePrivateKeyResponse> getChequePrivateKey($pb.ClientContext? ctx, GetChequePrivateKeyRequest request) =>
+    _client.invoke<GetChequePrivateKeyResponse>(ctx, 'WalletService', 'GetChequePrivateKey', request, GetChequePrivateKeyResponse())
   ;
   $async.Future<ListChequesResponse> listCheques($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<ListChequesResponse>(ctx, 'WalletService', 'ListCheques', request, ListChequesResponse())

@@ -51,7 +51,7 @@ func New(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
-	appDir string,
+	walletDir string,
 ) *Server {
 	s := &Server{
 		database:     database,
@@ -59,8 +59,16 @@ func New(
 		wallet:       wallet,
 		crypto:       crypto,
 		chequeEngine: chequeEngine,
-		appDir:       appDir,
+		walletDir:    walletDir,
 	}
+
+	// Initialize watch wallet in background
+	go func() {
+		if err := s.ensureWatchWallet(ctx); err != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to initialize watch wallet")
+		}
+	}()
+
 	return s
 }
 
@@ -70,7 +78,7 @@ type Server struct {
 	wallet       *service.Service[validatorrpc.WalletServiceClient]
 	crypto       *service.Service[cryptorpc.CryptoServiceClient]
 	chequeEngine *engines.ChequeEngine
-	appDir       string
+	walletDir    string
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
@@ -783,31 +791,47 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[emptypb.Empty]
 func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
 	log := zerolog.Ctx(ctx)
 
+	log.Info().Msg("attempting to unlock wallet")
+
 	var walletData map[string]interface{}
 	var err error
 
-	if wallet.IsWalletEncrypted(s.appDir) {
-		walletData, err = wallet.DecryptWallet(s.appDir, c.Msg.Password)
+	if wallet.IsWalletEncrypted(s.walletDir) {
+		walletData, err = wallet.DecryptWallet(s.walletDir, c.Msg.Password)
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to decrypt wallet")
 			return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("incorrect password"))
 		}
 	} else {
-		walletData, err = wallet.LoadUnencryptedWallet(s.appDir)
+		walletData, err = wallet.LoadUnencryptedWallet(s.walletDir)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to load unencrypted wallet")
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load wallet: %w", err))
 		}
 	}
 
-	// Store seed in cheque engine
 	if err := s.chequeEngine.Unlock(walletData); err != nil {
 		log.Error().Err(err).Msg("failed to unlock cheque engine")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to unlock cheque engine: %w", err))
 	}
 
-	// Auto-scan for existing funded cheques
-	go s.recoverCheques(ctx)
+	// Auto-scan for existing funded cheques only if bitcoind is connected
+	go func() {
+		bitcoind, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			log.Warn().Err(err).Msg("bitcoind not available, skipping cheque recovery scan")
+			return
+		}
+
+		// Quick connection test
+		_, err = bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+		if err != nil {
+			log.Warn().Err(err).Msg("bitcoind not ready, skipping cheque recovery scan")
+			return
+		}
+
+		s.recoverCheques(ctx)
+	}()
 
 	log.Info().Msg("wallet unlocked successfully for cheque operations")
 	return connect.NewResponse(&emptypb.Empty{}), nil
@@ -864,10 +888,15 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		Uint64("expected_sats", c.Msg.ExpectedAmountSats).
 		Msg("cheque created")
 
+	// Import address as watch-only to Bitcoin Core
+	if err := s.ensureWatchWalletAndImportAddress(ctx, address); err != nil {
+		log.Warn().Err(err).Str("address", address).Msg("failed to import address to watch wallet (cheque will still work)")
+	}
+
 	return connect.NewResponse(&pb.CreateChequeResponse{
-		Id:          id,
-		Address:     address,
-		ChequeIndex: nextIndex,
+		Id:              id,
+		Address:         address,
+		DerivationIndex: nextIndex,
 	}), nil
 }
 
@@ -882,7 +911,34 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 	}
 
 	return connect.NewResponse(&pb.GetChequeResponse{
-		Cheque: chequeToPb(cheque),
+		Cheque: s.chequeToPb(cheque),
+	}), nil
+}
+
+// GetChequePrivateKey implements walletv1connect.WalletServiceHandler.
+func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.GetChequePrivateKeyRequest]) (*connect.Response[pb.GetChequePrivateKeyResponse], error) {
+	log := zerolog.Ctx(ctx)
+
+	if !s.chequeEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
+	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	}
+
+	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(cheque.DerivationIndex)
+	if err != nil {
+		log.Error().Err(err).Uint32("index", cheque.DerivationIndex).Msg("failed to derive private key")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive private key: %w", err))
+	}
+
+	return connect.NewResponse(&pb.GetChequePrivateKeyResponse{
+		PrivateKeyWif: privateKeyWIF,
 	}), nil
 }
 
@@ -895,7 +951,7 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[emptypb.Emp
 
 	pbCheques := make([]*pb.Cheque, len(chequeList))
 	for i, ch := range chequeList {
-		pbCheques[i] = chequeToPb(&ch)
+		pbCheques[i] = s.chequeToPb(&ch)
 	}
 
 	return connect.NewResponse(&pb.ListChequesResponse{
@@ -915,7 +971,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
 	}
 
-	// Query bitcoind for UTXOs on address
+	// Query bitcoind for UTXOs on address using the watch wallet
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
@@ -923,6 +979,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
 		Addresses: []string{cheque.Address},
+		Wallet:    watchWalletName,
 	}))
 	if err != nil {
 		log.Error().Err(err).Str("address", cheque.Address).Msg("failed to query UTXOs")
@@ -999,7 +1056,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	}
 
 	// Get private key
-	wif, err := s.chequeEngine.DeriveChequePrivateKey(cheque.ChequeIndex)
+	wif, err := s.chequeEngine.DeriveChequePrivateKey(cheque.DerivationIndex)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive private key: %w", err))
 	}
@@ -1059,11 +1116,43 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	}), nil
 }
 
+// DeleteCheque implements walletv1connect.WalletServiceHandler.
+func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error) {
+	log := zerolog.Ctx(ctx)
+
+	// Check if cheque exists
+	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	}
+
+	// Only allow deletion of unfunded cheques
+	if cheque.Funded {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot delete funded cheque"))
+	}
+
+	// Delete the cheque
+	err = cheques.Delete(ctx, s.database, c.Msg.Id)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete cheque: %w", err))
+	}
+
+	log.Info().
+		Int64("id", c.Msg.Id).
+		Str("address", cheque.Address).
+		Msg("cheque deleted")
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
 // Helper function to convert model Cheque to protobuf Cheque
-func chequeToPb(c *cheques.Cheque) *pb.Cheque {
+func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	pbCheque := &pb.Cheque{
 		Id:                 c.ID,
-		ChequeIndex:        c.ChequeIndex,
+		DerivationIndex:    c.DerivationIndex,
 		Address:            c.Address,
 		ExpectedAmountSats: c.ExpectedAmountSats,
 		Funded:             c.Funded,
@@ -1078,6 +1167,14 @@ func chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	}
 	if c.FundedAt != nil {
 		pbCheque.FundedAt = timestamppb.New(*c.FundedAt)
+	}
+
+	// Only include private key if cheque is funded and wallet is unlocked
+	if c.Funded && s.chequeEngine.IsUnlocked() {
+		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.DerivationIndex)
+		if err == nil {
+			pbCheque.PrivateKeyWif = &privateKeyWIF
+		}
 	}
 
 	return pbCheque
@@ -1122,6 +1219,11 @@ func (s *Server) recoverCheques(ctx context.Context) {
 			continue
 		}
 
+		// Import recovered address to watch wallet
+		if err := s.ensureWatchWalletAndImportAddress(ctx, recovery.Address); err != nil {
+			log.Warn().Err(err).Str("address", recovery.Address).Msg("failed to import recovered address to watch wallet")
+		}
+
 		log.Info().
 			Uint32("index", recovery.Index).
 			Str("address", recovery.Address).
@@ -1130,4 +1232,75 @@ func (s *Server) recoverCheques(ctx context.Context) {
 	}
 
 	log.Info().Int("count", len(recoveries)).Msg("cheque recovery completed")
+}
+
+const watchWalletName = "bitwindow_watch"
+
+// ensureWatchWallet ensures the watch-only wallet exists
+func (s *Server) ensureWatchWallet(ctx context.Context) error {
+	log := zerolog.Ctx(ctx)
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("bitcoind not available: %w", err)
+	}
+
+	// Check if wallet already exists by listing wallets
+	wallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		return fmt.Errorf("failed to list wallets: %w", err)
+	}
+
+	walletExists := false
+	for _, wallet := range wallets.Msg.Wallets {
+		if wallet == watchWalletName {
+			walletExists = true
+			break
+		}
+	}
+
+	// Create wallet if it doesn't exist
+	if !walletExists {
+		log.Info().Msg("creating watch-only wallet for cheques")
+		_, err = bitcoind.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
+			Name:               watchWalletName,
+			DisablePrivateKeys: true, // Watch-only wallet
+			Blank:              true,
+		}))
+		if err != nil && !strings.Contains(err.Error(), "already exists") {
+			return fmt.Errorf("failed to create watch wallet: %w", err)
+		}
+		log.Info().Msg("watch-only wallet created successfully")
+	}
+
+	return nil
+}
+
+// ensureWatchWalletAndImportAddress ensures a watch-only wallet exists and imports the address
+func (s *Server) ensureWatchWalletAndImportAddress(ctx context.Context, address string) error {
+	log := zerolog.Ctx(ctx)
+
+	// Ensure wallet exists first
+	if err := s.ensureWatchWallet(ctx); err != nil {
+		return err
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("bitcoind not available: %w", err)
+	}
+
+	// Import address as watch-only with rescan enabled
+	_, err = bitcoind.ImportAddress(ctx, connect.NewRequest(&corepb.ImportAddressRequest{
+		Address: address,
+		Label:   "cheque",
+		Rescan:  true, // Enable rescan to detect funds sent to this address
+		Wallet:  watchWalletName,
+	}))
+	if err != nil && !strings.Contains(err.Error(), "already") {
+		return fmt.Errorf("failed to import address: %w", err)
+	}
+
+	log.Debug().Str("address", address).Msg("imported cheque address to watch wallet")
+	return nil
 }

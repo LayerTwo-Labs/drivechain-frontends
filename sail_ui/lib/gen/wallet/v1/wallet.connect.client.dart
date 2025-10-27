@@ -285,6 +285,23 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<walletv1wallet.GetChequePrivateKeyResponse> getChequePrivateKey(
+    walletv1wallet.GetChequePrivateKeyRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.getChequePrivateKey,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletv1wallet.ListChequesResponse> listCheques(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,

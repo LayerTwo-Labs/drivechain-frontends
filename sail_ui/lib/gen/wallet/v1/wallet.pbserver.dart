@@ -38,6 +38,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> isWalletUnlocked($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$6.CreateChequeResponse> createCheque($pb.ServerContext ctx, $6.CreateChequeRequest request);
   $async.Future<$6.GetChequeResponse> getCheque($pb.ServerContext ctx, $6.GetChequeRequest request);
+  $async.Future<$6.GetChequePrivateKeyResponse> getChequePrivateKey($pb.ServerContext ctx, $6.GetChequePrivateKeyRequest request);
   $async.Future<$6.ListChequesResponse> listCheques($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$6.CheckChequeFundingResponse> checkChequeFunding($pb.ServerContext ctx, $6.CheckChequeFundingRequest request);
   $async.Future<$6.SweepChequeResponse> sweepCheque($pb.ServerContext ctx, $6.SweepChequeRequest request);
@@ -61,6 +62,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'IsWalletUnlocked': return $1.Empty();
       case 'CreateCheque': return $6.CreateChequeRequest();
       case 'GetCheque': return $6.GetChequeRequest();
+      case 'GetChequePrivateKey': return $6.GetChequePrivateKeyRequest();
       case 'ListCheques': return $1.Empty();
       case 'CheckChequeFunding': return $6.CheckChequeFundingRequest();
       case 'SweepCheque': return $6.SweepChequeRequest();
@@ -87,6 +89,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'IsWalletUnlocked': return this.isWalletUnlocked(ctx, request as $1.Empty);
       case 'CreateCheque': return this.createCheque(ctx, request as $6.CreateChequeRequest);
       case 'GetCheque': return this.getCheque(ctx, request as $6.GetChequeRequest);
+      case 'GetChequePrivateKey': return this.getChequePrivateKey(ctx, request as $6.GetChequePrivateKeyRequest);
       case 'ListCheques': return this.listCheques(ctx, request as $1.Empty);
       case 'CheckChequeFunding': return this.checkChequeFunding(ctx, request as $6.CheckChequeFundingRequest);
       case 'SweepCheque': return this.sweepCheque(ctx, request as $6.SweepChequeRequest);

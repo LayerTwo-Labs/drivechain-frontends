@@ -32,9 +32,11 @@ service WalletService {
   // Cheque operations
   rpc CreateCheque(CreateChequeRequest) returns (CreateChequeResponse);
   rpc GetCheque(GetChequeRequest) returns (GetChequeResponse);
+  rpc GetChequePrivateKey(GetChequePrivateKeyRequest) returns (GetChequePrivateKeyResponse);
   rpc ListCheques(google.protobuf.Empty) returns (ListChequesResponse);
   rpc CheckChequeFunding(CheckChequeFundingRequest) returns (CheckChequeFundingResponse);
   rpc SweepCheque(SweepChequeRequest) returns (SweepChequeResponse);
+  rpc DeleteCheque(DeleteChequeRequest) returns (google.protobuf.Empty);
 }
 
 message GetNewAddressResponse {
@@ -196,7 +198,7 @@ message CreateChequeRequest {
 message CreateChequeResponse {
   int64 id = 1;
   string address = 2;
-  uint32 cheque_index = 3;
+  uint32 derivation_index = 3;
 }
 
 message GetChequeRequest {
@@ -207,9 +209,17 @@ message GetChequeResponse {
   Cheque cheque = 1;
 }
 
+message GetChequePrivateKeyRequest {
+  int64 id = 1;
+}
+
+message GetChequePrivateKeyResponse {
+  string private_key_wif = 1;
+}
+
 message Cheque {
   int64 id = 1;
-  uint32 cheque_index = 2;
+  uint32 derivation_index = 2;
   string address = 3;
   uint64 expected_amount_sats = 4;
   bool funded = 5;
@@ -217,6 +227,7 @@ message Cheque {
   optional uint64 actual_amount_sats = 7;
   google.protobuf.Timestamp created_at = 8;
   optional google.protobuf.Timestamp funded_at = 9;
+  optional string private_key_wif = 10;
 }
 
 message ListChequesResponse {
@@ -242,4 +253,8 @@ message SweepChequeRequest {
 
 message SweepChequeResponse {
   string txid = 1;
+}
+
+message DeleteChequeRequest {
+  int64 id = 1;
 }

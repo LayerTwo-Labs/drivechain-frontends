@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
 
 	"connectrpc.com/connect"
@@ -119,8 +120,14 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 
 	chainParams := getChainParams(conf.BitcoinCoreNetwork)
+	log.Info().
+		Str("network", string(conf.BitcoinCoreNetwork)).
+		Str("chain_params", chainParams.Name).
+		Msg("initializing cheque engine with network")
 	chequeEngine := engines.NewChequeEngine(chainParams)
 
+	// Wallet should be in parent dir (shared across all networks)
+	walletDir := filepath.Dir(conf.Datadir)
 	services := api.Services{
 		Database:          db,
 		BitcoindConnector: bitcoindConnector,
@@ -128,7 +135,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		EnforcerConnector: enforcerConnector,
 		CryptoConnector:   cryptoConnector,
 		ChequeEngine:      chequeEngine,
-		AppDir:            conf.Datadir,
+		WalletDir:         walletDir,
 	}
 
 	// Use this to obtain a random unused port for the core proxy.
@@ -326,13 +333,13 @@ func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error)
 
 func getChainParams(network config.Network) *chaincfg.Params {
 	switch network {
-	case "mainnet", "forknet":
+	case config.NetworkForknet:
 		return &chaincfg.MainNetParams
-	case "testnet":
+	case config.NetworkTestnet:
 		return &chaincfg.TestNet3Params
-	case "signet":
+	case config.NetworkSignet:
 		return &chaincfg.SigNetParams
-	case "regtest":
+	case config.NetworkRegtest:
 		return &chaincfg.RegressionNetParams
 	default:
 		return &chaincfg.SigNetParams

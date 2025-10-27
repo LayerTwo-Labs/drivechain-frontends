@@ -10,7 +10,7 @@ import (
 // Cheque represents a Bitcoin cheque in the database
 type Cheque struct {
 	ID                 int64
-	ChequeIndex        uint32
+	DerivationIndex    uint32
 	ExpectedAmountSats uint64
 	Address            string
 	Funded             bool
@@ -27,7 +27,7 @@ func Create(ctx context.Context, db *sql.DB, index uint32, expectedAmount uint64
 	}
 
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO cheques (cheque_index, expected_amount_sats, address)
+		INSERT INTO cheques (derivation_index, expected_amount_sats, address)
 		VALUES (?, ?, ?)
 	`, index, expectedAmount, address)
 	if err != nil {
@@ -50,13 +50,13 @@ func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 	var fundedAt sql.NullTime
 
 	err := db.QueryRowContext(ctx, `
-		SELECT id, cheque_index, expected_amount_sats, address, funded,
+		SELECT id, derivation_index, expected_amount_sats, address, funded,
 		       funded_txid, actual_amount_sats, created_at, funded_at
 		FROM cheques
 		WHERE id = ?
 	`, id).Scan(
 		&cheque.ID,
-		&cheque.ChequeIndex,
+		&cheque.DerivationIndex,
 		&cheque.ExpectedAmountSats,
 		&cheque.Address,
 		&cheque.Funded,
@@ -92,13 +92,13 @@ func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, err
 	var fundedAt sql.NullTime
 
 	err := db.QueryRowContext(ctx, `
-		SELECT id, cheque_index, expected_amount_sats, address, funded,
+		SELECT id, derivation_index, expected_amount_sats, address, funded,
 		       funded_txid, actual_amount_sats, created_at, funded_at
 		FROM cheques
 		WHERE address = ?
 	`, address).Scan(
 		&cheque.ID,
-		&cheque.ChequeIndex,
+		&cheque.DerivationIndex,
 		&cheque.ExpectedAmountSats,
 		&cheque.Address,
 		&cheque.Funded,
@@ -129,7 +129,7 @@ func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, err
 // List retrieves all cheques
 func List(ctx context.Context, db *sql.DB) ([]Cheque, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, cheque_index, expected_amount_sats, address, funded,
+		SELECT id, derivation_index, expected_amount_sats, address, funded,
 		       funded_txid, actual_amount_sats, created_at, funded_at
 		FROM cheques
 		ORDER BY created_at DESC
@@ -148,7 +148,7 @@ func List(ctx context.Context, db *sql.DB) ([]Cheque, error) {
 
 		err := rows.Scan(
 			&cheque.ID,
-			&cheque.ChequeIndex,
+			&cheque.DerivationIndex,
 			&cheque.ExpectedAmountSats,
 			&cheque.Address,
 			&cheque.Funded,
@@ -200,7 +200,7 @@ func GetNextIndex(ctx context.Context, db *sql.DB) (uint32, error) {
 	var maxIndex sql.NullInt64
 
 	err := db.QueryRowContext(ctx, `
-		SELECT MAX(cheque_index) FROM cheques
+		SELECT MAX(derivation_index) FROM cheques
 	`).Scan(&maxIndex)
 
 	if err != nil && err != sql.ErrNoRows {
@@ -213,6 +213,28 @@ func GetNextIndex(ctx context.Context, db *sql.DB) (uint32, error) {
 	}
 
 	return uint32(maxIndex.Int64) + 1, nil
+}
+
+// Delete deletes a cheque by ID
+func Delete(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `
+		DELETE FROM cheques WHERE id = ?
+	`, id)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete cheque: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
 
 // CreateOrUpdateFromRecovery creates or updates a cheque from recovery scan
@@ -231,7 +253,7 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, index uint32, a
 	// Create new cheque as already funded
 	now := time.Now()
 	_, err = db.ExecContext(ctx, `
-		INSERT INTO cheques (cheque_index, expected_amount_sats, address, funded, funded_txid, actual_amount_sats, funded_at)
+		INSERT INTO cheques (derivation_index, expected_amount_sats, address, funded, funded_txid, actual_amount_sats, funded_at)
 		VALUES (?, ?, ?, 1, ?, ?, ?)
 	`, index, amount, address, txid, amount, now)
 

@@ -80,6 +80,9 @@ const (
 	WalletServiceCreateChequeProcedure = "/wallet.v1.WalletService/CreateCheque"
 	// WalletServiceGetChequeProcedure is the fully-qualified name of the WalletService's GetCheque RPC.
 	WalletServiceGetChequeProcedure = "/wallet.v1.WalletService/GetCheque"
+	// WalletServiceGetChequePrivateKeyProcedure is the fully-qualified name of the WalletService's
+	// GetChequePrivateKey RPC.
+	WalletServiceGetChequePrivateKeyProcedure = "/wallet.v1.WalletService/GetChequePrivateKey"
 	// WalletServiceListChequesProcedure is the fully-qualified name of the WalletService's ListCheques
 	// RPC.
 	WalletServiceListChequesProcedure = "/wallet.v1.WalletService/ListCheques"
@@ -89,6 +92,9 @@ const (
 	// WalletServiceSweepChequeProcedure is the fully-qualified name of the WalletService's SweepCheque
 	// RPC.
 	WalletServiceSweepChequeProcedure = "/wallet.v1.WalletService/SweepCheque"
+	// WalletServiceDeleteChequeProcedure is the fully-qualified name of the WalletService's
+	// DeleteCheque RPC.
+	WalletServiceDeleteChequeProcedure = "/wallet.v1.WalletService/DeleteCheque"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -113,9 +119,11 @@ type WalletServiceClient interface {
 	// Cheque operations
 	CreateCheque(context.Context, *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error)
 	GetCheque(context.Context, *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error)
+	GetChequePrivateKey(context.Context, *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error)
 	ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error)
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
+	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -225,6 +233,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("GetCheque")),
 			connect.WithClientOptions(opts...),
 		),
+		getChequePrivateKey: connect.NewClient[v1.GetChequePrivateKeyRequest, v1.GetChequePrivateKeyResponse](
+			httpClient,
+			baseURL+WalletServiceGetChequePrivateKeyProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetChequePrivateKey")),
+			connect.WithClientOptions(opts...),
+		),
 		listCheques: connect.NewClient[emptypb.Empty, v1.ListChequesResponse](
 			httpClient,
 			baseURL+WalletServiceListChequesProcedure,
@@ -241,6 +255,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+WalletServiceSweepChequeProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("SweepCheque")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteCheque: connect.NewClient[v1.DeleteChequeRequest, emptypb.Empty](
+			httpClient,
+			baseURL+WalletServiceDeleteChequeProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("DeleteCheque")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -264,9 +284,11 @@ type walletServiceClient struct {
 	isWalletUnlocked       *connect.Client[emptypb.Empty, emptypb.Empty]
 	createCheque           *connect.Client[v1.CreateChequeRequest, v1.CreateChequeResponse]
 	getCheque              *connect.Client[v1.GetChequeRequest, v1.GetChequeResponse]
+	getChequePrivateKey    *connect.Client[v1.GetChequePrivateKeyRequest, v1.GetChequePrivateKeyResponse]
 	listCheques            *connect.Client[emptypb.Empty, v1.ListChequesResponse]
 	checkChequeFunding     *connect.Client[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse]
 	sweepCheque            *connect.Client[v1.SweepChequeRequest, v1.SweepChequeResponse]
+	deleteCheque           *connect.Client[v1.DeleteChequeRequest, emptypb.Empty]
 }
 
 // SendTransaction calls wallet.v1.WalletService.SendTransaction.
@@ -349,6 +371,11 @@ func (c *walletServiceClient) GetCheque(ctx context.Context, req *connect.Reques
 	return c.getCheque.CallUnary(ctx, req)
 }
 
+// GetChequePrivateKey calls wallet.v1.WalletService.GetChequePrivateKey.
+func (c *walletServiceClient) GetChequePrivateKey(ctx context.Context, req *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error) {
+	return c.getChequePrivateKey.CallUnary(ctx, req)
+}
+
 // ListCheques calls wallet.v1.WalletService.ListCheques.
 func (c *walletServiceClient) ListCheques(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error) {
 	return c.listCheques.CallUnary(ctx, req)
@@ -362,6 +389,11 @@ func (c *walletServiceClient) CheckChequeFunding(ctx context.Context, req *conne
 // SweepCheque calls wallet.v1.WalletService.SweepCheque.
 func (c *walletServiceClient) SweepCheque(ctx context.Context, req *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error) {
 	return c.sweepCheque.CallUnary(ctx, req)
+}
+
+// DeleteCheque calls wallet.v1.WalletService.DeleteCheque.
+func (c *walletServiceClient) DeleteCheque(ctx context.Context, req *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.deleteCheque.CallUnary(ctx, req)
 }
 
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
@@ -386,9 +418,11 @@ type WalletServiceHandler interface {
 	// Cheque operations
 	CreateCheque(context.Context, *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error)
 	GetCheque(context.Context, *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error)
+	GetChequePrivateKey(context.Context, *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error)
 	ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error)
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
+	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -494,6 +528,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("GetCheque")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceGetChequePrivateKeyHandler := connect.NewUnaryHandler(
+		WalletServiceGetChequePrivateKeyProcedure,
+		svc.GetChequePrivateKey,
+		connect.WithSchema(walletServiceMethods.ByName("GetChequePrivateKey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletServiceListChequesHandler := connect.NewUnaryHandler(
 		WalletServiceListChequesProcedure,
 		svc.ListCheques,
@@ -510,6 +550,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		WalletServiceSweepChequeProcedure,
 		svc.SweepCheque,
 		connect.WithSchema(walletServiceMethods.ByName("SweepCheque")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceDeleteChequeHandler := connect.NewUnaryHandler(
+		WalletServiceDeleteChequeProcedure,
+		svc.DeleteCheque,
+		connect.WithSchema(walletServiceMethods.ByName("DeleteCheque")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -546,12 +592,16 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceCreateChequeHandler.ServeHTTP(w, r)
 		case WalletServiceGetChequeProcedure:
 			walletServiceGetChequeHandler.ServeHTTP(w, r)
+		case WalletServiceGetChequePrivateKeyProcedure:
+			walletServiceGetChequePrivateKeyHandler.ServeHTTP(w, r)
 		case WalletServiceListChequesProcedure:
 			walletServiceListChequesHandler.ServeHTTP(w, r)
 		case WalletServiceCheckChequeFundingProcedure:
 			walletServiceCheckChequeFundingHandler.ServeHTTP(w, r)
 		case WalletServiceSweepChequeProcedure:
 			walletServiceSweepChequeHandler.ServeHTTP(w, r)
+		case WalletServiceDeleteChequeProcedure:
+			walletServiceDeleteChequeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -625,6 +675,10 @@ func (UnimplementedWalletServiceHandler) GetCheque(context.Context, *connect.Req
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetCheque is not implemented"))
 }
 
+func (UnimplementedWalletServiceHandler) GetChequePrivateKey(context.Context, *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetChequePrivateKey is not implemented"))
+}
+
 func (UnimplementedWalletServiceHandler) ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListCheques is not implemented"))
 }
@@ -635,4 +689,8 @@ func (UnimplementedWalletServiceHandler) CheckChequeFunding(context.Context, *co
 
 func (UnimplementedWalletServiceHandler) SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SweepCheque is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.DeleteCheque is not implemented"))
 }
