@@ -194,20 +194,6 @@ abstract final class BitcoinService {
     bitcoinbitcoindv1alphabitcoin.BackupWalletResponse.new,
   );
 
-  static const dumpWallet = connect.Spec(
-    '/$name/DumpWallet',
-    connect.StreamType.unary,
-    bitcoinbitcoindv1alphabitcoin.DumpWalletRequest.new,
-    bitcoinbitcoindv1alphabitcoin.DumpWalletResponse.new,
-  );
-
-  static const importWallet = connect.Spec(
-    '/$name/ImportWallet',
-    connect.StreamType.unary,
-    bitcoinbitcoindv1alphabitcoin.ImportWalletRequest.new,
-    bitcoinbitcoindv1alphabitcoin.ImportWalletResponse.new,
-  );
-
   static const unloadWallet = connect.Spec(
     '/$name/UnloadWallet',
     connect.StreamType.unary,
@@ -216,34 +202,6 @@ abstract final class BitcoinService {
   );
 
   /// Key/Address management
-  static const dumpPrivKey = connect.Spec(
-    '/$name/DumpPrivKey',
-    connect.StreamType.unary,
-    bitcoinbitcoindv1alphabitcoin.DumpPrivKeyRequest.new,
-    bitcoinbitcoindv1alphabitcoin.DumpPrivKeyResponse.new,
-  );
-
-  static const importPrivKey = connect.Spec(
-    '/$name/ImportPrivKey',
-    connect.StreamType.unary,
-    bitcoinbitcoindv1alphabitcoin.ImportPrivKeyRequest.new,
-    bitcoinbitcoindv1alphabitcoin.ImportPrivKeyResponse.new,
-  );
-
-  static const importAddress = connect.Spec(
-    '/$name/ImportAddress',
-    connect.StreamType.unary,
-    bitcoinbitcoindv1alphabitcoin.ImportAddressRequest.new,
-    bitcoinbitcoindv1alphabitcoin.ImportAddressResponse.new,
-  );
-
-  static const importPubKey = connect.Spec(
-    '/$name/ImportPubKey',
-    connect.StreamType.unary,
-    bitcoinbitcoindv1alphabitcoin.ImportPubKeyRequest.new,
-    bitcoinbitcoindv1alphabitcoin.ImportPubKeyResponse.new,
-  );
-
   static const keyPoolRefill = connect.Spec(
     '/$name/KeyPoolRefill',
     connect.StreamType.unary,
@@ -281,13 +239,6 @@ abstract final class BitcoinService {
   );
 
   /// Multi-sig operations
-  static const addMultisigAddress = connect.Spec(
-    '/$name/AddMultisigAddress',
-    connect.StreamType.unary,
-    bitcoinbitcoindv1alphabitcoin.AddMultisigAddressRequest.new,
-    bitcoinbitcoindv1alphabitcoin.AddMultisigAddressResponse.new,
-  );
-
   static const createMultisig = connect.Spec(
     '/$name/CreateMultisig',
     connect.StreamType.unary,

@@ -8,7 +8,7 @@ import "wallet.pb.dart" as walletv1wallet;
 import "wallet.connect.spec.dart" as specs;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type WalletServiceClient(connect.Transport _transport) {
+extension type WalletServiceClient (connect.Transport _transport) {
   Future<walletv1wallet.SendTransactionResponse> sendTransaction(
     walletv1wallet.SendTransactionRequest input, {
     connect.Headers? headers,
@@ -190,6 +190,161 @@ extension type WalletServiceClient(connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletService.getStats,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Wallet unlock/lock for cheque operations
+  Future<googleprotobufempty.Empty> unlockWallet(
+    walletv1wallet.UnlockWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.unlockWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<googleprotobufempty.Empty> lockWallet(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.lockWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<googleprotobufempty.Empty> isWalletUnlocked(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.isWalletUnlocked,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Cheque operations
+  Future<walletv1wallet.CreateChequeResponse> createCheque(
+    walletv1wallet.CreateChequeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.createCheque,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletv1wallet.GetChequeResponse> getCheque(
+    walletv1wallet.GetChequeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.getCheque,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletv1wallet.ListChequesResponse> listCheques(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.listCheques,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletv1wallet.CheckChequeFundingResponse> checkChequeFunding(
+    walletv1wallet.CheckChequeFundingRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.checkChequeFunding,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletv1wallet.SweepChequeResponse> sweepCheque(
+    walletv1wallet.SweepChequeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.sweepCheque,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<googleprotobufempty.Empty> deleteCheque(
+    walletv1wallet.DeleteChequeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.deleteCheque,
       input,
       signal: signal,
       headers: headers,
