@@ -27,6 +27,9 @@ abstract class BitwindowRPC extends RPCConnection {
   MiscAPI get misc;
   HealthAPI get health;
 
+  /// Stream of health check updates
+  Stream<CheckResponse> get healthStream;
+
   Future<dynamic> callRAW(String url, [String body = '{}']);
   List<String> getMethods();
 }
@@ -205,6 +208,13 @@ class BitwindowRPCLive extends BitwindowRPC {
   // Keep track of the current stream subscription
   StreamSubscription<CheckResponse>? _healthStreamSubscription;
 
+  // Stream controller to broadcast health updates
+  final StreamController<CheckResponse> _healthStreamController = StreamController<CheckResponse>.broadcast();
+
+  /// Stream of health check updates
+  @override
+  Stream<CheckResponse> get healthStream => _healthStreamController.stream;
+
   @override
   void onConnectionStateChanged(bool isConnected) {
     if (isConnected) {
@@ -224,6 +234,9 @@ class BitwindowRPCLive extends BitwindowRPC {
     _healthStreamSubscription =
         health.watch().listen(
           (response) {
+            // Broadcast to health stream listeners
+            _healthStreamController.add(response);
+
             // Only notify if the health status has changed
             if (_previousHealthResponse == null) {
               _previousHealthResponse = response;
@@ -266,6 +279,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   void dispose() {
     _healthStreamSubscription?.cancel();
+    _healthStreamController.close();
     super.dispose();
   }
 
@@ -466,6 +480,19 @@ abstract class WalletAPI {
   Future<String> signMessage(String message);
   Future<bool> verifyMessage(String message, String signature, String publicKey);
   Future<GetStatsResponse> getStats();
+
+  // wallet unlock/lock for cheques
+  Future<void> unlockWallet(String password);
+  Future<void> lockWallet();
+  Future<void> isWalletUnlocked();
+
+  // cheque operations
+  Future<CreateChequeResponse> createCheque(int expectedAmountSats);
+  Future<Cheque> getCheque(int id);
+  Future<List<Cheque>> listCheques();
+  Future<CheckChequeFundingResponse> checkChequeFunding(int id);
+  Future<String> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte);
+  Future<void> deleteCheque(int id);
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -621,6 +648,109 @@ class _WalletAPILive implements WalletAPI {
       throw WalletException(error);
     }
   }
+
+  @override
+  Future<void> unlockWallet(String password) async {
+    try {
+      await _client.unlockWallet(UnlockWalletRequest(password: password));
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> lockWallet() async {
+    try {
+      await _client.lockWallet(Empty());
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> isWalletUnlocked() async {
+    try {
+      await _client.isWalletUnlocked(Empty());
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CreateChequeResponse> createCheque(int expectedAmountSats) async {
+    try {
+      final response = await _client.createCheque(
+        CreateChequeRequest(expectedAmountSats: Int64(expectedAmountSats)),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Cheque> getCheque(int id) async {
+    try {
+      final response = await _client.getCheque(GetChequeRequest(id: Int64(id)));
+      return response.cheque;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<Cheque>> listCheques() async {
+    try {
+      final response = await _client.listCheques(Empty());
+      return response.cheques;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CheckChequeFundingResponse> checkChequeFunding(int id) async {
+    try {
+      final response = await _client.checkChequeFunding(CheckChequeFundingRequest(id: Int64(id)));
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte) async {
+    try {
+      final response = await _client.sweepCheque(
+        SweepChequeRequest(
+          id: Int64(id),
+          destinationAddress: destinationAddress,
+          feeSatPerVbyte: Int64(feeSatPerVbyte),
+        ),
+      );
+      return response.txid;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> deleteCheque(int id) async {
+    try {
+      await _client.deleteCheque(DeleteChequeRequest(id: Int64(id)));
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
 }
 
 abstract class BitcoindAPI {
@@ -638,15 +768,9 @@ abstract class BitcoindAPI {
     bool blank,
   );
   Future<BackupWalletResponse> backupWallet(String destination, String wallet);
-  Future<DumpWalletResponse> dumpWallet(String filename, String wallet);
-  Future<ImportWalletResponse> importWallet(String filename, String wallet);
   Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet);
 
   // Key/Address management
-  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet);
-  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet);
-  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet);
-  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet);
   Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet);
 
   // Account operations
@@ -657,12 +781,6 @@ abstract class BitcoindAPI {
   Future<ListAccountsResponse> listAccounts(int minConf, String wallet);
 
   // Multi-sig operations
-  Future<AddMultisigAddressResponse> addMultisigAddress(
-    int requiredSigs,
-    List<String> keys,
-    String label,
-    String wallet,
-  );
   Future<CreateMultisigResponse> createMultisig(int requiredSigs, List<String> keys);
 
   // PSBT handling
@@ -746,70 +864,6 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   // Key/Address management
-  @override
-  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet) async {
-    try {
-      final response = await _client.dumpPrivKey(DumpPrivKeyRequest()..address = address);
-      log.i('Successfully dumped private key for wallet $wallet address $address');
-      return response;
-    } catch (e) {
-      final error = 'could not dump private key: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet) async {
-    try {
-      final response = await _client.importPrivKey(
-        ImportPrivKeyRequest()
-          ..privateKey = privateKey
-          ..label = label
-          ..rescan = rescan
-          ..wallet = wallet,
-      );
-      log.i('Successfully imported private key with label $label');
-      return response;
-    } catch (e) {
-      final error = 'could not import private key: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet) async {
-    try {
-      final response = await _client.importAddress(
-        ImportAddressRequest()
-          ..address = address
-          ..label = label
-          ..rescan = rescan
-          ..wallet = wallet,
-      );
-      log.i('Successfully imported address $address with label $label');
-      return response;
-    } catch (e) {
-      final error = 'could not import address: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet) async {
-    try {
-      final response = await _client.importPubKey(
-        ImportPubKeyRequest()
-          ..pubkey = pubkey
-          ..rescan = rescan
-          ..wallet = wallet,
-      );
-      log.i('Successfully imported public key');
-      return response;
-    } catch (e) {
-      final error = 'could not import public key: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
 
   @override
   Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet) async {
@@ -877,30 +931,6 @@ class _BitcoindAPILive implements BitcoindAPI {
     }
   }
 
-  // Multi-sig operations
-  @override
-  Future<AddMultisigAddressResponse> addMultisigAddress(
-    int requiredSigs,
-    List<String> keys,
-    String label,
-    String wallet,
-  ) async {
-    try {
-      final response = await _client.addMultisigAddress(
-        AddMultisigAddressRequest()
-          ..requiredSigs = requiredSigs
-          ..keys.addAll(keys)
-          ..label = label
-          ..wallet = wallet,
-      );
-      log.i('Successfully added multisig address with required=$requiredSigs, keys=${keys.length}, account=$label');
-      return response;
-    } catch (e) {
-      final error = 'could not add multisig address: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
   @override
   Future<CreateMultisigResponse> createMultisig(int requiredSigs, List<String> keys) async {
     try {
@@ -954,38 +984,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not create wallet: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<DumpWalletResponse> dumpWallet(String filename, String wallet) async {
-    try {
-      final response = await _client.dumpWallet(
-        DumpWalletRequest()
-          ..filename = filename
-          ..wallet = wallet,
-      );
-      log.i('Successfully dumped wallet $wallet to $filename');
-      return response;
-    } catch (e) {
-      final error = 'could not dump wallet: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<ImportWalletResponse> importWallet(String filename, String wallet) async {
-    try {
-      final response = await _client.importWallet(
-        ImportWalletRequest()
-          ..filename = filename
-          ..wallet = wallet,
-      );
-      log.i('Successfully imported wallet');
-      return response;
-    } catch (e) {
-      final error = 'could not import wallet: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

@@ -9,6 +9,8 @@ import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
+import 'package:bitwindow/pages/wallet/cheque_detail_page.dart';
+import 'package:bitwindow/pages/wallet/create_cheque_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/wallet_writer_provider.dart';
@@ -98,6 +100,14 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/bitcoin-config',
       page: BitcoinConfEditorRoute.page,
+    ),
+    AutoRoute(
+      path: '/create-cheque',
+      page: CreateChequeRoute.page,
+    ),
+    AutoRoute(
+      path: '/cheque/:id',
+      page: ChequeDetailRoute.page,
     ),
   ];
 }

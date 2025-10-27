@@ -272,6 +272,8 @@ class MockBitwindowRPC extends BitwindowRPC {
   MiscAPI get misc => throw UnimplementedError();
   @override
   HealthAPI get health => throw UnimplementedError();
+  @override
+  Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
 
   @override
   bool get connected => _connected;
@@ -927,11 +929,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<AddMultisigAddressResponse> addMultisigAddress(int nRequired, List<String> keys, String label, String wallet) {
-    return Future.value(AddMultisigAddressResponse());
-  }
-
-  @override
   Future<BackupWalletResponse> backupWallet(String destination, String wallet) {
     return Future.value(BackupWalletResponse());
   }
@@ -953,16 +950,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet) {
-    return Future.value(DumpPrivKeyResponse());
-  }
-
-  @override
-  Future<DumpWalletResponse> dumpWallet(String filename, String wallet) {
-    return Future.value(DumpWalletResponse());
-  }
-
-  @override
   Future<GetAccountResponse> getAccount(String address, String wallet) {
     return Future.value(GetAccountResponse());
   }
@@ -970,26 +957,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   @override
   Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet) {
     return Future.value(GetAddressesByAccountResponse());
-  }
-
-  @override
-  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet) {
-    return Future.value(ImportAddressResponse());
-  }
-
-  @override
-  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet) {
-    return Future.value(ImportPrivKeyResponse());
-  }
-
-  @override
-  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet) {
-    return Future.value(ImportPubKeyResponse());
-  }
-
-  @override
-  Future<ImportWalletResponse> importWallet(String filename, String wallet) {
-    return Future.value(ImportWalletResponse());
   }
 
   @override

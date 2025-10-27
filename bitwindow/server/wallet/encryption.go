@@ -36,6 +36,7 @@ func DeriveKey(password string, salt []byte, iterations int) []byte {
 
 // Decrypt decrypts data using AES-256-GCM
 // Format matches Dart: "iv:encrypted" (both base64 encoded)
+// Supports both 12-byte (standard GCM) and 16-byte IVs (Dart default)
 func Decrypt(ciphertext string, key []byte) (string, error) {
 	parts := strings.Split(ciphertext, ":")
 	if len(parts) != 2 {
@@ -57,7 +58,15 @@ func Decrypt(ciphertext string, key []byte) (string, error) {
 		return "", fmt.Errorf("failed to create cipher: %w", err)
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	// Support both 12-byte (standard) and 16-byte (Dart default) IVs
+	var gcm cipher.AEAD
+	if len(ivBytes) == 16 {
+		// Use custom nonce size for 16-byte IV (Dart compatibility)
+		gcm, err = cipher.NewGCMWithNonceSize(block, 16)
+	} else {
+		// Use standard 12-byte nonce
+		gcm, err = cipher.NewGCM(block)
+	}
 	if err != nil {
 		return "", fmt.Errorf("failed to create GCM: %w", err)
 	}

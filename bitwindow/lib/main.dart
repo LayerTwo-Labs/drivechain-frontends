@@ -15,6 +15,7 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/cheque_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart';
@@ -163,6 +164,7 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   GetIt.I.registerLazySingleton<AddressBookProvider>(() => AddressBookProvider());
   GetIt.I.registerLazySingleton<HDWalletProvider>(() => HDWalletProvider(applicationDir!));
   GetIt.I.registerLazySingleton<BitDriveProvider>(() => BitDriveProvider());
+  GetIt.I.registerLazySingleton<ChequeProvider>(() => ChequeProvider());
   final bitwindowHomepageProvider = BitwindowHomepageProvider();
   GetIt.I.registerLazySingleton<BitwindowHomepageProvider>(() => bitwindowHomepageProvider);
   // Register the abstract HomepageProvider as an alias to the concrete implementation
@@ -746,6 +748,11 @@ List<Binary> initalBinaries() {
 }
 
 Future<void> initAutoUpdater(Logger log) async {
+  if (!Platform.isMacOS && !Platform.isWindows) {
+    log.i('Skipping auto updater initialization because we are not on macOS or Windows)');
+    return;
+  }
+
   try {
     const feedURL = 'https://releases.drivechain.info/bitwindow-appcast.xml';
     log.i('Initializing auto updater with feed URL: $feedURL');

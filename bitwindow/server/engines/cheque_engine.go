@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"sync"
 
+	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
-	"connectrpc.com/connect"
 )
 
 const (
@@ -31,16 +31,16 @@ type ChequeRecovery struct {
 
 // ChequeEngine manages in-memory seed for cheque derivation
 type ChequeEngine struct {
-	mu         sync.RWMutex
-	seedHex    string
-	isUnlocked bool
+	mu          sync.RWMutex
+	seedHex     string
+	isUnlocked  bool
 	chainParams *chaincfg.Params
 }
 
 // NewChequeEngine creates a new cheque engine
 func NewChequeEngine(chainParams *chaincfg.Params) *ChequeEngine {
 	return &ChequeEngine{
-		isUnlocked: false,
+		isUnlocked:  false,
 		chainParams: chainParams,
 	}
 }
@@ -131,7 +131,7 @@ func (e *ChequeEngine) deriveChequeKey(index uint32) (*hdkeychain.ExtendedKey, e
 	return chequeKey, nil
 }
 
-// DeriveChequeAddress derives the address at m/44'/0'/999'/{index}
+// DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
 func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -145,9 +145,17 @@ func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
 		return "", err
 	}
 
-	address, err := chequeKey.Address(e.chainParams)
+	// Get the public key
+	pubKey, err := chequeKey.ECPubKey()
 	if err != nil {
-		return "", fmt.Errorf("failed to get address: %w", err)
+		return "", fmt.Errorf("failed to get public key: %w", err)
+	}
+
+	// Create native segwit (P2WPKH) address
+	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
+	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, e.chainParams)
+	if err != nil {
+		return "", fmt.Errorf("failed to create witness address: %w", err)
 	}
 
 	return address.EncodeAddress(), nil
@@ -251,9 +259,17 @@ func (e *ChequeEngine) deriveChequeAddressUnlocked(index uint32) (string, error)
 		return "", err
 	}
 
-	address, err := chequeKey.Address(e.chainParams)
+	// Get the public key
+	pubKey, err := chequeKey.ECPubKey()
 	if err != nil {
-		return "", fmt.Errorf("failed to get address: %w", err)
+		return "", fmt.Errorf("failed to get public key: %w", err)
+	}
+
+	// Create native segwit (P2WPKH) address
+	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
+	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, e.chainParams)
+	if err != nil {
+		return "", fmt.Errorf("failed to create witness address: %w", err)
 	}
 
 	return address.EncodeAddress(), nil

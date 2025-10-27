@@ -22,6 +22,9 @@ class MockAPI extends BitwindowRPC {
   @override
   final HealthAPI health = MockHealthAPI();
 
+  @override
+  Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
+
   MockAPI({
     required super.binaryType,
     required super.restartOnFailure,
@@ -205,6 +208,51 @@ class MockWalletAPI implements WalletAPI {
   Future<List<ReceiveAddress>> listReceiveAddresses() async {
     return [];
   }
+
+  @override
+  Future<CheckChequeFundingResponse> checkChequeFunding(int id) {
+    return Future.value(CheckChequeFundingResponse());
+  }
+
+  @override
+  Future<CreateChequeResponse> createCheque(int expectedAmountSats) {
+    return Future.value(CreateChequeResponse());
+  }
+
+  @override
+  Future<Cheque> getCheque(int id) {
+    return Future.value(Cheque());
+  }
+
+  @override
+  Future<void> isWalletUnlocked() {
+    return Future.value();
+  }
+
+  @override
+  Future<List<Cheque>> listCheques() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<void> lockWallet() {
+    return Future.value();
+  }
+
+  @override
+  Future<String> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte) {
+    return Future.value('');
+  }
+
+  @override
+  Future<void> unlockWallet(String password) {
+    return Future.value();
+  }
+
+  @override
+  Future<void> deleteCheque(int id) async {
+    return;
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {
@@ -234,16 +282,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<AddMultisigAddressResponse> addMultisigAddress(
-    int nRequired,
-    List<String> keys,
-    String label,
-    String wallet,
-  ) async {
-    return AddMultisigAddressResponse();
-  }
-
-  @override
   Future<BackupWalletResponse> backupWallet(String destination, String wallet) async {
     return BackupWalletResponse();
   }
@@ -265,16 +303,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet) async {
-    return DumpPrivKeyResponse();
-  }
-
-  @override
-  Future<DumpWalletResponse> dumpWallet(String filename, String wallet) async {
-    return DumpWalletResponse();
-  }
-
-  @override
   Future<GetAccountResponse> getAccount(String address, String wallet) async {
     return GetAccountResponse();
   }
@@ -282,26 +310,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   @override
   Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet) async {
     return GetAddressesByAccountResponse();
-  }
-
-  @override
-  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet) async {
-    return ImportAddressResponse();
-  }
-
-  @override
-  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet) async {
-    return ImportPrivKeyResponse();
-  }
-
-  @override
-  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet) async {
-    return ImportPubKeyResponse();
-  }
-
-  @override
-  Future<ImportWalletResponse> importWallet(String filename, String wallet) async {
-    return ImportWalletResponse();
   }
 
   @override

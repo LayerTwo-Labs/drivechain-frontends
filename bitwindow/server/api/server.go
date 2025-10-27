@@ -46,7 +46,7 @@ type Services struct {
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
 	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
 	ChequeEngine      *engines.ChequeEngine
-	AppDir            string
+	WalletDir         string
 }
 
 type Config struct {
@@ -152,7 +152,7 @@ func New(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, s.ChequeEngine, s.AppDir,
+		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, s.ChequeEngine, s.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		s.Database, walletSvc,
