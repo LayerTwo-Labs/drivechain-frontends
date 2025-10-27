@@ -13,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
@@ -23,9 +24,11 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -47,21 +50,27 @@ func New(
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
+	chequeEngine *engines.ChequeEngine,
+	appDir string,
 ) *Server {
 	s := &Server{
-		database: database,
-		bitcoind: bitcoind,
-		wallet:   wallet,
-		crypto:   crypto,
+		database:     database,
+		bitcoind:     bitcoind,
+		wallet:       wallet,
+		crypto:       crypto,
+		chequeEngine: chequeEngine,
+		appDir:       appDir,
 	}
 	return s
 }
 
 type Server struct {
-	database *sql.DB
-	bitcoind *service.Service[corerpc.BitcoinServiceClient]
-	wallet   *service.Service[validatorrpc.WalletServiceClient]
-	crypto   *service.Service[cryptorpc.CryptoServiceClient]
+	database     *sql.DB
+	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+	wallet       *service.Service[validatorrpc.WalletServiceClient]
+	crypto       *service.Service[cryptorpc.CryptoServiceClient]
+	chequeEngine *engines.ChequeEngine
+	appDir       string
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
@@ -768,4 +777,357 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[emptypb.Empty]
 		TransactionCountTotal:             transactionCount,
 		TransactionCountSinceMonth:        transactionCountSinceMonth,
 	}), nil
+}
+
+// UnlockWallet implements walletv1connect.WalletServiceHandler.
+func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
+	log := zerolog.Ctx(ctx)
+
+	var walletData map[string]interface{}
+	var err error
+
+	if wallet.IsWalletEncrypted(s.appDir) {
+		walletData, err = wallet.DecryptWallet(s.appDir, c.Msg.Password)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to decrypt wallet")
+			return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("incorrect password"))
+		}
+	} else {
+		walletData, err = wallet.LoadUnencryptedWallet(s.appDir)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to load unencrypted wallet")
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load wallet: %w", err))
+		}
+	}
+
+	// Store seed in cheque engine
+	if err := s.chequeEngine.Unlock(walletData); err != nil {
+		log.Error().Err(err).Msg("failed to unlock cheque engine")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to unlock cheque engine: %w", err))
+	}
+
+	// Auto-scan for existing funded cheques
+	go s.recoverCheques(ctx)
+
+	log.Info().Msg("wallet unlocked successfully for cheque operations")
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// LockWallet implements walletv1connect.WalletServiceHandler.
+func (s *Server) LockWallet(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	s.chequeEngine.Lock()
+	zerolog.Ctx(ctx).Info().Msg("wallet locked")
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// IsWalletUnlocked implements walletv1connect.WalletServiceHandler.
+func (s *Server) IsWalletUnlocked(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	if !s.chequeEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// CreateCheque implements walletv1connect.WalletServiceHandler.
+func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateChequeRequest]) (*connect.Response[pb.CreateChequeResponse], error) {
+	log := zerolog.Ctx(ctx)
+
+	if !s.chequeEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
+	// Get next index
+	nextIndex, err := cheques.GetNextIndex(ctx, s.database)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get next cheque index")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get next index: %w", err))
+	}
+
+	// Derive address
+	address, err := s.chequeEngine.DeriveChequeAddress(nextIndex)
+	if err != nil {
+		log.Error().Err(err).Uint32("index", nextIndex).Msg("failed to derive cheque address")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive address: %w", err))
+	}
+
+	// Save to DB
+	id, err := cheques.Create(ctx, s.database, nextIndex, c.Msg.ExpectedAmountSats, address)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to create cheque in database")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create cheque: %w", err))
+	}
+
+	log.Info().
+		Int64("id", id).
+		Uint32("index", nextIndex).
+		Str("address", address).
+		Uint64("expected_sats", c.Msg.ExpectedAmountSats).
+		Msg("cheque created")
+
+	return connect.NewResponse(&pb.CreateChequeResponse{
+		Id:          id,
+		Address:     address,
+		ChequeIndex: nextIndex,
+	}), nil
+}
+
+// GetCheque implements walletv1connect.WalletServiceHandler.
+func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeRequest]) (*connect.Response[pb.GetChequeResponse], error) {
+	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	}
+
+	return connect.NewResponse(&pb.GetChequeResponse{
+		Cheque: chequeToPb(cheque),
+	}), nil
+}
+
+// ListCheques implements walletv1connect.WalletServiceHandler.
+func (s *Server) ListCheques(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListChequesResponse], error) {
+	chequeList, err := cheques.List(ctx, s.database)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list cheques: %w", err))
+	}
+
+	pbCheques := make([]*pb.Cheque, len(chequeList))
+	for i, ch := range chequeList {
+		pbCheques[i] = chequeToPb(&ch)
+	}
+
+	return connect.NewResponse(&pb.ListChequesResponse{
+		Cheques: pbCheques,
+	}), nil
+}
+
+// CheckChequeFunding implements walletv1connect.WalletServiceHandler.
+func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.CheckChequeFundingRequest]) (*connect.Response[pb.CheckChequeFundingResponse], error) {
+	log := zerolog.Ctx(ctx)
+
+	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	}
+
+	// Query bitcoind for UTXOs on address
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
+	}
+
+	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+		Addresses: []string{cheque.Address},
+	}))
+	if err != nil {
+		log.Error().Err(err).Str("address", cheque.Address).Msg("failed to query UTXOs")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query UTXOs: %w", err))
+	}
+
+	if len(utxos.Msg.Unspent) > 0 {
+		// Calculate total amount
+		var totalAmount float64
+		var txid string
+		for _, utxo := range utxos.Msg.Unspent {
+			totalAmount += utxo.Amount
+			txid = utxo.Txid
+		}
+
+		// Convert BTC to satoshis
+		amountSats := uint64(totalAmount * 100000000)
+
+		// Update DB if not already funded
+		if !cheque.Funded {
+			if err := cheques.UpdateFunding(ctx, s.database, c.Msg.Id, txid, amountSats); err != nil {
+				log.Error().Err(err).Msg("failed to update cheque funding")
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
+			}
+
+			log.Info().
+				Int64("id", c.Msg.Id).
+				Str("address", cheque.Address).
+				Uint64("amount_sats", amountSats).
+				Str("txid", txid).
+				Msg("cheque funded")
+
+			// Re-fetch to get updated funded_at timestamp
+			cheque, err = cheques.Get(ctx, s.database, c.Msg.Id)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch cheque: %w", err))
+			}
+		}
+
+		resp := &pb.CheckChequeFundingResponse{
+			Funded:           true,
+			ActualAmountSats: amountSats,
+			FundedTxid:       txid,
+		}
+		if cheque.FundedAt != nil {
+			resp.FundedAt = timestamppb.New(*cheque.FundedAt)
+		}
+		return connect.NewResponse(resp), nil
+	}
+
+	return connect.NewResponse(&pb.CheckChequeFundingResponse{
+		Funded: false,
+	}), nil
+}
+
+// SweepCheque implements walletv1connect.WalletServiceHandler.
+func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
+	log := zerolog.Ctx(ctx)
+
+	if !s.chequeEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
+	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	}
+
+	if !cheque.Funded {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cheque is not funded"))
+	}
+
+	// Get private key
+	wif, err := s.chequeEngine.DeriveChequePrivateKey(cheque.ChequeIndex)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive private key: %w", err))
+	}
+
+	// Import private key to bitcoind temporarily
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
+	}
+
+	_, err = bitcoind.ImportPrivKey(ctx, connect.NewRequest(&corepb.ImportPrivKeyRequest{
+		PrivateKey: wif,
+		Label:      fmt.Sprintf("cheque_%d", c.Msg.Id),
+		Rescan:     false,
+	}))
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to import private key (may already be imported)")
+	}
+
+	// Query UTXOs for this address
+	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+		Addresses: []string{cheque.Address},
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query UTXOs: %w", err))
+	}
+
+	if len(utxos.Msg.Unspent) == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("no funds found in cheque address"))
+	}
+
+	// Calculate total amount
+	var totalAmount float64
+	for _, utxo := range utxos.Msg.Unspent {
+		totalAmount += utxo.Amount
+	}
+
+	// Send all funds to destination address
+	txid, err := bitcoind.SendToAddress(ctx, connect.NewRequest(&corepb.SendToAddressRequest{
+		Address: c.Msg.DestinationAddress,
+		Amount:  totalAmount,
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to send transaction: %w", err))
+	}
+
+	log.Info().
+		Int64("id", c.Msg.Id).
+		Str("from", cheque.Address).
+		Str("to", c.Msg.DestinationAddress).
+		Float64("amount_btc", totalAmount).
+		Str("txid", txid.Msg.Txid).
+		Msg("cheque swept")
+
+	return connect.NewResponse(&pb.SweepChequeResponse{
+		Txid: txid.Msg.Txid,
+	}), nil
+}
+
+// Helper function to convert model Cheque to protobuf Cheque
+func chequeToPb(c *cheques.Cheque) *pb.Cheque {
+	pbCheque := &pb.Cheque{
+		Id:                 c.ID,
+		ChequeIndex:        c.ChequeIndex,
+		Address:            c.Address,
+		ExpectedAmountSats: c.ExpectedAmountSats,
+		Funded:             c.Funded,
+		CreatedAt:          timestamppb.New(c.CreatedAt),
+	}
+
+	if c.FundedTxid != nil {
+		pbCheque.FundedTxid = c.FundedTxid
+	}
+	if c.ActualAmountSats != nil {
+		pbCheque.ActualAmountSats = c.ActualAmountSats
+	}
+	if c.FundedAt != nil {
+		pbCheque.FundedAt = timestamppb.New(*c.FundedAt)
+	}
+
+	return pbCheque
+}
+
+// recoverCheques scans for funded cheques in the background
+func (s *Server) recoverCheques(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("bitcoind not available for cheque recovery")
+		return
+	}
+
+	recoveries, err := s.chequeEngine.ScanForFunds(ctx, bitcoind, 20)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to scan for cheque funds")
+		return
+	}
+
+	if len(recoveries) == 0 {
+		log.Info().Msg("no funded cheques found during recovery scan")
+		return
+	}
+
+	for _, recovery := range recoveries {
+		err := cheques.CreateOrUpdateFromRecovery(
+			ctx,
+			s.database,
+			recovery.Index,
+			recovery.Address,
+			recovery.Txid,
+			recovery.Amount,
+		)
+		if err != nil {
+			log.Error().
+				Err(err).
+				Uint32("index", recovery.Index).
+				Str("address", recovery.Address).
+				Msg("failed to save recovered cheque")
+			continue
+		}
+
+		log.Info().
+			Uint32("index", recovery.Index).
+			Str("address", recovery.Address).
+			Uint64("amount_sats", recovery.Amount).
+			Msg("recovered funded cheque")
+	}
+
+	log.Info().Int("count", len(recoveries)).Msg("cheque recovery completed")
 }

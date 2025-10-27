@@ -20,6 +20,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -117,12 +118,17 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return crypto, err
 	}
 
+	chainParams := getChainParams(conf.BitcoinCoreNetwork)
+	chequeEngine := engines.NewChequeEngine(chainParams)
+
 	services := api.Services{
 		Database:          db,
 		BitcoindConnector: bitcoindConnector,
 		WalletConnector:   walletConnector,
 		EnforcerConnector: enforcerConnector,
 		CryptoConnector:   cryptoConnector,
+		ChequeEngine:      chequeEngine,
+		AppDir:            conf.Datadir,
 	}
 
 	// Use this to obtain a random unused port for the core proxy.
@@ -316,4 +322,19 @@ func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error)
 	}
 
 	return engines.NewZMQ(pubRawTxAddress.Address)
+}
+
+func getChainParams(network config.Network) *chaincfg.Params {
+	switch network {
+	case "mainnet", "forknet":
+		return &chaincfg.MainNetParams
+	case "testnet":
+		return &chaincfg.TestNet3Params
+	case "signet":
+		return &chaincfg.SigNetParams
+	case "regtest":
+		return &chaincfg.RegressionNetParams
+	default:
+		return &chaincfg.SigNetParams
+	}
 }

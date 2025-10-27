@@ -66,6 +66,29 @@ const (
 	WalletServiceVerifyMessageProcedure = "/wallet.v1.WalletService/VerifyMessage"
 	// WalletServiceGetStatsProcedure is the fully-qualified name of the WalletService's GetStats RPC.
 	WalletServiceGetStatsProcedure = "/wallet.v1.WalletService/GetStats"
+	// WalletServiceUnlockWalletProcedure is the fully-qualified name of the WalletService's
+	// UnlockWallet RPC.
+	WalletServiceUnlockWalletProcedure = "/wallet.v1.WalletService/UnlockWallet"
+	// WalletServiceLockWalletProcedure is the fully-qualified name of the WalletService's LockWallet
+	// RPC.
+	WalletServiceLockWalletProcedure = "/wallet.v1.WalletService/LockWallet"
+	// WalletServiceIsWalletUnlockedProcedure is the fully-qualified name of the WalletService's
+	// IsWalletUnlocked RPC.
+	WalletServiceIsWalletUnlockedProcedure = "/wallet.v1.WalletService/IsWalletUnlocked"
+	// WalletServiceCreateChequeProcedure is the fully-qualified name of the WalletService's
+	// CreateCheque RPC.
+	WalletServiceCreateChequeProcedure = "/wallet.v1.WalletService/CreateCheque"
+	// WalletServiceGetChequeProcedure is the fully-qualified name of the WalletService's GetCheque RPC.
+	WalletServiceGetChequeProcedure = "/wallet.v1.WalletService/GetCheque"
+	// WalletServiceListChequesProcedure is the fully-qualified name of the WalletService's ListCheques
+	// RPC.
+	WalletServiceListChequesProcedure = "/wallet.v1.WalletService/ListCheques"
+	// WalletServiceCheckChequeFundingProcedure is the fully-qualified name of the WalletService's
+	// CheckChequeFunding RPC.
+	WalletServiceCheckChequeFundingProcedure = "/wallet.v1.WalletService/CheckChequeFunding"
+	// WalletServiceSweepChequeProcedure is the fully-qualified name of the WalletService's SweepCheque
+	// RPC.
+	WalletServiceSweepChequeProcedure = "/wallet.v1.WalletService/SweepCheque"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -83,6 +106,16 @@ type WalletServiceClient interface {
 	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
 	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
 	GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error)
+	// Wallet unlock/lock for cheque operations
+	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error)
+	LockWallet(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	IsWalletUnlocked(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	// Cheque operations
+	CreateCheque(context.Context, *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error)
+	GetCheque(context.Context, *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error)
+	ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error)
+	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
+	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -162,6 +195,54 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("GetStats")),
 			connect.WithClientOptions(opts...),
 		),
+		unlockWallet: connect.NewClient[v1.UnlockWalletRequest, emptypb.Empty](
+			httpClient,
+			baseURL+WalletServiceUnlockWalletProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("UnlockWallet")),
+			connect.WithClientOptions(opts...),
+		),
+		lockWallet: connect.NewClient[emptypb.Empty, emptypb.Empty](
+			httpClient,
+			baseURL+WalletServiceLockWalletProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("LockWallet")),
+			connect.WithClientOptions(opts...),
+		),
+		isWalletUnlocked: connect.NewClient[emptypb.Empty, emptypb.Empty](
+			httpClient,
+			baseURL+WalletServiceIsWalletUnlockedProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("IsWalletUnlocked")),
+			connect.WithClientOptions(opts...),
+		),
+		createCheque: connect.NewClient[v1.CreateChequeRequest, v1.CreateChequeResponse](
+			httpClient,
+			baseURL+WalletServiceCreateChequeProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("CreateCheque")),
+			connect.WithClientOptions(opts...),
+		),
+		getCheque: connect.NewClient[v1.GetChequeRequest, v1.GetChequeResponse](
+			httpClient,
+			baseURL+WalletServiceGetChequeProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetCheque")),
+			connect.WithClientOptions(opts...),
+		),
+		listCheques: connect.NewClient[emptypb.Empty, v1.ListChequesResponse](
+			httpClient,
+			baseURL+WalletServiceListChequesProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("ListCheques")),
+			connect.WithClientOptions(opts...),
+		),
+		checkChequeFunding: connect.NewClient[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse](
+			httpClient,
+			baseURL+WalletServiceCheckChequeFundingProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("CheckChequeFunding")),
+			connect.WithClientOptions(opts...),
+		),
+		sweepCheque: connect.NewClient[v1.SweepChequeRequest, v1.SweepChequeResponse](
+			httpClient,
+			baseURL+WalletServiceSweepChequeProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("SweepCheque")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -178,6 +259,14 @@ type walletServiceClient struct {
 	signMessage            *connect.Client[v1.SignMessageRequest, v1.SignMessageResponse]
 	verifyMessage          *connect.Client[v1.VerifyMessageRequest, v1.VerifyMessageResponse]
 	getStats               *connect.Client[emptypb.Empty, v1.GetStatsResponse]
+	unlockWallet           *connect.Client[v1.UnlockWalletRequest, emptypb.Empty]
+	lockWallet             *connect.Client[emptypb.Empty, emptypb.Empty]
+	isWalletUnlocked       *connect.Client[emptypb.Empty, emptypb.Empty]
+	createCheque           *connect.Client[v1.CreateChequeRequest, v1.CreateChequeResponse]
+	getCheque              *connect.Client[v1.GetChequeRequest, v1.GetChequeResponse]
+	listCheques            *connect.Client[emptypb.Empty, v1.ListChequesResponse]
+	checkChequeFunding     *connect.Client[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse]
+	sweepCheque            *connect.Client[v1.SweepChequeRequest, v1.SweepChequeResponse]
 }
 
 // SendTransaction calls wallet.v1.WalletService.SendTransaction.
@@ -235,6 +324,46 @@ func (c *walletServiceClient) GetStats(ctx context.Context, req *connect.Request
 	return c.getStats.CallUnary(ctx, req)
 }
 
+// UnlockWallet calls wallet.v1.WalletService.UnlockWallet.
+func (c *walletServiceClient) UnlockWallet(ctx context.Context, req *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.unlockWallet.CallUnary(ctx, req)
+}
+
+// LockWallet calls wallet.v1.WalletService.LockWallet.
+func (c *walletServiceClient) LockWallet(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	return c.lockWallet.CallUnary(ctx, req)
+}
+
+// IsWalletUnlocked calls wallet.v1.WalletService.IsWalletUnlocked.
+func (c *walletServiceClient) IsWalletUnlocked(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	return c.isWalletUnlocked.CallUnary(ctx, req)
+}
+
+// CreateCheque calls wallet.v1.WalletService.CreateCheque.
+func (c *walletServiceClient) CreateCheque(ctx context.Context, req *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error) {
+	return c.createCheque.CallUnary(ctx, req)
+}
+
+// GetCheque calls wallet.v1.WalletService.GetCheque.
+func (c *walletServiceClient) GetCheque(ctx context.Context, req *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error) {
+	return c.getCheque.CallUnary(ctx, req)
+}
+
+// ListCheques calls wallet.v1.WalletService.ListCheques.
+func (c *walletServiceClient) ListCheques(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error) {
+	return c.listCheques.CallUnary(ctx, req)
+}
+
+// CheckChequeFunding calls wallet.v1.WalletService.CheckChequeFunding.
+func (c *walletServiceClient) CheckChequeFunding(ctx context.Context, req *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error) {
+	return c.checkChequeFunding.CallUnary(ctx, req)
+}
+
+// SweepCheque calls wallet.v1.WalletService.SweepCheque.
+func (c *walletServiceClient) SweepCheque(ctx context.Context, req *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error) {
+	return c.sweepCheque.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
@@ -250,6 +379,16 @@ type WalletServiceHandler interface {
 	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
 	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
 	GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error)
+	// Wallet unlock/lock for cheque operations
+	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error)
+	LockWallet(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	IsWalletUnlocked(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	// Cheque operations
+	CreateCheque(context.Context, *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error)
+	GetCheque(context.Context, *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error)
+	ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error)
+	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
+	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -325,6 +464,54 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("GetStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceUnlockWalletHandler := connect.NewUnaryHandler(
+		WalletServiceUnlockWalletProcedure,
+		svc.UnlockWallet,
+		connect.WithSchema(walletServiceMethods.ByName("UnlockWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceLockWalletHandler := connect.NewUnaryHandler(
+		WalletServiceLockWalletProcedure,
+		svc.LockWallet,
+		connect.WithSchema(walletServiceMethods.ByName("LockWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceIsWalletUnlockedHandler := connect.NewUnaryHandler(
+		WalletServiceIsWalletUnlockedProcedure,
+		svc.IsWalletUnlocked,
+		connect.WithSchema(walletServiceMethods.ByName("IsWalletUnlocked")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceCreateChequeHandler := connect.NewUnaryHandler(
+		WalletServiceCreateChequeProcedure,
+		svc.CreateCheque,
+		connect.WithSchema(walletServiceMethods.ByName("CreateCheque")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceGetChequeHandler := connect.NewUnaryHandler(
+		WalletServiceGetChequeProcedure,
+		svc.GetCheque,
+		connect.WithSchema(walletServiceMethods.ByName("GetCheque")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceListChequesHandler := connect.NewUnaryHandler(
+		WalletServiceListChequesProcedure,
+		svc.ListCheques,
+		connect.WithSchema(walletServiceMethods.ByName("ListCheques")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceCheckChequeFundingHandler := connect.NewUnaryHandler(
+		WalletServiceCheckChequeFundingProcedure,
+		svc.CheckChequeFunding,
+		connect.WithSchema(walletServiceMethods.ByName("CheckChequeFunding")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceSweepChequeHandler := connect.NewUnaryHandler(
+		WalletServiceSweepChequeProcedure,
+		svc.SweepCheque,
+		connect.WithSchema(walletServiceMethods.ByName("SweepCheque")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceSendTransactionProcedure:
@@ -349,6 +536,22 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceVerifyMessageHandler.ServeHTTP(w, r)
 		case WalletServiceGetStatsProcedure:
 			walletServiceGetStatsHandler.ServeHTTP(w, r)
+		case WalletServiceUnlockWalletProcedure:
+			walletServiceUnlockWalletHandler.ServeHTTP(w, r)
+		case WalletServiceLockWalletProcedure:
+			walletServiceLockWalletHandler.ServeHTTP(w, r)
+		case WalletServiceIsWalletUnlockedProcedure:
+			walletServiceIsWalletUnlockedHandler.ServeHTTP(w, r)
+		case WalletServiceCreateChequeProcedure:
+			walletServiceCreateChequeHandler.ServeHTTP(w, r)
+		case WalletServiceGetChequeProcedure:
+			walletServiceGetChequeHandler.ServeHTTP(w, r)
+		case WalletServiceListChequesProcedure:
+			walletServiceListChequesHandler.ServeHTTP(w, r)
+		case WalletServiceCheckChequeFundingProcedure:
+			walletServiceCheckChequeFundingHandler.ServeHTTP(w, r)
+		case WalletServiceSweepChequeProcedure:
+			walletServiceSweepChequeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -400,4 +603,36 @@ func (UnimplementedWalletServiceHandler) VerifyMessage(context.Context, *connect
 
 func (UnimplementedWalletServiceHandler) GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetStats is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.UnlockWallet is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) LockWallet(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.LockWallet is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) IsWalletUnlocked(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.IsWalletUnlocked is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) CreateCheque(context.Context, *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.CreateCheque is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) GetCheque(context.Context, *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetCheque is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListCheques is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.CheckChequeFunding is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SweepCheque is not implemented"))
 }
