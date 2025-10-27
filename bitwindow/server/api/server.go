@@ -20,6 +20,7 @@ import (
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -44,6 +45,8 @@ type Services struct {
 	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
 	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
+	ChequeEngine      *engines.ChequeEngine
+	AppDir            string
 }
 
 type Config struct {
@@ -149,7 +152,7 @@ func New(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc,
+		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, s.ChequeEngine, s.AppDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		s.Database, walletSvc,

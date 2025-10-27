@@ -23,6 +23,18 @@ service WalletService {
   rpc VerifyMessage(VerifyMessageRequest) returns (VerifyMessageResponse);
 
   rpc GetStats(google.protobuf.Empty) returns (GetStatsResponse);
+
+  // Wallet unlock/lock for cheque operations
+  rpc UnlockWallet(UnlockWalletRequest) returns (google.protobuf.Empty);
+  rpc LockWallet(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc IsWalletUnlocked(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  // Cheque operations
+  rpc CreateCheque(CreateChequeRequest) returns (CreateChequeResponse);
+  rpc GetCheque(GetChequeRequest) returns (GetChequeResponse);
+  rpc ListCheques(google.protobuf.Empty) returns (ListChequesResponse);
+  rpc CheckChequeFunding(CheckChequeFundingRequest) returns (CheckChequeFundingResponse);
+  rpc SweepCheque(SweepChequeRequest) returns (SweepChequeResponse);
 }
 
 message GetNewAddressResponse {
@@ -169,4 +181,65 @@ message GetStatsResponse {
   int64 sidechain_deposit_volume_last_30_days = 4;
   int64 transaction_count_total = 5;
   int64 transaction_count_since_month = 6;
+}
+
+// Wallet unlock/lock messages
+message UnlockWalletRequest {
+  string password = 1;
+}
+
+// Cheque messages
+message CreateChequeRequest {
+  uint64 expected_amount_sats = 1;
+}
+
+message CreateChequeResponse {
+  int64 id = 1;
+  string address = 2;
+  uint32 cheque_index = 3;
+}
+
+message GetChequeRequest {
+  int64 id = 1;
+}
+
+message GetChequeResponse {
+  Cheque cheque = 1;
+}
+
+message Cheque {
+  int64 id = 1;
+  uint32 cheque_index = 2;
+  string address = 3;
+  uint64 expected_amount_sats = 4;
+  bool funded = 5;
+  optional string funded_txid = 6;
+  optional uint64 actual_amount_sats = 7;
+  google.protobuf.Timestamp created_at = 8;
+  optional google.protobuf.Timestamp funded_at = 9;
+}
+
+message ListChequesResponse {
+  repeated Cheque cheques = 1;
+}
+
+message CheckChequeFundingRequest {
+  int64 id = 1;
+}
+
+message CheckChequeFundingResponse {
+  bool funded = 1;
+  uint64 actual_amount_sats = 2;
+  string funded_txid = 3;
+  optional google.protobuf.Timestamp funded_at = 4;
+}
+
+message SweepChequeRequest {
+  int64 id = 1;
+  string destination_address = 2;
+  uint64 fee_sat_per_vbyte = 3;
+}
+
+message SweepChequeResponse {
+  string txid = 1;
 }
