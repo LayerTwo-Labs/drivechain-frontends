@@ -8,7 +8,7 @@ import "bitcoin.pb.dart" as bitcoinbitcoindv1alphabitcoin;
 import "bitcoin.connect.spec.dart" as specs;
 import "../../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type BitcoinServiceClient(connect.Transport _transport) {
+extension type BitcoinServiceClient (connect.Transport _transport) {
   Future<bitcoinbitcoindv1alphabitcoin.GetBlockchainInfoResponse> getBlockchainInfo(
     bitcoinbitcoindv1alphabitcoin.GetBlockchainInfoRequest input, {
     connect.Headers? headers,
@@ -442,40 +442,6 @@ extension type BitcoinServiceClient(connect.Transport _transport) {
     );
   }
 
-  Future<bitcoinbitcoindv1alphabitcoin.DumpWalletResponse> dumpWallet(
-    bitcoinbitcoindv1alphabitcoin.DumpWalletRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitcoinService.dumpWallet,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Future<bitcoinbitcoindv1alphabitcoin.ImportWalletResponse> importWallet(
-    bitcoinbitcoindv1alphabitcoin.ImportWalletRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitcoinService.importWallet,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   Future<bitcoinbitcoindv1alphabitcoin.UnloadWalletResponse> unloadWallet(
     bitcoinbitcoindv1alphabitcoin.UnloadWalletRequest input, {
     connect.Headers? headers,
@@ -494,74 +460,6 @@ extension type BitcoinServiceClient(connect.Transport _transport) {
   }
 
   /// Key/Address management
-  Future<bitcoinbitcoindv1alphabitcoin.DumpPrivKeyResponse> dumpPrivKey(
-    bitcoinbitcoindv1alphabitcoin.DumpPrivKeyRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitcoinService.dumpPrivKey,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Future<bitcoinbitcoindv1alphabitcoin.ImportPrivKeyResponse> importPrivKey(
-    bitcoinbitcoindv1alphabitcoin.ImportPrivKeyRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitcoinService.importPrivKey,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Future<bitcoinbitcoindv1alphabitcoin.ImportAddressResponse> importAddress(
-    bitcoinbitcoindv1alphabitcoin.ImportAddressRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitcoinService.importAddress,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Future<bitcoinbitcoindv1alphabitcoin.ImportPubKeyResponse> importPubKey(
-    bitcoinbitcoindv1alphabitcoin.ImportPubKeyRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitcoinService.importPubKey,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   Future<bitcoinbitcoindv1alphabitcoin.KeyPoolRefillResponse> keyPoolRefill(
     bitcoinbitcoindv1alphabitcoin.KeyPoolRefillRequest input, {
     connect.Headers? headers,
@@ -649,23 +547,6 @@ extension type BitcoinServiceClient(connect.Transport _transport) {
   }
 
   /// Multi-sig operations
-  Future<bitcoinbitcoindv1alphabitcoin.AddMultisigAddressResponse> addMultisigAddress(
-    bitcoinbitcoindv1alphabitcoin.AddMultisigAddressRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitcoinService.addMultisigAddress,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   Future<bitcoinbitcoindv1alphabitcoin.CreateMultisigResponse> createMultisig(
     bitcoinbitcoindv1alphabitcoin.CreateMultisigRequest input, {
     connect.Headers? headers,

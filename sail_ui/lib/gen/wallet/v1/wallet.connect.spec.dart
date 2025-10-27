@@ -89,4 +89,69 @@ abstract final class WalletService {
     googleprotobufempty.Empty.new,
     walletv1wallet.GetStatsResponse.new,
   );
+
+  /// Wallet unlock/lock for cheque operations
+  static const unlockWallet = connect.Spec(
+    '/$name/UnlockWallet',
+    connect.StreamType.unary,
+    walletv1wallet.UnlockWalletRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const lockWallet = connect.Spec(
+    '/$name/LockWallet',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const isWalletUnlocked = connect.Spec(
+    '/$name/IsWalletUnlocked',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  /// Cheque operations
+  static const createCheque = connect.Spec(
+    '/$name/CreateCheque',
+    connect.StreamType.unary,
+    walletv1wallet.CreateChequeRequest.new,
+    walletv1wallet.CreateChequeResponse.new,
+  );
+
+  static const getCheque = connect.Spec(
+    '/$name/GetCheque',
+    connect.StreamType.unary,
+    walletv1wallet.GetChequeRequest.new,
+    walletv1wallet.GetChequeResponse.new,
+  );
+
+  static const listCheques = connect.Spec(
+    '/$name/ListCheques',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    walletv1wallet.ListChequesResponse.new,
+  );
+
+  static const checkChequeFunding = connect.Spec(
+    '/$name/CheckChequeFunding',
+    connect.StreamType.unary,
+    walletv1wallet.CheckChequeFundingRequest.new,
+    walletv1wallet.CheckChequeFundingResponse.new,
+  );
+
+  static const sweepCheque = connect.Spec(
+    '/$name/SweepCheque',
+    connect.StreamType.unary,
+    walletv1wallet.SweepChequeRequest.new,
+    walletv1wallet.SweepChequeResponse.new,
+  );
+
+  static const deleteCheque = connect.Spec(
+    '/$name/DeleteCheque',
+    connect.StreamType.unary,
+    walletv1wallet.DeleteChequeRequest.new,
+    googleprotobufempty.Empty.new,
+  );
 }
