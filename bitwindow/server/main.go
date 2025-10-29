@@ -119,22 +119,16 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return crypto, err
 	}
 
-	chainParams := getChainParams(conf.BitcoinCoreNetwork)
-	log.Info().
-		Str("network", string(conf.BitcoinCoreNetwork)).
-		Str("chain_params", chainParams.Name).
-		Msg("initializing cheque engine with network")
-	chequeEngine := engines.NewChequeEngine(chainParams)
-
 	// Wallet should be in parent dir (shared across all networks)
 	walletDir := filepath.Dir(conf.Datadir)
+	chainParams := getChainParams(conf.BitcoinCoreNetwork)
 	services := api.Services{
 		Database:          db,
 		BitcoindConnector: bitcoindConnector,
 		WalletConnector:   walletConnector,
 		EnforcerConnector: enforcerConnector,
 		CryptoConnector:   cryptoConnector,
-		ChequeEngine:      chequeEngine,
+		ChainParams:       chainParams,
 		WalletDir:         walletDir,
 	}
 
@@ -157,6 +151,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 			cancelCtx()
 		},
 	}
+
 	srv, err := api.New(
 		ctx,
 		services,
@@ -165,6 +160,9 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	if err != nil {
 		return err
 	}
+
+	// Start the cheque engine
+	srv.ChequeEngine.Start(ctx)
 
 	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
 	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db)

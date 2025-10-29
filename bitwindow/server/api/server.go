@@ -31,6 +31,7 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/net/http2"
@@ -45,7 +46,7 @@ type Services struct {
 	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
 	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
-	ChequeEngine      *engines.ChequeEngine
+	ChainParams       *chaincfg.Params
 	WalletDir         string
 }
 
@@ -75,12 +76,16 @@ func New(
 	walletSvc.StartReconnectLoop(ctx)
 	cryptoSvc.StartReconnectLoop(ctx)
 
+	// Create cheque engine with the bitcoind service
+	chequeEngine := engines.NewChequeEngine(s.ChainParams, bitcoindSvc)
+
 	srv := &Server{
-		mux:      mux,
-		Bitcoind: bitcoindSvc,
-		Enforcer: validatorSvc,
-		Wallet:   walletSvc,
-		Crypto:   cryptoSvc,
+		mux:          mux,
+		Bitcoind:     bitcoindSvc,
+		Enforcer:     validatorSvc,
+		Wallet:       walletSvc,
+		Crypto:       cryptoSvc,
+		ChequeEngine: chequeEngine,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
@@ -152,7 +157,7 @@ func New(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, s.ChequeEngine, s.WalletDir,
+		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, s.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		s.Database, walletSvc,
@@ -178,10 +183,11 @@ type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
 
-	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
-	Bitcoind *service.Service[corerpc.BitcoinServiceClient]
-	Wallet   *service.Service[validatorrpc.WalletServiceClient]
-	Crypto   *service.Service[cryptorpc.CryptoServiceClient]
+	Enforcer     *service.Service[validatorrpc.ValidatorServiceClient]
+	Bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+	Wallet       *service.Service[validatorrpc.WalletServiceClient]
+	Crypto       *service.Service[cryptorpc.CryptoServiceClient]
+	ChequeEngine *engines.ChequeEngine
 }
 
 func (s *Server) Handler() http.Handler {

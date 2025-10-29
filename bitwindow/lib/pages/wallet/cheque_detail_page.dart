@@ -211,34 +211,36 @@ class ChequeDetailPage extends StatelessWidget {
                           ),
 
                           // QR Code
-                          Container(
-                            padding: const EdgeInsets.all(SailStyleValues.padding20),
-                            decoration: BoxDecoration(
-                              color: context.sailTheme.colors.backgroundSecondary,
-                              borderRadius: SailStyleValues.borderRadiusSmall,
+                          if (!cheque.funded)
+                            Container(
+                              padding: const EdgeInsets.all(SailStyleValues.padding20),
+                              decoration: BoxDecoration(
+                                color: context.sailTheme.colors.backgroundSecondary,
+                                borderRadius: SailStyleValues.borderRadiusSmall,
+                              ),
+                              child: QrImageView(
+                                data: cheque.address,
+                                version: QrVersions.auto,
+                                size: 200,
+                                backgroundColor: context.sailTheme.colors.backgroundSecondary,
+                              ),
                             ),
-                            child: QrImageView(
-                              data: cheque.address,
-                              version: QrVersions.auto,
-                              size: 200,
-                              backgroundColor: context.sailTheme.colors.backgroundSecondary,
-                            ),
-                          ),
 
                           // Address with copy button
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                child: SailText.primary13(
-                                  cheque.address,
-                                  textAlign: TextAlign.center,
+                          if (!cheque.funded)
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: SailText.primary13(
+                                    cheque.address,
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
-                              ),
-                              CopyButton(text: cheque.address),
-                            ],
-                          ),
+                                CopyButton(text: cheque.address),
+                              ],
+                            ),
 
                           // Private key section (only shown when funded)
                           if (cheque.funded && cheque.hasPrivateKeyWif() && cheque.privateKeyWif.isNotEmpty)
