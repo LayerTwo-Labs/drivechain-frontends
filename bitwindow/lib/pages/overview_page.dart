@@ -825,7 +825,7 @@ class NewGraffitiViewModel extends BaseViewModel {
       final _ = await _api.wallet.sendTransaction(
         {address: 10000}, // 0.0001 BTC
         opReturnMessage: messageController.text,
-        fixedFeeSats: 1000,
+        feeSatPerVbyte: 1,
       );
 
       if (!context.mounted) return;
