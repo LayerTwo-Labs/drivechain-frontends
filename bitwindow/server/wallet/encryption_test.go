@@ -49,6 +49,8 @@ func TestDecryptDartEncrypted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Decryption failed: %v", err)
 	}
+
+	t.Logf("Decrypted: %s", decrypted)
 }
 
 // Helper function for encryption (not in original file)

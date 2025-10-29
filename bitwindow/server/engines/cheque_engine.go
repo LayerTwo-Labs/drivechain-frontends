@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -34,23 +35,28 @@ type ChequeEngine struct {
 	mu          sync.RWMutex
 	seedHex     string
 	isUnlocked  bool
+	unlockCond  *sync.Cond
 	chainParams *chaincfg.Params
+	bitcoind    *service.Service[corerpc.BitcoinServiceClient]
 }
 
 // NewChequeEngine creates a new cheque engine
-func NewChequeEngine(chainParams *chaincfg.Params) *ChequeEngine {
-	return &ChequeEngine{
+func NewChequeEngine(chainParams *chaincfg.Params, bitcoind *service.Service[corerpc.BitcoinServiceClient]) *ChequeEngine {
+	e := &ChequeEngine{
 		isUnlocked:  false,
 		chainParams: chainParams,
+		bitcoind:    bitcoind,
 	}
+	e.unlockCond = sync.NewCond(&e.mu)
+	return e
 }
 
 // Unlock loads the seed into memory from decrypted wallet data
-func (e *ChequeEngine) Unlock(walletData map[string]interface{}) error {
+func (e *ChequeEngine) Unlock(walletData map[string]any) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	master, ok := walletData["master"].(map[string]interface{})
+	master, ok := walletData["master"].(map[string]any)
 	if !ok {
 		return errors.New("invalid wallet structure: missing master key")
 	}
@@ -67,6 +73,7 @@ func (e *ChequeEngine) Unlock(walletData map[string]interface{}) error {
 
 	e.seedHex = seedHex
 	e.isUnlocked = true
+	e.unlockCond.Broadcast()
 	return nil
 }
 
@@ -122,8 +129,8 @@ func (e *ChequeEngine) deriveChequeKey(index uint32) (*hdkeychain.ExtendedKey, e
 		return nil, fmt.Errorf("failed to derive cheque account: %w", err)
 	}
 
-	// m/44'/0'/999'/{index}
-	chequeKey, err := chequeAcct.Derive(hdkeychain.HardenedKeyStart + index)
+	// m/44'/0'/999'/{index} - index is NOT hardened per BIP44
+	chequeKey, err := chequeAcct.Derive(index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive cheque key: %w", err)
 	}
@@ -273,4 +280,184 @@ func (e *ChequeEngine) deriveChequeAddressUnlocked(index uint32) (string, error)
 	}
 
 	return address.EncodeAddress(), nil
+}
+
+// Start begins the cheque engine background monitoring
+func (e *ChequeEngine) Start(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+	log.Info().Msg("cheque engine started")
+
+	// Import cheque descriptor into Bitcoin Core so it tracks all cheque addresses
+	go e.importChequeDescriptor(ctx)
+
+	// Cheque recovery waits for unlock since it needs to derive addresses
+	go e.recoverChequesOnUnlock(ctx)
+}
+
+// importChequeDescriptor imports the cheque derivation path descriptor into Bitcoin Core
+// This allows Core to automatically track all cheque addresses without individual imports
+func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+
+	// Wait for wallet to be unlocked so we can access the seed
+	e.mu.Lock()
+	for !e.isUnlocked {
+		e.unlockCond.Wait()
+	}
+	seedHex := e.seedHex
+	e.mu.Unlock()
+
+	if seedHex == "" {
+		log.Warn().Msg("cannot import cheque descriptor: wallet not unlocked")
+		return
+	}
+
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to get bitcoind for descriptor import")
+		return
+	}
+
+	seedBytes, err := hex.DecodeString(seedHex)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to decode seed for descriptor import")
+		return
+	}
+
+	// Create master key and derive to account level m/44'/0'/999'
+	masterKey, err := hdkeychain.NewMaster(seedBytes, e.chainParams)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to create master key for descriptor")
+		return
+	}
+
+	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 44)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to derive purpose")
+		return
+	}
+
+	coinType, err := purpose.Derive(hdkeychain.HardenedKeyStart + 0)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to derive coin type")
+		return
+	}
+
+	chequeAcct, err := coinType.Derive(hdkeychain.HardenedKeyStart + chequeAccount)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to derive cheque account")
+		return
+	}
+
+	// Get the xpub for the account level
+	xpub := chequeAcct.String()
+
+	// Create wpkh descriptor without checksum first
+	descriptorWithoutChecksum := fmt.Sprintf("wpkh(%s/*)", xpub)
+
+	// Get Bitcoin Core to add the checksum for us using GetDescriptorInfo
+	descInfo, err := bitcoind.GetDescriptorInfo(ctx, connect.NewRequest(&corepb.GetDescriptorInfoRequest{
+		Descriptor_: descriptorWithoutChecksum,
+	}))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get descriptor info")
+		return
+	}
+
+	// Use the descriptor with checksum from Bitcoin Core
+	descriptor := descInfo.Msg.Descriptor_
+
+	// Import the descriptor into Bitcoin Core
+	resp, err := bitcoind.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
+		Requests: []*corepb.ImportDescriptorsRequest_Request{
+			{
+				Descriptor_: descriptor,
+				Active:      false, // Not setting as active descriptor
+				RangeStart:  0,
+				RangeEnd:    1000, // Watch first 1000 addresses
+				Timestamp:   nil,  // nil = "now", don't rescan
+				Internal:    false,
+				Label:       "cheques",
+			},
+		},
+	}))
+
+	if err != nil {
+		log.Error().Err(err).Msg("failed to import cheque descriptor")
+		return
+	}
+
+	// Check if import was successful
+	if len(resp.Msg.Responses) > 0 && resp.Msg.Responses[0].Success {
+		log.Info().Msg("cheque descriptor imported successfully")
+	} else {
+		log.Warn().Msg("cheque descriptor import failed or already exists")
+	}
+}
+
+// recoverChequesOnUnlock waits for wallet unlock and bitcoind, then recovers cheques once
+func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+
+	// Wait for unlock
+	log.Debug().Msg("waiting for wallet unlock for cheque recovery")
+	unlocked := make(chan struct{})
+	go func() {
+		e.mu.Lock()
+		for !e.isUnlocked {
+			e.unlockCond.Wait()
+		}
+		e.mu.Unlock()
+		close(unlocked)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return
+	case <-unlocked:
+	}
+
+	log.Info().Msg("wallet unlocked, waiting for bitcoind for cheque recovery")
+
+	// Wait for bitcoind to connect
+	var connected bool
+	for !connected {
+		select {
+		case <-ctx.Done():
+			return
+		case connected = <-e.bitcoind.ConnectedChan():
+			if !connected {
+				log.Debug().Msg("bitcoind disconnected, waiting for reconnection")
+			}
+		}
+	}
+
+	log.Info().Msg("bitcoind connected, recovering cheques")
+
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get bitcoind client for recovery")
+		return
+	}
+
+	e.recoverCheques(ctx, bitcoind)
+	log.Info().Msg("cheque recovery complete")
+}
+
+// recoverCheques scans for funded cheques
+func (e *ChequeEngine) recoverCheques(ctx context.Context, bitcoind corerpc.BitcoinServiceClient) {
+	log := zerolog.Ctx(ctx)
+
+	recoveries, err := e.ScanForFunds(ctx, bitcoind, 20)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to scan for cheque funds")
+		return
+	}
+
+	if len(recoveries) == 0 {
+		log.Info().Msg("no funded cheques found during recovery scan")
+		return
+	}
+
+	log.Info().Int("count", len(recoveries)).Msg("found funded cheques during recovery scan")
 }

@@ -217,9 +217,9 @@ class ChequesTable extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SailButton(
-                    label: 'Fund Cheque',
+                    label: cheque.funded ? 'View Details' : 'Fund Cheque',
                     onPressed: () async => _viewCheque(context, cheque),
-                    variant: ButtonVariant.primary,
+                    variant: cheque.funded ? ButtonVariant.secondary : ButtonVariant.primary,
                     insideTable: true,
                   ),
                   const SizedBox(width: SailStyleValues.padding08),

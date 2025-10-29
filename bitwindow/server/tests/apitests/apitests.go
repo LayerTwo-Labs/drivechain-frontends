@@ -13,6 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -99,6 +100,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		BitcoindConnector: func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
 			return conf.bitcoind, nil
 		},
+		ChainParams: &chaincfg.SigNetParams,
 	}
 
 	srv, err := api.New(context.Background(), services, api.Config{

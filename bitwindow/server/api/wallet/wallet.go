@@ -815,24 +815,6 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to unlock cheque engine: %w", err))
 	}
 
-	// Auto-scan for existing funded cheques only if bitcoind is connected
-	go func() {
-		bitcoind, err := s.bitcoind.Get(ctx)
-		if err != nil {
-			log.Warn().Err(err).Msg("bitcoind not available, skipping cheque recovery scan")
-			return
-		}
-
-		// Quick connection test
-		_, err = bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
-		if err != nil {
-			log.Warn().Err(err).Msg("bitcoind not ready, skipping cheque recovery scan")
-			return
-		}
-
-		s.recoverCheques(ctx)
-	}()
-
 	log.Info().Msg("wallet unlocked successfully for cheque operations")
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
@@ -887,11 +869,6 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		Str("address", address).
 		Uint64("expected_sats", c.Msg.ExpectedAmountSats).
 		Msg("cheque created")
-
-	// Import address as watch-only to Bitcoin Core
-	if err := s.ensureWatchWalletAndImportAddress(ctx, address); err != nil {
-		log.Warn().Err(err).Str("address", address).Msg("failed to import address to watch wallet (cheque will still work)")
-	}
 
 	return connect.NewResponse(&pb.CreateChequeResponse{
 		Id:              id,
@@ -1217,11 +1194,6 @@ func (s *Server) recoverCheques(ctx context.Context) {
 				Str("address", recovery.Address).
 				Msg("failed to save recovered cheque")
 			continue
-		}
-
-		// Import recovered address to watch wallet
-		if err := s.ensureWatchWalletAndImportAddress(ctx, recovery.Address); err != nil {
-			log.Warn().Err(err).Str("address", recovery.Address).Msg("failed to import recovered address to watch wallet")
 		}
 
 		log.Info().
