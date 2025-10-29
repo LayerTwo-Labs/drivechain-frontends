@@ -415,7 +415,7 @@ class BitDriveProvider extends ChangeNotifier {
       final address = await bitwindowd.wallet.getNewAddress();
       await bitwindowd.wallet.sendTransaction(
         {address: 10000}, // 0.0001 BTC
-        fixedFeeSats: 1000,
+        feeSatPerVbyte: 1,
         opReturnMessage: opReturnData,
       );
 
