@@ -12,7 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  file_picker: ^10.3.2
+  file_picker: ^10.3.3
 
   dart_coin_rpc:
     git:
@@ -29,8 +29,8 @@ dependencies:
   path_provider: ^2.1.5
   sail_ui:
     path: ../sail_ui
-  logger: ^2.6.1
-  google_fonts: ^6.3.1
+  logger: ^2.6.2
+  google_fonts: ^6.3.2
   auto_route: ^10.2.0
   fixnum: ^1.1.1
   get_it: ^8.2.0
@@ -47,7 +47,7 @@ dependencies:
   crypto: ^3.0.6
   encrypt: ^5.0.3
   connectrpc: ^1.0.0
-  desktop_multi_window: ^0.2.1
+  desktop_multi_window: ^0.3.0
   convert: ^3.1.2
   bip39_mnemonic: ^4.0.1
   dart_bip32_bip44: ^0.2.0
@@ -63,8 +63,8 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  auto_route_generator: ^10.2.4
-  build_runner: ^2.10.0
+  auto_route_generator: ^10.2.5
+  build_runner: ^2.10.1
   flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:

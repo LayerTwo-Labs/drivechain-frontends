@@ -344,9 +344,6 @@ jobs:
             cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$normalized_os-version.json"
           fi
 
-          echo "Content of created file:"
-          cat "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/${{ matrix.client }}-$normalized_os-version.json"
-
       - name: Generate appcast fragment for this build
         continue-on-error: true
         run: |

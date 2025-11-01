@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -20,10 +21,16 @@ import 'package:zside/rpc/models/active_sidechains.dart';
 
 void main(List<String> args) async {
   try {
-    final (applicationDir, logFile, log) = await init(args);
+    WidgetsFlutterBinding.ensureInitialized();
 
-    if (args.contains('multi_window')) {
-      return runMultiWindow(args, log, applicationDir, logFile);
+    // Get the current window controller to check if this is a sub-window
+    final windowController = await WindowController.fromCurrentEngine();
+
+    final (applicationDir, logFile, log) = await init(windowController.arguments);
+
+    // If arguments are not empty, this is a sub-window
+    if (windowController.arguments.isNotEmpty) {
+      return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
     }
 
     await runMainWindow(log, applicationDir, logFile);
@@ -32,21 +39,21 @@ void main(List<String> args) async {
   }
 }
 
-Future<(Directory, File, Logger)> init(List<String> args) async {
-  WidgetsFlutterBinding.ensureInitialized();
+Future<(Directory, File, Logger)> init(String arguments) async {
   addFontLicense();
 
   Directory? applicationDir;
   File? logFile;
 
-  if (args.contains('multi_window')) {
-    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+  // If arguments are not empty, parse them for sub-window mode
+  if (arguments.isNotEmpty) {
+    final parsedArgs = jsonDecode(arguments) as Map<String, dynamic>;
 
-    if (arguments['application_dir'] != null) {
-      applicationDir = Directory(arguments['application_dir']);
+    if (parsedArgs['application_dir'] != null) {
+      applicationDir = Directory(parsedArgs['application_dir']);
     }
-    if (arguments['log_file'] != null) {
-      logFile = File(arguments['log_file']);
+    if (parsedArgs['log_file'] != null) {
+      logFile = File(parsedArgs['log_file']);
     }
 
     if (logFile == null || applicationDir == null) {
@@ -96,8 +103,8 @@ Future<(Directory, File, Logger)> init(List<String> args) async {
   return (applicationDir, logFile, log);
 }
 
-void runMultiWindow(List<String> args, Logger log, Directory applicationDir, File logFile) {
-  final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) {
+  final arguments = jsonDecode(argumentsStr) as Map<String, dynamic>;
   log.i('starting zside in multi window');
   final zside = GetIt.I.get<ZSideRPC>();
 
