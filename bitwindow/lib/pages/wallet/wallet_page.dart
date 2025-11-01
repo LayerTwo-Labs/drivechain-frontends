@@ -127,7 +127,7 @@ class WalletPage extends StatelessWidget {
                   child: UTXOsTab(),
                 ),
                 const SingleTabItem(
-                  label: 'Cheques',
+                  label: 'Checks',
                   child: ChequesTab(),
                 ),
                 MultiSelectTabItem(
