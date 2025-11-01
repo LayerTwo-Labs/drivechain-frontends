@@ -8,6 +8,59 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:window_manager/window_manager.dart';
+
+// Extension to add window control methods to WindowController
+extension WindowControllerExtension on WindowController {
+  Future<void> doCustomInitialize() async {
+    return await setWindowMethodHandler((call) async {
+      switch (call.method) {
+        case 'window_set_frame':
+          final args = call.arguments as Map<String, dynamic>;
+          final x = args['x'] as double;
+          final y = args['y'] as double;
+          final width = args['width'] as double;
+          final height = args['height'] as double;
+          await windowManager.setPosition(Offset(x, y));
+          await windowManager.setSize(Size(width, height));
+          return;
+        case 'window_set_title':
+          final title = call.arguments as String;
+          return await windowManager.setTitle(title);
+        case 'window_show':
+          return await windowManager.show();
+        case 'window_close':
+          return await windowManager.close();
+        default:
+          throw MissingPluginException('Not implemented: ${call.method}');
+      }
+    });
+  }
+
+  Future<void> setFrame(Rect frame) {
+    return invokeMethod(
+      'sail_ui_window_channel',
+      MethodCall('window_set_frame', {
+        'x': frame.left,
+        'y': frame.top,
+        'width': frame.width,
+        'height': frame.height,
+      }),
+    );
+  }
+
+  Future<void> setTitle(String title) {
+    return invokeMethod('sail_ui_window_channel', MethodCall('window_set_title', title));
+  }
+
+  Future<void> show() {
+    return invokeMethod('sail_ui_window_channel', MethodCall('window_show'));
+  }
+
+  Future<void> close() {
+    return invokeMethod('sail_ui_window_channel', MethodCall('window_close'));
+  }
+}
 
 // WindowProvider lets you
 // 1. Open new windows with predefined pages
@@ -41,7 +94,8 @@ class WindowProvider extends ChangeNotifier {
   /// Initialize the window provider
   Future<void> _initialize() async {
     // Set up method handler for receiving messages from other windows
-    DesktopMultiWindow.setMethodHandler(_handleMethodCall);
+    const channel = WindowMethodChannel('sail_ui_window_channel');
+    channel.setMethodCallHandler(_handleMethodCall);
   }
 
   /// Create a new window with the specified window type
@@ -57,7 +111,15 @@ class WindowProvider extends ChangeNotifier {
       final title = windowType.name;
       log.i('Creating window: $title with type: ${windowType.identifier}');
 
-      final windowController = await DesktopMultiWindow.createWindow(jsonEncode(windowConfig));
+      final windowController = await WindowController.create(
+        WindowConfiguration(
+          hiddenAtLaunch: true,
+          arguments: jsonEncode(windowConfig),
+        ),
+      );
+
+      // Initialize the window controller extension
+      await windowController.doCustomInitialize();
 
       final screen = PlatformDispatcher.instance.displays.first;
       // Get the actual physical size (accounting for display scaling)
@@ -137,7 +199,7 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> close(int windowId) async {
+  Future<bool> close(String windowId) async {
     try {
       final windowInfo = windows.firstWhere((w) => w.id == windowId);
 
@@ -159,7 +221,7 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> focus(int windowId) async {
+  Future<bool> focus(String windowId) async {
     try {
       final windowInfo = windows.firstWhere((w) => w.id == windowId);
       await windowInfo.controller.show();
@@ -170,9 +232,11 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<dynamic> sendMessageTo(int windowId, String method, dynamic arguments) async {
+  Future<dynamic> sendMessageTo(String windowId, String method, dynamic arguments) async {
     try {
-      final response = await DesktopMultiWindow.invokeMethod(windowId, method, arguments);
+      final windowController = WindowController.fromWindowId(windowId);
+      const channel = WindowMethodChannel('sail_ui_window_channel');
+      final response = await windowController.invokeMethod(channel.name, MethodCall(method, arguments));
       return response;
     } catch (e) {
       log.e('could not send message to window $windowId: $e', error: e);
@@ -180,8 +244,8 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<int, dynamic>> sendMessageToAll(String method, dynamic arguments) async {
-    final responses = <int, dynamic>{};
+  Future<Map<String, dynamic>> sendMessageToAll(String method, dynamic arguments) async {
+    final responses = <String, dynamic>{};
     for (final window in windows) {
       try {
         final response = await sendMessageTo(window.id, method, arguments);
@@ -195,7 +259,9 @@ class WindowProvider extends ChangeNotifier {
 
   Future<dynamic> sendMessageToMain(String method, dynamic arguments) async {
     try {
-      final response = await DesktopMultiWindow.invokeMethod(0, method, arguments);
+      final windowController = WindowController.fromWindowId('0');
+      const channel = WindowMethodChannel('sail_ui_window_channel');
+      final response = await windowController.invokeMethod(channel.name, MethodCall(method, arguments));
       return response;
     } catch (e) {
       log.e('could not send message to main window: $e', error: e);
@@ -204,18 +270,28 @@ class WindowProvider extends ChangeNotifier {
   }
 
   /// Handle incoming method calls from other windows
-  Future<dynamic> _handleMethodCall(MethodCall call, int fromWindowId) async {
+  Future<dynamic> _handleMethodCall(MethodCall call) async {
+    // In v3, the fromWindowId needs to be passed in the arguments if needed
+    final arguments = call.arguments as Map<String, dynamic>?;
+    final fromWindowId = arguments?['fromWindowId'] as String?;
+
     switch (call.method) {
       case 'window_closed':
-        _handleWindowClosed(fromWindowId);
+        if (fromWindowId != null) {
+          _handleWindowClosed(fromWindowId);
+        }
         return 'Window close notification received';
       case 'window_focused':
-        _handleWindowFocused(fromWindowId);
+        if (fromWindowId != null) {
+          _handleWindowFocused(fromWindowId);
+        }
         return 'Window focus notification received';
       case 'data_request':
         return _handleDataRequest(call.arguments);
       case 'status_update':
-        _handleStatusUpdate(fromWindowId, call.arguments);
+        if (fromWindowId != null) {
+          _handleStatusUpdate(fromWindowId, call.arguments);
+        }
         return 'Status update received';
       default:
         log.w('Unknown method call: ${call.method}');
@@ -223,20 +299,20 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  void _handleWindowClosed(int windowId) {
+  void _handleWindowClosed(String windowId) {
     windows.removeWhere((w) => w.id == windowId);
     notifyListeners();
   }
 
-  void _handleWindowFocused(int windowId) {}
+  void _handleWindowFocused(String windowId) {}
 
   dynamic _handleDataRequest(dynamic arguments) {
     return {'status': 'data_available', 'timestamp': DateTime.now().toIso8601String()};
   }
 
-  void _handleStatusUpdate(int fromWindowId, dynamic arguments) {}
+  void _handleStatusUpdate(String fromWindowId, dynamic arguments) {}
 
-  WindowInfo? getByID(int windowId) {
+  WindowInfo? getByID(String windowId) {
     try {
       return windows.firstWhere((w) => w.id == windowId);
     } catch (e) {
@@ -265,7 +341,7 @@ class SailWindow {
 
 /// Class representing a window with its properties
 class WindowInfo {
-  final int id;
+  final String id;
   final SailWindow windowType;
   final WindowController controller;
   final DateTime createdAt;
