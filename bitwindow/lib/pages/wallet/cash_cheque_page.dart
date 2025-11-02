@@ -6,21 +6,22 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class CreateChequePage extends StatefulWidget {
-  const CreateChequePage({super.key});
+class CashChequePage extends StatefulWidget {
+  const CashChequePage({super.key});
 
   @override
-  State<CreateChequePage> createState() => _CreateChequePageState();
+  State<CashChequePage> createState() => _CashChequePageState();
 }
 
-class _CreateChequePageState extends State<CreateChequePage> {
+class _CashChequePageState extends State<CashChequePage> {
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
-  final TextEditingController _amountController = TextEditingController();
-  bool _isCreating = false;
+  final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  final TextEditingController _wifController = TextEditingController();
+  bool _isCashing = false;
 
   @override
   void dispose() {
-    _amountController.dispose();
+    _wifController.dispose();
     super.dispose();
   }
 
@@ -31,7 +32,7 @@ class _CreateChequePageState extends State<CreateChequePage> {
       appBar: AppBar(
         backgroundColor: SailTheme.of(context).colors.background,
         foregroundColor: SailTheme.of(context).colors.text,
-        title: SailText.primary20('Create Cheque'),
+        title: SailText.primary20('Cash Cheque'),
       ),
       body: SafeArea(
         child: Center(
@@ -43,12 +44,16 @@ class _CreateChequePageState extends State<CreateChequePage> {
                 spacing: SailStyleValues.padding32,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SailText.primary24('How much should the cheque be for?'),
+                  SailText.primary24('Enter the private key (WIF)'),
+                  SailText.secondary13(
+                    'Paste the private key from the cheque you received. The funds will be swept to your wallet.',
+                    textAlign: TextAlign.center,
+                  ),
                   SailTextField(
-                    controller: _amountController,
-                    hintText: '0.00000000',
-                    suffix: 'BTC',
-                    textFieldType: TextFieldType.bitcoin,
+                    controller: _wifController,
+                    hintText: 'Private key (WIF format)',
+                    textFieldType: TextFieldType.text,
+                    maxLines: 3,
                   ),
                   SailRow(
                     spacing: SailStyleValues.padding08,
@@ -60,9 +65,9 @@ class _CreateChequePageState extends State<CreateChequePage> {
                         onPressed: () async => context.router.maybePop(),
                       ),
                       SailButton(
-                        label: 'Create',
-                        loading: _isCreating,
-                        onPressed: () async => _createCheque(),
+                        label: 'Cash Cheque',
+                        loading: _isCashing,
+                        onPressed: () async => _cashCheque(),
                       ),
                     ],
                   ),
@@ -75,20 +80,14 @@ class _CreateChequePageState extends State<CreateChequePage> {
     );
   }
 
-  Future<void> _createCheque() async {
-    final amountText = _amountController.text.trim();
-    if (amountText.isEmpty) {
-      showSnackBar(context, 'Please enter an amount');
+  Future<void> _cashCheque() async {
+    final wif = _wifController.text.trim();
+    if (wif.isEmpty) {
+      showSnackBar(context, 'Please enter a private key');
       return;
     }
 
-    final btcAmount = double.tryParse(amountText);
-    if (btcAmount == null || btcAmount <= 0) {
-      showSnackBar(context, 'Please enter a valid amount');
-      return;
-    }
-
-    // Check if wallet is locked before attempting to create cheque
+    // Check if wallet is locked before attempting to import cheque
     if (!_chequeProvider.isWalletUnlocked) {
       if (!mounted) return;
       await _showUnlockDialog();
@@ -98,35 +97,41 @@ class _CreateChequePageState extends State<CreateChequePage> {
       }
     }
 
-    final sats = (btcAmount * 100000000).toInt();
-
     setState(() {
-      _isCreating = true;
+      _isCashing = true;
     });
 
-    final cheque = await _chequeProvider.createCheque(sats);
+    try {
+      final result = await _bitwindowRPC.wallet.importCheque(wif);
 
-    setState(() {
-      _isCreating = false;
-    });
+      setState(() {
+        _isCashing = false;
+      });
 
-    if (cheque == null) {
+      if (!mounted) return;
+
+      // Navigate to success page
+      await context.router.replace(
+        CashChequeSuccessRoute(
+          txid: result.txid,
+          amountSats: result.amountSats,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isCashing = false;
+      });
+
       if (mounted) {
         // Check if wallet became locked during operation
-        if (!_chequeProvider.isWalletUnlocked) {
+        if (e.toString().toLowerCase().contains('wallet is locked') && !_chequeProvider.isWalletUnlocked) {
           await _showUnlockDialog();
           return;
         }
 
-        showSnackBar(context, _chequeProvider.modelError ?? 'Failed to create cheque');
+        showSnackBar(context, 'Failed to cash cheque: $e');
       }
-      return;
     }
-
-    if (!mounted) return;
-
-    // Navigate to the cheque detail page
-    await context.router.replace(ChequeDetailRoute(chequeId: cheque.id.toInt()));
   }
 
   Future<void> _showUnlockDialog() async {
@@ -145,7 +150,7 @@ class _CreateChequePageState extends State<CreateChequePage> {
               spacing: SailStyleValues.padding12,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SailText.secondary13('Enter your wallet password to create cheques'),
+                SailText.secondary13('Enter your wallet password to cash cheques'),
                 SailTextField(
                   controller: passwordController,
                   hintText: 'Password',

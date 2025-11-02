@@ -1540,6 +1540,8 @@ type Cheque struct {
 	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	FundedAt           *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=funded_at,json=fundedAt,proto3,oneof" json:"funded_at,omitempty"`
 	PrivateKeyWif      *string                `protobuf:"bytes,10,opt,name=private_key_wif,json=privateKeyWif,proto3,oneof" json:"private_key_wif,omitempty"`
+	SweptTxid          *string                `protobuf:"bytes,11,opt,name=swept_txid,json=sweptTxid,proto3,oneof" json:"swept_txid,omitempty"`
+	SweptAt            *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=swept_at,json=sweptAt,proto3,oneof" json:"swept_at,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1642,6 +1644,20 @@ func (x *Cheque) GetPrivateKeyWif() string {
 		return *x.PrivateKeyWif
 	}
 	return ""
+}
+
+func (x *Cheque) GetSweptTxid() string {
+	if x != nil && x.SweptTxid != nil {
+		return *x.SweptTxid
+	}
+	return ""
+}
+
+func (x *Cheque) GetSweptAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SweptAt
+	}
+	return nil
 }
 
 type ListChequesResponse struct {
@@ -1948,6 +1964,102 @@ func (x *DeleteChequeRequest) GetId() int64 {
 	return 0
 }
 
+type ImportChequeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PrivateKeyWif string                 `protobuf:"bytes,1,opt,name=private_key_wif,json=privateKeyWif,proto3" json:"private_key_wif,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportChequeRequest) Reset() {
+	*x = ImportChequeRequest{}
+	mi := &file_wallet_v1_wallet_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportChequeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportChequeRequest) ProtoMessage() {}
+
+func (x *ImportChequeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_wallet_v1_wallet_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportChequeRequest.ProtoReflect.Descriptor instead.
+func (*ImportChequeRequest) Descriptor() ([]byte, []int) {
+	return file_wallet_v1_wallet_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ImportChequeRequest) GetPrivateKeyWif() string {
+	if x != nil {
+		return x.PrivateKeyWif
+	}
+	return ""
+}
+
+type ImportChequeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	AmountSats    uint64                 `protobuf:"varint,2,opt,name=amount_sats,json=amountSats,proto3" json:"amount_sats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportChequeResponse) Reset() {
+	*x = ImportChequeResponse{}
+	mi := &file_wallet_v1_wallet_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportChequeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportChequeResponse) ProtoMessage() {}
+
+func (x *ImportChequeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_wallet_v1_wallet_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportChequeResponse.ProtoReflect.Descriptor instead.
+func (*ImportChequeResponse) Descriptor() ([]byte, []int) {
+	return file_wallet_v1_wallet_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *ImportChequeResponse) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *ImportChequeResponse) GetAmountSats() uint64 {
+	if x != nil {
+		return x.AmountSats
+	}
+	return 0
+}
+
 type ListSidechainDepositsResponse_SidechainDeposit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
@@ -1960,7 +2072,7 @@ type ListSidechainDepositsResponse_SidechainDeposit struct {
 
 func (x *ListSidechainDepositsResponse_SidechainDeposit) Reset() {
 	*x = ListSidechainDepositsResponse_SidechainDeposit{}
-	mi := &file_wallet_v1_wallet_proto_msgTypes[35]
+	mi := &file_wallet_v1_wallet_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1972,7 +2084,7 @@ func (x *ListSidechainDepositsResponse_SidechainDeposit) String() string {
 func (*ListSidechainDepositsResponse_SidechainDeposit) ProtoMessage() {}
 
 func (x *ListSidechainDepositsResponse_SidechainDeposit) ProtoReflect() protoreflect.Message {
-	mi := &file_wallet_v1_wallet_proto_msgTypes[35]
+	mi := &file_wallet_v1_wallet_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2125,7 +2237,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x1aGetChequePrivateKeyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"E\n" +
 	"\x1bGetChequePrivateKeyResponse\x12&\n" +
-	"\x0fprivate_key_wif\x18\x01 \x01(\tR\rprivateKeyWif\"\xef\x03\n" +
+	"\x0fprivate_key_wif\x18\x01 \x01(\tR\rprivateKeyWif\"\xeb\x04\n" +
 	"\x06Cheque\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12)\n" +
 	"\x10derivation_index\x18\x02 \x01(\rR\x0fderivationIndex\x12\x18\n" +
@@ -2139,12 +2251,17 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
 	"\tfunded_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampH\x02R\bfundedAt\x88\x01\x01\x12+\n" +
 	"\x0fprivate_key_wif\x18\n" +
-	" \x01(\tH\x03R\rprivateKeyWif\x88\x01\x01B\x0e\n" +
+	" \x01(\tH\x03R\rprivateKeyWif\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"swept_txid\x18\v \x01(\tH\x04R\tsweptTxid\x88\x01\x01\x12:\n" +
+	"\bswept_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampH\x05R\asweptAt\x88\x01\x01B\x0e\n" +
 	"\f_funded_txidB\x15\n" +
 	"\x13_actual_amount_satsB\f\n" +
 	"\n" +
 	"_funded_atB\x12\n" +
-	"\x10_private_key_wif\"B\n" +
+	"\x10_private_key_wifB\r\n" +
+	"\v_swept_txidB\v\n" +
+	"\t_swept_at\"B\n" +
 	"\x13ListChequesResponse\x12+\n" +
 	"\acheques\x18\x01 \x03(\v2\x11.wallet.v1.ChequeR\acheques\"+\n" +
 	"\x19CheckChequeFundingRequest\x12\x0e\n" +
@@ -2164,7 +2281,13 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x13SweepChequeResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"%\n" +
 	"\x13DeleteChequeRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id2\xb1\r\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"=\n" +
+	"\x13ImportChequeRequest\x12&\n" +
+	"\x0fprivate_key_wif\x18\x01 \x01(\tR\rprivateKeyWif\"K\n" +
+	"\x14ImportChequeResponse\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x1f\n" +
+	"\vamount_sats\x18\x02 \x01(\x04R\n" +
+	"amountSats2\x82\x0e\n" +
 	"\rWalletService\x12X\n" +
 	"\x0fSendTransaction\x12!.wallet.v1.SendTransactionRequest\x1a\".wallet.v1.SendTransactionResponse\x12C\n" +
 	"\n" +
@@ -2188,7 +2311,8 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\vListCheques\x12\x16.google.protobuf.Empty\x1a\x1e.wallet.v1.ListChequesResponse\x12a\n" +
 	"\x12CheckChequeFunding\x12$.wallet.v1.CheckChequeFundingRequest\x1a%.wallet.v1.CheckChequeFundingResponse\x12L\n" +
 	"\vSweepCheque\x12\x1d.wallet.v1.SweepChequeRequest\x1a\x1e.wallet.v1.SweepChequeResponse\x12F\n" +
-	"\fDeleteCheque\x12\x1e.wallet.v1.DeleteChequeRequest\x1a\x16.google.protobuf.EmptyB\xac\x01\n" +
+	"\fDeleteCheque\x12\x1e.wallet.v1.DeleteChequeRequest\x1a\x16.google.protobuf.Empty\x12O\n" +
+	"\fImportCheque\x12\x1e.wallet.v1.ImportChequeRequest\x1a\x1f.wallet.v1.ImportChequeResponseB\xac\x01\n" +
 	"\rcom.wallet.v1B\vWalletProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1;walletv1\xa2\x02\x03WXX\xaa\x02\tWallet.V1\xca\x02\tWallet\\V1\xe2\x02\x15Wallet\\V1\\GPBMetadata\xea\x02\n" +
 	"Wallet::V1b\x06proto3"
 
@@ -2204,7 +2328,7 @@ func file_wallet_v1_wallet_proto_rawDescGZIP() []byte {
 	return file_wallet_v1_wallet_proto_rawDescData
 }
 
-var file_wallet_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_wallet_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_wallet_v1_wallet_proto_goTypes = []any{
 	(*GetNewAddressResponse)(nil),                          // 0: wallet.v1.GetNewAddressResponse
 	(*SendTransactionRequest)(nil),                         // 1: wallet.v1.SendTransactionRequest
@@ -2240,76 +2364,81 @@ var file_wallet_v1_wallet_proto_goTypes = []any{
 	(*SweepChequeRequest)(nil),                             // 31: wallet.v1.SweepChequeRequest
 	(*SweepChequeResponse)(nil),                            // 32: wallet.v1.SweepChequeResponse
 	(*DeleteChequeRequest)(nil),                            // 33: wallet.v1.DeleteChequeRequest
-	nil,                                                    // 34: wallet.v1.SendTransactionRequest.DestinationsEntry
-	(*ListSidechainDepositsResponse_SidechainDeposit)(nil), // 35: wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
-	(*timestamppb.Timestamp)(nil),                          // 36: google.protobuf.Timestamp
-	(*v1.DenialInfo)(nil),                                  // 37: bitwindowd.v1.DenialInfo
-	(*emptypb.Empty)(nil),                                  // 38: google.protobuf.Empty
+	(*ImportChequeRequest)(nil),                            // 34: wallet.v1.ImportChequeRequest
+	(*ImportChequeResponse)(nil),                           // 35: wallet.v1.ImportChequeResponse
+	nil,                                                    // 36: wallet.v1.SendTransactionRequest.DestinationsEntry
+	(*ListSidechainDepositsResponse_SidechainDeposit)(nil), // 37: wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
+	(*timestamppb.Timestamp)(nil),                          // 38: google.protobuf.Timestamp
+	(*v1.DenialInfo)(nil),                                  // 39: bitwindowd.v1.DenialInfo
+	(*emptypb.Empty)(nil),                                  // 40: google.protobuf.Empty
 }
 var file_wallet_v1_wallet_proto_depIdxs = []int32{
-	34, // 0: wallet.v1.SendTransactionRequest.destinations:type_name -> wallet.v1.SendTransactionRequest.DestinationsEntry
+	36, // 0: wallet.v1.SendTransactionRequest.destinations:type_name -> wallet.v1.SendTransactionRequest.DestinationsEntry
 	5,  // 1: wallet.v1.SendTransactionRequest.required_inputs:type_name -> wallet.v1.UnspentOutput
 	10, // 2: wallet.v1.ListTransactionsResponse.transactions:type_name -> wallet.v1.WalletTransaction
-	36, // 3: wallet.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
-	37, // 4: wallet.v1.UnspentOutput.denial_info:type_name -> bitwindowd.v1.DenialInfo
+	38, // 3: wallet.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
+	39, // 4: wallet.v1.UnspentOutput.denial_info:type_name -> bitwindowd.v1.DenialInfo
 	5,  // 5: wallet.v1.ListUnspentResponse.utxos:type_name -> wallet.v1.UnspentOutput
 	8,  // 6: wallet.v1.ListReceiveAddressesResponse.addresses:type_name -> wallet.v1.ReceiveAddress
-	36, // 7: wallet.v1.ReceiveAddress.last_used_at:type_name -> google.protobuf.Timestamp
-	36, // 8: wallet.v1.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
+	38, // 7: wallet.v1.ReceiveAddress.last_used_at:type_name -> google.protobuf.Timestamp
+	38, // 8: wallet.v1.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
 	9,  // 9: wallet.v1.WalletTransaction.confirmation_time:type_name -> wallet.v1.Confirmation
-	35, // 10: wallet.v1.ListSidechainDepositsResponse.deposits:type_name -> wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
+	37, // 10: wallet.v1.ListSidechainDepositsResponse.deposits:type_name -> wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
 	27, // 11: wallet.v1.GetChequeResponse.cheque:type_name -> wallet.v1.Cheque
-	36, // 12: wallet.v1.Cheque.created_at:type_name -> google.protobuf.Timestamp
-	36, // 13: wallet.v1.Cheque.funded_at:type_name -> google.protobuf.Timestamp
-	27, // 14: wallet.v1.ListChequesResponse.cheques:type_name -> wallet.v1.Cheque
-	36, // 15: wallet.v1.CheckChequeFundingResponse.funded_at:type_name -> google.protobuf.Timestamp
-	1,  // 16: wallet.v1.WalletService.SendTransaction:input_type -> wallet.v1.SendTransactionRequest
-	38, // 17: wallet.v1.WalletService.GetBalance:input_type -> google.protobuf.Empty
-	38, // 18: wallet.v1.WalletService.GetNewAddress:input_type -> google.protobuf.Empty
-	38, // 19: wallet.v1.WalletService.ListTransactions:input_type -> google.protobuf.Empty
-	38, // 20: wallet.v1.WalletService.ListUnspent:input_type -> google.protobuf.Empty
-	38, // 21: wallet.v1.WalletService.ListReceiveAddresses:input_type -> google.protobuf.Empty
-	11, // 22: wallet.v1.WalletService.ListSidechainDeposits:input_type -> wallet.v1.ListSidechainDepositsRequest
-	13, // 23: wallet.v1.WalletService.CreateSidechainDeposit:input_type -> wallet.v1.CreateSidechainDepositRequest
-	15, // 24: wallet.v1.WalletService.SignMessage:input_type -> wallet.v1.SignMessageRequest
-	17, // 25: wallet.v1.WalletService.VerifyMessage:input_type -> wallet.v1.VerifyMessageRequest
-	38, // 26: wallet.v1.WalletService.GetStats:input_type -> google.protobuf.Empty
-	20, // 27: wallet.v1.WalletService.UnlockWallet:input_type -> wallet.v1.UnlockWalletRequest
-	38, // 28: wallet.v1.WalletService.LockWallet:input_type -> google.protobuf.Empty
-	38, // 29: wallet.v1.WalletService.IsWalletUnlocked:input_type -> google.protobuf.Empty
-	21, // 30: wallet.v1.WalletService.CreateCheque:input_type -> wallet.v1.CreateChequeRequest
-	23, // 31: wallet.v1.WalletService.GetCheque:input_type -> wallet.v1.GetChequeRequest
-	25, // 32: wallet.v1.WalletService.GetChequePrivateKey:input_type -> wallet.v1.GetChequePrivateKeyRequest
-	38, // 33: wallet.v1.WalletService.ListCheques:input_type -> google.protobuf.Empty
-	29, // 34: wallet.v1.WalletService.CheckChequeFunding:input_type -> wallet.v1.CheckChequeFundingRequest
-	31, // 35: wallet.v1.WalletService.SweepCheque:input_type -> wallet.v1.SweepChequeRequest
-	33, // 36: wallet.v1.WalletService.DeleteCheque:input_type -> wallet.v1.DeleteChequeRequest
-	2,  // 37: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
-	3,  // 38: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
-	0,  // 39: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
-	4,  // 40: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
-	6,  // 41: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
-	7,  // 42: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
-	12, // 43: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
-	14, // 44: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
-	16, // 45: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
-	18, // 46: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
-	19, // 47: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
-	38, // 48: wallet.v1.WalletService.UnlockWallet:output_type -> google.protobuf.Empty
-	38, // 49: wallet.v1.WalletService.LockWallet:output_type -> google.protobuf.Empty
-	38, // 50: wallet.v1.WalletService.IsWalletUnlocked:output_type -> google.protobuf.Empty
-	22, // 51: wallet.v1.WalletService.CreateCheque:output_type -> wallet.v1.CreateChequeResponse
-	24, // 52: wallet.v1.WalletService.GetCheque:output_type -> wallet.v1.GetChequeResponse
-	26, // 53: wallet.v1.WalletService.GetChequePrivateKey:output_type -> wallet.v1.GetChequePrivateKeyResponse
-	28, // 54: wallet.v1.WalletService.ListCheques:output_type -> wallet.v1.ListChequesResponse
-	30, // 55: wallet.v1.WalletService.CheckChequeFunding:output_type -> wallet.v1.CheckChequeFundingResponse
-	32, // 56: wallet.v1.WalletService.SweepCheque:output_type -> wallet.v1.SweepChequeResponse
-	38, // 57: wallet.v1.WalletService.DeleteCheque:output_type -> google.protobuf.Empty
-	37, // [37:58] is the sub-list for method output_type
-	16, // [16:37] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	38, // 12: wallet.v1.Cheque.created_at:type_name -> google.protobuf.Timestamp
+	38, // 13: wallet.v1.Cheque.funded_at:type_name -> google.protobuf.Timestamp
+	38, // 14: wallet.v1.Cheque.swept_at:type_name -> google.protobuf.Timestamp
+	27, // 15: wallet.v1.ListChequesResponse.cheques:type_name -> wallet.v1.Cheque
+	38, // 16: wallet.v1.CheckChequeFundingResponse.funded_at:type_name -> google.protobuf.Timestamp
+	1,  // 17: wallet.v1.WalletService.SendTransaction:input_type -> wallet.v1.SendTransactionRequest
+	40, // 18: wallet.v1.WalletService.GetBalance:input_type -> google.protobuf.Empty
+	40, // 19: wallet.v1.WalletService.GetNewAddress:input_type -> google.protobuf.Empty
+	40, // 20: wallet.v1.WalletService.ListTransactions:input_type -> google.protobuf.Empty
+	40, // 21: wallet.v1.WalletService.ListUnspent:input_type -> google.protobuf.Empty
+	40, // 22: wallet.v1.WalletService.ListReceiveAddresses:input_type -> google.protobuf.Empty
+	11, // 23: wallet.v1.WalletService.ListSidechainDeposits:input_type -> wallet.v1.ListSidechainDepositsRequest
+	13, // 24: wallet.v1.WalletService.CreateSidechainDeposit:input_type -> wallet.v1.CreateSidechainDepositRequest
+	15, // 25: wallet.v1.WalletService.SignMessage:input_type -> wallet.v1.SignMessageRequest
+	17, // 26: wallet.v1.WalletService.VerifyMessage:input_type -> wallet.v1.VerifyMessageRequest
+	40, // 27: wallet.v1.WalletService.GetStats:input_type -> google.protobuf.Empty
+	20, // 28: wallet.v1.WalletService.UnlockWallet:input_type -> wallet.v1.UnlockWalletRequest
+	40, // 29: wallet.v1.WalletService.LockWallet:input_type -> google.protobuf.Empty
+	40, // 30: wallet.v1.WalletService.IsWalletUnlocked:input_type -> google.protobuf.Empty
+	21, // 31: wallet.v1.WalletService.CreateCheque:input_type -> wallet.v1.CreateChequeRequest
+	23, // 32: wallet.v1.WalletService.GetCheque:input_type -> wallet.v1.GetChequeRequest
+	25, // 33: wallet.v1.WalletService.GetChequePrivateKey:input_type -> wallet.v1.GetChequePrivateKeyRequest
+	40, // 34: wallet.v1.WalletService.ListCheques:input_type -> google.protobuf.Empty
+	29, // 35: wallet.v1.WalletService.CheckChequeFunding:input_type -> wallet.v1.CheckChequeFundingRequest
+	31, // 36: wallet.v1.WalletService.SweepCheque:input_type -> wallet.v1.SweepChequeRequest
+	33, // 37: wallet.v1.WalletService.DeleteCheque:input_type -> wallet.v1.DeleteChequeRequest
+	34, // 38: wallet.v1.WalletService.ImportCheque:input_type -> wallet.v1.ImportChequeRequest
+	2,  // 39: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
+	3,  // 40: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
+	0,  // 41: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
+	4,  // 42: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
+	6,  // 43: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
+	7,  // 44: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
+	12, // 45: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
+	14, // 46: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
+	16, // 47: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
+	18, // 48: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
+	19, // 49: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
+	40, // 50: wallet.v1.WalletService.UnlockWallet:output_type -> google.protobuf.Empty
+	40, // 51: wallet.v1.WalletService.LockWallet:output_type -> google.protobuf.Empty
+	40, // 52: wallet.v1.WalletService.IsWalletUnlocked:output_type -> google.protobuf.Empty
+	22, // 53: wallet.v1.WalletService.CreateCheque:output_type -> wallet.v1.CreateChequeResponse
+	24, // 54: wallet.v1.WalletService.GetCheque:output_type -> wallet.v1.GetChequeResponse
+	26, // 55: wallet.v1.WalletService.GetChequePrivateKey:output_type -> wallet.v1.GetChequePrivateKeyResponse
+	28, // 56: wallet.v1.WalletService.ListCheques:output_type -> wallet.v1.ListChequesResponse
+	30, // 57: wallet.v1.WalletService.CheckChequeFunding:output_type -> wallet.v1.CheckChequeFundingResponse
+	32, // 58: wallet.v1.WalletService.SweepCheque:output_type -> wallet.v1.SweepChequeResponse
+	40, // 59: wallet.v1.WalletService.DeleteCheque:output_type -> google.protobuf.Empty
+	35, // 60: wallet.v1.WalletService.ImportCheque:output_type -> wallet.v1.ImportChequeResponse
+	39, // [39:61] is the sub-list for method output_type
+	17, // [17:39] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_wallet_v1_wallet_proto_init() }
@@ -2326,7 +2455,7 @@ func file_wallet_v1_wallet_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_wallet_v1_wallet_proto_rawDesc), len(file_wallet_v1_wallet_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   36,
+			NumMessages:   38,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

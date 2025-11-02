@@ -43,6 +43,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$6.CheckChequeFundingResponse> checkChequeFunding($pb.ServerContext ctx, $6.CheckChequeFundingRequest request);
   $async.Future<$6.SweepChequeResponse> sweepCheque($pb.ServerContext ctx, $6.SweepChequeRequest request);
   $async.Future<$1.Empty> deleteCheque($pb.ServerContext ctx, $6.DeleteChequeRequest request);
+  $async.Future<$6.ImportChequeResponse> importCheque($pb.ServerContext ctx, $6.ImportChequeRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -67,6 +68,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CheckChequeFunding': return $6.CheckChequeFundingRequest();
       case 'SweepCheque': return $6.SweepChequeRequest();
       case 'DeleteCheque': return $6.DeleteChequeRequest();
+      case 'ImportCheque': return $6.ImportChequeRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -94,6 +96,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CheckChequeFunding': return this.checkChequeFunding(ctx, request as $6.CheckChequeFundingRequest);
       case 'SweepCheque': return this.sweepCheque(ctx, request as $6.SweepChequeRequest);
       case 'DeleteCheque': return this.deleteCheque(ctx, request as $6.DeleteChequeRequest);
+      case 'ImportCheque': return this.importCheque(ctx, request as $6.ImportChequeRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

@@ -157,7 +157,7 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 		CreateWallet(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[corepb.CreateWalletResponse]{
 			Msg: &corepb.CreateWalletResponse{
-				Name: "bitwindow_watch",
+				Name: "cheque_watch",
 			},
 		}, nil).
 		AnyTimes()

@@ -51,7 +51,7 @@ func TestService_GetBalance(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
 				Msg: &bitcoindv1alpha.CreateWalletResponse{
-					Name: "bitwindow_watch",
+					Name: "cheque_watch",
 				},
 			}, nil).
 			AnyTimes()
@@ -99,7 +99,7 @@ func TestService_GetNewAddress(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
 				Msg: &bitcoindv1alpha.CreateWalletResponse{
-					Name: "bitwindow_watch",
+					Name: "cheque_watch",
 				},
 			}, nil).
 			AnyTimes()

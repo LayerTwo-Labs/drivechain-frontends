@@ -9,6 +9,8 @@ import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
+import 'package:bitwindow/pages/wallet/cash_cheque_page.dart';
+import 'package:bitwindow/pages/wallet/cash_cheque_success_page.dart';
 import 'package:bitwindow/pages/wallet/cheque_detail_page.dart';
 import 'package:bitwindow/pages/wallet/create_cheque_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
@@ -104,6 +106,14 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/create-cheque',
       page: CreateChequeRoute.page,
+    ),
+    AutoRoute(
+      path: '/cash-cheque',
+      page: CashChequeRoute.page,
+    ),
+    AutoRoute(
+      path: '/cash-cheque-success/:txid',
+      page: CashChequeSuccessRoute.page,
     ),
     AutoRoute(
       path: '/cheque/:id',
