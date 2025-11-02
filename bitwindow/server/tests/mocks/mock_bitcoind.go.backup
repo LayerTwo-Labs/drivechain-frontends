@@ -43,6 +43,21 @@ func (m *MockBitcoinServiceClient) EXPECT() *MockBitcoinServiceClientMockRecorde
 	return m.recorder
 }
 
+// AddMultisigAddress mocks base method.
+func (m *MockBitcoinServiceClient) AddMultisigAddress(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.AddMultisigAddressRequest]) (*connect.Response[bitcoindv1alpha.AddMultisigAddressResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddMultisigAddress", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.AddMultisigAddressResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddMultisigAddress indicates an expected call of AddMultisigAddress.
+func (mr *MockBitcoinServiceClientMockRecorder) AddMultisigAddress(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMultisigAddress", reflect.TypeOf((*MockBitcoinServiceClient)(nil).AddMultisigAddress), arg0, arg1)
+}
+
 // AnalyzePsbt mocks base method.
 func (m *MockBitcoinServiceClient) AnalyzePsbt(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.AnalyzePsbtRequest]) (*connect.Response[bitcoindv1alpha.AnalyzePsbtResponse], error) {
 	m.ctrl.T.Helper()
@@ -191,6 +206,36 @@ func (m *MockBitcoinServiceClient) DecodeRawTransaction(arg0 context.Context, ar
 func (mr *MockBitcoinServiceClientMockRecorder) DecodeRawTransaction(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecodeRawTransaction", reflect.TypeOf((*MockBitcoinServiceClient)(nil).DecodeRawTransaction), arg0, arg1)
+}
+
+// DumpPrivKey mocks base method.
+func (m *MockBitcoinServiceClient) DumpPrivKey(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.DumpPrivKeyRequest]) (*connect.Response[bitcoindv1alpha.DumpPrivKeyResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DumpPrivKey", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.DumpPrivKeyResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DumpPrivKey indicates an expected call of DumpPrivKey.
+func (mr *MockBitcoinServiceClientMockRecorder) DumpPrivKey(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DumpPrivKey", reflect.TypeOf((*MockBitcoinServiceClient)(nil).DumpPrivKey), arg0, arg1)
+}
+
+// DumpWallet mocks base method.
+func (m *MockBitcoinServiceClient) DumpWallet(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.DumpWalletRequest]) (*connect.Response[bitcoindv1alpha.DumpWalletResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DumpWallet", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.DumpWalletResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DumpWallet indicates an expected call of DumpWallet.
+func (mr *MockBitcoinServiceClientMockRecorder) DumpWallet(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DumpWallet", reflect.TypeOf((*MockBitcoinServiceClient)(nil).DumpWallet), arg0, arg1)
 }
 
 // EstimateSmartFee mocks base method.
@@ -433,6 +478,21 @@ func (mr *MockBitcoinServiceClientMockRecorder) GetZmqNotifications(arg0, arg1 a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetZmqNotifications", reflect.TypeOf((*MockBitcoinServiceClient)(nil).GetZmqNotifications), arg0, arg1)
 }
 
+// ImportAddress mocks base method.
+func (m *MockBitcoinServiceClient) ImportAddress(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.ImportAddressRequest]) (*connect.Response[bitcoindv1alpha.ImportAddressResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportAddress", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.ImportAddressResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportAddress indicates an expected call of ImportAddress.
+func (mr *MockBitcoinServiceClientMockRecorder) ImportAddress(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportAddress", reflect.TypeOf((*MockBitcoinServiceClient)(nil).ImportAddress), arg0, arg1)
+}
+
 // ImportDescriptors mocks base method.
 func (m *MockBitcoinServiceClient) ImportDescriptors(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.ImportDescriptorsRequest]) (*connect.Response[bitcoindv1alpha.ImportDescriptorsResponse], error) {
 	m.ctrl.T.Helper()
@@ -446,6 +506,51 @@ func (m *MockBitcoinServiceClient) ImportDescriptors(arg0 context.Context, arg1 
 func (mr *MockBitcoinServiceClientMockRecorder) ImportDescriptors(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportDescriptors", reflect.TypeOf((*MockBitcoinServiceClient)(nil).ImportDescriptors), arg0, arg1)
+}
+
+// ImportPrivKey mocks base method.
+func (m *MockBitcoinServiceClient) ImportPrivKey(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.ImportPrivKeyRequest]) (*connect.Response[bitcoindv1alpha.ImportPrivKeyResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportPrivKey", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.ImportPrivKeyResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportPrivKey indicates an expected call of ImportPrivKey.
+func (mr *MockBitcoinServiceClientMockRecorder) ImportPrivKey(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportPrivKey", reflect.TypeOf((*MockBitcoinServiceClient)(nil).ImportPrivKey), arg0, arg1)
+}
+
+// ImportPubKey mocks base method.
+func (m *MockBitcoinServiceClient) ImportPubKey(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.ImportPubKeyRequest]) (*connect.Response[bitcoindv1alpha.ImportPubKeyResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportPubKey", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.ImportPubKeyResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportPubKey indicates an expected call of ImportPubKey.
+func (mr *MockBitcoinServiceClientMockRecorder) ImportPubKey(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportPubKey", reflect.TypeOf((*MockBitcoinServiceClient)(nil).ImportPubKey), arg0, arg1)
+}
+
+// ImportWallet mocks base method.
+func (m *MockBitcoinServiceClient) ImportWallet(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.ImportWalletRequest]) (*connect.Response[bitcoindv1alpha.ImportWalletResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportWallet", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.ImportWalletResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportWallet indicates an expected call of ImportWallet.
+func (mr *MockBitcoinServiceClientMockRecorder) ImportWallet(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportWallet", reflect.TypeOf((*MockBitcoinServiceClient)(nil).ImportWallet), arg0, arg1)
 }
 
 // JoinPsbts mocks base method.
@@ -566,21 +671,6 @@ func (m *MockBitcoinServiceClient) Send(arg0 context.Context, arg1 *connect.Requ
 func (mr *MockBitcoinServiceClientMockRecorder) Send(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockBitcoinServiceClient)(nil).Send), arg0, arg1)
-}
-
-// SendRawTransaction mocks base method.
-func (m *MockBitcoinServiceClient) SendRawTransaction(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.SendRawTransactionRequest]) (*connect.Response[bitcoindv1alpha.SendRawTransactionResponse], error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendRawTransaction", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.SendRawTransactionResponse])
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SendRawTransaction indicates an expected call of SendRawTransaction.
-func (mr *MockBitcoinServiceClientMockRecorder) SendRawTransaction(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendRawTransaction", reflect.TypeOf((*MockBitcoinServiceClient)(nil).SendRawTransaction), arg0, arg1)
 }
 
 // SendToAddress mocks base method.

@@ -12,6 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -43,7 +44,7 @@ func (o *config) populate(_ *testing.T, ctrl *gomock.Controller, options ...Serv
 		o.crypto = mocks.NewMockCryptoServiceClient(ctrl)
 	}
 	if o.bitcoind == nil {
-		o.bitcoind = mocks.NewMockBitcoinServiceClient(ctrl)
+		o.bitcoind = defaultBitcoindMock(ctrl)
 	}
 }
 
@@ -136,3 +137,30 @@ func (c ctxTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 var _ http.RoundTripper = new(ctxTransport)
+
+// defaultBitcoindMock creates a mock bitcoind client with default expectations
+// for background operations like ensureWatchWallet
+func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.BitcoinServiceClient {
+	mock := mocks.NewMockBitcoinServiceClient(ctrl)
+
+	// Background goroutines may call these methods
+	mock.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.ListWalletsResponse]{
+			Msg: &corepb.ListWalletsResponse{
+				Wallets: []string{},
+			},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		CreateWallet(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.CreateWalletResponse]{
+			Msg: &corepb.CreateWalletResponse{
+				Name: "bitwindow_watch",
+			},
+		}, nil).
+		AnyTimes()
+
+	return mock
+}

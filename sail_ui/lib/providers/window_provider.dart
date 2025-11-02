@@ -95,7 +95,7 @@ class WindowProvider extends ChangeNotifier {
   Future<void> _initialize() async {
     // Set up method handler for receiving messages from other windows
     const channel = WindowMethodChannel('sail_ui_window_channel');
-    channel.setMethodCallHandler(_handleMethodCall);
+    await channel.setMethodCallHandler(_handleMethodCall);
   }
 
   /// Create a new window with the specified window type

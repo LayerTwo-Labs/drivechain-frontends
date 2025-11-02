@@ -1,11 +1,11 @@
 module github.com/LayerTwo-Labs/sidesail/bitwindow/server
 
-go 1.25
+go 1.25.0
 
 require (
 	connectrpc.com/connect v1.19.1
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/barebitcoin/btc-buf v0.0.0-20250831155113-8394267919f6
+	github.com/barebitcoin/btc-buf v0.0.0-20251102073554-d385e04b3df5
 	github.com/brianvoe/gofakeit/v7 v7.8.1
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
@@ -21,10 +21,10 @@ require (
 )
 
 require (
-	connectrpc.com/grpchealth v1.3.0 // indirect
+	connectrpc.com/grpchealth v1.4.0 // indirect
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/btcsuite/btcd v0.24.2
-	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.3.6
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/btcsuite/btclog v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -42,8 +42,8 @@ require (
 	github.com/stretchr/testify v1.11.0
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
-	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
+	golang.org/x/crypto v0.43.0
+	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

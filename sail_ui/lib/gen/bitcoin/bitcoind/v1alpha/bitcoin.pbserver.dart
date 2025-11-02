@@ -43,6 +43,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
   $async.Future<$4.GetRawTransactionResponse> getRawTransaction($pb.ServerContext ctx, $4.GetRawTransactionRequest request);
   $async.Future<$4.DecodeRawTransactionResponse> decodeRawTransaction($pb.ServerContext ctx, $4.DecodeRawTransactionRequest request);
   $async.Future<$4.CreateRawTransactionResponse> createRawTransaction($pb.ServerContext ctx, $4.CreateRawTransactionRequest request);
+  $async.Future<$4.SendRawTransactionResponse> sendRawTransaction($pb.ServerContext ctx, $4.SendRawTransactionRequest request);
   $async.Future<$4.GetBlockResponse> getBlock($pb.ServerContext ctx, $4.GetBlockRequest request);
   $async.Future<$4.GetBlockHashResponse> getBlockHash($pb.ServerContext ctx, $4.GetBlockHashRequest request);
   $async.Future<$4.CreateWalletResponse> createWallet($pb.ServerContext ctx, $4.CreateWalletRequest request);
@@ -86,6 +87,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'GetRawTransaction': return $4.GetRawTransactionRequest();
       case 'DecodeRawTransaction': return $4.DecodeRawTransactionRequest();
       case 'CreateRawTransaction': return $4.CreateRawTransactionRequest();
+      case 'SendRawTransaction': return $4.SendRawTransactionRequest();
       case 'GetBlock': return $4.GetBlockRequest();
       case 'GetBlockHash': return $4.GetBlockHashRequest();
       case 'CreateWallet': return $4.CreateWalletRequest();
@@ -132,6 +134,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'GetRawTransaction': return this.getRawTransaction(ctx, request as $4.GetRawTransactionRequest);
       case 'DecodeRawTransaction': return this.decodeRawTransaction(ctx, request as $4.DecodeRawTransactionRequest);
       case 'CreateRawTransaction': return this.createRawTransaction(ctx, request as $4.CreateRawTransactionRequest);
+      case 'SendRawTransaction': return this.sendRawTransaction(ctx, request as $4.SendRawTransactionRequest);
       case 'GetBlock': return this.getBlock(ctx, request as $4.GetBlockRequest);
       case 'GetBlockHash': return this.getBlockHash(ctx, request as $4.GetBlockHashRequest);
       case 'CreateWallet': return this.createWallet(ctx, request as $4.CreateWalletRequest);
