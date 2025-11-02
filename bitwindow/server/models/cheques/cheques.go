@@ -42,19 +42,16 @@ func Create(ctx context.Context, db *sql.DB, index uint32, expectedAmount uint64
 	return id, nil
 }
 
-// Get retrieves a cheque by ID
-func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
+// scanCheque scans a cheque row from the database
+func scanCheque(scanner interface {
+	Scan(dest ...interface{}) error
+}) (*Cheque, error) {
 	var cheque Cheque
 	var fundedTxid sql.NullString
 	var actualAmountSats sql.NullInt64
 	var fundedAt sql.NullTime
 
-	err := db.QueryRowContext(ctx, `
-		SELECT id, derivation_index, expected_amount_sats, address, funded,
-		       funded_txid, actual_amount_sats, created_at, funded_at
-		FROM cheques
-		WHERE id = ?
-	`, id).Scan(
+	err := scanner.Scan(
 		&cheque.ID,
 		&cheque.DerivationIndex,
 		&cheque.ExpectedAmountSats,
@@ -65,9 +62,8 @@ func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 		&cheque.CreatedAt,
 		&fundedAt,
 	)
-
 	if err != nil {
-		return nil, fmt.Errorf("failed to get cheque: %w", err)
+		return nil, err
 	}
 
 	if fundedTxid.Valid {
@@ -84,46 +80,38 @@ func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 	return &cheque, nil
 }
 
+// Get retrieves a cheque by ID
+func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
+	row := db.QueryRowContext(ctx, `
+		SELECT id, derivation_index, expected_amount_sats, address, funded,
+		       funded_txid, actual_amount_sats, created_at, funded_at
+		FROM cheques
+		WHERE id = ?
+	`, id)
+
+	cheque, err := scanCheque(row)
+	if err != nil {
+		return nil, fmt.Errorf("get cheque: %w", err)
+	}
+
+	return cheque, nil
+}
+
 // GetByAddress retrieves a cheque by address
 func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, error) {
-	var cheque Cheque
-	var fundedTxid sql.NullString
-	var actualAmountSats sql.NullInt64
-	var fundedAt sql.NullTime
-
-	err := db.QueryRowContext(ctx, `
+	row := db.QueryRowContext(ctx, `
 		SELECT id, derivation_index, expected_amount_sats, address, funded,
 		       funded_txid, actual_amount_sats, created_at, funded_at
 		FROM cheques
 		WHERE address = ?
-	`, address).Scan(
-		&cheque.ID,
-		&cheque.DerivationIndex,
-		&cheque.ExpectedAmountSats,
-		&cheque.Address,
-		&cheque.Funded,
-		&fundedTxid,
-		&actualAmountSats,
-		&cheque.CreatedAt,
-		&fundedAt,
-	)
+	`, address)
 
+	cheque, err := scanCheque(row)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get cheque by address: %w", err)
+		return nil, fmt.Errorf("get cheque by address: %w", err)
 	}
 
-	if fundedTxid.Valid {
-		cheque.FundedTxid = &fundedTxid.String
-	}
-	if actualAmountSats.Valid {
-		amt := uint64(actualAmountSats.Int64)
-		cheque.ActualAmountSats = &amt
-	}
-	if fundedAt.Valid {
-		cheque.FundedAt = &fundedAt.Time
-	}
-
-	return &cheque, nil
+	return cheque, nil
 }
 
 // List retrieves all cheques
@@ -135,44 +123,18 @@ func List(ctx context.Context, db *sql.DB) ([]Cheque, error) {
 		ORDER BY created_at DESC
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list cheques: %w", err)
+		return nil, fmt.Errorf("list cheques: %w", err)
 	}
 	defer rows.Close()
 
 	var cheques []Cheque
 	for rows.Next() {
-		var cheque Cheque
-		var fundedTxid sql.NullString
-		var actualAmountSats sql.NullInt64
-		var fundedAt sql.NullTime
-
-		err := rows.Scan(
-			&cheque.ID,
-			&cheque.DerivationIndex,
-			&cheque.ExpectedAmountSats,
-			&cheque.Address,
-			&cheque.Funded,
-			&fundedTxid,
-			&actualAmountSats,
-			&cheque.CreatedAt,
-			&fundedAt,
-		)
+		cheque, err := scanCheque(rows)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan cheque: %w", err)
+			return nil, fmt.Errorf("scan cheque: %w", err)
 		}
 
-		if fundedTxid.Valid {
-			cheque.FundedTxid = &fundedTxid.String
-		}
-		if actualAmountSats.Valid {
-			amt := uint64(actualAmountSats.Int64)
-			cheque.ActualAmountSats = &amt
-		}
-		if fundedAt.Valid {
-			cheque.FundedAt = &fundedAt.Time
-		}
-
-		cheques = append(cheques, cheque)
+		cheques = append(cheques, *cheque)
 	}
 
 	return cheques, rows.Err()

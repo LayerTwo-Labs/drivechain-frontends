@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart' hide AutoRouterX;
 import 'package:bitwindow/providers/cheque_provider.dart';
+import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -10,6 +11,7 @@ import 'package:stacked/stacked.dart';
 
 class ChequeDetailViewModel extends BaseViewModel {
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
+  final TransactionProvider _transactionProvider = GetIt.I.get<TransactionProvider>();
   final int chequeId;
 
   Cheque? _cheque;
@@ -93,6 +95,50 @@ class ChequeDetailViewModel extends BaseViewModel {
       showSnackBar(
         context,
         'Failed to fund cheque: $e',
+      );
+    }
+  }
+
+  Future<void> sweepCheque(BuildContext context) async {
+    if (_cheque == null || !_cheque!.funded) return;
+
+    final destinationAddress = _transactionProvider.address;
+    if (destinationAddress.isEmpty) {
+      showSnackBar(context, 'No receive address available');
+      return;
+    }
+
+    try {
+      final txid = await _chequeProvider.sweepCheque(
+        chequeId,
+        destinationAddress,
+        10, // Default fee rate of 10 sat/vbyte
+      );
+
+      if (txid == null) {
+        if (!context.mounted) return;
+        showSnackBar(
+          context,
+          'Failed to sweep cheque: ${_chequeProvider.modelError ?? "Unknown error"}',
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+
+      showSnackBar(
+        context,
+        'Cheque swept! TXID: ${txid.substring(0, 10)}...',
+      );
+
+      // Navigate back to wallet page
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!context.mounted) return;
+
+      showSnackBar(
+        context,
+        'Failed to sweep cheque: $e',
       );
     }
   }
@@ -324,6 +370,46 @@ class ChequeDetailPage extends StatelessWidget {
                                   ),
                                   child: SailText.primary15(
                                     'Fund with Wallet',
+                                    color: Colors.white,
+                                    bold: true,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Sweep button (only if funded)
+                          if (cheque.funded)
+                            SizedBox(
+                              width: 400,
+                              height: 64,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      context.sailTheme.colors.success,
+                                      context.sailTheme.colors.success,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: TextButton(
+                                  onPressed: () => model.sweepCheque(context),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: SailText.primary15(
+                                    'Sweep Cheque to Wallet',
                                     color: Colors.white,
                                     bold: true,
                                   ),

@@ -51,6 +51,11 @@ func NewChequeEngine(chainParams *chaincfg.Params, bitcoind *service.Service[cor
 	return e
 }
 
+// GetChainParams returns the chain parameters
+func (e *ChequeEngine) GetChainParams() *chaincfg.Params {
+	return e.chainParams
+}
+
 // Unlock loads the seed into memory from decrypted wallet data
 func (e *ChequeEngine) Unlock(walletData map[string]any) error {
 	e.mu.Lock()
@@ -439,14 +444,6 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 		log.Error().Err(err).Msg("failed to get bitcoind client for recovery")
 		return
 	}
-
-	e.recoverCheques(ctx, bitcoind)
-	log.Info().Msg("cheque recovery complete")
-}
-
-// recoverCheques scans for funded cheques
-func (e *ChequeEngine) recoverCheques(ctx context.Context, bitcoind corerpc.BitcoinServiceClient) {
-	log := zerolog.Ctx(ctx)
 
 	recoveries, err := e.ScanForFunds(ctx, bitcoind, 20)
 	if err != nil {

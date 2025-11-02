@@ -842,6 +842,24 @@ func TestService_GetSyncInfo(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 
+		// Background operations expectations
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{
+					Wallets: []string{},
+				},
+			}, nil).
+			AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{
+					Name: "bitwindow_watch",
+				},
+			}, nil).
+			AnyTimes()
+
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
@@ -869,6 +887,24 @@ func TestService_GetSyncInfo(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 
+		// Background operations expectations
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{
+					Wallets: []string{},
+				},
+			}, nil).
+			AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{
+					Name: "bitwindow_watch",
+				},
+			}, nil).
+			AnyTimes()
+
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(nil, connect.NewError(connect.CodeInternal, nil))
@@ -886,6 +922,24 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		// Background operations expectations
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{
+					Wallets: []string{},
+				},
+			}, nil).
+			AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{
+					Name: "bitwindow_watch",
+				},
+			}, nil).
+			AnyTimes()
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).

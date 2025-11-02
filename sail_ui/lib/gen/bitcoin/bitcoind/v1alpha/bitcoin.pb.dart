@@ -7196,6 +7196,134 @@ class CreateRawTransactionResponse extends $pb.GeneratedMessage {
   RawTransaction ensureTx() => $_ensure(0);
 }
 
+class SendRawTransactionRequest extends $pb.GeneratedMessage {
+  factory SendRawTransactionRequest({
+    $core.String? hexString,
+    $core.double? maxfeerate,
+    $core.double? maxburnamount,
+  }) {
+    final $result = create();
+    if (hexString != null) {
+      $result.hexString = hexString;
+    }
+    if (maxfeerate != null) {
+      $result.maxfeerate = maxfeerate;
+    }
+    if (maxburnamount != null) {
+      $result.maxburnamount = maxburnamount;
+    }
+    return $result;
+  }
+  SendRawTransactionRequest._() : super();
+  factory SendRawTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SendRawTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendRawTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'hexString')
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'maxfeerate', $pb.PbFieldType.OD)
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'maxburnamount', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SendRawTransactionRequest clone() => SendRawTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SendRawTransactionRequest copyWith(void Function(SendRawTransactionRequest) updates) => super.copyWith((message) => updates(message as SendRawTransactionRequest)) as SendRawTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SendRawTransactionRequest create() => SendRawTransactionRequest._();
+  SendRawTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<SendRawTransactionRequest> createRepeated() => $pb.PbList<SendRawTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SendRawTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SendRawTransactionRequest>(create);
+  static SendRawTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get hexString => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set hexString($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasHexString() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHexString() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get maxfeerate => $_getN(1);
+  @$pb.TagNumber(2)
+  set maxfeerate($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMaxfeerate() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMaxfeerate() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get maxburnamount => $_getN(2);
+  @$pb.TagNumber(3)
+  set maxburnamount($core.double v) { $_setDouble(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMaxburnamount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMaxburnamount() => clearField(3);
+}
+
+class SendRawTransactionResponse extends $pb.GeneratedMessage {
+  factory SendRawTransactionResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  SendRawTransactionResponse._() : super();
+  factory SendRawTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SendRawTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendRawTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SendRawTransactionResponse clone() => SendRawTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SendRawTransactionResponse copyWith(void Function(SendRawTransactionResponse) updates) => super.copyWith((message) => updates(message as SendRawTransactionResponse)) as SendRawTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SendRawTransactionResponse create() => SendRawTransactionResponse._();
+  SendRawTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<SendRawTransactionResponse> createRepeated() => $pb.PbList<SendRawTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SendRawTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SendRawTransactionResponse>(create);
+  static SendRawTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
 class CreatePsbtRequest_Input extends $pb.GeneratedMessage {
   factory CreatePsbtRequest_Input({
     $core.String? txid,
@@ -9338,6 +9466,9 @@ class BitcoinServiceApi {
   ;
   $async.Future<CreateRawTransactionResponse> createRawTransaction($pb.ClientContext? ctx, CreateRawTransactionRequest request) =>
     _client.invoke<CreateRawTransactionResponse>(ctx, 'BitcoinService', 'CreateRawTransaction', request, CreateRawTransactionResponse())
+  ;
+  $async.Future<SendRawTransactionResponse> sendRawTransaction($pb.ClientContext? ctx, SendRawTransactionRequest request) =>
+    _client.invoke<SendRawTransactionResponse>(ctx, 'BitcoinService', 'SendRawTransaction', request, SendRawTransactionResponse())
   ;
   $async.Future<GetBlockResponse> getBlock($pb.ClientContext? ctx, GetBlockRequest request) =>
     _client.invoke<GetBlockResponse>(ctx, 'BitcoinService', 'GetBlock', request, GetBlockResponse())
