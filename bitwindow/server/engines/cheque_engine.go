@@ -15,11 +15,15 @@ import (
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 )
 
 const (
 	// Derivation path for cheques: m/44'/0'/999'/{index}
 	chequeAccount = 999
+
+	// ChequeWalletName is the name of the watch-only Bitcoin Core wallet for cheques
+	ChequeWalletName = "cheque_watch"
 )
 
 // ChequeRecovery represents a recovered cheque with funds
@@ -219,9 +223,11 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, bitcoind corerpc.Bitcoi
 			continue
 		}
 
-		// Query bitcoind for UTXOs on this address
+		// Query bitcoind for UTXOs on this address using cheque wallet
 		utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-			Addresses: []string{address},
+			MinimumConfirmations: lo.ToPtr(uint32(0)), // Include unconfirmed
+			Addresses:            []string{address},
+			Wallet:               ChequeWalletName,
 		}))
 
 		if err != nil {
@@ -372,12 +378,13 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 	// Use the descriptor with checksum from Bitcoin Core
 	descriptor := descInfo.Msg.Descriptor_
 
-	// Import the descriptor into Bitcoin Core
+	// Import the descriptor into Bitcoin Core cheque wallet
 	resp, err := bitcoind.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
+		Wallet: ChequeWalletName,
 		Requests: []*corepb.ImportDescriptorsRequest_Request{
 			{
 				Descriptor_: descriptor,
-				Active:      false, // Not setting as active descriptor
+				Active:      true, // Must be active for range to work
 				RangeStart:  0,
 				RangeEnd:    1000, // Watch first 1000 addresses
 				Timestamp:   nil,  // nil = "now", don't rescan
@@ -393,10 +400,18 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 	}
 
 	// Check if import was successful
-	if len(resp.Msg.Responses) > 0 && resp.Msg.Responses[0].Success {
-		log.Info().Msg("cheque descriptor imported successfully")
-	} else {
-		log.Warn().Msg("cheque descriptor import failed or already exists")
+	if len(resp.Msg.Responses) > 0 {
+		if resp.Msg.Responses[0].Success {
+			log.Info().Msg("cheque descriptor imported successfully")
+		} else {
+			// Log the warnings/errors for debugging
+			if len(resp.Msg.Responses[0].Warnings) > 0 {
+				log.Warn().Strs("warnings", resp.Msg.Responses[0].Warnings).Msg("cheque descriptor import had warnings")
+			}
+			if resp.Msg.Responses[0].Error != nil {
+				log.Error().Str("error", resp.Msg.Responses[0].Error.Message).Msg("cheque descriptor import failed")
+			}
+		}
 	}
 }
 

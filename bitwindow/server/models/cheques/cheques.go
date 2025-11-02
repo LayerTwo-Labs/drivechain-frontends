@@ -18,6 +18,8 @@ type Cheque struct {
 	ActualAmountSats   *uint64
 	CreatedAt          time.Time
 	FundedAt           *time.Time
+	SweptTxid          *string
+	SweptAt            *time.Time
 }
 
 // Create creates a new cheque in the database
@@ -50,6 +52,8 @@ func scanCheque(scanner interface {
 	var fundedTxid sql.NullString
 	var actualAmountSats sql.NullInt64
 	var fundedAt sql.NullTime
+	var sweptTxid sql.NullString
+	var sweptAt sql.NullTime
 
 	err := scanner.Scan(
 		&cheque.ID,
@@ -61,6 +65,8 @@ func scanCheque(scanner interface {
 		&actualAmountSats,
 		&cheque.CreatedAt,
 		&fundedAt,
+		&sweptTxid,
+		&sweptAt,
 	)
 	if err != nil {
 		return nil, err
@@ -76,6 +82,12 @@ func scanCheque(scanner interface {
 	if fundedAt.Valid {
 		cheque.FundedAt = &fundedAt.Time
 	}
+	if sweptTxid.Valid {
+		cheque.SweptTxid = &sweptTxid.String
+	}
+	if sweptAt.Valid {
+		cheque.SweptAt = &sweptAt.Time
+	}
 
 	return &cheque, nil
 }
@@ -84,7 +96,8 @@ func scanCheque(scanner interface {
 func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 	row := db.QueryRowContext(ctx, `
 		SELECT id, derivation_index, expected_amount_sats, address, funded,
-		       funded_txid, actual_amount_sats, created_at, funded_at
+		       funded_txid, actual_amount_sats, created_at, funded_at,
+		       swept_txid, swept_at
 		FROM cheques
 		WHERE id = ?
 	`, id)
@@ -101,7 +114,8 @@ func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, error) {
 	row := db.QueryRowContext(ctx, `
 		SELECT id, derivation_index, expected_amount_sats, address, funded,
-		       funded_txid, actual_amount_sats, created_at, funded_at
+		       funded_txid, actual_amount_sats, created_at, funded_at,
+		       swept_txid, swept_at
 		FROM cheques
 		WHERE address = ?
 	`, address)
@@ -118,7 +132,8 @@ func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, err
 func List(ctx context.Context, db *sql.DB) ([]Cheque, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT id, derivation_index, expected_amount_sats, address, funded,
-		       funded_txid, actual_amount_sats, created_at, funded_at
+		       funded_txid, actual_amount_sats, created_at, funded_at,
+		       swept_txid, swept_at
 		FROM cheques
 		ORDER BY created_at DESC
 	`)
@@ -152,6 +167,23 @@ func UpdateFunding(ctx context.Context, db *sql.DB, id int64, txid string, actua
 
 	if err != nil {
 		return fmt.Errorf("failed to update funding: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateSwept marks a cheque as swept
+func UpdateSwept(ctx context.Context, db *sql.DB, id int64, txid string) error {
+	now := time.Now()
+
+	_, err := db.ExecContext(ctx, `
+		UPDATE cheques
+		SET swept_txid = ?, swept_at = ?
+		WHERE id = ?
+	`, txid, now, id)
+
+	if err != nil {
+		return fmt.Errorf("failed to update swept: %w", err)
 	}
 
 	return nil

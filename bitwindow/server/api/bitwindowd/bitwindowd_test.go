@@ -855,7 +855,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
-					Name: "bitwindow_watch",
+					Name: "cheque_watch",
 				},
 			}, nil).
 			AnyTimes()
@@ -900,7 +900,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
-					Name: "bitwindow_watch",
+					Name: "cheque_watch",
 				},
 			}, nil).
 			AnyTimes()
@@ -936,7 +936,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
-					Name: "bitwindow_watch",
+					Name: "cheque_watch",
 				},
 			}, nil).
 			AnyTimes()

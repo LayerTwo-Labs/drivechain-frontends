@@ -37,6 +37,7 @@ service WalletService {
   rpc CheckChequeFunding(CheckChequeFundingRequest) returns (CheckChequeFundingResponse);
   rpc SweepCheque(SweepChequeRequest) returns (SweepChequeResponse);
   rpc DeleteCheque(DeleteChequeRequest) returns (google.protobuf.Empty);
+  rpc ImportCheque(ImportChequeRequest) returns (ImportChequeResponse);
 }
 
 message GetNewAddressResponse {
@@ -228,6 +229,8 @@ message Cheque {
   google.protobuf.Timestamp created_at = 8;
   optional google.protobuf.Timestamp funded_at = 9;
   optional string private_key_wif = 10;
+  optional string swept_txid = 11;
+  optional google.protobuf.Timestamp swept_at = 12;
 }
 
 message ListChequesResponse {
@@ -257,4 +260,13 @@ message SweepChequeResponse {
 
 message DeleteChequeRequest {
   int64 id = 1;
+}
+
+message ImportChequeRequest {
+  string private_key_wif = 1;
+}
+
+message ImportChequeResponse {
+  string txid = 1;
+  uint64 amount_sats = 2;
 }

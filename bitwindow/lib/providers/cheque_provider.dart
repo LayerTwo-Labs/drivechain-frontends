@@ -168,6 +168,12 @@ class ChequeProvider extends ChangeNotifier {
     } catch (e) {
       log.e('Failed to create cheque: $e');
       modelError = e.toString();
+
+      // Check if error is wallet locked
+      if (e.toString().toLowerCase().contains('wallet is locked')) {
+        _isWalletUnlocked = false;
+      }
+
       notifyListeners();
       return null;
     }
@@ -219,6 +225,12 @@ class ChequeProvider extends ChangeNotifier {
     } catch (e) {
       log.e('Failed to sweep cheque: $e');
       modelError = e.toString();
+
+      // Check if error is wallet locked
+      if (e.toString().toLowerCase().contains('wallet is locked')) {
+        _isWalletUnlocked = false;
+      }
+
       notifyListeners();
       return null;
     }

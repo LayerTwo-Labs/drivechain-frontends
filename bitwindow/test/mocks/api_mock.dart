@@ -253,6 +253,11 @@ class MockWalletAPI implements WalletAPI {
   Future<void> deleteCheque(int id) async {
     return;
   }
+
+  @override
+  Future<ImportChequeResult> importCheque(String privateKeyWif) async {
+    return ImportChequeResult(txid: 'mock_txid', amountSats: 100000);
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

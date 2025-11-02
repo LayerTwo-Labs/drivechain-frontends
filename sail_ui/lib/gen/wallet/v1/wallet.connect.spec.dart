@@ -161,4 +161,11 @@ abstract final class WalletService {
     walletv1wallet.DeleteChequeRequest.new,
     googleprotobufempty.Empty.new,
   );
+
+  static const importCheque = connect.Spec(
+    '/$name/ImportCheque',
+    connect.StreamType.unary,
+    walletv1wallet.ImportChequeRequest.new,
+    walletv1wallet.ImportChequeResponse.new,
+  );
 }

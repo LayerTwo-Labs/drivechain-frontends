@@ -493,6 +493,14 @@ abstract class WalletAPI {
   Future<CheckChequeFundingResponse> checkChequeFunding(int id);
   Future<String> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte);
   Future<void> deleteCheque(int id);
+  Future<ImportChequeResult> importCheque(String privateKeyWif);
+}
+
+class ImportChequeResult {
+  final String txid;
+  final int amountSats;
+
+  ImportChequeResult({required this.txid, required this.amountSats});
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -746,6 +754,22 @@ class _WalletAPILive implements WalletAPI {
   Future<void> deleteCheque(int id) async {
     try {
       await _client.deleteCheque(DeleteChequeRequest(id: Int64(id)));
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<ImportChequeResult> importCheque(String privateKeyWif) async {
+    try {
+      final response = await _client.importCheque(
+        ImportChequeRequest(privateKeyWif: privateKeyWif),
+      );
+      return ImportChequeResult(
+        txid: response.txid,
+        amountSats: response.amountSats.toInt(),
+      );
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);

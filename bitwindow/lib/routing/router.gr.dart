@@ -27,6 +27,95 @@ class BitcoinConfEditorRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [CashChequePage]
+class CashChequeRoute extends PageRouteInfo<void> {
+  const CashChequeRoute({List<PageRouteInfo>? children})
+    : super(CashChequeRoute.name, initialChildren: children);
+
+  static const String name = 'CashChequeRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CashChequePage();
+    },
+  );
+}
+
+/// generated route for
+/// [CashChequeSuccessPage]
+class CashChequeSuccessRoute extends PageRouteInfo<CashChequeSuccessRouteArgs> {
+  CashChequeSuccessRoute({
+    Key? key,
+    required String txid,
+    int? amountSats,
+    List<PageRouteInfo>? children,
+  }) : super(
+         CashChequeSuccessRoute.name,
+         args: CashChequeSuccessRouteArgs(
+           key: key,
+           txid: txid,
+           amountSats: amountSats,
+         ),
+         rawPathParams: {'txid': txid},
+         rawQueryParams: {'amount': amountSats},
+         initialChildren: children,
+       );
+
+  static const String name = 'CashChequeSuccessRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
+      final args = data.argsAs<CashChequeSuccessRouteArgs>(
+        orElse: () => CashChequeSuccessRouteArgs(
+          txid: pathParams.getString('txid'),
+          amountSats: queryParams.optInt('amount'),
+        ),
+      );
+      return CashChequeSuccessPage(
+        key: args.key,
+        txid: args.txid,
+        amountSats: args.amountSats,
+      );
+    },
+  );
+}
+
+class CashChequeSuccessRouteArgs {
+  const CashChequeSuccessRouteArgs({
+    this.key,
+    required this.txid,
+    this.amountSats,
+  });
+
+  final Key? key;
+
+  final String txid;
+
+  final int? amountSats;
+
+  @override
+  String toString() {
+    return 'CashChequeSuccessRouteArgs{key: $key, txid: $txid, amountSats: $amountSats}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CashChequeSuccessRouteArgs) return false;
+    return key == other.key &&
+        txid == other.txid &&
+        amountSats == other.amountSats;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ txid.hashCode ^ amountSats.hashCode;
+}
+
+/// generated route for
 /// [ChequeDetailPage]
 class ChequeDetailRoute extends PageRouteInfo<ChequeDetailRouteArgs> {
   ChequeDetailRoute({

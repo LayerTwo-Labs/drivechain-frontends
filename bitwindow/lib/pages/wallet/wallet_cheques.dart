@@ -9,6 +9,7 @@ import 'package:stacked/stacked.dart';
 
 class ChequesTabViewModel extends BaseViewModel {
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
+  bool _wasUnlocked = true;
 
   List<Cheque> get cheques => _chequeProvider.cheques;
   bool get isLoading => _chequeProvider.isLoading;
@@ -18,6 +19,7 @@ class ChequesTabViewModel extends BaseViewModel {
 
   ChequesTabViewModel() {
     _chequeProvider.addListener(_onChequeProviderChanged);
+    _wasUnlocked = _chequeProvider.isWalletUnlocked;
   }
 
   void _onChequeProviderChanged() {
@@ -34,6 +36,19 @@ class ChequesTabViewModel extends BaseViewModel {
 
   void createNewCheque(BuildContext context) {
     GetIt.I.get<AppRouter>().push(const CreateChequeRoute());
+  }
+
+  void cashCheque(BuildContext context) {
+    GetIt.I.get<AppRouter>().push(const CashChequeRoute());
+  }
+
+  bool checkWalletLocked() {
+    if (_wasUnlocked && !_chequeProvider.isWalletUnlocked) {
+      _wasUnlocked = false;
+      return true;
+    }
+    _wasUnlocked = _chequeProvider.isWalletUnlocked;
+    return false;
   }
 
   @override
@@ -109,6 +124,13 @@ class ChequesTab extends StatelessWidget {
       viewModelBuilder: () => ChequesTabViewModel(),
       onViewModelReady: (model) => model.refresh(),
       builder: (context, model, child) {
+        // Check if wallet became locked during an operation
+        if (model.checkWalletLocked()) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showUnlockDialog(context, model);
+          });
+        }
+
         if (!model.isWalletUnlocked) {
           return Center(
             child: SailColumn(
@@ -125,47 +147,67 @@ class ChequesTab extends StatelessWidget {
           );
         }
 
-        return SailCard(
-          title: 'Your Cheques',
-          bottomPadding: false,
-          widgetHeaderEnd: model.cheques.isNotEmpty
-              ? SailButton(
-                  label: 'Create New Cheque',
-                  onPressed: () async => model.createNewCheque(context),
-                )
-              : null,
-          child: Column(
-            children: [
-              if (model.isLoading)
-                const Expanded(child: Center(child: CircularProgressIndicator()))
-              else if (model.modelError != null)
-                Expanded(
-                  child: Center(
-                    child: SailText.primary12(model.modelError!, color: context.sailTheme.colors.error),
-                  ),
-                )
-              else if (model.cheques.isEmpty)
-                Expanded(
-                  child: Center(
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding16,
-                      mainAxisAlignment: MainAxisAlignment.center,
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(SailStyleValues.padding16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SailText.primary20('Your Cheques'),
+                  if (model.cheques.isNotEmpty)
+                    SailRow(
+                      spacing: SailStyleValues.padding08,
                       children: [
-                        SailText.primary15('No cheques yet'),
                         SailButton(
-                          label: 'Create Your First Cheque',
+                          label: 'Cash Cheque',
+                          variant: ButtonVariant.secondary,
+                          onPressed: () async => model.cashCheque(context),
+                        ),
+                        SailButton(
+                          label: 'Create New Cheque',
                           onPressed: () async => model.createNewCheque(context),
                         ),
                       ],
                     ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ChequesTable(cheques: model.cheques),
-                ),
-            ],
-          ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: model.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : model.modelError != null
+                  ? Center(
+                      child: SailText.primary12(model.modelError!, color: context.sailTheme.colors.error),
+                    )
+                  : model.cheques.isEmpty
+                  ? Center(
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding16,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SailText.primary15('No cheques yet'),
+                          SailRow(
+                            spacing: SailStyleValues.padding08,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SailButton(
+                                label: 'Cash a Cheque',
+                                variant: ButtonVariant.secondary,
+                                onPressed: () async => model.cashCheque(context),
+                              ),
+                              SailButton(
+                                label: 'Create Your First Cheque',
+                                onPressed: () async => model.createNewCheque(context),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  : ChequesTable(cheques: model.cheques),
+            ),
+          ],
         );
       },
     );
@@ -211,26 +253,23 @@ class ChequesTable extends StatelessWidget {
           ),
           SailTableCell(
             value: '',
-            child: SizedBox(
-              width: 180,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SailButton(
-                    label: cheque.funded ? 'View Details' : 'Fund Cheque',
-                    onPressed: () async => _viewCheque(context, cheque),
-                    variant: cheque.funded ? ButtonVariant.secondary : ButtonVariant.primary,
-                    insideTable: true,
-                  ),
-                  const SizedBox(width: SailStyleValues.padding08),
-                  SailButton(
-                    icon: SailSVGAsset.iconDelete,
-                    onPressed: () async => _deleteCheque(context, cheque),
-                    variant: ButtonVariant.destructive,
-                    insideTable: true,
-                  ),
-                ],
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailButton(
+                  label: cheque.funded ? 'View Details' : 'Fund Cheque',
+                  onPressed: () async => _viewCheque(context, cheque),
+                  variant: cheque.funded ? ButtonVariant.secondary : ButtonVariant.primary,
+                  insideTable: true,
+                ),
+                const SizedBox(width: SailStyleValues.padding08),
+                SailButton(
+                  icon: SailSVGAsset.iconDelete,
+                  onPressed: () async => _deleteCheque(context, cheque),
+                  variant: ButtonVariant.destructive,
+                  insideTable: true,
+                ),
+              ],
             ),
           ),
         ];

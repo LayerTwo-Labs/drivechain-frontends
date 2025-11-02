@@ -102,9 +102,21 @@ class ChequeDetailViewModel extends BaseViewModel {
   Future<void> sweepCheque(BuildContext context) async {
     if (_cheque == null || !_cheque!.funded) return;
 
+    // Check if wallet is locked before attempting sweep
+    if (!_chequeProvider.isWalletUnlocked) {
+      if (!context.mounted) return;
+      await _showUnlockDialog(context);
+      // After unlock dialog closes, check again if unlocked
+      if (!_chequeProvider.isWalletUnlocked) {
+        return;
+      }
+    }
+
     final destinationAddress = _transactionProvider.address;
     if (destinationAddress.isEmpty) {
-      showSnackBar(context, 'No receive address available');
+      if (context.mounted) {
+        showSnackBar(context, 'No receive address available');
+      }
       return;
     }
 
@@ -117,6 +129,13 @@ class ChequeDetailViewModel extends BaseViewModel {
 
       if (txid == null) {
         if (!context.mounted) return;
+
+        // Check if wallet became locked during operation
+        if (!_chequeProvider.isWalletUnlocked) {
+          await _showUnlockDialog(context);
+          return;
+        }
+
         showSnackBar(
           context,
           'Failed to sweep cheque: ${_chequeProvider.modelError ?? "Unknown error"}',
@@ -141,6 +160,63 @@ class ChequeDetailViewModel extends BaseViewModel {
         'Failed to sweep cheque: $e',
       );
     }
+  }
+
+  Future<void> _showUnlockDialog(BuildContext context) async {
+    final passwordController = TextEditingController();
+    bool isUnlocking = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: SailTheme.of(context).colors.background,
+          title: SailText.primary15('Unlock Wallet'),
+          content: SizedBox(
+            width: 400,
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.secondary13('Enter your wallet password to sweep cheques'),
+                SailTextField(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  obscureText: true,
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            SailButton(
+              label: 'Cancel',
+              variant: ButtonVariant.ghost,
+              onPressed: () async => Navigator.of(context).pop(),
+            ),
+            SailButton(
+              label: 'Unlock',
+              loading: isUnlocking,
+              onPressed: () async {
+                setState(() => isUnlocking = true);
+                final success = await _chequeProvider.unlockWallet(passwordController.text);
+
+                if (success && context.mounted) {
+                  Navigator.of(context).pop();
+                } else {
+                  setState(() => isUnlocking = false);
+                  if (context.mounted) {
+                    showSnackBar(context, _chequeProvider.modelError ?? 'Failed to unlock wallet');
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+
+    passwordController.dispose();
   }
 }
 
