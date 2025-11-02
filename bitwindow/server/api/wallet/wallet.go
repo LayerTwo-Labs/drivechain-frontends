@@ -1,6 +1,7 @@
 package api_wallet
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/hex"
@@ -33,7 +34,9 @@ import (
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -271,7 +274,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 				}
 			}
 
-			address, label, err := extractAddress(tx, addressBookEntries)
+			address, label, err := extractAddress(tx, addressBookEntries, s.chequeEngine.GetChainParams())
 			if err != nil {
 				return nil, fmt.Errorf("enforcer/wallet: could not extract address: %w", err)
 			}
@@ -301,7 +304,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	return connect.NewResponse(res), nil
 }
 
-func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addressbook.Entry) (string, string, error) {
+func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addressbook.Entry, chainParams *chaincfg.Params) (string, string, error) {
 	matchAddressLabel := func(addr string) string {
 		for _, entry := range addressBookEntries {
 			if entry.Address == addr {
@@ -329,7 +332,7 @@ func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addr
 	// for received tx, use the first output that is in the addressbook as receive
 	var address string
 	for _, txOut := range decodedTx.MsgTx().TxOut {
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, chainParams)
 		if err == nil && len(addrs) > 0 {
 			addr := addrs[0].EncodeAddress()
 			// Try to find a matching addressbook entry
@@ -348,7 +351,7 @@ func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addr
 	}
 	// Fallback: just use the first output address if nothing else
 	if address == "" && len(decodedTx.MsgTx().TxOut) > 0 {
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(decodedTx.MsgTx().TxOut[0].PkScript, &chaincfg.SigNetParams)
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(decodedTx.MsgTx().TxOut[0].PkScript, chainParams)
 		if err == nil && len(addrs) > 0 {
 			address = addrs[0].EncodeAddress()
 		}
@@ -1038,24 +1041,19 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive private key: %w", err))
 	}
 
-	// Import private key to bitcoind temporarily
+	// Get bitcoind client
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
 	}
 
-	_, err = bitcoind.ImportPrivKey(ctx, connect.NewRequest(&corepb.ImportPrivKeyRequest{
-		PrivateKey: wif,
-		Label:      fmt.Sprintf("cheque_%d", c.Msg.Id),
-		Rescan:     false,
-	}))
-	if err != nil {
-		log.Warn().Err(err).Msg("failed to import private key (may already be imported)")
-	}
-
-	// Query UTXOs for this address
+	// Query UTXOs for this address (from any wallet/mempool)
+	minConf := uint32(0)
+	maxConf := uint32(9999999)
 	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-		Addresses: []string{cheque.Address},
+		MinimumConfirmations: &minConf, // Include unconfirmed
+		MaximumConfirmations: &maxConf,
+		Addresses:            []string{cheque.Address},
 	}))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query UTXOs: %w", err))
@@ -1065,31 +1063,43 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("no funds found in cheque address"))
 	}
 
-	// Calculate total amount
-	var totalAmount float64
-	for _, utxo := range utxos.Msg.Unspent {
-		totalAmount += utxo.Amount
+	// Set fee rate
+	feeSatPerVbyte := c.Msg.FeeSatPerVbyte
+	if feeSatPerVbyte == 0 {
+		feeSatPerVbyte = 1 // Default to 1 sat/vbyte if not specified
 	}
 
-	// Send all funds to destination address
-	txid, err := bitcoind.SendToAddress(ctx, connect.NewRequest(&corepb.SendToAddressRequest{
-		Address: c.Msg.DestinationAddress,
-		Amount:  totalAmount,
-	}))
+	unsignedTx, err := s.buildSweepTx(ctx, cheque.Address, c.Msg.DestinationAddress, utxos.Msg.Unspent, feeSatPerVbyte)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to send transaction: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
 	}
+
+	signedTx, err := s.signSweepTx(ctx, unsignedTx, wif, cheque.Address, utxos.Msg.Unspent)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
+	}
+
+	txHex, err := s.serializeTx(signedTx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
+	}
+
+	// TODO: Broadcast raw transaction with core...
+	res, err := bitcoind.SendRawTransaction(ctx, &connect.Request[corepb.SendRawTransactionRequest]{
+		Msg: &corepb.SendRawTransactionRequest{
+			HexString: txHex,
+		},
+	})
 
 	log.Info().
 		Int64("id", c.Msg.Id).
 		Str("from", cheque.Address).
 		Str("to", c.Msg.DestinationAddress).
-		Float64("amount_btc", totalAmount).
-		Str("txid", txid.Msg.Txid).
-		Msg("cheque swept")
+		Str("tx_hex", txHex).
+		Msg("cheque sweep transaction built and signed")
 
 	return connect.NewResponse(&pb.SweepChequeResponse{
-		Txid: txid.Msg.Txid,
+		Txid: res.Msg.Txid,
 	}), nil
 }
 
@@ -1157,56 +1167,123 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	return pbCheque
 }
 
-// recoverCheques scans for funded cheques in the background
-func (s *Server) recoverCheques(ctx context.Context) {
-	log := zerolog.Ctx(ctx)
+const watchWalletName = "bitwindow_watch"
 
-	bitcoind, err := s.bitcoind.Get(ctx)
+// buildSweepTx builds an unsigned transaction to sweep cheque funds
+func (s *Server) buildSweepTx(
+	ctx context.Context,
+	sourceAddress string,
+	destAddress string,
+	utxos []*corepb.UnspentOutput,
+	feeSatPerVbyte uint64,
+) (*wire.MsgTx, error) {
+	// Calculate total amount in satoshis
+	var totalSats uint64
+	for _, utxo := range utxos {
+		totalSats += uint64(utxo.Amount * 1e8)
+	}
+
+	// Estimate transaction size (P2WPKH input is ~68 vbytes, P2WPKH output is ~31 vbytes, overhead ~11 vbytes)
+	estimatedVbytes := uint64(len(utxos)*68 + 31 + 11)
+	feeSats := estimatedVbytes * feeSatPerVbyte
+
+	// Check if we have enough to cover the fee
+	if totalSats <= feeSats {
+		return nil, fmt.Errorf("insufficient funds: total %d sats, fee %d sats", totalSats, feeSats)
+	}
+
+	// Parse destination address
+	destAddr, err := btcutil.DecodeAddress(destAddress, s.chequeEngine.GetChainParams())
 	if err != nil {
-		log.Warn().Err(err).Msg("bitcoind not available for cheque recovery")
-		return
+		return nil, fmt.Errorf("decode destination address: %w", err)
 	}
 
-	recoveries, err := s.chequeEngine.ScanForFunds(ctx, bitcoind, 20)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to scan for cheque funds")
-		return
-	}
+	// Create new transaction
+	tx := wire.NewMsgTx(wire.TxVersion)
 
-	if len(recoveries) == 0 {
-		log.Info().Msg("no funded cheques found during recovery scan")
-		return
-	}
-
-	for _, recovery := range recoveries {
-		err := cheques.CreateOrUpdateFromRecovery(
-			ctx,
-			s.database,
-			recovery.Index,
-			recovery.Address,
-			recovery.Txid,
-			recovery.Amount,
-		)
+	// Add inputs from UTXOs
+	for _, utxo := range utxos {
+		txHash, err := chainhash.NewHashFromStr(utxo.Txid)
 		if err != nil {
-			log.Error().
-				Err(err).
-				Uint32("index", recovery.Index).
-				Str("address", recovery.Address).
-				Msg("failed to save recovered cheque")
-			continue
+			return nil, fmt.Errorf("parse txid: %w", err)
 		}
 
-		log.Info().
-			Uint32("index", recovery.Index).
-			Str("address", recovery.Address).
-			Uint64("amount_sats", recovery.Amount).
-			Msg("recovered funded cheque")
+		outPoint := wire.NewOutPoint(txHash, utxo.Vout)
+		txIn := wire.NewTxIn(outPoint, nil, nil)
+		tx.AddTxIn(txIn)
 	}
 
-	log.Info().Int("count", len(recoveries)).Msg("cheque recovery completed")
+	// Add output (total minus fees)
+	pkScript, err := txscript.PayToAddrScript(destAddr)
+	if err != nil {
+		return nil, fmt.Errorf("create output script: %w", err)
+	}
+
+	outputSats := totalSats - feeSats
+	txOut := wire.NewTxOut(int64(outputSats), pkScript)
+	tx.AddTxOut(txOut)
+
+	return tx, nil
 }
 
-const watchWalletName = "bitwindow_watch"
+// signSweepTx signs a sweep transaction with the provided WIF key
+func (s *Server) signSweepTx(
+	ctx context.Context,
+	tx *wire.MsgTx,
+	wifKey string,
+	sourceAddress string,
+	utxos []*corepb.UnspentOutput,
+) (*wire.MsgTx, error) {
+	// Decode WIF private key
+	wif, err := btcutil.DecodeWIF(wifKey)
+	if err != nil {
+		return nil, fmt.Errorf("decode WIF: %w", err)
+	}
+
+	// Parse source address to get pubkey script
+	sourceAddr, err := btcutil.DecodeAddress(sourceAddress, s.chequeEngine.GetChainParams())
+	if err != nil {
+		return nil, fmt.Errorf("decode source address: %w", err)
+	}
+
+	sourcePkScript, err := txscript.PayToAddrScript(sourceAddr)
+	if err != nil {
+		return nil, fmt.Errorf("create source script: %w", err)
+	}
+
+	// Sign each input
+	for i, utxo := range utxos {
+		// For P2WPKH, we need to sign using witness v0
+		witnessScript, err := txscript.WitnessSignature(
+			tx, txscript.NewTxSigHashes(tx, txscript.NewCannedPrevOutputFetcher(
+				sourcePkScript,
+				int64(utxo.Amount*1e8),
+			)),
+			i,
+			int64(utxo.Amount*1e8),
+			sourcePkScript,
+			txscript.SigHashAll,
+			wif.PrivKey,
+			true, // compress pubkey
+		)
+		if err != nil {
+			return nil, fmt.Errorf("create witness signature for input %d: %w", i, err)
+		}
+
+		tx.TxIn[i].Witness = witnessScript
+	}
+
+	return tx, nil
+}
+
+// serializeTx serializes a transaction to hex string
+func (s *Server) serializeTx(tx *wire.MsgTx) (string, error) {
+	var txBytes bytes.Buffer
+	if err := tx.Serialize(&txBytes); err != nil {
+		return "", fmt.Errorf("serialize transaction: %w", err)
+	}
+	return hex.EncodeToString(txBytes.Bytes()), nil
+}
 
 // ensureWatchWallet ensures the watch-only wallet exists
 func (s *Server) ensureWatchWallet(ctx context.Context) error {
@@ -1223,13 +1300,7 @@ func (s *Server) ensureWatchWallet(ctx context.Context) error {
 		return fmt.Errorf("failed to list wallets: %w", err)
 	}
 
-	walletExists := false
-	for _, wallet := range wallets.Msg.Wallets {
-		if wallet == watchWalletName {
-			walletExists = true
-			break
-		}
-	}
+	walletExists := lo.Contains(wallets.Msg.Wallets, watchWalletName)
 
 	// Create wallet if it doesn't exist
 	if !walletExists {
@@ -1248,31 +1319,4 @@ func (s *Server) ensureWatchWallet(ctx context.Context) error {
 	return nil
 }
 
-// ensureWatchWalletAndImportAddress ensures a watch-only wallet exists and imports the address
-func (s *Server) ensureWatchWalletAndImportAddress(ctx context.Context, address string) error {
-	log := zerolog.Ctx(ctx)
 
-	// Ensure wallet exists first
-	if err := s.ensureWatchWallet(ctx); err != nil {
-		return err
-	}
-
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("bitcoind not available: %w", err)
-	}
-
-	// Import address as watch-only with rescan enabled
-	_, err = bitcoind.ImportAddress(ctx, connect.NewRequest(&corepb.ImportAddressRequest{
-		Address: address,
-		Label:   "cheque",
-		Rescan:  true, // Enable rescan to detect funds sent to this address
-		Wallet:  watchWalletName,
-	}))
-	if err != nil && !strings.Contains(err.Error(), "already") {
-		return fmt.Errorf("failed to import address: %w", err)
-	}
-
-	log.Debug().Str("address", address).Msg("imported cheque address to watch wallet")
-	return nil
-}

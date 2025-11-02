@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
@@ -36,7 +37,26 @@ func TestService_GetBalance(t *testing.T) {
 				},
 			}, nil)
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		// Create mock bitcoind client (to handle ensureWatchWallet calls)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{
+					Wallets: []string{}, // No wallets exist yet
+				},
+			}, nil).
+			AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{
+					Name: "bitwindow_watch",
+				},
+			}, nil).
+			AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet), apitests.WithBitcoind(mockBitcoind)))
 
 		resp, err := cli.GetBalance(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
@@ -65,7 +85,26 @@ func TestService_GetNewAddress(t *testing.T) {
 				},
 			}, nil)
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		// Create mock bitcoind client (to handle ensureWatchWallet calls)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{
+					Wallets: []string{}, // No wallets exist yet
+				},
+			}, nil).
+			AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{
+					Name: "bitwindow_watch",
+				},
+			}, nil).
+			AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet), apitests.WithBitcoind(mockBitcoind)))
 
 		resp, err := cli.GetNewAddress(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
