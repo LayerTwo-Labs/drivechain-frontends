@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -174,7 +178,18 @@ class _TransactionTableState extends State<TransactionTable> {
           titleTooltip:
               'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
           bottomPadding: false,
+          widgetHeaderEnd: SailButton(
+            label: 'Export CSV',
+            variant: ButtonVariant.secondary,
+            small: true,
+            icon: SailSVGAsset.iconDownload,
+            onPressed: () async {
+              await widget.model.exportTransactionsToCSV(context, entries);
+            },
+          ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -194,22 +209,27 @@ class _TransactionTableState extends State<TransactionTable> {
                       headerBuilder: (context) => [
                         SailTableHeaderCell(
                           name: 'Date',
+                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('date'),
                         ),
                         SailTableHeaderCell(
                           name: 'TXID',
+                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('txid'),
                         ),
                         SailTableHeaderCell(
                           name: 'Address',
+                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('address'),
                         ),
                         SailTableHeaderCell(
                           name: 'Note',
+                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('note'),
                         ),
                         SailTableHeaderCell(
                           name: 'Amount',
+                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('amount'),
                         ),
                       ],
@@ -224,19 +244,24 @@ class _TransactionTableState extends State<TransactionTable> {
                         return [
                           SailTableCell(
                             value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
+                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: '${entry.txid.substring(0, 10)}..',
                             copyValue: entry.txid,
+                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
+                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: entry.note,
+                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: formattedAmount,
+                            alignment: Alignment.centerLeft,
                             monospace: true,
                           ),
                         ];
@@ -453,6 +478,87 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     } finally {
       setBusy(false);
     }
+  }
+
+  Future<void> exportTransactionsToCSV(BuildContext context, List<WalletTransaction> transactions) async {
+    try {
+      setBusy(true);
+
+      if (transactions.isEmpty) {
+        if (context.mounted) {
+          showSnackBar(context, 'No transactions to export');
+        }
+        return;
+      }
+
+      final defaultFileName = 'bitwindow-transactions-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
+
+      final result = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export Transactions to CSV',
+        fileName: defaultFileName,
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+
+      if (result == null) {
+        return;
+      }
+
+      final csvData = _generateCSV(transactions);
+      final file = File(result);
+      await file.writeAsString(csvData);
+
+      if (context.mounted) {
+        showSnackBar(context, 'Transactions exported successfully to $result');
+      }
+    } catch (error) {
+      if (context.mounted) {
+        showSnackBar(context, 'Export failed: $error');
+      }
+      modelError = error.toString();
+      notifyListeners();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  String _generateCSV(List<WalletTransaction> transactions) {
+    final headers = [
+      'Date',
+      'TXID',
+      'Type',
+      'Address',
+      'Label',
+      'Amount (BTC)',
+      'Amount (sats)',
+      'Fee (sats)',
+      'Note',
+      'Block Height',
+    ];
+
+    final rows = <List<String>>[headers];
+
+    for (final tx in transactions) {
+      final netAmount = tx.receivedSatoshi - tx.sentSatoshi;
+      final type = netAmount > 0 ? 'Received' : 'Sent';
+      final amountBTC = (netAmount.toInt() / 100000000).toStringAsFixed(8);
+      final date = DateFormat('yyyy-MM-dd HH:mm:ss').format(tx.confirmationTime.timestamp.toDateTime().toLocal());
+
+      rows.add([
+        date,
+        tx.txid,
+        type,
+        tx.address,
+        tx.addressLabel,
+        amountBTC,
+        netAmount.toString(),
+        tx.feeSats.toString(),
+        tx.note,
+        tx.confirmationTime.height.toString(),
+      ]);
+    }
+
+    return const ListToCsvConverter().convert(rows);
   }
 
   @override

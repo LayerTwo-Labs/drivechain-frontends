@@ -57,6 +57,7 @@ dependencies:
   blockchain_utils: ^5.2.0
   bech32: ^0.2.2
   archive: ^4.0.7
+  csv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
