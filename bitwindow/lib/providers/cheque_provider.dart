@@ -217,11 +217,11 @@ class ChequeProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte) async {
+  Future<String?> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
     try {
-      final txid = await _bitwindowRPC.wallet.sweepCheque(id, destinationAddress, feeSatPerVbyte);
+      final result = await _bitwindowRPC.wallet.sweepCheque(privateKeyWif, destinationAddress, feeSatPerVbyte);
       await fetch();
-      return txid;
+      return result.txid;
     } catch (e) {
       log.e('Failed to sweep cheque: $e');
       modelError = e.toString();

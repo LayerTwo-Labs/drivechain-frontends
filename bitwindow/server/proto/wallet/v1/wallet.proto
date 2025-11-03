@@ -37,7 +37,6 @@ service WalletService {
   rpc CheckChequeFunding(CheckChequeFundingRequest) returns (CheckChequeFundingResponse);
   rpc SweepCheque(SweepChequeRequest) returns (SweepChequeResponse);
   rpc DeleteCheque(DeleteChequeRequest) returns (google.protobuf.Empty);
-  rpc ImportCheque(ImportChequeRequest) returns (ImportChequeResponse);
 }
 
 message GetNewAddressResponse {
@@ -249,24 +248,16 @@ message CheckChequeFundingResponse {
 }
 
 message SweepChequeRequest {
-  int64 id = 1;
+  string private_key_wif = 1;
   string destination_address = 2;
   uint64 fee_sat_per_vbyte = 3;
 }
 
 message SweepChequeResponse {
   string txid = 1;
+  uint64 amount_sats = 2;
 }
 
 message DeleteChequeRequest {
   int64 id = 1;
-}
-
-message ImportChequeRequest {
-  string private_key_wif = 1;
-}
-
-message ImportChequeResponse {
-  string txid = 1;
-  uint64 amount_sats = 2;
 }

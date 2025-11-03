@@ -539,7 +539,7 @@ final $typed_data.Uint8List checkChequeFundingResponseDescriptor = $convert.base
 const SweepChequeRequest$json = {
   '1': 'SweepChequeRequest',
   '2': [
-    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+    {'1': 'private_key_wif', '3': 1, '4': 1, '5': 9, '10': 'privateKeyWif'},
     {'1': 'destination_address', '3': 2, '4': 1, '5': 9, '10': 'destinationAddress'},
     {'1': 'fee_sat_per_vbyte', '3': 3, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
   ],
@@ -547,21 +547,23 @@ const SweepChequeRequest$json = {
 
 /// Descriptor for `SweepChequeRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List sweepChequeRequestDescriptor = $convert.base64Decode(
-    'ChJTd2VlcENoZXF1ZVJlcXVlc3QSDgoCaWQYASABKANSAmlkEi8KE2Rlc3RpbmF0aW9uX2FkZH'
-    'Jlc3MYAiABKAlSEmRlc3RpbmF0aW9uQWRkcmVzcxIpChFmZWVfc2F0X3Blcl92Ynl0ZRgDIAEo'
-    'BFIOZmVlU2F0UGVyVmJ5dGU=');
+    'ChJTd2VlcENoZXF1ZVJlcXVlc3QSJgoPcHJpdmF0ZV9rZXlfd2lmGAEgASgJUg1wcml2YXRlS2'
+    'V5V2lmEi8KE2Rlc3RpbmF0aW9uX2FkZHJlc3MYAiABKAlSEmRlc3RpbmF0aW9uQWRkcmVzcxIp'
+    'ChFmZWVfc2F0X3Blcl92Ynl0ZRgDIAEoBFIOZmVlU2F0UGVyVmJ5dGU=');
 
 @$core.Deprecated('Use sweepChequeResponseDescriptor instead')
 const SweepChequeResponse$json = {
   '1': 'SweepChequeResponse',
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'amount_sats', '3': 2, '4': 1, '5': 4, '10': 'amountSats'},
   ],
 };
 
 /// Descriptor for `SweepChequeResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List sweepChequeResponseDescriptor = $convert.base64Decode(
-    'ChNTd2VlcENoZXF1ZVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
+    'ChNTd2VlcENoZXF1ZVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQSHwoLYW1vdW50X3NhdH'
+    'MYAiABKARSCmFtb3VudFNhdHM=');
 
 @$core.Deprecated('Use deleteChequeRequestDescriptor instead')
 const DeleteChequeRequest$json = {
@@ -574,33 +576,6 @@ const DeleteChequeRequest$json = {
 /// Descriptor for `DeleteChequeRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List deleteChequeRequestDescriptor = $convert.base64Decode(
     'ChNEZWxldGVDaGVxdWVSZXF1ZXN0Eg4KAmlkGAEgASgDUgJpZA==');
-
-@$core.Deprecated('Use importChequeRequestDescriptor instead')
-const ImportChequeRequest$json = {
-  '1': 'ImportChequeRequest',
-  '2': [
-    {'1': 'private_key_wif', '3': 1, '4': 1, '5': 9, '10': 'privateKeyWif'},
-  ],
-};
-
-/// Descriptor for `ImportChequeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List importChequeRequestDescriptor = $convert.base64Decode(
-    'ChNJbXBvcnRDaGVxdWVSZXF1ZXN0EiYKD3ByaXZhdGVfa2V5X3dpZhgBIAEoCVINcHJpdmF0ZU'
-    'tleVdpZg==');
-
-@$core.Deprecated('Use importChequeResponseDescriptor instead')
-const ImportChequeResponse$json = {
-  '1': 'ImportChequeResponse',
-  '2': [
-    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
-    {'1': 'amount_sats', '3': 2, '4': 1, '5': 4, '10': 'amountSats'},
-  ],
-};
-
-/// Descriptor for `ImportChequeResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List importChequeResponseDescriptor = $convert.base64Decode(
-    'ChRJbXBvcnRDaGVxdWVSZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlkEh8KC2Ftb3VudF9zYX'
-    'RzGAIgASgEUgphbW91bnRTYXRz');
 
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
@@ -626,7 +601,6 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'CheckChequeFunding', '2': '.wallet.v1.CheckChequeFundingRequest', '3': '.wallet.v1.CheckChequeFundingResponse'},
     {'1': 'SweepCheque', '2': '.wallet.v1.SweepChequeRequest', '3': '.wallet.v1.SweepChequeResponse'},
     {'1': 'DeleteCheque', '2': '.wallet.v1.DeleteChequeRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'ImportCheque', '2': '.wallet.v1.ImportChequeRequest', '3': '.wallet.v1.ImportChequeResponse'},
   ],
 };
 
@@ -672,8 +646,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.SweepChequeRequest': SweepChequeRequest$json,
   '.wallet.v1.SweepChequeResponse': SweepChequeResponse$json,
   '.wallet.v1.DeleteChequeRequest': DeleteChequeRequest$json,
-  '.wallet.v1.ImportChequeRequest': ImportChequeRequest$json,
-  '.wallet.v1.ImportChequeResponse': ImportChequeResponse$json,
 };
 
 /// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -708,7 +680,5 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     '5DaGVja0NoZXF1ZUZ1bmRpbmdSZXF1ZXN0GiUud2FsbGV0LnYxLkNoZWNrQ2hlcXVlRnVuZGlu'
     'Z1Jlc3BvbnNlEkwKC1N3ZWVwQ2hlcXVlEh0ud2FsbGV0LnYxLlN3ZWVwQ2hlcXVlUmVxdWVzdB'
     'oeLndhbGxldC52MS5Td2VlcENoZXF1ZVJlc3BvbnNlEkYKDERlbGV0ZUNoZXF1ZRIeLndhbGxl'
-    'dC52MS5EZWxldGVDaGVxdWVSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Ek8KDEltcG'
-    '9ydENoZXF1ZRIeLndhbGxldC52MS5JbXBvcnRDaGVxdWVSZXF1ZXN0Gh8ud2FsbGV0LnYxLklt'
-    'cG9ydENoZXF1ZVJlc3BvbnNl');
+    'dC52MS5EZWxldGVDaGVxdWVSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5');
 

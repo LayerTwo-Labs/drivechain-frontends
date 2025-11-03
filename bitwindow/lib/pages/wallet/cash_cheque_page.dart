@@ -102,7 +102,15 @@ class _CashChequePageState extends State<CashChequePage> {
     });
 
     try {
-      final result = await _bitwindowRPC.wallet.importCheque(wif);
+      // Get user's receive address
+      final destinationAddress = await _bitwindowRPC.wallet.getNewAddress();
+
+      // Sweep the cheque to the user's wallet
+      final result = await _bitwindowRPC.wallet.sweepCheque(
+        wif,
+        destinationAddress,
+        10, // Default fee rate of 10 sat/vbyte
+      );
 
       setState(() {
         _isCashing = false;

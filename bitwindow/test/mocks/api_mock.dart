@@ -240,8 +240,8 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<String> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte) {
-    return Future.value('');
+  Future<SweepChequeResult> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) {
+    return Future.value(SweepChequeResult(txid: 'mock_txid', amountSats: 100000));
   }
 
   @override
@@ -252,11 +252,6 @@ class MockWalletAPI implements WalletAPI {
   @override
   Future<void> deleteCheque(int id) async {
     return;
-  }
-
-  @override
-  Future<ImportChequeResult> importCheque(String privateKeyWif) async {
-    return ImportChequeResult(txid: 'mock_txid', amountSats: 100000);
   }
 }
 

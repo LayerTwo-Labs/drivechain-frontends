@@ -95,9 +95,6 @@ const (
 	// WalletServiceDeleteChequeProcedure is the fully-qualified name of the WalletService's
 	// DeleteCheque RPC.
 	WalletServiceDeleteChequeProcedure = "/wallet.v1.WalletService/DeleteCheque"
-	// WalletServiceImportChequeProcedure is the fully-qualified name of the WalletService's
-	// ImportCheque RPC.
-	WalletServiceImportChequeProcedure = "/wallet.v1.WalletService/ImportCheque"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -127,7 +124,6 @@ type WalletServiceClient interface {
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
-	ImportCheque(context.Context, *connect.Request[v1.ImportChequeRequest]) (*connect.Response[v1.ImportChequeResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -267,12 +263,6 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("DeleteCheque")),
 			connect.WithClientOptions(opts...),
 		),
-		importCheque: connect.NewClient[v1.ImportChequeRequest, v1.ImportChequeResponse](
-			httpClient,
-			baseURL+WalletServiceImportChequeProcedure,
-			connect.WithSchema(walletServiceMethods.ByName("ImportCheque")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -299,7 +289,6 @@ type walletServiceClient struct {
 	checkChequeFunding     *connect.Client[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse]
 	sweepCheque            *connect.Client[v1.SweepChequeRequest, v1.SweepChequeResponse]
 	deleteCheque           *connect.Client[v1.DeleteChequeRequest, emptypb.Empty]
-	importCheque           *connect.Client[v1.ImportChequeRequest, v1.ImportChequeResponse]
 }
 
 // SendTransaction calls wallet.v1.WalletService.SendTransaction.
@@ -407,11 +396,6 @@ func (c *walletServiceClient) DeleteCheque(ctx context.Context, req *connect.Req
 	return c.deleteCheque.CallUnary(ctx, req)
 }
 
-// ImportCheque calls wallet.v1.WalletService.ImportCheque.
-func (c *walletServiceClient) ImportCheque(ctx context.Context, req *connect.Request[v1.ImportChequeRequest]) (*connect.Response[v1.ImportChequeResponse], error) {
-	return c.importCheque.CallUnary(ctx, req)
-}
-
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
@@ -439,7 +423,6 @@ type WalletServiceHandler interface {
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
-	ImportCheque(context.Context, *connect.Request[v1.ImportChequeRequest]) (*connect.Response[v1.ImportChequeResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -575,12 +558,6 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("DeleteCheque")),
 		connect.WithHandlerOptions(opts...),
 	)
-	walletServiceImportChequeHandler := connect.NewUnaryHandler(
-		WalletServiceImportChequeProcedure,
-		svc.ImportCheque,
-		connect.WithSchema(walletServiceMethods.ByName("ImportCheque")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceSendTransactionProcedure:
@@ -625,8 +602,6 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceSweepChequeHandler.ServeHTTP(w, r)
 		case WalletServiceDeleteChequeProcedure:
 			walletServiceDeleteChequeHandler.ServeHTTP(w, r)
-		case WalletServiceImportChequeProcedure:
-			walletServiceImportChequeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -718,8 +693,4 @@ func (UnimplementedWalletServiceHandler) SweepCheque(context.Context, *connect.R
 
 func (UnimplementedWalletServiceHandler) DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.DeleteCheque is not implemented"))
-}
-
-func (UnimplementedWalletServiceHandler) ImportCheque(context.Context, *connect.Request[v1.ImportChequeRequest]) (*connect.Response[v1.ImportChequeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ImportCheque is not implemented"))
 }
