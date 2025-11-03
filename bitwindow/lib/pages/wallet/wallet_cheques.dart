@@ -147,67 +147,57 @@ class ChequesTab extends StatelessWidget {
           );
         }
 
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(SailStyleValues.padding16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SailText.primary20('Your Cheques'),
-                  if (model.cheques.isNotEmpty)
-                    SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailButton(
-                          label: 'Cash Cheque',
-                          variant: ButtonVariant.secondary,
-                          onPressed: () async => model.cashCheque(context),
-                        ),
-                        SailButton(
-                          label: 'Create New Cheque',
-                          onPressed: () async => model.createNewCheque(context),
-                        ),
-                      ],
+        return SailCard(
+          title: 'Your Checks',
+          bottomPadding: false,
+          widgetHeaderEnd: model.cheques.isNotEmpty
+              ? SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailButton(
+                      label: 'Cash Cheque',
+                      variant: ButtonVariant.secondary,
+                      onPressed: () async => model.cashCheque(context),
                     ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: model.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : model.modelError != null
-                  ? Center(
-                      child: SailText.primary12(model.modelError!, color: context.sailTheme.colors.error),
-                    )
-                  : model.cheques.isEmpty
-                  ? Center(
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding16,
+                    SailButton(
+                      label: 'Create New Cheque',
+                      onPressed: () async => model.createNewCheque(context),
+                    ),
+                  ],
+                )
+              : null,
+          child: model.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : model.modelError != null
+              ? Center(
+                  child: SailText.primary12(model.modelError!, color: context.sailTheme.colors.error),
+                )
+              : model.cheques.isEmpty
+              ? Center(
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SailText.primary15('No cheques yet'),
+                      SailRow(
+                        spacing: SailStyleValues.padding08,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SailText.primary15('No cheques yet'),
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SailButton(
-                                label: 'Cash a Cheque',
-                                variant: ButtonVariant.secondary,
-                                onPressed: () async => model.cashCheque(context),
-                              ),
-                              SailButton(
-                                label: 'Create Your First Cheque',
-                                onPressed: () async => model.createNewCheque(context),
-                              ),
-                            ],
+                          SailButton(
+                            label: 'Cash a Cheque',
+                            variant: ButtonVariant.secondary,
+                            onPressed: () async => model.cashCheque(context),
+                          ),
+                          SailButton(
+                            label: 'Create Your First Cheque',
+                            onPressed: () async => model.createNewCheque(context),
                           ),
                         ],
                       ),
-                    )
-                  : ChequesTable(cheques: model.cheques),
-            ),
-          ],
+                    ],
+                  ),
+                )
+              : ChequesTable(cheques: model.cheques),
         );
       },
     );
@@ -224,61 +214,83 @@ class ChequesTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailTable(
-      drawGrid: true,
-      getRowId: (index) => cheques[index].id.toString(),
-      headerBuilder: (context) => [
-        SailTableHeaderCell(name: 'Created'),
-        SailTableHeaderCell(name: 'Address'),
-        SailTableHeaderCell(name: 'Expected Amount'),
-        SailTableHeaderCell(name: 'Status'),
-        SailTableHeaderCell(name: 'Funded Amount'),
-        SailTableHeaderCell(name: 'Actions'),
-      ],
-      rowBuilder: (context, row, selected) {
-        final cheque = cheques[row];
-        return [
-          SailTableCell(value: _formatDate(cheque.createdAt)),
-          SailTableCell(
-            value: _truncateAddress(cheque.address),
-            copyValue: cheque.address,
-          ),
-          SailTableCell(value: _formatSats(cheque.expectedAmountSats.toInt())),
-          SailTableCell(
-            value: cheque.funded ? 'Funded' : 'Unfunded',
-            textColor: cheque.funded ? context.sailTheme.colors.success : context.sailTheme.colors.orange,
-          ),
-          SailTableCell(
-            value: cheque.funded && cheque.hasActualAmountSats() ? _formatSats(cheque.actualAmountSats.toInt()) : '-',
-          ),
-          SailTableCell(
-            value: '',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailButton(
-                  label: cheque.funded ? 'View Details' : 'Fund Cheque',
-                  onPressed: () async => _viewCheque(context, cheque),
-                  variant: cheque.funded ? ButtonVariant.secondary : ButtonVariant.primary,
-                  insideTable: true,
-                ),
-                const SizedBox(width: SailStyleValues.padding08),
-                SailButton(
-                  icon: SailSVGAsset.iconDelete,
-                  onPressed: () async => _deleteCheque(context, cheque),
-                  variant: ButtonVariant.destructive,
-                  insideTable: true,
-                ),
-              ],
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SailTable(
+        drawGrid: true,
+        getRowId: (index) => cheques[index].id.toString(),
+        headerBuilder: (context) => [
+          SailTableHeaderCell(name: 'Created'),
+          SailTableHeaderCell(name: 'Address'),
+          SailTableHeaderCell(name: 'Expected Amount'),
+          SailTableHeaderCell(name: 'Status'),
+          SailTableHeaderCell(name: 'Funded Amount'),
+          SailTableHeaderCell(name: 'Actions'),
+        ],
+        rowBuilder: (context, row, selected) {
+          final cheque = cheques[row];
+          return [
+            SailTableCell(value: _formatDate(cheque.createdAt)),
+            SailTableCell(
+              value: _truncateAddress(cheque.address),
+              copyValue: cheque.address,
             ),
-          ),
-        ];
-      },
-      rowCount: cheques.length,
-      onDoubleTap: (rowId) {
-        final cheque = cheques.firstWhere((c) => c.id.toString() == rowId);
-        _viewCheque(context, cheque);
-      },
+            SailTableCell(value: _formatSats(cheque.expectedAmountSats.toInt())),
+            SailTableCell(
+              value: cheque.hasSweptTxid() && cheque.sweptTxid.isNotEmpty
+                  ? 'Swept'
+                  : cheque.hasFundedTxid()
+                  ? 'Funded'
+                  : 'Unfunded',
+              textColor: cheque.hasSweptTxid() && cheque.sweptTxid.isNotEmpty
+                  ? context.sailTheme.colors.text.withValues(alpha: 0.5)
+                  : cheque.hasFundedTxid()
+                  ? context.sailTheme.colors.success
+                  : context.sailTheme.colors.orange,
+            ),
+            SailTableCell(
+              value: cheque.hasFundedTxid() && cheque.hasActualAmountSats()
+                  ? _formatSats(cheque.actualAmountSats.toInt())
+                  : '-',
+            ),
+            SailTableCell(
+              value: 'View Details      ',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (cheque.hasSweptTxid() && cheque.sweptTxid.isNotEmpty)
+                    SailButton(
+                      label: 'Swept',
+                      onPressed: () async => _viewCheque(context, cheque),
+                      variant: ButtonVariant.secondary,
+                      insideTable: true,
+                      disabled: true,
+                    )
+                  else
+                    SailButton(
+                      label: cheque.hasFundedTxid() ? 'View Details' : 'Fund Cheque',
+                      onPressed: () async => _viewCheque(context, cheque),
+                      variant: cheque.hasFundedTxid() ? ButtonVariant.secondary : ButtonVariant.primary,
+                      insideTable: true,
+                    ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    icon: SailSVGAsset.iconDelete,
+                    onPressed: () async => _deleteCheque(context, cheque),
+                    variant: ButtonVariant.destructive,
+                    insideTable: true,
+                  ),
+                ],
+              ),
+            ),
+          ];
+        },
+        rowCount: cheques.length,
+        onDoubleTap: (rowId) {
+          final cheque = cheques.firstWhere((c) => c.id.toString() == rowId);
+          _viewCheque(context, cheque);
+        },
+      ),
     );
   }
 
@@ -309,7 +321,7 @@ class ChequesTable extends StatelessWidget {
   }
 
   Future<void> _deleteCheque(BuildContext context, Cheque cheque) async {
-    if (cheque.funded) {
+    if (cheque.hasFundedTxid() && !cheque.hasSweptTxid()) {
       showSnackBar(context, 'Cannot delete funded cheque. Sweep the funds first.');
       return;
     }
@@ -324,8 +336,8 @@ class ChequesTable extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.secondary13('Are you sure you want to delete this cheque?'),
-            if (!cheque.funded)
+            SailText.secondary13('Are you sure you want to delete this check?'),
+            if (!cheque.hasFundedTxid() || cheque.hasSweptTxid())
               Container(
                 padding: const EdgeInsets.all(SailStyleValues.padding12),
                 decoration: BoxDecoration(
@@ -371,7 +383,7 @@ class ChequesTable extends StatelessWidget {
       if (!context.mounted) return;
 
       if (success) {
-        showSnackBar(context, 'Cheque deleted successfully');
+        showSnackBar(context, 'Check deleted successfully');
       } else {
         showSnackBar(context, chequeProvider.modelError ?? 'Failed to delete cheque');
       }

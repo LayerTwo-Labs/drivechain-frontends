@@ -990,7 +990,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		amountSats := uint64(totalAmount * 100000000)
 
 		// Update DB if not already funded
-		if !cheque.Funded {
+		if cheque.FundedTxid == nil {
 			if err := cheques.UpdateFunding(ctx, s.database, c.Msg.Id, txid, amountSats); err != nil {
 				log.Error().Err(err).Msg("failed to update cheque funding")
 				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
@@ -1022,7 +1022,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 	}
 
 	// No UTXOs found - if cheque was funded, it means it was swept
-	if cheque.Funded && cheque.SweptTxid == nil {
+	if cheque.FundedTxid != nil && cheque.SweptTxid == nil {
 		log.Warn().
 			Str("address", cheque.Address).
 			Int64("id", c.Msg.Id).
@@ -1156,13 +1156,10 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
 	}
 
-	// Only allow deletion of unfunded, unswept cheques
-	if cheque.Funded {
+	// Only allow deletion of unfunded or swept cheques
+	// Funded but not swept = still has money, can't delete
+	if cheque.FundedTxid != nil && cheque.SweptTxid == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot delete funded cheque"))
-	}
-
-	if cheque.SweptTxid != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot delete swept cheque"))
 	}
 
 	// Delete the cheque
@@ -1186,7 +1183,7 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 		DerivationIndex:    c.DerivationIndex,
 		Address:            c.Address,
 		ExpectedAmountSats: c.ExpectedAmountSats,
-		Funded:             c.Funded,
+		Funded:             c.FundedTxid != nil,
 		CreatedAt:          timestamppb.New(c.CreatedAt),
 	}
 
@@ -1207,7 +1204,7 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	}
 
 	// Only include private key if cheque is funded and wallet is unlocked
-	if c.Funded && s.chequeEngine.IsUnlocked() {
+	if c.FundedTxid != nil && s.chequeEngine.IsUnlocked() {
 		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.DerivationIndex)
 		if err == nil {
 			pbCheque.PrivateKeyWif = &privateKeyWIF

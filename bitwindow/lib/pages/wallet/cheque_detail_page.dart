@@ -38,8 +38,8 @@ class ChequeDetailViewModel extends BaseViewModel {
 
     _cheque = await _chequeProvider.getCheque(chequeId);
     if (_cheque == null) {
-      modelError = 'Cheque not found';
-    } else if (!_cheque!.funded) {
+      modelError = 'Check not found';
+    } else if (!_cheque!.hasFundedTxid()) {
       // Start polling if not yet funded
       _chequeProvider.startPolling(chequeId);
     }
@@ -100,7 +100,7 @@ class ChequeDetailViewModel extends BaseViewModel {
   }
 
   Future<void> sweepCheque(BuildContext context) async {
-    if (_cheque == null || !_cheque!.funded) return;
+    if (_cheque == null || !_cheque!.hasFundedTxid()) return;
 
     // Check if wallet is locked before attempting sweep
     if (!_chequeProvider.isWalletUnlocked) {
@@ -155,7 +155,7 @@ class ChequeDetailViewModel extends BaseViewModel {
 
       showSnackBar(
         context,
-        'Cheque swept! TXID: ${txid.substring(0, 10)}...',
+        'Check swept! TXID: ${txid.substring(0, 10)}...',
       );
 
       // Navigate back to wallet page
@@ -251,7 +251,7 @@ class ChequeDetailPage extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: SailTheme.of(context).colors.background,
             foregroundColor: SailTheme.of(context).colors.text,
-            title: SailText.primary20('Cheque for $amountBTC BTC'),
+            title: SailText.primary20('Check for $amountBTC BTC'),
           ),
           body: Builder(
             builder: (context) {
@@ -265,7 +265,7 @@ class ChequeDetailPage extends StatelessWidget {
                     spacing: SailStyleValues.padding16,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SailText.primary15(model.modelError ?? 'Cheque not found'),
+                      SailText.primary15(model.modelError ?? 'Check not found'),
                       SailButton(
                         label: 'Go Back',
                         onPressed: () async => Navigator.of(context).pop(),
@@ -303,7 +303,7 @@ class ChequeDetailPage extends StatelessWidget {
                                       height: 32,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: cheque.funded
+                                        color: cheque.hasFundedTxid()
                                             ? context.sailTheme.colors.success.withValues(alpha: 0.2)
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.2),
                                       ),
@@ -314,7 +314,7 @@ class ChequeDetailPage extends StatelessWidget {
                                       height: 20,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: cheque.funded
+                                        color: cheque.hasFundedTxid()
                                             ? context.sailTheme.colors.success.withValues(alpha: 0.5)
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.5),
                                       ),
@@ -325,7 +325,7 @@ class ChequeDetailPage extends StatelessWidget {
                                       height: 12,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: cheque.funded
+                                        color: cheque.hasFundedTxid()
                                             ? context.sailTheme.colors.success
                                             : context.sailTheme.colors.orange,
                                       ),
@@ -335,13 +335,13 @@ class ChequeDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(width: SailStyleValues.padding12),
                               SailText.primary13(
-                                cheque.funded ? 'Funded' : 'Awaiting funding',
+                                cheque.hasFundedTxid() ? 'Funded' : 'Awaiting funding',
                               ),
                             ],
                           ),
 
                           // QR Code
-                          if (!cheque.funded)
+                          if (!cheque.hasFundedTxid())
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding20),
                               decoration: BoxDecoration(
@@ -357,7 +357,7 @@ class ChequeDetailPage extends StatelessWidget {
                             ),
 
                           // Address with copy button
-                          if (!cheque.funded)
+                          if (!cheque.hasFundedTxid())
                             SailRow(
                               spacing: SailStyleValues.padding08,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -373,7 +373,7 @@ class ChequeDetailPage extends StatelessWidget {
                             ),
 
                           // Private key section (only shown when funded)
-                          if (cheque.funded && cheque.hasPrivateKeyWif() && cheque.privateKeyWif.isNotEmpty)
+                          if (cheque.hasFundedTxid() && cheque.hasPrivateKeyWif() && cheque.privateKeyWif.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding16),
                               decoration: BoxDecoration(
@@ -422,7 +422,7 @@ class ChequeDetailPage extends StatelessWidget {
                             ),
 
                           // Fund button (only if not funded)
-                          if (!cheque.funded)
+                          if (!cheque.hasFundedTxid())
                             SizedBox(
                               width: 400,
                               height: 64,
@@ -462,7 +462,7 @@ class ChequeDetailPage extends StatelessWidget {
                             ),
 
                           // Sweep button (only if funded)
-                          if (cheque.funded)
+                          if (cheque.hasFundedTxid())
                             SizedBox(
                               width: 400,
                               height: 64,
