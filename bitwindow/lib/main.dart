@@ -134,21 +134,20 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     initialBinaries: initalBinaries(),
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
-
-  GetIt.I.registerLazySingleton<MainchainRPC>(() => MainchainRPCLive.create());
-  GetIt.I.registerLazySingleton<EnforcerRPC>(() => EnforcerLive());
+  GetIt.I.registerSingleton<MainchainRPC>(MainchainRPCLive.create());
+  GetIt.I.registerSingleton<EnforcerRPC>(EnforcerLive());
 
   final bitwindow = BitwindowRPCLive(
     host: Environment.bitwindowdHost.value,
     port: Environment.bitwindowdPort.value,
   );
-  GetIt.I.registerLazySingleton<BitwindowRPC>(() => bitwindow);
+  GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
 
   // now register all sidedchains
-  GetIt.I.registerLazySingleton<BitAssetsRPC>(() => BitAssetsLive());
-  GetIt.I.registerLazySingleton<BitnamesRPC>(() => BitnamesLive());
-  GetIt.I.registerLazySingleton<ThunderRPC>(() => ThunderLive());
-  GetIt.I.registerLazySingleton<ZSideRPC>(() => ZSideLive());
+  GetIt.I.registerSingleton<BitAssetsRPC>(BitAssetsLive());
+  GetIt.I.registerSingleton<BitnamesRPC>(BitnamesLive());
+  GetIt.I.registerSingleton<ThunderRPC>(ThunderLive());
+  GetIt.I.registerSingleton<ZSideRPC>(ZSideLive());
 
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
@@ -164,14 +163,16 @@ Future<(Directory, File, Logger)> init(String arguments) async {
       additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name),
     ),
   );
-  GetIt.I.registerLazySingleton<BlockchainProvider>(() => BlockchainProvider());
-  GetIt.I.registerLazySingleton<TransactionProvider>(() => TransactionProvider());
-  GetIt.I.registerLazySingleton<NewsProvider>(() => NewsProvider());
-  GetIt.I.registerLazySingleton<SidechainProvider>(() => SidechainProvider());
-  GetIt.I.registerLazySingleton<AddressBookProvider>(() => AddressBookProvider());
-  GetIt.I.registerLazySingleton<HDWalletProvider>(() => HDWalletProvider(applicationDir!));
-  GetIt.I.registerLazySingleton<BitDriveProvider>(() => BitDriveProvider());
-  GetIt.I.registerLazySingleton<ChequeProvider>(() => ChequeProvider());
+  GetIt.I.registerSingleton<BlockchainProvider>(BlockchainProvider());
+  GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
+  GetIt.I.registerSingleton<NewsProvider>(NewsProvider());
+  GetIt.I.registerSingleton<SidechainProvider>(SidechainProvider());
+  GetIt.I.registerSingleton<AddressBookProvider>(AddressBookProvider());
+  GetIt.I.registerSingleton<HDWalletProvider>(HDWalletProvider(applicationDir));
+  GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
+  // Eager initialization so it can listen for wallet unlock events
+  final chequeProvider = ChequeProvider();
+  GetIt.I.registerSingleton<ChequeProvider>(chequeProvider);
   final bitwindowHomepageProvider = BitwindowHomepageProvider();
   GetIt.I.registerLazySingleton<BitwindowHomepageProvider>(() => bitwindowHomepageProvider);
   // Register the abstract HomepageProvider as an alias to the concrete implementation

@@ -17,6 +17,7 @@ class WalletReaderProvider extends ChangeNotifier {
 
   Map<String, dynamic>? _cachedWalletJson;
   Uint8List? _encryptionKey;
+  String? unlockedPassword;
 
   WalletReaderProvider(this.bitwindowAppDir);
 
@@ -119,6 +120,7 @@ class WalletReaderProvider extends ChangeNotifier {
           final decryptedJson = EncryptionService.decrypt(encryptedData, key);
           _cachedWalletJson = jsonDecode(decryptedJson) as Map<String, dynamic>;
           _encryptionKey = key;
+          unlockedPassword = password;
           notifyListeners();
           return true;
         } catch (e) {
@@ -136,6 +138,7 @@ class WalletReaderProvider extends ChangeNotifier {
     await _lock.synchronized(() async {
       _cachedWalletJson = null;
       _encryptionKey = null;
+      unlockedPassword = null;
 
       try {
         final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));

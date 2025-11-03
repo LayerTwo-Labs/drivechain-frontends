@@ -13,7 +13,6 @@ type Cheque struct {
 	DerivationIndex    uint32
 	ExpectedAmountSats uint64
 	Address            string
-	Funded             bool
 	FundedTxid         *string
 	ActualAmountSats   *uint64
 	CreatedAt          time.Time
@@ -60,7 +59,6 @@ func scanCheque(scanner interface {
 		&cheque.DerivationIndex,
 		&cheque.ExpectedAmountSats,
 		&cheque.Address,
-		&cheque.Funded,
 		&fundedTxid,
 		&actualAmountSats,
 		&cheque.CreatedAt,
@@ -95,7 +93,7 @@ func scanCheque(scanner interface {
 // Get retrieves a cheque by ID
 func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 	row := db.QueryRowContext(ctx, `
-		SELECT id, derivation_index, expected_amount_sats, address, funded,
+		SELECT id, derivation_index, expected_amount_sats, address,
 		       funded_txid, actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
@@ -113,7 +111,7 @@ func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 // GetByAddress retrieves a cheque by address
 func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, error) {
 	row := db.QueryRowContext(ctx, `
-		SELECT id, derivation_index, expected_amount_sats, address, funded,
+		SELECT id, derivation_index, expected_amount_sats, address,
 		       funded_txid, actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
@@ -131,7 +129,7 @@ func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, err
 // List retrieves all cheques
 func List(ctx context.Context, db *sql.DB) ([]Cheque, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, derivation_index, expected_amount_sats, address, funded,
+		SELECT id, derivation_index, expected_amount_sats, address,
 		       funded_txid, actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
@@ -161,7 +159,7 @@ func UpdateFunding(ctx context.Context, db *sql.DB, id int64, txid string, actua
 
 	_, err := db.ExecContext(ctx, `
 		UPDATE cheques
-		SET funded = 1, funded_txid = ?, actual_amount_sats = ?, funded_at = ?
+		SET funded_txid = ?, actual_amount_sats = ?, funded_at = ?
 		WHERE id = ?
 	`, txid, actualAmount, now, id)
 
@@ -247,8 +245,8 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, index uint32, a
 	// Create new cheque as already funded
 	now := time.Now()
 	_, err = db.ExecContext(ctx, `
-		INSERT INTO cheques (derivation_index, expected_amount_sats, address, funded, funded_txid, actual_amount_sats, funded_at)
-		VALUES (?, ?, ?, 1, ?, ?, ?)
+		INSERT INTO cheques (derivation_index, expected_amount_sats, address, funded_txid, actual_amount_sats, funded_at)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`, index, amount, address, txid, amount, now)
 
 	if err != nil {
