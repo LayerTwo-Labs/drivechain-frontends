@@ -1041,34 +1041,25 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 }
 
 // SweepCheque implements walletv1connect.WalletServiceHandler.
+// Sweeps a cheque using its WIF private key to the destination address.
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
 
-	if !s.chequeEngine.IsUnlocked() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
-	}
-
-	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	// Decode the WIF
+	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
 	}
 
-	if !cheque.Funded {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cheque is not funded"))
-	}
-
-	if cheque.SweptTxid != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cheque already swept"))
-	}
-
-	// Get private key
-	wif, err := s.chequeEngine.DeriveChequePrivateKey(cheque.DerivationIndex)
+	// Derive address from the private key
+	pubKey := wifKey.PrivKey.PubKey()
+	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
+	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, s.chequeEngine.GetChainParams())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive private key: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create address: %w", err))
 	}
+
+	addressStr := address.EncodeAddress()
 
 	// Get bitcoind client
 	bitcoind, err := s.bitcoind.Get(ctx)
@@ -1076,47 +1067,35 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
 	}
 
-	// Query UTXOs for this address using watch wallet
+	// Query UTXOs for this address
 	log.Debug().
-		Str("address", cheque.Address).
+		Str("address", addressStr).
 		Str("wallet", engines.ChequeWalletName).
-		Uint32("derivation_index", cheque.DerivationIndex).
 		Msg("SweepCheque: querying UTXOs")
 
 	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
 		MinimumConfirmations: lo.ToPtr(uint32(0)), // Include unconfirmed
-		Addresses:            []string{cheque.Address},
+		Addresses:            []string{addressStr},
 		Wallet:               engines.ChequeWalletName,
 	}))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query UTXOs: %w", err))
 	}
 
-	log.Debug().
-		Str("address", cheque.Address).
-		Int("utxo_count", len(utxos.Msg.Unspent)).
-		Msg("SweepCheque: UTXOs found")
-
 	if len(utxos.Msg.Unspent) == 0 {
-		// No UTXOs found - cheque was swept by someone else!
-		log.Warn().
-			Str("address", cheque.Address).
-			Int64("id", c.Msg.Id).
-			Msg("cheque has no UTXOs - was swept externally")
-
-		// Mark as swept - we know it was swept but don't know the exact txid
-		// Finding the spending tx from a watch-only wallet requires full blockchain scan
-		if err := cheques.UpdateSwept(ctx, s.database, c.Msg.Id, "swept_externally"); err != nil {
-			log.Error().Err(err).Msg("failed to mark cheque as externally swept")
-		}
-
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cheque was already swept by someone else"))
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
 	}
+
+	// Calculate total amount in satoshis
+	totalAmountBTC := lo.SumBy(utxos.Msg.Unspent, func(utxo *corepb.UnspentOutput) float64 {
+		return utxo.Amount
+	})
+	totalAmount := uint64(totalAmountBTC * 1e8)
 
 	// Set fee rate
 	feeSatPerVbyte := c.Msg.FeeSatPerVbyte
 	if feeSatPerVbyte == 0 {
-		feeSatPerVbyte = 1 // Default to 1 sat/vbyte if not specified
+		feeSatPerVbyte = 2
 	}
 
 	unsignedTx, err := s.buildSweepTx(c.Msg.DestinationAddress, utxos.Msg.Unspent, feeSatPerVbyte)
@@ -1124,7 +1103,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
 	}
 
-	signedTx, err := s.signSweepTx(unsignedTx, wif, cheque.Address, utxos.Msg.Unspent)
+	signedTx, err := s.signSweepTx(unsignedTx, c.Msg.PrivateKeyWif, addressStr, utxos.Msg.Unspent)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
 	}
@@ -1143,21 +1122,24 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
 	}
 
-	// Mark cheque as swept in database
-	if err := cheques.UpdateSwept(ctx, s.database, c.Msg.Id, res.Msg.Txid); err != nil {
-		log.Error().Err(err).Msg("failed to mark cheque as swept")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark cheque as swept: %w", err))
+	// Try to find and mark the cheque as swept in database if it exists
+	cheque, err := cheques.GetByAddress(ctx, s.database, addressStr)
+	if err == nil && cheque.SweptTxid == nil {
+		if err := cheques.UpdateSwept(ctx, s.database, cheque.ID, res.Msg.Txid); err != nil {
+			log.Warn().Err(err).Msg("failed to mark cheque as swept in database")
+		}
 	}
 
 	log.Info().
-		Int64("id", c.Msg.Id).
-		Str("from", cheque.Address).
+		Str("from", addressStr).
 		Str("to", c.Msg.DestinationAddress).
 		Str("txid", res.Msg.Txid).
+		Uint64("amount_sats", totalAmount).
 		Msg("cheque swept successfully")
 
 	return connect.NewResponse(&pb.SweepChequeResponse{
-		Txid: res.Msg.Txid,
+		Txid:       res.Msg.Txid,
+		AmountSats: totalAmount,
 	}), nil
 }
 
@@ -1195,107 +1177,6 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 		Msg("cheque deleted")
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
-}
-
-// ImportCheque imports a cheque by WIF and sweeps funds to the user's wallet
-func (s *Server) ImportCheque(ctx context.Context, c *connect.Request[pb.ImportChequeRequest]) (*connect.Response[pb.ImportChequeResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	if !s.chequeEngine.IsUnlocked() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
-	}
-
-	// Decode the WIF
-	wif, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
-	}
-
-	// Get the address from the private key
-	pubKey := wif.PrivKey.PubKey()
-	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
-	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, s.chequeEngine.GetChainParams())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create address: %w", err))
-	}
-
-	// Get bitcoind client
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
-	}
-
-	// The cheque descriptor wallet already watches all cheque addresses via the descriptor
-	// imported in cheque_engine.go with range 0-1000, so no need to import individual addresses
-
-	// Query UTXOs for this address
-	log.Debug().
-		Str("address", address.EncodeAddress()).
-		Msg("ImportCheque: querying UTXOs")
-
-	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-		MinimumConfirmations: lo.ToPtr(uint32(0)),
-		Addresses:            []string{address.EncodeAddress()},
-		Wallet:               engines.ChequeWalletName,
-	}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query UTXOs: %w", err))
-	}
-
-	if len(utxos.Msg.Unspent) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
-	}
-
-	// Calculate total amount in satoshis
-	var totalAmountBTC float64
-	for _, utxo := range utxos.Msg.Unspent {
-		totalAmountBTC += utxo.Amount
-	}
-	totalAmount := uint64(totalAmountBTC * 1e8)
-
-	// Get user's receive address
-	receiveAddr, err := s.GetNewAddress(ctx, connect.NewRequest(&emptypb.Empty{}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get receive address: %w", err))
-	}
-
-	// Build and sign sweep transaction
-	feeSatPerVbyte := uint64(10) // Default fee rate
-	unsignedTx, err := s.buildSweepTx(receiveAddr.Msg.Address, utxos.Msg.Unspent, feeSatPerVbyte)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
-	}
-
-	signedTx, err := s.signSweepTx(unsignedTx, c.Msg.PrivateKeyWif, address.EncodeAddress(), utxos.Msg.Unspent)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
-	}
-
-	txHex, err := s.serializeTx(signedTx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
-	}
-
-	res, err := bitcoind.SendRawTransaction(ctx, &connect.Request[corepb.SendRawTransactionRequest]{
-		Msg: &corepb.SendRawTransactionRequest{
-			HexString: txHex,
-		},
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
-	}
-
-	log.Info().
-		Str("from", address.EncodeAddress()).
-		Str("to", receiveAddr.Msg.Address).
-		Str("txid", res.Msg.Txid).
-		Uint64("amount", totalAmount).
-		Msg("cheque imported and swept successfully")
-
-	return connect.NewResponse(&pb.ImportChequeResponse{
-		Txid:       res.Msg.Txid,
-		AmountSats: totalAmount,
-	}), nil
 }
 
 // Helper function to convert model Cheque to protobuf Cheque

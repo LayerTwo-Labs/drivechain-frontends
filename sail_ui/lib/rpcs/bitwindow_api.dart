@@ -491,16 +491,15 @@ abstract class WalletAPI {
   Future<Cheque> getCheque(int id);
   Future<List<Cheque>> listCheques();
   Future<CheckChequeFundingResponse> checkChequeFunding(int id);
-  Future<String> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte);
+  Future<SweepChequeResult> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte);
   Future<void> deleteCheque(int id);
-  Future<ImportChequeResult> importCheque(String privateKeyWif);
 }
 
-class ImportChequeResult {
+class SweepChequeResult {
   final String txid;
   final int amountSats;
 
-  ImportChequeResult({required this.txid, required this.amountSats});
+  SweepChequeResult({required this.txid, required this.amountSats});
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -734,16 +733,19 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<String> sweepCheque(int id, String destinationAddress, int feeSatPerVbyte) async {
+  Future<SweepChequeResult> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
     try {
       final response = await _client.sweepCheque(
         SweepChequeRequest(
-          id: Int64(id),
+          privateKeyWif: privateKeyWif,
           destinationAddress: destinationAddress,
           feeSatPerVbyte: Int64(feeSatPerVbyte),
         ),
       );
-      return response.txid;
+      return SweepChequeResult(
+        txid: response.txid,
+        amountSats: response.amountSats.toInt(),
+      );
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -754,22 +756,6 @@ class _WalletAPILive implements WalletAPI {
   Future<void> deleteCheque(int id) async {
     try {
       await _client.deleteCheque(DeleteChequeRequest(id: Int64(id)));
-    } catch (e) {
-      final error = extractConnectException(e);
-      throw WalletException(error);
-    }
-  }
-
-  @override
-  Future<ImportChequeResult> importCheque(String privateKeyWif) async {
-    try {
-      final response = await _client.importCheque(
-        ImportChequeRequest(privateKeyWif: privateKeyWif),
-      );
-      return ImportChequeResult(
-        txid: response.txid,
-        amountSats: response.amountSats.toInt(),
-      );
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);

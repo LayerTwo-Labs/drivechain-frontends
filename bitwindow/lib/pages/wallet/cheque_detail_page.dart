@@ -120,9 +120,17 @@ class ChequeDetailViewModel extends BaseViewModel {
       return;
     }
 
+    // Get the private key WIF - this requires the cheque to have it
+    if (!_cheque!.hasPrivateKeyWif() || _cheque!.privateKeyWif.isEmpty) {
+      if (context.mounted) {
+        showSnackBar(context, 'Private key not available - wallet may be locked');
+      }
+      return;
+    }
+
     try {
       final txid = await _chequeProvider.sweepCheque(
-        chequeId,
+        _cheque!.privateKeyWif,
         destinationAddress,
         10, // Default fee rate of 10 sat/vbyte
       );
