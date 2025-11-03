@@ -1071,6 +1071,9 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
         );
       },
       mainchainInfo: true,
+      balanceEndWidgets: const [
+        GetCoinsButton(),
+      ],
       endWidgets: [
         SailSkeletonizer(
           description: 'Waiting for bitcoind to connect..',

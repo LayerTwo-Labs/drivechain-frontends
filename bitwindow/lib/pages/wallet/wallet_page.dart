@@ -162,13 +162,6 @@ class WalletPage extends StatelessWidget {
                 key: tabKey,
                 tabs: allTabs,
                 initialIndex: 0,
-                endWidget: SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    // Faucet Button
-                    const GetCoinsButton(),
-                  ],
-                ),
               );
             },
           );
@@ -266,6 +259,8 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
       label: 'Get Coins',
       loading: _isClaiming,
       loadingLabel: 'Claiming',
+      variant: _transactionProvider.balanceProvider.balance == 0 ? ButtonVariant.primary : ButtonVariant.secondary,
+      insideTable: true,
     );
   }
 }

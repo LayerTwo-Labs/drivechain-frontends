@@ -6,6 +6,7 @@ import 'package:stacked/stacked.dart';
 
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
+  final List<Widget> balanceEndWidgets;
   final ConnectionMonitor additionalConnection;
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
@@ -14,6 +15,7 @@ class BottomNav extends StatelessWidget {
   const BottomNav({
     super.key,
     required this.endWidgets,
+    this.balanceEndWidgets = const [],
     required this.additionalConnection,
     required this.mainchainInfo,
     required this.navigateToLogs,
@@ -48,6 +50,10 @@ class BottomNav extends StatelessWidget {
                 );
               },
             ),
+            if (balanceEndWidgets.isNotEmpty) ...[
+              const SailSpacing(SailStyleValues.padding08),
+              ...balanceEndWidgets,
+            ],
             Expanded(child: Container()),
             ViewModelBuilder.reactive(
               viewModelBuilder: () => BottomNavViewModel(
