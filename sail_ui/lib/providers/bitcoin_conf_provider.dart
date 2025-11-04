@@ -20,7 +20,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   // Config file state
   bool _hasPrivateBitcoinConf = false;
   String? _currentConfigPath;
-  Network _detectedNetwork = Network.NETWORK_MAINNET;
+  Network _detectedNetwork = Network.NETWORK_SIGNET;
   String? _detectedDataDir;
   BitcoinConfig? _currentConfig;
 
