@@ -165,24 +165,34 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
 }
 
 class SailDropdownItem<T> extends StatelessWidget {
-  final String label;
+  final String? label;
+  final Widget? child;
   final dynamic value;
   final bool monospace;
 
-  const SailDropdownItem({super.key, required this.value, required this.label, this.monospace = false});
+  const SailDropdownItem({
+    super.key,
+    required this.value,
+    this.label,
+    this.child,
+    this.monospace = false,
+  }) : assert(label != null || child != null, 'Either label or child must be provided');
+
+  String get displayLabel => label ?? '';
 
   @override
   Widget build(BuildContext context) {
     return SelectionContainer.disabled(
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(
-          label,
-          style: SailStyleValues.thirteen.copyWith(
-            color: SailTheme.of(context).colors.text,
-            fontFamily: monospace ? 'IBMPlexMono' : 'Inter',
-          ),
-        ),
+        child: child ??
+            Text(
+              displayLabel,
+              style: SailStyleValues.thirteen.copyWith(
+                color: SailTheme.of(context).colors.text,
+                fontFamily: monospace ? 'IBMPlexMono' : 'Inter',
+              ),
+            ),
       ),
     );
   }
@@ -253,7 +263,7 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
     final query = searchController.text.toLowerCase();
     if (query.isEmpty) return widget.items;
     return widget.items.where((item) {
-      return item.label.toLowerCase().contains(query);
+      return item.displayLabel.toLowerCase().contains(query);
     }).toList();
   }
 
@@ -356,7 +366,7 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                       SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.text, height: 8)
                     else
                       const SizedBox(width: 13),
-                    Expanded(child: SailText.primary13(item.label)),
+                    Expanded(child: SailText.primary13(item.displayLabel)),
                   ],
                 ),
               );
@@ -513,7 +523,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
     final query = searchController.text.toLowerCase();
     if (query.isEmpty) return widget.items;
     return widget.items.where((item) {
-      return item.label.toLowerCase().contains(query);
+      return item.displayLabel.toLowerCase().contains(query);
     }).toList();
   }
 
@@ -559,7 +569,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                   children: [
                     Expanded(
                       child: selectedItem != null
-                          ? SailText.primary13(selectedItem.label)
+                          ? (selectedItem.child ?? SailText.primary13(selectedItem.displayLabel))
                           : SailText.primary13(widget.searchPlaceholder, color: theme.colors.textSecondary),
                     ),
                     widget.suffix ??
@@ -598,7 +608,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 },
                 child: SailRow(
                   spacing: SailStyleValues.padding08,
-                  children: [Expanded(child: SailText.primary13(item.label))],
+                  children: [Expanded(child: item.child ?? SailText.primary13(item.displayLabel))],
                 ),
               );
             }).toList(),

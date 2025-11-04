@@ -573,7 +573,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                 title: hasExistingWallet ? 'Create New Wallet' : 'Set up your wallet',
                 subtitle: hasExistingWallet
                     ? "Let's create a new wallet. Note that creating a new wallet will wipe your current wallet, and you should backup your current wallet before generating a new one."
-                    : "Welcome to Drivechain! Let's begin by setting up your wallet. The same seed is used for your mainchain node and all your sidechain wallets. This ensures you can easily back up and restore all wallets at a later date.",
+                    : "Welcome to Drivechain! Let's begin by setting up your wallet.",
               ),
               Spacer(),
               SizedBox(

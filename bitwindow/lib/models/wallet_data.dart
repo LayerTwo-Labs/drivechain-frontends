@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:uuid/uuid.dart';
+import 'package:sail_ui/models/wallet_gradient.dart';
 
 /// Main wallet data structure containing all wallet information
 class WalletData {
@@ -6,12 +8,20 @@ class WalletData {
   final MasterWallet master;
   final L1Wallet l1;
   final List<SidechainWallet> sidechains;
+  final String id;
+  final String name;
+  final WalletGradient gradient;
+  final DateTime createdAt;
 
   WalletData({
     required this.version,
     required this.master,
     required this.l1,
     required this.sidechains,
+    required this.id,
+    required this.name,
+    required this.gradient,
+    required this.createdAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -20,10 +30,15 @@ class WalletData {
       'master': master.toJson(),
       'l1': l1.toJson(),
       'sidechains': sidechains.map((s) => s.toJson()).toList(),
+      'id': id,
+      'name': name,
+      'gradient': gradient.toJson(),
+      'created_at': createdAt.toIso8601String(),
     };
   }
 
   factory WalletData.fromJson(Map<String, dynamic> json) {
+    final walletId = json['id'] as String? ?? _generateId();
     return WalletData(
       version: json['version'] as int? ?? 1,
       master: MasterWallet.fromJson(json['master'] as Map<String, dynamic>),
@@ -33,7 +48,17 @@ class WalletData {
               ?.map((s) => SidechainWallet.fromJson(s as Map<String, dynamic>))
               .toList() ??
           [],
+      id: walletId,
+      name: json['name'] as String? ?? 'Wallet 1',
+      gradient: json['gradient'] != null
+          ? WalletGradient.fromJson(json['gradient'] as Map<String, dynamic>)
+          : WalletGradient.fromWalletId(walletId),
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
+  }
+
+  static String _generateId() {
+    return const Uuid().v4().replaceAll('-', '').toUpperCase();
   }
 
   String toJsonString() {

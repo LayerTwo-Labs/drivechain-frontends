@@ -5,9 +5,10 @@ import 'package:sail_ui/sail_ui.dart';
 class TopNav extends StatefulWidget implements PreferredSizeWidget {
   final List<TopNavRoute> routes;
   final bool leadingPadding;
+  final Widget? leadingWidget;
   final Widget? endWidget;
 
-  const TopNav({super.key, required this.routes, this.leadingPadding = false, this.endWidget});
+  const TopNav({super.key, required this.routes, this.leadingPadding = false, this.leadingWidget, this.endWidget});
 
   @override
   Size get preferredSize => const Size.fromHeight(35);
@@ -39,6 +40,7 @@ class _TopNavState extends State<TopNav> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.leadingWidget != null) widget.leadingWidget!,
                     ...widget.routes.asMap().entries.map(
                       (entry) => DecoratedBox(
                         decoration: BoxDecoration(

@@ -48,6 +48,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   final _routerKey = GlobalKey<AutoTabsRouterState>();
   final _clientSettings = GetIt.I<ClientSettings>();
 
+  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
@@ -61,6 +62,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _notificationProvider.addListener(rebuildNotifications);
     _homepageProvider.addListener(_onProviderChanged);
     _bitwindowSettingsProvider.addListener(_onProviderChanged);
+    _walletReader.addListener(_onProviderChanged);
     _initializeWindowManager();
   }
 
@@ -717,6 +719,18 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   child: Scaffold(
                     backgroundColor: theme.colors.background,
                     appBar: TopNav(
+                      leadingWidget: WalletDropdown(
+                        currentWallet: _walletReader.availableWallets
+                            .where((w) => w.id == _walletReader.activeWalletId)
+                            .firstOrNull,
+                        availableWallets: _walletReader.availableWallets,
+                        onWalletSelected: (walletId) async {
+                          await _walletReader.switchWallet(walletId);
+                        },
+                        onCreateWallet: () async {
+                          await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
+                        },
+                      ),
                       routes: [
                         TopNavRoute(
                           label: 'Overview',
@@ -961,6 +975,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   void dispose() {
     _homepageProvider.removeListener(_onProviderChanged);
     _bitwindowSettingsProvider.removeListener(_onProviderChanged);
+    _walletReader.removeListener(_onProviderChanged);
     GetIt.I.get<BinaryProvider>().onShutdown(
       shutdownOptions: ShutdownOptions(
         router: GetIt.I.get<AppRouter>(),
