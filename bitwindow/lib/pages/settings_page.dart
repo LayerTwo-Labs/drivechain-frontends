@@ -407,6 +407,7 @@ class _SecuritySettingsContent extends StatefulWidget {
 
 class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
+  final WalletWriterProvider _walletWriter = GetIt.I.get<WalletWriterProvider>();
   bool _isEncrypted = false;
   bool _isCheckingEncryption = true;
 
@@ -414,17 +415,18 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
   void initState() {
     super.initState();
     _checkEncryptionStatus();
-    _walletReader.addListener(_onEncryptionChanged);
+    _walletReader.addListener(_onDataChanged);
   }
 
   @override
   void dispose() {
-    _walletReader.removeListener(_onEncryptionChanged);
+    _walletReader.removeListener(_onDataChanged);
     super.dispose();
   }
 
-  void _onEncryptionChanged() {
+  void _onDataChanged() {
     _checkEncryptionStatus();
+    setState(() {});
   }
 
   Future<void> _checkEncryptionStatus() async {
@@ -451,6 +453,86 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
           children: [
             SailText.primary20('Security'),
             SailText.secondary13('Protect and backup your wallet'),
+          ],
+        ),
+
+        // Wallet Management
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Wallets'),
+            const SailSpacing(SailStyleValues.padding08),
+            if (_walletReader.availableWallets.isEmpty)
+              SailText.secondary13('No wallets found')
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ..._walletReader.availableWallets.map((wallet) {
+                    final isActive = wallet.id == _walletReader.activeWalletId;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(SailStyleValues.padding12),
+                      decoration: BoxDecoration(
+                        color: isActive ? theme.colors.backgroundSecondary : null,
+                        border: Border.all(
+                          color: isActive ? theme.colors.primary : theme.colors.border,
+                        ),
+                        borderRadius: SailStyleValues.borderRadiusSmall,
+                      ),
+                      child: Row(
+                        children: [
+                          WalletBlobAvatar(gradient: wallet.gradient, size: 32),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary13(wallet.name, bold: isActive),
+                                if (isActive)
+                                  SailText.secondary12(
+                                    'Active wallet',
+                                    color: theme.colors.primary,
+                                  ),
+                              ],
+                            ),
+                          ),
+                          SailButton(
+                            label: 'Edit',
+                            small: true,
+                            variant: ButtonVariant.secondary,
+                            onPressed: () async {
+                              await showDialog(
+                                context: context,
+                                builder: (context) => WalletManagementDialog(
+                                  existingWallet: wallet,
+                                  onSave: (name, gradient) async {
+                                    await _walletWriter.updateWalletMetadata(wallet.id, name, gradient);
+                                  },
+                                  onDelete: () async {
+                                    await _walletReader.removeWalletFromList(wallet.id);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SailSpacing(SailStyleValues.padding08),
+                  SailButton(
+                    label: 'Create New Wallet',
+                    onPressed: () async {
+                      await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
+                    },
+                  ),
+                ],
+              ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'Manage your wallet names and visual identifiers',
+            ),
           ],
         ),
 

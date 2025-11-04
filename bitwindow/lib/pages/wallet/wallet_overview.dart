@@ -195,7 +195,14 @@ class _TransactionTableState extends State<TransactionTable> {
                 padding: const EdgeInsets.symmetric(
                   vertical: SailStyleValues.padding16,
                 ),
-                child: widget.searchWidget,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    widget.searchWidget,
+                    const SizedBox(height: SailStyleValues.padding12),
+                    DateRangeFilterWidget(model: widget.model),
+                  ],
+                ),
               ),
               SizedBox(
                 height: 300,
@@ -345,6 +352,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
   final BalanceProvider _balanceProvider = GetIt.I<BalanceProvider>();
 
+  DateTimeRange? dateRange;
+
   List<WalletTransaction> get entries {
     if (loading) {
       return [
@@ -390,11 +399,24 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       ];
     }
 
-    final filteredTransactions = _txProvider.walletTransactions
-        .where(
-          (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
-        )
-        .toList();
+    final filteredTransactions = _txProvider.walletTransactions.where((tx) {
+      final txDate = tx.confirmationTime.timestamp.toDateTime();
+
+      if (searchController.text.isNotEmpty && !tx.txid.contains(searchController.text)) {
+        return false;
+      }
+
+      if (dateRange != null) {
+        final rangeStart = DateTime(dateRange!.start.year, dateRange!.start.month, dateRange!.start.day);
+        final rangeEnd = DateTime(dateRange!.end.year, dateRange!.end.month, dateRange!.end.day, 23, 59, 59);
+
+        if (txDate.isBefore(rangeStart) || txDate.isAfter(rangeEnd)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
 
     // Always sort by date, newest first
     filteredTransactions.sort((a, b) {
@@ -440,9 +462,20 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('balance', balance);
     track('pendingBalance', pendingBalance);
     track('searchText', searchController.text);
+    track('dateRange', dateRange);
     track('loading', loading);
     track('stats', stats);
     notifyIfChanged();
+  }
+
+  void setDateRange(DateTimeRange? range) {
+    dateRange = range;
+    notifyListeners();
+  }
+
+  void clearDateFilter() {
+    dateRange = null;
+    notifyListeners();
   }
 
   // Debounce stats fetching
@@ -598,6 +631,85 @@ class WalletStats extends ViewModelWidget<OverviewViewModel> {
       loading: LoadingDetails(
         enabled: viewModel.loading,
         description: 'Waiting for enforcer to boot and wallet to sync..',
+      ),
+    );
+  }
+}
+
+class DateRangeFilterWidget extends StatelessWidget {
+  final OverviewViewModel model;
+
+  const DateRangeFilterWidget({
+    super.key,
+    required this.model,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final pickedRange = await showDateRangePicker(
+          context: context,
+          firstDate: DateTime(2009, 1, 3),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          initialDateRange: model.dateRange,
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.dark(
+                  primary: context.sailTheme.colors.primary,
+                  onPrimary: context.sailTheme.colors.background,
+                  surface: context.sailTheme.colors.backgroundSecondary,
+                  onSurface: context.sailTheme.colors.text,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+
+        if (pickedRange != null) {
+          model.setDateRange(pickedRange);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding16,
+          vertical: SailStyleValues.padding12,
+        ),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: context.sailTheme.colors.divider,
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailSVG.icon(SailSVGAsset.iconCalendar, width: 16),
+            const SizedBox(width: SailStyleValues.padding08),
+            SailText.primary13(
+              model.dateRange == null
+                  ? 'Select date range'
+                  : '${DateFormat('MMM dd, yyyy').format(model.dateRange!.start)} - ${DateFormat('MMM dd, yyyy').format(model.dateRange!.end)}',
+            ),
+            if (model.dateRange != null) ...[
+              const SizedBox(width: SailStyleValues.padding08),
+              GestureDetector(
+                onTap: () => model.clearDateFilter(),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: context.sailTheme.colors.text,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

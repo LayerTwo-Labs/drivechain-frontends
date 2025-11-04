@@ -20,6 +20,7 @@ import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:synchronized/synchronized.dart';
+import 'package:uuid/uuid.dart';
 
 class WalletWriterProvider extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
@@ -38,7 +39,6 @@ class WalletWriterProvider extends ChangeNotifier {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   Future<void> init() async {
-    await migrate();
     _logger.i('init: Wallet writer provider initialized');
 
     // Listen to WalletReaderProvider changes and propagate to our listeners
@@ -104,10 +104,14 @@ class WalletWriterProvider extends ChangeNotifier {
     });
   }
 
-  Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
+  Future<Map<String, dynamic>> generateWallet({
+    String name = 'Primary Wallet',
+    String? customMnemonic,
+    String? passphrase,
+  }) async {
     _logger.i('generateWallet: Starting wallet generation');
 
-    final walletData = await _genWallet(customMnemonic: customMnemonic, passphrase: passphrase);
+    final walletData = await _genWallet(name: name, customMnemonic: customMnemonic, passphrase: passphrase);
 
     _logger.i('generateWallet: Wallet data generated, restarting enforcer');
 
@@ -147,7 +151,11 @@ class WalletWriterProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> _genWallet({String? customMnemonic, String? passphrase}) async {
+  Future<Map<String, dynamic>> _genWallet({
+    required String name,
+    String? customMnemonic,
+    String? passphrase,
+  }) async {
     _logger.i('_genWallet: Starting');
 
     // Run heavy crypto operations in isolate to prevent UI blocking
@@ -159,7 +167,7 @@ class WalletWriterProvider extends ChangeNotifier {
     _logger.i('_genWallet: Wallet data generated from isolate');
 
     _logger.i('_genWallet: About to save master wallet (includes all chains)');
-    await saveMasterWallet(walletData);
+    await saveMasterWallet(walletData, name: name);
 
     _logger.i('_genWallet: Notifying listeners once after all wallets generated');
     notifyListeners();
@@ -255,6 +263,10 @@ class WalletWriterProvider extends ChangeNotifier {
     };
   }
 
+  String _generateWalletId() {
+    return const Uuid().v4().replaceAll('-', '').toUpperCase();
+  }
+
   // Static method to derive starter in isolate
   static Map<String, dynamic> _deriveStarter(Map<String, dynamic> params) {
     final seedHex = params['seedHex'] as String;
@@ -284,7 +296,7 @@ class WalletWriterProvider extends ChangeNotifier {
     };
   }
 
-  Future<void> saveMasterWallet(Map<String, dynamic> walletData) async {
+  Future<void> saveMasterWallet(Map<String, dynamic> walletData, {String name = 'Primary Wallet'}) async {
     _logger.i('saveMasterWallet: Starting (will save to new wallet.json structure)');
 
     walletData['name'] = 'Master';
@@ -346,14 +358,24 @@ class WalletWriterProvider extends ChangeNotifier {
     }
 
     // Create complete WalletData structure
+    // Load existing wallet to preserve ID and metadata if it exists
+    final existingWallet = await loadWallet();
+    final walletId = existingWallet?.id ?? _generateWalletId();
     final completeWallet = WalletData(
       version: 1,
       master: masterWallet,
       l1: l1Wallet,
       sidechains: sidechainWallets,
+      id: walletId,
+      name: existingWallet?.name ?? name,
+      gradient: existingWallet?.gradient ?? WalletGradient.fromWalletId(walletId),
+      createdAt: existingWallet?.createdAt ?? DateTime.now(),
     );
 
-    // Save to wallet.json
+    // Set active wallet ID so it saves to the correct location
+    _walletReader.activeWalletId = walletId;
+
+    // Save to wallets/wallet_*.json
     await saveWallet(completeWallet);
 
     _logger.i('saveMasterWallet: Complete');
@@ -424,6 +446,10 @@ class WalletWriterProvider extends ChangeNotifier {
       master: wallet.master,
       l1: wallet.l1,
       sidechains: [...wallet.sidechains, newSidechain],
+      id: wallet.id,
+      name: wallet.name,
+      gradient: wallet.gradient,
+      createdAt: wallet.createdAt,
     );
 
     // Save updated wallet
@@ -547,9 +573,43 @@ class WalletWriterProvider extends ChangeNotifier {
   /// Checks if migration is needed and performs it if necessary
   Future<void> migrate() async {
     try {
-      // Check if wallet.json already exists (new structure)
-      if (await _walletReader.getWalletFile().exists()) {
-        _logger.i('migrate: Wallet is already in new format');
+      // First, migrate old wallet.json to wallets/ directory if needed
+      final oldWalletFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
+      if (await oldWalletFile.exists()) {
+        _logger.i('migrate: Found wallet.json, migrating to wallets/ directory...');
+
+        final walletsDir = _walletReader.walletsDirectory;
+        if (!await walletsDir.exists()) {
+          await walletsDir.create(recursive: true);
+        }
+
+        // Read old wallet.json
+        final walletContent = await oldWalletFile.readAsString();
+        final walletJson = jsonDecode(walletContent) as Map<String, dynamic>;
+
+        // Get or generate wallet ID
+        final walletId = walletJson['id'] as String? ?? _generateWalletId();
+        walletJson['id'] = walletId;
+
+        // Ensure it has name and gradient
+        if (!walletJson.containsKey('name')) {
+          walletJson['name'] = 'Primary Wallet';
+        }
+        if (!walletJson.containsKey('gradient')) {
+          walletJson['gradient'] = WalletGradient.fromWalletId(walletId).toJson();
+        }
+        if (!walletJson.containsKey('created_at')) {
+          walletJson['created_at'] = DateTime.now().toIso8601String();
+        }
+
+        // Save to new location
+        final newWalletFile = File(path.join(walletsDir.path, 'wallet_$walletId.json'));
+        await newWalletFile.writeAsString(jsonEncode(walletJson));
+
+        // Delete old wallet.json
+        await oldWalletFile.delete();
+
+        _logger.i('migrate: Migrated wallet.json to ${newWalletFile.path}');
         return;
       }
 
@@ -611,6 +671,7 @@ class WalletWriterProvider extends ChangeNotifier {
 
       // 2. Create new WalletData structure
       _logger.i('migrate: Creating new wallet structure...');
+      final walletId = _generateWalletId();
       final walletData = WalletData(
         version: 1,
         master: MasterWallet(
@@ -628,6 +689,10 @@ class WalletWriterProvider extends ChangeNotifier {
           name: 'Bitcoin Core (Patched)',
         ),
         sidechains: sidechains,
+        id: walletId,
+        name: 'Primary Wallet',
+        gradient: WalletGradient.fromWalletId(walletId),
+        createdAt: DateTime.now(),
       );
 
       // 3. Backup old files before any changes
@@ -685,6 +750,34 @@ class WalletWriterProvider extends ChangeNotifier {
       _logger.e('migrate: Old wallet files preserved. Please check backup.');
       // Don't throw - let the app continue
     }
+  }
+
+
+  /// Update wallet metadata (name and gradient)
+  Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {
+    return await _walletLock.synchronized(() async {
+      try {
+        final walletFile = _walletReader.getWalletFile(walletId);
+        if (!await walletFile.exists()) {
+          throw Exception('Wallet file not found: $walletId');
+        }
+
+        final jsonString = await walletFile.readAsString();
+        final walletJson = jsonDecode(jsonString) as Map<String, dynamic>;
+
+        walletJson['name'] = name;
+        walletJson['gradient'] = gradient.toJson();
+
+        final tempFile = File('${walletFile.path}.tmp');
+        await tempFile.writeAsString(jsonEncode(walletJson));
+        await tempFile.rename(walletFile.path);
+
+        _logger.i('updateWalletMetadata: Updated wallet $walletId');
+      } catch (e, stack) {
+        _logger.e('updateWalletMetadata: Failed to update wallet metadata: $e\n$stack');
+        rethrow;
+      }
+    });
   }
 
   @override
