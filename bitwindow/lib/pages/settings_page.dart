@@ -10,7 +10,6 @@ import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart' show bootBinaries;
-import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
@@ -2264,20 +2263,6 @@ class _ResetProgressDialogState extends State<ResetProgressDialog> {
                   final isActive = index == _currentStepIndex && !step.isCompleted;
                   return _buildStepTile(step, theme, index, isActive);
                 }),
-                if (_isCompleted) const SailSpacing(SailStyleValues.padding08),
-                if (_isCompleted)
-                  SailButton(
-                    label: 'Create New Wallet',
-                    variant: ButtonVariant.primary,
-                    onPressed: () async {
-                      GetIt.I.get<AppRouter>().pop();
-                      await GetIt.I.get<AppRouter>().push(
-                        CreateWalletRoute(
-                          initalScreen: WelcomeScreen.initial,
-                        ),
-                      );
-                    },
-                  ),
               ],
             ),
           ),

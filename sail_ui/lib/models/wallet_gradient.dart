@@ -3,9 +3,10 @@ import 'dart:math';
 
 import 'package:flutter/painting.dart';
 
-/// Visual gradient configuration for wallet blob avatar
-/// Stores minimal data to generate unique, organic blob shapes
+/// Visual configuration for wallet avatar
+/// Can use either SVG background or gradient blob
 class WalletGradient {
+  final String? backgroundSvg;
   final List<String> colors;
   final List<double> stops;
   final double centerX;
@@ -14,6 +15,7 @@ class WalletGradient {
   final int seed;
 
   WalletGradient({
+    this.backgroundSvg,
     required this.colors,
     required this.stops,
     required this.centerX,
@@ -24,6 +26,7 @@ class WalletGradient {
 
   Map<String, dynamic> toJson() {
     return {
+      if (backgroundSvg != null) 'background_svg': backgroundSvg,
       'colors': colors,
       'stops': stops,
       'center_x': centerX,
@@ -35,6 +38,7 @@ class WalletGradient {
 
   factory WalletGradient.fromJson(Map<String, dynamic> json) {
     return WalletGradient(
+      backgroundSvg: json['background_svg'] as String?,
       colors: (json['colors'] as List<dynamic>).map((c) => c as String).toList(),
       stops: (json['stops'] as List<dynamic>).map((s) => (s as num).toDouble()).toList(),
       centerX: (json['center_x'] as num).toDouble(),
@@ -57,6 +61,27 @@ class WalletGradient {
     final hash = walletId.hashCode.abs();
     final random = Random(hash);
 
+    final backgroundSvgs = [
+      'background_blue.svg',
+      'background_contact.svg',
+      'background_fog.svg',
+      'background_forest.svg',
+      'background_hooked.svg',
+      'background_ice.svg',
+      'background_northern.svg',
+      'background_northern_blue.svg',
+      'background_northern_green.svg',
+      'background_northern_dark_green.svg',
+      'background_ocean.svg',
+      'background_orange.svg',
+      'background_purple.svg',
+      'background_sphere.svg',
+      'background_sunrise.svg',
+      'background_swirl_green.svg',
+      'background_swirl_orange.svg',
+      'background_swirl_purple.svg',
+    ];
+
     final colorSchemes = [
       ['#FF6B35', '#FF8C42', '#1A1A1A'],
       ['#2E7D32', '#4CAF50', '#0D1F0D'],
@@ -69,8 +94,10 @@ class WalletGradient {
     ];
 
     final chosenScheme = colorSchemes[random.nextInt(colorSchemes.length)];
+    final chosenBackground = backgroundSvgs[random.nextInt(backgroundSvgs.length)];
 
     return WalletGradient(
+      backgroundSvg: chosenBackground,
       colors: chosenScheme,
       stops: [0.0, 0.4, 1.0],
       centerX: -0.3 + random.nextDouble() * 0.6,
@@ -99,6 +126,7 @@ class WalletGradient {
   }
 
   WalletGradient copyWith({
+    String? backgroundSvg,
     List<String>? colors,
     List<double>? stops,
     double? centerX,
@@ -107,6 +135,7 @@ class WalletGradient {
     int? seed,
   }) {
     return WalletGradient(
+      backgroundSvg: backgroundSvg ?? this.backgroundSvg,
       colors: colors ?? this.colors,
       stops: stops ?? this.stops,
       centerX: centerX ?? this.centerX,

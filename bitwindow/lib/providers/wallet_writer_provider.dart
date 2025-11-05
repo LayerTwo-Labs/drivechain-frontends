@@ -358,27 +358,28 @@ class WalletWriterProvider extends ChangeNotifier {
     }
 
     // Create complete WalletData structure
-    // Load existing wallet to preserve ID and metadata if it exists
-    final existingWallet = await loadWallet();
-    final walletId = existingWallet?.id ?? _generateWalletId();
+    // Always generate a new wallet ID for new wallets
+    final walletId = _generateWalletId();
     final completeWallet = WalletData(
       version: 1,
       master: masterWallet,
       l1: l1Wallet,
       sidechains: sidechainWallets,
       id: walletId,
-      name: existingWallet?.name ?? name,
-      gradient: existingWallet?.gradient ?? WalletGradient.fromWalletId(walletId),
-      createdAt: existingWallet?.createdAt ?? DateTime.now(),
+      name: name,
+      gradient: WalletGradient.fromWalletId(walletId),
+      createdAt: DateTime.now(),
     );
 
-    // Set active wallet ID so it saves to the correct location
-    _walletReader.activeWalletId = walletId;
-
     // Save to wallets/wallet_*.json
+    // First set the active wallet ID so saveWallet knows where to save
+    _walletReader.activeWalletId = walletId;
     await saveWallet(completeWallet);
 
-    _logger.i('saveMasterWallet: Complete');
+    // Reload wallet list and switch to the newly created wallet
+    await _walletReader.init();
+
+    _logger.i('saveMasterWallet: Complete - created wallet $walletId named "$name"');
   }
 
   Future<Map<String, dynamic>?> loadMasterStarter() async {
@@ -751,7 +752,6 @@ class WalletWriterProvider extends ChangeNotifier {
       // Don't throw - let the app continue
     }
   }
-
 
   /// Update wallet metadata (name and gradient)
   Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {

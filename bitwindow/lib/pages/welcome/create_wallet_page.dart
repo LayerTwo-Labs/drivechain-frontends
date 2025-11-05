@@ -35,6 +35,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   late WelcomeScreen _currentScreen;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
+  final TextEditingController _walletNameController = TextEditingController();
   final WalletWriterProvider _walletProvider = GetIt.I.get<WalletWriterProvider>();
   bool _isHexMode = false;
   bool _isValidInput = false;
@@ -68,6 +69,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
     _passphraseController.removeListener(setstate);
     _mnemonicController.dispose();
     _passphraseController.dispose();
+    _walletNameController.dispose();
     super.dispose();
   }
 
@@ -570,11 +572,23 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
             mainAxisSize: MainAxisSize.max,
             children: [
               BootTitle(
-                title: hasExistingWallet ? 'Create New Wallet' : 'Set up your wallet',
+                title: hasExistingWallet ? 'Create Another Wallet' : 'Set up your wallet',
                 subtitle: hasExistingWallet
-                    ? "Let's create a new wallet. Note that creating a new wallet will wipe your current wallet, and you should backup your current wallet before generating a new one."
+                    ? "Let's create another wallet. This will add a new wallet to your collection without affecting your existing wallets."
                     : "Welcome to Drivechain! Let's begin by setting up your wallet.",
               ),
+              if (hasExistingWallet) ...[
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: 400,
+                  child: SailTextField(
+                    controller: _walletNameController,
+                    hintText: 'Wallet name (required)',
+                    textFieldType: TextFieldType.text,
+                    size: TextFieldSize.regular,
+                  ),
+                ),
+              ],
               Spacer(),
               SizedBox(
                 width: 400,
@@ -622,7 +636,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                             _isGenerating
                                 ? 'Generating Your Wallet'
                                 : hasExistingWallet
-                                ? 'Create New Wallet'
+                                ? 'Create Another Wallet'
                                 : 'Generate Wallet',
                             color: Colors.white,
                             bold: true,
@@ -685,6 +699,15 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                     'Restore your mainchain wallet and all sidechain wallets from a seed backup. This can also be used to create a wallet with a custom seed of yours.',
               ),
               const Spacer(),
+              if (hasExistingWallet) ...[
+                SailTextField(
+                  controller: _walletNameController,
+                  hintText: 'Wallet name (required)',
+                  textFieldType: TextFieldType.text,
+                  size: TextFieldSize.regular,
+                ),
+                const SizedBox(height: 16),
+              ],
               SailTextField(
                 controller: _mnemonicController,
                 hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
@@ -728,9 +751,18 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   }
 
   Future<void> _handleFastMode() async {
-    // setState is already called in the button's onPressed
     try {
-      await _walletProvider.generateWallet();
+      final walletName = _walletNameController.text.trim();
+
+      if (hasExistingWallet && walletName.isEmpty) {
+        await _showErrorDialog('Please enter a wallet name');
+        setState(() => _isGenerating = false);
+        return;
+      }
+
+      final finalWalletName = walletName.isEmpty ? 'Primary Wallet' : walletName;
+
+      await _walletProvider.generateWallet(name: finalWalletName);
       if (mounted) {
         setState(() => _currentScreen = WelcomeScreen.success);
       }
@@ -750,8 +782,19 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
       await _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
       return;
     }
+
+    final walletName = _walletNameController.text.trim();
+
+    if (hasExistingWallet && walletName.isEmpty) {
+      await _showErrorDialog('Please enter a wallet name');
+      return;
+    }
+
     try {
+      final finalWalletName = walletName.isEmpty ? 'Primary Wallet' : walletName;
+
       await _walletProvider.generateWallet(
+        name: finalWalletName,
         customMnemonic: _mnemonicController.text,
         passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
       );

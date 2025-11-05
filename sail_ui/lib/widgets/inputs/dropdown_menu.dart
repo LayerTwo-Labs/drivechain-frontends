@@ -77,34 +77,37 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: Colors.white) : const SizedBox();
     }
 
-    final button = InkWell(
-      onTap: () async {
-        if (_controller.isOpen) {
-          _controller.close();
-        } else {
-          _controller.open();
-        }
-      },
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: context.sailTheme.colors.border, width: 1),
-          borderRadius: SailStyleValues.borderRadius,
-          color: widget.value == null ? theme.colors.primary : Colors.transparent,
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 9, horizontal: 12),
-          child: SailRow(
-            spacing: SailStyleValues.padding08,
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              currentDisplay,
-              SailSVG.fromAsset(
-                _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                color: widget.value == null ? Colors.white : theme.colors.text,
-                width: 13,
-              ),
-            ],
+    final button = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: InkWell(
+        onTap: () async {
+          if (_controller.isOpen) {
+            _controller.close();
+          } else {
+            _controller.open();
+          }
+        },
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(color: context.sailTheme.colors.border, width: 1),
+            borderRadius: SailStyleValues.borderRadius,
+            color: widget.value == null ? theme.colors.primary : Colors.transparent,
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+            child: SailRow(
+              spacing: SailStyleValues.padding08,
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                currentDisplay,
+                SailSVG.fromAsset(
+                  _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                  color: widget.value == null ? Colors.white : theme.colors.text,
+                  width: 13,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -125,23 +128,27 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
               _isInMenu = false;
               _checkShouldClose();
             }),
+            child: SelectionContainer.disabled(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SailMenu(items: items),
+                  if (widget.menuChildren != null) ...widget.menuChildren!,
+                ],
+              ),
+            ),
+          )
+        else
+          SelectionContainer.disabled(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (widget.menuChildren != null) ...widget.menuChildren!,
                 SailMenu(items: items),
+                if (widget.menuChildren != null) ...widget.menuChildren!,
               ],
             ),
-          )
-        else
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.menuChildren != null) ...widget.menuChildren!,
-              SailMenu(items: items),
-            ],
           ),
       ],
     );
@@ -185,7 +192,8 @@ class SailDropdownItem<T> extends StatelessWidget {
     return SelectionContainer.disabled(
       child: Align(
         alignment: Alignment.centerLeft,
-        child: child ??
+        child:
+            child ??
             Text(
               displayLabel,
               style: SailStyleValues.thirteen.copyWith(
