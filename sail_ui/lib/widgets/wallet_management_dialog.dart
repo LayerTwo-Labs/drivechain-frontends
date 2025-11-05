@@ -36,8 +36,7 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
     _nameController = TextEditingController(
       text: widget.existingWallet?.name ?? '',
     );
-    _gradient = widget.existingWallet?.gradient ??
-        WalletGradient.fromWalletId(_generateId());
+    _gradient = widget.existingWallet?.gradient ?? WalletGradient.fromWalletId(_generateId());
   }
 
   @override

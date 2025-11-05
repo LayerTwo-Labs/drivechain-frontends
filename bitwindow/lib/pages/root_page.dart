@@ -14,6 +14,8 @@ import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/widgets/cpu_mining_modal.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
@@ -52,6 +54,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
+  bool _isWalletSwitching = false;
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -719,18 +722,140 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   child: Scaffold(
                     backgroundColor: theme.colors.background,
                     appBar: TopNav(
-                      leadingWidget: WalletDropdown(
-                        currentWallet: _walletReader.availableWallets
-                            .where((w) => w.id == _walletReader.activeWalletId)
-                            .firstOrNull,
-                        availableWallets: _walletReader.availableWallets,
-                        onWalletSelected: (walletId) async {
-                          await _walletReader.switchWallet(walletId);
-                        },
-                        onCreateWallet: () async {
-                          await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
-                        },
-                      ),
+                      leadingWidget: _isWalletSwitching
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: LoadingIndicator.insideButton(theme.colors.primary),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  SailText.primary13('Switching wallet...', bold: true),
+                                ],
+                              ),
+                            )
+                          : WalletDropdown(
+                              currentWallet: _walletReader.availableWallets
+                                  .where((w) => w.id == _walletReader.activeWalletId)
+                                  .firstOrNull,
+                              availableWallets: _walletReader.availableWallets,
+                              onWalletSelected: (walletId) async {
+                                if (_isWalletSwitching) return;
+
+                                final log = GetIt.I.get<Logger>();
+                                log.i('Switching to wallet: $walletId');
+
+                                // Show loading immediately and schedule the actual switch
+                                setState(() => _isWalletSwitching = true);
+
+                                // Run the switch in a microtask to allow UI to update first
+                                await Future.microtask(() async {
+                                  try {
+                                    // Step 1: Switch the active wallet (updates UI immediately)
+                                    log.i('Step 1: Switching active wallet');
+                                    await _walletReader
+                                        .switchWallet(walletId)
+                                        .timeout(
+                                          const Duration(seconds: 5),
+                                          onTimeout: () => throw TimeoutException('switchWallet timed out'),
+                                        );
+                                    log.i('Step 1: Complete');
+
+                                    // Step 2: Reset HD wallet provider BEFORE restarting enforcer
+                                    // This ensures enforcer gets the new wallet's addresses when it starts
+                                    log.i('Step 2: Resetting HD wallet provider');
+                                    try {
+                                      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+                                      await hdWalletProvider.reset().timeout(const Duration(seconds: 3));
+                                      await hdWalletProvider.init().timeout(const Duration(seconds: 3));
+                                      log.i('Step 2: Complete - HD wallet provider reset with new wallet');
+                                    } catch (e) {
+                                      log.w('Step 2: Failed to reset HD wallet provider: $e');
+                                    }
+
+                                    // Step 3: Restart enforcer (now it will use the new wallet)
+                                    log.i('Step 3: Restarting enforcer with new wallet');
+                                    try {
+                                      final binaryProvider = GetIt.I.get<BinaryProvider>();
+                                      final enforcerBinary = binaryProvider.binaries
+                                          .where((b) => b.type == BinaryType.enforcer)
+                                          .firstOrNull;
+                                      if (enforcerBinary != null) {
+                                        // Stop enforcer and wait for it
+                                        await binaryProvider.stop(enforcerBinary).timeout(const Duration(seconds: 10));
+                                        log.i('Step 3a: Enforcer stopped, waiting 3 seconds');
+                                        await Future.delayed(const Duration(seconds: 3));
+                                        unawaited(
+                                          binaryProvider
+                                              .start(enforcerBinary)
+                                              .then((_) {
+                                                log.i('Step 3b: Enforcer restarted successfully with new wallet');
+                                              })
+                                              .catchError((e) {
+                                                log.e('Step 3b: Failed to start enforcer: $e');
+                                              }),
+                                        );
+                                      }
+                                      log.i('Step 3: Complete');
+                                    } catch (e) {
+                                      log.e('Step 3: Failed to restart enforcer: $e');
+                                    }
+
+                                    // Reset providers in background
+                                    unawaited(() async {
+                                      try {
+                                        log.i('Step 4: Refreshing balance provider');
+                                        final balanceProvider = GetIt.I.get<BalanceProvider>();
+                                        await balanceProvider.fetch();
+                                        log.i('Step 4: Complete');
+                                      } catch (e) {
+                                        log.w('Step 4: Failed to refresh balance: $e');
+                                      }
+
+                                      try {
+                                        log.i('Step 5: Refreshing transaction provider');
+                                        final transactionProvider = GetIt.I.get<TransactionProvider>();
+                                        await transactionProvider.fetch();
+                                        log.i('Step 5: Complete');
+                                      } catch (e) {
+                                        log.w('Step 5: Failed to refresh transactions: $e');
+                                      }
+                                    }());
+
+                                    log.i('Wallet switch complete (background tasks continuing)');
+                                  } catch (e, stack) {
+                                    log.e('Failed to switch wallet: $e\n$stack');
+                                  } finally {
+                                    // Hide loading after core operations complete
+                                    if (mounted) {
+                                      setState(() => _isWalletSwitching = false);
+                                    }
+                                  }
+                                });
+                              },
+                              onCreateWallet: () async {
+                                await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
+                              },
+                              onBackgroundChanged: (walletId, newBackgroundSvg) async {
+                                final wallet = _walletReader.availableWallets
+                                    .where((w) => w.id == walletId)
+                                    .firstOrNull;
+                                if (wallet != null) {
+                                  final updatedGradient = wallet.gradient.copyWith(
+                                    backgroundSvg: newBackgroundSvg,
+                                  );
+                                  await _walletReader.updateWalletMetadata(
+                                    walletId,
+                                    wallet.name,
+                                    updatedGradient,
+                                  );
+                                }
+                              },
+                            ),
                       routes: [
                         TopNavRoute(
                           label: 'Overview',

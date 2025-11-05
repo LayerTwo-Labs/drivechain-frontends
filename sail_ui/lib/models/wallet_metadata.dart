@@ -74,8 +74,7 @@ class WalletMetadata {
   }
 
   factory WalletMetadata.fromJsonString(String jsonString) {
-    return WalletMetadata.fromJson(
-        jsonDecode(jsonString) as Map<String, dynamic>);
+    return WalletMetadata.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
   }
 }
 
@@ -93,7 +92,8 @@ class WalletMetadataList {
 
   factory WalletMetadataList.fromJson(Map<String, dynamic> json) {
     return WalletMetadataList(
-      wallets: (json['wallets'] as List<dynamic>?)
+      wallets:
+          (json['wallets'] as List<dynamic>?)
               ?.map((w) => WalletMetadata.fromJson(w as Map<String, dynamic>))
               .toList() ??
           [],
@@ -105,7 +105,6 @@ class WalletMetadataList {
   }
 
   factory WalletMetadataList.fromJsonString(String jsonString) {
-    return WalletMetadataList.fromJson(
-        jsonDecode(jsonString) as Map<String, dynamic>);
+    return WalletMetadataList.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
   }
 }

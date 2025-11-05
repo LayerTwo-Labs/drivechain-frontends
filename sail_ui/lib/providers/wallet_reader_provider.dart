@@ -51,28 +51,34 @@ class WalletReaderProvider extends ChangeNotifier {
     _walletDirWatcher = walletsDirectory.watch(events: FileSystemEvent.all).listen((event) {
       if (event.path.endsWith('.json') && event.path.contains('wallet_')) {
         _logger.i('Wallet directory changed: ${event.type} ${event.path}');
-        _lock.synchronized(() async {
-          // For create/delete: always reload and notify
-          if (event.type == FileSystemEvent.create || event.type == FileSystemEvent.delete) {
+        // File watcher should NEVER use locks - it's read-only and just triggers UI updates
+        // This prevents deadlocks when other operations are holding the lock
+        Future.microtask(() async {
+          try {
+            // For create/delete: always reload and notify
+            if (event.type == FileSystemEvent.create || event.type == FileSystemEvent.delete) {
+              await _loadWalletsList();
+              notifyListeners();
+              return;
+            }
+
+            // Extract wallet ID from filename: wallet_XXXXX.json
+            final fileName = path.basename(event.path);
+            final match = RegExp(r'wallet_(.+)\.json').firstMatch(fileName);
+            if (match == null) return;
+
+            final changedWalletId = match.group(1)!;
+
+            // For modify: only notify if data actually changed
+            final previousWallet = availableWallets.where((w) => w.id == changedWalletId).firstOrNull;
             await _loadWalletsList();
-            notifyListeners();
-            return;
-          }
+            final newWallet = availableWallets.where((w) => w.id == changedWalletId).firstOrNull;
 
-          // Extract wallet ID from filename: wallet_XXXXX.json
-          final fileName = path.basename(event.path);
-          final match = RegExp(r'wallet_(.+)\.json').firstMatch(fileName);
-          if (match == null) return;
-
-          final changedWalletId = match.group(1)!;
-
-          // For modify: only notify if data actually changed
-          final previousWallet = availableWallets.where((w) => w.id == changedWalletId).firstOrNull;
-          await _loadWalletsList();
-          final newWallet = availableWallets.where((w) => w.id == changedWalletId).firstOrNull;
-
-          if (previousWallet?.toJsonString() != newWallet?.toJsonString()) {
-            notifyListeners();
+            if (previousWallet?.toJsonString() != newWallet?.toJsonString()) {
+              notifyListeners();
+            }
+          } catch (e) {
+            _logger.w('File watcher failed to reload wallets: $e');
           }
         });
       }
@@ -99,56 +105,59 @@ class WalletReaderProvider extends ChangeNotifier {
 
   /// Initialize - load wallets list, load active wallet
   Future<void> init() async {
-    await _loadWalletsList();
-    await _loadActiveWalletId();
+    _logger.i('[LOCK] init: Acquiring lock');
+    await _lock.synchronized(() async {
+      _logger.i('[LOCK] init: Lock acquired');
+      await _loadWalletsList();
+      await _loadActiveWalletId();
+      _logger.i('[LOCK] init: Releasing lock');
+    });
     await _loadWalletIntoCache();
   }
 
   /// Load wallet from disk into cache
+  /// MUST be called within _lock.synchronized() OR from init() after lock is released
   Future<void> _loadWalletIntoCache() async {
-    await _lock.synchronized(() async {
-      final walletFile = getWalletFile();
-      if (!await walletFile.exists()) {
-        _cachedWalletJson = null;
-        return;
-      }
+    final walletFile = getWalletFile();
+    if (!await walletFile.exists()) {
+      _cachedWalletJson = null;
+      return;
+    }
 
-      final isEncrypted = await _isWalletEncrypted();
-      if (isEncrypted) {
-        // If we have an unlocked password, try to decrypt
-        if (unlockedPassword != null) {
-          try {
-            final metadata = await _loadMetadata();
-            if (metadata != null && metadata.encrypted) {
-              final encryptedData = await walletFile.readAsString();
-              final salt = base64.decode(metadata.salt);
-              final key = await EncryptionService.deriveKey(unlockedPassword!, salt, metadata.iterations);
-              final decryptedJson = EncryptionService.decrypt(encryptedData, key);
-              _cachedWalletJson = jsonDecode(decryptedJson) as Map<String, dynamic>;
-              _encryptionKey = key;
-            } else {
-              _cachedWalletJson = null;
-            }
-          } catch (e, stack) {
-            _logger.e('Failed to decrypt wallet with stored password: $e\n$stack');
+    final isEncrypted = await _isWalletEncrypted();
+    if (isEncrypted) {
+      // If we have an unlocked password, try to decrypt
+      if (unlockedPassword != null) {
+        try {
+          final metadata = await _loadMetadata();
+          if (metadata != null && metadata.encrypted) {
+            final encryptedData = await walletFile.readAsString();
+            final salt = base64.decode(metadata.salt);
+            final key = await EncryptionService.deriveKey(unlockedPassword!, salt, metadata.iterations);
+            final decryptedJson = EncryptionService.decrypt(encryptedData, key);
+            _cachedWalletJson = jsonDecode(decryptedJson) as Map<String, dynamic>;
+            _encryptionKey = key;
+          } else {
             _cachedWalletJson = null;
           }
-        } else {
-          // Encrypted but not unlocked - leave cache empty
+        } catch (e, stack) {
+          _logger.e('Failed to decrypt wallet with stored password: $e\n$stack');
           _cachedWalletJson = null;
         }
       } else {
-        // Not encrypted - load into cache
-        try {
-          final jsonString = await walletFile.readAsString();
-          _cachedWalletJson = jsonDecode(jsonString) as Map<String, dynamic>;
-        } catch (e, stack) {
-          _logger.e('Failed to load unencrypted wallet: $e\n$stack');
-          _cachedWalletJson = null;
-        }
+        // Encrypted but not unlocked - leave cache empty
+        _cachedWalletJson = null;
       }
-      notifyListeners();
-    });
+    } else {
+      // Not encrypted - load into cache
+      try {
+        final jsonString = await walletFile.readAsString();
+        _cachedWalletJson = jsonDecode(jsonString) as Map<String, dynamic>;
+      } catch (e, stack) {
+        _logger.e('Failed to load unencrypted wallet: $e\n$stack');
+        _cachedWalletJson = null;
+      }
+    }
   }
 
   /// Check if wallet is encrypted
@@ -461,111 +470,130 @@ class WalletReaderProvider extends ChangeNotifier {
   Map<String, dynamic>? get walletJson => _cachedWalletJson;
 
   /// Load wallets list by scanning wallets directory
+  /// MUST be called within _lock.synchronized()
   Future<void> _loadWalletsList() async {
-    await _lock.synchronized(() async {
-      try {
-        if (!await walletsDirectory.exists()) {
-          availableWallets = [];
-          return;
-        }
-
-        final walletFiles = walletsDirectory
-            .listSync()
-            .whereType<File>()
-            .where((f) => f.path.endsWith('.json') && f.path.contains('wallet_'))
-            .toList();
-
-        final wallets = <WalletMetadata>[];
-        for (final file in walletFiles) {
-          try {
-            final content = await file.readAsString();
-            final walletJson = jsonDecode(content) as Map<String, dynamic>;
-
-            final walletId = walletJson['id'] as String;
-            wallets.add(
-              WalletMetadata(
-                id: walletId,
-                name: walletJson['name'] as String,
-                gradient: walletJson['gradient'] != null
-                    ? WalletGradient.fromJson(walletJson['gradient'] as Map<String, dynamic>)
-                    : WalletGradient.fromWalletId(walletId),
-                createdAt: DateTime.parse(walletJson['created_at'] as String),
-                lastUsed: walletJson['last_used'] != null
-                    ? DateTime.parse(walletJson['last_used'] as String)
-                    : DateTime.parse(walletJson['created_at'] as String),
-              ),
-            );
-          } catch (e) {
-            _logger.w('Failed to load wallet metadata from ${file.path}: $e');
-          }
-        }
-
-        wallets.sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
-        availableWallets = wallets;
-      } catch (e, stack) {
-        _logger.e('Failed to load wallets list: $e\n$stack');
+    try {
+      if (!await walletsDirectory.exists()) {
         availableWallets = [];
+        return;
       }
-    });
+
+      final walletFiles = walletsDirectory
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.json') && f.path.contains('wallet_'))
+          .toList();
+
+      final wallets = <WalletMetadata>[];
+      for (final file in walletFiles) {
+        try {
+          final content = await file.readAsString();
+          final walletJson = jsonDecode(content) as Map<String, dynamic>;
+
+          final walletId = walletJson['id'] as String;
+
+          // Migrate: ensure all wallets have gradient with SVG background
+          WalletGradient gradient;
+          bool needsSave = false;
+
+          if (walletJson['gradient'] == null) {
+            // No gradient at all - generate new one
+            gradient = WalletGradient.fromWalletId(walletId);
+            needsSave = true;
+          } else {
+            gradient = WalletGradient.fromJson(walletJson['gradient'] as Map<String, dynamic>);
+            // Check if gradient exists but has no SVG background
+            if (gradient.backgroundSvg == null) {
+              gradient = WalletGradient.fromWalletId(walletId);
+              needsSave = true;
+            }
+          }
+
+          // Save updated gradient back to file if needed
+          if (needsSave) {
+            walletJson['gradient'] = gradient.toJson();
+            await file.writeAsString(jsonEncode(walletJson));
+            _logger.i('Migrated wallet $walletId to use SVG background: ${gradient.backgroundSvg}');
+          }
+
+          wallets.add(
+            WalletMetadata(
+              id: walletId,
+              name: walletJson['name'] as String,
+              gradient: gradient,
+              createdAt: DateTime.parse(walletJson['created_at'] as String),
+              lastUsed: walletJson['last_used'] != null
+                  ? DateTime.parse(walletJson['last_used'] as String)
+                  : DateTime.parse(walletJson['created_at'] as String),
+            ),
+          );
+        } catch (e) {
+          _logger.w('Failed to load wallet metadata from ${file.path}: $e');
+        }
+      }
+
+      wallets.sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
+      availableWallets = wallets;
+    } catch (e, stack) {
+      _logger.e('Failed to load wallets list: $e\n$stack');
+      availableWallets = [];
+    }
   }
 
   /// Load active wallet ID from settings (last used)
+  /// MUST be called within _lock.synchronized()
   Future<void> _loadActiveWalletId() async {
-    await _lock.synchronized(() async {
-      try {
-        final lastUsedSetting = await _clientSettings.getValue(LastUsedWalletSetting());
-        final lastUsedId = lastUsedSetting.value;
+    try {
+      final lastUsedSetting = await _clientSettings.getValue(LastUsedWalletSetting());
+      final lastUsedId = lastUsedSetting.value;
 
-        if (lastUsedId.isNotEmpty && availableWallets.any((w) => w.id == lastUsedId)) {
-          activeWalletId = lastUsedId;
-        } else if (availableWallets.isNotEmpty) {
-          activeWalletId = availableWallets.first.id;
-        }
-      } catch (e, stack) {
-        _logger.e('Failed to load last used wallet ID: $e\n$stack');
-        if (availableWallets.isNotEmpty) {
-          activeWalletId = availableWallets.first.id;
-        }
+      if (lastUsedId.isNotEmpty && availableWallets.any((w) => w.id == lastUsedId)) {
+        activeWalletId = lastUsedId;
+      } else if (availableWallets.isNotEmpty) {
+        activeWalletId = availableWallets.first.id;
       }
-    });
+    } catch (e, stack) {
+      _logger.e('Failed to load last used wallet ID: $e\n$stack');
+      if (availableWallets.isNotEmpty) {
+        activeWalletId = availableWallets.first.id;
+      }
+    }
   }
 
   /// Switch to a different wallet
   Future<void> switchWallet(String walletId) async {
+    _logger.i('switchWallet: Acquiring lock for wallet $walletId');
     await _lock.synchronized(() async {
+      _logger.i('switchWallet: Lock acquired');
       if (!availableWallets.any((w) => w.id == walletId)) {
         throw Exception('Wallet $walletId not found');
       }
 
+      _logger.i('switchWallet: Setting activeWalletId');
       activeWalletId = walletId;
 
-      final walletFile = getWalletFile(walletId);
-      if (await walletFile.exists()) {
-        try {
-          final content = await walletFile.readAsString();
-          final walletJson = jsonDecode(content) as Map<String, dynamic>;
-          walletJson['last_used'] = DateTime.now().toIso8601String();
-          await walletFile.writeAsString(jsonEncode(walletJson));
-
-          final index = availableWallets.indexWhere((w) => w.id == walletId);
-          if (index != -1) {
-            availableWallets[index] = availableWallets[index].copyWith(
-              lastUsed: DateTime.now(),
-            );
-          }
-        } catch (e) {
-          _logger.w('Failed to update last_used for wallet $walletId: $e');
-        }
+      // Update in-memory metadata without writing to file (avoids file watcher deadlock)
+      _logger.i('switchWallet: Updating in-memory metadata');
+      final index = availableWallets.indexWhere((w) => w.id == walletId);
+      if (index != -1) {
+        availableWallets[index] = availableWallets[index].copyWith(
+          lastUsed: DateTime.now(),
+        );
       }
 
+      _logger.i('switchWallet: Saving to client settings');
       await _clientSettings.setValue(LastUsedWalletSetting(newValue: walletId));
 
+      _logger.i('switchWallet: Clearing cache');
       _cachedWalletJson = null;
       _encryptionKey = null;
 
+      _logger.i('switchWallet: Loading wallet into cache');
       await _loadWalletIntoCache();
 
+      _logger.i('switchWallet: Notifying listeners');
       notifyListeners();
+      _logger.i('switchWallet: Complete');
     });
   }
 
@@ -589,7 +617,10 @@ class WalletReaderProvider extends ChangeNotifier {
 
   /// Update wallet metadata
   Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {
+    _logger.i('updateWalletMetadata: walletId=$walletId, name=$name, background=${gradient.backgroundSvg}');
+    _logger.i('updateWalletMetadata: Waiting for lock...');
     await _lock.synchronized(() async {
+      _logger.i('updateWalletMetadata: Lock acquired!');
       final index = availableWallets.indexWhere((w) => w.id == walletId);
       if (index == -1) {
         throw Exception('Wallet $walletId not found');
@@ -601,20 +632,80 @@ class WalletReaderProvider extends ChangeNotifier {
       );
 
       if (activeWalletId == walletId && _cachedWalletJson != null) {
+        _logger.i('updateWalletMetadata: Updating active wallet via cached JSON');
         _cachedWalletJson!['name'] = name;
         _cachedWalletJson!['gradient'] = gradient.toJson();
-        await updateWalletJson(_cachedWalletJson!);
+
+        // Write to disk without nested lock
+        try {
+          final walletJsonString = jsonEncode(_cachedWalletJson!);
+          final walletFile = getWalletFile();
+
+          final isEncrypted = await _isWalletEncrypted();
+          _logger.i('updateWalletMetadata: isEncrypted=$isEncrypted, hasKey=${_encryptionKey != null}');
+          if (isEncrypted) {
+            if (_encryptionKey == null) {
+              throw Exception('Wallet is locked');
+            }
+            final encryptedData = EncryptionService.encrypt(walletJsonString, _encryptionKey!);
+            final tempFile = File('${walletFile.path}.tmp');
+            await tempFile.writeAsString(encryptedData);
+            _logger.i('updateWalletMetadata: Wrote encrypted temp file');
+            await tempFile.rename(walletFile.path);
+            _logger.i('updateWalletMetadata: Renamed temp file to ${walletFile.path}');
+          } else {
+            final tempFile = File('${walletFile.path}.tmp');
+            await tempFile.writeAsString(walletJsonString);
+            _logger.i('updateWalletMetadata: Wrote unencrypted temp file');
+            await tempFile.rename(walletFile.path);
+            _logger.i('updateWalletMetadata: Renamed temp file to ${walletFile.path}');
+          }
+
+          _logger.i('updateWalletMetadata: Active wallet updated successfully');
+        } catch (e, stack) {
+          _logger.e('updateWalletMetadata: Failed to update active wallet: $e\n$stack');
+          rethrow;
+        }
       } else {
+        _logger.i(
+          'updateWalletMetadata: Updating via direct file access (activeId=$activeWalletId, cached=${_cachedWalletJson != null})',
+        );
+
         final walletFile = getWalletFile(walletId);
         if (await walletFile.exists()) {
           try {
             final content = await walletFile.readAsString();
-            final walletJson = jsonDecode(content) as Map<String, dynamic>;
+            Map<String, dynamic> walletJson;
+
+            // Check if wallet is encrypted
+            final isEncrypted = await _isWalletEncrypted();
+            if (isEncrypted && _encryptionKey != null) {
+              // Decrypt the wallet
+              final decryptedJson = EncryptionService.decrypt(content, _encryptionKey!);
+              walletJson = jsonDecode(decryptedJson) as Map<String, dynamic>;
+            } else if (!isEncrypted) {
+              // Not encrypted
+              walletJson = jsonDecode(content) as Map<String, dynamic>;
+            } else {
+              _logger.w('Cannot update metadata for encrypted wallet $walletId without encryption key');
+              return;
+            }
+
             walletJson['name'] = name;
             walletJson['gradient'] = gradient.toJson();
-            await walletFile.writeAsString(jsonEncode(walletJson));
-          } catch (e) {
-            _logger.w('Failed to update metadata for wallet $walletId: $e');
+
+            // Re-encrypt if needed
+            if (isEncrypted && _encryptionKey != null) {
+              final jsonString = jsonEncode(walletJson);
+              final encrypted = EncryptionService.encrypt(jsonString, _encryptionKey!);
+              await walletFile.writeAsString(encrypted);
+            } else {
+              await walletFile.writeAsString(jsonEncode(walletJson));
+            }
+
+            _logger.i('Updated metadata for wallet $walletId: background=${gradient.backgroundSvg}');
+          } catch (e, stack) {
+            _logger.e('Failed to update metadata for wallet $walletId: $e\n$stack');
           }
         }
       }

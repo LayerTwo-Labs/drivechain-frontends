@@ -11,7 +11,7 @@ class TopNav extends StatefulWidget implements PreferredSizeWidget {
   const TopNav({super.key, required this.routes, this.leadingPadding = false, this.leadingWidget, this.endWidget});
 
   @override
-  Size get preferredSize => const Size.fromHeight(35);
+  Size get preferredSize => const Size.fromHeight(43);
 
   @override
   State<TopNav> createState() => _TopNavState();
@@ -23,7 +23,7 @@ class _TopNavState extends State<TopNav> {
     final theme = context.sailTheme;
 
     return PreferredSize(
-      preferredSize: const Size.fromHeight(35),
+      preferredSize: const Size.fromHeight(43),
       child: Builder(
         builder: (context) {
           final tabsRouter = AutoTabsRouter.of(context);
