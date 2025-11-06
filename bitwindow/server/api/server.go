@@ -79,6 +79,19 @@ func New(
 	// Create cheque engine with the bitcoind service
 	chequeEngine := engines.NewChequeEngine(s.ChainParams, bitcoindSvc)
 
+	// Create wallet manager for routing wallet operations
+	// Note: walletManager will get clients from the services when needed
+	walletManager := engines.NewWalletManager(
+		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return bitcoindSvc.Get(ctx)
+		},
+		func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
+			return walletSvc.Get(ctx)
+		},
+		s.WalletDir,
+		s.ChainParams,
+	)
+
 	srv := &Server{
 		mux:          mux,
 		Bitcoind:     bitcoindSvc,
@@ -157,7 +170,7 @@ func New(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, s.WalletDir,
+		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletManager, s.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		s.Database, walletSvc,

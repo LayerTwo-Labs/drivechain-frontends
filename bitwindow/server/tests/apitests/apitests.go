@@ -102,6 +102,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 			return conf.bitcoind, nil
 		},
 		ChainParams: &chaincfg.SigNetParams,
+		WalletDir:   t.TempDir(), // Use temporary directory for wallet.json in tests
 	}
 
 	srv, err := api.New(context.Background(), services, api.Config{

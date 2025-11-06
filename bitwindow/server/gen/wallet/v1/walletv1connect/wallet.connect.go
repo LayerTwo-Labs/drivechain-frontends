@@ -100,18 +100,18 @@ const (
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
 type WalletServiceClient interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
-	GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error)
+	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
 	// out unused addresses, so we risk crossing the sync gap.
-	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
-	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
-	ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error)
-	ListReceiveAddresses(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
+	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
+	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
+	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
 	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
 	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
-	GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error)
+	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
 	// Wallet unlock/lock for cheque operations
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error)
 	LockWallet(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -120,7 +120,7 @@ type WalletServiceClient interface {
 	CreateCheque(context.Context, *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error)
 	GetCheque(context.Context, *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error)
 	GetChequePrivateKey(context.Context, *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error)
-	ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error)
+	ListCheques(context.Context, *connect.Request[v1.ListChequesRequest]) (*connect.Response[v1.ListChequesResponse], error)
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
@@ -143,31 +143,31 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("SendTransaction")),
 			connect.WithClientOptions(opts...),
 		),
-		getBalance: connect.NewClient[emptypb.Empty, v1.GetBalanceResponse](
+		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
 			httpClient,
 			baseURL+WalletServiceGetBalanceProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("GetBalance")),
 			connect.WithClientOptions(opts...),
 		),
-		getNewAddress: connect.NewClient[emptypb.Empty, v1.GetNewAddressResponse](
+		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
 			httpClient,
 			baseURL+WalletServiceGetNewAddressProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("GetNewAddress")),
 			connect.WithClientOptions(opts...),
 		),
-		listTransactions: connect.NewClient[emptypb.Empty, v1.ListTransactionsResponse](
+		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
 			httpClient,
 			baseURL+WalletServiceListTransactionsProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("ListTransactions")),
 			connect.WithClientOptions(opts...),
 		),
-		listUnspent: connect.NewClient[emptypb.Empty, v1.ListUnspentResponse](
+		listUnspent: connect.NewClient[v1.ListUnspentRequest, v1.ListUnspentResponse](
 			httpClient,
 			baseURL+WalletServiceListUnspentProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("ListUnspent")),
 			connect.WithClientOptions(opts...),
 		),
-		listReceiveAddresses: connect.NewClient[emptypb.Empty, v1.ListReceiveAddressesResponse](
+		listReceiveAddresses: connect.NewClient[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse](
 			httpClient,
 			baseURL+WalletServiceListReceiveAddressesProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("ListReceiveAddresses")),
@@ -197,7 +197,7 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("VerifyMessage")),
 			connect.WithClientOptions(opts...),
 		),
-		getStats: connect.NewClient[emptypb.Empty, v1.GetStatsResponse](
+		getStats: connect.NewClient[v1.GetStatsRequest, v1.GetStatsResponse](
 			httpClient,
 			baseURL+WalletServiceGetStatsProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("GetStats")),
@@ -239,7 +239,7 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("GetChequePrivateKey")),
 			connect.WithClientOptions(opts...),
 		),
-		listCheques: connect.NewClient[emptypb.Empty, v1.ListChequesResponse](
+		listCheques: connect.NewClient[v1.ListChequesRequest, v1.ListChequesResponse](
 			httpClient,
 			baseURL+WalletServiceListChequesProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("ListCheques")),
@@ -269,23 +269,23 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 // walletServiceClient implements WalletServiceClient.
 type walletServiceClient struct {
 	sendTransaction        *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
-	getBalance             *connect.Client[emptypb.Empty, v1.GetBalanceResponse]
-	getNewAddress          *connect.Client[emptypb.Empty, v1.GetNewAddressResponse]
-	listTransactions       *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
-	listUnspent            *connect.Client[emptypb.Empty, v1.ListUnspentResponse]
-	listReceiveAddresses   *connect.Client[emptypb.Empty, v1.ListReceiveAddressesResponse]
+	getBalance             *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
+	getNewAddress          *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
+	listTransactions       *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
+	listUnspent            *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
+	listReceiveAddresses   *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
 	listSidechainDeposits  *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
 	createSidechainDeposit *connect.Client[v1.CreateSidechainDepositRequest, v1.CreateSidechainDepositResponse]
 	signMessage            *connect.Client[v1.SignMessageRequest, v1.SignMessageResponse]
 	verifyMessage          *connect.Client[v1.VerifyMessageRequest, v1.VerifyMessageResponse]
-	getStats               *connect.Client[emptypb.Empty, v1.GetStatsResponse]
+	getStats               *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
 	unlockWallet           *connect.Client[v1.UnlockWalletRequest, emptypb.Empty]
 	lockWallet             *connect.Client[emptypb.Empty, emptypb.Empty]
 	isWalletUnlocked       *connect.Client[emptypb.Empty, emptypb.Empty]
 	createCheque           *connect.Client[v1.CreateChequeRequest, v1.CreateChequeResponse]
 	getCheque              *connect.Client[v1.GetChequeRequest, v1.GetChequeResponse]
 	getChequePrivateKey    *connect.Client[v1.GetChequePrivateKeyRequest, v1.GetChequePrivateKeyResponse]
-	listCheques            *connect.Client[emptypb.Empty, v1.ListChequesResponse]
+	listCheques            *connect.Client[v1.ListChequesRequest, v1.ListChequesResponse]
 	checkChequeFunding     *connect.Client[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse]
 	sweepCheque            *connect.Client[v1.SweepChequeRequest, v1.SweepChequeResponse]
 	deleteCheque           *connect.Client[v1.DeleteChequeRequest, emptypb.Empty]
@@ -297,27 +297,27 @@ func (c *walletServiceClient) SendTransaction(ctx context.Context, req *connect.
 }
 
 // GetBalance calls wallet.v1.WalletService.GetBalance.
-func (c *walletServiceClient) GetBalance(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error) {
+func (c *walletServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
 	return c.getBalance.CallUnary(ctx, req)
 }
 
 // GetNewAddress calls wallet.v1.WalletService.GetNewAddress.
-func (c *walletServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error) {
+func (c *walletServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
 	return c.getNewAddress.CallUnary(ctx, req)
 }
 
 // ListTransactions calls wallet.v1.WalletService.ListTransactions.
-func (c *walletServiceClient) ListTransactions(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error) {
+func (c *walletServiceClient) ListTransactions(ctx context.Context, req *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
 	return c.listTransactions.CallUnary(ctx, req)
 }
 
 // ListUnspent calls wallet.v1.WalletService.ListUnspent.
-func (c *walletServiceClient) ListUnspent(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error) {
+func (c *walletServiceClient) ListUnspent(ctx context.Context, req *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error) {
 	return c.listUnspent.CallUnary(ctx, req)
 }
 
 // ListReceiveAddresses calls wallet.v1.WalletService.ListReceiveAddresses.
-func (c *walletServiceClient) ListReceiveAddresses(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
+func (c *walletServiceClient) ListReceiveAddresses(ctx context.Context, req *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
 	return c.listReceiveAddresses.CallUnary(ctx, req)
 }
 
@@ -342,7 +342,7 @@ func (c *walletServiceClient) VerifyMessage(ctx context.Context, req *connect.Re
 }
 
 // GetStats calls wallet.v1.WalletService.GetStats.
-func (c *walletServiceClient) GetStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error) {
+func (c *walletServiceClient) GetStats(ctx context.Context, req *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
 	return c.getStats.CallUnary(ctx, req)
 }
 
@@ -377,7 +377,7 @@ func (c *walletServiceClient) GetChequePrivateKey(ctx context.Context, req *conn
 }
 
 // ListCheques calls wallet.v1.WalletService.ListCheques.
-func (c *walletServiceClient) ListCheques(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error) {
+func (c *walletServiceClient) ListCheques(ctx context.Context, req *connect.Request[v1.ListChequesRequest]) (*connect.Response[v1.ListChequesResponse], error) {
 	return c.listCheques.CallUnary(ctx, req)
 }
 
@@ -399,18 +399,18 @@ func (c *walletServiceClient) DeleteCheque(ctx context.Context, req *connect.Req
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
-	GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error)
+	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
 	// out unused addresses, so we risk crossing the sync gap.
-	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
-	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
-	ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error)
-	ListReceiveAddresses(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
+	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
+	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
+	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
 	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
 	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
-	GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error)
+	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
 	// Wallet unlock/lock for cheque operations
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[emptypb.Empty], error)
 	LockWallet(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -419,7 +419,7 @@ type WalletServiceHandler interface {
 	CreateCheque(context.Context, *connect.Request[v1.CreateChequeRequest]) (*connect.Response[v1.CreateChequeResponse], error)
 	GetCheque(context.Context, *connect.Request[v1.GetChequeRequest]) (*connect.Response[v1.GetChequeResponse], error)
 	GetChequePrivateKey(context.Context, *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error)
-	ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error)
+	ListCheques(context.Context, *connect.Request[v1.ListChequesRequest]) (*connect.Response[v1.ListChequesResponse], error)
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
@@ -615,23 +615,23 @@ func (UnimplementedWalletServiceHandler) SendTransaction(context.Context, *conne
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SendTransaction is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error) {
+func (UnimplementedWalletServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetBalance is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error) {
+func (UnimplementedWalletServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetNewAddress is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error) {
+func (UnimplementedWalletServiceHandler) ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListTransactions is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error) {
+func (UnimplementedWalletServiceHandler) ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListUnspent is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) ListReceiveAddresses(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
+func (UnimplementedWalletServiceHandler) ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListReceiveAddresses is not implemented"))
 }
 
@@ -651,7 +651,7 @@ func (UnimplementedWalletServiceHandler) VerifyMessage(context.Context, *connect
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.VerifyMessage is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error) {
+func (UnimplementedWalletServiceHandler) GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetStats is not implemented"))
 }
 
@@ -679,7 +679,7 @@ func (UnimplementedWalletServiceHandler) GetChequePrivateKey(context.Context, *c
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetChequePrivateKey is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) ListCheques(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListChequesResponse], error) {
+func (UnimplementedWalletServiceHandler) ListCheques(context.Context, *connect.Request[v1.ListChequesRequest]) (*connect.Response[v1.ListChequesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListCheques is not implemented"))
 }
 

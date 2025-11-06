@@ -65,7 +65,40 @@ func (e *ChequeEngine) Unlock(walletData map[string]any) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	master, ok := walletData["master"].(map[string]any)
+	// Handle new multi-wallet structure: { version, activeWalletId, wallets: [...] }
+	wallets, ok := walletData["wallets"].([]any)
+	if !ok {
+		return errors.New("invalid wallet structure: missing wallets array")
+	}
+
+	if len(wallets) == 0 {
+		return errors.New("no wallets found in wallet.json")
+	}
+
+	// Get activeWalletId if present
+	activeWalletId, _ := walletData["activeWalletId"].(string)
+
+	// Find active wallet
+	var activeWallet map[string]any
+	for _, w := range wallets {
+		wallet, ok := w.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		walletId, _ := wallet["id"].(string)
+		if activeWalletId == "" || walletId == activeWalletId {
+			activeWallet = wallet
+			break
+		}
+	}
+
+	if activeWallet == nil {
+		return errors.New("active wallet not found in wallets array")
+	}
+
+	// Extract master seed from active wallet
+	master, ok := activeWallet["master"].(map[string]any)
 	if !ok {
 		return errors.New("invalid wallet structure: missing master key")
 	}
