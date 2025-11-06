@@ -719,6 +719,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
   final WalletAPI wallet = GetIt.I.get<BitwindowRPC>().wallet;
   final MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
   final HDWalletProvider hdWallet = GetIt.I.get<HDWalletProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   Future<void> generateProofOfFunds(
     String filename,
@@ -744,7 +745,10 @@ class ProofOfFundsViewModel extends BaseViewModel {
   }
 
   Future<List<UTXO>> _getUnspentOutputs() async {
-    final unspents = await bitwindowd.wallet.listUnspent();
+    final walletId = _walletReader.activeWalletId;
+    if (walletId == null) throw Exception('No active wallet');
+
+    final unspents = await bitwindowd.wallet.listUnspent(walletId);
     log.i('Retrieved ${unspents.length} UTXOs from wallet');
 
     final filteredUtxos = unspents.where((utxo) => utxo.address.isNotEmpty).map((utxo) {

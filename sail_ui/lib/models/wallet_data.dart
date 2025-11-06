@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
-import 'package:sail_ui/models/wallet_gradient.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 /// Main wallet data structure containing all wallet information
 class WalletData {
@@ -12,6 +12,7 @@ class WalletData {
   final String name;
   final WalletGradient gradient;
   final DateTime createdAt;
+  final BinaryType walletType;
 
   WalletData({
     required this.version,
@@ -22,6 +23,7 @@ class WalletData {
     required this.name,
     required this.gradient,
     required this.createdAt,
+    required this.walletType,
   });
 
   Map<String, dynamic> toJson() {
@@ -34,11 +36,17 @@ class WalletData {
       'name': name,
       'gradient': gradient.toJson(),
       'created_at': createdAt.toIso8601String(),
+      'wallet_type': walletType.name,
     };
   }
 
   factory WalletData.fromJson(Map<String, dynamic> json) {
     final walletId = json['id'] as String? ?? _generateId();
+    final walletTypeStr = json['wallet_type'] as String?;
+    final walletType = walletTypeStr != null
+        ? BinaryType.values.firstWhere((e) => e.name == walletTypeStr, orElse: () => BinaryType.bitcoinCore)
+        : BinaryType.bitcoinCore;
+
     return WalletData(
       version: json['version'] as int? ?? 1,
       master: MasterWallet.fromJson(json['master'] as Map<String, dynamic>),
@@ -54,6 +62,7 @@ class WalletData {
           ? WalletGradient.fromJson(json['gradient'] as Map<String, dynamic>)
           : WalletGradient.fromWalletId(walletId),
       createdAt: DateTime.parse(json['created_at'] as String),
+      walletType: walletType,
     );
   }
 

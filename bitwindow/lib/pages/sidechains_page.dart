@@ -411,6 +411,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final SidechainProvider _sidechainProvider = GetIt.I.get<SidechainProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();
@@ -787,8 +788,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       setBusy(true);
       await _api.wallet.createSidechainDeposit(
+        walletId,
         _selectedIndex ?? 254,
         addressController.text,
         double.parse(depositAmountController.text),

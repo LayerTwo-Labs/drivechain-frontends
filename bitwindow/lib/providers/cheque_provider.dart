@@ -164,7 +164,9 @@ class ChequeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _cheques = await _bitwindowRPC.wallet.listCheques();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      _cheques = await _bitwindowRPC.wallet.listCheques(walletId);
       modelError = null;
     } catch (e) {
       log.e('Failed to fetch cheques: $e');
@@ -183,7 +185,9 @@ class ChequeProvider extends ChangeNotifier {
     }
 
     try {
-      final resp = await _bitwindowRPC.wallet.createCheque(expectedAmountSats);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      final resp = await _bitwindowRPC.wallet.createCheque(walletId, expectedAmountSats);
 
       final cheque = Cheque(
         id: resp.id,
@@ -211,7 +215,9 @@ class ChequeProvider extends ChangeNotifier {
 
   Future<Cheque?> getCheque(int id) async {
     try {
-      return await _bitwindowRPC.wallet.getCheque(id);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      return await _bitwindowRPC.wallet.getCheque(walletId, id);
     } catch (e) {
       log.e('Failed to get cheque: $e');
       return null;
@@ -220,7 +226,9 @@ class ChequeProvider extends ChangeNotifier {
 
   Future<bool> checkChequeFunding(int id) async {
     try {
-      final resp = await _bitwindowRPC.wallet.checkChequeFunding(id);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      final resp = await _bitwindowRPC.wallet.checkChequeFunding(walletId, id);
 
       if (resp.funded) {
         final index = _cheques.indexWhere((c) => c.id == id);
@@ -248,7 +256,14 @@ class ChequeProvider extends ChangeNotifier {
 
   Future<String?> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
     try {
-      final result = await _bitwindowRPC.wallet.sweepCheque(privateKeyWif, destinationAddress, feeSatPerVbyte);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      final result = await _bitwindowRPC.wallet.sweepCheque(
+        walletId,
+        privateKeyWif,
+        destinationAddress,
+        feeSatPerVbyte,
+      );
       await fetch();
       return result.txid;
     } catch (e) {
@@ -272,7 +287,9 @@ class ChequeProvider extends ChangeNotifier {
         stopPolling();
       }
 
-      await _bitwindowRPC.wallet.deleteCheque(id);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      await _bitwindowRPC.wallet.deleteCheque(walletId, id);
       _cheques.removeWhere((c) => c.id == id);
       notifyListeners();
       return true;

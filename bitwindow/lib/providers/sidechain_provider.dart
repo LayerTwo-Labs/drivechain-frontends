@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class SidechainProvider extends ChangeNotifier {
@@ -13,6 +14,7 @@ class SidechainProvider extends ChangeNotifier {
 
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
+  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   // This always has 256 slots. The fetch-method fills in the slots that
   // are actually in use.
@@ -37,6 +39,9 @@ class SidechainProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       final newSidechains = await bitwindowd.drivechain.listSidechains();
       final newSidechainProposals = await bitwindowd.drivechain.listSidechainProposals();
 
@@ -45,7 +50,7 @@ class SidechainProvider extends ChangeNotifier {
 
       // Fill in the slots with the data retrieved from the API
       for (var sidechain in newSidechains) {
-        final deposits = await bitwindowd.wallet.listSidechainDeposits(sidechain.slot);
+        final deposits = await bitwindowd.wallet.listSidechainDeposits(walletId, sidechain.slot);
         if (sidechain.slot < 255) {
           updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits);
         }

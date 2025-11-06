@@ -351,6 +351,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
   final BalanceProvider _balanceProvider = GetIt.I<BalanceProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   DateTimeRange? dateRange;
 
@@ -488,7 +489,10 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   Future<void> getStats() async {
-    final newStats = await _bitwindowRPC.wallet.getStats();
+    final walletId = _walletReader.activeWalletId;
+    if (walletId == null) return;
+
+    final newStats = await _bitwindowRPC.wallet.getStats(walletId);
     if (track('stats', newStats)) {
       stats = newStats;
       notifyListeners();

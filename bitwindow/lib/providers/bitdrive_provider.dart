@@ -38,6 +38,7 @@ class BitDriveProvider extends ChangeNotifier {
   HDWalletProvider get hdWallet => GetIt.I.get<HDWalletProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
+  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   bool initialized = false;
   String? error;
@@ -262,7 +263,9 @@ class BitDriveProvider extends ChangeNotifier {
 
     try {
       log.i('BitDrive: Starting file restoration...');
-      final walletTxs = await bitwindowd.wallet.listTransactions();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      final walletTxs = await bitwindowd.wallet.listTransactions(walletId);
 
       var restoredCount = 0;
       for (final tx in walletTxs) {
@@ -412,8 +415,11 @@ class BitDriveProvider extends ChangeNotifier {
       // Combine and store
       final opReturnData = '$metadataStr|$contentStr';
 
-      final address = await bitwindowd.wallet.getNewAddress();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      final address = await bitwindowd.wallet.getNewAddress(walletId);
       await bitwindowd.wallet.sendTransaction(
+        walletId,
         {address: 10000}, // 0.0001 BTC
         feeSatPerVbyte: 1,
         opReturnMessage: opReturnData,
@@ -541,7 +547,9 @@ class BitDriveProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final walletTxs = await bitwindowd.wallet.listTransactions();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      final walletTxs = await bitwindowd.wallet.listTransactions(walletId);
 
       for (final tx in walletTxs) {
         try {

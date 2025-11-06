@@ -48,6 +48,7 @@ class _SignMessageTabState extends State<SignMessageTab> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _signatureController = TextEditingController();
   final WalletAPI _wallet = GetIt.I.get<BitwindowRPC>().wallet;
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
   String? _error;
 
   @override
@@ -61,7 +62,10 @@ class _SignMessageTabState extends State<SignMessageTab> {
   Future<void> _signMessage() async {
     try {
       setState(() => _error = null);
-      final signature = await _wallet.signMessage(_messageController.text);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
+      final signature = await _wallet.signMessage(walletId, _messageController.text);
       setState(() {
         _signatureController.text = signature;
       });
@@ -140,6 +144,7 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _signatureController = TextEditingController();
   final WalletAPI _wallet = GetIt.I.get<BitwindowRPC>().wallet;
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
   bool? _isValid;
   String? _error;
 
@@ -154,7 +159,11 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
   Future<void> _verifyMessage() async {
     try {
       setState(() => _error = null);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       final isValid = await _wallet.verifyMessage(
+        walletId,
         _messageController.text,
         _signatureController.text,
         _addressController.text,

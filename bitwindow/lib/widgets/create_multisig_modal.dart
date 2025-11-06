@@ -431,6 +431,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   final Set<int> _sessionUsedAccountIndices = <int>{};
 
@@ -980,8 +981,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
       final opReturnData = '$metadataStr|$contentStr';
 
-      final address = await _api.wallet.getNewAddress();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
+      final address = await _api.wallet.getNewAddress(walletId);
       final txid = await _api.wallet.sendTransaction(
+        walletId,
         {address: 10000},
         opReturnMessage: opReturnData,
       );

@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/main.dart';
-import 'package:bitwindow/models/wallet_data.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:convert/convert.dart';
@@ -52,9 +51,7 @@ class WalletWriterProvider extends ChangeNotifier {
   /// Load wallet - reads from WalletReaderProvider cache (thread-safe)
   Future<WalletData?> loadWallet() async {
     return await _walletLock.synchronized(() async {
-      final walletJson = _walletReader.walletJson;
-      if (walletJson == null) return null;
-      return WalletData.fromJson(walletJson);
+      return _walletReader.activeWallet;
     });
   }
 
@@ -70,7 +67,7 @@ class WalletWriterProvider extends ChangeNotifier {
         }
 
         // Use WalletReaderProvider to update wallet (handles encryption/decryption)
-        await _walletReader.updateWalletJson(wallet.toJson());
+        await _walletReader.updateWallet(wallet);
         _logger.i('saveWallet: Wallet saved successfully via WalletReaderProvider');
       } catch (e, stack) {
         _logger.e('saveWallet: Error saving wallet: $e\n$stack');
@@ -369,6 +366,7 @@ class WalletWriterProvider extends ChangeNotifier {
       name: name,
       gradient: WalletGradient.fromWalletId(walletId),
       createdAt: DateTime.now(),
+      walletType: BinaryType.bitcoinCore,
     );
 
     // Save to wallets/wallet_*.json
@@ -451,6 +449,7 @@ class WalletWriterProvider extends ChangeNotifier {
       name: wallet.name,
       gradient: wallet.gradient,
       createdAt: wallet.createdAt,
+      walletType: wallet.walletType,
     );
 
     // Save updated wallet
@@ -570,208 +569,11 @@ class WalletWriterProvider extends ChangeNotifier {
     }
   }
 
-  /// Migrate from old wallet structure to new wallet.json
-  /// Checks if migration is needed and performs it if necessary
-  Future<void> migrate() async {
-    try {
-      // First, migrate old wallet.json to wallets/ directory if needed
-      final oldWalletFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-      if (await oldWalletFile.exists()) {
-        _logger.i('migrate: Found wallet.json, migrating to wallets/ directory...');
-
-        final walletsDir = _walletReader.walletsDirectory;
-        if (!await walletsDir.exists()) {
-          await walletsDir.create(recursive: true);
-        }
-
-        // Read old wallet.json
-        final walletContent = await oldWalletFile.readAsString();
-        final walletJson = jsonDecode(walletContent) as Map<String, dynamic>;
-
-        // Get or generate wallet ID
-        final walletId = walletJson['id'] as String? ?? _generateWalletId();
-        walletJson['id'] = walletId;
-
-        // Ensure it has name and gradient
-        if (!walletJson.containsKey('name')) {
-          walletJson['name'] = 'Primary Wallet';
-        }
-        if (!walletJson.containsKey('gradient')) {
-          walletJson['gradient'] = WalletGradient.fromWalletId(walletId).toJson();
-        }
-        if (!walletJson.containsKey('created_at')) {
-          walletJson['created_at'] = DateTime.now().toIso8601String();
-        }
-
-        // Save to new location
-        final newWalletFile = File(path.join(walletsDir.path, 'wallet_$walletId.json'));
-        await newWalletFile.writeAsString(jsonEncode(walletJson));
-
-        // Delete old wallet.json
-        await oldWalletFile.delete();
-
-        _logger.i('migrate: Migrated wallet.json to ${newWalletFile.path}');
-        return;
-      }
-
-      // Check if old structure exists
-      final oldMasterFile = File(path.join(bitwindowAppDir.path, 'wallet_starters', 'master_starter.json'));
-      if (!await oldMasterFile.exists()) {
-        _logger.i('migrate: No wallet found to migrate');
-        return;
-      }
-
-      _logger.i('migrate: Detected old wallet structure, starting migration...');
-
-      // Helper function to read from old file structure
-      Future<String?> readOldMnemonicFile(String fileName) async {
-        try {
-          final file = File(path.join(bitwindowAppDir.path, 'wallet_starters', fileName));
-          if (await file.exists()) {
-            return await file.readAsString();
-          }
-          return null;
-        } catch (e) {
-          _logger.e('Error reading $fileName: $e');
-          return null;
-        }
-      }
-
-      // 1. Load all old files directly from old structure
-      _logger.i('migrate: Loading old wallet files...');
-
-      // Load master_starter.json
-      final masterFile = File(path.join(bitwindowAppDir.path, 'wallet_starters', 'master_starter.json'));
-      if (!await masterFile.exists()) {
-        throw Exception('Could not load master_starter.json for migration');
-      }
-      final masterJson = await masterFile.readAsString();
-      final masterData = jsonDecode(masterJson) as Map<String, dynamic>;
-
-      // Load l1_starter.txt
-      final l1Mnemonic = await readOldMnemonicFile('l1_starter.txt');
-      if (l1Mnemonic == null) {
-        throw Exception('Could not load l1_starter.txt for migration');
-      }
-
-      // Load sidechain starters
-      final sidechains = <SidechainWallet>[];
-      for (final binary in binaryProvider.binaries.whereType<Sidechain>()) {
-        final mnemonic = await readOldMnemonicFile('sidechain_${binary.slot}_starter.txt');
-        if (mnemonic != null) {
-          sidechains.add(
-            SidechainWallet(
-              slot: binary.slot,
-              name: binary.name,
-              mnemonic: mnemonic,
-            ),
-          );
-          _logger.i('migrate: Loaded sidechain starter for ${binary.name}');
-        }
-      }
-
-      // 2. Create new WalletData structure
-      _logger.i('migrate: Creating new wallet structure...');
-      final walletId = _generateWalletId();
-      final walletData = WalletData(
-        version: 1,
-        master: MasterWallet(
-          mnemonic: masterData['mnemonic'] as String,
-          seedHex: masterData['seed_hex'] as String,
-          masterKey: masterData['master_key'] as String,
-          chainCode: masterData['chain_code'] as String,
-          bip39Binary: masterData['bip39_binary'] as String?,
-          bip39Checksum: masterData['bip39_checksum'] as String?,
-          bip39ChecksumHex: masterData['bip39_checksum_hex'] as String?,
-          name: masterData['name'] as String? ?? 'Master',
-        ),
-        l1: L1Wallet(
-          mnemonic: l1Mnemonic,
-          name: 'Bitcoin Core (Patched)',
-        ),
-        sidechains: sidechains,
-        id: walletId,
-        name: 'Primary Wallet',
-        gradient: WalletGradient.fromWalletId(walletId),
-        createdAt: DateTime.now(),
-      );
-
-      // 3. Backup old files before any changes
-      _logger.i('migrate: Backing up old wallet files...');
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final backupDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters_backup_$timestamp'));
-      await backupDir.create(recursive: true);
-
-      final walletDir = Directory(path.join(bitwindowAppDir.path, 'wallet_starters'));
-      if (await walletDir.exists()) {
-        await for (final entity in walletDir.list()) {
-          if (entity is File) {
-            final basename = path.basename(entity.path);
-            if (basename.endsWith('.json') || basename.endsWith('.txt')) {
-              final newPath = path.join(backupDir.path, basename);
-              await entity.copy(newPath);
-              _logger.i('migrate: Backed up $basename');
-            }
-          }
-        }
-      }
-      _logger.i('migrate: Backup created at ${backupDir.path}');
-
-      // 4. Save to new wallet.json
-      _logger.i('migrate: Saving new wallet.json...');
-      await saveWallet(walletData);
-
-      // 5. Verify new wallet can be loaded
-      _logger.i('migrate: Verifying new wallet...');
-      final verifyWallet = await loadWallet();
-      if (verifyWallet == null) {
-        throw Exception('Failed to verify newly migrated wallet');
-      }
-
-      // 6. Delete old files only after successful verification
-      _logger.i('migrate: Deleting old wallet files...');
-      if (await walletDir.exists()) {
-        await for (final entity in walletDir.list()) {
-          if (entity is File) {
-            final basename = path.basename(entity.path);
-            // Delete master_starter.json (old format)
-            // Delete old .txt files (will be regenerated from wallet.json by _syncStarterFiles)
-            if (basename == 'master_starter.json' || basename.endsWith('.txt')) {
-              await entity.delete();
-              _logger.i('migrate: Deleted $basename');
-            }
-          }
-        }
-      }
-
-      _logger.i('migrate: Migration completed successfully!');
-      _logger.i('migrate: Starter .txt files will be regenerated from wallet.json');
-    } catch (e, stackTrace) {
-      _logger.e('migrate: Failed to migrate wallet: $e\n$stackTrace');
-      _logger.e('migrate: Old wallet files preserved. Please check backup.');
-      // Don't throw - let the app continue
-    }
-  }
-
   /// Update wallet metadata (name and gradient)
   Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {
     return await _walletLock.synchronized(() async {
       try {
-        final walletFile = _walletReader.getWalletFile(walletId);
-        if (!await walletFile.exists()) {
-          throw Exception('Wallet file not found: $walletId');
-        }
-
-        final jsonString = await walletFile.readAsString();
-        final walletJson = jsonDecode(jsonString) as Map<String, dynamic>;
-
-        walletJson['name'] = name;
-        walletJson['gradient'] = gradient.toJson();
-
-        final tempFile = File('${walletFile.path}.tmp');
-        await tempFile.writeAsString(jsonEncode(walletJson));
-        await tempFile.rename(walletFile.path);
-
+        await _walletReader.updateWalletMetadata(walletId, name, gradient);
         _logger.i('updateWalletMetadata: Updated wallet $walletId');
       } catch (e, stack) {
         _logger.e('updateWalletMetadata: Failed to update wallet metadata: $e\n$stack');
