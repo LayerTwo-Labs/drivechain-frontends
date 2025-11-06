@@ -2,6 +2,7 @@ export 'bitcoin.dart';
 export 'classes/node_connection_settings.dart';
 export 'models/bitcoin_config.dart';
 export 'models/homepage_configuration.dart';
+export 'models/wallet_data.dart';
 export 'models/wallet_gradient.dart';
 export 'models/wallet_metadata.dart';
 export 'classes/rpc_config.dart';

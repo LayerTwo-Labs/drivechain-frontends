@@ -27,7 +27,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
   }
 
   Future<walletv1wallet.GetBalanceResponse> getBalance(
-    googleprotobufempty.Empty input, {
+    walletv1wallet.GetBalanceRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
@@ -46,7 +46,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
   /// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
   /// out unused addresses, so we risk crossing the sync gap.
   Future<walletv1wallet.GetNewAddressResponse> getNewAddress(
-    googleprotobufempty.Empty input, {
+    walletv1wallet.GetNewAddressRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
@@ -63,7 +63,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
   }
 
   Future<walletv1wallet.ListTransactionsResponse> listTransactions(
-    googleprotobufempty.Empty input, {
+    walletv1wallet.ListTransactionsRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
@@ -80,7 +80,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
   }
 
   Future<walletv1wallet.ListUnspentResponse> listUnspent(
-    googleprotobufempty.Empty input, {
+    walletv1wallet.ListUnspentRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
@@ -97,7 +97,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
   }
 
   Future<walletv1wallet.ListReceiveAddressesResponse> listReceiveAddresses(
-    googleprotobufempty.Empty input, {
+    walletv1wallet.ListReceiveAddressesRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
@@ -182,7 +182,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
   }
 
   Future<walletv1wallet.GetStatsResponse> getStats(
-    googleprotobufempty.Empty input, {
+    walletv1wallet.GetStatsRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
@@ -303,7 +303,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
   }
 
   Future<walletv1wallet.ListChequesResponse> listCheques(
-    googleprotobufempty.Empty input, {
+    walletv1wallet.ListChequesRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
