@@ -62,7 +62,7 @@ class EnforcerLive extends EnforcerRPC {
     binary.extraBootArgs = binary.extraBootArgs.where((arg) => !arg.startsWith('--wallet-seed-file')).toList();
 
     final walletReader = GetIt.I.get<WalletReaderProvider>();
-    final mnemonicFile = await walletReader.writeL1Starter();
+    final mnemonicFile = await walletReader.writeEnforcerL1Starter();
     binary.addBootArg('--wallet-seed-file=${mnemonicFile.path}');
 
     // now set the esplora-url

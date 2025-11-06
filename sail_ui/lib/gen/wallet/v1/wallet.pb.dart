@@ -19,6 +19,106 @@ import '../../bitwindowd/v1/bitwindowd.pb.dart' as $2;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
 
+class GetBalanceRequest extends $pb.GeneratedMessage {
+  factory GetBalanceRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  GetBalanceRequest._() : super();
+  factory GetBalanceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBalanceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBalanceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBalanceRequest clone() => GetBalanceRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBalanceRequest copyWith(void Function(GetBalanceRequest) updates) => super.copyWith((message) => updates(message as GetBalanceRequest)) as GetBalanceRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBalanceRequest create() => GetBalanceRequest._();
+  GetBalanceRequest createEmptyInstance() => create();
+  static $pb.PbList<GetBalanceRequest> createRepeated() => $pb.PbList<GetBalanceRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetBalanceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBalanceRequest>(create);
+  static GetBalanceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
+class GetNewAddressRequest extends $pb.GeneratedMessage {
+  factory GetNewAddressRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  GetNewAddressRequest._() : super();
+  factory GetNewAddressRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNewAddressRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNewAddressRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNewAddressRequest clone() => GetNewAddressRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNewAddressRequest copyWith(void Function(GetNewAddressRequest) updates) => super.copyWith((message) => updates(message as GetNewAddressRequest)) as GetNewAddressRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNewAddressRequest create() => GetNewAddressRequest._();
+  GetNewAddressRequest createEmptyInstance() => create();
+  static $pb.PbList<GetNewAddressRequest> createRepeated() => $pb.PbList<GetNewAddressRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetNewAddressRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNewAddressRequest>(create);
+  static GetNewAddressRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
 class GetNewAddressResponse extends $pb.GeneratedMessage {
   factory GetNewAddressResponse({
     $core.String? address,
@@ -83,8 +183,209 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
   void clearIndex() => clearField(2);
 }
 
+class ListTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListTransactionsRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  ListTransactionsRequest._() : super();
+  factory ListTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListTransactionsRequest clone() => ListTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListTransactionsRequest copyWith(void Function(ListTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListTransactionsRequest)) as ListTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionsRequest create() => ListTransactionsRequest._();
+  ListTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListTransactionsRequest> createRepeated() => $pb.PbList<ListTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListTransactionsRequest>(create);
+  static ListTransactionsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
+class ListUnspentRequest extends $pb.GeneratedMessage {
+  factory ListUnspentRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  ListUnspentRequest._() : super();
+  factory ListUnspentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListUnspentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnspentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListUnspentRequest clone() => ListUnspentRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListUnspentRequest copyWith(void Function(ListUnspentRequest) updates) => super.copyWith((message) => updates(message as ListUnspentRequest)) as ListUnspentRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentRequest create() => ListUnspentRequest._();
+  ListUnspentRequest createEmptyInstance() => create();
+  static $pb.PbList<ListUnspentRequest> createRepeated() => $pb.PbList<ListUnspentRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnspentRequest>(create);
+  static ListUnspentRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
+class ListReceiveAddressesRequest extends $pb.GeneratedMessage {
+  factory ListReceiveAddressesRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  ListReceiveAddressesRequest._() : super();
+  factory ListReceiveAddressesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListReceiveAddressesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListReceiveAddressesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListReceiveAddressesRequest clone() => ListReceiveAddressesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListReceiveAddressesRequest copyWith(void Function(ListReceiveAddressesRequest) updates) => super.copyWith((message) => updates(message as ListReceiveAddressesRequest)) as ListReceiveAddressesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListReceiveAddressesRequest create() => ListReceiveAddressesRequest._();
+  ListReceiveAddressesRequest createEmptyInstance() => create();
+  static $pb.PbList<ListReceiveAddressesRequest> createRepeated() => $pb.PbList<ListReceiveAddressesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListReceiveAddressesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListReceiveAddressesRequest>(create);
+  static ListReceiveAddressesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
+class GetStatsRequest extends $pb.GeneratedMessage {
+  factory GetStatsRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  GetStatsRequest._() : super();
+  factory GetStatsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetStatsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetStatsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetStatsRequest clone() => GetStatsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetStatsRequest copyWith(void Function(GetStatsRequest) updates) => super.copyWith((message) => updates(message as GetStatsRequest)) as GetStatsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetStatsRequest create() => GetStatsRequest._();
+  GetStatsRequest createEmptyInstance() => create();
+  static $pb.PbList<GetStatsRequest> createRepeated() => $pb.PbList<GetStatsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetStatsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetStatsRequest>(create);
+  static GetStatsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
 class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest({
+    $core.String? walletId,
     $core.Map<$core.String, $fixnum.Int64>? destinations,
     $fixnum.Int64? feeSatPerVbyte,
     $fixnum.Int64? fixedFeeSats,
@@ -93,6 +394,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     $core.Iterable<UnspentOutput>? requiredInputs,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (destinations != null) {
       $result.destinations.addAll(destinations);
     }
@@ -118,12 +422,13 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..m<$core.String, $fixnum.Int64>(1, _omitFieldNames ? '' : 'destinations', entryClassName: 'SendTransactionRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OU6, packageName: const $pb.PackageName('wallet.v1'))
-    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'fixedFeeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOS(4, _omitFieldNames ? '' : 'opReturnMessage')
-    ..aOS(5, _omitFieldNames ? '' : 'label')
-    ..pc<UnspentOutput>(6, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..m<$core.String, $fixnum.Int64>(2, _omitFieldNames ? '' : 'destinations', entryClassName: 'SendTransactionRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OU6, packageName: const $pb.PackageName('wallet.v1'))
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'fixedFeeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(5, _omitFieldNames ? '' : 'opReturnMessage')
+    ..aOS(6, _omitFieldNames ? '' : 'label')
+    ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
     ..hasRequiredFields = false
   ;
 
@@ -148,54 +453,63 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   static SendTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SendTransactionRequest>(create);
   static SendTransactionRequest? _defaultInstance;
 
-  /// Map of destination address to amount in satoshi.
   @$pb.TagNumber(1)
-  $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(0);
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  /// Map of destination address to amount in satoshi.
+  @$pb.TagNumber(2)
+  $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(1);
 
   /// Fee rate, measured in sat/vb. If set to zero, a reasonable
   /// rate is used by asking Core for an estimate.
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get feeSatPerVbyte => $_getI64(1);
-  @$pb.TagNumber(2)
-  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasFeeSatPerVbyte() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearFeeSatPerVbyte() => clearField(2);
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSatPerVbyte => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSatPerVbyte() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSatPerVbyte() => clearField(3);
 
   /// Hard-coded amount, in sats.
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get fixedFeeSats => $_getI64(2);
-  @$pb.TagNumber(3)
-  set fixedFeeSats($fixnum.Int64 v) { $_setInt64(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasFixedFeeSats() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearFixedFeeSats() => clearField(3);
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get fixedFeeSats => $_getI64(3);
+  @$pb.TagNumber(4)
+  set fixedFeeSats($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFixedFeeSats() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFixedFeeSats() => clearField(4);
 
   /// Message to include as an OP_RETURN output
-  @$pb.TagNumber(4)
-  $core.String get opReturnMessage => $_getSZ(3);
-  @$pb.TagNumber(4)
-  set opReturnMessage($core.String v) { $_setString(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasOpReturnMessage() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearOpReturnMessage() => clearField(4);
+  @$pb.TagNumber(5)
+  $core.String get opReturnMessage => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set opReturnMessage($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasOpReturnMessage() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearOpReturnMessage() => clearField(5);
 
   /// If set, will save the address with this label in the address book
-  @$pb.TagNumber(5)
-  $core.String get label => $_getSZ(4);
-  @$pb.TagNumber(5)
-  set label($core.String v) { $_setString(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasLabel() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearLabel() => clearField(5);
+  @$pb.TagNumber(6)
+  $core.String get label => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set label($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasLabel() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearLabel() => clearField(6);
 
   /// UTXOs that must be included in the transaction.
-  @$pb.TagNumber(6)
-  $core.List<UnspentOutput> get requiredInputs => $_getList(5);
+  @$pb.TagNumber(7)
+  $core.List<UnspentOutput> get requiredInputs => $_getList(6);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -915,9 +1229,13 @@ class WalletTransaction extends $pb.GeneratedMessage {
 
 class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
   factory ListSidechainDepositsRequest({
+    $core.String? walletId,
     $core.int? slot,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (slot != null) {
       $result.slot = slot;
     }
@@ -928,7 +1246,8 @@ class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
   factory ListSidechainDepositsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListSidechainDepositsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.O3)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -954,13 +1273,22 @@ class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
   static ListSidechainDepositsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.int get slot => $_getIZ(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set slot($core.int v) { $_setSignedInt32(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasSlot() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSlot() => clearField(1);
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get slot => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set slot($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSlot() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSlot() => clearField(2);
 }
 
 class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessage {
@@ -1101,12 +1429,16 @@ class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
 
 class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   factory CreateSidechainDepositRequest({
+    $core.String? walletId,
     $fixnum.Int64? slot,
     $core.String? destination,
     $core.double? amount,
     $core.double? fee,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (slot != null) {
       $result.slot = slot;
     }
@@ -1126,10 +1458,11 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   factory CreateSidechainDepositRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSidechainDepositRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'slot')
-    ..aOS(2, _omitFieldNames ? '' : 'destination')
-    ..a<$core.double>(3, _omitFieldNames ? '' : 'amount', $pb.PbFieldType.OD)
-    ..a<$core.double>(4, _omitFieldNames ? '' : 'fee', $pb.PbFieldType.OD)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aInt64(2, _omitFieldNames ? '' : 'slot')
+    ..aOS(3, _omitFieldNames ? '' : 'destination')
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'amount', $pb.PbFieldType.OD)
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'fee', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -1154,45 +1487,54 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   static CreateSidechainDepositRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSidechainDepositRequest>(create);
   static CreateSidechainDepositRequest? _defaultInstance;
 
-  /// The sidechain deposit address to send to.
   @$pb.TagNumber(1)
-  $fixnum.Int64 get slot => $_getI64(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set slot($fixnum.Int64 v) { $_setInt64(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasSlot() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSlot() => clearField(1);
+  void clearWalletId() => clearField(1);
 
   /// The sidechain deposit address to send to.
   @$pb.TagNumber(2)
-  $core.String get destination => $_getSZ(1);
+  $fixnum.Int64 get slot => $_getI64(1);
   @$pb.TagNumber(2)
-  set destination($core.String v) { $_setString(1, v); }
+  set slot($fixnum.Int64 v) { $_setInt64(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasDestination() => $_has(1);
+  $core.bool hasSlot() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDestination() => clearField(2);
+  void clearSlot() => clearField(2);
+
+  /// The sidechain deposit address to send to.
+  @$pb.TagNumber(3)
+  $core.String get destination => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set destination($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDestination() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDestination() => clearField(3);
 
   /// The amount in BTC to send. eg 0.1
-  @$pb.TagNumber(3)
-  $core.double get amount => $_getN(2);
-  @$pb.TagNumber(3)
-  set amount($core.double v) { $_setDouble(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasAmount() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearAmount() => clearField(3);
+  @$pb.TagNumber(4)
+  $core.double get amount => $_getN(3);
+  @$pb.TagNumber(4)
+  set amount($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAmount() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAmount() => clearField(4);
 
   /// The fee in BTC
-  @$pb.TagNumber(4)
-  $core.double get fee => $_getN(3);
-  @$pb.TagNumber(4)
-  set fee($core.double v) { $_setDouble(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasFee() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearFee() => clearField(4);
+  @$pb.TagNumber(5)
+  $core.double get fee => $_getN(4);
+  @$pb.TagNumber(5)
+  set fee($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasFee() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearFee() => clearField(5);
 }
 
 class CreateSidechainDepositResponse extends $pb.GeneratedMessage {
@@ -1247,9 +1589,13 @@ class CreateSidechainDepositResponse extends $pb.GeneratedMessage {
 
 class SignMessageRequest extends $pb.GeneratedMessage {
   factory SignMessageRequest({
+    $core.String? walletId,
     $core.String? message,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (message != null) {
       $result.message = message;
     }
@@ -1260,7 +1606,8 @@ class SignMessageRequest extends $pb.GeneratedMessage {
   factory SignMessageRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignMessageRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'message')
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'message')
     ..hasRequiredFields = false
   ;
 
@@ -1286,13 +1633,22 @@ class SignMessageRequest extends $pb.GeneratedMessage {
   static SignMessageRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get message => $_getSZ(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set message($core.String v) { $_setString(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasMessage() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMessage() => clearField(1);
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get message => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set message($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessage() => clearField(2);
 }
 
 class SignMessageResponse extends $pb.GeneratedMessage {
@@ -1347,11 +1703,15 @@ class SignMessageResponse extends $pb.GeneratedMessage {
 
 class VerifyMessageRequest extends $pb.GeneratedMessage {
   factory VerifyMessageRequest({
+    $core.String? walletId,
     $core.String? message,
     $core.String? signature,
     $core.String? publicKey,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (message != null) {
       $result.message = message;
     }
@@ -1368,9 +1728,10 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
   factory VerifyMessageRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VerifyMessageRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'message')
-    ..aOS(2, _omitFieldNames ? '' : 'signature')
-    ..aOS(3, _omitFieldNames ? '' : 'publicKey')
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..aOS(3, _omitFieldNames ? '' : 'signature')
+    ..aOS(4, _omitFieldNames ? '' : 'publicKey')
     ..hasRequiredFields = false
   ;
 
@@ -1396,31 +1757,40 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
   static VerifyMessageRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get message => $_getSZ(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set message($core.String v) { $_setString(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasMessage() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMessage() => clearField(1);
+  void clearWalletId() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get signature => $_getSZ(1);
+  $core.String get message => $_getSZ(1);
   @$pb.TagNumber(2)
-  set signature($core.String v) { $_setString(1, v); }
+  set message($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasSignature() => $_has(1);
+  $core.bool hasMessage() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSignature() => clearField(2);
+  void clearMessage() => clearField(2);
 
   @$pb.TagNumber(3)
-  $core.String get publicKey => $_getSZ(2);
+  $core.String get signature => $_getSZ(2);
   @$pb.TagNumber(3)
-  set publicKey($core.String v) { $_setString(2, v); }
+  set signature($core.String v) { $_setString(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasPublicKey() => $_has(2);
+  $core.bool hasSignature() => $_has(2);
   @$pb.TagNumber(3)
-  void clearPublicKey() => clearField(3);
+  void clearSignature() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get publicKey => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set publicKey($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPublicKey() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPublicKey() => clearField(4);
 }
 
 class VerifyMessageResponse extends $pb.GeneratedMessage {
@@ -1647,9 +2017,13 @@ class UnlockWalletRequest extends $pb.GeneratedMessage {
 /// Cheque messages
 class CreateChequeRequest extends $pb.GeneratedMessage {
   factory CreateChequeRequest({
+    $core.String? walletId,
     $fixnum.Int64? expectedAmountSats,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (expectedAmountSats != null) {
       $result.expectedAmountSats = expectedAmountSats;
     }
@@ -1660,7 +2034,8 @@ class CreateChequeRequest extends $pb.GeneratedMessage {
   factory CreateChequeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateChequeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'expectedAmountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'expectedAmountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -1686,13 +2061,22 @@ class CreateChequeRequest extends $pb.GeneratedMessage {
   static CreateChequeRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get expectedAmountSats => $_getI64(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set expectedAmountSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasExpectedAmountSats() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearExpectedAmountSats() => clearField(1);
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get expectedAmountSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set expectedAmountSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasExpectedAmountSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExpectedAmountSats() => clearField(2);
 }
 
 class CreateChequeResponse extends $pb.GeneratedMessage {
@@ -1775,9 +2159,13 @@ class CreateChequeResponse extends $pb.GeneratedMessage {
 
 class GetChequeRequest extends $pb.GeneratedMessage {
   factory GetChequeRequest({
+    $core.String? walletId,
     $fixnum.Int64? id,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (id != null) {
       $result.id = id;
     }
@@ -1788,7 +2176,8 @@ class GetChequeRequest extends $pb.GeneratedMessage {
   factory GetChequeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetChequeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aInt64(2, _omitFieldNames ? '' : 'id')
     ..hasRequiredFields = false
   ;
 
@@ -1814,13 +2203,22 @@ class GetChequeRequest extends $pb.GeneratedMessage {
   static GetChequeRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get id => $_getI64(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasId() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get id => $_getI64(1);
+  @$pb.TagNumber(2)
+  set id($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearId() => clearField(2);
 }
 
 class GetChequeResponse extends $pb.GeneratedMessage {
@@ -1877,9 +2275,13 @@ class GetChequeResponse extends $pb.GeneratedMessage {
 
 class GetChequePrivateKeyRequest extends $pb.GeneratedMessage {
   factory GetChequePrivateKeyRequest({
+    $core.String? walletId,
     $fixnum.Int64? id,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (id != null) {
       $result.id = id;
     }
@@ -1890,7 +2292,8 @@ class GetChequePrivateKeyRequest extends $pb.GeneratedMessage {
   factory GetChequePrivateKeyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetChequePrivateKeyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aInt64(2, _omitFieldNames ? '' : 'id')
     ..hasRequiredFields = false
   ;
 
@@ -1916,13 +2319,22 @@ class GetChequePrivateKeyRequest extends $pb.GeneratedMessage {
   static GetChequePrivateKeyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get id => $_getI64(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasId() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get id => $_getI64(1);
+  @$pb.TagNumber(2)
+  set id($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearId() => clearField(2);
 }
 
 class GetChequePrivateKeyResponse extends $pb.GeneratedMessage {
@@ -2185,6 +2597,56 @@ class Cheque extends $pb.GeneratedMessage {
   $0.Timestamp ensureSweptAt() => $_ensure(11);
 }
 
+class ListChequesRequest extends $pb.GeneratedMessage {
+  factory ListChequesRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  ListChequesRequest._() : super();
+  factory ListChequesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListChequesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListChequesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListChequesRequest clone() => ListChequesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListChequesRequest copyWith(void Function(ListChequesRequest) updates) => super.copyWith((message) => updates(message as ListChequesRequest)) as ListChequesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListChequesRequest create() => ListChequesRequest._();
+  ListChequesRequest createEmptyInstance() => create();
+  static $pb.PbList<ListChequesRequest> createRepeated() => $pb.PbList<ListChequesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListChequesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListChequesRequest>(create);
+  static ListChequesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
 class ListChequesResponse extends $pb.GeneratedMessage {
   factory ListChequesResponse({
     $core.Iterable<Cheque>? cheques,
@@ -2231,9 +2693,13 @@ class ListChequesResponse extends $pb.GeneratedMessage {
 
 class CheckChequeFundingRequest extends $pb.GeneratedMessage {
   factory CheckChequeFundingRequest({
+    $core.String? walletId,
     $fixnum.Int64? id,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (id != null) {
       $result.id = id;
     }
@@ -2244,7 +2710,8 @@ class CheckChequeFundingRequest extends $pb.GeneratedMessage {
   factory CheckChequeFundingRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CheckChequeFundingRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aInt64(2, _omitFieldNames ? '' : 'id')
     ..hasRequiredFields = false
   ;
 
@@ -2270,13 +2737,22 @@ class CheckChequeFundingRequest extends $pb.GeneratedMessage {
   static CheckChequeFundingRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get id => $_getI64(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasId() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get id => $_getI64(1);
+  @$pb.TagNumber(2)
+  set id($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearId() => clearField(2);
 }
 
 class CheckChequeFundingResponse extends $pb.GeneratedMessage {
@@ -2375,11 +2851,15 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
 
 class SweepChequeRequest extends $pb.GeneratedMessage {
   factory SweepChequeRequest({
+    $core.String? walletId,
     $core.String? privateKeyWif,
     $core.String? destinationAddress,
     $fixnum.Int64? feeSatPerVbyte,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (privateKeyWif != null) {
       $result.privateKeyWif = privateKeyWif;
     }
@@ -2396,9 +2876,10 @@ class SweepChequeRequest extends $pb.GeneratedMessage {
   factory SweepChequeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SweepChequeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'privateKeyWif')
-    ..aOS(2, _omitFieldNames ? '' : 'destinationAddress')
-    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'privateKeyWif')
+    ..aOS(3, _omitFieldNames ? '' : 'destinationAddress')
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -2424,31 +2905,40 @@ class SweepChequeRequest extends $pb.GeneratedMessage {
   static SweepChequeRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get privateKeyWif => $_getSZ(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set privateKeyWif($core.String v) { $_setString(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasPrivateKeyWif() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearPrivateKeyWif() => clearField(1);
+  void clearWalletId() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get destinationAddress => $_getSZ(1);
+  $core.String get privateKeyWif => $_getSZ(1);
   @$pb.TagNumber(2)
-  set destinationAddress($core.String v) { $_setString(1, v); }
+  set privateKeyWif($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasDestinationAddress() => $_has(1);
+  $core.bool hasPrivateKeyWif() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDestinationAddress() => clearField(2);
+  void clearPrivateKeyWif() => clearField(2);
 
   @$pb.TagNumber(3)
-  $fixnum.Int64 get feeSatPerVbyte => $_getI64(2);
+  $core.String get destinationAddress => $_getSZ(2);
   @$pb.TagNumber(3)
-  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(2, v); }
+  set destinationAddress($core.String v) { $_setString(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasFeeSatPerVbyte() => $_has(2);
+  $core.bool hasDestinationAddress() => $_has(2);
   @$pb.TagNumber(3)
-  void clearFeeSatPerVbyte() => clearField(3);
+  void clearDestinationAddress() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get feeSatPerVbyte => $_getI64(3);
+  @$pb.TagNumber(4)
+  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFeeSatPerVbyte() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFeeSatPerVbyte() => clearField(4);
 }
 
 class SweepChequeResponse extends $pb.GeneratedMessage {
@@ -2517,9 +3007,13 @@ class SweepChequeResponse extends $pb.GeneratedMessage {
 
 class DeleteChequeRequest extends $pb.GeneratedMessage {
   factory DeleteChequeRequest({
+    $core.String? walletId,
     $fixnum.Int64? id,
   }) {
     final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     if (id != null) {
       $result.id = id;
     }
@@ -2530,7 +3024,8 @@ class DeleteChequeRequest extends $pb.GeneratedMessage {
   factory DeleteChequeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteChequeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aInt64(2, _omitFieldNames ? '' : 'id')
     ..hasRequiredFields = false
   ;
 
@@ -2556,13 +3051,22 @@ class DeleteChequeRequest extends $pb.GeneratedMessage {
   static DeleteChequeRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get id => $_getI64(0);
+  $core.String get walletId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  set walletId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasId() => $_has(0);
+  $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get id => $_getI64(1);
+  @$pb.TagNumber(2)
+  set id($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearId() => clearField(2);
 }
 
 class WalletServiceApi {
@@ -2572,19 +3076,19 @@ class WalletServiceApi {
   $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
     _client.invoke<SendTransactionResponse>(ctx, 'WalletService', 'SendTransaction', request, SendTransactionResponse())
   ;
-  $async.Future<GetBalanceResponse> getBalance($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<GetBalanceResponse> getBalance($pb.ClientContext? ctx, GetBalanceRequest request) =>
     _client.invoke<GetBalanceResponse>(ctx, 'WalletService', 'GetBalance', request, GetBalanceResponse())
   ;
-  $async.Future<GetNewAddressResponse> getNewAddress($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<GetNewAddressResponse> getNewAddress($pb.ClientContext? ctx, GetNewAddressRequest request) =>
     _client.invoke<GetNewAddressResponse>(ctx, 'WalletService', 'GetNewAddress', request, GetNewAddressResponse())
   ;
-  $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, ListTransactionsRequest request) =>
     _client.invoke<ListTransactionsResponse>(ctx, 'WalletService', 'ListTransactions', request, ListTransactionsResponse())
   ;
-  $async.Future<ListUnspentResponse> listUnspent($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<ListUnspentResponse> listUnspent($pb.ClientContext? ctx, ListUnspentRequest request) =>
     _client.invoke<ListUnspentResponse>(ctx, 'WalletService', 'ListUnspent', request, ListUnspentResponse())
   ;
-  $async.Future<ListReceiveAddressesResponse> listReceiveAddresses($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<ListReceiveAddressesResponse> listReceiveAddresses($pb.ClientContext? ctx, ListReceiveAddressesRequest request) =>
     _client.invoke<ListReceiveAddressesResponse>(ctx, 'WalletService', 'ListReceiveAddresses', request, ListReceiveAddressesResponse())
   ;
   $async.Future<ListSidechainDepositsResponse> listSidechainDeposits($pb.ClientContext? ctx, ListSidechainDepositsRequest request) =>
@@ -2599,7 +3103,7 @@ class WalletServiceApi {
   $async.Future<VerifyMessageResponse> verifyMessage($pb.ClientContext? ctx, VerifyMessageRequest request) =>
     _client.invoke<VerifyMessageResponse>(ctx, 'WalletService', 'VerifyMessage', request, VerifyMessageResponse())
   ;
-  $async.Future<GetStatsResponse> getStats($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<GetStatsResponse> getStats($pb.ClientContext? ctx, GetStatsRequest request) =>
     _client.invoke<GetStatsResponse>(ctx, 'WalletService', 'GetStats', request, GetStatsResponse())
   ;
   $async.Future<$1.Empty> unlockWallet($pb.ClientContext? ctx, UnlockWalletRequest request) =>
@@ -2620,7 +3124,7 @@ class WalletServiceApi {
   $async.Future<GetChequePrivateKeyResponse> getChequePrivateKey($pb.ClientContext? ctx, GetChequePrivateKeyRequest request) =>
     _client.invoke<GetChequePrivateKeyResponse>(ctx, 'WalletService', 'GetChequePrivateKey', request, GetChequePrivateKeyResponse())
   ;
-  $async.Future<ListChequesResponse> listCheques($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<ListChequesResponse> listCheques($pb.ClientContext? ctx, ListChequesRequest request) =>
     _client.invoke<ListChequesResponse>(ctx, 'WalletService', 'ListCheques', request, ListChequesResponse())
   ;
   $async.Future<CheckChequeFundingResponse> checkChequeFunding($pb.ClientContext? ctx, CheckChequeFundingRequest request) =>

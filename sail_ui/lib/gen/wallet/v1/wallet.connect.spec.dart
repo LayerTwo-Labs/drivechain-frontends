@@ -21,7 +21,7 @@ abstract final class WalletService {
   static const getBalance = connect.Spec(
     '/$name/GetBalance',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    walletv1wallet.GetBalanceRequest.new,
     walletv1wallet.GetBalanceResponse.new,
   );
 
@@ -30,28 +30,28 @@ abstract final class WalletService {
   static const getNewAddress = connect.Spec(
     '/$name/GetNewAddress',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    walletv1wallet.GetNewAddressRequest.new,
     walletv1wallet.GetNewAddressResponse.new,
   );
 
   static const listTransactions = connect.Spec(
     '/$name/ListTransactions',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    walletv1wallet.ListTransactionsRequest.new,
     walletv1wallet.ListTransactionsResponse.new,
   );
 
   static const listUnspent = connect.Spec(
     '/$name/ListUnspent',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    walletv1wallet.ListUnspentRequest.new,
     walletv1wallet.ListUnspentResponse.new,
   );
 
   static const listReceiveAddresses = connect.Spec(
     '/$name/ListReceiveAddresses',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    walletv1wallet.ListReceiveAddressesRequest.new,
     walletv1wallet.ListReceiveAddressesResponse.new,
   );
 
@@ -86,7 +86,7 @@ abstract final class WalletService {
   static const getStats = connect.Spec(
     '/$name/GetStats',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    walletv1wallet.GetStatsRequest.new,
     walletv1wallet.GetStatsResponse.new,
   );
 
@@ -137,7 +137,7 @@ abstract final class WalletService {
   static const listCheques = connect.Spec(
     '/$name/ListCheques',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    walletv1wallet.ListChequesRequest.new,
     walletv1wallet.ListChequesResponse.new,
   );
 

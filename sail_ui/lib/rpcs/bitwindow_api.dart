@@ -8,7 +8,8 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' hide UnspentOutput;
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
+    hide UnspentOutput, GetNewAddressRequest, ListTransactionsRequest, ListUnspentRequest;
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -112,7 +113,10 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<(double, double)> balance() async {
     return await _withRecreate(() async {
-      final balanceSat = await wallet.getBalance();
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
+      final walletId = walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+      final balanceSat = await wallet.getBalance(walletId);
       return (satoshiToBTC(balanceSat.confirmedSatoshi.toInt()), satoshiToBTC(balanceSat.pendingSatoshi.toInt()));
     });
   }
@@ -461,6 +465,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 abstract class WalletAPI {
   // pure bitcoind wallet stuff here
   Future<String> sendTransaction(
+    String walletId,
     Map<String, int> destinations, {
     int? feeSatPerVbyte,
     int? fixedFeeSats,
@@ -468,18 +473,18 @@ abstract class WalletAPI {
     String? label,
     List<UnspentOutput> requiredInputs,
   });
-  Future<GetBalanceResponse> getBalance();
-  Future<String> getNewAddress();
-  Future<List<WalletTransaction>> listTransactions();
-  Future<List<UnspentOutput>> listUnspent();
-  Future<List<ReceiveAddress>> listReceiveAddresses();
+  Future<GetBalanceResponse> getBalance(String walletId);
+  Future<String> getNewAddress(String walletId);
+  Future<List<WalletTransaction>> listTransactions(String walletId);
+  Future<List<UnspentOutput>> listUnspent(String walletId);
+  Future<List<ReceiveAddress>> listReceiveAddresses(String walletId);
 
   // drivechain wallet stuff here
-  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
-  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee);
-  Future<String> signMessage(String message);
-  Future<bool> verifyMessage(String message, String signature, String publicKey);
-  Future<GetStatsResponse> getStats();
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(String walletId, int slot);
+  Future<String> createSidechainDeposit(String walletId, int slot, String destination, double amount, double fee);
+  Future<String> signMessage(String walletId, String message);
+  Future<bool> verifyMessage(String walletId, String message, String signature, String publicKey);
+  Future<GetStatsResponse> getStats(String walletId);
 
   // wallet unlock/lock for cheques
   Future<void> unlockWallet(String password);
@@ -487,12 +492,17 @@ abstract class WalletAPI {
   Future<void> isWalletUnlocked();
 
   // cheque operations
-  Future<CreateChequeResponse> createCheque(int expectedAmountSats);
-  Future<Cheque> getCheque(int id);
-  Future<List<Cheque>> listCheques();
-  Future<CheckChequeFundingResponse> checkChequeFunding(int id);
-  Future<SweepChequeResult> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte);
-  Future<void> deleteCheque(int id);
+  Future<CreateChequeResponse> createCheque(String walletId, int expectedAmountSats);
+  Future<Cheque> getCheque(String walletId, int id);
+  Future<List<Cheque>> listCheques(String walletId);
+  Future<CheckChequeFundingResponse> checkChequeFunding(String walletId, int id);
+  Future<SweepChequeResult> sweepCheque(
+    String walletId,
+    String privateKeyWif,
+    String destinationAddress,
+    int feeSatPerVbyte,
+  );
+  Future<void> deleteCheque(String walletId, int id);
 }
 
 class SweepChequeResult {
@@ -510,6 +520,7 @@ class _WalletAPILive implements WalletAPI {
 
   @override
   Future<String> sendTransaction(
+    String walletId,
     Map<String, int> destinations, {
     int? feeSatPerVbyte,
     int? fixedFeeSats,
@@ -519,6 +530,7 @@ class _WalletAPILive implements WalletAPI {
   }) async {
     try {
       final request = SendTransactionRequest(
+        walletId: walletId,
         destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
         feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
         fixedFeeSats: fixedFeeSats != null ? Int64(fixedFeeSats) : null,
@@ -537,9 +549,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<GetBalanceResponse> getBalance() async {
+  Future<GetBalanceResponse> getBalance(String walletId) async {
     try {
-      return await _client.getBalance(Empty());
+      return await _client.getBalance(GetBalanceRequest()..walletId = walletId);
     } catch (e) {
       final error = 'could not get balance: ${extractConnectException(e)}';
       throw WalletException(error);
@@ -547,9 +559,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<String> getNewAddress() async {
+  Future<String> getNewAddress(String walletId) async {
     try {
-      final response = await _client.getNewAddress(Empty());
+      final response = await _client.getNewAddress(GetNewAddressRequest()..walletId = walletId);
       return response.address;
     } catch (e) {
       final error = 'could not get new address: ${extractConnectException(e)}';
@@ -558,9 +570,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<List<WalletTransaction>> listTransactions() async {
+  Future<List<WalletTransaction>> listTransactions(String walletId) async {
     try {
-      final response = await _client.listTransactions(Empty());
+      final response = await _client.listTransactions(ListTransactionsRequest()..walletId = walletId);
       return response.transactions;
     } catch (e) {
       final error = 'could not list transactions: ${extractConnectException(e)}';
@@ -569,9 +581,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<List<UnspentOutput>> listUnspent() async {
+  Future<List<UnspentOutput>> listUnspent(String walletId) async {
     try {
-      final response = await _client.listUnspent(Empty());
+      final response = await _client.listUnspent(ListUnspentRequest()..walletId = walletId);
       return response.utxos;
     } catch (e) {
       final error = 'could not list utxos: ${extractConnectException(e)}';
@@ -580,9 +592,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<List<ReceiveAddress>> listReceiveAddresses() async {
+  Future<List<ReceiveAddress>> listReceiveAddresses(String walletId) async {
     try {
-      final response = await _client.listReceiveAddresses(Empty());
+      final response = await _client.listReceiveAddresses(ListReceiveAddressesRequest()..walletId = walletId);
       return response.addresses;
     } catch (e) {
       final error = 'could not list receive addresses: ${extractConnectException(e)}';
@@ -591,9 +603,13 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot) async {
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(String walletId, int slot) async {
     try {
-      final response = await _client.listSidechainDeposits(ListSidechainDepositsRequest()..slot = slot);
+      final response = await _client.listSidechainDeposits(
+        ListSidechainDepositsRequest()
+          ..walletId = walletId
+          ..slot = slot,
+      );
       return response.deposits;
     } catch (e) {
       final error = 'could not list sidechain deposits: ${extractConnectException(e)}';
@@ -602,10 +618,17 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee) async {
+  Future<String> createSidechainDeposit(
+    String walletId,
+    int slot,
+    String destination,
+    double amount,
+    double fee,
+  ) async {
     try {
       final response = await _client.createSidechainDeposit(
         CreateSidechainDepositRequest()
+          ..walletId = walletId
           ..slot = Int64(slot)
           ..destination = destination
           ..amount = amount
@@ -619,9 +642,13 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<String> signMessage(String message) async {
+  Future<String> signMessage(String walletId, String message) async {
     try {
-      final response = await _client.signMessage(SignMessageRequest()..message = message);
+      final response = await _client.signMessage(
+        SignMessageRequest()
+          ..walletId = walletId
+          ..message = message,
+      );
       return response.signature;
     } catch (e) {
       final error = extractConnectException(e);
@@ -630,10 +657,11 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<bool> verifyMessage(String message, String signature, String publicKey) async {
+  Future<bool> verifyMessage(String walletId, String message, String signature, String publicKey) async {
     try {
       final response = await _client.verifyMessage(
         VerifyMessageRequest()
+          ..walletId = walletId
           ..message = message
           ..signature = signature
           ..publicKey = publicKey,
@@ -646,9 +674,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<GetStatsResponse> getStats() async {
+  Future<GetStatsResponse> getStats(String walletId) async {
     try {
-      final response = await _client.getStats(Empty());
+      final response = await _client.getStats(GetStatsRequest()..walletId = walletId);
       return response;
     } catch (e) {
       final error = extractConnectException(e);
@@ -687,10 +715,13 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<CreateChequeResponse> createCheque(int expectedAmountSats) async {
+  Future<CreateChequeResponse> createCheque(String walletId, int expectedAmountSats) async {
     try {
       final response = await _client.createCheque(
-        CreateChequeRequest(expectedAmountSats: Int64(expectedAmountSats)),
+        CreateChequeRequest(
+          walletId: walletId,
+          expectedAmountSats: Int64(expectedAmountSats),
+        ),
       );
       return response;
     } catch (e) {
@@ -700,9 +731,14 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<Cheque> getCheque(int id) async {
+  Future<Cheque> getCheque(String walletId, int id) async {
     try {
-      final response = await _client.getCheque(GetChequeRequest(id: Int64(id)));
+      final response = await _client.getCheque(
+        GetChequeRequest(
+          walletId: walletId,
+          id: Int64(id),
+        ),
+      );
       return response.cheque;
     } catch (e) {
       final error = extractConnectException(e);
@@ -711,9 +747,9 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<List<Cheque>> listCheques() async {
+  Future<List<Cheque>> listCheques(String walletId) async {
     try {
-      final response = await _client.listCheques(Empty());
+      final response = await _client.listCheques(ListChequesRequest()..walletId = walletId);
       return response.cheques;
     } catch (e) {
       final error = extractConnectException(e);
@@ -722,9 +758,14 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<CheckChequeFundingResponse> checkChequeFunding(int id) async {
+  Future<CheckChequeFundingResponse> checkChequeFunding(String walletId, int id) async {
     try {
-      final response = await _client.checkChequeFunding(CheckChequeFundingRequest(id: Int64(id)));
+      final response = await _client.checkChequeFunding(
+        CheckChequeFundingRequest(
+          walletId: walletId,
+          id: Int64(id),
+        ),
+      );
       return response;
     } catch (e) {
       final error = extractConnectException(e);
@@ -733,10 +774,16 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<SweepChequeResult> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
+  Future<SweepChequeResult> sweepCheque(
+    String walletId,
+    String privateKeyWif,
+    String destinationAddress,
+    int feeSatPerVbyte,
+  ) async {
     try {
       final response = await _client.sweepCheque(
         SweepChequeRequest(
+          walletId: walletId,
           privateKeyWif: privateKeyWif,
           destinationAddress: destinationAddress,
           feeSatPerVbyte: Int64(feeSatPerVbyte),
@@ -753,9 +800,14 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<void> deleteCheque(int id) async {
+  Future<void> deleteCheque(String walletId, int id) async {
     try {
-      await _client.deleteCheque(DeleteChequeRequest(id: Int64(id)));
+      await _client.deleteCheque(
+        DeleteChequeRequest(
+          walletId: walletId,
+          id: Int64(id),
+        ),
+      );
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
