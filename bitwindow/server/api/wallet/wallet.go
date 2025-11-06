@@ -54,15 +54,17 @@ func New(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
+	walletManager *engines.WalletManager,
 	walletDir string,
 ) *Server {
 	s := &Server{
-		database:     database,
-		bitcoind:     bitcoind,
-		wallet:       wallet,
-		crypto:       crypto,
-		chequeEngine: chequeEngine,
-		walletDir:    walletDir,
+		database:      database,
+		bitcoind:      bitcoind,
+		wallet:        wallet,
+		crypto:        crypto,
+		chequeEngine:  chequeEngine,
+		walletManager: walletManager,
+		walletDir:     walletDir,
 	}
 
 	// Initialize watch wallet in background
@@ -76,21 +78,18 @@ func New(
 }
 
 type Server struct {
-	database     *sql.DB
-	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
-	wallet       *service.Service[validatorrpc.WalletServiceClient]
-	crypto       *service.Service[cryptorpc.CryptoServiceClient]
-	chequeEngine *engines.ChequeEngine
-	walletDir    string
+	database      *sql.DB
+	bitcoind      *service.Service[corerpc.BitcoinServiceClient]
+	wallet        *service.Service[validatorrpc.WalletServiceClient]
+	crypto        *service.Service[cryptorpc.CryptoServiceClient]
+	chequeEngine  *engines.ChequeEngine
+	walletManager *engines.WalletManager
+	walletDir     string
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
-	if s.wallet == nil {
-		err := errors.New("wallet not connected")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: wallet not connected")
-		return nil, err
-	}
+	walletId := c.Msg.WalletId
 
 	if len(c.Msg.Destinations) == 0 {
 		err := errors.New("must provide a destination")
@@ -118,190 +117,337 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 	log := zerolog.Ctx(ctx)
 
-	var feeRate *validatorpb.SendTransactionRequest_FeeRate
-	if c.Msg.FeeSatPerVbyte != 0 {
-		feeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: c.Msg.FeeSatPerVbyte},
-		}
-	}
-	if c.Msg.FixedFeeSats != 0 {
-		feeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: c.Msg.FixedFeeSats},
-		}
-	}
-
-	// Add OP_RETURN message if provided
-	var opReturnMessage *commonv1.Hex
-	if c.Msg.OpReturnMessage != "" {
-		opReturnMessage = &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString([]byte(c.Msg.OpReturnMessage)),
-			},
-		}
-	}
-
-	wallet, err := s.wallet.Get(ctx)
+	// Get wallet type to determine routing
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
-	created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
-		Destinations:    c.Msg.Destinations,
-		FeeRate:         feeRate,
-		OpReturnMessage: opReturnMessage,
-		RequiredUtxos: lo.Map(c.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) *validatorpb.SendTransactionRequest_RequiredUtxo {
-			parts := strings.Split(u.Output, ":")
-			if len(parts) != 2 {
-				return nil
-			}
-			txid := parts[0]
-			vout, err := strconv.ParseUint(parts[1], 10, 32)
-			if err != nil {
-				return nil
-			}
 
-			return &validatorpb.SendTransactionRequest_RequiredUtxo{
-				Txid: &commonv1.ReverseHex{
-					Hex: &wrapperspb.StringValue{Value: txid},
+	if walletType == engines.WalletTypeEnforcer {
+		// Route to enforcer
+		if s.wallet == nil {
+			return nil, errors.New("enforcer wallet not connected")
+		}
+
+		var feeRate *validatorpb.SendTransactionRequest_FeeRate
+		if c.Msg.FeeSatPerVbyte != 0 {
+			feeRate = &validatorpb.SendTransactionRequest_FeeRate{
+				Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: c.Msg.FeeSatPerVbyte},
+			}
+		}
+		if c.Msg.FixedFeeSats != 0 {
+			feeRate = &validatorpb.SendTransactionRequest_FeeRate{
+				Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: c.Msg.FixedFeeSats},
+			}
+		}
+
+		var opReturnMessage *commonv1.Hex
+		if c.Msg.OpReturnMessage != "" {
+			opReturnMessage = &commonv1.Hex{
+				Hex: &wrapperspb.StringValue{
+					Value: hex.EncodeToString([]byte(c.Msg.OpReturnMessage)),
 				},
-				Vout: uint32(vout),
 			}
-		}),
-	}))
+		}
+
+		wallet, err := s.wallet.Get(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
+			Destinations:    c.Msg.Destinations,
+			FeeRate:         feeRate,
+			OpReturnMessage: opReturnMessage,
+			RequiredUtxos: lo.Map(c.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) *validatorpb.SendTransactionRequest_RequiredUtxo {
+				parts := strings.Split(u.Output, ":")
+				if len(parts) != 2 {
+					return nil
+				}
+				txid := parts[0]
+				vout, err := strconv.ParseUint(parts[1], 10, 32)
+				if err != nil {
+					return nil
+				}
+
+				return &validatorpb.SendTransactionRequest_RequiredUtxo{
+					Txid: &commonv1.ReverseHex{
+						Hex: &wrapperspb.StringValue{Value: txid},
+					},
+					Vout: uint32(vout),
+				}
+			}),
+		}))
+		if err != nil {
+			err = fmt.Errorf("enforcer/wallet: could not send transaction: %w", err)
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction")
+			return nil, err
+		}
+
+		log.Info().Msgf("send tx: broadcast transaction (enforcer): %s", created.Msg.Txid)
+
+		return connect.NewResponse(&pb.SendTransactionResponse{
+			Txid: created.Msg.Txid.Hex.Value,
+		}), nil
+	}
+
+	// Route to Bitcoin Core
+	coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
-		err = fmt.Errorf("enforcer/wallet: could not send transaction: %w", err)
+		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get bitcoind client: %w", err)
+	}
+
+	// Convert satoshi amounts to BTC (Bitcoin Core uses BTC, not satoshis)
+	destinations := make(map[string]float64)
+	for addr, sats := range c.Msg.Destinations {
+		destinations[addr] = float64(sats) / 1e8
+	}
+
+	sendReq := &corepb.SendRequest{
+		Destinations: destinations,
+		Wallet:       coreWalletName,
+	}
+
+	// Set fee rate if provided (convert sat/vB to BTC/kvB for Bitcoin Core)
+	if c.Msg.FeeSatPerVbyte > 0 {
+		sendReq.FeeRate = float64(c.Msg.FeeSatPerVbyte) / 1e5 // sat/vB to BTC/kvB
+	}
+
+	resp, err := bitcoind.Send(ctx, connect.NewRequest(sendReq))
+	if err != nil {
+		err = fmt.Errorf("bitcoin Core: send transaction: %w", err)
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction")
 		return nil, err
 	}
 
-	log.Info().Msgf("send tx: broadcast transaction: %s", created.Msg.Txid)
+	log.Info().Msgf("send tx: broadcast transaction (Bitcoin Core): %s", resp.Msg.Txid)
 
 	return connect.NewResponse(&pb.SendTransactionResponse{
-		Txid: created.Msg.Txid.Hex.Value,
+		Txid: resp.Msg.Txid,
 	}), nil
 }
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
+	walletId := c.Msg.WalletId
+
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
 	if err != nil {
-		return nil, err
-	}
-	address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
-	if err != nil {
-		err = fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create new address")
-		return nil, err
+		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	// store all receiving addresses in the book! But with an empty label
-	err = addressbook.Create(ctx, s.database, "", address.Msg.Address, addressbook.DirectionReceive)
-	if err != nil {
-		if err.Error() == addressbook.ErrUniqueAddress {
-			// that's fine, already added! Don't do anything
-		} else {
-			err = fmt.Errorf("could not create address book entry: %w", err)
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not create address book entry")
+	if walletType == engines.WalletTypeEnforcer {
+		// Enforcer path
+		wallet, err := s.wallet.Get(ctx)
+		if err != nil {
 			return nil, err
 		}
-	}
+		address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
+		if err != nil {
+			err = fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not create new address")
+			return nil, err
+		}
 
-	return connect.NewResponse(&pb.GetNewAddressResponse{
-		Address: address.Msg.Address,
-	}), nil
+		// store all receiving addresses in the book! But with an empty label
+		err = addressbook.Create(ctx, s.database, "", address.Msg.Address, addressbook.DirectionReceive)
+		if err != nil {
+			if err.Error() == addressbook.ErrUniqueAddress {
+				// that's fine, already added! Don't do anything
+			} else {
+				err = fmt.Errorf("could not create address book entry: %w", err)
+				zerolog.Ctx(ctx).Error().Err(err).Msg("could not create address book entry")
+				return nil, err
+			}
+		}
+
+		return connect.NewResponse(&pb.GetNewAddressResponse{
+			Address: address.Msg.Address,
+			Index:   0, // Enforcer doesn't expose index in CreateNewAddress response
+		}), nil
+	} else {
+		// Bitcoin Core path
+		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		if err != nil {
+			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+		}
+
+		bitcoind, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
+			Wallet: coreWalletName,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("bitcoin Core get new address: %w", err)
+		}
+
+		address := resp.Msg.Address
+
+		// store all receiving addresses in the book! But with an empty label
+		err = addressbook.Create(ctx, s.database, "", address, addressbook.DirectionReceive)
+		if err != nil {
+			if err.Error() == addressbook.ErrUniqueAddress {
+				// that's fine, already added! Don't do anything
+			} else {
+				err = fmt.Errorf("create address book entry: %w", err)
+				zerolog.Ctx(ctx).Error().Err(err).Msg("create address book entry")
+				return nil, err
+			}
+		}
+
+		return connect.NewResponse(&pb.GetNewAddressResponse{
+			Address: address,
+			Index:   0, // Bitcoin Core doesn't expose index
+		}), nil
+	}
 }
 
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBalanceResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
+	walletId := c.Msg.WalletId
+
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
 	if err != nil {
-		return nil, err
-	}
-	balance, err := wallet.GetBalance(ctx, connect.NewRequest(&validatorpb.GetBalanceRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not get balance: %w", err)
+		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	return connect.NewResponse(&pb.GetBalanceResponse{
-		ConfirmedSatoshi: balance.Msg.ConfirmedSats,
-		PendingSatoshi:   balance.Msg.PendingSats,
-	}), nil
+	if walletType == engines.WalletTypeEnforcer {
+		// Enforcer path
+		wallet, err := s.wallet.Get(ctx)
+		if err != nil {
+			return nil, err
+		}
+		balance, err := wallet.GetBalance(ctx, connect.NewRequest(&validatorpb.GetBalanceRequest{}))
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not get balance: %w", err)
+		}
+
+		return connect.NewResponse(&pb.GetBalanceResponse{
+			ConfirmedSatoshi: balance.Msg.ConfirmedSats,
+			PendingSatoshi:   balance.Msg.PendingSats,
+		}), nil
+	} else {
+		// Bitcoin Core path - TODO: Implement Bitcoin Core balance query
+		_, err = s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		if err != nil {
+			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+		}
+
+		// TODO: Bitcoin Core balance requires different RPC call
+		// Need to use getbalances or getbalance RPC method
+		return connect.NewResponse(&pb.GetBalanceResponse{
+			ConfirmedSatoshi: 0,
+			PendingSatoshi:   0,
+		}), nil
+	}
 }
 
 // ListTransactions implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListTransactionsResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
+	walletId := c.Msg.WalletId
+
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
-	}
+	if walletType == engines.WalletTypeEnforcer {
+		// Enforcer path
+		wallet, err := s.wallet.Get(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// Fetch address book entries for label lookup
-	addressBookEntries, err := addressbook.List(ctx, s.database)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
-	}
+		txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
+		}
 
-	notes, err := transactions.List(ctx, s.database)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
-	}
-	noteMap := make(map[string]string)
-	for _, note := range notes {
-		noteMap[note.TxID] = note.Note
-	}
+		// Fetch address book entries for label lookup
+		addressBookEntries, err := addressbook.List(ctx, s.database)
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
+		}
 
-	// Use logpool to fetch info for all transaction info in parallel
-	pool := logpool.NewWithResults[*pb.WalletTransaction](ctx, "wallet/ListTransactions")
-	for _, tx := range txs.Msg.Transactions {
-		txid := tx.Txid.Hex.Value
-		// For sent transactions, try to extract the destination address from the outputs
-		pool.Go(txid, func(ctx context.Context) (*pb.WalletTransaction, error) {
-			note := noteMap[txid]
+		notes, err := transactions.List(ctx, s.database)
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
+		}
+		noteMap := make(map[string]string)
+		for _, note := range notes {
+			noteMap[note.TxID] = note.Note
+		}
 
-			var confirmation *pb.Confirmation
-			if tx.ConfirmationInfo != nil {
-				var timestamp *timestamppb.Timestamp
-				if tx.ConfirmationInfo.Timestamp != nil {
-					timestamp = &timestamppb.Timestamp{Seconds: tx.ConfirmationInfo.Timestamp.Seconds}
+		// Use logpool to fetch info for all transaction info in parallel
+		pool := logpool.NewWithResults[*pb.WalletTransaction](ctx, "wallet/ListTransactions")
+		for _, tx := range txs.Msg.Transactions {
+			txid := tx.Txid.Hex.Value
+			// For sent transactions, try to extract the destination address from the outputs
+			pool.Go(txid, func(ctx context.Context) (*pb.WalletTransaction, error) {
+				note := noteMap[txid]
+
+				var confirmation *pb.Confirmation
+				if tx.ConfirmationInfo != nil {
+					var timestamp *timestamppb.Timestamp
+					if tx.ConfirmationInfo.Timestamp != nil {
+						timestamp = &timestamppb.Timestamp{Seconds: tx.ConfirmationInfo.Timestamp.Seconds}
+					}
+					confirmation = &pb.Confirmation{
+						Height:    tx.ConfirmationInfo.Height,
+						Timestamp: timestamp,
+					}
 				}
-				confirmation = &pb.Confirmation{
-					Height:    tx.ConfirmationInfo.Height,
-					Timestamp: timestamp,
+
+				address, label, err := extractAddress(tx, addressBookEntries, s.chequeEngine.GetChainParams())
+				if err != nil {
+					return nil, fmt.Errorf("enforcer/wallet: could not extract address: %w", err)
 				}
-			}
 
-			address, label, err := extractAddress(tx, addressBookEntries, s.chequeEngine.GetChainParams())
-			if err != nil {
-				return nil, fmt.Errorf("enforcer/wallet: could not extract address: %w", err)
-			}
+				return &pb.WalletTransaction{
+					Txid:             tx.Txid.Hex.Value,
+					FeeSats:          tx.FeeSats,
+					ReceivedSatoshi:  tx.ReceivedSats,
+					SentSatoshi:      tx.SentSats,
+					Address:          address,
+					AddressLabel:     label,
+					Note:             note,
+					ConfirmationTime: confirmation,
+				}, nil
+			})
+		}
 
-			return &pb.WalletTransaction{
-				Txid:             tx.Txid.Hex.Value,
-				FeeSats:          tx.FeeSats,
-				ReceivedSatoshi:  tx.ReceivedSats,
-				SentSatoshi:      tx.SentSats,
-				Address:          address,
-				AddressLabel:     label,
-				Note:             note,
-				ConfirmationTime: confirmation,
-			}, nil
-		})
+		transactionsWithInfo, err := pool.Wait(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: failed to fetch transaction info: %w", err)
+		}
+
+		res := &pb.ListTransactionsResponse{
+			Transactions: transactionsWithInfo,
+		}
+
+		return connect.NewResponse(res), nil
+	} else {
+		// Bitcoin Core path - TODO: Implement full Bitcoin Core transaction listing
+		_, err = s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		if err != nil {
+			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+		}
+
+		// TODO: Implement Bitcoin Core ListTransactions
+		// This requires properly parsing Bitcoin Core's listtransactions RPC response
+		// and converting it to our WalletTransaction format
+		return connect.NewResponse(&pb.ListTransactionsResponse{
+			Transactions: []*pb.WalletTransaction{},
+		}), nil
 	}
-
-	transactionsWithInfo, err := pool.Wait(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: failed to fetch transaction info: %w", err)
-	}
-
-	res := &pb.ListTransactionsResponse{
-		Transactions: transactionsWithInfo,
-	}
-
-	return connect.NewResponse(res), nil
 }
 
 func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addressbook.Entry, chainParams *chaincfg.Params) (string, string, error) {
@@ -362,6 +508,18 @@ func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addr
 
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
+	walletId := c.Msg.WalletId
+
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	// Sidechain deposits only work with enforcer wallet
+	if walletType != engines.WalletTypeEnforcer {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain operations only supported with enforcer wallet"))
+	}
+
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -402,6 +560,18 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	walletId := c.Msg.WalletId
+
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	// Sidechain deposits only work with enforcer wallet
+	if walletType != engines.WalletTypeEnforcer {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain operations only supported with enforcer wallet"))
+	}
+
 	if s.wallet == nil {
 		return nil, errors.New("wallet not connected")
 	}
@@ -449,6 +619,14 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 
 // SignMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMessageRequest]) (*connect.Response[pb.SignMessageResponse], error) {
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - signing works the same for both wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
 	crypto, err := s.crypto.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -470,6 +648,14 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 
 // VerifyMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.VerifyMessageRequest]) (*connect.Response[pb.VerifyMessageResponse], error) {
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - verification works the same for both wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
 	crypto, err := s.crypto.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -496,22 +682,18 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 }
 
 // ListUnspent implements walletv1connect.WalletServiceHandler.
-func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnspentResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {
+	walletId := c.Msg.WalletId
 
-	// First get all UTXOs from the wallet
-	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
+		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	// Fetch the addressbook entries once for label lookup
 	addressBookEntries, err := addressbook.List(ctx, s.database)
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
+		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
 	// Helper to find label for an address
 	getLabel := func(addr string) string {
@@ -523,35 +705,90 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 		return ""
 	}
 
-	denials, err := deniability.List(ctx, s.database)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list denials: %w", err)
-	}
-
-	var utxosWithInfo []*pb.UnspentOutput
-	for _, utxo := range utxos.Msg.Outputs {
-		// Try to get the timestamp from the transaction (if available)
-		var receivedAt *timestamppb.Timestamp
-		if utxo.UnconfirmedLastSeen != nil {
-			receivedAt = utxo.UnconfirmedLastSeen
-		} else if utxo.ConfirmedAtTime != nil {
-			receivedAt = utxo.ConfirmedAtTime
+	if walletType == engines.WalletTypeEnforcer {
+		// Enforcer path
+		wallet, err := s.wallet.Get(ctx)
+		if err != nil {
+			return nil, err
 		}
 
-		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
-			Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
-			Address:    utxo.Address.Value,
-			Label:      getLabel(utxo.Address.Value),
-			ValueSats:  utxo.ValueSats,
-			ReceivedAt: receivedAt,
-			IsChange:   utxo.IsInternal,
-			DenialInfo: s.addDenialInfo(utxo, denials),
-		})
-	}
+		// First get all UTXOs from the wallet
+		utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
+		}
 
-	return connect.NewResponse(&pb.ListUnspentResponse{
-		Utxos: utxosWithInfo,
-	}), nil
+		denials, err := deniability.List(ctx, s.database)
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not list denials: %w", err)
+		}
+
+		var utxosWithInfo []*pb.UnspentOutput
+		for _, utxo := range utxos.Msg.Outputs {
+			// Try to get the timestamp from the transaction (if available)
+			var receivedAt *timestamppb.Timestamp
+			if utxo.UnconfirmedLastSeen != nil {
+				receivedAt = utxo.UnconfirmedLastSeen
+			} else if utxo.ConfirmedAtTime != nil {
+				receivedAt = utxo.ConfirmedAtTime
+			}
+
+			utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
+				Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
+				Address:    utxo.Address.Value,
+				Label:      getLabel(utxo.Address.Value),
+				ValueSats:  utxo.ValueSats,
+				ReceivedAt: receivedAt,
+				IsChange:   utxo.IsInternal,
+				DenialInfo: s.addDenialInfo(utxo, denials),
+			})
+		}
+
+		return connect.NewResponse(&pb.ListUnspentResponse{
+			Utxos: utxosWithInfo,
+		}), nil
+	} else {
+		// Bitcoin Core path
+		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		if err != nil {
+			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+		}
+
+		bitcoind, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+			Wallet: coreWalletName,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("bitcoin Core list unspent: %w", err)
+		}
+
+		var utxosWithInfo []*pb.UnspentOutput
+		for _, utxo := range resp.Msg.Unspent {
+			// Convert BTC to satoshis
+			valueSats := uint64(utxo.Amount * 100000000)
+
+			var receivedAt *timestamppb.Timestamp
+			// Bitcoin Core doesn't provide timestamp for UTXOs directly
+
+			utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
+				Output:     fmt.Sprintf("%s:%d", utxo.Txid, utxo.Vout),
+				Address:    utxo.Address,
+				Label:      getLabel(utxo.Address),
+				ValueSats:  valueSats,
+				ReceivedAt: receivedAt,
+				IsChange:   false, // Bitcoin Core doesn't expose change flag
+				DenialInfo: nil,   // Deniability only works with enforcer
+			})
+		}
+
+		return connect.NewResponse(&pb.ListUnspentResponse{
+			Utxos: utxosWithInfo,
+		}), nil
+	}
 }
 
 func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
@@ -635,7 +872,21 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 }
 
 // ListReceiveAddresses implements walletv1connect.WalletServiceHandler.
-func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
+func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
+	walletId := c.Msg.WalletId
+
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	if walletType != engines.WalletTypeEnforcer {
+		// TODO: Implement Bitcoin Core version
+		return connect.NewResponse(&pb.ListReceiveAddressesResponse{
+			Addresses: []*pb.ReceiveAddress{},
+		}), nil
+	}
+
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -646,7 +897,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[em
 		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
 	}
 
-	currentAddress, err := s.GetNewAddress(ctx, connect.NewRequest(&emptypb.Empty{}))
+	currentAddress, err := s.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{WalletId: walletId}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not get current address: %w", err)
 	}
@@ -717,14 +968,33 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[em
 }
 
 // GetStats implements walletv1connect.WalletServiceHandler.
-func (s *Server) GetStats(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetStatsResponse], error) {
+func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
+	walletId := c.Msg.WalletId
+
+	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	if walletType != engines.WalletTypeEnforcer {
+		// TODO: Implement Bitcoin Core version
+		return connect.NewResponse(&pb.GetStatsResponse{
+			UtxosCurrent:                      0,
+			UtxosUniqueAddresses:              0,
+			SidechainDepositVolume:            0,
+			SidechainDepositVolumeLast_30Days: 0,
+			TransactionCountTotal:             0,
+			TransactionCountSinceMonth:        0,
+		}), nil
+	}
+
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// 1. Get all UTXOs and count them
-	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&emptypb.Empty{}))
+	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
 	if err != nil {
 		return nil, err
 	}
@@ -841,6 +1111,14 @@ func (s *Server) IsWalletUnlocked(ctx context.Context, c *connect.Request[emptyp
 func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateChequeRequest]) (*connect.Response[pb.CreateChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
 
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - cheques work the same for all wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
 	if !s.chequeEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
@@ -882,6 +1160,14 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 
 // GetCheque implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeRequest]) (*connect.Response[pb.GetChequeResponse], error) {
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - cheques work the same for all wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
 	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -898,6 +1184,14 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 // GetChequePrivateKey implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.GetChequePrivateKeyRequest]) (*connect.Response[pb.GetChequePrivateKeyResponse], error) {
 	log := zerolog.Ctx(ctx)
+
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - cheques work the same for all wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
 
 	if !s.chequeEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
@@ -923,7 +1217,15 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 }
 
 // ListCheques implements walletv1connect.WalletServiceHandler.
-func (s *Server) ListCheques(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListChequesResponse], error) {
+func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListChequesRequest]) (*connect.Response[pb.ListChequesResponse], error) {
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - cheques work the same for all wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
 	chequeList, err := cheques.List(ctx, s.database)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list cheques: %w", err))
@@ -942,6 +1244,14 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[emptypb.Emp
 // CheckChequeFunding implements walletv1connect.WalletServiceHandler.
 func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.CheckChequeFundingRequest]) (*connect.Response[pb.CheckChequeFundingResponse], error) {
 	log := zerolog.Ctx(ctx)
+
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - cheques work the same for all wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
 
 	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
 	if err != nil {
@@ -1045,6 +1355,14 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
 
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - cheques work the same for all wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
 	// Decode the WIF
 	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
 	if err != nil {
@@ -1146,6 +1464,14 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 // DeleteCheque implements walletv1connect.WalletServiceHandler.
 func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error) {
 	log := zerolog.Ctx(ctx)
+
+	walletId := c.Msg.WalletId
+
+	// Wallet ID validation only - cheques work the same for all wallet types
+	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
 
 	// Check if cheque exists
 	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
