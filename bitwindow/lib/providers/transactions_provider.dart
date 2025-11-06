@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 // because the class extends ChangeNotifier, any subscribers
@@ -15,6 +16,7 @@ class TransactionProvider extends ChangeNotifier {
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   String address = '';
   List<WalletTransaction> walletTransactions = [];
@@ -55,12 +57,15 @@ class TransactionProvider extends ChangeNotifier {
     error = null;
 
     try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       // Run all updates in parallel
       final results = await Future.wait([
         update<List<WalletTransaction>>(
           walletTransactions,
           () async {
-            final fetchedTransactions = await bitwindowd.wallet.listTransactions();
+            final fetchedTransactions = await bitwindowd.wallet.listTransactions(walletId);
             // Sort by confirmation time, newest first
             fetchedTransactions.sort((a, b) {
               final aTime = a.confirmationTime.timestamp.seconds;
@@ -78,13 +83,13 @@ class TransactionProvider extends ChangeNotifier {
         ),
         update<String>(
           address,
-          bitwindowd.wallet.getNewAddress,
+          () => bitwindowd.wallet.getNewAddress(walletId),
           (v) => address = v,
         ),
         update<List<UnspentOutput>>(
           utxos,
           () async {
-            final fetchedUtxos = await bitwindowd.wallet.listUnspent();
+            final fetchedUtxos = await bitwindowd.wallet.listUnspent(walletId);
             // Sort by date received, newest first
             fetchedUtxos.sort((a, b) {
               final aTime = a.receivedAt.seconds;
@@ -103,7 +108,7 @@ class TransactionProvider extends ChangeNotifier {
         update<List<ReceiveAddress>>(
           receiveAddresses,
           () async {
-            final fetchedAddresses = await bitwindowd.wallet.listReceiveAddresses();
+            final fetchedAddresses = await bitwindowd.wallet.listReceiveAddresses(walletId);
             // Sort by creation time if available, or by address alphabetically
             fetchedAddresses.sort((a, b) {
               // Assuming addresses have some timestamp or index, otherwise sort alphabetically

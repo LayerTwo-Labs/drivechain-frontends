@@ -16,6 +16,7 @@ class CashChequePage extends StatefulWidget {
 class _CashChequePageState extends State<CashChequePage> {
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
   final TextEditingController _wifController = TextEditingController();
   bool _isCashing = false;
 
@@ -102,11 +103,15 @@ class _CashChequePageState extends State<CashChequePage> {
     });
 
     try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       // Get user's receive address
-      final destinationAddress = await _bitwindowRPC.wallet.getNewAddress();
+      final destinationAddress = await _bitwindowRPC.wallet.getNewAddress(walletId);
 
       // Sweep the cheque to the user's wallet
       final result = await _bitwindowRPC.wallet.sweepCheque(
+        walletId,
         wif,
         destinationAddress,
         10, // Default fee rate of 10 sat/vbyte

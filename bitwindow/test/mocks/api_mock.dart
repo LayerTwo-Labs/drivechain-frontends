@@ -149,78 +149,85 @@ class MockBitwindowdAPI implements BitwindowAPI {
 class MockWalletAPI implements WalletAPI {
   @override
   Future<String> sendTransaction(
+    String walletId,
     Map<String, int> destinations, {
     int? feeSatPerVbyte,
     int? fixedFeeSats,
     String? label,
     String? opReturnMessage,
-    List<UnspentOutput>? requiredInputs,
+    List<UnspentOutput> requiredInputs = const [],
   }) async {
     return 'mock_txid';
   }
 
   @override
-  Future<GetBalanceResponse> getBalance() async {
+  Future<GetBalanceResponse> getBalance(String walletId) async {
     return GetBalanceResponse();
   }
 
   @override
-  Future<String> getNewAddress() async {
+  Future<String> getNewAddress(String walletId) async {
     return 'mock_address';
   }
 
   @override
-  Future<List<WalletTransaction>> listTransactions() async {
+  Future<List<WalletTransaction>> listTransactions(String walletId) async {
     return [];
   }
 
   @override
-  Future<List<UnspentOutput>> listUnspent() async {
+  Future<List<UnspentOutput>> listUnspent(String walletId) async {
     return [];
   }
 
   @override
-  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot) async {
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(String walletId, int slot) async {
     return [];
   }
 
   @override
-  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee) async {
+  Future<String> createSidechainDeposit(
+    String walletId,
+    int slot,
+    String destination,
+    double amount,
+    double fee,
+  ) async {
     return 'mock_deposit_txid';
   }
 
   @override
-  Future<String> signMessage(String message) async {
+  Future<String> signMessage(String walletId, String message) async {
     return 'mock_signature';
   }
 
   @override
-  Future<bool> verifyMessage(String message, String signature, String publicKey) async {
+  Future<bool> verifyMessage(String walletId, String message, String signature, String publicKey) async {
     return true;
   }
 
   @override
-  Future<GetStatsResponse> getStats() async {
+  Future<GetStatsResponse> getStats(String walletId) async {
     return GetStatsResponse();
   }
 
   @override
-  Future<List<ReceiveAddress>> listReceiveAddresses() async {
+  Future<List<ReceiveAddress>> listReceiveAddresses(String walletId) async {
     return [];
   }
 
   @override
-  Future<CheckChequeFundingResponse> checkChequeFunding(int id) {
+  Future<CheckChequeFundingResponse> checkChequeFunding(String walletId, int id) {
     return Future.value(CheckChequeFundingResponse());
   }
 
   @override
-  Future<CreateChequeResponse> createCheque(int expectedAmountSats) {
+  Future<CreateChequeResponse> createCheque(String walletId, int expectedAmountSats) {
     return Future.value(CreateChequeResponse());
   }
 
   @override
-  Future<Cheque> getCheque(int id) {
+  Future<Cheque> getCheque(String walletId, int id) {
     return Future.value(Cheque());
   }
 
@@ -230,7 +237,7 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<List<Cheque>> listCheques() {
+  Future<List<Cheque>> listCheques(String walletId) {
     return Future.value([]);
   }
 
@@ -240,7 +247,12 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<SweepChequeResult> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) {
+  Future<SweepChequeResult> sweepCheque(
+    String walletId,
+    String privateKeyWif,
+    String destinationAddress,
+    int feeSatPerVbyte,
+  ) {
     return Future.value(SweepChequeResult(txid: 'mock_txid', amountSats: 100000));
   }
 
@@ -250,7 +262,7 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<void> deleteCheque(int id) async {
+  Future<void> deleteCheque(String walletId, int id) async {
     return;
   }
 }

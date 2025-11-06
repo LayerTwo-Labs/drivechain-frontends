@@ -28,6 +28,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
 
   BitwindowRPC get _bitwindowRPC => GetIt.I.get<BitwindowRPC>();
   TransactionProvider get _transactionsProvider => GetIt.I.get<TransactionProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   @override
   void initState() {
@@ -91,6 +92,9 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
     });
 
     try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       // Convert BTC to satoshis
       final satoshis = (amount * 100000000).toInt();
 
@@ -99,7 +103,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
         _keypair!.publicAddress: satoshis,
       };
 
-      final txid = await _bitwindowRPC.wallet.sendTransaction(destinations);
+      final txid = await _bitwindowRPC.wallet.sendTransaction(walletId, destinations);
 
       setState(() {
         _txid = txid;

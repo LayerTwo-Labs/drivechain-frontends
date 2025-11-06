@@ -12,6 +12,7 @@ import 'package:stacked/stacked.dart';
 class ChequeDetailViewModel extends BaseViewModel {
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
   final TransactionProvider _transactionProvider = GetIt.I.get<TransactionProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
   final int chequeId;
 
   Cheque? _cheque;
@@ -72,10 +73,14 @@ class ChequeDetailViewModel extends BaseViewModel {
     final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
 
     try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       final amountSats = _cheque!.expectedAmountSats.toInt();
 
       // Send bitcoin to the cheque address using the enforcer wallet
       final txid = await bitwindowRPC.wallet.sendTransaction(
+        walletId,
         {_cheque!.address: amountSats},
         feeSatPerVbyte: 10, // Default fee rate
       );

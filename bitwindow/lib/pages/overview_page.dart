@@ -810,6 +810,7 @@ class NewGraffitiView extends StatelessWidget {
 class NewGraffitiViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
   final BitwindowRPC _api = GetIt.I<BitwindowRPC>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   NewGraffitiViewModel() {
     messageController.addListener(notifyListeners);
@@ -821,8 +822,12 @@ class NewGraffitiViewModel extends BaseViewModel {
     }
 
     try {
-      final address = await _api.wallet.getNewAddress();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
+      final address = await _api.wallet.getNewAddress(walletId);
       final _ = await _api.wallet.sendTransaction(
+        walletId,
         {address: 10000}, // 0.0001 BTC
         opReturnMessage: messageController.text,
         feeSatPerVbyte: 1,

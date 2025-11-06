@@ -335,6 +335,7 @@ class SendPageViewModel extends BaseViewModel {
   AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
   BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
   SettingsProvider get settingsProvider => GetIt.I<SettingsProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   BitcoinUnit get currentUnit => settingsProvider.bitcoinUnit;
 
@@ -512,6 +513,9 @@ class SendPageViewModel extends BaseViewModel {
     }
 
     try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       // Build destinations map for all recipients, summing amounts for duplicate addresses
       final destinations = <String, int>{};
       for (int i = 0; i < recipients.length; i++) {
@@ -524,6 +528,7 @@ class SendPageViewModel extends BaseViewModel {
       }
 
       final txid = await bitwindowd.wallet.sendTransaction(
+        walletId,
         destinations,
         fixedFeeSats: feeSats,
         requiredInputs: selectedUtxos,
