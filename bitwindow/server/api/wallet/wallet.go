@@ -55,6 +55,7 @@ func New(
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
 	walletManager *engines.WalletManager,
+	walletSyncer *engines.WalletSyncer,
 	walletDir string,
 ) *Server {
 	s := &Server{
@@ -64,6 +65,7 @@ func New(
 		crypto:        crypto,
 		chequeEngine:  chequeEngine,
 		walletManager: walletManager,
+		walletSyncer:  walletSyncer,
 		walletDir:     walletDir,
 	}
 
@@ -84,6 +86,7 @@ type Server struct {
 	crypto        *service.Service[cryptorpc.CryptoServiceClient]
 	chequeEngine  *engines.ChequeEngine
 	walletManager *engines.WalletManager
+	walletSyncer  *engines.WalletSyncer
 	walletDir     string
 }
 
@@ -241,73 +244,82 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	if walletType == engines.WalletTypeEnforcer {
+	var address string
+	switch walletType {
+	case engines.WalletTypeEnforcer:
 		// Enforcer path
 		wallet, err := s.wallet.Get(ctx)
 		if err != nil {
 			return nil, err
 		}
-		address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
+		resp, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
 		if err != nil {
 			err = fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
 			zerolog.Ctx(ctx).Error().Err(err).Msg("could not create new address")
 			return nil, err
 		}
+		address = resp.Msg.Address
 
-		// store all receiving addresses in the book! But with an empty label
-		err = addressbook.Create(ctx, s.database, "", address.Msg.Address, addressbook.DirectionReceive)
-		if err != nil {
-			if err.Error() == addressbook.ErrUniqueAddress {
-				// that's fine, already added! Don't do anything
-			} else {
-				err = fmt.Errorf("could not create address book entry: %w", err)
-				zerolog.Ctx(ctx).Error().Err(err).Msg("could not create address book entry")
-				return nil, err
-			}
-		}
-
-		return connect.NewResponse(&pb.GetNewAddressResponse{
-			Address: address.Msg.Address,
-			Index:   0, // Enforcer doesn't expose index in CreateNewAddress response
-		}), nil
-	} else {
+	case engines.WalletTypeBitcoinCore:
 		// Bitcoin Core path
-		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
-		if err != nil {
-			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
-		}
-
-		bitcoind, err := s.bitcoind.Get(ctx)
+		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletManager.GetBitcoinCoreWalletName)
 		if err != nil {
 			return nil, err
 		}
 
-		resp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-			Wallet: coreWalletName,
-		}))
+	case engines.WalletTypeWatchOnly:
+		// Watch-only wallet path
+		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletManager.EnsureWatchOnlyWallet)
 		if err != nil {
-			return nil, fmt.Errorf("bitcoin Core get new address: %w", err)
+			return nil, err
 		}
 
-		address := resp.Msg.Address
-
-		// store all receiving addresses in the book! But with an empty label
-		err = addressbook.Create(ctx, s.database, "", address, addressbook.DirectionReceive)
-		if err != nil {
-			if err.Error() == addressbook.ErrUniqueAddress {
-				// that's fine, already added! Don't do anything
-			} else {
-				err = fmt.Errorf("create address book entry: %w", err)
-				zerolog.Ctx(ctx).Error().Err(err).Msg("create address book entry")
-				return nil, err
-			}
-		}
-
-		return connect.NewResponse(&pb.GetNewAddressResponse{
-			Address: address,
-			Index:   0, // Bitcoin Core doesn't expose index
-		}), nil
+	default:
+		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
 	}
+
+	// Store all receiving addresses in the address book with an empty label
+	err = addressbook.Create(ctx, s.database, "", address, addressbook.DirectionReceive)
+	if err != nil {
+		if err.Error() == addressbook.ErrUniqueAddress {
+			// that's fine, already added! Don't do anything
+		} else {
+			err = fmt.Errorf("create address book entry: %w", err)
+			zerolog.Ctx(ctx).Error().Err(err).Msg("create address book entry")
+			return nil, err
+		}
+	}
+
+	return connect.NewResponse(&pb.GetNewAddressResponse{
+		Address: address,
+		Index:   0, // Bitcoin Core doesn't expose index, Enforcer doesn't expose it either
+	}), nil
+}
+
+// getBitcoinCoreAddress is a helper to get a new address from Bitcoin Core wallets
+func (s *Server) getBitcoinCoreAddress(
+	ctx context.Context,
+	walletId string,
+	getWalletName func(context.Context, string) (string, error),
+) (string, error) {
+	walletName, err := getWalletName(ctx, walletId)
+	if err != nil {
+		return "", fmt.Errorf("get wallet name: %w", err)
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
+		Wallet: walletName,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("bitcoin core get new address: %w", err)
+	}
+
+	return resp.Msg.Address, nil
 }
 
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
@@ -319,7 +331,8 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	if walletType == engines.WalletTypeEnforcer {
+	switch walletType {
+	case engines.WalletTypeEnforcer:
 		// Enforcer path
 		wallet, err := s.wallet.Get(ctx)
 		if err != nil {
@@ -334,11 +347,12 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 			ConfirmedSatoshi: balance.Msg.ConfirmedSats,
 			PendingSatoshi:   balance.Msg.PendingSats,
 		}), nil
-	} else {
+
+	case engines.WalletTypeBitcoinCore:
 		// Bitcoin Core path - TODO: Implement Bitcoin Core balance query
 		_, err = s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
 		if err != nil {
-			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+			return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
 		}
 
 		// TODO: Bitcoin Core balance requires different RPC call
@@ -347,6 +361,23 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 			ConfirmedSatoshi: 0,
 			PendingSatoshi:   0,
 		}), nil
+
+	case engines.WalletTypeWatchOnly:
+		// Watch-only wallet path
+		_, err = s.walletManager.EnsureWatchOnlyWallet(ctx, walletId)
+		if err != nil {
+			return nil, fmt.Errorf("get watch-only wallet: %w", err)
+		}
+
+		// TODO: Get balance from Bitcoin Core using getbalances RPC
+		// Watch-only wallets can track balances but cannot spend
+		return connect.NewResponse(&pb.GetBalanceResponse{
+			ConfirmedSatoshi: 0,
+			PendingSatoshi:   0,
+		}), nil
+
+	default:
+		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
 	}
 }
 
@@ -1087,6 +1118,16 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		log.Error().Err(err).Msg("failed to unlock cheque engine")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to unlock cheque engine: %w", err))
 	}
+
+	// Sync wallets after unlock to ensure all wallets exist in their backends
+	go func() {
+		syncCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := s.walletSyncer.SyncWallets(syncCtx); err != nil {
+			zerolog.Ctx(syncCtx).Warn().Err(err).Msg("wallet sync failed after unlock")
+		}
+	}()
 
 	log.Info().Msg("wallet unlocked successfully for cheque operations")
 	return connect.NewResponse(&emptypb.Empty{}), nil

@@ -92,6 +92,16 @@ func New(
 		s.ChainParams,
 	)
 
+	// Create wallet syncer for ensuring Bitcoin Core wallets exist
+	walletSyncer := engines.NewWalletSyncer(
+		walletManager,
+		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return bitcoindSvc.Get(ctx)
+		},
+		s.WalletDir,
+		s.ChainParams,
+	)
+
 	srv := &Server{
 		mux:          mux,
 		Bitcoind:     bitcoindSvc,
@@ -170,7 +180,7 @@ func New(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletManager, s.WalletDir,
+		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletManager, walletSyncer, s.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		s.Database, walletSvc,

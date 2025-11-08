@@ -760,7 +760,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
         return;
       }
 
-      final finalWalletName = walletName.isEmpty ? 'Primary Wallet' : walletName;
+      final finalWalletName = walletName.isEmpty ? 'Enforcer Wallet' : walletName;
 
       await _walletProvider.generateWallet(name: finalWalletName);
       if (mounted) {
@@ -791,7 +791,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
     }
 
     try {
-      final finalWalletName = walletName.isEmpty ? 'Primary Wallet' : walletName;
+      final finalWalletName = walletName.isEmpty ? 'Enforcer Wallet' : walletName;
 
       await _walletProvider.generateWallet(
         name: finalWalletName,

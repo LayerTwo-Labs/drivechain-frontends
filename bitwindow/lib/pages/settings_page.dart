@@ -523,7 +523,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                   SailButton(
                     label: 'Create New Wallet',
                     onPressed: () async {
-                      await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
+                      await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
                     },
                   ),
                 ],

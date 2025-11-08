@@ -22,6 +22,7 @@ class WalletReaderProvider extends ChangeNotifier {
   Uint8List? _encryptionKey;
   String? unlockedPassword;
   String? activeWalletId;
+  Timer? _reloadDebounceTimer;
 
   WalletData? get activeWallet => wallets.firstWhereOrNull(
     (w) => w.id == activeWalletId,
@@ -31,17 +32,23 @@ class WalletReaderProvider extends ChangeNotifier {
     (w) => w.walletType == BinaryType.enforcer,
   );
 
-  List<WalletMetadata> get availableWallets => wallets
-      .map(
-        (w) => WalletMetadata(
-          id: w.id,
-          name: w.name,
-          gradient: w.gradient,
-          createdAt: w.createdAt,
-          lastUsed: w.id == activeWalletId ? DateTime.now() : w.createdAt,
-        ),
-      )
-      .toList();
+  List<WalletMetadata> get availableWallets {
+    _logger.i('availableWallets getter: Returning ${wallets.length} wallets');
+    for (final w in wallets) {
+      _logger.i('  - ${w.id} "${w.name}"');
+    }
+    return wallets
+        .map(
+          (w) => WalletMetadata(
+            id: w.id,
+            name: w.name,
+            gradient: w.gradient,
+            createdAt: w.createdAt,
+            lastUsed: w.id == activeWalletId ? DateTime.now() : w.createdAt,
+          ),
+        )
+        .toList();
+  }
 
   StreamSubscription<FileSystemEvent>? _walletDirWatcher;
 
@@ -54,6 +61,7 @@ class WalletReaderProvider extends ChangeNotifier {
   @override
   void dispose() {
     _walletDirWatcher?.cancel();
+    _reloadDebounceTimer?.cancel();
     wallets = [];
     _encryptionKey = null;
     super.dispose();
@@ -65,33 +73,40 @@ class WalletReaderProvider extends ChangeNotifier {
       return;
     }
 
-    _walletDirWatcher = walletFile.watch(events: FileSystemEvent.all).listen((event) {
+    _walletDirWatcher = walletFile.watch(events: FileSystemEvent.modify).listen((event) {
       if (event.path.endsWith('wallet.json')) {
-        _logger.i('Wallet file changed: ${event.type} ${event.path}');
-        Future.microtask(() async {
-          try {
-            final previousWallets = List<WalletData>.from(wallets);
-            await _loadWalletIntoCache();
+        _logger.i('Wallet file modified: ${event.path}');
 
-            // Only notify if data actually changed
-            bool hasChanges = false;
-            if (previousWallets.length != wallets.length) {
-              hasChanges = true;
-            } else {
-              for (var i = 0; i < wallets.length; i++) {
-                if (previousWallets[i].toJsonString() != wallets[i].toJsonString()) {
+        // Debounce: cancel previous timer and start new one
+        _reloadDebounceTimer?.cancel();
+        _reloadDebounceTimer = Timer(const Duration(milliseconds: 100), () {
+          Future.microtask(() async {
+            await _lock.synchronized(() async {
+              try {
+                final previousWallets = List<WalletData>.from(wallets);
+                await _loadWalletIntoCache();
+
+                // Only notify if data actually changed
+                bool hasChanges = false;
+                if (previousWallets.length != wallets.length) {
                   hasChanges = true;
-                  break;
+                } else {
+                  for (var i = 0; i < wallets.length; i++) {
+                    if (previousWallets[i].toJsonString() != wallets[i].toJsonString()) {
+                      hasChanges = true;
+                      break;
+                    }
+                  }
                 }
-              }
-            }
 
-            if (hasChanges) {
-              notifyListeners();
-            }
-          } catch (e) {
-            _logger.w('File watcher failed to reload wallet: $e');
-          }
+                if (hasChanges) {
+                  notifyListeners();
+                }
+              } catch (e) {
+                _logger.w('File watcher failed to reload wallet: $e');
+              }
+            });
+          });
         });
       }
     });
@@ -160,9 +175,12 @@ class WalletReaderProvider extends ChangeNotifier {
 
       if (walletsJson != null) {
         for (final walletJson in walletsJson) {
-          wallets.add(WalletData.fromJson(walletJson as Map<String, dynamic>));
+          final wallet = WalletData.fromJson(walletJson as Map<String, dynamic>);
+          wallets.add(wallet);
+          _logger.i('_loadWalletIntoCache: Loaded wallet ${wallet.id} named "${wallet.name}"');
         }
       }
+      _logger.i('_loadWalletIntoCache: Total wallets loaded: ${wallets.length}');
     } catch (e, stack) {
       _logger.e('Failed to load wallet file: $e\n$stack');
     }
@@ -400,14 +418,17 @@ class WalletReaderProvider extends ChangeNotifier {
   Future<void> updateWallet(WalletData wallet) async {
     await _lock.synchronized(() async {
       try {
-        // Update in list
+        // Update in list, or add if not found (used for both creating and updating)
         final index = wallets.indexWhere((w) => w.id == wallet.id);
         if (index != -1) {
+          _logger.i('updateWallet: Updating existing wallet ${wallet.id} "${wallet.name}" at index $index');
           wallets[index] = wallet;
         } else {
+          _logger.i('updateWallet: Adding NEW wallet ${wallet.id} "${wallet.name}" (current count: ${wallets.length})');
           wallets.add(wallet);
         }
 
+        _logger.i('updateWallet: Total wallets after update: ${wallets.length}');
         await _saveWalletsToFile();
         notifyListeners();
       } catch (e, stack) {
@@ -570,7 +591,10 @@ class WalletReaderProvider extends ChangeNotifier {
         createdAt: wallet.createdAt,
         walletType: wallet.walletType,
       );
-      await updateWallet(updatedWallet);
+
+      // Update in place (already have lock, don't call updateWallet)
+      wallets[walletIndex] = updatedWallet;
+      await _saveWalletsToFile();
       _logger.i('updateWalletMetadata: Wallet updated successfully');
 
       notifyListeners();
