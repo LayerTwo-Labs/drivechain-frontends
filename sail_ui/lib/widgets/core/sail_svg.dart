@@ -3,6 +3,26 @@ import 'package:flutter_svg/svg.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 enum SailSVGAsset {
+  // Wallet backgrounds
+  backgroundBlue,
+  backgroundContact,
+  backgroundFog,
+  backgroundForest,
+  backgroundHooked,
+  backgroundIce,
+  backgroundNorthern,
+  backgroundNorthernBlue,
+  backgroundNorthernDarkGreen,
+  backgroundNorthernGreen,
+  backgroundOcean,
+  backgroundOrange,
+  backgroundPurple,
+  backgroundSphere,
+  backgroundSunrise,
+  backgroundSwirlGreen,
+  backgroundSwirlOrange,
+  backgroundSwirlPurple,
+
   tabPeg,
   tabBMM,
   tabWithdrawalExplorer,
@@ -1614,6 +1634,44 @@ class SailSVG {
 extension AsAssetPath on SailSVGAsset {
   String toAssetPath() {
     switch (this) {
+      // Wallet backgrounds
+      case SailSVGAsset.backgroundBlue:
+        return 'assets/svgs/background_blue.svg';
+      case SailSVGAsset.backgroundContact:
+        return 'assets/svgs/background_contact.svg';
+      case SailSVGAsset.backgroundFog:
+        return 'assets/svgs/background_fog.svg';
+      case SailSVGAsset.backgroundForest:
+        return 'assets/svgs/background_forest.svg';
+      case SailSVGAsset.backgroundHooked:
+        return 'assets/svgs/background_hooked.svg';
+      case SailSVGAsset.backgroundIce:
+        return 'assets/svgs/background_ice.svg';
+      case SailSVGAsset.backgroundNorthern:
+        return 'assets/svgs/background_northern.svg';
+      case SailSVGAsset.backgroundNorthernBlue:
+        return 'assets/svgs/background_northern_blue.svg';
+      case SailSVGAsset.backgroundNorthernDarkGreen:
+        return 'assets/svgs/background_northern_dark_green.svg';
+      case SailSVGAsset.backgroundNorthernGreen:
+        return 'assets/svgs/background_northern_green.svg';
+      case SailSVGAsset.backgroundOcean:
+        return 'assets/svgs/background_ocean.svg';
+      case SailSVGAsset.backgroundOrange:
+        return 'assets/svgs/background_orange.svg';
+      case SailSVGAsset.backgroundPurple:
+        return 'assets/svgs/background_purple.svg';
+      case SailSVGAsset.backgroundSphere:
+        return 'assets/svgs/background_sphere.svg';
+      case SailSVGAsset.backgroundSunrise:
+        return 'assets/svgs/background_sunrise.svg';
+      case SailSVGAsset.backgroundSwirlGreen:
+        return 'assets/svgs/background_swirl_green.svg';
+      case SailSVGAsset.backgroundSwirlOrange:
+        return 'assets/svgs/background_swirl_orange.svg';
+      case SailSVGAsset.backgroundSwirlPurple:
+        return 'assets/svgs/background_swirl_purple.svg';
+
       case SailSVGAsset.telegram:
         return 'assets/svgs/telegram.svg';
       case SailSVGAsset.handHelping:

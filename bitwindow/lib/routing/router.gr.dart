@@ -199,6 +199,22 @@ class ConsoleRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [CreateAnotherWalletPage]
+class CreateAnotherWalletRoute extends PageRouteInfo<void> {
+  const CreateAnotherWalletRoute({List<PageRouteInfo>? children})
+    : super(CreateAnotherWalletRoute.name, initialChildren: children);
+
+  static const String name = 'CreateAnotherWalletRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CreateAnotherWalletPage();
+    },
+  );
+}
+
+/// generated route for
 /// [CreateChequePage]
 class CreateChequeRoute extends PageRouteInfo<void> {
   const CreateChequeRoute({List<PageRouteInfo>? children})

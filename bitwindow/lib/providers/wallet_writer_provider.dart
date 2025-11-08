@@ -45,7 +45,11 @@ class WalletWriterProvider extends ChangeNotifier {
   }
 
   Future<bool> hasExistingWallet() async {
-    return await _walletReader.getWalletFile().exists();
+    final fileExists = await _walletReader.getWalletFile().exists();
+    if (!fileExists) return false;
+
+    // File exists, but check if there are actually any wallets in it
+    return _walletReader.wallets.isNotEmpty;
   }
 
   /// Load wallet - reads from WalletReaderProvider cache (thread-safe)
@@ -102,7 +106,7 @@ class WalletWriterProvider extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> generateWallet({
-    String name = 'Primary Wallet',
+    required String name,
     String? customMnemonic,
     String? passphrase,
   }) async {
@@ -146,6 +150,45 @@ class WalletWriterProvider extends ChangeNotifier {
     } catch (e) {
       _logger.e('Failed to restart enforcer after wallet generation: $e');
     }
+  }
+
+  /// Create a new Bitcoin Core wallet (subsequent wallet, not first enforcer wallet)
+  Future<void> createBitcoinCoreWallet({
+    required String name,
+    required WalletGradient gradient,
+  }) async {
+    _logger.i('createBitcoinCoreWallet: Creating Bitcoin Core wallet named "$name"');
+
+    // Generate a new wallet with random mnemonic
+    // This will save the wallet via saveMasterWallet with auto-generated gradient
+    await _genWallet(name: name, customMnemonic: null, passphrase: null);
+
+    // Get the newly created wallet ID (it's now the active wallet)
+    final walletId = _walletReader.activeWalletId;
+    if (walletId != null) {
+      // Update with user-selected gradient
+      await updateWalletMetadata(walletId, name, gradient);
+    }
+
+    _logger.i('createBitcoinCoreWallet: Complete - created wallet $walletId');
+  }
+
+  /// Create a watch-only wallet from xpub or descriptor
+  Future<void> createWatchOnlyWallet({
+    required String name,
+    required String xpubOrDescriptor,
+    required WalletGradient gradient,
+  }) async {
+    _logger.i('createWatchOnlyWallet: Creating watch-only wallet named "$name"');
+
+    // TODO: Implement watch-only wallet creation
+    // This requires:
+    // 1. Validating the xpub/descriptor
+    // 2. Creating a WalletData structure without master/mnemonic
+    // 3. Importing to Bitcoin Core as watch-only
+    // 4. Backend support in wallet_manager.go
+
+    throw UnimplementedError('Watch-only wallet creation not yet fully implemented');
   }
 
   Future<Map<String, dynamic>> _genWallet({
@@ -205,7 +248,7 @@ class WalletWriterProvider extends ChangeNotifier {
     };
 
     if (!doNotSave) {
-      await saveMasterWallet(wallet);
+      await saveMasterWallet(wallet, name: 'Enforcer Wallet');
 
       // Reset HD wallet provider to pick up new wallet data
       try {
@@ -293,7 +336,7 @@ class WalletWriterProvider extends ChangeNotifier {
     };
   }
 
-  Future<void> saveMasterWallet(Map<String, dynamic> walletData, {String name = 'Primary Wallet'}) async {
+  Future<void> saveMasterWallet(Map<String, dynamic> walletData, {required String name}) async {
     _logger.i('saveMasterWallet: Starting (will save to new wallet.json structure)');
 
     walletData['name'] = 'Master';
@@ -357,6 +400,19 @@ class WalletWriterProvider extends ChangeNotifier {
     // Create complete WalletData structure
     // Always generate a new wallet ID for new wallets
     final walletId = _generateWalletId();
+
+    // THE FIRST WALLET MUST ALWAYS BE AN ENFORCER WALLET
+    // Check if there are any existing wallets
+    final existingWallets = _walletReader.wallets;
+    final isFirstWallet = existingWallets.isEmpty;
+
+    // First wallet is enforcer, subsequent wallets are bitcoinCore
+    final walletType = isFirstWallet ? BinaryType.enforcer : BinaryType.bitcoinCore;
+
+    _logger.i(
+      'saveMasterWallet: Creating wallet with type=$walletType (isFirstWallet=$isFirstWallet, existingCount=${existingWallets.length})',
+    );
+
     final completeWallet = WalletData(
       version: 1,
       master: masterWallet,
@@ -366,7 +422,7 @@ class WalletWriterProvider extends ChangeNotifier {
       name: name,
       gradient: WalletGradient.fromWalletId(walletId),
       createdAt: DateTime.now(),
-      walletType: BinaryType.bitcoinCore,
+      walletType: walletType,
     );
 
     // Save to wallets/wallet_*.json

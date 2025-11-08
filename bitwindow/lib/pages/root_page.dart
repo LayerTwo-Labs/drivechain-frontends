@@ -307,7 +307,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Create New Wallet',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(
-                          CreateWalletRoute(initalScreen: WelcomeScreen.initial),
+                          CreateAnotherWalletRoute(),
                         );
                       },
                     ),
@@ -838,7 +838,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 });
                               },
                               onCreateWallet: () async {
-                                await GetIt.I.get<AppRouter>().push(CreateWalletRoute());
+                                await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
                               },
                               onBackgroundChanged: (walletId, newBackgroundSvg) async {
                                 final wallet = _walletReader.availableWallets
