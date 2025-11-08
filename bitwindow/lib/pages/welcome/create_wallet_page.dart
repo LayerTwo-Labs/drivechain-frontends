@@ -383,6 +383,23 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    SailText.primary10('Seed Hex:', bold: true),
+                    SailText.primary10(
+                      _currentWalletData['seed_hex'] ?? '',
+                      color: theme.colors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     SailText.primary10('Master Key:', bold: true),
                     SailText.primary10(
                       _currentWalletData['master_key'] ?? '',

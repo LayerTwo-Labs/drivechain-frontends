@@ -7,8 +7,8 @@ connectrpc.com/grpcreflect v1.3.0/go.mod h1:nfloOtCS8VUQOQ1+GTdFzVg2CJo4ZGaat8JI
 github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8afzqM=
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
-github.com/barebitcoin/btc-buf v0.0.0-20251102073554-d385e04b3df5 h1:xQacfmZearsL6yRH4Q7Pf9UtkK3zFI4VxwB5jdmHyk0=
-github.com/barebitcoin/btc-buf v0.0.0-20251102073554-d385e04b3df5/go.mod h1:72yV5ykwxCSiX2nKM+45F2ndWV68Ph9zpS9LdippMSA=
+github.com/barebitcoin/btc-buf v0.0.0-20251108142900-93610e90aec8 h1:JuEyAZ47ONxdaRMB++MkPn1ebS38wlF2vEWGbGrG9tw=
+github.com/barebitcoin/btc-buf v0.0.0-20251108142900-93610e90aec8/go.mod h1:72yV5ykwxCSiX2nKM+45F2ndWV68Ph9zpS9LdippMSA=
 github.com/brianvoe/gofakeit/v7 v7.9.0 h1:6NsaMy9D5ZKVwIZ1V8L//J2FrOF3546FcXDElWLx994=
 github.com/brianvoe/gofakeit/v7 v7.9.0/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
 github.com/btcsuite/btcd v0.20.1-beta/go.mod h1:wVuoA8VJLEcwgqHBwHmzLRazpKxTv13Px/pDuV7OomQ=

@@ -9,6 +9,23 @@ import "wallet.connect.spec.dart" as specs;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 extension type WalletServiceClient (connect.Transport _transport) {
+  Future<walletv1wallet.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet(
+    walletv1wallet.CreateBitcoinCoreWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.createBitcoinCoreWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletv1wallet.SendTransactionResponse> sendTransaction(
     walletv1wallet.SendTransactionRequest input, {
     connect.Headers? headers,

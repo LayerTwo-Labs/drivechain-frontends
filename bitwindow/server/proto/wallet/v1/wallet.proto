@@ -7,6 +7,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service WalletService {
+  rpc CreateBitcoinCoreWallet(CreateBitcoinCoreWalletRequest) returns (CreateBitcoinCoreWalletResponse);
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
   rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
   // Problem: deriving nilly willy here is potentially problematic. There's no way of listing
@@ -300,4 +301,21 @@ message SweepChequeResponse {
 message DeleteChequeRequest {
   string wallet_id = 1;
   int64 id = 2;
+}
+
+message CreateBitcoinCoreWalletRequest {
+  // BIP32 seed as hex string (64 bytes = 128 hex chars)
+  // This is the output of BIP39 PBKDF2(mnemonic + passphrase)
+  string seed_hex = 1;
+  // Wallet name for display
+  string name = 2;
+}
+
+message CreateBitcoinCoreWalletResponse {
+  // The wallet ID that was created
+  string wallet_id = 1;
+  // The Bitcoin Core wallet name
+  string core_wallet_name = 2;
+  // First receiving address for verification
+  string first_address = 3;
 }

@@ -14,7 +14,6 @@ import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/widgets/cpu_mining_modal.dart';
@@ -765,64 +764,24 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                         );
                                     log.i('Step 1: Complete');
 
-                                    // Step 2: Reset HD wallet provider BEFORE restarting enforcer
-                                    // This ensures enforcer gets the new wallet's addresses when it starts
-                                    log.i('Step 2: Resetting HD wallet provider');
-                                    try {
-                                      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-                                      await hdWalletProvider.reset().timeout(const Duration(seconds: 3));
-                                      await hdWalletProvider.init().timeout(const Duration(seconds: 3));
-                                      log.i('Step 2: Complete - HD wallet provider reset with new wallet');
-                                    } catch (e) {
-                                      log.w('Step 2: Failed to reset HD wallet provider: $e');
-                                    }
-
-                                    // Step 3: Restart enforcer (now it will use the new wallet)
-                                    log.i('Step 3: Restarting enforcer with new wallet');
-                                    try {
-                                      final binaryProvider = GetIt.I.get<BinaryProvider>();
-                                      final enforcerBinary = binaryProvider.binaries
-                                          .where((b) => b.type == BinaryType.enforcer)
-                                          .firstOrNull;
-                                      if (enforcerBinary != null) {
-                                        // Stop enforcer and wait for it
-                                        await binaryProvider.stop(enforcerBinary).timeout(const Duration(seconds: 10));
-                                        log.i('Step 3a: Enforcer stopped, waiting 3 seconds');
-                                        await Future.delayed(const Duration(seconds: 3));
-                                        unawaited(
-                                          binaryProvider
-                                              .start(enforcerBinary)
-                                              .then((_) {
-                                                log.i('Step 3b: Enforcer restarted successfully with new wallet');
-                                              })
-                                              .catchError((e) {
-                                                log.e('Step 3b: Failed to start enforcer: $e');
-                                              }),
-                                        );
-                                      }
-                                      log.i('Step 3: Complete');
-                                    } catch (e) {
-                                      log.e('Step 3: Failed to restart enforcer: $e');
-                                    }
-
                                     // Reset providers in background
                                     unawaited(() async {
                                       try {
-                                        log.i('Step 4: Refreshing balance provider');
+                                        log.i('Step 2: Refreshing balance provider');
                                         final balanceProvider = GetIt.I.get<BalanceProvider>();
                                         await balanceProvider.fetch();
-                                        log.i('Step 4: Complete');
+                                        log.i('Step 2: Complete');
                                       } catch (e) {
-                                        log.w('Step 4: Failed to refresh balance: $e');
+                                        log.w('Step 2: Failed to refresh balance: $e');
                                       }
 
                                       try {
-                                        log.i('Step 5: Refreshing transaction provider');
+                                        log.i('Step 3: Refreshing transaction provider');
                                         final transactionProvider = GetIt.I.get<TransactionProvider>();
                                         await transactionProvider.fetch();
-                                        log.i('Step 5: Complete');
+                                        log.i('Step 3: Complete');
                                       } catch (e) {
-                                        log.w('Step 5: Failed to refresh transactions: $e');
+                                        log.w('Step 3: Failed to refresh transactions: $e');
                                       }
                                     }());
 

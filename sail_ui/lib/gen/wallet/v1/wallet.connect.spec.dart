@@ -11,6 +11,13 @@ abstract final class WalletService {
   /// Fully-qualified name of the WalletService service.
   static const name = 'wallet.v1.WalletService';
 
+  static const createBitcoinCoreWallet = connect.Spec(
+    '/$name/CreateBitcoinCoreWallet',
+    connect.StreamType.unary,
+    walletv1wallet.CreateBitcoinCoreWalletRequest.new,
+    walletv1wallet.CreateBitcoinCoreWalletResponse.new,
+  );
+
   static const sendTransaction = connect.Spec(
     '/$name/SendTransaction',
     connect.StreamType.unary,

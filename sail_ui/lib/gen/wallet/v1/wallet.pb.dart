@@ -3069,10 +3069,161 @@ class DeleteChequeRequest extends $pb.GeneratedMessage {
   void clearId() => clearField(2);
 }
 
+class CreateBitcoinCoreWalletRequest extends $pb.GeneratedMessage {
+  factory CreateBitcoinCoreWalletRequest({
+    $core.String? seedHex,
+    $core.String? name,
+  }) {
+    final $result = create();
+    if (seedHex != null) {
+      $result.seedHex = seedHex;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    return $result;
+  }
+  CreateBitcoinCoreWalletRequest._() : super();
+  factory CreateBitcoinCoreWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateBitcoinCoreWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateBitcoinCoreWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'seedHex')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateBitcoinCoreWalletRequest clone() => CreateBitcoinCoreWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateBitcoinCoreWalletRequest copyWith(void Function(CreateBitcoinCoreWalletRequest) updates) => super.copyWith((message) => updates(message as CreateBitcoinCoreWalletRequest)) as CreateBitcoinCoreWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateBitcoinCoreWalletRequest create() => CreateBitcoinCoreWalletRequest._();
+  CreateBitcoinCoreWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateBitcoinCoreWalletRequest> createRepeated() => $pb.PbList<CreateBitcoinCoreWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateBitcoinCoreWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateBitcoinCoreWalletRequest>(create);
+  static CreateBitcoinCoreWalletRequest? _defaultInstance;
+
+  /// BIP32 seed as hex string (64 bytes = 128 hex chars)
+  /// This is the output of BIP39 PBKDF2(mnemonic + passphrase)
+  @$pb.TagNumber(1)
+  $core.String get seedHex => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set seedHex($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSeedHex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSeedHex() => clearField(1);
+
+  /// Wallet name for display
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+}
+
+class CreateBitcoinCoreWalletResponse extends $pb.GeneratedMessage {
+  factory CreateBitcoinCoreWalletResponse({
+    $core.String? walletId,
+    $core.String? coreWalletName,
+    $core.String? firstAddress,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (coreWalletName != null) {
+      $result.coreWalletName = coreWalletName;
+    }
+    if (firstAddress != null) {
+      $result.firstAddress = firstAddress;
+    }
+    return $result;
+  }
+  CreateBitcoinCoreWalletResponse._() : super();
+  factory CreateBitcoinCoreWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateBitcoinCoreWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateBitcoinCoreWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'coreWalletName')
+    ..aOS(3, _omitFieldNames ? '' : 'firstAddress')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateBitcoinCoreWalletResponse clone() => CreateBitcoinCoreWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateBitcoinCoreWalletResponse copyWith(void Function(CreateBitcoinCoreWalletResponse) updates) => super.copyWith((message) => updates(message as CreateBitcoinCoreWalletResponse)) as CreateBitcoinCoreWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateBitcoinCoreWalletResponse create() => CreateBitcoinCoreWalletResponse._();
+  CreateBitcoinCoreWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateBitcoinCoreWalletResponse> createRepeated() => $pb.PbList<CreateBitcoinCoreWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateBitcoinCoreWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateBitcoinCoreWalletResponse>(create);
+  static CreateBitcoinCoreWalletResponse? _defaultInstance;
+
+  /// The wallet ID that was created
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  /// The Bitcoin Core wallet name
+  @$pb.TagNumber(2)
+  $core.String get coreWalletName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set coreWalletName($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCoreWalletName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCoreWalletName() => clearField(2);
+
+  /// First receiving address for verification
+  @$pb.TagNumber(3)
+  $core.String get firstAddress => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set firstAddress($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFirstAddress() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFirstAddress() => clearField(3);
+}
+
 class WalletServiceApi {
   $pb.RpcClient _client;
   WalletServiceApi(this._client);
 
+  $async.Future<CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ClientContext? ctx, CreateBitcoinCoreWalletRequest request) =>
+    _client.invoke<CreateBitcoinCoreWalletResponse>(ctx, 'WalletService', 'CreateBitcoinCoreWallet', request, CreateBitcoinCoreWalletResponse())
+  ;
   $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
     _client.invoke<SendTransactionResponse>(ctx, 'WalletService', 'SendTransaction', request, SendTransactionResponse())
   ;
