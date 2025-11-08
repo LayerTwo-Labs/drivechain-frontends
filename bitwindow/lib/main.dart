@@ -752,6 +752,7 @@ List<Binary> initalBinaries() {
     Thunder(),
     ZSide(),
     GRPCurl(),
+    CPUMiner(),
   ];
 }
 

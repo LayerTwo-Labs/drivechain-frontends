@@ -20,6 +20,7 @@ enum BinaryType {
   bitnames,
   bitassets,
   grpcurl,
+  cpuMiner,
 }
 
 extension BinaryTypeExtension on BinaryType {
@@ -32,6 +33,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.bitnames => BitNames(),
     BinaryType.bitassets => BitAssets(),
     BinaryType.grpcurl => GRPCurl(),
+    BinaryType.cpuMiner => CPUMiner(),
   };
 }
 
@@ -166,6 +168,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
 
       case BinaryType.grpcurl:
+      case BinaryType.cpuMiner:
         // No specific cleanup for these types yet
         break;
     }
@@ -198,6 +201,7 @@ abstract class Binary {
 
       case BinaryType.bitcoinCore:
       case BinaryType.grpcurl:
+      case BinaryType.cpuMiner:
         // No wallet for these types
         break;
     }
@@ -298,6 +302,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['thunder-orchard']);
 
       case BinaryType.grpcurl:
+      case BinaryType.cpuMiner:
         // No extra files for these types
         break;
     }
@@ -790,6 +795,85 @@ class GRPCurl extends Binary {
   }
 }
 
+class CPUMiner extends Binary {
+  CPUMiner({
+    super.name = 'CPU Miner',
+    super.version = 'latest',
+    super.description = 'Bitcoin CPU miner for forknet',
+    super.repoUrl = 'https://github.com/pooler/cpuminer',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    int? port,
+    super.chainLayer = 0,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs,
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: {
+                 OS.linux: 'minerd',
+                 OS.macos: 'minerd',
+                 OS.windows: 'minerd',
+               },
+               flutterFrontend: {
+                 OS.linux: '',
+                 OS.macos: '',
+                 OS.windows: '',
+               },
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'minerd',
+                 files: {
+                   OS.linux: 'minerd-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'minerd-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'minerd-latest-x86_64-pc-windows-gnu.zip',
+                 },
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+         port: port ?? 0,
+       );
+
+  @override
+  BinaryType get type => BinaryType.cpuMiner;
+
+  @override
+  Color get color => SailColorScheme.orange;
+
+  @override
+  CPUMiner copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+  }) {
+    return CPUMiner(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+    );
+  }
+}
+
 extension BinaryPaths on Binary {
   String confFile() {
     return switch (type) {
@@ -822,7 +906,8 @@ extension BinaryPaths on Binary {
       BinaryType.bitassets ||
       BinaryType.zSide => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
-      BinaryType.grpcurl => '', // No log file for grpcurl
+      BinaryType.grpcurl => '',
+      BinaryType.cpuMiner => '',
     };
   }
 

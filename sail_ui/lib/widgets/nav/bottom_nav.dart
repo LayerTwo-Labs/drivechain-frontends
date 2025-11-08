@@ -181,6 +181,26 @@ class BottomNav extends StatelessWidget {
                     ),
                     navigateToLogs: model.navigateToLogs,
                   ),
+                  if (binaryProvider.isRunning(
+                    binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.cpuMiner),
+                  ))
+                    SailCard(
+                      child: SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailText.primary15('CPU Miner', bold: true),
+                          SailText.secondary12('Mining...'),
+                          Expanded(child: Container()),
+                          SailButton(
+                            variant: ButtonVariant.icon,
+                            onPressed: () async => await binaryProvider.stop(
+                              binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.cpuMiner),
+                            ),
+                            icon: SailSVGAsset.square,
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ],

@@ -257,6 +257,12 @@ class BinaryProvider extends ChangeNotifier {
       );
     }
 
+    // CPUMiner is a utility binary with no RPC connection
+    if (binary is CPUMiner) {
+      await _startProcessWithoutRPC(binary);
+      return;
+    }
+
     var rpcConnection = switch (binary) {
       var b when b is BitcoinCore => mainchainRPC,
       var b when b is Enforcer => enforcerRPC,
@@ -274,6 +280,46 @@ class BinaryProvider extends ChangeNotifier {
 
     await rpcConnection.initBinary((binary, args, cleanup, environment) async {
       return await _startProcess(binary, args, cleanup, environment: environment);
+    });
+  }
+
+  // Start a binary without RPC connection (for utility binaries like CPUMiner)
+  Future<void> _startProcessWithoutRPC(Binary binary) async {
+    final bitcoinConf = GetIt.I.get<BitcoinConfProvider>();
+    final rpcPort = bitcoinConf.rpcPort;
+    String rpcUser = 'user';
+    String rpcPassword = 'password';
+
+    if (bitcoinConf.currentConfig != null) {
+      rpcUser = bitcoinConf.currentConfig!.getSetting('rpcuser') ?? rpcUser;
+      rpcPassword = bitcoinConf.currentConfig!.getSetting('rpcpassword') ?? rpcPassword;
+    }
+
+    final args = [
+      '--algo',
+      'sha256d',
+      '--url',
+      'http://localhost:$rpcPort',
+      '--user',
+      rpcUser,
+      '--pass',
+      rpcPassword,
+    ];
+
+    // Add signet coinbase signature if running on signet
+    final chain = bitcoinConf.currentConfig?.getSetting('chain');
+    if (chain == 'signet') {
+      args.addAll(['--coinbase-sig', '/OP_TRUE/']);
+    }
+
+    args.addAll([
+      '--no-getwork',
+      '--no-stratum',
+      ...binary.extraBootArgs,
+    ]);
+
+    await _processManager.start(binary, args, () async {
+      // No cleanup needed for cpuminer
     });
   }
 
@@ -392,6 +438,9 @@ class BinaryProvider extends ChangeNotifier {
           await bitassetsRPC?.stop();
         case ZSide():
           await zsideRPC?.stop();
+        case CPUMiner():
+          // CPUMiner has no RPC, skip graceful stop
+          break;
       }
     } catch (e) {
       log.e('could not stop ${binary.name}: $e');
@@ -468,6 +517,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesConnected,
       var b when b is BitAssets => bitassetsConnected,
       var b when b is ZSide => zsideConnected,
+      var b when b is CPUMiner => false,
       _ => false,
     };
   }
@@ -483,6 +533,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesInitializing,
       var b when b is BitAssets => bitassetsInitializing,
       var b when b is ZSide => zsideInitializing,
+      var b when b is CPUMiner => false,
       _ => false,
     };
   }
@@ -498,22 +549,14 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesError,
       var b when b is BitAssets => bitassetsError,
       var b when b is ZSide => zsideError,
+      var b when b is CPUMiner => null,
       _ => null,
     };
   }
 
   // Return true if the binary is currently running
   bool isRunning(Binary binary) {
-    return switch (binary) {
-      var b when b is BitcoinCore => _processManager.isRunning(BitcoinCore()),
-      var b when b is Enforcer => _processManager.isRunning(Enforcer()),
-      var b when b is BitWindow => _processManager.isRunning(BitWindow()),
-      var b when b is Thunder => _processManager.isRunning(Thunder()),
-      var b when b is BitNames => _processManager.isRunning(BitNames()),
-      var b when b is BitAssets => _processManager.isRunning(BitAssets()),
-      var b when b is ZSide => _processManager.isRunning(ZSide()),
-      _ => false,
-    };
+    return _processManager.isRunning(binary);
   }
 
   bool isStopping(Binary binary) {
@@ -525,6 +568,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesStopping,
       var b when b is BitAssets => bitassetsStopping,
       var b when b is ZSide => zsideStopping,
+      var b when b is CPUMiner => false,
       _ => false,
     };
   }
@@ -706,7 +750,16 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   void _setupDirectoryWatcher() {
-    final allBinaries = [BitcoinCore(), Enforcer(), BitWindow(), Thunder(), BitNames(), BitAssets(), ZSide()];
+    final allBinaries = [
+      BitcoinCore(),
+      Enforcer(),
+      BitWindow(),
+      Thunder(),
+      BitNames(),
+      BitAssets(),
+      ZSide(),
+      CPUMiner(),
+    ];
 
     // Watch the assets directory for changes
     _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) {

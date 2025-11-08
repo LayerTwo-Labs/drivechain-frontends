@@ -16,7 +16,6 @@ import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
-import 'package:bitwindow/widgets/cpu_mining_modal.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
@@ -486,6 +485,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItemGroup(
                   members: [
                     PlatformMenuItem(
+                      label: 'CPU Miner',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(CpuMiningRoute());
+                      },
+                    ),
+                    PlatformMenuItem(
                       label: 'Broadcast CoinNews',
                       onSelected: () => displayBroadcastNewsDialog(context),
                     ),
@@ -572,10 +577,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Solo Mine',
                       onSelected: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => const CpuMiningModal(),
-                        );
+                        await GetIt.I.get<AppRouter>().push(CpuMiningRoute());
                       },
                     ),
                     PlatformMenuItem(
@@ -646,10 +648,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'CPU Mining',
                       onSelected: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => const CpuMiningModal(),
-                        );
+                        await GetIt.I.get<AppRouter>().push(CpuMiningRoute());
                       },
                     ),
                   ],
