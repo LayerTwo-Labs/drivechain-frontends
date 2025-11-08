@@ -179,12 +179,12 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.primary24(
-                'Create Another Wallet',
+                'Create a Bitcoin Core Wallet',
                 bold: true,
               ),
               const SizedBox(height: 8),
               SailText.secondary13(
-                'Choose the type of wallet you want to create',
+                'This wallet will not be able to interact with sidechains, only for mainchain sending',
               ),
               const SizedBox(height: 48),
               Wrap(
@@ -194,7 +194,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
                   _WalletTypeCard(
                     type: WalletCreationType.bitcoinCore,
                     title: 'Bitcoin Core Wallet',
-                    description: 'Full-featured wallet with complete control',
+                    description: 'Automatically generate a seed',
                     icon: SailSVGAsset.iconWallet,
                     isSelected: _selectedType == WalletCreationType.bitcoinCore,
                     onTap: () {

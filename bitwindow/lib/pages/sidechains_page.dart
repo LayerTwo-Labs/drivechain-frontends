@@ -92,7 +92,9 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    final error = viewModel.error('sidechain');
+    final error = viewModel.isUsingBitcoinCoreWallet
+        ? 'Switch to your enforcer wallet to interact with sidechains'
+        : viewModel.error('sidechain');
 
     return SailCard(
       title: 'Sidechains',
@@ -432,6 +434,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
+
+  bool get isUsingBitcoinCoreWallet {
+    final activeWallet = _walletReader.activeWallet;
+    if (activeWallet == null) return false;
+    return activeWallet.walletType != BinaryType.enforcer;
+  }
 
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;
   List<SidechainOverview?> _sortedSidechains = [];
@@ -921,6 +929,13 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    if (viewModel.isUsingBitcoinCoreWallet) {
+      return SailCard(
+        error: 'Switch to your enforcer wallet to interact with sidechains',
+        child: SizedBox(),
+      );
+    }
+
     return SailCard(
       bottomPadding: false,
       child: SailColumn(
@@ -1025,6 +1040,13 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    if (viewModel.isUsingBitcoinCoreWallet) {
+      return SailCard(
+        error: 'Switch to your enforcer wallet to interact with sidechains',
+        child: SizedBox(),
+      );
+    }
+
     return const SailCard(
       bottomPadding: false,
       child: RecentWithdrawalsTable(),

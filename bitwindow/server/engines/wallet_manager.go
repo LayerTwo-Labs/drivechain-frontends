@@ -14,6 +14,7 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -156,7 +157,7 @@ func (wm *WalletManager) EnsureBitcoinCoreWallet(ctx context.Context, walletId s
 	walletExists := lo.Contains(listResp.Msg.Wallets, walletName)
 	if !walletExists {
 		// Create wallet from seed
-		if err := wm.createBitcoinCoreWalletFromSeed(ctx, walletName, wallet); err != nil {
+		if err := wm.CreateBitcoinCoreWalletFromSeed(ctx, walletName, wallet.Master.SeedHex); err != nil {
 			return "", fmt.Errorf("create Bitcoin Core wallet: %w", err)
 		}
 		zerolog.Ctx(ctx).Info().
@@ -170,14 +171,15 @@ func (wm *WalletManager) EnsureBitcoinCoreWallet(ctx context.Context, walletId s
 	return walletName, nil
 }
 
-// createBitcoinCoreWalletFromSeed creates a Bitcoin Core wallet and imports the seed
-func (wm *WalletManager) createBitcoinCoreWalletFromSeed(
+// CreateBitcoinCoreWalletFromSeed creates a Bitcoin Core wallet and imports the seed
+// This is exported for testing descriptor imports
+func (wm *WalletManager) CreateBitcoinCoreWalletFromSeed(
 	ctx context.Context,
 	walletName string,
-	wallet *WalletInfo,
+	seedHex string,
 ) error {
 	// Decode seed
-	seed, err := hex.DecodeString(wallet.Master.SeedHex)
+	seed, err := hex.DecodeString(seedHex)
 	if err != nil {
 		return fmt.Errorf("decode seed hex: %w", err)
 	}
@@ -214,6 +216,14 @@ func (wm *WalletManager) createBitcoinCoreWalletFromSeed(
 	// Get the xprv string for the account
 	accountXprv := account.String()
 
+	// Compute master fingerprint for key origin info
+	pubKey, err := masterKey.ECPubKey()
+	if err != nil {
+		return fmt.Errorf("get master public key: %w", err)
+	}
+	hash160 := btcutil.Hash160(pubKey.SerializeCompressed())
+	fingerprint := hex.EncodeToString(hash160[:4])
+
 	// Get bitcoind client
 	bitcoindClient, err := wm.bitcoindConnector(ctx)
 	if err != nil {
@@ -232,13 +242,13 @@ func (wm *WalletManager) createBitcoinCoreWalletFromSeed(
 		return fmt.Errorf("create Bitcoin Core wallet: %w", err)
 	}
 
-	// Import descriptors for receiving and change addresses
+	// Import descriptors for receiving and change addresses with key origin info
 	descriptors := []struct {
 		desc     string
 		internal bool
 	}{
-		{fmt.Sprintf("wpkh(%s/0/*)", accountXprv), false}, // Receiving
-		{fmt.Sprintf("wpkh(%s/1/*)", accountXprv), true},  // Change
+		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv), false}, // Receiving
+		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv), true},  // Change
 	}
 
 	var requests []*corepb.ImportDescriptorsRequest_Request
@@ -250,13 +260,17 @@ func (wm *WalletManager) createBitcoinCoreWalletFromSeed(
 			return fmt.Errorf("compute descriptor checksum: %w", err)
 		}
 
+		zerolog.Ctx(ctx).Info().
+			Str("descriptor", descriptorWithChecksum).
+			Bool("internal", d.internal).
+			Msg("Importing descriptor")
+
 		requests = append(requests, &corepb.ImportDescriptorsRequest_Request{
 			Descriptor_: descriptorWithChecksum,
 			Active:      true,
-			Timestamp:   nil, // nil = "now"
+			Timestamp:   nil,
 			Internal:    d.internal,
-			RangeStart:  1,    // Start from 1 (0 gets omitted by protobuf)
-			RangeEnd:    1000, // Generate 1000 keys
+			RangeEnd:    999, // Only set RangeEnd, Core will use [0, RangeEnd]
 		})
 	}
 

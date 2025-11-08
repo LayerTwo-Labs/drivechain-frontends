@@ -90,6 +90,50 @@ type Server struct {
 	walletDir     string
 }
 
+// CreateBitcoinCoreWallet implements walletv1connect.WalletServiceHandler.
+// Test endpoint to verify descriptor import to Bitcoin Core.
+func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
+	seedHex := strings.TrimSpace(c.Msg.SeedHex)
+	if seedHex == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("seed_hex required"))
+	}
+
+	coreWalletName := c.Msg.Name
+	if coreWalletName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name required"))
+	}
+
+	// Directly import to Bitcoin Core - no wallet.json needed
+	if err := s.walletManager.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("create Bitcoin Core wallet failed")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create wallet: %w", err))
+	}
+
+	// Get first address for verification
+	bitcoindClient, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get bitcoind client: %w", err))
+	}
+
+	addrResp, err := bitcoindClient.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
+		Wallet: coreWalletName,
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get new address: %w", err))
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("core_wallet_name", coreWalletName).
+		Str("first_address", addrResp.Msg.Address).
+		Msg("Created Bitcoin Core wallet from seed")
+
+	return connect.NewResponse(&pb.CreateBitcoinCoreWalletResponse{
+		WalletId:       "", // Not used in test
+		CoreWalletName: coreWalletName,
+		FirstAddress:   addrResp.Msg.Address,
+	}), nil
+}
+
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	walletId := c.Msg.WalletId
@@ -244,6 +288,19 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	// Check if we have a recent unused address before generating a new one
+	lastAddress, err := s.getLastUnusedAddress(ctx, walletId, walletType)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to get last unused address, generating new one")
+	}
+	if lastAddress != "" {
+		zerolog.Ctx(ctx).Info().Str("address", lastAddress).Msg("reusing last unused address")
+		return connect.NewResponse(&pb.GetNewAddressResponse{
+			Address: lastAddress,
+			Index:   0,
+		}), nil
+	}
+
 	var address string
 	switch walletType {
 	case engines.WalletTypeEnforcer:
@@ -294,6 +351,59 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		Address: address,
 		Index:   0, // Bitcoin Core doesn't expose index, Enforcer doesn't expose it either
 	}), nil
+}
+
+// getLastUnusedAddress checks if the last generated address has been used
+// Returns empty string if no unused address found or if last address has been used
+func (s *Server) getLastUnusedAddress(ctx context.Context, walletId string, _ engines.WalletType) (string, error) {
+	// Get all addresses from addressbook
+	entries, err := addressbook.List(ctx, s.database)
+	if err != nil {
+		return "", fmt.Errorf("list addressbook: %w", err)
+	}
+
+	// Find the most recent receive address
+	var lastReceiveAddr string
+	var lastReceiveTime time.Time
+	for _, entry := range entries {
+		if entry.Direction == addressbook.DirectionReceive && entry.CreatedAt.After(lastReceiveTime) {
+			lastReceiveAddr = entry.Address
+			lastReceiveTime = entry.CreatedAt
+		}
+	}
+
+	if lastReceiveAddr == "" {
+		return "", nil // No previous address
+	}
+
+	// Check if this address has been used by checking UTXOs
+	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
+	if err != nil {
+		return "", fmt.Errorf("list unspent: %w", err)
+	}
+
+	for _, utxo := range utxos.Msg.Utxos {
+		if utxo.Address == lastReceiveAddr {
+			// Address has been used
+			return "", nil
+		}
+	}
+
+	// Also check transactions to see if address has been used
+	txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletId}))
+	if err != nil {
+		return "", fmt.Errorf("list transactions: %w", err)
+	}
+
+	for _, tx := range txs.Msg.Transactions {
+		if tx.Address == lastReceiveAddr {
+			// Address has been used
+			return "", nil
+		}
+	}
+
+	// Address has not been used, return it
+	return lastReceiveAddr, nil
 }
 
 // getBitcoinCoreAddress is a helper to get a new address from Bitcoin Core wallets
@@ -349,31 +459,55 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		}), nil
 
 	case engines.WalletTypeBitcoinCore:
-		// Bitcoin Core path - TODO: Implement Bitcoin Core balance query
-		_, err = s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
 		if err != nil {
 			return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
 		}
 
-		// TODO: Bitcoin Core balance requires different RPC call
-		// Need to use getbalances or getbalance RPC method
+		bitcoindClient, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("get bitcoind client: %w", err)
+		}
+
+		balancesResp, err := bitcoindClient.GetBalances(ctx, connect.NewRequest(&corepb.GetBalancesRequest{
+			Wallet: coreWalletName,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("get balances from bitcoin core: %w", err)
+		}
+
+		confirmedSats := uint64(balancesResp.Msg.Mine.Trusted * 100_000_000)
+		pendingSats := uint64(balancesResp.Msg.Mine.UntrustedPending * 100_000_000)
+
 		return connect.NewResponse(&pb.GetBalanceResponse{
-			ConfirmedSatoshi: 0,
-			PendingSatoshi:   0,
+			ConfirmedSatoshi: confirmedSats,
+			PendingSatoshi:   pendingSats,
 		}), nil
 
 	case engines.WalletTypeWatchOnly:
-		// Watch-only wallet path
-		_, err = s.walletManager.EnsureWatchOnlyWallet(ctx, walletId)
+		watchWalletName, err := s.walletManager.EnsureWatchOnlyWallet(ctx, walletId)
 		if err != nil {
 			return nil, fmt.Errorf("get watch-only wallet: %w", err)
 		}
 
-		// TODO: Get balance from Bitcoin Core using getbalances RPC
-		// Watch-only wallets can track balances but cannot spend
+		bitcoindClient, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("get bitcoind client: %w", err)
+		}
+
+		balancesResp, err := bitcoindClient.GetBalances(ctx, connect.NewRequest(&corepb.GetBalancesRequest{
+			Wallet: watchWalletName,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("get balances from bitcoin core: %w", err)
+		}
+
+		confirmedSats := uint64(balancesResp.Msg.Watchonly.Trusted * 100_000_000)
+		pendingSats := uint64(balancesResp.Msg.Watchonly.UntrustedPending * 100_000_000)
+
 		return connect.NewResponse(&pb.GetBalanceResponse{
-			ConfirmedSatoshi: 0,
-			PendingSatoshi:   0,
+			ConfirmedSatoshi: confirmedSats,
+			PendingSatoshi:   pendingSats,
 		}), nil
 
 	default:
@@ -465,20 +599,110 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		}
 
 		return connect.NewResponse(res), nil
-	} else {
-		// Bitcoin Core path - TODO: Implement full Bitcoin Core transaction listing
-		_, err = s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
-		if err != nil {
-			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
-		}
-
-		// TODO: Implement Bitcoin Core ListTransactions
-		// This requires properly parsing Bitcoin Core's listtransactions RPC response
-		// and converting it to our WalletTransaction format
-		return connect.NewResponse(&pb.ListTransactionsResponse{
-			Transactions: []*pb.WalletTransaction{},
-		}), nil
 	}
+
+	// Bitcoin Core path
+	coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get bitcoind client: %w", err)
+	}
+
+	txsResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
+		Wallet: coreWalletName,
+		Count:  1000, // Get last 1000 transactions
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
+	}
+
+	// Fetch address book and notes
+	addressBookEntries, err := addressbook.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("list addressbook: %w", err)
+	}
+
+	notes, err := transactions.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("list transactions: %w", err)
+	}
+	noteMap := make(map[string]string)
+	for _, note := range notes {
+		noteMap[note.TxID] = note.Note
+	}
+
+	matchAddressLabel := func(addr string) string {
+		for _, entry := range addressBookEntries {
+			if entry.Address == addr {
+				return entry.Label
+			}
+		}
+		return ""
+	}
+
+	// Group transactions by txid to combine amounts
+	txMap := make(map[string]*pb.WalletTransaction)
+	for _, tx := range txsResp.Msg.Transactions {
+		existing, found := txMap[tx.Txid]
+		if !found {
+			var confirmation *pb.Confirmation
+			if tx.Confirmations > 0 && tx.BlockTime != nil {
+				confirmation = &pb.Confirmation{
+					Timestamp: tx.BlockTime,
+				}
+			}
+
+			// Extract address from Details
+			address := ""
+			if len(tx.Details) > 0 {
+				// Use the first detail's address
+				address = tx.Details[0].Address
+			}
+
+			feeSats := uint64(0)
+			if tx.Fee < 0 {
+				feeSats = uint64(-tx.Fee * 100_000_000)
+			}
+
+			var receivedSats, sentSats uint64
+			if tx.Amount > 0 {
+				receivedSats = uint64(tx.Amount * 100_000_000)
+			} else {
+				sentSats = uint64(-tx.Amount * 100_000_000)
+			}
+
+			txMap[tx.Txid] = &pb.WalletTransaction{
+				Txid:             tx.Txid,
+				FeeSats:          feeSats,
+				ReceivedSatoshi:  receivedSats,
+				SentSatoshi:      sentSats,
+				Address:          address,
+				AddressLabel:     matchAddressLabel(address),
+				Note:             noteMap[tx.Txid],
+				ConfirmationTime: confirmation,
+			}
+		} else {
+			// Update existing entry with additional info
+			if tx.Amount > 0 {
+				existing.ReceivedSatoshi += uint64(tx.Amount * 100_000_000)
+			} else {
+				existing.SentSatoshi += uint64(-tx.Amount * 100_000_000)
+			}
+		}
+	}
+
+	var walletTxs []*pb.WalletTransaction
+	for _, tx := range txMap {
+		walletTxs = append(walletTxs, tx)
+	}
+
+	return connect.NewResponse(&pb.ListTransactionsResponse{
+		Transactions: walletTxs,
+	}), nil
 }
 
 func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addressbook.Entry, chainParams *chaincfg.Params) (string, string, error) {
@@ -912,9 +1136,66 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 	}
 
 	if walletType != engines.WalletTypeEnforcer {
-		// TODO: Implement Bitcoin Core version
+		// Bitcoin Core version
+		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		if err != nil {
+			return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
+		}
+
+		bitcoind, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("get bitcoind client: %w", err)
+		}
+
+		// Get all UTXOs to build the address list
+		utxosResp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+			Wallet: coreWalletName,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
+		}
+
+		// Fetch address book for labels
+		addressBookEntries, err := addressbook.List(ctx, s.database)
+		if err != nil {
+			return nil, fmt.Errorf("list addressbook: %w", err)
+		}
+
+		getLabel := func(addr string) string {
+			for _, entry := range addressBookEntries {
+				if entry.Address == addr {
+					return entry.Label
+				}
+			}
+			return ""
+		}
+
+		// Build map of addresses with their balances
+		addressMap := make(map[string]*pb.ReceiveAddress)
+		for _, utxo := range utxosResp.Msg.Unspent {
+			if utxo.Address == "" {
+				continue
+			}
+
+			if existing, found := addressMap[utxo.Address]; found {
+				existing.CurrentBalanceSat += uint64(utxo.Amount * 100_000_000)
+			} else {
+				addressMap[utxo.Address] = &pb.ReceiveAddress{
+					Address:           utxo.Address,
+					Label:             getLabel(utxo.Address),
+					CurrentBalanceSat: uint64(utxo.Amount * 100_000_000),
+					IsChange:          false, // Bitcoin Core doesn't expose this easily
+				}
+			}
+		}
+
+		var addresses []*pb.ReceiveAddress
+		for _, addr := range addressMap {
+			addresses = append(addresses, addr)
+		}
+
 		return connect.NewResponse(&pb.ListReceiveAddressesResponse{
-			Addresses: []*pb.ReceiveAddress{},
+			Addresses: addresses,
 		}), nil
 	}
 
@@ -1008,14 +1289,50 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	}
 
 	if walletType != engines.WalletTypeEnforcer {
-		// TODO: Implement Bitcoin Core version
+		// Bitcoin Core version
+		// Get UTXOs
+		utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
+		if err != nil {
+			return nil, err
+		}
+		utxoCount := uint64(len(utxos.Msg.Utxos))
+
+		// Count unique addresses among UTXOs
+		addressSet := make(map[string]struct{})
+		for _, utxo := range utxos.Msg.Utxos {
+			addressSet[utxo.Address] = struct{}{}
+		}
+		uniqueAddressCount := uint64(len(addressSet))
+
+		// Get transactions
+		txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletId}))
+		if err != nil {
+			return nil, err
+		}
+		transactionCount := int64(len(txs.Msg.Transactions))
+
+		// Count transactions since the start of the current month
+		now := time.Now()
+		currentYear, currentMonth, _ := now.Date()
+		currentMonthStart := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, now.Location())
+		transactionCountSinceMonth := int64(0)
+		for _, tx := range txs.Msg.Transactions {
+			if tx.ConfirmationTime != nil && tx.ConfirmationTime.Timestamp != nil {
+				t := tx.ConfirmationTime.Timestamp.AsTime()
+				if t.After(currentMonthStart) || t.Equal(currentMonthStart) {
+					transactionCountSinceMonth++
+				}
+			}
+		}
+
+		// Bitcoin Core wallets don't track sidechain deposits separately
 		return connect.NewResponse(&pb.GetStatsResponse{
-			UtxosCurrent:                      0,
-			UtxosUniqueAddresses:              0,
+			UtxosCurrent:                      utxoCount,
+			UtxosUniqueAddresses:              uniqueAddressCount,
 			SidechainDepositVolume:            0,
 			SidechainDepositVolumeLast_30Days: 0,
-			TransactionCountTotal:             0,
-			TransactionCountSinceMonth:        0,
+			TransactionCountTotal:             transactionCount,
+			TransactionCountSinceMonth:        transactionCountSinceMonth,
 		}), nil
 	}
 

@@ -31,6 +31,13 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
   Widget build(BuildContext context, FastWithdrawalTabViewModel viewModel) {
     final theme = SailTheme.of(context);
 
+    if (viewModel.isUsingBitcoinCoreWallet) {
+      return SailCard(
+        error: 'Switch to your enforcer wallet to interact with sidechains',
+        child: SizedBox(),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -257,8 +264,15 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
 class FastWithdrawalTabViewModel extends BaseViewModel {
   final Logger log = GetIt.I.get<Logger>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   String get address => transactionsProvider.address;
+
+  bool get isUsingBitcoinCoreWallet {
+    final activeWallet = _walletReader.activeWallet;
+    if (activeWallet == null) return false;
+    return activeWallet.walletType != BinaryType.enforcer;
+  }
 
   // Fast withdrawal server configuration
   static const List<Map<String, String>> fastWithdrawalServers = [

@@ -65,6 +65,12 @@ Future<void> registerTestDependencies() async {
     );
   }
 
+  if (!GetIt.I.isRegistered<FormatterProvider>()) {
+    GetIt.I.registerLazySingleton<FormatterProvider>(
+      () => FormatterProvider(GetIt.I.get<SettingsProvider>()),
+    );
+  }
+
   if (!GetIt.I.isRegistered<NewsProvider>()) {
     GetIt.I.registerLazySingleton<NewsProvider>(
       () => NewsProvider(),
