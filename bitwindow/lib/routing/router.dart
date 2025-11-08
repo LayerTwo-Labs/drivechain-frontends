@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/bitcoin_conf_editor_page.dart';
 import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
+import 'package:bitwindow/pages/cpu_mining_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
@@ -123,6 +124,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/cheque/:id',
       page: ChequeDetailRoute.page,
+    ),
+    AutoRoute(
+      path: '/cpu-mining',
+      page: CpuMiningRoute.page,
     ),
   ];
 }

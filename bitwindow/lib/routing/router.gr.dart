@@ -199,6 +199,22 @@ class ConsoleRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [CpuMiningPage]
+class CpuMiningRoute extends PageRouteInfo<void> {
+  const CpuMiningRoute({List<PageRouteInfo>? children})
+    : super(CpuMiningRoute.name, initialChildren: children);
+
+  static const String name = 'CpuMiningRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CpuMiningPage();
+    },
+  );
+}
+
+/// generated route for
 /// [CreateAnotherWalletPage]
 class CreateAnotherWalletRoute extends PageRouteInfo<void> {
   const CreateAnotherWalletRoute({List<PageRouteInfo>? children})
