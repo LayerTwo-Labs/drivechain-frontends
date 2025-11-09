@@ -19,6 +19,9 @@ build: download-enforcer build-go
 run *args:
     go run -v . {{args}}
 
+cpumine *args: 
+    go run -v ./cpuminer/cmd {{args}}
+
 clean:
     rm -rf ./bin
     rm -rf bip300301_enforcer.mdb
