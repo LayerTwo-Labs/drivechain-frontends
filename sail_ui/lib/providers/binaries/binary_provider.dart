@@ -295,15 +295,30 @@ class BinaryProvider extends ChangeNotifier {
       rpcPassword = bitcoinConf.currentConfig!.getSetting('rpcpassword') ?? rpcPassword;
     }
 
+    // Get coinbase address from active wallet
+    final walletReader = GetIt.I.get<WalletReaderProvider>();
+    final walletId = walletReader.activeWalletId;
+
+    if (walletId == null) {
+      throw Exception('No active wallet - cannot start miner without a coinbase address');
+    }
+
+    if (bitwindowRPC == null) {
+      throw Exception('BitwindowRPC not available - cannot get coinbase address');
+    }
+
+    final coinbaseAddr = await bitwindowRPC!.wallet.getNewAddress(walletId);
+
     final args = [
       '--algo',
       'sha256d',
       '--url',
       'http://localhost:$rpcPort',
-      '--user',
-      rpcUser,
-      '--pass',
-      rpcPassword,
+      '--userpass',
+      '$rpcUser:$rpcPassword',
+      '--no-getwork',
+      '--coinbase-addr',
+      coinbaseAddr,
     ];
 
     // Add signet coinbase signature if running on signet
@@ -312,11 +327,7 @@ class BinaryProvider extends ChangeNotifier {
       args.addAll(['--coinbase-sig', '/OP_TRUE/']);
     }
 
-    args.addAll([
-      '--no-getwork',
-      '--no-stratum',
-      ...binary.extraBootArgs,
-    ]);
+    args.addAll(binary.extraBootArgs);
 
     await _processManager.start(binary, args, () async {
       // No cleanup needed for cpuminer

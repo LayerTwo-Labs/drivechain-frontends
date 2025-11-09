@@ -15,15 +15,44 @@ class CpuMiningPage extends StatefulWidget {
 class _CpuMiningPageState extends State<CpuMiningPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   CPUMiner get _cpuMinerBinary => _binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.cpuMiner) as CPUMiner;
+  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
+  BitwindowRPC get _bitwindowRPC => GetIt.I.get<BitwindowRPC>();
 
   final _threadCountController = TextEditingController(text: '1');
-  final _coinbaseAddressController = TextEditingController();
+  String _coinbaseAddress = '';
+  bool _isLoadingAddress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCoinbaseAddress();
+  }
 
   @override
   void dispose() {
     _threadCountController.dispose();
-    _coinbaseAddressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCoinbaseAddress() async {
+    setState(() {
+      _isLoadingAddress = true;
+    });
+
+    try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId != null) {
+        final address = await _bitwindowRPC.wallet.getNewAddress(walletId);
+        setState(() {
+          _coinbaseAddress = address;
+          _isLoadingAddress = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingAddress = false;
+      });
+    }
   }
 
   Future<void> _startMiner() async {
@@ -36,16 +65,10 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
         return;
       }
 
-      final coinbaseAddress = _coinbaseAddressController.text.trim();
-
       final args = <String>[
         '-t',
         threads.toString(),
       ];
-
-      if (coinbaseAddress.isNotEmpty) {
-        args.addAll(['--coinbase-addr', coinbaseAddress]);
-      }
 
       _cpuMinerBinary.extraBootArgs = args;
       await _binaryProvider.start(_cpuMinerBinary);
@@ -231,12 +254,16 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
             ],
             textFieldType: TextFieldType.number,
           ),
-          const SizedBox(height: SailStyleValues.padding12),
+          const SizedBox(height: SailStyleValues.padding16),
           SailTextField(
-            controller: _coinbaseAddressController,
-            label: 'Coinbase Address (optional)',
-            hintText: 'Bitcoin address for block rewards',
-            enabled: !isRunning,
+            loading: LoadingDetails(
+              enabled: _isLoadingAddress,
+              description: 'Generating address...',
+            ),
+            label: 'Coinbase Address',
+            controller: TextEditingController(text: _coinbaseAddress),
+            hintText: 'Block rewards will be sent to this address',
+            readOnly: true,
           ),
         ],
       ),
