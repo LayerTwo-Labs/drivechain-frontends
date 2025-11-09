@@ -16,7 +16,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.46.0
-	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sync v0.17.0
 	google.golang.org/protobuf v1.36.10
 )
 
