@@ -800,7 +800,7 @@ class CPUMiner extends Binary {
     super.name = 'CPU Miner',
     super.version = 'latest',
     super.description = 'Bitcoin CPU miner for forknet',
-    super.repoUrl = 'https://github.com/pooler/cpuminer',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/cpuminer',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
