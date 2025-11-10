@@ -1,4 +1,5 @@
 import 'package:auto_route/annotations.dart';
+import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -145,6 +146,15 @@ class SidechainProposalView extends StatelessWidget {
             errorText: model.commitHashError,
             size: TextFieldSize.small,
           ),
+          const SizedBox(height: SailStyleValues.padding25),
+          Center(
+            child: SailButton(
+              label: 'Propose Sidechain',
+              loading: model.isProposing,
+              disabled: !model.isFormValid,
+              onPressed: () async => model.proposeSidechain(context),
+            ),
+          ),
         ],
       ),
     );
@@ -205,6 +215,7 @@ class SidechainProposalViewModel extends BaseViewModel {
   final commitHashController = TextEditingController();
 
   DrivechainAPI get drivechain => GetIt.I.get<DrivechainAPI>();
+  SidechainProvider get sidechainProvider => GetIt.I.get<SidechainProvider>();
 
   String? slotError;
   String? titleError;
@@ -234,6 +245,21 @@ class SidechainProposalViewModel extends BaseViewModel {
     if (intValue == null || intValue < 0 || intValue > 255) {
       return 'Slot must be between 0 and 255';
     }
+
+    // Check if slot is taken by active sidechain
+    for (final sidechain in sidechainProvider.sidechains) {
+      if (sidechain != null && sidechain.info.slot == intValue) {
+        return 'Slot $intValue already taken by ${sidechain.info.title}';
+      }
+    }
+
+    // Check if slot is taken by pending proposal
+    for (final proposal in sidechainProvider.sidechainProposals) {
+      if (proposal.slot == intValue) {
+        return 'Slot $intValue already has a pending proposal';
+      }
+    }
+
     return null;
   }
 
@@ -274,29 +300,44 @@ class SidechainProposalViewModel extends BaseViewModel {
     isProposing = true;
     notifyListeners();
 
-    return showSnackBar(context, 'Propose sidechain not implemented');
-    /*
     try {
-      await Future.delayed(const Duration(seconds: 2)); // Simulating API call
+      final slot = int.parse(slotController.text);
+      final title = titleController.text;
+      final description = descriptionController.text;
+      final version = versionController.text.isEmpty ? 0 : int.parse(versionController.text);
+      final hashid1 = tarballHashController.text;
+      final hashid2 = commitHashController.text;
 
-      // If successful, close the modal
+      final response = await drivechain.proposeSidechain(
+        slot: slot,
+        title: title,
+        description: description,
+        version: version,
+        hashid1: hashid1,
+        hashid2: hashid2,
+      );
+
       if (context.mounted) {
+        showSnackBar(context, response.message);
         Navigator.of(context).pop();
       }
-    } catch (e) {
-      // Handle error
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to propose sidechain: $e')),
-        );
-      }
 
+      // Clear form
+      slotController.clear();
+      titleController.clear();
+      descriptionController.clear();
+      versionController.clear();
+      tarballHashController.clear();
+      commitHashController.clear();
+    } catch (e) {
+      if (context.mounted) {
+        showSnackBar(context, 'Failed to propose sidechain: $e');
+      }
       setErrorForObject('proposal', e);
     } finally {
       isProposing = false;
       notifyListeners();
     }
-    */
   }
 
   @override

@@ -3,8 +3,10 @@ package api_drivechain
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"connectrpc.com/connect"
+	commonpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
@@ -21,15 +23,18 @@ var _ rpc.DrivechainServiceHandler = new(Server)
 // New creates a new Server
 func New(
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
+	wallet *service.Service[validatorrpc.WalletServiceClient],
 ) *Server {
 	s := &Server{
 		validator: validator,
+		wallet:    wallet,
 	}
 	return s
 }
 
 type Server struct {
 	validator *service.Service[validatorrpc.ValidatorServiceClient]
+	wallet    *service.Service[validatorrpc.WalletServiceClient]
 }
 
 // ListSidechainProposals implements drivechainv1connect.DrivechainServiceHandler.
@@ -117,5 +122,92 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 
 	return connect.NewResponse(&pb.ListSidechainsResponse{
 		Sidechains: sidechainList,
+	}), nil
+}
+
+// ProposeSidechain implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) ProposeSidechain(
+	ctx context.Context,
+	c *connect.Request[pb.ProposeSidechainRequest],
+) (*connect.Response[pb.ProposeSidechainResponse], error) {
+	// Validation
+	if c.Msg.Slot > 255 {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("slot must be 0-255"))
+	}
+	if c.Msg.Title == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("title required"))
+	}
+	if c.Msg.Hashid1 != "" && len(c.Msg.Hashid1) != 64 {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("hashid1 must be 64 hex chars (256 bits)"))
+	}
+	if c.Msg.Hashid2 != "" && len(c.Msg.Hashid2) != 40 {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("hashid2 must be 40 hex chars (160 bits)"))
+	}
+
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable,
+			fmt.Errorf("wallet unavailable: %w", err))
+	}
+
+	// Build SidechainDeclaration V0
+	declarationV0 := &validatorpb.SidechainDeclaration_V0{
+		Title:       wrapperspb.String(c.Msg.Title),
+		Description: wrapperspb.String(c.Msg.Description),
+	}
+
+	// Add hash IDs if provided
+	if c.Msg.Hashid1 != "" {
+		declarationV0.HashId_1 = &commonpb.ConsensusHex{
+			Hex: wrapperspb.String(c.Msg.Hashid1),
+		}
+	}
+	if c.Msg.Hashid2 != "" {
+		declarationV0.HashId_2 = &commonpb.Hex{
+			Hex: wrapperspb.String(c.Msg.Hashid2),
+		}
+	}
+
+	declaration := &validatorpb.SidechainDeclaration{
+		SidechainDeclaration: &validatorpb.SidechainDeclaration_V0_{
+			V0: declarationV0,
+		},
+	}
+
+	// Call wallet's CreateSidechainProposal - this returns a stream
+	proposalReq := &validatorpb.CreateSidechainProposalRequest{
+		SidechainId: wrapperspb.UInt32(c.Msg.Slot),
+		Declaration: declaration,
+	}
+
+	stream, err := wallet.CreateSidechainProposal(ctx, connect.NewRequest(proposalReq))
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("propose sidechain failed")
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("propose sidechain: %w", err))
+	}
+
+	// Read the first response from the stream to confirm it was accepted
+	// The stream will continue sending updates as the proposal gets mined
+	if stream.Receive() {
+		response := stream.Msg()
+		zerolog.Ctx(ctx).Info().
+			Uint32("slot", c.Msg.Slot).
+			Interface("response", response).
+			Msg("sidechain proposal created")
+	}
+
+	// Close the stream since we only need confirmation
+	if err := stream.Close(); err != nil && err != io.EOF {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("error closing proposal stream")
+	}
+
+	return connect.NewResponse(&pb.ProposeSidechainResponse{
+		Success: true,
+		Message: fmt.Sprintf("Sidechain %d proposal created. Will be included in the next mined block.", c.Msg.Slot),
 	}), nil
 }

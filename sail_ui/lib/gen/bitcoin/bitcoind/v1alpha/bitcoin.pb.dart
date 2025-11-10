@@ -3597,6 +3597,7 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
     $0.Timestamp? timestamp,
     $core.bool? internal,
     $core.String? label,
+    $core.int? nextIndex,
   }) {
     final $result = create();
     if (descriptor != null) {
@@ -3620,6 +3621,9 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
     if (label != null) {
       $result.label = label;
     }
+    if (nextIndex != null) {
+      $result.nextIndex = nextIndex;
+    }
     return $result;
   }
   ImportDescriptorsRequest_Request._() : super();
@@ -3634,6 +3638,7 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
     ..aOB(6, _omitFieldNames ? '' : 'internal')
     ..aOS(7, _omitFieldNames ? '' : 'label')
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'nextIndex', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -3727,6 +3732,16 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
   $core.bool hasLabel() => $_has(6);
   @$pb.TagNumber(7)
   void clearLabel() => clearField(7);
+
+  /// If a ranged descriptor is set to active, this specifies the next index to generate addresses from
+  @$pb.TagNumber(8)
+  $core.int get nextIndex => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set nextIndex($core.int v) { $_setUnsignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasNextIndex() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearNextIndex() => clearField(8);
 }
 
 class ImportDescriptorsRequest extends $pb.GeneratedMessage {

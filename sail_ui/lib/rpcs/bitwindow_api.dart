@@ -190,6 +190,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       'bitwindowd.v1.BitwindowdService/UpdateAddressBookEntry',
       'drivechain.v1.DrivechainService/ListSidechainProposals',
       'drivechain.v1.DrivechainService/ListSidechains',
+      'drivechain.v1.DrivechainService/ProposeSidechain',
       'misc.v1.MiscService/BroadcastNews',
       'misc.v1.MiscService/CreateTopic',
       'misc.v1.MiscService/ListCoinNews',
@@ -1155,6 +1156,14 @@ class _BitcoindAPILive implements BitcoindAPI {
 abstract class DrivechainAPI {
   Future<List<ListSidechainsResponse_Sidechain>> listSidechains();
   Future<List<SidechainProposal>> listSidechainProposals();
+  Future<ProposeSidechainResponse> proposeSidechain({
+    required int slot,
+    required String title,
+    String description = '',
+    int version = 0,
+    String hashid1 = '',
+    String hashid2 = '',
+  });
 }
 
 class _DrivechainAPILive implements DrivechainAPI {
@@ -1181,6 +1190,33 @@ class _DrivechainAPILive implements DrivechainAPI {
       return response.proposals;
     } catch (e) {
       final error = 'could not list sidechain proposals: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+
+  @override
+  Future<ProposeSidechainResponse> proposeSidechain({
+    required int slot,
+    required String title,
+    String description = '',
+    int version = 0,
+    String hashid1 = '',
+    String hashid2 = '',
+  }) async {
+    try {
+      final request = ProposeSidechainRequest(
+        slot: slot,
+        title: title,
+        description: description,
+        version: version,
+        hashid1: hashid1,
+        hashid2: hashid2,
+      );
+      final response = await _client.proposeSidechain(request);
+      log.i('Successfully proposed sidechain $slot');
+      return response;
+    } catch (e) {
+      final error = 'could not propose sidechain: ${extractConnectException(e)}';
       throw DrivechainException(error);
     }
   }

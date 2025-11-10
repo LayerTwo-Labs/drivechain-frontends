@@ -14,6 +14,7 @@ import (
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -184,10 +185,11 @@ func (ws *WalletSyncer) createBitcoinCoreWallet(
 		return fmt.Errorf("derive purpose: %w", err)
 	}
 
-	// Coin type: 0' for mainnet, 1' for testnet/signet
-	coinType := uint32(0)
-	if ws.chainParams.Name != "mainnet" {
-		coinType = 1
+	// coin type 1' for testnet/signet
+	coinType := uint32(1)
+	if ws.chainParams.Net == wire.MainNet {
+		// Coin type: 0' for mainnet
+		coinType = 0
 	}
 	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + coinType)
 	if err != nil {

@@ -23,4 +23,11 @@ abstract final class DrivechainService {
     drivechainv1drivechain.ListSidechainProposalsRequest.new,
     drivechainv1drivechain.ListSidechainProposalsResponse.new,
   );
+
+  static const proposeSidechain = connect.Spec(
+    '/$name/ProposeSidechain',
+    connect.StreamType.unary,
+    drivechainv1drivechain.ProposeSidechainRequest.new,
+    drivechainv1drivechain.ProposeSidechainResponse.new,
+  );
 }

@@ -505,6 +505,204 @@ class ListSidechainProposalsResponse extends $pb.GeneratedMessage {
   $core.List<SidechainProposal> get proposals => $_getList(0);
 }
 
+class ProposeSidechainRequest extends $pb.GeneratedMessage {
+  factory ProposeSidechainRequest({
+    $core.int? slot,
+    $core.String? title,
+    $core.String? description,
+    $core.int? version,
+    $core.String? hashid1,
+    $core.String? hashid2,
+  }) {
+    final $result = create();
+    if (slot != null) {
+      $result.slot = slot;
+    }
+    if (title != null) {
+      $result.title = title;
+    }
+    if (description != null) {
+      $result.description = description;
+    }
+    if (version != null) {
+      $result.version = version;
+    }
+    if (hashid1 != null) {
+      $result.hashid1 = hashid1;
+    }
+    if (hashid2 != null) {
+      $result.hashid2 = hashid2;
+    }
+    return $result;
+  }
+  ProposeSidechainRequest._() : super();
+  factory ProposeSidechainRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ProposeSidechainRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ProposeSidechainRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.OU3)
+    ..aOS(2, _omitFieldNames ? '' : 'title')
+    ..aOS(3, _omitFieldNames ? '' : 'description')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'version', $pb.PbFieldType.OU3)
+    ..aOS(5, _omitFieldNames ? '' : 'hashid1')
+    ..aOS(6, _omitFieldNames ? '' : 'hashid2')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ProposeSidechainRequest clone() => ProposeSidechainRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ProposeSidechainRequest copyWith(void Function(ProposeSidechainRequest) updates) => super.copyWith((message) => updates(message as ProposeSidechainRequest)) as ProposeSidechainRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProposeSidechainRequest create() => ProposeSidechainRequest._();
+  ProposeSidechainRequest createEmptyInstance() => create();
+  static $pb.PbList<ProposeSidechainRequest> createRepeated() => $pb.PbList<ProposeSidechainRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ProposeSidechainRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ProposeSidechainRequest>(create);
+  static ProposeSidechainRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get slot => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set slot($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSlot() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSlot() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get title => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set title($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTitle() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTitle() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get description => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set description($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDescription() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDescription() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get version => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set version($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasVersion() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVersion() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get hashid1 => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set hashid1($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasHashid1() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearHashid1() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get hashid2 => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set hashid2($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasHashid2() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearHashid2() => clearField(6);
+}
+
+class ProposeSidechainResponse extends $pb.GeneratedMessage {
+  factory ProposeSidechainResponse({
+    $core.bool? success,
+    $core.String? proposalHash,
+    $core.String? message,
+  }) {
+    final $result = create();
+    if (success != null) {
+      $result.success = success;
+    }
+    if (proposalHash != null) {
+      $result.proposalHash = proposalHash;
+    }
+    if (message != null) {
+      $result.message = message;
+    }
+    return $result;
+  }
+  ProposeSidechainResponse._() : super();
+  factory ProposeSidechainResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ProposeSidechainResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ProposeSidechainResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'success')
+    ..aOS(2, _omitFieldNames ? '' : 'proposalHash')
+    ..aOS(3, _omitFieldNames ? '' : 'message')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ProposeSidechainResponse clone() => ProposeSidechainResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ProposeSidechainResponse copyWith(void Function(ProposeSidechainResponse) updates) => super.copyWith((message) => updates(message as ProposeSidechainResponse)) as ProposeSidechainResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProposeSidechainResponse create() => ProposeSidechainResponse._();
+  ProposeSidechainResponse createEmptyInstance() => create();
+  static $pb.PbList<ProposeSidechainResponse> createRepeated() => $pb.PbList<ProposeSidechainResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ProposeSidechainResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ProposeSidechainResponse>(create);
+  static ProposeSidechainResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get success => $_getBF(0);
+  @$pb.TagNumber(1)
+  set success($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSuccess() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSuccess() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get proposalHash => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set proposalHash($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasProposalHash() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProposalHash() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get message => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set message($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMessage() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMessage() => clearField(3);
+}
+
 class DrivechainServiceApi {
   $pb.RpcClient _client;
   DrivechainServiceApi(this._client);
@@ -514,6 +712,9 @@ class DrivechainServiceApi {
   ;
   $async.Future<ListSidechainProposalsResponse> listSidechainProposals($pb.ClientContext? ctx, ListSidechainProposalsRequest request) =>
     _client.invoke<ListSidechainProposalsResponse>(ctx, 'DrivechainService', 'ListSidechainProposals', request, ListSidechainProposalsResponse())
+  ;
+  $async.Future<ProposeSidechainResponse> proposeSidechain($pb.ClientContext? ctx, ProposeSidechainRequest request) =>
+    _client.invoke<ProposeSidechainResponse>(ctx, 'DrivechainService', 'ProposeSidechain', request, ProposeSidechainResponse())
   ;
 }
 
