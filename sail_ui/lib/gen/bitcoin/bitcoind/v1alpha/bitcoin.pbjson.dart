@@ -805,6 +805,7 @@ const ImportDescriptorsRequest_Request$json = {
     {'1': 'active', '3': 2, '4': 1, '5': 8, '10': 'active'},
     {'1': 'range_start', '3': 3, '4': 1, '5': 13, '10': 'rangeStart'},
     {'1': 'range_end', '3': 4, '4': 1, '5': 13, '10': 'rangeEnd'},
+    {'1': 'next_index', '3': 8, '4': 1, '5': 13, '10': 'nextIndex'},
     {'1': 'timestamp', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'timestamp'},
     {'1': 'internal', '3': 6, '4': 1, '5': 8, '10': 'internal'},
     {'1': 'label', '3': 7, '4': 1, '5': 9, '10': 'label'},
@@ -815,11 +816,12 @@ const ImportDescriptorsRequest_Request$json = {
 final $typed_data.Uint8List importDescriptorsRequestDescriptor = $convert.base64Decode(
     'ChhJbXBvcnREZXNjcmlwdG9yc1JlcXVlc3QSFgoGd2FsbGV0GAEgASgJUgZ3YWxsZXQSVgoIcm'
     'VxdWVzdHMYAiADKAsyOi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuSW1wb3J0RGVzY3JpcHRv'
-    'cnNSZXF1ZXN0LlJlcXVlc3RSCHJlcXVlc3RzGusBCgdSZXF1ZXN0Eh4KCmRlc2NyaXB0b3IYAS'
+    'cnNSZXF1ZXN0LlJlcXVlc3RSCHJlcXVlc3RzGooCCgdSZXF1ZXN0Eh4KCmRlc2NyaXB0b3IYAS'
     'ABKAlSCmRlc2NyaXB0b3ISFgoGYWN0aXZlGAIgASgIUgZhY3RpdmUSHwoLcmFuZ2Vfc3RhcnQY'
-    'AyABKA1SCnJhbmdlU3RhcnQSGwoJcmFuZ2VfZW5kGAQgASgNUghyYW5nZUVuZBI4Cgl0aW1lc3'
-    'RhbXAYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl0aW1lc3RhbXASGgoIaW50'
-    'ZXJuYWwYBiABKAhSCGludGVybmFsEhQKBWxhYmVsGAcgASgJUgVsYWJlbA==');
+    'AyABKA1SCnJhbmdlU3RhcnQSGwoJcmFuZ2VfZW5kGAQgASgNUghyYW5nZUVuZBIdCgpuZXh0X2'
+    'luZGV4GAggASgNUgluZXh0SW5kZXgSOAoJdGltZXN0YW1wGAUgASgLMhouZ29vZ2xlLnByb3Rv'
+    'YnVmLlRpbWVzdGFtcFIJdGltZXN0YW1wEhoKCGludGVybmFsGAYgASgIUghpbnRlcm5hbBIUCg'
+    'VsYWJlbBgHIAEoCVIFbGFiZWw=');
 
 @$core.Deprecated('Use importDescriptorsResponseDescriptor instead')
 const ImportDescriptorsResponse$json = {

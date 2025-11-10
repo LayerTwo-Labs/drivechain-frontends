@@ -41,4 +41,21 @@ extension type DrivechainServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  Future<drivechainv1drivechain.ProposeSidechainResponse> proposeSidechain(
+    drivechainv1drivechain.ProposeSidechainRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.DrivechainService.proposeSidechain,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

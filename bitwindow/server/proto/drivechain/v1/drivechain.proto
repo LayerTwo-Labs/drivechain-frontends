@@ -5,6 +5,7 @@ package drivechain.v1;
 service DrivechainService {
   rpc ListSidechains(ListSidechainsRequest) returns (ListSidechainsResponse);
   rpc ListSidechainProposals(ListSidechainProposalsRequest) returns (ListSidechainProposalsResponse);
+  rpc ProposeSidechain(ProposeSidechainRequest) returns (ProposeSidechainResponse);
 }
 
 message ListSidechainsRequest {}
@@ -43,4 +44,19 @@ message SidechainProposal {
 
 message ListSidechainProposalsResponse {
   repeated SidechainProposal proposals = 1;
+}
+
+message ProposeSidechainRequest {
+  uint32 slot = 1;
+  string title = 2;
+  string description = 3;
+  uint32 version = 4;
+  string hashid1 = 5;
+  string hashid2 = 6;
+}
+
+message ProposeSidechainResponse {
+  bool success = 1;
+  string proposal_hash = 2;
+  string message = 3;
 }

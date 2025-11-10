@@ -106,11 +106,48 @@ final $typed_data.Uint8List listSidechainProposalsResponseDescriptor = $convert.
     'Ch5MaXN0U2lkZWNoYWluUHJvcG9zYWxzUmVzcG9uc2USPgoJcHJvcG9zYWxzGAEgAygLMiAuZH'
     'JpdmVjaGFpbi52MS5TaWRlY2hhaW5Qcm9wb3NhbFIJcHJvcG9zYWxz');
 
+@$core.Deprecated('Use proposeSidechainRequestDescriptor instead')
+const ProposeSidechainRequest$json = {
+  '1': 'ProposeSidechainRequest',
+  '2': [
+    {'1': 'slot', '3': 1, '4': 1, '5': 13, '10': 'slot'},
+    {'1': 'title', '3': 2, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'description', '3': 3, '4': 1, '5': 9, '10': 'description'},
+    {'1': 'version', '3': 4, '4': 1, '5': 13, '10': 'version'},
+    {'1': 'hashid1', '3': 5, '4': 1, '5': 9, '10': 'hashid1'},
+    {'1': 'hashid2', '3': 6, '4': 1, '5': 9, '10': 'hashid2'},
+  ],
+};
+
+/// Descriptor for `ProposeSidechainRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List proposeSidechainRequestDescriptor = $convert.base64Decode(
+    'ChdQcm9wb3NlU2lkZWNoYWluUmVxdWVzdBISCgRzbG90GAEgASgNUgRzbG90EhQKBXRpdGxlGA'
+    'IgASgJUgV0aXRsZRIgCgtkZXNjcmlwdGlvbhgDIAEoCVILZGVzY3JpcHRpb24SGAoHdmVyc2lv'
+    'bhgEIAEoDVIHdmVyc2lvbhIYCgdoYXNoaWQxGAUgASgJUgdoYXNoaWQxEhgKB2hhc2hpZDIYBi'
+    'ABKAlSB2hhc2hpZDI=');
+
+@$core.Deprecated('Use proposeSidechainResponseDescriptor instead')
+const ProposeSidechainResponse$json = {
+  '1': 'ProposeSidechainResponse',
+  '2': [
+    {'1': 'success', '3': 1, '4': 1, '5': 8, '10': 'success'},
+    {'1': 'proposal_hash', '3': 2, '4': 1, '5': 9, '10': 'proposalHash'},
+    {'1': 'message', '3': 3, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `ProposeSidechainResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List proposeSidechainResponseDescriptor = $convert.base64Decode(
+    'ChhQcm9wb3NlU2lkZWNoYWluUmVzcG9uc2USGAoHc3VjY2VzcxgBIAEoCFIHc3VjY2VzcxIjCg'
+    '1wcm9wb3NhbF9oYXNoGAIgASgJUgxwcm9wb3NhbEhhc2gSGAoHbWVzc2FnZRgDIAEoCVIHbWVz'
+    'c2FnZQ==');
+
 const $core.Map<$core.String, $core.dynamic> DrivechainServiceBase$json = {
   '1': 'DrivechainService',
   '2': [
     {'1': 'ListSidechains', '2': '.drivechain.v1.ListSidechainsRequest', '3': '.drivechain.v1.ListSidechainsResponse'},
     {'1': 'ListSidechainProposals', '2': '.drivechain.v1.ListSidechainProposalsRequest', '3': '.drivechain.v1.ListSidechainProposalsResponse'},
+    {'1': 'ProposeSidechain', '2': '.drivechain.v1.ProposeSidechainRequest', '3': '.drivechain.v1.ProposeSidechainResponse'},
   ],
 };
 
@@ -122,6 +159,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Drivechain
   '.drivechain.v1.ListSidechainProposalsRequest': ListSidechainProposalsRequest$json,
   '.drivechain.v1.ListSidechainProposalsResponse': ListSidechainProposalsResponse$json,
   '.drivechain.v1.SidechainProposal': SidechainProposal$json,
+  '.drivechain.v1.ProposeSidechainRequest': ProposeSidechainRequest$json,
+  '.drivechain.v1.ProposeSidechainResponse': ProposeSidechainResponse$json,
 };
 
 /// Descriptor for `DrivechainService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -130,5 +169,7 @@ final $typed_data.Uint8List drivechainServiceDescriptor = $convert.base64Decode(
     'lzdFNpZGVjaGFpbnNSZXF1ZXN0GiUuZHJpdmVjaGFpbi52MS5MaXN0U2lkZWNoYWluc1Jlc3Bv'
     'bnNlEnUKFkxpc3RTaWRlY2hhaW5Qcm9wb3NhbHMSLC5kcml2ZWNoYWluLnYxLkxpc3RTaWRlY2'
     'hhaW5Qcm9wb3NhbHNSZXF1ZXN0Gi0uZHJpdmVjaGFpbi52MS5MaXN0U2lkZWNoYWluUHJvcG9z'
-    'YWxzUmVzcG9uc2U=');
+    'YWxzUmVzcG9uc2USYwoQUHJvcG9zZVNpZGVjaGFpbhImLmRyaXZlY2hhaW4udjEuUHJvcG9zZV'
+    'NpZGVjaGFpblJlcXVlc3QaJy5kcml2ZWNoYWluLnYxLlByb3Bvc2VTaWRlY2hhaW5SZXNwb25z'
+    'ZQ==');
 
