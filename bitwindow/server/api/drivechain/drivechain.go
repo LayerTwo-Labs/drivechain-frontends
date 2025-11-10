@@ -211,3 +211,71 @@ func (s *Server) ProposeSidechain(
 		Message: fmt.Sprintf("Sidechain %d proposal created. Will be included in the next mined block.", c.Msg.Slot),
 	}), nil
 }
+
+// ListWithdrawals implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) ListWithdrawals(
+	ctx context.Context,
+	c *connect.Request[pb.ListWithdrawalsRequest],
+) (*connect.Response[pb.ListWithdrawalsResponse], error) {
+	validator, err := s.validator.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable,
+			fmt.Errorf("validator unavailable: %w", err))
+	}
+
+	pegData, err := validator.GetTwoWayPegData(ctx, connect.NewRequest(&validatorpb.GetTwoWayPegDataRequest{
+		SidechainId: wrapperspb.UInt32(c.Msg.SidechainId),
+	}))
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get two-way peg data")
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("get two-way peg data: %w", err))
+	}
+
+	bundles := make([]*pb.WithdrawalBundle, 0)
+
+	// Process blocks and extract withdrawal bundle events
+	for _, block := range pegData.Msg.Blocks {
+		if block.BlockInfo == nil || block.BlockHeaderInfo == nil {
+			continue
+		}
+
+		blockHeight := block.BlockHeaderInfo.Height
+
+		// Iterate through events and find withdrawal bundles
+		for _, event := range block.BlockInfo.Events {
+			withdrawalEvent := event.GetWithdrawalBundle()
+			if withdrawalEvent == nil {
+				continue
+			}
+
+			bundle := &pb.WithdrawalBundle{
+				M6Id:        withdrawalEvent.M6Id.Hex.Value,
+				SidechainId: c.Msg.SidechainId,
+				BlockHeight: blockHeight,
+			}
+
+			// Determine status based on event type
+			switch e := withdrawalEvent.Event.Event.(type) {
+			case *validatorpb.WithdrawalBundleEvent_Event_Succeeded_:
+				bundle.Status = "succeeded"
+				if e.Succeeded.SequenceNumber != nil {
+					bundle.SequenceNumber = e.Succeeded.SequenceNumber.Value
+				}
+				if e.Succeeded.Transaction != nil {
+					bundle.TransactionHex = e.Succeeded.Transaction.Hex.Value
+				}
+			case *validatorpb.WithdrawalBundleEvent_Event_Failed_:
+				bundle.Status = "failed"
+			default:
+				bundle.Status = "pending"
+			}
+
+			bundles = append(bundles, bundle)
+		}
+	}
+
+	return connect.NewResponse(&pb.ListWithdrawalsResponse{
+		Bundles: bundles,
+	}), nil
+}

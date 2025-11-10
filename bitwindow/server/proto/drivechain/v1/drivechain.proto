@@ -6,6 +6,7 @@ service DrivechainService {
   rpc ListSidechains(ListSidechainsRequest) returns (ListSidechainsResponse);
   rpc ListSidechainProposals(ListSidechainProposalsRequest) returns (ListSidechainProposalsResponse);
   rpc ProposeSidechain(ProposeSidechainRequest) returns (ProposeSidechainResponse);
+  rpc ListWithdrawals(ListWithdrawalsRequest) returns (ListWithdrawalsResponse);
 }
 
 message ListSidechainsRequest {}
@@ -59,4 +60,23 @@ message ProposeSidechainResponse {
   bool success = 1;
   string proposal_hash = 2;
   string message = 3;
+}
+
+message ListWithdrawalsRequest {
+  uint32 sidechain_id = 1;
+  uint32 start_block_height = 2;
+  uint32 end_block_height = 3;
+}
+
+message WithdrawalBundle {
+  string m6id = 1;
+  uint32 sidechain_id = 2;
+  string status = 3; // "succeeded", "failed", "pending"
+  uint64 sequence_number = 4;
+  string transaction_hex = 5;
+  uint32 block_height = 6;
+}
+
+message ListWithdrawalsResponse {
+  repeated WithdrawalBundle bundles = 1;
 }

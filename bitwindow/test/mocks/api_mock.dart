@@ -390,6 +390,27 @@ class MockDrivechainAPI implements DrivechainAPI {
   Future<List<SidechainProposal>> listSidechainProposals() async {
     return [];
   }
+
+  @override
+  Future<ProposeSidechainResponse> proposeSidechain({
+    required int slot,
+    required String title,
+    String description = '',
+    int version = 0,
+    String hashid1 = '',
+    String hashid2 = '',
+  }) async {
+    return ProposeSidechainResponse();
+  }
+
+  @override
+  Future<List<WithdrawalBundle>> listWithdrawals({
+    required int sidechainId,
+    int startBlockHeight = 0,
+    int endBlockHeight = 0,
+  }) async {
+    return [];
+  }
 }
 
 class MockMiscAPI implements MiscAPI {

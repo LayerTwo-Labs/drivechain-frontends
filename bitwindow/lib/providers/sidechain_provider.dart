@@ -51,8 +51,9 @@ class SidechainProvider extends ChangeNotifier {
       // Fill in the slots with the data retrieved from the API
       for (var sidechain in newSidechains) {
         final deposits = await bitwindowd.wallet.listSidechainDeposits(walletId, sidechain.slot);
+        final withdrawals = await bitwindowd.drivechain.listWithdrawals(sidechainId: sidechain.slot);
         if (sidechain.slot < 255) {
-          updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits);
+          updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits, withdrawals);
         }
       }
 
@@ -90,6 +91,7 @@ class SidechainProvider extends ChangeNotifier {
 class SidechainOverview {
   final ListSidechainsResponse_Sidechain info;
   final List<ListSidechainDepositsResponse_SidechainDeposit> deposits;
+  final List<WithdrawalBundle> withdrawals;
 
-  SidechainOverview(this.info, this.deposits);
+  SidechainOverview(this.info, this.deposits, this.withdrawals);
 }

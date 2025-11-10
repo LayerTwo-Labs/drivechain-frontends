@@ -409,6 +409,194 @@ func (x *ProposeSidechainResponse) GetMessage() string {
 	return ""
 }
 
+type ListWithdrawalsRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	SidechainId      uint32                 `protobuf:"varint,1,opt,name=sidechain_id,json=sidechainId,proto3" json:"sidechain_id,omitempty"`
+	StartBlockHeight uint32                 `protobuf:"varint,2,opt,name=start_block_height,json=startBlockHeight,proto3" json:"start_block_height,omitempty"`
+	EndBlockHeight   uint32                 `protobuf:"varint,3,opt,name=end_block_height,json=endBlockHeight,proto3" json:"end_block_height,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ListWithdrawalsRequest) Reset() {
+	*x = ListWithdrawalsRequest{}
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWithdrawalsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWithdrawalsRequest) ProtoMessage() {}
+
+func (x *ListWithdrawalsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWithdrawalsRequest.ProtoReflect.Descriptor instead.
+func (*ListWithdrawalsRequest) Descriptor() ([]byte, []int) {
+	return file_drivechain_v1_drivechain_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListWithdrawalsRequest) GetSidechainId() uint32 {
+	if x != nil {
+		return x.SidechainId
+	}
+	return 0
+}
+
+func (x *ListWithdrawalsRequest) GetStartBlockHeight() uint32 {
+	if x != nil {
+		return x.StartBlockHeight
+	}
+	return 0
+}
+
+func (x *ListWithdrawalsRequest) GetEndBlockHeight() uint32 {
+	if x != nil {
+		return x.EndBlockHeight
+	}
+	return 0
+}
+
+type WithdrawalBundle struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	M6Id           string                 `protobuf:"bytes,1,opt,name=m6id,proto3" json:"m6id,omitempty"`
+	SidechainId    uint32                 `protobuf:"varint,2,opt,name=sidechain_id,json=sidechainId,proto3" json:"sidechain_id,omitempty"`
+	Status         string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"` // "succeeded", "failed", "pending"
+	SequenceNumber uint64                 `protobuf:"varint,4,opt,name=sequence_number,json=sequenceNumber,proto3" json:"sequence_number,omitempty"`
+	TransactionHex string                 `protobuf:"bytes,5,opt,name=transaction_hex,json=transactionHex,proto3" json:"transaction_hex,omitempty"`
+	BlockHeight    uint32                 `protobuf:"varint,6,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WithdrawalBundle) Reset() {
+	*x = WithdrawalBundle{}
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WithdrawalBundle) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WithdrawalBundle) ProtoMessage() {}
+
+func (x *WithdrawalBundle) ProtoReflect() protoreflect.Message {
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WithdrawalBundle.ProtoReflect.Descriptor instead.
+func (*WithdrawalBundle) Descriptor() ([]byte, []int) {
+	return file_drivechain_v1_drivechain_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *WithdrawalBundle) GetM6Id() string {
+	if x != nil {
+		return x.M6Id
+	}
+	return ""
+}
+
+func (x *WithdrawalBundle) GetSidechainId() uint32 {
+	if x != nil {
+		return x.SidechainId
+	}
+	return 0
+}
+
+func (x *WithdrawalBundle) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *WithdrawalBundle) GetSequenceNumber() uint64 {
+	if x != nil {
+		return x.SequenceNumber
+	}
+	return 0
+}
+
+func (x *WithdrawalBundle) GetTransactionHex() string {
+	if x != nil {
+		return x.TransactionHex
+	}
+	return ""
+}
+
+func (x *WithdrawalBundle) GetBlockHeight() uint32 {
+	if x != nil {
+		return x.BlockHeight
+	}
+	return 0
+}
+
+type ListWithdrawalsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bundles       []*WithdrawalBundle    `protobuf:"bytes,1,rep,name=bundles,proto3" json:"bundles,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWithdrawalsResponse) Reset() {
+	*x = ListWithdrawalsResponse{}
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWithdrawalsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWithdrawalsResponse) ProtoMessage() {}
+
+func (x *ListWithdrawalsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWithdrawalsResponse.ProtoReflect.Descriptor instead.
+func (*ListWithdrawalsResponse) Descriptor() ([]byte, []int) {
+	return file_drivechain_v1_drivechain_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListWithdrawalsResponse) GetBundles() []*WithdrawalBundle {
+	if x != nil {
+		return x.Bundles
+	}
+	return nil
+}
+
 type ListSidechainsResponse_Sidechain struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Title            string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
@@ -430,7 +618,7 @@ type ListSidechainsResponse_Sidechain struct {
 
 func (x *ListSidechainsResponse_Sidechain) Reset() {
 	*x = ListSidechainsResponse_Sidechain{}
-	mi := &file_drivechain_v1_drivechain_proto_msgTypes[7]
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +630,7 @@ func (x *ListSidechainsResponse_Sidechain) String() string {
 func (*ListSidechainsResponse_Sidechain) ProtoMessage() {}
 
 func (x *ListSidechainsResponse_Sidechain) ProtoReflect() protoreflect.Message {
-	mi := &file_drivechain_v1_drivechain_proto_msgTypes[7]
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -596,11 +784,25 @@ const file_drivechain_v1_drivechain_proto_rawDesc = "" +
 	"\x18ProposeSidechainResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12#\n" +
 	"\rproposal_hash\x18\x02 \x01(\tR\fproposalHash\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage2\xce\x02\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"\x93\x01\n" +
+	"\x16ListWithdrawalsRequest\x12!\n" +
+	"\fsidechain_id\x18\x01 \x01(\rR\vsidechainId\x12,\n" +
+	"\x12start_block_height\x18\x02 \x01(\rR\x10startBlockHeight\x12(\n" +
+	"\x10end_block_height\x18\x03 \x01(\rR\x0eendBlockHeight\"\xd6\x01\n" +
+	"\x10WithdrawalBundle\x12\x12\n" +
+	"\x04m6id\x18\x01 \x01(\tR\x04m6id\x12!\n" +
+	"\fsidechain_id\x18\x02 \x01(\rR\vsidechainId\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12'\n" +
+	"\x0fsequence_number\x18\x04 \x01(\x04R\x0esequenceNumber\x12'\n" +
+	"\x0ftransaction_hex\x18\x05 \x01(\tR\x0etransactionHex\x12!\n" +
+	"\fblock_height\x18\x06 \x01(\rR\vblockHeight\"T\n" +
+	"\x17ListWithdrawalsResponse\x129\n" +
+	"\abundles\x18\x01 \x03(\v2\x1f.drivechain.v1.WithdrawalBundleR\abundles2\xb0\x03\n" +
 	"\x11DrivechainService\x12]\n" +
 	"\x0eListSidechains\x12$.drivechain.v1.ListSidechainsRequest\x1a%.drivechain.v1.ListSidechainsResponse\x12u\n" +
 	"\x16ListSidechainProposals\x12,.drivechain.v1.ListSidechainProposalsRequest\x1a-.drivechain.v1.ListSidechainProposalsResponse\x12c\n" +
-	"\x10ProposeSidechain\x12&.drivechain.v1.ProposeSidechainRequest\x1a'.drivechain.v1.ProposeSidechainResponseB\xcc\x01\n" +
+	"\x10ProposeSidechain\x12&.drivechain.v1.ProposeSidechainRequest\x1a'.drivechain.v1.ProposeSidechainResponse\x12`\n" +
+	"\x0fListWithdrawals\x12%.drivechain.v1.ListWithdrawalsRequest\x1a&.drivechain.v1.ListWithdrawalsResponseB\xcc\x01\n" +
 	"\x11com.drivechain.v1B\x0fDrivechainProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1;drivechainv1\xa2\x02\x03DXX\xaa\x02\rDrivechain.V1\xca\x02\rDrivechain\\V1\xe2\x02\x19Drivechain\\V1\\GPBMetadata\xea\x02\x0eDrivechain::V1b\x06proto3"
 
 var (
@@ -615,7 +817,7 @@ func file_drivechain_v1_drivechain_proto_rawDescGZIP() []byte {
 	return file_drivechain_v1_drivechain_proto_rawDescData
 }
 
-var file_drivechain_v1_drivechain_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_drivechain_v1_drivechain_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_drivechain_v1_drivechain_proto_goTypes = []any{
 	(*ListSidechainsRequest)(nil),            // 0: drivechain.v1.ListSidechainsRequest
 	(*ListSidechainsResponse)(nil),           // 1: drivechain.v1.ListSidechainsResponse
@@ -624,22 +826,28 @@ var file_drivechain_v1_drivechain_proto_goTypes = []any{
 	(*ListSidechainProposalsResponse)(nil),   // 4: drivechain.v1.ListSidechainProposalsResponse
 	(*ProposeSidechainRequest)(nil),          // 5: drivechain.v1.ProposeSidechainRequest
 	(*ProposeSidechainResponse)(nil),         // 6: drivechain.v1.ProposeSidechainResponse
-	(*ListSidechainsResponse_Sidechain)(nil), // 7: drivechain.v1.ListSidechainsResponse.Sidechain
+	(*ListWithdrawalsRequest)(nil),           // 7: drivechain.v1.ListWithdrawalsRequest
+	(*WithdrawalBundle)(nil),                 // 8: drivechain.v1.WithdrawalBundle
+	(*ListWithdrawalsResponse)(nil),          // 9: drivechain.v1.ListWithdrawalsResponse
+	(*ListSidechainsResponse_Sidechain)(nil), // 10: drivechain.v1.ListSidechainsResponse.Sidechain
 }
 var file_drivechain_v1_drivechain_proto_depIdxs = []int32{
-	7, // 0: drivechain.v1.ListSidechainsResponse.sidechains:type_name -> drivechain.v1.ListSidechainsResponse.Sidechain
-	3, // 1: drivechain.v1.ListSidechainProposalsResponse.proposals:type_name -> drivechain.v1.SidechainProposal
-	0, // 2: drivechain.v1.DrivechainService.ListSidechains:input_type -> drivechain.v1.ListSidechainsRequest
-	2, // 3: drivechain.v1.DrivechainService.ListSidechainProposals:input_type -> drivechain.v1.ListSidechainProposalsRequest
-	5, // 4: drivechain.v1.DrivechainService.ProposeSidechain:input_type -> drivechain.v1.ProposeSidechainRequest
-	1, // 5: drivechain.v1.DrivechainService.ListSidechains:output_type -> drivechain.v1.ListSidechainsResponse
-	4, // 6: drivechain.v1.DrivechainService.ListSidechainProposals:output_type -> drivechain.v1.ListSidechainProposalsResponse
-	6, // 7: drivechain.v1.DrivechainService.ProposeSidechain:output_type -> drivechain.v1.ProposeSidechainResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	10, // 0: drivechain.v1.ListSidechainsResponse.sidechains:type_name -> drivechain.v1.ListSidechainsResponse.Sidechain
+	3,  // 1: drivechain.v1.ListSidechainProposalsResponse.proposals:type_name -> drivechain.v1.SidechainProposal
+	8,  // 2: drivechain.v1.ListWithdrawalsResponse.bundles:type_name -> drivechain.v1.WithdrawalBundle
+	0,  // 3: drivechain.v1.DrivechainService.ListSidechains:input_type -> drivechain.v1.ListSidechainsRequest
+	2,  // 4: drivechain.v1.DrivechainService.ListSidechainProposals:input_type -> drivechain.v1.ListSidechainProposalsRequest
+	5,  // 5: drivechain.v1.DrivechainService.ProposeSidechain:input_type -> drivechain.v1.ProposeSidechainRequest
+	7,  // 6: drivechain.v1.DrivechainService.ListWithdrawals:input_type -> drivechain.v1.ListWithdrawalsRequest
+	1,  // 7: drivechain.v1.DrivechainService.ListSidechains:output_type -> drivechain.v1.ListSidechainsResponse
+	4,  // 8: drivechain.v1.DrivechainService.ListSidechainProposals:output_type -> drivechain.v1.ListSidechainProposalsResponse
+	6,  // 9: drivechain.v1.DrivechainService.ProposeSidechain:output_type -> drivechain.v1.ProposeSidechainResponse
+	9,  // 10: drivechain.v1.DrivechainService.ListWithdrawals:output_type -> drivechain.v1.ListWithdrawalsResponse
+	7,  // [7:11] is the sub-list for method output_type
+	3,  // [3:7] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_drivechain_v1_drivechain_proto_init() }
@@ -653,7 +861,7 @@ func file_drivechain_v1_drivechain_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_drivechain_v1_drivechain_proto_rawDesc), len(file_drivechain_v1_drivechain_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

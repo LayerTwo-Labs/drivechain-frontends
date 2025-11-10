@@ -142,12 +142,62 @@ final $typed_data.Uint8List proposeSidechainResponseDescriptor = $convert.base64
     '1wcm9wb3NhbF9oYXNoGAIgASgJUgxwcm9wb3NhbEhhc2gSGAoHbWVzc2FnZRgDIAEoCVIHbWVz'
     'c2FnZQ==');
 
+@$core.Deprecated('Use listWithdrawalsRequestDescriptor instead')
+const ListWithdrawalsRequest$json = {
+  '1': 'ListWithdrawalsRequest',
+  '2': [
+    {'1': 'sidechain_id', '3': 1, '4': 1, '5': 13, '10': 'sidechainId'},
+    {'1': 'start_block_height', '3': 2, '4': 1, '5': 13, '10': 'startBlockHeight'},
+    {'1': 'end_block_height', '3': 3, '4': 1, '5': 13, '10': 'endBlockHeight'},
+  ],
+};
+
+/// Descriptor for `ListWithdrawalsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listWithdrawalsRequestDescriptor = $convert.base64Decode(
+    'ChZMaXN0V2l0aGRyYXdhbHNSZXF1ZXN0EiEKDHNpZGVjaGFpbl9pZBgBIAEoDVILc2lkZWNoYW'
+    'luSWQSLAoSc3RhcnRfYmxvY2tfaGVpZ2h0GAIgASgNUhBzdGFydEJsb2NrSGVpZ2h0EigKEGVu'
+    'ZF9ibG9ja19oZWlnaHQYAyABKA1SDmVuZEJsb2NrSGVpZ2h0');
+
+@$core.Deprecated('Use withdrawalBundleDescriptor instead')
+const WithdrawalBundle$json = {
+  '1': 'WithdrawalBundle',
+  '2': [
+    {'1': 'm6id', '3': 1, '4': 1, '5': 9, '10': 'm6id'},
+    {'1': 'sidechain_id', '3': 2, '4': 1, '5': 13, '10': 'sidechainId'},
+    {'1': 'status', '3': 3, '4': 1, '5': 9, '10': 'status'},
+    {'1': 'sequence_number', '3': 4, '4': 1, '5': 4, '10': 'sequenceNumber'},
+    {'1': 'transaction_hex', '3': 5, '4': 1, '5': 9, '10': 'transactionHex'},
+    {'1': 'block_height', '3': 6, '4': 1, '5': 13, '10': 'blockHeight'},
+  ],
+};
+
+/// Descriptor for `WithdrawalBundle`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List withdrawalBundleDescriptor = $convert.base64Decode(
+    'ChBXaXRoZHJhd2FsQnVuZGxlEhIKBG02aWQYASABKAlSBG02aWQSIQoMc2lkZWNoYWluX2lkGA'
+    'IgASgNUgtzaWRlY2hhaW5JZBIWCgZzdGF0dXMYAyABKAlSBnN0YXR1cxInCg9zZXF1ZW5jZV9u'
+    'dW1iZXIYBCABKARSDnNlcXVlbmNlTnVtYmVyEicKD3RyYW5zYWN0aW9uX2hleBgFIAEoCVIOdH'
+    'JhbnNhY3Rpb25IZXgSIQoMYmxvY2tfaGVpZ2h0GAYgASgNUgtibG9ja0hlaWdodA==');
+
+@$core.Deprecated('Use listWithdrawalsResponseDescriptor instead')
+const ListWithdrawalsResponse$json = {
+  '1': 'ListWithdrawalsResponse',
+  '2': [
+    {'1': 'bundles', '3': 1, '4': 3, '5': 11, '6': '.drivechain.v1.WithdrawalBundle', '10': 'bundles'},
+  ],
+};
+
+/// Descriptor for `ListWithdrawalsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listWithdrawalsResponseDescriptor = $convert.base64Decode(
+    'ChdMaXN0V2l0aGRyYXdhbHNSZXNwb25zZRI5CgdidW5kbGVzGAEgAygLMh8uZHJpdmVjaGFpbi'
+    '52MS5XaXRoZHJhd2FsQnVuZGxlUgdidW5kbGVz');
+
 const $core.Map<$core.String, $core.dynamic> DrivechainServiceBase$json = {
   '1': 'DrivechainService',
   '2': [
     {'1': 'ListSidechains', '2': '.drivechain.v1.ListSidechainsRequest', '3': '.drivechain.v1.ListSidechainsResponse'},
     {'1': 'ListSidechainProposals', '2': '.drivechain.v1.ListSidechainProposalsRequest', '3': '.drivechain.v1.ListSidechainProposalsResponse'},
     {'1': 'ProposeSidechain', '2': '.drivechain.v1.ProposeSidechainRequest', '3': '.drivechain.v1.ProposeSidechainResponse'},
+    {'1': 'ListWithdrawals', '2': '.drivechain.v1.ListWithdrawalsRequest', '3': '.drivechain.v1.ListWithdrawalsResponse'},
   ],
 };
 
@@ -161,6 +211,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Drivechain
   '.drivechain.v1.SidechainProposal': SidechainProposal$json,
   '.drivechain.v1.ProposeSidechainRequest': ProposeSidechainRequest$json,
   '.drivechain.v1.ProposeSidechainResponse': ProposeSidechainResponse$json,
+  '.drivechain.v1.ListWithdrawalsRequest': ListWithdrawalsRequest$json,
+  '.drivechain.v1.ListWithdrawalsResponse': ListWithdrawalsResponse$json,
+  '.drivechain.v1.WithdrawalBundle': WithdrawalBundle$json,
 };
 
 /// Descriptor for `DrivechainService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -171,5 +224,6 @@ final $typed_data.Uint8List drivechainServiceDescriptor = $convert.base64Decode(
     'hhaW5Qcm9wb3NhbHNSZXF1ZXN0Gi0uZHJpdmVjaGFpbi52MS5MaXN0U2lkZWNoYWluUHJvcG9z'
     'YWxzUmVzcG9uc2USYwoQUHJvcG9zZVNpZGVjaGFpbhImLmRyaXZlY2hhaW4udjEuUHJvcG9zZV'
     'NpZGVjaGFpblJlcXVlc3QaJy5kcml2ZWNoYWluLnYxLlByb3Bvc2VTaWRlY2hhaW5SZXNwb25z'
-    'ZQ==');
+    'ZRJgCg9MaXN0V2l0aGRyYXdhbHMSJS5kcml2ZWNoYWluLnYxLkxpc3RXaXRoZHJhd2Fsc1JlcX'
+    'Vlc3QaJi5kcml2ZWNoYWluLnYxLkxpc3RXaXRoZHJhd2Fsc1Jlc3BvbnNl');
 
