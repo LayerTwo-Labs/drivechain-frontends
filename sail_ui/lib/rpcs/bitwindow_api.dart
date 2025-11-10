@@ -190,6 +190,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       'bitwindowd.v1.BitwindowdService/UpdateAddressBookEntry',
       'drivechain.v1.DrivechainService/ListSidechainProposals',
       'drivechain.v1.DrivechainService/ListSidechains',
+      'drivechain.v1.DrivechainService/ListWithdrawals',
       'drivechain.v1.DrivechainService/ProposeSidechain',
       'misc.v1.MiscService/BroadcastNews',
       'misc.v1.MiscService/CreateTopic',
@@ -1164,6 +1165,11 @@ abstract class DrivechainAPI {
     String hashid1 = '',
     String hashid2 = '',
   });
+  Future<List<WithdrawalBundle>> listWithdrawals({
+    required int sidechainId,
+    int startBlockHeight = 0,
+    int endBlockHeight = 0,
+  });
 }
 
 class _DrivechainAPILive implements DrivechainAPI {
@@ -1217,6 +1223,27 @@ class _DrivechainAPILive implements DrivechainAPI {
       return response;
     } catch (e) {
       final error = 'could not propose sidechain: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+
+  @override
+  Future<List<WithdrawalBundle>> listWithdrawals({
+    required int sidechainId,
+    int startBlockHeight = 0,
+    int endBlockHeight = 0,
+  }) async {
+    try {
+      final request = ListWithdrawalsRequest(
+        sidechainId: sidechainId,
+        startBlockHeight: startBlockHeight,
+        endBlockHeight: endBlockHeight,
+      );
+      final response = await _client.listWithdrawals(request);
+      log.i('Successfully listed ${response.bundles.length} withdrawal bundles for sidechain $sidechainId');
+      return response.bundles;
+    } catch (e) {
+      final error = 'could not list withdrawals: ${extractConnectException(e)}';
       throw DrivechainException(error);
     }
   }

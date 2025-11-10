@@ -703,6 +703,248 @@ class ProposeSidechainResponse extends $pb.GeneratedMessage {
   void clearMessage() => clearField(3);
 }
 
+class ListWithdrawalsRequest extends $pb.GeneratedMessage {
+  factory ListWithdrawalsRequest({
+    $core.int? sidechainId,
+    $core.int? startBlockHeight,
+    $core.int? endBlockHeight,
+  }) {
+    final $result = create();
+    if (sidechainId != null) {
+      $result.sidechainId = sidechainId;
+    }
+    if (startBlockHeight != null) {
+      $result.startBlockHeight = startBlockHeight;
+    }
+    if (endBlockHeight != null) {
+      $result.endBlockHeight = endBlockHeight;
+    }
+    return $result;
+  }
+  ListWithdrawalsRequest._() : super();
+  factory ListWithdrawalsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListWithdrawalsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWithdrawalsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'sidechainId', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'startBlockHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'endBlockHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListWithdrawalsRequest clone() => ListWithdrawalsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListWithdrawalsRequest copyWith(void Function(ListWithdrawalsRequest) updates) => super.copyWith((message) => updates(message as ListWithdrawalsRequest)) as ListWithdrawalsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListWithdrawalsRequest create() => ListWithdrawalsRequest._();
+  ListWithdrawalsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListWithdrawalsRequest> createRepeated() => $pb.PbList<ListWithdrawalsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListWithdrawalsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListWithdrawalsRequest>(create);
+  static ListWithdrawalsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get sidechainId => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set sidechainId($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSidechainId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSidechainId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get startBlockHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set startBlockHeight($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasStartBlockHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStartBlockHeight() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get endBlockHeight => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set endBlockHeight($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasEndBlockHeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEndBlockHeight() => clearField(3);
+}
+
+class WithdrawalBundle extends $pb.GeneratedMessage {
+  factory WithdrawalBundle({
+    $core.String? m6id,
+    $core.int? sidechainId,
+    $core.String? status,
+    $fixnum.Int64? sequenceNumber,
+    $core.String? transactionHex,
+    $core.int? blockHeight,
+  }) {
+    final $result = create();
+    if (m6id != null) {
+      $result.m6id = m6id;
+    }
+    if (sidechainId != null) {
+      $result.sidechainId = sidechainId;
+    }
+    if (status != null) {
+      $result.status = status;
+    }
+    if (sequenceNumber != null) {
+      $result.sequenceNumber = sequenceNumber;
+    }
+    if (transactionHex != null) {
+      $result.transactionHex = transactionHex;
+    }
+    if (blockHeight != null) {
+      $result.blockHeight = blockHeight;
+    }
+    return $result;
+  }
+  WithdrawalBundle._() : super();
+  factory WithdrawalBundle.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WithdrawalBundle.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WithdrawalBundle', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'm6id')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'sidechainId', $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'status')
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'sequenceNumber', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(5, _omitFieldNames ? '' : 'transactionHex')
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundle clone() => WithdrawalBundle()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundle copyWith(void Function(WithdrawalBundle) updates) => super.copyWith((message) => updates(message as WithdrawalBundle)) as WithdrawalBundle;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundle create() => WithdrawalBundle._();
+  WithdrawalBundle createEmptyInstance() => create();
+  static $pb.PbList<WithdrawalBundle> createRepeated() => $pb.PbList<WithdrawalBundle>();
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundle getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WithdrawalBundle>(create);
+  static WithdrawalBundle? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get m6id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set m6id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasM6id() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearM6id() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get sidechainId => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set sidechainId($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSidechainId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSidechainId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get status => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set status($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasStatus() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStatus() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get sequenceNumber => $_getI64(3);
+  @$pb.TagNumber(4)
+  set sequenceNumber($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSequenceNumber() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSequenceNumber() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get transactionHex => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set transactionHex($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasTransactionHex() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTransactionHex() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get blockHeight => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set blockHeight($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasBlockHeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearBlockHeight() => clearField(6);
+}
+
+class ListWithdrawalsResponse extends $pb.GeneratedMessage {
+  factory ListWithdrawalsResponse({
+    $core.Iterable<WithdrawalBundle>? bundles,
+  }) {
+    final $result = create();
+    if (bundles != null) {
+      $result.bundles.addAll(bundles);
+    }
+    return $result;
+  }
+  ListWithdrawalsResponse._() : super();
+  factory ListWithdrawalsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListWithdrawalsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWithdrawalsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..pc<WithdrawalBundle>(1, _omitFieldNames ? '' : 'bundles', $pb.PbFieldType.PM, subBuilder: WithdrawalBundle.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListWithdrawalsResponse clone() => ListWithdrawalsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListWithdrawalsResponse copyWith(void Function(ListWithdrawalsResponse) updates) => super.copyWith((message) => updates(message as ListWithdrawalsResponse)) as ListWithdrawalsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListWithdrawalsResponse create() => ListWithdrawalsResponse._();
+  ListWithdrawalsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListWithdrawalsResponse> createRepeated() => $pb.PbList<ListWithdrawalsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListWithdrawalsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListWithdrawalsResponse>(create);
+  static ListWithdrawalsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<WithdrawalBundle> get bundles => $_getList(0);
+}
+
 class DrivechainServiceApi {
   $pb.RpcClient _client;
   DrivechainServiceApi(this._client);
@@ -715,6 +957,9 @@ class DrivechainServiceApi {
   ;
   $async.Future<ProposeSidechainResponse> proposeSidechain($pb.ClientContext? ctx, ProposeSidechainRequest request) =>
     _client.invoke<ProposeSidechainResponse>(ctx, 'DrivechainService', 'ProposeSidechain', request, ProposeSidechainResponse())
+  ;
+  $async.Future<ListWithdrawalsResponse> listWithdrawals($pb.ClientContext? ctx, ListWithdrawalsRequest request) =>
+    _client.invoke<ListWithdrawalsResponse>(ctx, 'DrivechainService', 'ListWithdrawals', request, ListWithdrawalsResponse())
   ;
 }
 

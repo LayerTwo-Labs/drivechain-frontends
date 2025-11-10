@@ -24,12 +24,14 @@ abstract class DrivechainServiceBase extends $pb.GeneratedService {
   $async.Future<$3.ListSidechainsResponse> listSidechains($pb.ServerContext ctx, $3.ListSidechainsRequest request);
   $async.Future<$3.ListSidechainProposalsResponse> listSidechainProposals($pb.ServerContext ctx, $3.ListSidechainProposalsRequest request);
   $async.Future<$3.ProposeSidechainResponse> proposeSidechain($pb.ServerContext ctx, $3.ProposeSidechainRequest request);
+  $async.Future<$3.ListWithdrawalsResponse> listWithdrawals($pb.ServerContext ctx, $3.ListWithdrawalsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'ListSidechains': return $3.ListSidechainsRequest();
       case 'ListSidechainProposals': return $3.ListSidechainProposalsRequest();
       case 'ProposeSidechain': return $3.ProposeSidechainRequest();
+      case 'ListWithdrawals': return $3.ListWithdrawalsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -39,6 +41,7 @@ abstract class DrivechainServiceBase extends $pb.GeneratedService {
       case 'ListSidechains': return this.listSidechains(ctx, request as $3.ListSidechainsRequest);
       case 'ListSidechainProposals': return this.listSidechainProposals(ctx, request as $3.ListSidechainProposalsRequest);
       case 'ProposeSidechain': return this.proposeSidechain(ctx, request as $3.ProposeSidechainRequest);
+      case 'ListWithdrawals': return this.listWithdrawals(ctx, request as $3.ListWithdrawalsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

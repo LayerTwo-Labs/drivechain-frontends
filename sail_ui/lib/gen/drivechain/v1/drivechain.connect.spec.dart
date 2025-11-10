@@ -30,4 +30,11 @@ abstract final class DrivechainService {
     drivechainv1drivechain.ProposeSidechainRequest.new,
     drivechainv1drivechain.ProposeSidechainResponse.new,
   );
+
+  static const listWithdrawals = connect.Spec(
+    '/$name/ListWithdrawals',
+    connect.StreamType.unary,
+    drivechainv1drivechain.ListWithdrawalsRequest.new,
+    drivechainv1drivechain.ListWithdrawalsResponse.new,
+  );
 }

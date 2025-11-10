@@ -682,7 +682,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   void toggleSelection(int index) {
     if (_selectedIndex == index) {
       _selectedIndex = null; // Deselect if the same item is selected again
-      // refetch sidechain deposits!
     } else {
       _selectedIndex = index; // Select the new item
     }
@@ -711,12 +710,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return _sortedDeposits;
   }
 
-  List<ListSidechainDepositsResponse_SidechainDeposit> get sortedWithdrawals {
-    if (!listEquals(_sortedDeposits, recentDeposits)) {
-      _sortedDeposits = List<ListSidechainDepositsResponse_SidechainDeposit>.from(recentDeposits);
-      _sortDeposits();
-    }
-    return _sortedDeposits;
+  List<WithdrawalBundle> get sortedWithdrawals {
+    return _sidechainProvider.sidechains[_selectedIndex ?? 254]?.withdrawals ?? [];
   }
 
   void sortDeposits(String column) {
@@ -1119,56 +1114,36 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    if (viewModel.sortedWithdrawals.isEmpty) {
+      return Center(
+        child: SailText.secondary13('No withdrawal bundles found for this sidechain'),
+      );
+    }
+
     return SailTable(
-      getRowId: (index) => viewModel.sortedWithdrawals[index].txid,
+      getRowId: (index) => viewModel.sortedWithdrawals[index].m6id,
       headerBuilder: (context) => [
-        SailTableHeaderCell(
-          name: 'SC #',
-          onSort: () => viewModel.sortDeposits('sc'),
-        ),
-        SailTableHeaderCell(
-          name: 'Age',
-          onSort: () => viewModel.sortDeposits('age'),
-        ),
-        SailTableHeaderCell(
-          name: 'Max Age',
-          onSort: () => viewModel.sortDeposits('maxage'),
-        ),
-        SailTableHeaderCell(
-          name: 'Acks',
-          onSort: () => viewModel.sortDeposits('acks'),
-        ),
-        SailTableHeaderCell(
-          name: 'Approved',
-          onSort: () => viewModel.sortDeposits('approved'),
-        ),
-        SailTableHeaderCell(
-          name: 'Withdrawal Hash',
-          onSort: () => viewModel.sortDeposits('withdrawalhash'),
-        ),
+        const SailTableHeaderCell(name: 'M6 ID'),
+        const SailTableHeaderCell(name: 'Status'),
+        const SailTableHeaderCell(name: 'Block Height'),
+        const SailTableHeaderCell(name: 'Sequence #'),
       ],
       rowBuilder: (context, row, selected) {
         final withdrawal = viewModel.sortedWithdrawals[row];
         return [
-          SailTableCell(value: viewModel.selectedIndex.toString()),
-          SailTableCell(value: withdrawal.amount.toString()),
-          SailTableCell(value: withdrawal.txid),
-          SailTableCell(value: withdrawal.confirmations >= 2 ? 'Yes' : 'No'),
-          SailTableCell(value: withdrawal.confirmations >= 2 ? 'Yes' : 'No'),
+          SailTableCell(
+            value: '${withdrawal.m6id.substring(0, 10)}...',
+            copyValue: withdrawal.m6id,
+          ),
+          SailTableCell(value: withdrawal.status),
+          SailTableCell(value: withdrawal.blockHeight.toString()),
+          SailTableCell(value: withdrawal.sequenceNumber.toInt() > 0 ? withdrawal.sequenceNumber.toString() : '-'),
         ];
       },
       rowCount: viewModel.sortedWithdrawals.length,
       drawGrid: true,
-      sortAscending: viewModel.depositSortAscending,
-      sortColumnIndex: [
-        'sc',
-        'age',
-        'maxage',
-        'acks',
-        'approved',
-        'withdrawalhash',
-      ].indexOf(viewModel.depositSortColumn),
-      onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
+      sortAscending: true,
+      sortColumnIndex: 2,
     );
   }
 }
