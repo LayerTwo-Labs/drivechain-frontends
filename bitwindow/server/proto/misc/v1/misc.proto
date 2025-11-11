@@ -11,6 +11,11 @@ service MiscService {
   rpc CreateTopic(CreateTopicRequest) returns (CreateTopicResponse);
   rpc ListTopics(google.protobuf.Empty) returns (ListTopicsResponse);
   rpc ListCoinNews(ListCoinNewsRequest) returns (ListCoinNewsResponse);
+
+  // File timestamping
+  rpc TimestampFile(TimestampFileRequest) returns (TimestampFileResponse);
+  rpc ListTimestamps(google.protobuf.Empty) returns (ListTimestampsResponse);
+  rpc VerifyTimestamp(VerifyTimestampRequest) returns (VerifyTimestampResponse);
 }
 
 message ListOPReturnResponse {
@@ -75,4 +80,40 @@ message CoinNews {
 
 message ListCoinNewsResponse {
   repeated CoinNews coin_news = 1;
+}
+
+// File timestamp messages
+message TimestampFileRequest {
+  string filename = 1;
+  bytes file_data = 2;
+}
+
+message TimestampFileResponse {
+  int64 id = 1;
+  string file_hash = 2;
+  string txid = 3;
+}
+
+message FileTimestamp {
+  int64 id = 1;
+  string filename = 2;
+  string file_hash = 3;
+  optional string txid = 4;
+  optional int64 block_height = 5;
+  string status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  optional google.protobuf.Timestamp confirmed_at = 8;
+}
+
+message ListTimestampsResponse {
+  repeated FileTimestamp timestamps = 1;
+}
+
+message VerifyTimestampRequest {
+  bytes file_data = 1;
+}
+
+message VerifyTimestampResponse {
+  FileTimestamp timestamp = 1;
+  string message = 2;
 }

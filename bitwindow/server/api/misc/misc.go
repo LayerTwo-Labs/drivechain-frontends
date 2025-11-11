@@ -9,12 +9,14 @@ import (
 	"sort"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -30,16 +32,19 @@ var _ rpc.MiscServiceHandler = new(Server)
 func New(
 	database *sql.DB,
 	wallet *service.Service[validatorrpc.WalletServiceClient],
+	timestampEngine *engines.TimestampEngine,
 ) *Server {
 	return &Server{
-		database: database,
-		wallet:   wallet,
+		database:        database,
+		wallet:          wallet,
+		timestampEngine: timestampEngine,
 	}
 }
 
 type Server struct {
-	database *sql.DB
-	wallet   *service.Service[validatorrpc.WalletServiceClient]
+	database        *sql.DB
+	wallet          *service.Service[validatorrpc.WalletServiceClient]
+	timestampEngine *engines.TimestampEngine
 }
 
 // ListOPReturn implements miscv1connect.MiscServiceHandler.
@@ -258,4 +263,81 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		FeeSats:    int64(coinNews.Fee),
 		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
 	}
+}
+
+// TimestampFile implements miscv1connect.MiscServiceHandler.
+func (s *Server) TimestampFile(ctx context.Context, req *connect.Request[miscv1.TimestampFileRequest]) (*connect.Response[miscv1.TimestampFileResponse], error) {
+	if req.Msg.Filename == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename must be set"))
+	}
+	if len(req.Msg.FileData) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("file data must be set"))
+	}
+
+	ts, err := s.timestampEngine.TimestampFile(ctx, req.Msg.Filename, req.Msg.FileData)
+	if err != nil {
+		return nil, fmt.Errorf("timestamp file: %w", err)
+	}
+
+	txid := ""
+	if ts.TxID != nil {
+		txid = *ts.TxID
+	}
+
+	return connect.NewResponse(&miscv1.TimestampFileResponse{
+		Id:       ts.ID,
+		FileHash: ts.FileHash,
+		Txid:     txid,
+	}), nil
+}
+
+// ListTimestamps implements miscv1connect.MiscServiceHandler.
+func (s *Server) ListTimestamps(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListTimestampsResponse], error) {
+	tsList, err := s.timestampEngine.ListTimestamps(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list timestamps: %w", err)
+	}
+
+	return connect.NewResponse(&miscv1.ListTimestampsResponse{
+		Timestamps: lo.Map(tsList, timestampToProto),
+	}), nil
+}
+
+func timestampToProto(ts timestamps.FileTimestamp, _ int) *miscv1.FileTimestamp {
+	proto := &miscv1.FileTimestamp{
+		Id:        ts.ID,
+		Filename:  ts.Filename,
+		FileHash:  ts.FileHash,
+		Status:    string(ts.Status),
+		CreatedAt: timestamppb.New(ts.CreatedAt),
+	}
+
+	if ts.TxID != nil {
+		proto.Txid = ts.TxID
+	}
+	if ts.BlockHeight != nil {
+		proto.BlockHeight = ts.BlockHeight
+	}
+	if ts.ConfirmedAt != nil {
+		proto.ConfirmedAt = timestamppb.New(*ts.ConfirmedAt)
+	}
+
+	return proto
+}
+
+// VerifyTimestamp implements miscv1connect.MiscServiceHandler.
+func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv1.VerifyTimestampRequest]) (*connect.Response[miscv1.VerifyTimestampResponse], error) {
+	if len(req.Msg.FileData) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("file data must be set"))
+	}
+
+	ts, err := s.timestampEngine.VerifyTimestamp(ctx, req.Msg.FileData)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+
+	return connect.NewResponse(&miscv1.VerifyTimestampResponse{
+		Timestamp: timestampToProto(*ts, 0),
+		Message:   fmt.Sprintf("File verified! Transaction: %s", *ts.TxID),
+	}), nil
 }

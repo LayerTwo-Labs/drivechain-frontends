@@ -47,6 +47,15 @@ const (
 	// MiscServiceListCoinNewsProcedure is the fully-qualified name of the MiscService's ListCoinNews
 	// RPC.
 	MiscServiceListCoinNewsProcedure = "/misc.v1.MiscService/ListCoinNews"
+	// MiscServiceTimestampFileProcedure is the fully-qualified name of the MiscService's TimestampFile
+	// RPC.
+	MiscServiceTimestampFileProcedure = "/misc.v1.MiscService/TimestampFile"
+	// MiscServiceListTimestampsProcedure is the fully-qualified name of the MiscService's
+	// ListTimestamps RPC.
+	MiscServiceListTimestampsProcedure = "/misc.v1.MiscService/ListTimestamps"
+	// MiscServiceVerifyTimestampProcedure is the fully-qualified name of the MiscService's
+	// VerifyTimestamp RPC.
+	MiscServiceVerifyTimestampProcedure = "/misc.v1.MiscService/VerifyTimestamp"
 )
 
 // MiscServiceClient is a client for the misc.v1.MiscService service.
@@ -56,6 +65,10 @@ type MiscServiceClient interface {
 	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
 	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
 	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
+	// File timestamping
+	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
+	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
+	VerifyTimestamp(context.Context, *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error)
 }
 
 // NewMiscServiceClient constructs a client for the misc.v1.MiscService service. By default, it uses
@@ -99,16 +112,37 @@ func NewMiscServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
 			connect.WithClientOptions(opts...),
 		),
+		timestampFile: connect.NewClient[v1.TimestampFileRequest, v1.TimestampFileResponse](
+			httpClient,
+			baseURL+MiscServiceTimestampFileProcedure,
+			connect.WithSchema(miscServiceMethods.ByName("TimestampFile")),
+			connect.WithClientOptions(opts...),
+		),
+		listTimestamps: connect.NewClient[emptypb.Empty, v1.ListTimestampsResponse](
+			httpClient,
+			baseURL+MiscServiceListTimestampsProcedure,
+			connect.WithSchema(miscServiceMethods.ByName("ListTimestamps")),
+			connect.WithClientOptions(opts...),
+		),
+		verifyTimestamp: connect.NewClient[v1.VerifyTimestampRequest, v1.VerifyTimestampResponse](
+			httpClient,
+			baseURL+MiscServiceVerifyTimestampProcedure,
+			connect.WithSchema(miscServiceMethods.ByName("VerifyTimestamp")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // miscServiceClient implements MiscServiceClient.
 type miscServiceClient struct {
-	listOPReturn  *connect.Client[emptypb.Empty, v1.ListOPReturnResponse]
-	broadcastNews *connect.Client[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse]
-	createTopic   *connect.Client[v1.CreateTopicRequest, v1.CreateTopicResponse]
-	listTopics    *connect.Client[emptypb.Empty, v1.ListTopicsResponse]
-	listCoinNews  *connect.Client[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse]
+	listOPReturn    *connect.Client[emptypb.Empty, v1.ListOPReturnResponse]
+	broadcastNews   *connect.Client[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse]
+	createTopic     *connect.Client[v1.CreateTopicRequest, v1.CreateTopicResponse]
+	listTopics      *connect.Client[emptypb.Empty, v1.ListTopicsResponse]
+	listCoinNews    *connect.Client[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse]
+	timestampFile   *connect.Client[v1.TimestampFileRequest, v1.TimestampFileResponse]
+	listTimestamps  *connect.Client[emptypb.Empty, v1.ListTimestampsResponse]
+	verifyTimestamp *connect.Client[v1.VerifyTimestampRequest, v1.VerifyTimestampResponse]
 }
 
 // ListOPReturn calls misc.v1.MiscService.ListOPReturn.
@@ -136,6 +170,21 @@ func (c *miscServiceClient) ListCoinNews(ctx context.Context, req *connect.Reque
 	return c.listCoinNews.CallUnary(ctx, req)
 }
 
+// TimestampFile calls misc.v1.MiscService.TimestampFile.
+func (c *miscServiceClient) TimestampFile(ctx context.Context, req *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {
+	return c.timestampFile.CallUnary(ctx, req)
+}
+
+// ListTimestamps calls misc.v1.MiscService.ListTimestamps.
+func (c *miscServiceClient) ListTimestamps(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error) {
+	return c.listTimestamps.CallUnary(ctx, req)
+}
+
+// VerifyTimestamp calls misc.v1.MiscService.VerifyTimestamp.
+func (c *miscServiceClient) VerifyTimestamp(ctx context.Context, req *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error) {
+	return c.verifyTimestamp.CallUnary(ctx, req)
+}
+
 // MiscServiceHandler is an implementation of the misc.v1.MiscService service.
 type MiscServiceHandler interface {
 	ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error)
@@ -143,6 +192,10 @@ type MiscServiceHandler interface {
 	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
 	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
 	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
+	// File timestamping
+	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
+	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
+	VerifyTimestamp(context.Context, *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error)
 }
 
 // NewMiscServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -182,6 +235,24 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
 		connect.WithHandlerOptions(opts...),
 	)
+	miscServiceTimestampFileHandler := connect.NewUnaryHandler(
+		MiscServiceTimestampFileProcedure,
+		svc.TimestampFile,
+		connect.WithSchema(miscServiceMethods.ByName("TimestampFile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	miscServiceListTimestampsHandler := connect.NewUnaryHandler(
+		MiscServiceListTimestampsProcedure,
+		svc.ListTimestamps,
+		connect.WithSchema(miscServiceMethods.ByName("ListTimestamps")),
+		connect.WithHandlerOptions(opts...),
+	)
+	miscServiceVerifyTimestampHandler := connect.NewUnaryHandler(
+		MiscServiceVerifyTimestampProcedure,
+		svc.VerifyTimestamp,
+		connect.WithSchema(miscServiceMethods.ByName("VerifyTimestamp")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/misc.v1.MiscService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MiscServiceListOPReturnProcedure:
@@ -194,6 +265,12 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 			miscServiceListTopicsHandler.ServeHTTP(w, r)
 		case MiscServiceListCoinNewsProcedure:
 			miscServiceListCoinNewsHandler.ServeHTTP(w, r)
+		case MiscServiceTimestampFileProcedure:
+			miscServiceTimestampFileHandler.ServeHTTP(w, r)
+		case MiscServiceListTimestampsProcedure:
+			miscServiceListTimestampsHandler.ServeHTTP(w, r)
+		case MiscServiceVerifyTimestampProcedure:
+			miscServiceVerifyTimestampHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -221,4 +298,16 @@ func (UnimplementedMiscServiceHandler) ListTopics(context.Context, *connect.Requ
 
 func (UnimplementedMiscServiceHandler) ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListCoinNews is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.TimestampFile is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListTimestamps is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) VerifyTimestamp(context.Context, *connect.Request[v1.VerifyTimestampRequest]) (*connect.Response[v1.VerifyTimestampResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.VerifyTimestamp is not implemented"))
 }
