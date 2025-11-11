@@ -1,3 +1,4 @@
+import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -251,6 +252,20 @@ class BlockExplorerDialog extends StatelessWidget {
                       transactions: block.txids,
                       onTransactionSelected: (txid) => showTransactionDetails(context, txid),
                     ),
+                  ),
+                  const SailSpacing(SailStyleValues.padding16),
+                  // Merkle Tree Viewer Button
+                  SailButton(
+                    label: 'View Merkle Tree',
+                    onPressed: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => MerkleTreeDialog(
+                          initialTxids: block.txids,
+                          expectedRoot: block.merkleRoot,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
