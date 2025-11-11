@@ -267,9 +267,9 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		Wallet:       coreWalletName,
 	}
 
-	// Set fee rate if provided (convert sat/vB to BTC/kvB for Bitcoin Core)
+	// Set fee rate if provided (Bitcoin Core expects sat/vB directly)
 	if c.Msg.FeeSatPerVbyte > 0 {
-		sendReq.FeeRate = float64(c.Msg.FeeSatPerVbyte) / 1e5 // sat/vB to BTC/kvB
+		sendReq.FeeRate = float64(c.Msg.FeeSatPerVbyte)
 	}
 
 	resp, err := bitcoind.Send(ctx, connect.NewRequest(sendReq))

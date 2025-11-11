@@ -89,7 +89,7 @@ class SailTextField extends StatelessWidget {
               ...?inputFormatters,
             ],
             minLines: minLines,
-            maxLines: maxLines,
+            maxLines: maxLines ?? 1,
             decoration: InputDecoration(
               isDense: true, // This helps reduce the minimum height
               errorBorder: InputBorder.none,

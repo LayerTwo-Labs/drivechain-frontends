@@ -2,7 +2,6 @@ package api_wallet
 
 import (
 	"encoding/hex"
-	"fmt"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcutil"
@@ -51,11 +50,11 @@ func TestManualAddressDerivation(t *testing.T) {
 		t.Fatalf("derive external: %v", err)
 	}
 
-	fmt.Println("\n=== First 10 Receiving Addresses (BIP84) ===")
-	fmt.Println("Wallet: asd (80CEBA2163224572BDEADD2D2181C51B)")
-	fmt.Println("Network: signet")
-	fmt.Println("Path: m/84'/1'/0'/0/{index}")
-	fmt.Println()
+	t.Log("\n=== First 10 Receiving Addresses (BIP84) ===")
+	t.Log("Wallet: asd (80CEBA2163224572BDEADD2D2181C51B)")
+	t.Log("Network: signet")
+	t.Log("Path: m/84'/1'/0'/0/{index}")
+	t.Log("")
 
 	for i := uint32(0); i < 10; i++ {
 		addrKey, err := external.Derive(i)
@@ -74,16 +73,9 @@ func TestManualAddressDerivation(t *testing.T) {
 			t.Fatalf("create address %d: %v", i, err)
 		}
 
-		fmt.Printf("Index %2d: %s\n", i, witnessAddr.EncodeAddress())
+		t.Logf("Index %2d: %s", i, witnessAddr.EncodeAddress())
 	}
 
-	fmt.Println("\n=== How to Test ===")
-	fmt.Println("1. Send some bitcoin to address index 0")
-	fmt.Println("2. Send some bitcoin to address index 2")
-	fmt.Println("3. Call GetNewAddress - it should return index 1 (first unused)")
-	fmt.Println("4. After using index 1, next call should return index 3")
-	fmt.Println("\nThe function checks ListTransactions to see which addresses")
-	fmt.Println("have been used, and returns the first one with no transactions.")
 }
 
 // TestDeriveMultipleWallets shows addresses for all your Bitcoin Core wallets
@@ -108,7 +100,7 @@ func TestDeriveMultipleWallets(t *testing.T) {
 	chainParams := &chaincfg.SigNetParams
 
 	for _, wallet := range wallets {
-		fmt.Printf("\n=== Wallet: %s (%s) ===\n", wallet.name, wallet.id)
+		t.Logf("\n=== Wallet: %s (%s) ===", wallet.name, wallet.id)
 
 		seed, err := hex.DecodeString(wallet.seed)
 		if err != nil {
@@ -127,13 +119,13 @@ func TestDeriveMultipleWallets(t *testing.T) {
 		account, _ := coin.Derive(hdkeychain.HardenedKeyStart + 0)
 		external, _ := account.Derive(0)
 
-		fmt.Println("First 5 addresses:")
+		t.Log("First 5 addresses:")
 		for i := uint32(0); i < 5; i++ {
 			addrKey, _ := external.Derive(i)
 			pubKey, _ := addrKey.ECPubKey()
 			pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
 			witnessAddr, _ := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, chainParams)
-			fmt.Printf("  [%d] %s\n", i, witnessAddr.EncodeAddress())
+			t.Logf("  [%d] %s", i, witnessAddr.EncodeAddress())
 		}
 	}
 }

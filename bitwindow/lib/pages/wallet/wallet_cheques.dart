@@ -149,6 +149,7 @@ class ChequesTab extends StatelessWidget {
 
         return SailCard(
           title: 'Your Checks',
+          error: model.modelError,
           bottomPadding: false,
           widgetHeaderEnd: model.cheques.isNotEmpty
               ? SailRow(
@@ -166,13 +167,7 @@ class ChequesTab extends StatelessWidget {
                   ],
                 )
               : null,
-          child: model.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : model.modelError != null
-              ? Center(
-                  child: SailText.primary12(model.modelError!, color: context.sailTheme.colors.error),
-                )
-              : model.cheques.isEmpty
+          child: model.cheques.isEmpty
               ? Center(
                   child: SailColumn(
                     spacing: SailStyleValues.padding16,

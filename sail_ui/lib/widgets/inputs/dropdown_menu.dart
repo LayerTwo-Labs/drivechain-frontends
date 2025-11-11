@@ -101,7 +101,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 currentDisplay,
                 SailSVG.fromAsset(
