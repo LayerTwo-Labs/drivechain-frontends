@@ -781,6 +781,461 @@ class ListCoinNewsResponse extends $pb.GeneratedMessage {
   $core.List<CoinNews> get coinNews => $_getList(0);
 }
 
+/// File timestamp messages
+class TimestampFileRequest extends $pb.GeneratedMessage {
+  factory TimestampFileRequest({
+    $core.String? filename,
+    $core.List<$core.int>? fileData,
+  }) {
+    final $result = create();
+    if (filename != null) {
+      $result.filename = filename;
+    }
+    if (fileData != null) {
+      $result.fileData = fileData;
+    }
+    return $result;
+  }
+  TimestampFileRequest._() : super();
+  factory TimestampFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TimestampFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TimestampFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'filename')
+    ..a<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'fileData', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  TimestampFileRequest clone() => TimestampFileRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  TimestampFileRequest copyWith(void Function(TimestampFileRequest) updates) => super.copyWith((message) => updates(message as TimestampFileRequest)) as TimestampFileRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TimestampFileRequest create() => TimestampFileRequest._();
+  TimestampFileRequest createEmptyInstance() => create();
+  static $pb.PbList<TimestampFileRequest> createRepeated() => $pb.PbList<TimestampFileRequest>();
+  @$core.pragma('dart2js:noInline')
+  static TimestampFileRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TimestampFileRequest>(create);
+  static TimestampFileRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get filename => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set filename($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFilename() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFilename() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.List<$core.int> get fileData => $_getN(1);
+  @$pb.TagNumber(2)
+  set fileData($core.List<$core.int> v) { $_setBytes(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFileData() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFileData() => clearField(2);
+}
+
+class TimestampFileResponse extends $pb.GeneratedMessage {
+  factory TimestampFileResponse({
+    $fixnum.Int64? id,
+    $core.String? fileHash,
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (fileHash != null) {
+      $result.fileHash = fileHash;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  TimestampFileResponse._() : super();
+  factory TimestampFileResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TimestampFileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TimestampFileResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'fileHash')
+    ..aOS(3, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  TimestampFileResponse clone() => TimestampFileResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  TimestampFileResponse copyWith(void Function(TimestampFileResponse) updates) => super.copyWith((message) => updates(message as TimestampFileResponse)) as TimestampFileResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TimestampFileResponse create() => TimestampFileResponse._();
+  TimestampFileResponse createEmptyInstance() => create();
+  static $pb.PbList<TimestampFileResponse> createRepeated() => $pb.PbList<TimestampFileResponse>();
+  @$core.pragma('dart2js:noInline')
+  static TimestampFileResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TimestampFileResponse>(create);
+  static TimestampFileResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get fileHash => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fileHash($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFileHash() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFileHash() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get txid => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set txid($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTxid() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTxid() => clearField(3);
+}
+
+class FileTimestamp extends $pb.GeneratedMessage {
+  factory FileTimestamp({
+    $fixnum.Int64? id,
+    $core.String? filename,
+    $core.String? fileHash,
+    $core.String? txid,
+    $fixnum.Int64? blockHeight,
+    $core.String? status,
+    $0.Timestamp? createdAt,
+    $0.Timestamp? confirmedAt,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (filename != null) {
+      $result.filename = filename;
+    }
+    if (fileHash != null) {
+      $result.fileHash = fileHash;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (blockHeight != null) {
+      $result.blockHeight = blockHeight;
+    }
+    if (status != null) {
+      $result.status = status;
+    }
+    if (createdAt != null) {
+      $result.createdAt = createdAt;
+    }
+    if (confirmedAt != null) {
+      $result.confirmedAt = confirmedAt;
+    }
+    return $result;
+  }
+  FileTimestamp._() : super();
+  factory FileTimestamp.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory FileTimestamp.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FileTimestamp', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'filename')
+    ..aOS(3, _omitFieldNames ? '' : 'fileHash')
+    ..aOS(4, _omitFieldNames ? '' : 'txid')
+    ..aInt64(5, _omitFieldNames ? '' : 'blockHeight')
+    ..aOS(6, _omitFieldNames ? '' : 'status')
+    ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
+    ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'confirmedAt', subBuilder: $0.Timestamp.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  FileTimestamp clone() => FileTimestamp()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  FileTimestamp copyWith(void Function(FileTimestamp) updates) => super.copyWith((message) => updates(message as FileTimestamp)) as FileTimestamp;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FileTimestamp create() => FileTimestamp._();
+  FileTimestamp createEmptyInstance() => create();
+  static $pb.PbList<FileTimestamp> createRepeated() => $pb.PbList<FileTimestamp>();
+  @$core.pragma('dart2js:noInline')
+  static FileTimestamp getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FileTimestamp>(create);
+  static FileTimestamp? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get filename => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set filename($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFilename() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFilename() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get fileHash => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set fileHash($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFileHash() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFileHash() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get txid => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set txid($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasTxid() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTxid() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get blockHeight => $_getI64(4);
+  @$pb.TagNumber(5)
+  set blockHeight($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBlockHeight() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBlockHeight() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get status => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set status($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasStatus() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearStatus() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $0.Timestamp get createdAt => $_getN(6);
+  @$pb.TagNumber(7)
+  set createdAt($0.Timestamp v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasCreatedAt() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearCreatedAt() => clearField(7);
+  @$pb.TagNumber(7)
+  $0.Timestamp ensureCreatedAt() => $_ensure(6);
+
+  @$pb.TagNumber(8)
+  $0.Timestamp get confirmedAt => $_getN(7);
+  @$pb.TagNumber(8)
+  set confirmedAt($0.Timestamp v) { setField(8, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasConfirmedAt() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearConfirmedAt() => clearField(8);
+  @$pb.TagNumber(8)
+  $0.Timestamp ensureConfirmedAt() => $_ensure(7);
+}
+
+class ListTimestampsResponse extends $pb.GeneratedMessage {
+  factory ListTimestampsResponse({
+    $core.Iterable<FileTimestamp>? timestamps,
+  }) {
+    final $result = create();
+    if (timestamps != null) {
+      $result.timestamps.addAll(timestamps);
+    }
+    return $result;
+  }
+  ListTimestampsResponse._() : super();
+  factory ListTimestampsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListTimestampsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListTimestampsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..pc<FileTimestamp>(1, _omitFieldNames ? '' : 'timestamps', $pb.PbFieldType.PM, subBuilder: FileTimestamp.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListTimestampsResponse clone() => ListTimestampsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListTimestampsResponse copyWith(void Function(ListTimestampsResponse) updates) => super.copyWith((message) => updates(message as ListTimestampsResponse)) as ListTimestampsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListTimestampsResponse create() => ListTimestampsResponse._();
+  ListTimestampsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListTimestampsResponse> createRepeated() => $pb.PbList<ListTimestampsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListTimestampsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListTimestampsResponse>(create);
+  static ListTimestampsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<FileTimestamp> get timestamps => $_getList(0);
+}
+
+class VerifyTimestampRequest extends $pb.GeneratedMessage {
+  factory VerifyTimestampRequest({
+    $core.List<$core.int>? fileData,
+  }) {
+    final $result = create();
+    if (fileData != null) {
+      $result.fileData = fileData;
+    }
+    return $result;
+  }
+  VerifyTimestampRequest._() : super();
+  factory VerifyTimestampRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory VerifyTimestampRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VerifyTimestampRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'fileData', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  VerifyTimestampRequest clone() => VerifyTimestampRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  VerifyTimestampRequest copyWith(void Function(VerifyTimestampRequest) updates) => super.copyWith((message) => updates(message as VerifyTimestampRequest)) as VerifyTimestampRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static VerifyTimestampRequest create() => VerifyTimestampRequest._();
+  VerifyTimestampRequest createEmptyInstance() => create();
+  static $pb.PbList<VerifyTimestampRequest> createRepeated() => $pb.PbList<VerifyTimestampRequest>();
+  @$core.pragma('dart2js:noInline')
+  static VerifyTimestampRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VerifyTimestampRequest>(create);
+  static VerifyTimestampRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get fileData => $_getN(0);
+  @$pb.TagNumber(1)
+  set fileData($core.List<$core.int> v) { $_setBytes(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFileData() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFileData() => clearField(1);
+}
+
+class VerifyTimestampResponse extends $pb.GeneratedMessage {
+  factory VerifyTimestampResponse({
+    FileTimestamp? timestamp,
+    $core.String? message,
+  }) {
+    final $result = create();
+    if (timestamp != null) {
+      $result.timestamp = timestamp;
+    }
+    if (message != null) {
+      $result.message = message;
+    }
+    return $result;
+  }
+  VerifyTimestampResponse._() : super();
+  factory VerifyTimestampResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory VerifyTimestampResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VerifyTimestampResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aOM<FileTimestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: FileTimestamp.create)
+    ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  VerifyTimestampResponse clone() => VerifyTimestampResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  VerifyTimestampResponse copyWith(void Function(VerifyTimestampResponse) updates) => super.copyWith((message) => updates(message as VerifyTimestampResponse)) as VerifyTimestampResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static VerifyTimestampResponse create() => VerifyTimestampResponse._();
+  VerifyTimestampResponse createEmptyInstance() => create();
+  static $pb.PbList<VerifyTimestampResponse> createRepeated() => $pb.PbList<VerifyTimestampResponse>();
+  @$core.pragma('dart2js:noInline')
+  static VerifyTimestampResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VerifyTimestampResponse>(create);
+  static VerifyTimestampResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  FileTimestamp get timestamp => $_getN(0);
+  @$pb.TagNumber(1)
+  set timestamp(FileTimestamp v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTimestamp() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTimestamp() => clearField(1);
+  @$pb.TagNumber(1)
+  FileTimestamp ensureTimestamp() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get message => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set message($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessage() => clearField(2);
+}
+
 class MiscServiceApi {
   $pb.RpcClient _client;
   MiscServiceApi(this._client);
@@ -799,6 +1254,15 @@ class MiscServiceApi {
   ;
   $async.Future<ListCoinNewsResponse> listCoinNews($pb.ClientContext? ctx, ListCoinNewsRequest request) =>
     _client.invoke<ListCoinNewsResponse>(ctx, 'MiscService', 'ListCoinNews', request, ListCoinNewsResponse())
+  ;
+  $async.Future<TimestampFileResponse> timestampFile($pb.ClientContext? ctx, TimestampFileRequest request) =>
+    _client.invoke<TimestampFileResponse>(ctx, 'MiscService', 'TimestampFile', request, TimestampFileResponse())
+  ;
+  $async.Future<ListTimestampsResponse> listTimestamps($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<ListTimestampsResponse>(ctx, 'MiscService', 'ListTimestamps', request, ListTimestampsResponse())
+  ;
+  $async.Future<VerifyTimestampResponse> verifyTimestamp($pb.ClientContext? ctx, VerifyTimestampRequest request) =>
+    _client.invoke<VerifyTimestampResponse>(ctx, 'MiscService', 'VerifyTimestamp', request, VerifyTimestampResponse())
   ;
 }
 

@@ -1255,6 +1255,9 @@ abstract class MiscAPI {
   Future<List<Topic>> listTopics();
   Future<CreateTopicResponse> createTopic(String topic, String name);
   Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content);
+  Future<TimestampFileResponse> timestampFile(String filename, List<int> fileData);
+  Future<List<FileTimestamp>> listTimestamps();
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData);
 }
 
 class _MiscAPILive implements MiscAPI {
@@ -1323,6 +1326,45 @@ class _MiscAPILive implements MiscAPI {
       return response.topics;
     } catch (e) {
       final error = 'could not list topics: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<TimestampFileResponse> timestampFile(String filename, List<int> fileData) async {
+    try {
+      final response = await _client.timestampFile(
+        TimestampFileRequest()
+          ..filename = filename
+          ..fileData = fileData,
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not timestamp file: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<List<FileTimestamp>> listTimestamps() async {
+    try {
+      final response = await _client.listTimestamps(Empty());
+      return response.timestamps;
+    } catch (e) {
+      final error = 'could not list timestamps: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData) async {
+    try {
+      final response = await _client.verifyTimestamp(
+        VerifyTimestampRequest()..fileData = fileData,
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not verify timestamp: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

@@ -45,4 +45,26 @@ abstract final class MiscService {
     miscv1misc.ListCoinNewsRequest.new,
     miscv1misc.ListCoinNewsResponse.new,
   );
+
+  /// File timestamping
+  static const timestampFile = connect.Spec(
+    '/$name/TimestampFile',
+    connect.StreamType.unary,
+    miscv1misc.TimestampFileRequest.new,
+    miscv1misc.TimestampFileResponse.new,
+  );
+
+  static const listTimestamps = connect.Spec(
+    '/$name/ListTimestamps',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    miscv1misc.ListTimestampsResponse.new,
+  );
+
+  static const verifyTimestamp = connect.Spec(
+    '/$name/VerifyTimestamp',
+    connect.StreamType.unary,
+    miscv1misc.VerifyTimestampRequest.new,
+    miscv1misc.VerifyTimestampResponse.new,
+  );
 }
