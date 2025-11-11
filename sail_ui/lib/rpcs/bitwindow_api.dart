@@ -85,7 +85,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     final mainchainConf = readMainchainConf();
 
     // Use the port from config instead of hardcoding by network
-    bitwBinary.addBootArg('--bitcoincore.host=localhost:${mainchainConf.port}');
+    bitwBinary.addBootArg('--bitcoincore.url=http://localhost:${mainchainConf.port}');
 
     return [
       '--bitcoincore.rpcuser=${mainchainConf.username}',

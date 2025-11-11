@@ -45,7 +45,7 @@ $ ./bin/bitwindowd \
   --electrum.no-ssl \
   --bitcoincore.rpcuser=user \
   --bitcoincore.rpcpassword=password \
-  --bitcoincore.host=localhost:8332
+  --bitcoincore.url=localhost:8332
 ```
 
 # Architecture
