@@ -5,8 +5,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -33,6 +36,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
@@ -75,6 +79,9 @@ func New(
 			zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to initialize watch wallet")
 		}
 	}()
+
+	// Start background sync of Bitcoin Core addresses to addressbook
+	go s.startAddressSyncLoop(ctx)
 
 	return s
 }
@@ -288,17 +295,35 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	// Check if we have a recent unused address before generating a new one
-	lastAddress, err := s.getLastUnusedAddress(ctx, walletId, walletType)
-	if err != nil {
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to get last unused address, generating new one")
-	}
-	if lastAddress != "" {
-		zerolog.Ctx(ctx).Info().Str("address", lastAddress).Msg("reusing last unused address")
-		return connect.NewResponse(&pb.GetNewAddressResponse{
-			Address: lastAddress,
-			Index:   0,
-		}), nil
+	// For Bitcoin Core wallets, derive addresses and find the first unused one
+	// This prevents address reuse and gaps in the derivation path
+	if walletType == engines.WalletTypeBitcoinCore || walletType == engines.WalletTypeWatchOnly {
+		unusedAddress, derivedAddresses, err := s.deriveAndCheckAddresses(ctx, walletId)
+		if err != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("derive addresses failed, will generate new")
+		}
+		if unusedAddress != "" {
+			zerolog.Ctx(ctx).Debug().Str("address", unusedAddress).Msg("using derived unused address")
+
+			// Save the unused address to addressbook
+			err = addressbook.Create(ctx, s.database, &walletId, "", unusedAddress, addressbook.DirectionReceive)
+			if err != nil && !strings.Contains(err.Error(), addressbook.ErrUniqueAddress) {
+				zerolog.Ctx(ctx).Warn().Err(err).Msg("save address to addressbook")
+			}
+
+			return connect.NewResponse(&pb.GetNewAddressResponse{
+				Address: unusedAddress,
+				Index:   0,
+			}), nil
+		}
+
+		// Also save any other derived addresses we found (for addressbook sync)
+		for _, addr := range derivedAddresses {
+			err = addressbook.Create(ctx, s.database, &walletId, "", addr.Address, addressbook.DirectionReceive)
+			if err != nil && !strings.Contains(err.Error(), addressbook.ErrUniqueAddress) {
+				zerolog.Ctx(ctx).Debug().Err(err).Str("address", addr.Address).Msg("save derived address")
+			}
+		}
 	}
 
 	var address string
@@ -335,15 +360,13 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
 	}
 
-	// Store all receiving addresses in the address book with an empty label
-	err = addressbook.Create(ctx, s.database, "", address, addressbook.DirectionReceive)
+	// Store all receiving addresses in the address book
+	err = addressbook.Create(ctx, s.database, &walletId, "", address, addressbook.DirectionReceive)
 	if err != nil {
 		if err.Error() == addressbook.ErrUniqueAddress {
-			// that's fine, already added! Don't do anything
+			// Address already in addressbook, that's fine
 		} else {
-			err = fmt.Errorf("create address book entry: %w", err)
-			zerolog.Ctx(ctx).Error().Err(err).Msg("create address book entry")
-			return nil, err
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to save address to addressbook")
 		}
 	}
 
@@ -353,57 +376,206 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 	}), nil
 }
 
-// getLastUnusedAddress checks if the last generated address has been used
-// Returns empty string if no unused address found or if last address has been used
-func (s *Server) getLastUnusedAddress(ctx context.Context, walletId string, _ engines.WalletType) (string, error) {
-	// Get all addresses from addressbook
-	entries, err := addressbook.List(ctx, s.database)
+// DerivedAddress represents an address derived from a wallet seed
+type DerivedAddress struct {
+	Address string
+	Index   uint32
+	Used    bool
+}
+
+// deriveAndCheckAddresses is the single source of truth for Bitcoin Core address derivation
+// It derives addresses from the seed and checks which have been used
+// Returns: (firstUnusedAddress, allDerivedAddresses, error)
+func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (string, []DerivedAddress, error) {
+	// Get wallet info to access seed
+	walletInfo, err := s.walletManager.GetWalletInfo(ctx, walletId)
 	if err != nil {
-		return "", fmt.Errorf("list addressbook: %w", err)
+		return "", nil, fmt.Errorf("get wallet info: %w", err)
 	}
 
-	// Find the most recent receive address
-	var lastReceiveAddr string
-	var lastReceiveTime time.Time
-	for _, entry := range entries {
-		if entry.Direction == addressbook.DirectionReceive && entry.CreatedAt.After(lastReceiveTime) {
-			lastReceiveAddr = entry.Address
-			lastReceiveTime = entry.CreatedAt
+	seedHex := walletInfo.Master.SeedHex
+	if seedHex == "" {
+		return "", nil, fmt.Errorf("wallet has no seed")
+	}
+
+	// Decode seed
+	seed, err := hex.DecodeString(seedHex)
+	if err != nil {
+		return "", nil, fmt.Errorf("decode seed: %w", err)
+	}
+
+	// Derive master key
+	masterKey, err := hdkeychain.NewMaster(seed, s.walletManager.GetChainParams())
+	if err != nil {
+		return "", nil, fmt.Errorf("derive master key: %w", err)
+	}
+
+	// Derive to BIP84 receiving path: m/84'/coinType'/0'/0
+	chainParams := s.walletManager.GetChainParams()
+	coinType := uint32(0)
+	if chainParams.Name != "mainnet" {
+		coinType = 1
+	}
+
+	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
+	if err != nil {
+		return "", nil, fmt.Errorf("derive purpose: %w", err)
+	}
+
+	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + coinType)
+	if err != nil {
+		return "", nil, fmt.Errorf("derive coin: %w", err)
+	}
+
+	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
+	if err != nil {
+		return "", nil, fmt.Errorf("derive account: %w", err)
+	}
+
+	// Receiving addresses (external chain = 0)
+	external, err := account.Derive(0)
+	if err != nil {
+		return "", nil, fmt.Errorf("derive external chain: %w", err)
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return "", nil, err
+	}
+
+	walletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+	if err != nil {
+		return "", nil, fmt.Errorf("get wallet name: %w", err)
+	}
+
+	// Get all transactions once to avoid repeated RPC calls
+	txResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
+		Wallet: walletName,
+		Count:  1000, // Check recent transactions
+	}))
+	if err != nil {
+		return "", nil, fmt.Errorf("list transactions: %w", err)
+	}
+
+	// Build a map of used addresses for fast lookup
+	usedAddresses := make(map[string]bool)
+	for _, tx := range txResp.Msg.Transactions {
+		for _, detail := range tx.Details {
+			usedAddresses[detail.Address] = true
 		}
 	}
 
-	if lastReceiveAddr == "" {
-		return "", nil // No previous address
-	}
+	var derivedAddresses []DerivedAddress
+	firstUnusedAddress := ""
 
-	// Check if this address has been used by checking UTXOs
-	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
-	if err != nil {
-		return "", fmt.Errorf("list unspent: %w", err)
-	}
+	// Derive addresses and check usage
+	// BIP44 gap limit is 20, but we'll check more to be safe
+	for i := uint32(0); i < 100; i++ {
+		// Derive address at index i
+		addrKey, err := external.Derive(i)
+		if err != nil {
+			return "", nil, fmt.Errorf("derive address %d: %w", i, err)
+		}
 
-	for _, utxo := range utxos.Msg.Utxos {
-		if utxo.Address == lastReceiveAddr {
-			// Address has been used
-			return "", nil
+		pubKey, err := addrKey.ECPubKey()
+		if err != nil {
+			return "", nil, fmt.Errorf("get public key %d: %w", i, err)
+		}
+
+		// Create P2WPKH address
+		pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
+		witnessAddr, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, chainParams)
+		if err != nil {
+			return "", nil, fmt.Errorf("create address %d: %w", i, err)
+		}
+
+		address := witnessAddr.EncodeAddress()
+		used := usedAddresses[address]
+
+		derivedAddresses = append(derivedAddresses, DerivedAddress{
+			Address: address,
+			Index:   i,
+			Used:    used,
+		})
+
+		// Track first unused address
+		if firstUnusedAddress == "" && !used {
+			firstUnusedAddress = address
 		}
 	}
 
-	// Also check transactions to see if address has been used
-	txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletId}))
+	return firstUnusedAddress, derivedAddresses, nil
+}
+
+// syncCoreAddresses syncs derived addresses to the addressbook
+// This ensures the addressbook stays in sync with wallet state
+func (s *Server) syncCoreAddresses(ctx context.Context) error {
+	// Read wallet.json to get all Bitcoin Core wallets
+	walletFile := filepath.Join(s.walletDir, "wallet.json")
+	data, err := os.ReadFile(walletFile)
 	if err != nil {
-		return "", fmt.Errorf("list transactions: %w", err)
+		return fmt.Errorf("read wallet.json: %w", err)
 	}
 
-	for _, tx := range txs.Msg.Transactions {
-		if tx.Address == lastReceiveAddr {
-			// Address has been used
-			return "", nil
+	var walletData struct {
+		Wallets []engines.WalletInfo `json:"wallets"`
+	}
+
+	if err := json.Unmarshal(data, &walletData); err != nil {
+		return fmt.Errorf("parse wallet.json: %w", err)
+	}
+
+	// Sync addresses for each Bitcoin Core wallet
+	for _, wallet := range walletData.Wallets {
+		if wallet.WalletType != engines.WalletTypeBitcoinCore && wallet.WalletType != engines.WalletTypeWatchOnly {
+			continue
+		}
+
+		// Use the unified function to derive and check addresses
+		_, derivedAddresses, err := s.deriveAndCheckAddresses(ctx, wallet.ID)
+		if err != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).
+				Str("wallet_id", wallet.ID).
+				Str("wallet_name", wallet.Name).
+				Msg("derive addresses for sync")
+			continue
+		}
+
+		// Add all derived addresses to addressbook
+		for _, addr := range derivedAddresses {
+			err := addressbook.Create(ctx, s.database, &wallet.ID, "", addr.Address, addressbook.DirectionReceive)
+			if err != nil && !strings.Contains(err.Error(), addressbook.ErrUniqueAddress) {
+				zerolog.Ctx(ctx).Debug().Err(err).
+					Str("address", addr.Address).
+					Str("wallet_id", wallet.ID).
+					Msg("save address to addressbook")
+			}
 		}
 	}
 
-	// Address has not been used, return it
-	return lastReceiveAddr, nil
+	return nil
+}
+
+// startAddressSyncLoop runs syncCoreAddresses periodically
+func (s *Server) startAddressSyncLoop(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	// Initial sync
+	if err := s.syncCoreAddresses(ctx); err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("initial address sync")
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := s.syncCoreAddresses(ctx); err != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).Msg("periodic address sync")
+			}
+		}
+	}
 }
 
 // getBitcoinCoreAddress is a helper to get a new address from Bitcoin Core wallets

@@ -31,6 +31,7 @@ class TransactionProvider extends ChangeNotifier {
   TransactionProvider() {
     balanceProvider.addListener(fetch);
     blockchainProvider.addListener(fetch);
+    _walletReader.addListener(fetch);
     _startFetchingTimer();
   }
 
@@ -85,6 +86,8 @@ class TransactionProvider extends ChangeNotifier {
           address,
           () => bitwindowd.wallet.getNewAddress(walletId),
           (v) => address = v,
+          // Always update - backend handles finding unused address
+          equals: (a, b) => false,
         ),
         update<List<UnspentOutput>>(
           utxos,
@@ -162,6 +165,7 @@ class TransactionProvider extends ChangeNotifier {
   void dispose() {
     balanceProvider.removeListener(fetch);
     blockchainProvider.removeListener(fetch);
+    _walletReader.removeListener(fetch);
     _fetchTimer?.cancel();
     super.dispose();
   }

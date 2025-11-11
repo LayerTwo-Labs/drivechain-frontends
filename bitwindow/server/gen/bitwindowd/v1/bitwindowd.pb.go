@@ -495,6 +495,7 @@ type AddressBookEntry struct {
 	Address       string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	Direction     Direction              `protobuf:"varint,4,opt,name=direction,proto3,enum=bitwindowd.v1.Direction" json:"direction,omitempty"`
 	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	WalletId      string                 `protobuf:"bytes,6,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -562,6 +563,13 @@ func (x *AddressBookEntry) GetCreateTime() *timestamppb.Timestamp {
 		return x.CreateTime
 	}
 	return nil
+}
+
+func (x *AddressBookEntry) GetWalletId() string {
+	if x != nil {
+		return x.WalletId
+	}
+	return ""
 }
 
 type ListAddressBookResponse struct {
@@ -1388,14 +1396,15 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x126\n" +
 	"\tdirection\x18\x03 \x01(\x0e2\x18.bitwindowd.v1.DirectionR\tdirection\"W\n" +
 	"\x1eCreateAddressBookEntryResponse\x125\n" +
-	"\x05entry\x18\x01 \x01(\v2\x1f.bitwindowd.v1.AddressBookEntryR\x05entry\"\xc7\x01\n" +
+	"\x05entry\x18\x01 \x01(\v2\x1f.bitwindowd.v1.AddressBookEntryR\x05entry\"\xe4\x01\n" +
 	"\x10AddressBookEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
 	"\aaddress\x18\x03 \x01(\tR\aaddress\x126\n" +
 	"\tdirection\x18\x04 \x01(\x0e2\x18.bitwindowd.v1.DirectionR\tdirection\x12;\n" +
 	"\vcreate_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"createTime\"T\n" +
+	"createTime\x12\x1b\n" +
+	"\twallet_id\x18\x06 \x01(\tR\bwalletId\"T\n" +
 	"\x17ListAddressBookResponse\x129\n" +
 	"\aentries\x18\x01 \x03(\v2\x1f.bitwindowd.v1.AddressBookEntryR\aentries\"_\n" +
 	"\x1dUpdateAddressBookEntryRequest\x12\x0e\n" +

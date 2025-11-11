@@ -223,8 +223,75 @@ func (s *Server) ListWithdrawals(
 			fmt.Errorf("validator unavailable: %w", err))
 	}
 
+	// Get sidechains to find activation height
+	sidechainsResp, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("get sidechains: %w", err))
+	}
+
+	// Find the sidechain we're looking for
+	sidechain, found := lo.Find(sidechainsResp.Msg.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) bool {
+		return sc.SidechainNumber != nil && sc.SidechainNumber.Value == c.Msg.SidechainId
+	})
+
+	if !found || sidechain.ActivationHeight == nil {
+		return nil, connect.NewError(connect.CodeNotFound,
+			fmt.Errorf("sidechain %d not found", c.Msg.SidechainId))
+	}
+
+	activationHeight := sidechain.ActivationHeight.Value
+
+	// Get chain tip to use as end block
+	chainTipResp, err := validator.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("get chain tip: %w", err))
+	}
+
+	if chainTipResp.Msg.BlockHeaderInfo == nil ||
+		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
+		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("chain tip missing block hash"))
+	}
+
+	endBlockHash := chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex.Value
+
+	// For start block, we need to traverse backwards from tip to activation height
+	// Request enough ancestors to cover the range
+	currentHeight := chainTipResp.Msg.BlockHeaderInfo.Height
+	if currentHeight < activationHeight {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("activation height %d is greater than current height %d", activationHeight, currentHeight))
+	}
+
+	ancestorsNeeded := currentHeight - activationHeight
+	activationBlockResp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(&validatorpb.GetBlockHeaderInfoRequest{
+		BlockHash:    chainTipResp.Msg.BlockHeaderInfo.BlockHash,
+		MaxAncestors: &ancestorsNeeded,
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("get activation block header: %w", err))
+	}
+
+	// Find the block at activation height
+	activationBlock, found := lo.Find(activationBlockResp.Msg.HeaderInfos, func(headerInfo *validatorpb.BlockHeaderInfo) bool {
+		return headerInfo.Height == activationHeight
+	})
+
+	if !found || activationBlock.BlockHash == nil || activationBlock.BlockHash.Hex == nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("could not find block at activation height %d", activationHeight))
+	}
+
+	startBlockHash := activationBlock.BlockHash.Hex.Value
+
 	pegData, err := validator.GetTwoWayPegData(ctx, connect.NewRequest(&validatorpb.GetTwoWayPegDataRequest{
-		SidechainId: wrapperspb.UInt32(c.Msg.SidechainId),
+		SidechainId:    wrapperspb.UInt32(c.Msg.SidechainId),
+		StartBlockHash: &commonpb.ReverseHex{Hex: wrapperspb.String(startBlockHash)},
+		EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(endBlockHash)},
 	}))
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get two-way peg data")

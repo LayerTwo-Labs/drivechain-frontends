@@ -153,6 +153,7 @@ const AddressBookEntry$json = {
     {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
     {'1': 'direction', '3': 4, '4': 1, '5': 14, '6': '.bitwindowd.v1.Direction', '10': 'direction'},
     {'1': 'create_time', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
+    {'1': 'wallet_id', '3': 6, '4': 1, '5': 9, '10': 'walletId'},
   ],
 };
 
@@ -161,7 +162,8 @@ final $typed_data.Uint8List addressBookEntryDescriptor = $convert.base64Decode(
     'ChBBZGRyZXNzQm9va0VudHJ5Eg4KAmlkGAEgASgDUgJpZBIUCgVsYWJlbBgCIAEoCVIFbGFiZW'
     'wSGAoHYWRkcmVzcxgDIAEoCVIHYWRkcmVzcxI2CglkaXJlY3Rpb24YBCABKA4yGC5iaXR3aW5k'
     'b3dkLnYxLkRpcmVjdGlvblIJZGlyZWN0aW9uEjsKC2NyZWF0ZV90aW1lGAUgASgLMhouZ29vZ2'
-    'xlLnByb3RvYnVmLlRpbWVzdGFtcFIKY3JlYXRlVGltZQ==');
+    'xlLnByb3RvYnVmLlRpbWVzdGFtcFIKY3JlYXRlVGltZRIbCgl3YWxsZXRfaWQYBiABKAlSCHdh'
+    'bGxldElk');
 
 @$core.Deprecated('Use listAddressBookResponseDescriptor instead')
 const ListAddressBookResponse$json = {

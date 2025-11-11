@@ -88,6 +88,7 @@ message AddressBookEntry {
   string address = 3;
   Direction direction = 4;
   google.protobuf.Timestamp create_time = 5;
+  string wallet_id = 6;
 }
 
 message ListAddressBookResponse {
