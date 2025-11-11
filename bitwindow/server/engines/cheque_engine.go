@@ -422,7 +422,6 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 				RangeEnd:    1000, // Watch first 1000 addresses
 				Timestamp:   nil,  // nil = "now", don't rescan
 				Internal:    false,
-				Label:       "cheques",
 			},
 		},
 	}))

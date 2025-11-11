@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -164,6 +166,45 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// Start the cheque engine
 	srv.ChequeEngine.Start(ctx)
 
+	// Auto-unlock unencrypted wallets
+	go func() {
+		walletPath := filepath.Join(conf.Datadir, "wallet.json")
+		encryptionMetadataPath := filepath.Join(conf.Datadir, "wallet_encryption.json")
+
+		// Check if wallet file exists
+		if _, err := os.Stat(walletPath); err != nil {
+			return
+		}
+
+		// If wallet_encryption.json exists, wallet is encrypted - skip auto-unlock
+		if _, err := os.Stat(encryptionMetadataPath); err == nil {
+			log.Info().Msg("wallet is encrypted, skipping auto-unlock")
+			return
+		}
+
+		log.Info().Msg("unencrypted wallet detected, auto-unlocking cheque engine")
+
+		// Load wallet data
+		walletData, err := os.ReadFile(walletPath)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to read wallet for auto-unlock")
+			return
+		}
+
+		var walletMap map[string]any
+		if err := json.Unmarshal(walletData, &walletMap); err != nil {
+			log.Error().Err(err).Msg("failed to parse wallet for auto-unlock")
+			return
+		}
+
+		// Unlock the cheque engine with the wallet data
+		if err := srv.ChequeEngine.Unlock(walletMap); err != nil {
+			log.Error().Err(err).Msg("failed to auto-unlock cheque engine")
+		} else {
+			log.Info().Msg("cheque engine auto-unlocked successfully")
+		}
+	}()
+
 	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
 	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db)
 
@@ -273,7 +314,13 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 		Timestamp().
 		Caller().
 		Logger().
-		Level(logLevel)
+		Level(logLevel).
+		Hook(zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
+			// Filter out noisy btc-buf infrastructure connection logs
+			if strings.Contains(msg, "Established connection to RPC server") {
+				e.Discard()
+			}
+		}))
 
 	zerolog.DefaultContextLogger = &logger
 }

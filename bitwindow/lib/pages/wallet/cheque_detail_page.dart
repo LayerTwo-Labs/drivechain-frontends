@@ -4,12 +4,14 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:stacked/stacked.dart';
 
 class ChequeDetailViewModel extends BaseViewModel {
+  Logger get log => GetIt.I.get<Logger>();
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
   final TransactionProvider _transactionProvider = GetIt.I.get<TransactionProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
