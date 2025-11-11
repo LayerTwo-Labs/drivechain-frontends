@@ -598,6 +598,7 @@ class AddressBookEntry extends $pb.GeneratedMessage {
     $core.String? address,
     Direction? direction,
     $0.Timestamp? createTime,
+    $core.String? walletId,
   }) {
     final $result = create();
     if (id != null) {
@@ -615,6 +616,9 @@ class AddressBookEntry extends $pb.GeneratedMessage {
     if (createTime != null) {
       $result.createTime = createTime;
     }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     return $result;
   }
   AddressBookEntry._() : super();
@@ -627,6 +631,7 @@ class AddressBookEntry extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'address')
     ..e<Direction>(4, _omitFieldNames ? '' : 'direction', $pb.PbFieldType.OE, defaultOrMaker: Direction.DIRECTION_UNSPECIFIED, valueOf: Direction.valueOf, enumValues: Direction.values)
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
+    ..aOS(6, _omitFieldNames ? '' : 'walletId')
     ..hasRequiredFields = false
   ;
 
@@ -697,6 +702,15 @@ class AddressBookEntry extends $pb.GeneratedMessage {
   void clearCreateTime() => clearField(5);
   @$pb.TagNumber(5)
   $0.Timestamp ensureCreateTime() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $core.String get walletId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set walletId($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasWalletId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearWalletId() => clearField(6);
 }
 
 class ListAddressBookResponse extends $pb.GeneratedMessage {

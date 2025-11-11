@@ -16,6 +16,7 @@ type Entry struct {
 	Label     string
 	Address   string
 	Direction Direction
+	WalletID  *string
 	CreatedAt time.Time
 }
 
@@ -26,15 +27,15 @@ const (
 	DirectionReceive Direction = "receive"
 )
 
-func Create(ctx context.Context, db *sql.DB, label, address string, direction Direction) error {
+func Create(ctx context.Context, db *sql.DB, walletID *string, label, address string, direction Direction) error {
 	_, err := db.ExecContext(ctx,
-		`INSERT INTO address_book (label, address, direction) VALUES (?, ?, ?)`,
-		label, address, direction)
+		`INSERT INTO address_book (wallet_id, label, address, direction) VALUES (?, ?, ?, ?)`,
+		walletID, label, address, direction)
 	return err
 }
 
 func List(ctx context.Context, db *sql.DB) ([]Entry, error) {
-	rows, err := db.QueryContext(ctx, `SELECT id, label, address, direction, created_at FROM address_book`)
+	rows, err := db.QueryContext(ctx, `SELECT id, label, address, direction, COALESCE(wallet_id, ''), created_at FROM address_book`)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +44,26 @@ func List(ctx context.Context, db *sql.DB) ([]Entry, error) {
 	var entries []Entry
 	for rows.Next() {
 		var entry Entry
-		if err := rows.Scan(&entry.ID, &entry.Label, &entry.Address, &entry.Direction, &entry.CreatedAt); err != nil {
+		if err := rows.Scan(&entry.ID, &entry.Label, &entry.Address, &entry.Direction, &entry.WalletID, &entry.CreatedAt); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, rows.Err()
+}
+
+// ListByWallet returns address book entries for a specific wallet
+func ListByWallet(ctx context.Context, db *sql.DB, walletID string) ([]Entry, error) {
+	rows, err := db.QueryContext(ctx, `SELECT id, label, address, direction, COALESCE(wallet_id, ''), created_at FROM address_book WHERE wallet_id = ?`, walletID)
+	if err != nil {
+		return nil, err
+	}
+	defer database.SafeDefer(ctx, rows.Close)
+
+	var entries []Entry
+	for rows.Next() {
+		var entry Entry
+		if err := rows.Scan(&entry.ID, &entry.Label, &entry.Address, &entry.Direction, &entry.WalletID, &entry.CreatedAt); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)

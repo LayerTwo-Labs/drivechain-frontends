@@ -76,6 +76,11 @@ func NewWalletManager(
 	}
 }
 
+// GetChainParams returns the chain parameters for this wallet manager
+func (wm *WalletManager) GetChainParams() *chaincfg.Params {
+	return wm.chainParams
+}
+
 // GetWalletInfo reads wallet.json and returns info for the specified walletId
 func (wm *WalletManager) GetWalletInfo(ctx context.Context, walletId string) (*WalletInfo, error) {
 	walletFile := filepath.Join(wm.walletDir, "wallet.json")

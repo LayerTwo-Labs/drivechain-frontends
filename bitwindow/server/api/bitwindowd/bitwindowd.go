@@ -230,7 +230,8 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if err := addressbook.Create(ctx, s.db, req.Msg.Label, address.String(), direction); err != nil {
+	// User-added addresses don't belong to a specific wallet (nil walletId)
+	if err := addressbook.Create(ctx, s.db, nil, req.Msg.Label, address.String(), direction); err != nil {
 		// Check if this is a unique constraint error for address+direction
 		if err.Error() == addressbook.ErrUniqueAddress {
 			// Get the existing entry to update
@@ -277,12 +278,17 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 }
 
 func EntryToProto(entry *addressbook.Entry) *pb.AddressBookEntry {
+	walletId := ""
+	if entry.WalletID != nil {
+		walletId = *entry.WalletID
+	}
 	return &pb.AddressBookEntry{
 		Id:         entry.ID,
 		Label:      entry.Label,
 		Address:    entry.Address,
 		Direction:  addressbook.DirectionToProto(entry.Direction),
 		CreateTime: timestamppb.New(entry.CreatedAt),
+		WalletId:   walletId,
 	}
 }
 
@@ -295,12 +301,17 @@ func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[empty
 
 	var pbEntries []*pb.AddressBookEntry
 	for _, entry := range entries {
+		walletId := ""
+		if entry.WalletID != nil {
+			walletId = *entry.WalletID
+		}
 		pbEntries = append(pbEntries, &pb.AddressBookEntry{
 			Id:         entry.ID,
 			Label:      entry.Label,
 			Address:    entry.Address,
 			Direction:  addressbook.DirectionToProto(entry.Direction),
 			CreateTime: timestamppb.New(entry.CreatedAt),
+			WalletId:   walletId,
 		})
 	}
 
