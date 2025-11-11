@@ -24,7 +24,7 @@ services:
 
     command:
       - faucetd
-      - --bitcoincore.host=mainchain:38332
+      - --bitcoincore.url=http://mainchain:38332
       - --bitcoincore.rpcuser=user
       - --bitcoincore.rpcpassword=password
       - --api.host=0.0.0.0:8082

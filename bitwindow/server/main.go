@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -325,7 +327,24 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 	zerolog.DefaultContextLogger = &logger
 }
 
+var coreProxyOnce sync.Once
+
 func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoind, error) {
+	coreURL, err := url.Parse(conf.BitcoinCoreURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse bitcoin core url: %w", err)
+	}
+
+	coreProxyOnce.Do(func() {
+		at := coreURL.Host
+
+		if conf.BitcoinCoreRpcUser != "" {
+			at = fmt.Sprintf("%s:****@%s", conf.BitcoinCoreRpcUser, at)
+		}
+		zerolog.Ctx(ctx).Info().
+			Msgf("starting Bitcoin Core proxy at %s", at)
+	})
+
 	logLevel := zerolog.WarnLevel
 
 	// We don't want info logs from the core proxy because the ReconnectLoop()
@@ -333,10 +352,7 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 	warnLogger := zerolog.Ctx(ctx).Level(logLevel)
 	ctx = warnLogger.WithContext(ctx)
 
-	core, err := coreproxy.NewBitcoind(
-		ctx, conf.BitcoinCoreHost,
-		conf.BitcoinCoreRpcUser, conf.BitcoinCoreRpcPassword,
-
+	opts := []coreproxy.Option{
 		// Also configure the per-request log level
 		coreproxy.WithLogging(func(ctx context.Context) *zerolog.Logger {
 			log := zerolog.Ctx(ctx).Level(logLevel)
@@ -345,6 +361,17 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 
 		// We don't want startup of bitwindow to depend on Core running
 		coreproxy.WithoutInitialConnectionCheck(),
+
+		coreproxy.WithTLS(),
+	}
+
+	if coreURL.Scheme == "https" {
+		opts = append(opts, coreproxy.WithTLS())
+	}
+
+	core, err := coreproxy.NewBitcoind(
+		ctx, coreURL.Host,
+		conf.BitcoinCoreRpcUser, conf.BitcoinCoreRpcPassword,
 	)
 	if err != nil {
 		return nil, err
