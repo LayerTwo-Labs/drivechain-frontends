@@ -146,20 +146,15 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return fmt.Errorf("close core proxy listener: %w", err)
 	}
 
-	config := api.Config{
-		BitcoinCoreProxyHost: coreProxyListener.Addr().String(),
-		GUIBootedMainchain:   conf.GuiBootedMainchain,
-		GUIBootedEnforcer:    conf.GuiBootedEnforcer,
-		OnShutdown: func() {
-			log.Info().Msg("shutting down")
-			cancelCtx()
-		},
-	}
-
 	srv, err := api.New(
 		ctx,
 		services,
-		config,
+		conf,
+		coreProxyListener,
+		func(ctx context.Context) {
+			log.Info().Msg("shutting down")
+			cancelCtx()
+		},
 	)
 	if err != nil {
 		return err

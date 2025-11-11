@@ -542,6 +542,10 @@ func (m *Miner) GetHashes() uint64 {
 	return m.totalHashes.Load()
 }
 
+func (m *Miner) AcceptedBlocks() <-chan chainhash.Hash {
+	return m.acceptedBlocks
+}
+
 func (m *Miner) Start(ctx context.Context) error {
 	if m.routines == 0 {
 		panic("PROGRAMMER ERROR: zero routines")

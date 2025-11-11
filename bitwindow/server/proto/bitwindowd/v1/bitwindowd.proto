@@ -8,6 +8,8 @@ import "google/protobuf/timestamp.proto";
 service BitwindowdService {
   rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
 
+  rpc MineBlocks(google.protobuf.Empty) returns (stream MineBlocksResponse);
+
   // Deniability operations
   rpc CreateDenial(CreateDenialRequest) returns (google.protobuf.Empty);
   rpc CancelDenial(CancelDenialRequest) returns (google.protobuf.Empty);
@@ -172,4 +174,20 @@ message Block {
 message ListBlocksResponse {
   repeated Block recent_blocks = 4;
   bool has_more = 5; // Whether there are more blocks available
+}
+
+message MineBlocksResponse {
+  message HashRate {
+    // Hashes per second
+    double hash_rate = 1;
+  }
+
+  message BlockFound {
+    string block_hash = 1;
+  }
+
+  oneof event {
+    BlockFound block_found = 1;
+    HashRate hash_rate = 2;
+  }
 }
