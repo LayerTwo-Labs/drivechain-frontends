@@ -13,12 +13,12 @@ Drivechain-Qt elements to implement:
 #### Sidechain-specific features:
 
 - [x] View list of sidechains
-- [ ] Propose sidechains
+- [x] Propose sidechains
 - [x] Deposit to sidechains
-- [ ] View list of sidechain withdrawals
+- [x] View list of sidechain withdrawals
 - [x] View list of your sidechain deposits
 - [ ] Set withdrawal bundle ACK settings
-- [ ] View sidechain proposals
+- [x] View sidechain proposals
 - [ ] Sidechain proposal ACK settings
 
 #### Advanced but important features:
@@ -29,19 +29,22 @@ Drivechain-Qt elements to implement:
 #### Deprioritized features:
 
 - [x] Graffiti Explorer & creator (OP_RETURN text encoding viewer & creator)
-- [ ] Multisig lounge
+- [x] Multisig lounge
 - [x] OP_RETURN file backup
-- [ ] Sign & verify messages
-- [ ] View mining pool info / statistics
+- [x] Sign & verify messages
+- [x] CPU Mining
 - [x] Hash Calculator
-- [ ] Merkle tree viewer
+- [x] Merkle tree viewer
 - [x] Base58 decoder / encoder
 - [ ] Paper wallet (create, print)
 - [x] Address book (wallet)
-- [ ] Write a check
+- [x] Write a check
 - [ ] Timestamp files
-- [ ] Chain merchants
 - [ ] Proof of funds
+
+#### Removed from scope (not important):
+
+- [ ] Chain Merchants
 
 # RPCs that would be helpful from CUSF client
 

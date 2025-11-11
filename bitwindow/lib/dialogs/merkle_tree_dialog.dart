@@ -9,7 +9,14 @@ import 'package:sail_ui/sail_ui.dart';
 /// Tabs: Merkle Tree, Witness Merkle Tree, Help
 /// Features: RCB (Reversed Concatenated Bytes) toggle for manual verification
 class MerkleTreeDialog extends StatefulWidget {
-  const MerkleTreeDialog({super.key});
+  final List<String>? initialTxids;
+  final String? expectedRoot;
+
+  const MerkleTreeDialog({
+    super.key,
+    this.initialTxids,
+    this.expectedRoot,
+  });
 
   @override
   State<MerkleTreeDialog> createState() => _MerkleTreeDialogState();
@@ -28,6 +35,15 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Auto-populate if initial TxIDs provided
+    if (widget.initialTxids != null && widget.initialTxids!.isNotEmpty) {
+      _txidsController.text = widget.initialTxids!.join('\n');
+      // Auto-calculate on next frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _calculateTree();
+      });
+    }
   }
 
   @override
@@ -377,7 +393,74 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // Validation against expected root (if provided)
+                  if (widget.expectedRoot != null) ...[
+                    Builder(
+                      builder: (context) {
+                        final calculatedRoot = _tree!.last.first;
+                        final isValid = calculatedRoot.toLowerCase() == widget.expectedRoot!.toLowerCase();
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: (isValid ? theme.colors.success : theme.colors.error).withValues(alpha: 0.1),
+                            borderRadius: SailStyleValues.borderRadiusSmall,
+                            border: Border.all(
+                              color: isValid ? theme.colors.success : theme.colors.error,
+                              width: 2,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    isValid ? Icons.check_circle : Icons.error,
+                                    color: isValid ? theme.colors.success : theme.colors.error,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  SailText.primary15(
+                                    isValid ? 'Merkle root matches block header ✓' : 'Merkle root MISMATCH ✗',
+                                    bold: true,
+                                    color: isValid ? theme.colors.success : theme.colors.error,
+                                  ),
+                                ],
+                              ),
+                              if (!isValid) ...[
+                                const SizedBox(height: 16),
+                                SailText.primary13('Expected:', bold: true),
+                                const SizedBox(height: 4),
+                                SelectableText(
+                                  widget.expectedRoot!,
+                                  style: TextStyle(
+                                    fontFamily: 'IBMPlexMono',
+                                    fontSize: 12,
+                                    color: theme.colors.text,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                SailText.primary13('Calculated:', bold: true),
+                                const SizedBox(height: 4),
+                                SelectableText(
+                                  calculatedRoot,
+                                  style: TextStyle(
+                                    fontFamily: 'IBMPlexMono',
+                                    fontSize: 12,
+                                    color: theme.colors.text,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                  ],
 
                   // Display full tree
                   Container(
