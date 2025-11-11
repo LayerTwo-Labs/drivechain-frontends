@@ -102,13 +102,18 @@ func New(
 		s.ChainParams,
 	)
 
+	// Create timestamp engine for file timestamping
+	walletAdapter := engines.NewWalletAdapter(walletSvc)
+	timestampEngine := engines.NewTimestampEngine(s.Database, zerolog.Ctx(ctx).With().Str("component", "timestamp").Logger(), walletAdapter)
+
 	srv := &Server{
-		mux:          mux,
-		Bitcoind:     bitcoindSvc,
-		Enforcer:     validatorSvc,
-		Wallet:       walletSvc,
-		Crypto:       cryptoSvc,
-		ChequeEngine: chequeEngine,
+		mux:             mux,
+		Bitcoind:        bitcoindSvc,
+		Enforcer:        validatorSvc,
+		Wallet:          walletSvc,
+		Crypto:          cryptoSvc,
+		ChequeEngine:    chequeEngine,
+		TimestampEngine: timestampEngine,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
@@ -184,7 +189,7 @@ func New(
 		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletManager, walletSyncer, s.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
-		s.Database, walletSvc,
+		s.Database, walletSvc, timestampEngine,
 	)))
 	Register(srv, healthv1connect.NewHealthServiceHandler, healthv1connect.HealthServiceHandler(api_health.New(
 		s.Database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
@@ -207,11 +212,12 @@ type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
 
-	Enforcer     *service.Service[validatorrpc.ValidatorServiceClient]
-	Bitcoind     *service.Service[corerpc.BitcoinServiceClient]
-	Wallet       *service.Service[validatorrpc.WalletServiceClient]
-	Crypto       *service.Service[cryptorpc.CryptoServiceClient]
-	ChequeEngine *engines.ChequeEngine
+	Enforcer        *service.Service[validatorrpc.ValidatorServiceClient]
+	Bitcoind        *service.Service[corerpc.BitcoinServiceClient]
+	Wallet          *service.Service[validatorrpc.WalletServiceClient]
+	Crypto          *service.Service[cryptorpc.CryptoServiceClient]
+	ChequeEngine    *engines.ChequeEngine
+	TimestampEngine *engines.TimestampEngine
 }
 
 func (s *Server) Handler() http.Handler {
