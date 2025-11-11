@@ -113,7 +113,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
           }
         },
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 12),
           width: menuWidth,
           height: widget.height,
           decoration: BoxDecoration(

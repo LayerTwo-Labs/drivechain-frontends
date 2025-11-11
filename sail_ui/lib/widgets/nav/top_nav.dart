@@ -8,10 +8,16 @@ class TopNav extends StatefulWidget implements PreferredSizeWidget {
   final Widget? leadingWidget;
   final Widget? endWidget;
 
-  const TopNav({super.key, required this.routes, this.leadingPadding = false, this.leadingWidget, this.endWidget});
+  const TopNav({
+    super.key,
+    required this.routes,
+    this.leadingPadding = true,
+    this.leadingWidget,
+    this.endWidget,
+  });
 
   @override
-  Size get preferredSize => const Size.fromHeight(43);
+  Size get preferredSize => const Size.fromHeight(53);
 
   @override
   State<TopNav> createState() => _TopNavState();
@@ -23,22 +29,21 @@ class _TopNavState extends State<TopNav> {
     final theme = context.sailTheme;
 
     return PreferredSize(
-      preferredSize: const Size.fromHeight(43),
+      preferredSize: const Size.fromHeight(53),
       child: Builder(
         builder: (context) {
           final tabsRouter = AutoTabsRouter.of(context);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Padding(
-                padding: EdgeInsets.only(left: widget.leadingPadding ? 48 : 0),
+                padding: EdgeInsets.only(left: widget.leadingPadding ? 16 : 0, bottom: 4),
                 child: SailRow(
-                  leadingSpacing: true,
                   spacing: 30,
                   mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (widget.leadingWidget != null) widget.leadingWidget!,
                     ...widget.routes.asMap().entries.map(
@@ -53,20 +58,17 @@ class _TopNavState extends State<TopNav> {
                             ),
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 8, bottom: 6),
-                          child: QtTab(
-                            label: entry.value.label,
-                            icon: entry.value.icon,
-                            active: tabsRouter.activeIndex == entry.key,
-                            onTap: () {
-                              if (entry.value.onTap != null) {
-                                entry.value.onTap!();
-                              } else {
-                                tabsRouter.setActiveIndex(entry.key);
-                              }
-                            },
-                          ),
+                        child: QtTab(
+                          label: entry.value.label,
+                          icon: entry.value.icon,
+                          active: tabsRouter.activeIndex == entry.key,
+                          onTap: () {
+                            if (entry.value.onTap != null) {
+                              entry.value.onTap!();
+                            } else {
+                              tabsRouter.setActiveIndex(entry.key);
+                            }
+                          },
                         ),
                       ),
                     ),

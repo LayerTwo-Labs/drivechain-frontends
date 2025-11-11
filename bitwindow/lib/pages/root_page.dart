@@ -721,20 +721,17 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     backgroundColor: theme.colors.background,
                     appBar: TopNav(
                       leadingWidget: _isWalletSwitching
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: LoadingIndicator.insideButton(theme.colors.primary),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  SailText.primary13('Switching wallet...', bold: true),
-                                ],
-                              ),
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: LoadingIndicator.insideButton(theme.colors.primary),
+                                ),
+                                const SizedBox(width: 12),
+                                SailText.primary13('Switching wallet...', bold: true),
+                              ],
                             )
                           : WalletDropdown(
                               currentWallet: _walletReader.availableWallets
