@@ -11,6 +11,7 @@ class SailDropdownButton<T> extends StatefulWidget {
   final bool enabled;
   final bool openOnHover;
   final List<Widget>? menuChildren;
+  final bool hideCurrentlySelectedFromList;
 
   const SailDropdownButton({
     required this.items,
@@ -22,6 +23,7 @@ class SailDropdownButton<T> extends StatefulWidget {
     this.enabled = true,
     this.openOnHover = false,
     this.menuChildren,
+    this.hideCurrentlySelectedFromList = false,
     super.key,
   });
 
@@ -54,6 +56,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
     final theme = SailTheme.of(context);
 
     var items = widget.items
+        .where((e) => !widget.hideCurrentlySelectedFromList || e.value != widget.value)
         .map(
           (e) => SailMenuItem(
             onSelected: () {
@@ -94,11 +97,11 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
             color: widget.value == null ? theme.colors.primary : Colors.transparent,
           ),
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+            padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
             child: SailRow(
               spacing: SailStyleValues.padding08,
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisSize: MainAxisSize.max,
               children: [
                 currentDisplay,
                 SailSVG.fromAsset(

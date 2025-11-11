@@ -22,9 +22,12 @@ class WalletDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return SailDropdownButton<String>(
+    return SizedBox(
+      width: 200,
+      child: SailDropdownButton<String>(
       key: ValueKey('wallet_dropdown_${currentWallet?.id}_${currentWallet?.gradient.backgroundSvg}'),
       value: currentWallet?.id,
+      hideCurrentlySelectedFromList: true,
       items: availableWallets
           .map(
             (wallet) => SailDropdownItem<String>(
@@ -46,29 +49,8 @@ class WalletDropdown extends StatelessWidget {
           )
           .toList(),
       onChanged: (walletId) async {
-        if (walletId != null) {
-          // If clicking the currently selected wallet, open background chooser
-          if (walletId == currentWallet?.id && onBackgroundChanged != null) {
-            final takenBackgrounds = availableWallets
-                .where((w) => w.id != walletId)
-                .map((w) => w.gradient.backgroundSvg ?? '')
-                .where((svg) => svg.isNotEmpty)
-                .toList();
-
-            final newBackground = await showDialog<String>(
-              context: context,
-              builder: (context) => SelectBackgroundDialog(
-                currentBackground: currentWallet?.gradient.backgroundSvg,
-                takenBackgrounds: takenBackgrounds,
-              ),
-            );
-
-            if (newBackground != null) {
-              onBackgroundChanged!(walletId, newBackground);
-            }
-          } else {
-            onWalletSelected(walletId);
-          }
+        if (walletId != null && walletId != currentWallet?.id) {
+          onWalletSelected(walletId);
         }
       },
       menuChildren: [
@@ -100,6 +82,7 @@ class WalletDropdown extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }
