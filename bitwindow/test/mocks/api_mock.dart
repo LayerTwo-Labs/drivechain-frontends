@@ -438,6 +438,21 @@ class MockMiscAPI implements MiscAPI {
   Future<List<Topic>> listTopics() async {
     return [];
   }
+
+  @override
+  Future<TimestampFileResponse> timestampFile(String filename, List<int> fileData) async {
+    return TimestampFileResponse();
+  }
+
+  @override
+  Future<List<FileTimestamp>> listTimestamps() async {
+    return [];
+  }
+
+  @override
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData) async {
+    return VerifyTimestampResponse();
+  }
 }
 
 class MockHealthAPI implements HealthAPI {

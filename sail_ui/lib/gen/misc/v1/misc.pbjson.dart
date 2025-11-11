@@ -184,6 +184,104 @@ final $typed_data.Uint8List listCoinNewsResponseDescriptor = $convert.base64Deco
     'ChRMaXN0Q29pbk5ld3NSZXNwb25zZRIuCgljb2luX25ld3MYASADKAsyES5taXNjLnYxLkNvaW'
     '5OZXdzUghjb2luTmV3cw==');
 
+@$core.Deprecated('Use timestampFileRequestDescriptor instead')
+const TimestampFileRequest$json = {
+  '1': 'TimestampFileRequest',
+  '2': [
+    {'1': 'filename', '3': 1, '4': 1, '5': 9, '10': 'filename'},
+    {'1': 'file_data', '3': 2, '4': 1, '5': 12, '10': 'fileData'},
+  ],
+};
+
+/// Descriptor for `TimestampFileRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List timestampFileRequestDescriptor = $convert.base64Decode(
+    'ChRUaW1lc3RhbXBGaWxlUmVxdWVzdBIaCghmaWxlbmFtZRgBIAEoCVIIZmlsZW5hbWUSGwoJZm'
+    'lsZV9kYXRhGAIgASgMUghmaWxlRGF0YQ==');
+
+@$core.Deprecated('Use timestampFileResponseDescriptor instead')
+const TimestampFileResponse$json = {
+  '1': 'TimestampFileResponse',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+    {'1': 'file_hash', '3': 2, '4': 1, '5': 9, '10': 'fileHash'},
+    {'1': 'txid', '3': 3, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `TimestampFileResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List timestampFileResponseDescriptor = $convert.base64Decode(
+    'ChVUaW1lc3RhbXBGaWxlUmVzcG9uc2USDgoCaWQYASABKANSAmlkEhsKCWZpbGVfaGFzaBgCIA'
+    'EoCVIIZmlsZUhhc2gSEgoEdHhpZBgDIAEoCVIEdHhpZA==');
+
+@$core.Deprecated('Use fileTimestampDescriptor instead')
+const FileTimestamp$json = {
+  '1': 'FileTimestamp',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+    {'1': 'filename', '3': 2, '4': 1, '5': 9, '10': 'filename'},
+    {'1': 'file_hash', '3': 3, '4': 1, '5': 9, '10': 'fileHash'},
+    {'1': 'txid', '3': 4, '4': 1, '5': 9, '9': 0, '10': 'txid', '17': true},
+    {'1': 'block_height', '3': 5, '4': 1, '5': 3, '9': 1, '10': 'blockHeight', '17': true},
+    {'1': 'status', '3': 6, '4': 1, '5': 9, '10': 'status'},
+    {'1': 'created_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {'1': 'confirmed_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 2, '10': 'confirmedAt', '17': true},
+  ],
+  '8': [
+    {'1': '_txid'},
+    {'1': '_block_height'},
+    {'1': '_confirmed_at'},
+  ],
+};
+
+/// Descriptor for `FileTimestamp`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List fileTimestampDescriptor = $convert.base64Decode(
+    'Cg1GaWxlVGltZXN0YW1wEg4KAmlkGAEgASgDUgJpZBIaCghmaWxlbmFtZRgCIAEoCVIIZmlsZW'
+    '5hbWUSGwoJZmlsZV9oYXNoGAMgASgJUghmaWxlSGFzaBIXCgR0eGlkGAQgASgJSABSBHR4aWSI'
+    'AQESJgoMYmxvY2tfaGVpZ2h0GAUgASgDSAFSC2Jsb2NrSGVpZ2h0iAEBEhYKBnN0YXR1cxgGIA'
+    'EoCVIGc3RhdHVzEjkKCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0'
+    'YW1wUgljcmVhdGVkQXQSQgoMY29uZmlybWVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLl'
+    'RpbWVzdGFtcEgCUgtjb25maXJtZWRBdIgBAUIHCgVfdHhpZEIPCg1fYmxvY2tfaGVpZ2h0Qg8K'
+    'DV9jb25maXJtZWRfYXQ=');
+
+@$core.Deprecated('Use listTimestampsResponseDescriptor instead')
+const ListTimestampsResponse$json = {
+  '1': 'ListTimestampsResponse',
+  '2': [
+    {'1': 'timestamps', '3': 1, '4': 3, '5': 11, '6': '.misc.v1.FileTimestamp', '10': 'timestamps'},
+  ],
+};
+
+/// Descriptor for `ListTimestampsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTimestampsResponseDescriptor = $convert.base64Decode(
+    'ChZMaXN0VGltZXN0YW1wc1Jlc3BvbnNlEjYKCnRpbWVzdGFtcHMYASADKAsyFi5taXNjLnYxLk'
+    'ZpbGVUaW1lc3RhbXBSCnRpbWVzdGFtcHM=');
+
+@$core.Deprecated('Use verifyTimestampRequestDescriptor instead')
+const VerifyTimestampRequest$json = {
+  '1': 'VerifyTimestampRequest',
+  '2': [
+    {'1': 'file_data', '3': 1, '4': 1, '5': 12, '10': 'fileData'},
+  ],
+};
+
+/// Descriptor for `VerifyTimestampRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List verifyTimestampRequestDescriptor = $convert.base64Decode(
+    'ChZWZXJpZnlUaW1lc3RhbXBSZXF1ZXN0EhsKCWZpbGVfZGF0YRgBIAEoDFIIZmlsZURhdGE=');
+
+@$core.Deprecated('Use verifyTimestampResponseDescriptor instead')
+const VerifyTimestampResponse$json = {
+  '1': 'VerifyTimestampResponse',
+  '2': [
+    {'1': 'timestamp', '3': 1, '4': 1, '5': 11, '6': '.misc.v1.FileTimestamp', '10': 'timestamp'},
+    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `VerifyTimestampResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List verifyTimestampResponseDescriptor = $convert.base64Decode(
+    'ChdWZXJpZnlUaW1lc3RhbXBSZXNwb25zZRI0Cgl0aW1lc3RhbXAYASABKAsyFi5taXNjLnYxLk'
+    'ZpbGVUaW1lc3RhbXBSCXRpbWVzdGFtcBIYCgdtZXNzYWdlGAIgASgJUgdtZXNzYWdl');
+
 const $core.Map<$core.String, $core.dynamic> MiscServiceBase$json = {
   '1': 'MiscService',
   '2': [
@@ -192,6 +290,9 @@ const $core.Map<$core.String, $core.dynamic> MiscServiceBase$json = {
     {'1': 'CreateTopic', '2': '.misc.v1.CreateTopicRequest', '3': '.misc.v1.CreateTopicResponse'},
     {'1': 'ListTopics', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListTopicsResponse'},
     {'1': 'ListCoinNews', '2': '.misc.v1.ListCoinNewsRequest', '3': '.misc.v1.ListCoinNewsResponse'},
+    {'1': 'TimestampFile', '2': '.misc.v1.TimestampFileRequest', '3': '.misc.v1.TimestampFileResponse'},
+    {'1': 'ListTimestamps', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListTimestampsResponse'},
+    {'1': 'VerifyTimestamp', '2': '.misc.v1.VerifyTimestampRequest', '3': '.misc.v1.VerifyTimestampResponse'},
   ],
 };
 
@@ -210,6 +311,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MiscServic
   '.misc.v1.ListCoinNewsRequest': ListCoinNewsRequest$json,
   '.misc.v1.ListCoinNewsResponse': ListCoinNewsResponse$json,
   '.misc.v1.CoinNews': CoinNews$json,
+  '.misc.v1.TimestampFileRequest': TimestampFileRequest$json,
+  '.misc.v1.TimestampFileResponse': TimestampFileResponse$json,
+  '.misc.v1.ListTimestampsResponse': ListTimestampsResponse$json,
+  '.misc.v1.FileTimestamp': FileTimestamp$json,
+  '.misc.v1.VerifyTimestampRequest': VerifyTimestampRequest$json,
+  '.misc.v1.VerifyTimestampResponse': VerifyTimestampResponse$json,
 };
 
 /// Descriptor for `MiscService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -220,5 +327,10 @@ final $typed_data.Uint8List miscServiceDescriptor = $convert.base64Decode(
     'oLQ3JlYXRlVG9waWMSGy5taXNjLnYxLkNyZWF0ZVRvcGljUmVxdWVzdBocLm1pc2MudjEuQ3Jl'
     'YXRlVG9waWNSZXNwb25zZRJBCgpMaXN0VG9waWNzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh'
     'subWlzYy52MS5MaXN0VG9waWNzUmVzcG9uc2USSwoMTGlzdENvaW5OZXdzEhwubWlzYy52MS5M'
-    'aXN0Q29pbk5ld3NSZXF1ZXN0Gh0ubWlzYy52MS5MaXN0Q29pbk5ld3NSZXNwb25zZQ==');
+    'aXN0Q29pbk5ld3NSZXF1ZXN0Gh0ubWlzYy52MS5MaXN0Q29pbk5ld3NSZXNwb25zZRJOCg1UaW'
+    '1lc3RhbXBGaWxlEh0ubWlzYy52MS5UaW1lc3RhbXBGaWxlUmVxdWVzdBoeLm1pc2MudjEuVGlt'
+    'ZXN0YW1wRmlsZVJlc3BvbnNlEkkKDkxpc3RUaW1lc3RhbXBzEhYuZ29vZ2xlLnByb3RvYnVmLk'
+    'VtcHR5Gh8ubWlzYy52MS5MaXN0VGltZXN0YW1wc1Jlc3BvbnNlElQKD1ZlcmlmeVRpbWVzdGFt'
+    'cBIfLm1pc2MudjEuVmVyaWZ5VGltZXN0YW1wUmVxdWVzdBogLm1pc2MudjEuVmVyaWZ5VGltZX'
+    'N0YW1wUmVzcG9uc2U=');
 

@@ -27,6 +27,9 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
   $async.Future<$5.CreateTopicResponse> createTopic($pb.ServerContext ctx, $5.CreateTopicRequest request);
   $async.Future<$5.ListTopicsResponse> listTopics($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$5.ListCoinNewsResponse> listCoinNews($pb.ServerContext ctx, $5.ListCoinNewsRequest request);
+  $async.Future<$5.TimestampFileResponse> timestampFile($pb.ServerContext ctx, $5.TimestampFileRequest request);
+  $async.Future<$5.ListTimestampsResponse> listTimestamps($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$5.VerifyTimestampResponse> verifyTimestamp($pb.ServerContext ctx, $5.VerifyTimestampRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -35,6 +38,9 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
       case 'CreateTopic': return $5.CreateTopicRequest();
       case 'ListTopics': return $1.Empty();
       case 'ListCoinNews': return $5.ListCoinNewsRequest();
+      case 'TimestampFile': return $5.TimestampFileRequest();
+      case 'ListTimestamps': return $1.Empty();
+      case 'VerifyTimestamp': return $5.VerifyTimestampRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -46,6 +52,9 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
       case 'CreateTopic': return this.createTopic(ctx, request as $5.CreateTopicRequest);
       case 'ListTopics': return this.listTopics(ctx, request as $1.Empty);
       case 'ListCoinNews': return this.listCoinNews(ctx, request as $5.ListCoinNewsRequest);
+      case 'TimestampFile': return this.timestampFile(ctx, request as $5.TimestampFileRequest);
+      case 'ListTimestamps': return this.listTimestamps(ctx, request as $1.Empty);
+      case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $5.VerifyTimestampRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

@@ -14,6 +14,9 @@ import 'package:bitwindow/pages/wallet/cash_cheque_page.dart';
 import 'package:bitwindow/pages/wallet/cash_cheque_success_page.dart';
 import 'package:bitwindow/pages/wallet/cheque_detail_page.dart';
 import 'package:bitwindow/pages/wallet/create_cheque_page.dart';
+import 'package:bitwindow/pages/wallet/create_timestamp_page.dart';
+import 'package:bitwindow/pages/wallet/timestamp_detail_page.dart';
+import 'package:bitwindow/pages/wallet/verify_timestamp_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_another_wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
@@ -124,6 +127,18 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/cheque/:id',
       page: ChequeDetailRoute.page,
+    ),
+    AutoRoute(
+      path: '/timestamp-file',
+      page: CreateTimestampRoute.page,
+    ),
+    AutoRoute(
+      path: '/timestamp/:id',
+      page: TimestampDetailRoute.page,
+    ),
+    AutoRoute(
+      path: '/verify-timestamp',
+      page: VerifyTimestampRoute.page,
     ),
     AutoRoute(
       path: '/cpu-mining',

@@ -247,6 +247,22 @@ class CreateChequeRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [CreateTimestampPage]
+class CreateTimestampRoute extends PageRouteInfo<void> {
+  const CreateTimestampRoute({List<PageRouteInfo>? children})
+    : super(CreateTimestampRoute.name, initialChildren: children);
+
+  static const String name = 'CreateTimestampRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CreateTimestampPage();
+    },
+  );
+}
+
+/// generated route for
 /// [CreateWalletPage]
 class CreateWalletRoute extends PageRouteInfo<CreateWalletRouteArgs> {
   CreateWalletRoute({
@@ -406,6 +422,69 @@ class SidechainsRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const SidechainsPage();
+    },
+  );
+}
+
+/// generated route for
+/// [TimestampDetailPage]
+class TimestampDetailRoute extends PageRouteInfo<TimestampDetailRouteArgs> {
+  TimestampDetailRoute({
+    Key? key,
+    required int timestampId,
+    List<PageRouteInfo>? children,
+  }) : super(
+         TimestampDetailRoute.name,
+         args: TimestampDetailRouteArgs(key: key, timestampId: timestampId),
+         initialChildren: children,
+       );
+
+  static const String name = 'TimestampDetailRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<TimestampDetailRouteArgs>();
+      return TimestampDetailPage(key: args.key, timestampId: args.timestampId);
+    },
+  );
+}
+
+class TimestampDetailRouteArgs {
+  const TimestampDetailRouteArgs({this.key, required this.timestampId});
+
+  final Key? key;
+
+  final int timestampId;
+
+  @override
+  String toString() {
+    return 'TimestampDetailRouteArgs{key: $key, timestampId: $timestampId}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! TimestampDetailRouteArgs) return false;
+    return key == other.key && timestampId == other.timestampId;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ timestampId.hashCode;
+}
+
+/// generated route for
+/// [VerifyTimestampPage]
+class VerifyTimestampRoute extends PageRouteInfo<void> {
+  const VerifyTimestampRoute({List<PageRouteInfo>? children})
+    : super(VerifyTimestampRoute.name, initialChildren: children);
+
+  static const String name = 'VerifyTimestampRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const VerifyTimestampPage();
     },
   );
 }
