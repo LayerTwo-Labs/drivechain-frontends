@@ -21,6 +21,7 @@ import (
 	api_m4 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/m4"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
@@ -52,25 +53,20 @@ type Services struct {
 	WalletDir         string
 }
 
-type Config struct {
-	BitcoinCoreProxyHost string
-	GUIBootedMainchain   bool
-	GUIBootedEnforcer    bool
-	OnShutdown           func()
-}
-
 // New creates a new Server with interceptors applied.
 func New(
 	ctx context.Context,
-	s Services,
-	c Config,
+	svcs Services,
+	conf config.Config,
+	coreProxyListener net.Listener,
+	onShutdown func(ctx context.Context),
 ) (*Server, error) {
 	mux := http.NewServeMux()
 
-	bitcoindSvc := service.New("bitcoind", s.BitcoindConnector)
-	validatorSvc := service.New("enforcer", s.EnforcerConnector)
-	walletSvc := service.New("wallet", s.WalletConnector)
-	cryptoSvc := service.New("crypto", s.CryptoConnector)
+	bitcoindSvc := service.New("bitcoind", svcs.BitcoindConnector)
+	validatorSvc := service.New("enforcer", svcs.EnforcerConnector)
+	walletSvc := service.New("wallet", svcs.WalletConnector)
+	cryptoSvc := service.New("crypto", svcs.CryptoConnector)
 
 	// Start reconnection loops
 	bitcoindSvc.StartReconnectLoop(ctx)
@@ -86,8 +82,8 @@ func New(
 		func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
 			return walletSvc.Get(ctx)
 		},
-		s.WalletDir,
-		s.ChainParams,
+		svcs.WalletDir,
+		svcs.ChainParams,
 	)
 
 	// Create cheque engine for address derivation
@@ -113,7 +109,7 @@ func New(
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
-		c.OnShutdown, s.Database, validatorSvc, walletSvc, bitcoindSvc, c.GUIBootedMainchain, c.GUIBootedEnforcer,
+		onShutdown, svcs.Database, validatorSvc, walletSvc, bitcoindSvc, conf,
 	)))
 
 	// Dynamically forward all Bitcoin Core RPCs to the Bitcoin Core proxy.
@@ -157,8 +153,7 @@ func New(
 		handler := connect.NewUnaryHandler(
 			r.URL.Path, func(ctx context.Context, cRequest *connect.Request[dynamicpb.Message]) (*connect.Response[dynamicpb.Message], error) {
 				var httpClient http.Client
-
-				fullURL := "http://" + c.BitcoinCoreProxyHost + r.URL.Path
+				fullURL := "http://" + coreProxyListener.Addr().String() + r.URL.Path
 
 				client := connect.NewClient[dynamicpb.Message, dynamicpb.Message](
 					&httpClient, fullURL,
@@ -188,7 +183,7 @@ func New(
 		s.Database, walletSvc, timestampEngine,
 	)))
 	Register(srv, healthv1connect.NewHealthServiceHandler, healthv1connect.HealthServiceHandler(api_health.New(
-		s.Database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
+		svcs.Database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
 	)))
 	Register(srv, m4v1connect.NewM4ServiceHandler, m4v1connect.M4ServiceHandler(api_m4.NewServer(
 		m4Engine,

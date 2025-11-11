@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/cpuminer"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
@@ -32,13 +35,12 @@ var _ rpc.BitwindowdServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
-	onShutdown func(),
+	onShutdown func(ctx context.Context),
 	db *sql.DB,
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
-	guiBootedMainchain bool,
-	guiBootedEnforcer bool,
+	config config.Config,
 ) *Server {
 	s := &Server{
 		onShutdown: onShutdown,
@@ -47,31 +49,29 @@ func New(
 		wallet:     wallet,
 		bitcoind:   bitcoind,
 
-		guiBootedMainchain: guiBootedMainchain,
-		guiBootedEnforcer:  guiBootedEnforcer,
+		config: config,
 	}
 	return s
 }
 
 type Server struct {
-	onShutdown func()
+	onShutdown func(ctx context.Context)
 	db         *sql.DB
 	validator  *service.Service[validatorrpc.ValidatorServiceClient]
 	wallet     *service.Service[validatorrpc.WalletServiceClient]
 	bitcoind   *service.Service[corerpc.BitcoinServiceClient]
 
-	guiBootedMainchain bool
-	guiBootedEnforcer  bool
+	config config.Config
 }
 
 // EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
 	defer func() {
 		zerolog.Ctx(ctx).Info().Msg("shutting down..")
-		s.onShutdown()
+		s.onShutdown(ctx)
 	}()
 
-	if s.guiBootedMainchain {
+	if s.config.GuiBootedMainchain {
 		zerolog.Ctx(ctx).Info().Msg("mainchain was booted by GUI, shutting down bitcoind..")
 		_, err := s.bitcoind.Get(ctx)
 		if err != nil {
@@ -83,7 +83,7 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) 
 		zerolog.Ctx(ctx).Info().Msg("mainchain was not booted by GUI, not shutting down bitcoind..")
 	}
 
-	if s.guiBootedEnforcer {
+	if s.config.GuiBootedEnforcer {
 		zerolog.Ctx(ctx).Info().Msg("enforcer was booted by GUI, shutting down bip300301-enforcer..")
 		validator, err := s.validator.Get(ctx)
 		if err != nil {
@@ -677,4 +677,108 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	return connect.NewResponse(&pb.ListRecentTransactionsResponse{
 		Transactions: transactions,
 	}), nil
+}
+
+func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.MineBlocksResponse]) error {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Verify we're actually able to connect to Bitcoin Core
+	info, err := bitcoind.GetBlockchainInfo(
+		ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}),
+	)
+	if err != nil {
+		return err
+	}
+
+	switch info.Msg.Chain {
+	// TODO: add forknet?
+	case "regtest", "testnet3", "testnet4":
+	default:
+		return connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf(
+				"generating blocks on %s is not supported",
+				cmp.Or(info.Msg.Chain, "unknown network"),
+			),
+		)
+	}
+
+	wallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		return err
+	}
+
+	// TODO: which wallet here? Just pick the first one?
+	nonChequeWallet, ok := lo.Find(wallets.Msg.Wallets, func(w string) bool {
+		return w != engines.ChequeWalletName
+	})
+	if !ok {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no bitcoin core wallet found"))
+	}
+
+	// We need a payout address if the user is so lucky as to get a block reward
+	addr, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
+		Wallet: nonChequeWallet,
+	}))
+	if err != nil {
+		return err
+	}
+
+	miner, err := cpuminer.New(cpuminer.Config{
+		RpcURL:          s.config.BitcoinCoreURL,
+		RpcUser:         s.config.BitcoinCoreRpcUser,
+		RpcPass:         s.config.BitcoinCoreRpcPassword,
+		Routines:        1, // TODO: configurable?
+		CoinbaseAddress: addr.Msg.Address,
+	})
+	if err != nil {
+		return fmt.Errorf("create miner: %w", err)
+	}
+
+	errs := make(chan error)
+
+	start := time.Now()
+
+	go func() {
+		for block := range miner.AcceptedBlocks() {
+			if err := stream.Send(&pb.MineBlocksResponse{
+				Event: &pb.MineBlocksResponse_BlockFound_{
+					BlockFound: &pb.MineBlocksResponse_BlockFound{
+						BlockHash: block.String(),
+					},
+				},
+			}); err != nil {
+				errs <- fmt.Errorf("send block found update: %w", err)
+			}
+		}
+	}()
+
+	go func() {
+		if err := miner.Start(ctx); err != nil {
+			errs <- err
+		}
+	}()
+
+	hashRateTicker := time.NewTicker(time.Second * 5)
+	defer hashRateTicker.Stop()
+
+	go func() {
+		for range hashRateTicker.C {
+			hashRate := miner.GetHashes()
+			if err := stream.Send(&pb.MineBlocksResponse{
+				Event: &pb.MineBlocksResponse_HashRate_{
+					HashRate: &pb.MineBlocksResponse_HashRate{
+						HashRate: float64(hashRate) / time.Since(start).Seconds(),
+					},
+				},
+			}); err != nil {
+				errs <- fmt.Errorf("send hash rate update: %w", err)
+			}
+		}
+	}()
+
+	return <-errs
 }
