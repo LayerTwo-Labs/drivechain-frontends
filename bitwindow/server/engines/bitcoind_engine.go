@@ -36,6 +36,7 @@ func NewBitcoind(
 		bitcoind: bitcoind,
 		db:       db,
 		conf:     conf,
+		m4Engine: NewM4Engine(db),
 	}
 }
 
@@ -45,8 +46,9 @@ type Parser struct {
 	db       *sql.DB
 	conf     config.Config
 
-	mu     sync.Mutex
-	topics []opreturns.TopicInfo
+	mu       sync.Mutex
+	topics   []opreturns.TopicInfo
+	m4Engine *M4Engine
 }
 
 func (p *Parser) isKnownTopic(data []byte) bool {
@@ -279,6 +281,17 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 	zerolog.Ctx(ctx).Trace().
 		Int32("height", int32(len(coreBlocks))).
 		Msgf("bitcoind_engine/parser: successfully inserted blocks")
+
+	// Process M4 messages from blocks
+	for _, t := range coreBlocks {
+		height, block := t.Unpack()
+		if err := p.m4Engine.ProcessBlock(ctx, height, block); err != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).
+				Uint32("height", height).
+				Msg("bitcoind_engine/parser: failed to process M4 message")
+			// Don't fail the whole batch for M4 errors
+		}
+	}
 
 	return nil
 }

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package m4.v1;
+
+option go_package = "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1;m4v1";
+
+// M4 Explorer Service
+service M4Service {
+  // Get M4 voting history
+  rpc GetM4History(GetM4HistoryRequest) returns (GetM4HistoryResponse);
+
+  // Get user's vote preferences
+  rpc GetVotePreferences(GetVotePreferencesRequest) returns (GetVotePreferencesResponse);
+
+  // Set user's vote preference for a sidechain
+  rpc SetVotePreference(SetVotePreferenceRequest) returns (SetVotePreferenceResponse);
+
+  // Generate M4 bytes from current preferences
+  rpc GenerateM4Bytes(GenerateM4BytesRequest) returns (GenerateM4BytesResponse);
+}
+
+message M4Vote {
+  uint32 sidechain_slot = 1;
+  string vote_type = 2;  // "abstain", "alarm", "upvote"
+  optional string bundle_hash = 3;
+  optional uint32 bundle_index = 4;
+}
+
+message M4HistoryEntry {
+  uint32 block_height = 1;
+  string block_hash = 2;
+  int64 block_time = 3;
+  uint32 version = 4;
+  repeated M4Vote votes = 5;
+}
+
+message GetM4HistoryRequest {
+  uint32 limit = 1;  // Number of recent blocks (default 6)
+}
+
+message GetM4HistoryResponse {
+  repeated M4HistoryEntry history = 1;
+}
+
+message GetVotePreferencesRequest {}
+message GetVotePreferencesResponse {
+  repeated M4Vote preferences = 1;
+}
+
+message SetVotePreferenceRequest {
+  uint32 sidechain_slot = 1;
+  string vote_type = 2;
+  optional string bundle_hash = 3;
+}
+
+message SetVotePreferenceResponse {
+  bool success = 1;
+}
+
+message GenerateM4BytesRequest {}
+message GenerateM4BytesResponse {
+  string hex = 1;  // Hex-encoded M4 bytes
+  string interpretation = 2;  // Human-readable description
+}
