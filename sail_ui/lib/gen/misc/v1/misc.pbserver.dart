@@ -16,31 +16,31 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
-import 'misc.pb.dart' as $5;
+import 'misc.pb.dart' as $6;
 import 'misc.pbjson.dart';
 
 export 'misc.pb.dart';
 
 abstract class MiscServiceBase extends $pb.GeneratedService {
-  $async.Future<$5.ListOPReturnResponse> listOPReturn($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$5.BroadcastNewsResponse> broadcastNews($pb.ServerContext ctx, $5.BroadcastNewsRequest request);
-  $async.Future<$5.CreateTopicResponse> createTopic($pb.ServerContext ctx, $5.CreateTopicRequest request);
-  $async.Future<$5.ListTopicsResponse> listTopics($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$5.ListCoinNewsResponse> listCoinNews($pb.ServerContext ctx, $5.ListCoinNewsRequest request);
-  $async.Future<$5.TimestampFileResponse> timestampFile($pb.ServerContext ctx, $5.TimestampFileRequest request);
-  $async.Future<$5.ListTimestampsResponse> listTimestamps($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$5.VerifyTimestampResponse> verifyTimestamp($pb.ServerContext ctx, $5.VerifyTimestampRequest request);
+  $async.Future<$6.ListOPReturnResponse> listOPReturn($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$6.BroadcastNewsResponse> broadcastNews($pb.ServerContext ctx, $6.BroadcastNewsRequest request);
+  $async.Future<$6.CreateTopicResponse> createTopic($pb.ServerContext ctx, $6.CreateTopicRequest request);
+  $async.Future<$6.ListTopicsResponse> listTopics($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$6.ListCoinNewsResponse> listCoinNews($pb.ServerContext ctx, $6.ListCoinNewsRequest request);
+  $async.Future<$6.TimestampFileResponse> timestampFile($pb.ServerContext ctx, $6.TimestampFileRequest request);
+  $async.Future<$6.ListTimestampsResponse> listTimestamps($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$6.VerifyTimestampResponse> verifyTimestamp($pb.ServerContext ctx, $6.VerifyTimestampRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'ListOPReturn': return $1.Empty();
-      case 'BroadcastNews': return $5.BroadcastNewsRequest();
-      case 'CreateTopic': return $5.CreateTopicRequest();
+      case 'BroadcastNews': return $6.BroadcastNewsRequest();
+      case 'CreateTopic': return $6.CreateTopicRequest();
       case 'ListTopics': return $1.Empty();
-      case 'ListCoinNews': return $5.ListCoinNewsRequest();
-      case 'TimestampFile': return $5.TimestampFileRequest();
+      case 'ListCoinNews': return $6.ListCoinNewsRequest();
+      case 'TimestampFile': return $6.TimestampFileRequest();
       case 'ListTimestamps': return $1.Empty();
-      case 'VerifyTimestamp': return $5.VerifyTimestampRequest();
+      case 'VerifyTimestamp': return $6.VerifyTimestampRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -48,13 +48,13 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'ListOPReturn': return this.listOPReturn(ctx, request as $1.Empty);
-      case 'BroadcastNews': return this.broadcastNews(ctx, request as $5.BroadcastNewsRequest);
-      case 'CreateTopic': return this.createTopic(ctx, request as $5.CreateTopicRequest);
+      case 'BroadcastNews': return this.broadcastNews(ctx, request as $6.BroadcastNewsRequest);
+      case 'CreateTopic': return this.createTopic(ctx, request as $6.CreateTopicRequest);
       case 'ListTopics': return this.listTopics(ctx, request as $1.Empty);
-      case 'ListCoinNews': return this.listCoinNews(ctx, request as $5.ListCoinNewsRequest);
-      case 'TimestampFile': return this.timestampFile(ctx, request as $5.TimestampFileRequest);
+      case 'ListCoinNews': return this.listCoinNews(ctx, request as $6.ListCoinNewsRequest);
+      case 'TimestampFile': return this.timestampFile(ctx, request as $6.TimestampFileRequest);
       case 'ListTimestamps': return this.listTimestamps(ctx, request as $1.Empty);
-      case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $5.VerifyTimestampRequest);
+      case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $6.VerifyTimestampRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

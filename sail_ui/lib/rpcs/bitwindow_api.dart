@@ -10,6 +10,8 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
     hide UnspentOutput, GetNewAddressRequest, ListTransactionsRequest, ListUnspentRequest;
+import 'package:sail_ui/gen/m4/v1/m4.connect.client.dart';
+import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -26,6 +28,7 @@ abstract class BitwindowRPC extends RPCConnection {
   BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
   MiscAPI get misc;
+  M4API get m4;
   HealthAPI get health;
 
   /// Stream of health check updates
@@ -47,6 +50,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   late MiscAPI misc;
   @override
+  late M4API m4;
+  @override
   late HealthAPI health;
 
   BitwindowRPCLive({required String host, required int port})
@@ -64,6 +69,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     bitcoind = _BitcoindAPILive(BitcoinServiceClient(transport));
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
     misc = _MiscAPILive(MiscServiceClient(transport));
+    m4 = _M4APILive(M4ServiceClient(transport));
     health = _HealthAPILive(HealthServiceClient(transport));
 
     // must test connection before moving on, in case it is already running!
@@ -197,6 +203,10 @@ class BitwindowRPCLive extends BitwindowRPC {
       'misc.v1.MiscService/ListCoinNews',
       'misc.v1.MiscService/ListOPReturn',
       'misc.v1.MiscService/ListTopics',
+      'm4.v1.M4Service/GenerateM4Bytes',
+      'm4.v1.M4Service/GetM4History',
+      'm4.v1.M4Service/GetVotePreferences',
+      'm4.v1.M4Service/SetVotePreference',
       'wallet.v1.WalletService/CreateSidechainDeposit',
       'wallet.v1.WalletService/GetBalance',
       'wallet.v1.WalletService/GetNewAddress',
@@ -1365,6 +1375,79 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not verify timestamp: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+}
+
+abstract class M4API {
+  Future<List<m4pb.M4HistoryEntry>> getM4History({int limit = 6});
+  Future<List<m4pb.M4Vote>> getVotePreferences();
+  Future<void> setVotePreference({
+    required int sidechainSlot,
+    required String voteType,
+    String? bundleHash,
+  });
+  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes();
+}
+
+class _M4APILive implements M4API {
+  final M4ServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _M4APILive(this._client);
+
+  @override
+  Future<List<m4pb.M4HistoryEntry>> getM4History({int limit = 6}) async {
+    try {
+      final response = await _client.getM4History(m4pb.GetM4HistoryRequest()..limit = limit);
+      return response.history;
+    } catch (e) {
+      final error = 'could not get M4 history: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<List<m4pb.M4Vote>> getVotePreferences() async {
+    try {
+      final response = await _client.getVotePreferences(m4pb.GetVotePreferencesRequest());
+      return response.preferences;
+    } catch (e) {
+      final error = 'could not get vote preferences: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<void> setVotePreference({
+    required int sidechainSlot,
+    required String voteType,
+    String? bundleHash,
+  }) async {
+    try {
+      final request = m4pb.SetVotePreferenceRequest()
+        ..sidechainSlot = sidechainSlot
+        ..voteType = voteType;
+
+      if (bundleHash != null) {
+        request.bundleHash = bundleHash;
+      }
+
+      await _client.setVotePreference(request);
+    } catch (e) {
+      final error = 'could not set vote preference: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes() async {
+    try {
+      final response = await _client.generateM4Bytes(m4pb.GenerateM4BytesRequest());
+      return response;
+    } catch (e) {
+      final error = 'could not generate M4 bytes: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

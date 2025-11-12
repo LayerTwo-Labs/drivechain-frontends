@@ -4,6 +4,7 @@ import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' hide Unspe
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/health/v1/health.pb.dart';
+import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -21,6 +22,8 @@ class MockAPI extends BitwindowRPC {
   final MiscAPI misc = MockMiscAPI();
   @override
   final HealthAPI health = MockHealthAPI();
+  @override
+  final M4API m4 = MockM4API();
 
   @override
   Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
@@ -464,5 +467,31 @@ class MockHealthAPI implements HealthAPI {
   @override
   Stream<CheckResponse> watch() {
     return Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
+  }
+}
+
+class MockM4API implements M4API {
+  @override
+  Future<List<m4pb.M4HistoryEntry>> getM4History({int limit = 6}) async {
+    return [];
+  }
+
+  @override
+  Future<List<m4pb.M4Vote>> getVotePreferences() async {
+    return [];
+  }
+
+  @override
+  Future<void> setVotePreference({
+    required int sidechainSlot,
+    required String voteType,
+    String? bundleHash,
+  }) async {
+    return;
+  }
+
+  @override
+  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes() async {
+    return m4pb.GenerateM4BytesResponse();
   }
 }

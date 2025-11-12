@@ -491,6 +491,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       },
                     ),
                     PlatformMenuItem(
+                      label: 'M4 Explorer',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
+                      },
+                    ),
+                    PlatformMenuItem(
                       label: 'Broadcast CoinNews',
                       onSelected: () => displayBroadcastNewsDialog(context),
                     ),

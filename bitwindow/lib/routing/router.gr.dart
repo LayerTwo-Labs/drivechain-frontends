@@ -331,6 +331,22 @@ class LearnRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [M4ExplorerPage]
+class M4ExplorerRoute extends PageRouteInfo<void> {
+  const M4ExplorerRoute({List<PageRouteInfo>? children})
+    : super(M4ExplorerRoute.name, initialChildren: children);
+
+  static const String name = 'M4ExplorerRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const M4ExplorerPage();
+    },
+  );
+}
+
+/// generated route for
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
   const OverviewRoute({List<PageRouteInfo>? children})
