@@ -181,9 +181,10 @@ class BottomNav extends StatelessWidget {
                     ),
                     navigateToLogs: model.navigateToLogs,
                   ),
-                  if (binaryProvider.isRunning(
-                    binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.cpuMiner),
-                  ))
+                  if (binaryProvider.binaries.any((b) => b.type == BinaryType.cpuMiner) &&
+                      binaryProvider.isRunning(
+                        binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.cpuMiner),
+                      ))
                     SailCard(
                       child: SailRow(
                         spacing: SailStyleValues.padding08,
