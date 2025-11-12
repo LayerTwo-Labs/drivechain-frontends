@@ -18,6 +18,7 @@ import (
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/drivechain"
 	api_enforcer "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/enforcer"
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
+	api_m4 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/m4"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -26,6 +27,7 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1/healthv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -106,6 +108,9 @@ func New(
 	walletAdapter := engines.NewWalletAdapter(walletSvc)
 	timestampEngine := engines.NewTimestampEngine(s.Database, zerolog.Ctx(ctx).With().Str("component", "timestamp").Logger(), walletAdapter)
 
+	// Create M4 engine for M4 Explorer
+	m4Engine := engines.NewM4Engine(s.Database)
+
 	srv := &Server{
 		mux:             mux,
 		Bitcoind:        bitcoindSvc,
@@ -114,6 +119,7 @@ func New(
 		Crypto:          cryptoSvc,
 		ChequeEngine:    chequeEngine,
 		TimestampEngine: timestampEngine,
+		M4Engine:        m4Engine,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
@@ -194,6 +200,9 @@ func New(
 	Register(srv, healthv1connect.NewHealthServiceHandler, healthv1connect.HealthServiceHandler(api_health.New(
 		s.Database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
 	)))
+	Register(srv, m4v1connect.NewM4ServiceHandler, m4v1connect.M4ServiceHandler(api_m4.NewServer(
+		m4Engine,
+	)))
 
 	// Register all enforcer services, only to be used as a bridge
 	enforcer := api_enforcer.New(validatorSvc, walletSvc, cryptoSvc)
@@ -218,6 +227,7 @@ type Server struct {
 	Crypto          *service.Service[cryptorpc.CryptoServiceClient]
 	ChequeEngine    *engines.ChequeEngine
 	TimestampEngine *engines.TimestampEngine
+	M4Engine        *engines.M4Engine
 }
 
 func (s *Server) Handler() http.Handler {
