@@ -271,6 +271,8 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   MiscAPI get misc => throw UnimplementedError();
   @override
+  M4API get m4 => throw UnimplementedError();
+  @override
   HealthAPI get health => throw UnimplementedError();
   @override
   Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
