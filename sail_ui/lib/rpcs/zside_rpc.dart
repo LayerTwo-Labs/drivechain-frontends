@@ -245,11 +245,7 @@ class ZSideLive extends ZSideRPC {
   /// Create a deposit transaction
   @override
   Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create_deposit', {
-      'address': address,
-      'value_sats': btcToSatoshi(amount),
-      'fee_sats': btcToSatoshi(fee),
-    });
+    final response = await _client().call('create_deposit', [address, btcToSatoshi(amount), btcToSatoshi(fee)]);
     return response as String;
   }
 
@@ -360,36 +356,25 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
-    final response = await _client().call('shield', {'value_sats': utxo.amount.toInt(), 'fee_sats': zsideFee.toInt()});
+    final response = await _client().call('shield', [utxo.amount.toInt(), zsideFee.toInt()]);
     return response as String;
   }
 
   @override
   Future<String> sendShielded(String dest, double valueSats, double feeSats) async {
-    final response = await _client().call('shielded_transfer', {
-      'dest': dest,
-      'value_sats': valueSats.toInt(),
-      'fee_sats': feeSats.toInt(),
-    });
+    final response = await _client().call('shielded_transfer', [dest, valueSats.toInt(), feeSats.toInt()]);
     return response as String;
   }
 
   @override
   Future<String> sendTransparent(String dest, double valueSats, double feeSats) async {
-    final response = await _client().call('transparent_transfer', {
-      'dest': dest,
-      'value_sats': valueSats.toInt(),
-      'fee_sats': feeSats.toInt(),
-    });
+    final response = await _client().call('transparent_transfer', [dest, valueSats.toInt(), feeSats.toInt()]);
     return response as String;
   }
 
   @override
   Future<String> deshield(ShieldedUTXO utxo, double amount) async {
-    final response = await _client().call('unshield', {
-      'value_sats': utxo.amount.toInt(),
-      'fee_sats': zsideFee.toInt(),
-    });
+    final response = await _client().call('unshield', [utxo.amount.toInt(), zsideFee.toInt()]);
     return response as String;
   }
 
