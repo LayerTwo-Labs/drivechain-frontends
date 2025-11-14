@@ -59,8 +59,8 @@ func TestDeriveAndCheckAddressesIntegration(t *testing.T) {
 	// Create mock bitcoind
 	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 
-	// Create wallet manager with temp directory and bitcoind connector
-	walletManager := engines.NewWalletManager(
+	// Create wallet engine with temp directory and bitcoind connector
+	walletEngine := engines.NewWalletEngine(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		},
@@ -105,10 +105,10 @@ func TestDeriveAndCheckAddressesIntegration(t *testing.T) {
 	})
 
 	server := &Server{
-		database:      nil, // Not needed for address derivation
-		bitcoind:      bitcoindService,
-		walletManager: walletManager,
-		walletDir:     tempDir,
+		database:     nil, // Not needed for address derivation
+		bitcoind:     bitcoindService,
+		walletEngine: walletEngine,
+		walletDir:    tempDir,
 	}
 
 	t.Run("derive addresses with no transactions - all unused", func(t *testing.T) {

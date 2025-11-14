@@ -3,9 +3,8 @@ package engines
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"sync"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -34,25 +33,25 @@ type ChequeRecovery struct {
 	Txid    string
 }
 
-// ChequeEngine manages in-memory seed for cheque derivation
+// ChequeEngine manages cheque derivation (ONLY)
+// Gets seed from WalletEngine when needed
 type ChequeEngine struct {
-	mu          sync.RWMutex
-	seedHex     string
-	isUnlocked  bool
-	unlockCond  *sync.Cond
-	chainParams *chaincfg.Params
-	bitcoind    *service.Service[corerpc.BitcoinServiceClient]
+	walletEngine *WalletEngine
+	chainParams  *chaincfg.Params
+	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
 }
 
 // NewChequeEngine creates a new cheque engine
-func NewChequeEngine(chainParams *chaincfg.Params, bitcoind *service.Service[corerpc.BitcoinServiceClient]) *ChequeEngine {
-	e := &ChequeEngine{
-		isUnlocked:  false,
-		chainParams: chainParams,
-		bitcoind:    bitcoind,
+func NewChequeEngine(
+	walletEngine *WalletEngine,
+	chainParams *chaincfg.Params,
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+) *ChequeEngine {
+	return &ChequeEngine{
+		walletEngine: walletEngine,
+		chainParams:  chainParams,
+		bitcoind:     bitcoind,
 	}
-	e.unlockCond = sync.NewCond(&e.mu)
-	return e
 }
 
 // GetChainParams returns the chain parameters
@@ -60,121 +59,40 @@ func (e *ChequeEngine) GetChainParams() *chaincfg.Params {
 	return e.chainParams
 }
 
-// Unlock loads the seed into memory from decrypted wallet data
-func (e *ChequeEngine) Unlock(walletData map[string]any) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Handle new multi-wallet structure: { version, activeWalletId, wallets: [...] }
-	wallets, ok := walletData["wallets"].([]any)
-	if !ok {
-		return errors.New("invalid wallet structure: missing wallets array")
-	}
-
-	if len(wallets) == 0 {
-		return errors.New("no wallets found in wallet.json")
-	}
-
-	// Get activeWalletId if present
-	activeWalletId, _ := walletData["activeWalletId"].(string)
-
-	// Find active wallet
-	var activeWallet map[string]any
-	for _, w := range wallets {
-		wallet, ok := w.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		walletId, _ := wallet["id"].(string)
-		if activeWalletId == "" || walletId == activeWalletId {
-			activeWallet = wallet
-			break
-		}
-	}
-
-	if activeWallet == nil {
-		return errors.New("active wallet not found in wallets array")
-	}
-
-	// Extract master seed from active wallet
-	master, ok := activeWallet["master"].(map[string]any)
-	if !ok {
-		return errors.New("invalid wallet structure: missing master key")
-	}
-
-	seedHex, ok := master["seed_hex"].(string)
-	if !ok || seedHex == "" {
-		return errors.New("invalid wallet structure: missing or empty seed_hex")
-	}
-
-	// Validate seed hex
-	if _, err := hex.DecodeString(seedHex); err != nil {
-		return fmt.Errorf("invalid seed hex: %w", err)
-	}
-
-	e.seedHex = seedHex
-	e.isUnlocked = true
-	e.unlockCond.Broadcast()
-	return nil
-}
-
-// Lock clears the seed from memory
-func (e *ChequeEngine) Lock() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Zero out the seed for security
-	if e.seedHex != "" {
-		// Create a new string of zeros
-		zeros := make([]byte, len(e.seedHex))
-		e.seedHex = string(zeros)
-	}
-	e.seedHex = ""
-	e.isUnlocked = false
-}
-
-// IsUnlocked returns whether the engine is unlocked
-func (e *ChequeEngine) IsUnlocked() bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.isUnlocked
-}
-
 // deriveChequeKey derives the HD key at m/44'/0'/999'/{index}
-func (e *ChequeEngine) deriveChequeKey(index uint32) (*hdkeychain.ExtendedKey, error) {
-	seedBytes, err := hex.DecodeString(e.seedHex)
+func (e *ChequeEngine) deriveChequeKey(seedHex string, index uint32) (*hdkeychain.ExtendedKey, error) {
+	seedBytes, err := hex.DecodeString(seedHex)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode seed: %w", err)
+		return nil, fmt.Errorf("decode seed: %w", err)
 	}
 
 	masterKey, err := hdkeychain.NewMaster(seedBytes, e.chainParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create master key: %w", err)
+		return nil, fmt.Errorf("create master key: %w", err)
 	}
 
 	// m/44'
 	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 44)
 	if err != nil {
-		return nil, fmt.Errorf("failed to derive purpose: %w", err)
+		return nil, fmt.Errorf("derive purpose: %w", err)
 	}
 
 	// m/44'/0'
 	coinType, err := purpose.Derive(hdkeychain.HardenedKeyStart + 0)
 	if err != nil {
-		return nil, fmt.Errorf("failed to derive coin type: %w", err)
+		return nil, fmt.Errorf("derive coin type: %w", err)
 	}
 
 	// m/44'/0'/999'
 	chequeAcct, err := coinType.Derive(hdkeychain.HardenedKeyStart + chequeAccount)
 	if err != nil {
-		return nil, fmt.Errorf("failed to derive cheque account: %w", err)
+		return nil, fmt.Errorf("derive cheque account: %w", err)
 	}
 
 	// m/44'/0'/999'/{index} - index is NOT hardened per BIP44
 	chequeKey, err := chequeAcct.Derive(index)
 	if err != nil {
-		return nil, fmt.Errorf("failed to derive cheque key: %w", err)
+		return nil, fmt.Errorf("derive cheque key: %w", err)
 	}
 
 	return chequeKey, nil
@@ -182,14 +100,13 @@ func (e *ChequeEngine) deriveChequeKey(index uint32) (*hdkeychain.ExtendedKey, e
 
 // DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
 func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	if !e.isUnlocked {
-		return "", errors.New("cheque engine is locked")
+	// Get seed from wallet engine
+	seedHex, err := e.walletEngine.GetSeed()
+	if err != nil {
+		return "", err
 	}
 
-	chequeKey, err := e.deriveChequeKey(index)
+	chequeKey, err := e.deriveChequeKey(seedHex, index)
 	if err != nil {
 		return "", err
 	}
@@ -197,14 +114,14 @@ func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
 	// Get the public key
 	pubKey, err := chequeKey.ECPubKey()
 	if err != nil {
-		return "", fmt.Errorf("failed to get public key: %w", err)
+		return "", fmt.Errorf("get public key: %w", err)
 	}
 
 	// Create native segwit (P2WPKH) address
 	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
 	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, e.chainParams)
 	if err != nil {
-		return "", fmt.Errorf("failed to create witness address: %w", err)
+		return "", fmt.Errorf("create witness address: %w", err)
 	}
 
 	return address.EncodeAddress(), nil
@@ -212,26 +129,25 @@ func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
 
 // DeriveChequePrivateKey derives the WIF private key at m/44'/0'/999'/{index}
 func (e *ChequeEngine) DeriveChequePrivateKey(index uint32) (string, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	if !e.isUnlocked {
-		return "", errors.New("cheque engine is locked")
+	// Get seed from wallet engine
+	seedHex, err := e.walletEngine.GetSeed()
+	if err != nil {
+		return "", err
 	}
 
-	chequeKey, err := e.deriveChequeKey(index)
+	chequeKey, err := e.deriveChequeKey(seedHex, index)
 	if err != nil {
 		return "", err
 	}
 
 	privKey, err := chequeKey.ECPrivKey()
 	if err != nil {
-		return "", fmt.Errorf("failed to get private key: %w", err)
+		return "", fmt.Errorf("get private key: %w", err)
 	}
 
 	wif, err := btcutil.NewWIF(privKey, e.chainParams, true)
 	if err != nil {
-		return "", fmt.Errorf("failed to create WIF: %w", err)
+		return "", fmt.Errorf("create WIF: %w", err)
 	}
 
 	return wif.String(), nil
@@ -239,22 +155,36 @@ func (e *ChequeEngine) DeriveChequePrivateKey(index uint32) (string, error) {
 
 // ScanForFunds scans the first count addresses for UTXOs
 func (e *ChequeEngine) ScanForFunds(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, count int) ([]ChequeRecovery, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	if !e.isUnlocked {
-		return nil, errors.New("cheque engine is locked")
+	// Get seed from wallet engine
+	seedHex, err := e.walletEngine.GetSeed()
+	if err != nil {
+		return nil, err
 	}
 
 	log := zerolog.Ctx(ctx)
 	var recoveries []ChequeRecovery
 
 	for i := uint32(0); i < uint32(count); i++ {
-		address, err := e.deriveChequeAddressUnlocked(i)
+		chequeKey, err := e.deriveChequeKey(seedHex, i)
 		if err != nil {
-			log.Warn().Err(err).Uint32("index", i).Msg("failed to derive address during scan")
+			log.Warn().Err(err).Uint32("index", i).Msg("failed to derive key during scan")
 			continue
 		}
+
+		pubKey, err := chequeKey.ECPubKey()
+		if err != nil {
+			log.Warn().Err(err).Uint32("index", i).Msg("failed to get public key during scan")
+			continue
+		}
+
+		pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
+		addr, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, e.chainParams)
+		if err != nil {
+			log.Warn().Err(err).Uint32("index", i).Msg("failed to create address during scan")
+			continue
+		}
+
+		address := addr.EncodeAddress()
 
 		// Query bitcoind for UTXOs on this address using cheque wallet
 		utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
@@ -298,34 +228,6 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, bitcoind corerpc.Bitcoi
 	return recoveries, nil
 }
 
-// deriveChequeAddressUnlocked is the same as DeriveChequeAddress but without locking
-// Used internally when already holding the lock
-func (e *ChequeEngine) deriveChequeAddressUnlocked(index uint32) (string, error) {
-	if !e.isUnlocked {
-		return "", errors.New("cheque engine is locked")
-	}
-
-	chequeKey, err := e.deriveChequeKey(index)
-	if err != nil {
-		return "", err
-	}
-
-	// Get the public key
-	pubKey, err := chequeKey.ECPubKey()
-	if err != nil {
-		return "", fmt.Errorf("failed to get public key: %w", err)
-	}
-
-	// Create native segwit (P2WPKH) address
-	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
-	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, e.chainParams)
-	if err != nil {
-		return "", fmt.Errorf("failed to create witness address: %w", err)
-	}
-
-	return address.EncodeAddress(), nil
-}
-
 // Start begins the cheque engine background monitoring
 func (e *ChequeEngine) Start(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
@@ -339,20 +241,22 @@ func (e *ChequeEngine) Start(ctx context.Context) {
 }
 
 // importChequeDescriptor imports the cheque derivation path descriptor into Bitcoin Core
-// This allows Core to automatically track all cheque addresses without individual imports
 func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 
-	// Wait for wallet to be unlocked so we can access the seed
-	e.mu.Lock()
-	for !e.isUnlocked {
-		e.unlockCond.Wait()
+	// Wait for wallet to be unlocked
+	for !e.walletEngine.IsUnlocked() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(100 * time.Millisecond):
+			// Check again
+		}
 	}
-	seedHex := e.seedHex
-	e.mu.Unlock()
 
-	if seedHex == "" {
-		log.Warn().Msg("cannot import cheque descriptor: wallet not unlocked")
+	seedHex, err := e.walletEngine.GetSeed()
+	if err != nil {
+		log.Warn().Err(err).Msg("cannot import cheque descriptor: wallet not unlocked")
 		return
 	}
 
@@ -417,10 +321,10 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		Requests: []*corepb.ImportDescriptorsRequest_Request{
 			{
 				Descriptor_: descriptor,
-				Active:      true, // Must be active for range to work
+				Active:      true,
 				RangeStart:  0,
-				RangeEnd:    1000, // Watch first 1000 addresses
-				Timestamp:   nil,  // nil = "now", don't rescan
+				RangeEnd:    1000,
+				Timestamp:   nil,
 				Internal:    false,
 			},
 		},
@@ -436,7 +340,6 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		if resp.Msg.Responses[0].Success {
 			log.Info().Msg("cheque descriptor imported successfully")
 		} else {
-			// Log the warnings/errors for debugging
 			if len(resp.Msg.Responses[0].Warnings) > 0 {
 				log.Warn().Strs("warnings", resp.Msg.Responses[0].Warnings).Msg("cheque descriptor import had warnings")
 			}
@@ -453,20 +356,14 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 
 	// Wait for unlock
 	log.Debug().Msg("waiting for wallet unlock for cheque recovery")
-	unlocked := make(chan struct{})
-	go func() {
-		e.mu.Lock()
-		for !e.isUnlocked {
-			e.unlockCond.Wait()
-		}
-		e.mu.Unlock()
-		close(unlocked)
-	}()
 
-	select {
-	case <-ctx.Done():
-		return
-	case <-unlocked:
+	for !e.walletEngine.IsUnlocked() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(100 * time.Millisecond):
+			// Check again
+		}
 	}
 
 	log.Info().Msg("wallet unlocked, waiting for bitcoind for cheque recovery")

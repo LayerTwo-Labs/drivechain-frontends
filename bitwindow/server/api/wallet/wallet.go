@@ -58,19 +58,17 @@ func New(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
-	walletManager *engines.WalletManager,
-	walletSyncer *engines.WalletSyncer,
+	walletEngine *engines.WalletEngine,
 	walletDir string,
 ) *Server {
 	s := &Server{
-		database:      database,
-		bitcoind:      bitcoind,
-		wallet:        wallet,
-		crypto:        crypto,
-		chequeEngine:  chequeEngine,
-		walletManager: walletManager,
-		walletSyncer:  walletSyncer,
-		walletDir:     walletDir,
+		database:     database,
+		bitcoind:     bitcoind,
+		wallet:       wallet,
+		crypto:       crypto,
+		chequeEngine: chequeEngine,
+		walletEngine: walletEngine,
+		walletDir:    walletDir,
 	}
 
 	// Initialize watch wallet in background
@@ -87,14 +85,13 @@ func New(
 }
 
 type Server struct {
-	database      *sql.DB
-	bitcoind      *service.Service[corerpc.BitcoinServiceClient]
-	wallet        *service.Service[validatorrpc.WalletServiceClient]
-	crypto        *service.Service[cryptorpc.CryptoServiceClient]
-	chequeEngine  *engines.ChequeEngine
-	walletManager *engines.WalletManager
-	walletSyncer  *engines.WalletSyncer
-	walletDir     string
+	database     *sql.DB
+	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+	wallet       *service.Service[validatorrpc.WalletServiceClient]
+	crypto       *service.Service[cryptorpc.CryptoServiceClient]
+	chequeEngine *engines.ChequeEngine
+	walletEngine *engines.WalletEngine
+	walletDir    string
 }
 
 // CreateBitcoinCoreWallet implements walletv1connect.WalletServiceHandler.
@@ -111,7 +108,7 @@ func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request
 	}
 
 	// Directly import to Bitcoin Core - no wallet.json needed
-	if err := s.walletManager.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex); err != nil {
+	if err := s.walletEngine.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("create Bitcoin Core wallet failed")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create wallet: %w", err))
 	}
@@ -172,7 +169,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	log := zerolog.Ctx(ctx)
 
 	// Get wallet type to determine routing
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -246,7 +243,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	}
 
 	// Route to Bitcoin Core
-	coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
@@ -290,7 +287,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -344,14 +341,14 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 
 	case engines.WalletTypeBitcoinCore:
 		// Bitcoin Core path
-		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletManager.GetBitcoinCoreWalletName)
+		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletEngine.GetBitcoinCoreWalletName)
 		if err != nil {
 			return nil, err
 		}
 
 	case engines.WalletTypeWatchOnly:
 		// Watch-only wallet path
-		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletManager.EnsureWatchOnlyWallet)
+		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletEngine.EnsureWatchOnlyWallet)
 		if err != nil {
 			return nil, err
 		}
@@ -388,7 +385,7 @@ type DerivedAddress struct {
 // Returns: (firstUnusedAddress, allDerivedAddresses, error)
 func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (string, []DerivedAddress, error) {
 	// Get wallet info to access seed
-	walletInfo, err := s.walletManager.GetWalletInfo(ctx, walletId)
+	walletInfo, err := s.walletEngine.GetWalletInfo(ctx, walletId)
 	if err != nil {
 		return "", nil, fmt.Errorf("get wallet info: %w", err)
 	}
@@ -405,13 +402,13 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 	}
 
 	// Derive master key
-	masterKey, err := hdkeychain.NewMaster(seed, s.walletManager.GetChainParams())
+	masterKey, err := hdkeychain.NewMaster(seed, s.walletEngine.GetChainParams())
 	if err != nil {
 		return "", nil, fmt.Errorf("derive master key: %w", err)
 	}
 
 	// Derive to BIP84 receiving path: m/84'/coinType'/0'/0
-	chainParams := s.walletManager.GetChainParams()
+	chainParams := s.walletEngine.GetChainParams()
 	coinType := uint32(0)
 	if chainParams.Name != "mainnet" {
 		coinType = 1
@@ -443,7 +440,7 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 		return "", nil, err
 	}
 
-	walletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
 		return "", nil, fmt.Errorf("get wallet name: %w", err)
 	}
@@ -608,7 +605,7 @@ func (s *Server) getBitcoinCoreAddress(
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -631,7 +628,7 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		}), nil
 
 	case engines.WalletTypeBitcoinCore:
-		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 		if err != nil {
 			return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
 		}
@@ -657,7 +654,7 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		}), nil
 
 	case engines.WalletTypeWatchOnly:
-		watchWalletName, err := s.walletManager.EnsureWatchOnlyWallet(ctx, walletId)
+		watchWalletName, err := s.walletEngine.EnsureWatchOnlyWallet(ctx, walletId)
 		if err != nil {
 			return nil, fmt.Errorf("get watch-only wallet: %w", err)
 		}
@@ -691,7 +688,7 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -774,7 +771,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	}
 
 	// Bitcoin Core path
-	coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
@@ -937,7 +934,7 @@ func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addr
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -989,7 +986,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1049,7 +1046,7 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - signing works the same for both wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1078,7 +1075,7 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - verification works the same for both wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1112,7 +1109,7 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1176,7 +1173,7 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 		}), nil
 	} else {
 		// Bitcoin Core path
-		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 		if err != nil {
 			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 		}
@@ -1302,14 +1299,14 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	if walletType != engines.WalletTypeEnforcer {
 		// Bitcoin Core version
-		coreWalletName, err := s.walletManager.GetBitcoinCoreWalletName(ctx, walletId)
+		coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 		if err != nil {
 			return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
 		}
@@ -1455,7 +1452,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1603,7 +1600,7 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		}
 	}
 
-	if err := s.chequeEngine.Unlock(walletData); err != nil {
+	if err := s.walletEngine.Unlock(walletData); err != nil {
 		log.Error().Err(err).Msg("failed to unlock cheque engine")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to unlock cheque engine: %w", err))
 	}
@@ -1613,7 +1610,7 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 		syncCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		if err := s.walletSyncer.SyncWallets(syncCtx); err != nil {
+		if err := s.walletEngine.SyncWallets(syncCtx); err != nil {
 			zerolog.Ctx(syncCtx).Warn().Err(err).Msg("wallet sync failed after unlock")
 		}
 	}()
@@ -1624,14 +1621,14 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 
 // LockWallet implements walletv1connect.WalletServiceHandler.
 func (s *Server) LockWallet(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	s.chequeEngine.Lock()
+	s.walletEngine.Lock()
 	zerolog.Ctx(ctx).Info().Msg("wallet locked")
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
 // IsWalletUnlocked implements walletv1connect.WalletServiceHandler.
 func (s *Server) IsWalletUnlocked(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	if !s.chequeEngine.IsUnlocked() {
+	if !s.walletEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 	return connect.NewResponse(&emptypb.Empty{}), nil
@@ -1644,12 +1641,12 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	if !s.chequeEngine.IsUnlocked() {
+	if !s.walletEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
@@ -1693,7 +1690,7 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1718,12 +1715,12 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	if !s.chequeEngine.IsUnlocked() {
+	if !s.walletEngine.IsUnlocked() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
@@ -1751,7 +1748,7 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1778,7 +1775,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1888,7 +1885,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -1998,7 +1995,7 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
-	_, err := s.walletManager.GetWalletBackendType(ctx, walletId)
+	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
@@ -2060,7 +2057,7 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	}
 
 	// Only include private key if cheque is funded and wallet is unlocked
-	if c.FundedTxid != nil && s.chequeEngine.IsUnlocked() {
+	if c.FundedTxid != nil && s.walletEngine.IsUnlocked() {
 		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.DerivationIndex)
 		if err == nil {
 			pbCheque.PrivateKeyWif = &privateKeyWIF

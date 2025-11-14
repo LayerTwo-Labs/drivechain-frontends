@@ -78,12 +78,8 @@ func New(
 	walletSvc.StartReconnectLoop(ctx)
 	cryptoSvc.StartReconnectLoop(ctx)
 
-	// Create cheque engine with the bitcoind service
-	chequeEngine := engines.NewChequeEngine(s.ChainParams, bitcoindSvc)
-
-	// Create wallet manager for routing wallet operations
-	// Note: walletManager will get clients from the services when needed
-	walletManager := engines.NewWalletManager(
+	// Create wallet engine for unlock/lock, routing, and sync
+	walletEngine := engines.NewWalletEngine(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return bitcoindSvc.Get(ctx)
 		},
@@ -94,15 +90,8 @@ func New(
 		s.ChainParams,
 	)
 
-	// Create wallet syncer for ensuring Bitcoin Core wallets exist
-	walletSyncer := engines.NewWalletSyncer(
-		walletManager,
-		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
-			return bitcoindSvc.Get(ctx)
-		},
-		s.WalletDir,
-		s.ChainParams,
-	)
+	// Create cheque engine for address derivation
+	chequeEngine := engines.NewChequeEngine(walletEngine, s.ChainParams, bitcoindSvc)
 
 	// Create timestamp engine for file timestamping
 	walletAdapter := engines.NewWalletAdapter(walletSvc)
@@ -117,6 +106,7 @@ func New(
 		Enforcer:        validatorSvc,
 		Wallet:          walletSvc,
 		Crypto:          cryptoSvc,
+		WalletEngine:    walletEngine,
 		ChequeEngine:    chequeEngine,
 		TimestampEngine: timestampEngine,
 		M4Engine:        m4Engine,
@@ -192,7 +182,7 @@ func New(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletManager, walletSyncer, s.WalletDir,
+		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletEngine, s.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		s.Database, walletSvc, timestampEngine,
@@ -225,6 +215,7 @@ type Server struct {
 	Bitcoind        *service.Service[corerpc.BitcoinServiceClient]
 	Wallet          *service.Service[validatorrpc.WalletServiceClient]
 	Crypto          *service.Service[cryptorpc.CryptoServiceClient]
+	WalletEngine    *engines.WalletEngine
 	ChequeEngine    *engines.ChequeEngine
 	TimestampEngine *engines.TimestampEngine
 	M4Engine        *engines.M4Engine
