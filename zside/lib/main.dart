@@ -23,6 +23,22 @@ void main(List<String> args) async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
 
+    // Suppress harmless Flutter framework errors (mouse tracker, keyboard state)
+    FlutterError.onError = (FlutterErrorDetails details) {
+      final errorString = details.exception.toString();
+
+      // Ignore known harmless desktop platform bugs
+      if (errorString.contains('mouse_tracker.dart') ||
+          errorString.contains('KeyDownEvent is dispatched') ||
+          errorString.contains('_debugDuringDeviceUpdate')) {
+        // Silently ignore these errors
+        return;
+      }
+
+      // For all other errors, use default error handling
+      FlutterError.presentError(details);
+    };
+
     // Get the current window controller to check if this is a sub-window
     final windowController = await WindowController.fromCurrentEngine();
 

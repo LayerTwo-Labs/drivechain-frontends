@@ -29,11 +29,11 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.35.7
+          flutter-version: 3.38.1
 
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: 3.9.2
+          sdk: 3.10.0
 
       - name: Install dependencies for ${{ matrix.package }}
         run: flutter pub get --enforce-lockfile
