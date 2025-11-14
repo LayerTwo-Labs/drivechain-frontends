@@ -197,11 +197,11 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 			return
 		}
 
-		// Unlock the cheque engine with the wallet data
-		if err := srv.ChequeEngine.Unlock(walletMap); err != nil {
-			log.Error().Err(err).Msg("failed to auto-unlock cheque engine")
+		// Unlock the wallet engine with the wallet data
+		if err := srv.WalletEngine.Unlock(walletMap); err != nil {
+			log.Error().Err(err).Msg("failed to auto-unlock wallet engine")
 		} else {
-			log.Info().Msg("cheque engine auto-unlocked successfully")
+			log.Info().Msg("wallet engine auto-unlocked successfully")
 		}
 	}()
 

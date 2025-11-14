@@ -47,7 +47,7 @@ func TestBuildAndSignChequeSweepTx(t *testing.T) {
 	}
 
 	// Create a mock server with minimal dependencies for testing transaction building
-	chequeEngine := engines.NewChequeEngine(&chaincfg.SigNetParams, nil)
+	chequeEngine := engines.NewChequeEngine(nil, &chaincfg.SigNetParams, nil)
 	server := &Server{
 		chequeEngine: chequeEngine,
 	}
