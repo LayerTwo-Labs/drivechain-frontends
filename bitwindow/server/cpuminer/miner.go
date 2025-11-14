@@ -267,7 +267,7 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 				}
 				n /= 2
 				for i := 0; i < n; i++ {
-					combined := append(wtree[2*i], wtree[2*i+1]...)
+					combined := append(wtree[2*i], wtree[2*i+1]...) //nolint:gocritic
 					sha256d(wtree[i], combined)
 				}
 			}
@@ -275,7 +275,7 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 			for i := 0; i < 32; i++ {
 				wtree[1][i] = 0
 			}
-			combined := append(wtree[0], wtree[1]...)
+			combined := append(wtree[0], wtree[1]...) //nolint:gocritic
 			sha256d(cbtx[cbtxSize:], combined)
 			cbtxSize += 32
 		}
@@ -402,7 +402,7 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 		}
 		n /= 2
 		for i := 0; i < n; i++ {
-			combined := append(merkleTree[2*i], merkleTree[2*i+1]...)
+			combined := append(merkleTree[2*i], merkleTree[2*i+1]...) //nolint:gocritic
 			sha256d(merkleTree[i], combined)
 		}
 	}
