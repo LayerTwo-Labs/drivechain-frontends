@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
@@ -20,16 +21,16 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-type config struct {
+type configg struct {
 	wallet   mainchainv1connect.WalletServiceClient
 	enforcer mainchainv1connect.ValidatorServiceClient
 	crypto   cryptov1connect.CryptoServiceClient
 	bitcoind bitcoindv1alphaconnect.BitcoinServiceClient
 }
 
-type ServerOpt func(opt *config)
+type ServerOpt func(opt *configg)
 
-func (o *config) populate(_ *testing.T, ctrl *gomock.Controller, options ...ServerOpt) {
+func (o *configg) populate(_ *testing.T, ctrl *gomock.Controller, options ...ServerOpt) {
 	for _, option := range options {
 		option(o)
 	}
@@ -48,8 +49,8 @@ func (o *config) populate(_ *testing.T, ctrl *gomock.Controller, options ...Serv
 	}
 }
 
-func newConfig(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) config {
-	var conf config
+func newConfig(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) configg {
+	var conf configg
 	for _, opt := range options {
 		opt(&conf)
 	}
@@ -58,19 +59,19 @@ func newConfig(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) conf
 }
 
 func WithWallet(wallet mainchainv1connect.WalletServiceClient) ServerOpt {
-	return func(opt *config) { opt.wallet = wallet }
+	return func(opt *configg) { opt.wallet = wallet }
 }
 
 func WithValidator(validator mainchainv1connect.ValidatorServiceClient) ServerOpt {
-	return func(opt *config) { opt.enforcer = validator }
+	return func(opt *configg) { opt.enforcer = validator }
 }
 
 func WithCrypto(crypto cryptov1connect.CryptoServiceClient) ServerOpt {
-	return func(opt *config) { opt.crypto = crypto }
+	return func(opt *configg) { opt.crypto = crypto }
 }
 
 func WithBitcoind(bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) ServerOpt {
-	return func(opt *config) { opt.bitcoind = bitcoind }
+	return func(opt *configg) { opt.bitcoind = bitcoind }
 }
 
 // API creates a new external API Connect server that we can send test requests to
@@ -105,12 +106,11 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		WalletDir:   t.TempDir(), // Use temporary directory for wallet.json in tests
 	}
 
-	srv, err := api.New(context.Background(), services, api.Config{
-		GUIBootedMainchain: false,
-		GUIBootedEnforcer:  false,
-		OnShutdown: func() {
-			zerolog.Ctx(context.Background()).Info().Msg("shutdown")
-		},
+	srv, err := api.New(context.Background(), services, config.Config{
+		GuiBootedMainchain: false,
+		GuiBootedEnforcer:  false,
+	}, nil, func(ctx context.Context) {
+		zerolog.Ctx(context.Background()).Info().Msg("shutdown")
 	})
 	require.NoError(t, err)
 

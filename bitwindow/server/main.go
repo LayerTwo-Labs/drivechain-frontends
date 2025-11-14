@@ -356,8 +356,6 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 
 		// We don't want startup of bitwindow to depend on Core running
 		coreproxy.WithoutInitialConnectionCheck(),
-
-		coreproxy.WithTLS(),
 	}
 
 	if coreURL.Scheme == "https" {
@@ -367,6 +365,7 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 	core, err := coreproxy.NewBitcoind(
 		ctx, coreURL.Host,
 		conf.BitcoinCoreRpcUser, conf.BitcoinCoreRpcPassword,
+		opts...,
 	)
 	if err != nil {
 		return nil, err

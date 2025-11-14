@@ -87,14 +87,14 @@ func New(
 	)
 
 	// Create cheque engine for address derivation
-	chequeEngine := engines.NewChequeEngine(walletEngine, s.ChainParams, bitcoindSvc)
+	chequeEngine := engines.NewChequeEngine(walletEngine, svcs.ChainParams, bitcoindSvc)
 
 	// Create timestamp engine for file timestamping
 	walletAdapter := engines.NewWalletAdapter(walletSvc)
-	timestampEngine := engines.NewTimestampEngine(s.Database, zerolog.Ctx(ctx).With().Str("component", "timestamp").Logger(), walletAdapter)
+	timestampEngine := engines.NewTimestampEngine(svcs.Database, zerolog.Ctx(ctx).With().Str("component", "timestamp").Logger(), walletAdapter)
 
 	// Create M4 engine for M4 Explorer
-	m4Engine := engines.NewM4Engine(s.Database)
+	m4Engine := engines.NewM4Engine(svcs.Database)
 
 	srv := &Server{
 		mux:             mux,
@@ -177,10 +177,10 @@ func New(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletEngine, s.WalletDir,
+		ctx, svcs.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletEngine, svcs.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
-		s.Database, walletSvc, timestampEngine,
+		svcs.Database, walletSvc, timestampEngine,
 	)))
 	Register(srv, healthv1connect.NewHealthServiceHandler, healthv1connect.HealthServiceHandler(api_health.New(
 		svcs.Database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
