@@ -124,7 +124,9 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             Center(
               child: SailButton(
                 label: 'Add / Remove',
-                onPressed: () => showSidechainActivationManagementModal(context),
+                onPressed: viewModel.isUsingBitcoinCoreWallet
+                    ? null
+                    : () => showSidechainActivationManagementModal(context),
               ),
             ),
         ],
@@ -216,14 +218,16 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                             label: '',
                             icon: SailSVGAsset.settings,
                             insideTable: true,
-                            onPressed: () async {
-                              await showDialog(
-                                context: context,
-                                builder: (context) => ChainSettingsModal(
-                                  connection: viewModel.rpcForSlot(slot)!,
-                                ),
-                              );
-                            },
+                            onPressed: viewModel.isUsingBitcoinCoreWallet
+                                ? null
+                                : () async {
+                                    await showDialog(
+                                      context: context,
+                                      builder: (context) => ChainSettingsModal(
+                                        connection: viewModel.rpcForSlot(slot)!,
+                                      ),
+                                    );
+                                  },
                           ),
                           if (updateAvailable)
                             Positioned(
@@ -345,14 +349,16 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                       label: '',
                       icon: SailSVGAsset.settings,
                       insideTable: true,
-                      onPressed: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => ChainSettingsModal(
-                            connection: viewModel.rpcForSlot(slot)!,
-                          ),
-                        );
-                      },
+                      onPressed: viewModel.isUsingBitcoinCoreWallet
+                          ? null
+                          : () async {
+                              await showDialog(
+                                context: context,
+                                builder: (context) => ChainSettingsModal(
+                                  connection: viewModel.rpcForSlot(slot)!,
+                                ),
+                              );
+                            },
                     ),
                     if (updateAvailable)
                       Positioned(
@@ -483,6 +489,16 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (sidechain == null) {
       return null;
+    }
+
+    // Disable all interactions when using Bitcoin Core wallet
+    if (isUsingBitcoinCoreWallet) {
+      return SailButton(
+        key: ValueKey('disabled_slot_${sidechain.slot}_${sidechain.name}'),
+        label: 'Disabled',
+        onPressed: null,
+        insideTable: true,
+      );
     }
 
     // Check if binary is running
@@ -924,14 +940,10 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    if (viewModel.isUsingBitcoinCoreWallet) {
-      return SailCard(
-        error: 'Switch to your enforcer wallet to interact with sidechains',
-        child: SizedBox(),
-      );
-    }
+    final isDisabled = viewModel.isUsingBitcoinCoreWallet;
 
     return SailCard(
+      error: isDisabled ? 'Switch to your enforcer wallet to interact with sidechains' : null,
       bottomPadding: false,
       child: SailColumn(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -948,30 +960,33 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                   controller: viewModel.addressController,
                   hintText: 's${viewModel._selectedIndex ?? 0}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
                   size: TextFieldSize.small,
+                  enabled: !isDisabled,
                 ),
               ),
               SailButton(
                 variant: ButtonVariant.icon,
-                onPressed: () async {
-                  try {
-                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                    if (clipboardData?.text != null) {
-                      viewModel.addressController.text = clipboardData!.text!;
-                      viewModel.notifyListeners(); // Make sure UI updates
-                    }
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    showSnackBar(context, 'Error accessing clipboard');
-                  }
-                },
+                onPressed: isDisabled
+                    ? null
+                    : () async {
+                        try {
+                          final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                          if (clipboardData?.text != null) {
+                            viewModel.addressController.text = clipboardData!.text!;
+                            viewModel.notifyListeners(); // Make sure UI updates
+                          }
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          showSnackBar(context, 'Error accessing clipboard');
+                        }
+                      },
                 icon: SailSVGAsset.iconCopy,
               ),
               Tooltip(
-                message: viewModel.formatError ?? 'Format as deposit address',
+                message: isDisabled ? 'Disabled' : (viewModel.formatError ?? 'Format as deposit address'),
                 child: SailButton(
                   variant: ButtonVariant.icon,
-                  onPressed: viewModel.formatAddress,
-                  disabled: viewModel.formatError != null,
+                  onPressed: isDisabled ? null : viewModel.formatAddress,
+                  disabled: isDisabled || viewModel.formatError != null,
                   icon: SailSVGAsset.iconFormat,
                 ),
               ),
@@ -987,6 +1002,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                   label: 'Deposit Amount',
                   controller: viewModel.depositAmountController,
                   hintText: '0.00',
+                  enabled: !isDisabled,
                 ),
               ),
               UnitDropdown(
@@ -1009,6 +1025,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
           SailButton(
             label: 'Deposit',
             disabled:
+                isDisabled ||
                 viewModel.addressController.text == '' ||
                 viewModel.depositAmountController.text == '' ||
                 viewModel.feeController.text == '',
@@ -1035,16 +1052,12 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    if (viewModel.isUsingBitcoinCoreWallet) {
-      return SailCard(
-        error: 'Switch to your enforcer wallet to interact with sidechains',
-        child: SizedBox(),
-      );
-    }
+    final isDisabled = viewModel.isUsingBitcoinCoreWallet;
 
-    return const SailCard(
+    return SailCard(
+      error: isDisabled ? 'Switch to your enforcer wallet to interact with sidechains' : null,
       bottomPadding: false,
-      child: RecentWithdrawalsTable(),
+      child: const RecentWithdrawalsTable(),
     );
   }
 }

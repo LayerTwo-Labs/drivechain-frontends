@@ -13,8 +13,7 @@ class CpuMiningPage extends StatefulWidget {
 }
 
 class _CpuMiningPageState extends State<CpuMiningPage> {
-  BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
-  CPUMiner get _cpuMinerBinary => _binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.cpuMiner) as CPUMiner;
+  // TODO: CPU mining is now built into bitwindow - update this page to use bitwindow's built-in mining API
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   BitwindowRPC get _bitwindowRPC => GetIt.I.get<BitwindowRPC>();
 
@@ -56,43 +55,16 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
   }
 
   Future<void> _startMiner() async {
-    try {
-      final threads = int.tryParse(_threadCountController.text) ?? 1;
-      if (threads < 1 || threads > 99) {
-        if (mounted) {
-          showSnackBar(context, 'Thread count must be between 1 and 99');
-        }
-        return;
-      }
-
-      final args = <String>[
-        '-t',
-        threads.toString(),
-      ];
-
-      _cpuMinerBinary.extraBootArgs = args;
-      await _binaryProvider.start(_cpuMinerBinary);
-
-      if (mounted) {
-        showSnackBar(context, 'CPU miner started');
-      }
-    } catch (e) {
-      if (mounted) {
-        showSnackBar(context, 'Failed to start: $e');
-      }
+    // TODO: Call bitwindow's built-in mining API
+    if (mounted) {
+      showSnackBar(context, 'TODO: Start mining via bitwindow API');
     }
   }
 
   Future<void> _stopMiner() async {
-    try {
-      await _binaryProvider.stop(_cpuMinerBinary);
-      if (mounted) {
-        showSnackBar(context, 'CPU miner stopped');
-      }
-    } catch (e) {
-      if (mounted) {
-        showSnackBar(context, 'Failed to stop: $e');
-      }
+    // TODO: Call bitwindow's built-in mining API
+    if (mounted) {
+      showSnackBar(context, 'TODO: Stop mining via bitwindow API');
     }
   }
 
@@ -114,76 +86,7 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
         title: SailText.primary20('CPU Miner', bold: true),
       ),
       body: SafeArea(
-        child: ListenableBuilder(
-          listenable: _binaryProvider,
-          builder: (context, child) {
-            if (!_cpuMinerBinary.isDownloaded) {
-              return _buildDownloadScreen(theme);
-            }
-
-            final isRunning = _binaryProvider.isRunning(_cpuMinerBinary);
-            return _buildConfigScreen(theme, isRunning);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDownloadScreen(SailThemeData theme) {
-    final downloadInfo = _binaryProvider.downloadProgress(BinaryType.cpuMiner);
-    final isDownloading = downloadInfo.isDownloading;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SailText.primary24(
-              'CPU Miner',
-              bold: true,
-            ),
-            const SizedBox(height: 8),
-            SailText.secondary13(
-              'Download the CPU miner to start mining',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 48),
-            if (isDownloading) ...[
-              SizedBox(
-                width: 400,
-                child: ChainLoader(
-                  name: 'CPU Miner',
-                  syncInfo: SyncInfo(
-                    progressCurrent: downloadInfo.progress,
-                    progressGoal: downloadInfo.total,
-                    lastBlockAt: null,
-                    downloadInfo: downloadInfo,
-                  ),
-                  justPercent: true,
-                  expanded: false,
-                ),
-              ),
-            ] else ...[
-              SizedBox(
-                width: 300,
-                child: SailButton(
-                  label: 'Download CPU Miner',
-                  onPressed: () async {
-                    try {
-                      await _binaryProvider.download(_cpuMinerBinary);
-                    } catch (e) {
-                      if (mounted) {
-                        showSnackBar(context, 'Failed to download: $e');
-                      }
-                    }
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
+        child: _buildConfigScreen(theme, false), // TODO: Get actual mining status from bitwindow API
       ),
     );
   }
