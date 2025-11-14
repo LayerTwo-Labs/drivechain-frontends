@@ -549,6 +549,7 @@ class BroadcastNewsView extends StatelessWidget {
                 controller: viewModel.contentController,
                 hintText: 'Enter news content',
                 minLines: 10,
+                maxLines: null,
               ),
               SailButton(
                 label: 'Broadcast',
@@ -619,7 +620,11 @@ class BroadcastNewsViewModel extends BaseViewModel {
     } else {
       topic = topics.first;
     }
-    notifyListeners();
+
+    // Defer notifyListeners to avoid mouse tracker assertion during dialog initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void setTopic(Topic? newTopic) async {
@@ -630,7 +635,11 @@ class BroadcastNewsViewModel extends BaseViewModel {
     topic = newTopic;
     // Persist the selected topic
     await _settings.setValue(LastUsedTopicSetting(newValue: newTopic.topic));
-    notifyListeners();
+
+    // Defer notifyListeners to avoid mouse tracker assertion during dropdown interaction
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   Future<void> broadcastNews(BuildContext context) async {
