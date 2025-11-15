@@ -23,6 +23,7 @@ export 'bitwindowd.pb.dart';
 
 abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> stop($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$2.MineBlocksResponse> mineBlocks($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> createDenial($pb.ServerContext ctx, $2.CreateDenialRequest request);
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $2.CancelDenialRequest request);
   $async.Future<$2.CreateAddressBookEntryResponse> createAddressBookEntry($pb.ServerContext ctx, $2.CreateAddressBookEntryRequest request);
@@ -38,6 +39,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'Stop': return $1.Empty();
+      case 'MineBlocks': return $1.Empty();
       case 'CreateDenial': return $2.CreateDenialRequest();
       case 'CancelDenial': return $2.CancelDenialRequest();
       case 'CreateAddressBookEntry': return $2.CreateAddressBookEntryRequest();
@@ -56,6 +58,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'Stop': return this.stop(ctx, request as $1.Empty);
+      case 'MineBlocks': return this.mineBlocks(ctx, request as $1.Empty);
       case 'CreateDenial': return this.createDenial(ctx, request as $2.CreateDenialRequest);
       case 'CancelDenial': return this.cancelDenial(ctx, request as $2.CancelDenialRequest);
       case 'CreateAddressBookEntry': return this.createAddressBookEntry(ctx, request as $2.CreateAddressBookEntryRequest);

@@ -26,6 +26,23 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
+  Stream<bitwindowdv1bitwindowd.MineBlocksResponse> mineBlocks(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.BitwindowdService.mineBlocks,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Deniability operations
   Future<googleprotobufempty.Empty> createDenial(
     bitwindowdv1bitwindowd.CreateDenialRequest input, {
