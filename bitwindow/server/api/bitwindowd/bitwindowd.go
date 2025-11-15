@@ -40,14 +40,16 @@ func New(
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+	walletEngine *engines.WalletEngine,
 	config config.Config,
 ) *Server {
 	s := &Server{
-		onShutdown: onShutdown,
-		db:         db,
-		validator:  validator,
-		wallet:     wallet,
-		bitcoind:   bitcoind,
+		onShutdown:   onShutdown,
+		db:           db,
+		validator:    validator,
+		wallet:       wallet,
+		bitcoind:     bitcoind,
+		walletEngine: walletEngine,
 
 		config: config,
 	}
@@ -55,11 +57,12 @@ func New(
 }
 
 type Server struct {
-	onShutdown func(ctx context.Context)
-	db         *sql.DB
-	validator  *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet     *service.Service[validatorrpc.WalletServiceClient]
-	bitcoind   *service.Service[corerpc.BitcoinServiceClient]
+	onShutdown   func(ctx context.Context)
+	db           *sql.DB
+	validator    *service.Service[validatorrpc.ValidatorServiceClient]
+	wallet       *service.Service[validatorrpc.WalletServiceClient]
+	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+	walletEngine *engines.WalletEngine
 
 	config config.Config
 }
@@ -679,6 +682,73 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	}), nil
 }
 
+// getCoinbaseAddress gets a new address from the active wallet for mining rewards
+func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
+	// Get the active wallet from wallet engine
+	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get active wallet: %w", err)
+	}
+
+	// Get wallet type
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, activeWallet.ID)
+	if err != nil {
+		return "", fmt.Errorf("get wallet type: %w", err)
+	}
+
+	// get bitcoind-client here because we need it for both watch-only wallets and core wallets
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	switch walletType {
+	case engines.WalletTypeEnforcer:
+		// Get address from enforcer wallet
+		wallet, err := s.wallet.Get(ctx)
+		if err != nil {
+			return "", err
+		}
+		resp, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
+		if err != nil {
+			return "", fmt.Errorf("enforcer: create new address: %w", err)
+		}
+		return resp.Msg.Address, nil
+
+	case engines.WalletTypeBitcoinCore:
+
+		// Get address from Bitcoin Core wallet
+		walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, activeWallet.ID)
+		if err != nil {
+			return "", fmt.Errorf("get bitcoin core wallet name: %w", err)
+		}
+		addr, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
+			Wallet: walletName,
+		}))
+		if err != nil {
+			return "", err
+		}
+		return addr.Msg.Address, nil
+
+	case engines.WalletTypeWatchOnly:
+		// Get address from watch-only wallet
+		walletName, err := s.walletEngine.EnsureWatchOnlyWallet(ctx, activeWallet.ID)
+		if err != nil {
+			return "", fmt.Errorf("ensure watch-only wallet: %w", err)
+		}
+		addr, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
+			Wallet: walletName,
+		}))
+		if err != nil {
+			return "", err
+		}
+		return addr.Msg.Address, nil
+
+	default:
+		return "", fmt.Errorf("unsupported wallet type: %s", walletType)
+	}
+}
+
 func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.MineBlocksResponse]) error {
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
@@ -706,25 +776,10 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 		)
 	}
 
-	wallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	// Get a payout address from the active wallet for mining rewards
+	address, err := s.getCoinbaseAddress(ctx)
 	if err != nil {
-		return err
-	}
-
-	// TODO: which wallet here? Just pick the first one?
-	nonChequeWallet, ok := lo.Find(wallets.Msg.Wallets, func(w string) bool {
-		return w != engines.ChequeWalletName
-	})
-	if !ok {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no bitcoin core wallet found"))
-	}
-
-	// We need a payout address if the user is so lucky as to get a block reward
-	addr, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-		Wallet: nonChequeWallet,
-	}))
-	if err != nil {
-		return err
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get mining address: %w", err))
 	}
 
 	miner, err := cpuminer.New(cpuminer.Config{
@@ -732,7 +787,7 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 		RpcUser:         s.config.BitcoinCoreRpcUser,
 		RpcPass:         s.config.BitcoinCoreRpcPassword,
 		Routines:        1, // TODO: configurable?
-		CoinbaseAddress: addr.Msg.Address,
+		CoinbaseAddress: address,
 	})
 	if err != nil {
 		return fmt.Errorf("create miner: %w", err)

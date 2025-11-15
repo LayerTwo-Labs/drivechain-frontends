@@ -109,7 +109,7 @@ func New(
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
-		onShutdown, svcs.Database, validatorSvc, walletSvc, bitcoindSvc, conf,
+		onShutdown, svcs.Database, validatorSvc, walletSvc, bitcoindSvc, walletEngine, conf,
 	)))
 
 	// Dynamically forward all Bitcoin Core RPCs to the Bitcoin Core proxy.
