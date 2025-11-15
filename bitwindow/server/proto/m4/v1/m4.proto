@@ -21,7 +21,7 @@ service M4Service {
 
 message M4Vote {
   uint32 sidechain_slot = 1;
-  string vote_type = 2;  // "abstain", "alarm", "upvote"
+  string vote_type = 2; // "abstain", "alarm", "upvote"
   optional string bundle_hash = 3;
   optional uint32 bundle_index = 4;
 }
@@ -35,7 +35,7 @@ message M4HistoryEntry {
 }
 
 message GetM4HistoryRequest {
-  uint32 limit = 1;  // Number of recent blocks (default 6)
+  uint32 limit = 1; // Number of recent blocks (default 6)
 }
 
 message GetM4HistoryResponse {
@@ -59,6 +59,6 @@ message SetVotePreferenceResponse {
 
 message GenerateM4BytesRequest {}
 message GenerateM4BytesResponse {
-  string hex = 1;  // Hex-encoded M4 bytes
-  string interpretation = 2;  // Human-readable description
+  string hex = 1; // Hex-encoded M4 bytes
+  string interpretation = 2; // Human-readable description
 }
