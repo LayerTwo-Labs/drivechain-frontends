@@ -18,6 +18,13 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
   );
 
+  static const mineBlocks = connect.Spec(
+    '/$name/MineBlocks',
+    connect.StreamType.server,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.MineBlocksResponse.new,
+  );
+
   /// Deniability operations
   static const createDenial = connect.Spec(
     '/$name/CreateDenial',

@@ -147,6 +147,11 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<List<RecentTransaction>> listRecentTransactions() {
     return Future.value([]);
   }
+
+  @override
+  Stream<MineBlocksResponse> mineBlocks() {
+    return Stream.periodic(const Duration(seconds: 1)).map((_) => MineBlocksResponse());
+  }
 }
 
 class MockWalletAPI implements WalletAPI {

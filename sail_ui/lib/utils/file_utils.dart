@@ -38,7 +38,8 @@ Future<void> openFile(File file) async {
 enum OS {
   linux,
   macos,
-  windows;
+  windows
+  ;
 
   static OS get current {
     if (Platform.isLinux) return OS.linux;

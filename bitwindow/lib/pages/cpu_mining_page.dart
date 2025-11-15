@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/providers/mining_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -13,9 +14,9 @@ class CpuMiningPage extends StatefulWidget {
 }
 
 class _CpuMiningPageState extends State<CpuMiningPage> {
-  // TODO: CPU mining is now built into bitwindow - update this page to use bitwindow's built-in mining API
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   BitwindowRPC get _bitwindowRPC => GetIt.I.get<BitwindowRPC>();
+  MiningProvider get _miningProvider => GetIt.I.get<MiningProvider>();
 
   final _threadCountController = TextEditingController(text: '1');
   String _coinbaseAddress = '';
@@ -25,12 +26,20 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
   void initState() {
     super.initState();
     _loadCoinbaseAddress();
+    _miningProvider.addListener(_onMiningStateChanged);
   }
 
   @override
   void dispose() {
+    _miningProvider.removeListener(_onMiningStateChanged);
     _threadCountController.dispose();
     super.dispose();
+  }
+
+  void _onMiningStateChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadCoinbaseAddress() async {
@@ -55,16 +64,16 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
   }
 
   Future<void> _startMiner() async {
-    // TODO: Call bitwindow's built-in mining API
-    if (mounted) {
-      showSnackBar(context, 'TODO: Start mining via bitwindow API');
+    await _miningProvider.startMining();
+    if (mounted && _miningProvider.error != null) {
+      showSnackBar(context, 'Failed to start mining: ${_miningProvider.error}');
     }
   }
 
   Future<void> _stopMiner() async {
-    // TODO: Call bitwindow's built-in mining API
-    if (mounted) {
-      showSnackBar(context, 'TODO: Stop mining via bitwindow API');
+    await _miningProvider.stopMining();
+    if (mounted && _miningProvider.error != null) {
+      showSnackBar(context, 'Failed to stop mining: ${_miningProvider.error}');
     }
   }
 
@@ -86,7 +95,7 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
         title: SailText.primary20('CPU Miner', bold: true),
       ),
       body: SafeArea(
-        child: _buildConfigScreen(theme, false), // TODO: Get actual mining status from bitwindow API
+        child: _buildConfigScreen(theme, _miningProvider.isMining),
       ),
     );
   }
@@ -136,6 +145,49 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
             ),
           ],
         ),
+        if (isRunning) ...[
+          const SizedBox(height: SailStyleValues.padding16),
+          SailText.secondary13(
+            'Hash Rate: ${_miningProvider.hashRate.toStringAsFixed(2)} H/s',
+          ),
+        ],
+        if (_miningProvider.blocksFound > 0) ...[
+          const SizedBox(height: SailStyleValues.padding08),
+          SailText.secondary13(
+            'Blocks Found: ${_miningProvider.blocksFound}',
+          ),
+        ],
+        if (_miningProvider.foundBlockHashes.isNotEmpty) ...[
+          const SizedBox(height: SailStyleValues.padding16),
+          SizedBox(
+            width: 500,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13('Recent Blocks:', bold: true),
+                const SizedBox(height: SailStyleValues.padding08),
+                ..._miningProvider.foundBlockHashes
+                    .take(5)
+                    .map(
+                      (hash) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: SailText.secondary12(hash),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ],
+        if (_miningProvider.error != null) ...[
+          const SizedBox(height: SailStyleValues.padding16),
+          SizedBox(
+            width: 500,
+            child: SailText.primary12(
+              'Error: ${_miningProvider.error}',
+              color: theme.colors.error,
+            ),
+          ),
+        ],
       ],
     );
   }

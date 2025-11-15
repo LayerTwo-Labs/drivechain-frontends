@@ -7,7 +7,8 @@ import 'package:sail_ui/providers/settings_provider.dart';
 
 enum BitcoinUnit {
   btc,
-  sats;
+  sats
+  ;
 
   String get symbol => this == BitcoinUnit.btc ? 'BTC' : 'sats';
   String get label => this == BitcoinUnit.btc ? 'BTC' : 'Satoshis';
