@@ -47,6 +47,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
   $async.Future<$4.GetBlockResponse> getBlock($pb.ServerContext ctx, $4.GetBlockRequest request);
   $async.Future<$4.GetBlockHashResponse> getBlockHash($pb.ServerContext ctx, $4.GetBlockHashRequest request);
   $async.Future<$4.CreateWalletResponse> createWallet($pb.ServerContext ctx, $4.CreateWalletRequest request);
+  $async.Future<$4.LoadWalletResponse> loadWallet($pb.ServerContext ctx, $4.LoadWalletRequest request);
   $async.Future<$4.BackupWalletResponse> backupWallet($pb.ServerContext ctx, $4.BackupWalletRequest request);
   $async.Future<$4.UnloadWalletResponse> unloadWallet($pb.ServerContext ctx, $4.UnloadWalletRequest request);
   $async.Future<$4.KeyPoolRefillResponse> keyPoolRefill($pb.ServerContext ctx, $4.KeyPoolRefillRequest request);
@@ -91,6 +92,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'GetBlock': return $4.GetBlockRequest();
       case 'GetBlockHash': return $4.GetBlockHashRequest();
       case 'CreateWallet': return $4.CreateWalletRequest();
+      case 'LoadWallet': return $4.LoadWalletRequest();
       case 'BackupWallet': return $4.BackupWalletRequest();
       case 'UnloadWallet': return $4.UnloadWalletRequest();
       case 'KeyPoolRefill': return $4.KeyPoolRefillRequest();
@@ -138,6 +140,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'GetBlock': return this.getBlock(ctx, request as $4.GetBlockRequest);
       case 'GetBlockHash': return this.getBlockHash(ctx, request as $4.GetBlockHashRequest);
       case 'CreateWallet': return this.createWallet(ctx, request as $4.CreateWalletRequest);
+      case 'LoadWallet': return this.loadWallet(ctx, request as $4.LoadWalletRequest);
       case 'BackupWallet': return this.backupWallet(ctx, request as $4.BackupWalletRequest);
       case 'UnloadWallet': return this.unloadWallet(ctx, request as $4.UnloadWalletRequest);
       case 'KeyPoolRefill': return this.keyPoolRefill(ctx, request as $4.KeyPoolRefillRequest);

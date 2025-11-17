@@ -1163,11 +1163,12 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
         rpc: bitwindow,
         name: 'BitWindow',
       ),
-      navigateToLogs: (title, logPath) {
+      navigateToLogs: (title, logPath, binaryType) {
         GetIt.I.get<AppRouter>().push(
           LogRoute(
             title: title,
             logPath: logPath,
+            binaryType: binaryType,
           ),
         );
       },

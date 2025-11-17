@@ -194,6 +194,13 @@ abstract final class BitcoinService {
     bitcoinbitcoindv1alphabitcoin.CreateWalletResponse.new,
   );
 
+  static const loadWallet = connect.Spec(
+    '/$name/LoadWallet',
+    connect.StreamType.unary,
+    bitcoinbitcoindv1alphabitcoin.LoadWalletRequest.new,
+    bitcoinbitcoindv1alphabitcoin.LoadWalletResponse.new,
+  );
+
   static const backupWallet = connect.Spec(
     '/$name/BackupWallet',
     connect.StreamType.unary,

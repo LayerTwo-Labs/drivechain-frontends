@@ -376,13 +376,6 @@ class DownloadManager extends ChangeNotifier {
 
   /// Extract binary archive or process raw binary
   Future<void> _extractBinary(Directory extractDir, String filePath, Directory downloadsDir, Binary binary) async {
-    updateBinary(
-      binary.type,
-      (b) => b.copyWith(
-        downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Extracting...'),
-      ),
-    );
-
     final fileName = path.basename(filePath);
 
     if (fileName.endsWith('.zip')) {
@@ -402,6 +395,13 @@ class DownloadManager extends ChangeNotifier {
 
   /// Extract zip file (existing logic)
   Future<void> _extractZipFile(Directory extractDir, String zipPath, Directory downloadsDir, Binary binary) async {
+    updateBinary(
+      binary.type,
+      (b) => b.copyWith(
+        downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Extracting archive...'),
+      ),
+    );
+
     // Create a temporary directory for extraction
     final tempDir = Directory(path.join(extractDir.path, 'temp', path.basenameWithoutExtension(binary.binary)));
     try {
@@ -416,6 +416,13 @@ class DownloadManager extends ChangeNotifier {
 
     try {
       await extractArchiveToDisk(archive, tempDir.path);
+
+      updateBinary(
+        binary.type,
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Moving files...'),
+        ),
+      );
 
       log.d('Moving files from temp directory to final location');
       await for (final entity in tempDir.list()) {
@@ -432,6 +439,13 @@ class DownloadManager extends ChangeNotifier {
 
         await safeMove(entity, targetPath);
       }
+
+      updateBinary(
+        binary.type,
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Cleaning up...'),
+        ),
+      );
 
       // Clean up temp directory
       await tempDir.delete(recursive: true);
@@ -457,6 +471,13 @@ class DownloadManager extends ChangeNotifier {
 
   /// Extract tar.gz file
   Future<void> _extractTarGzFile(Directory extractDir, String tarGzPath, Directory downloadsDir, Binary binary) async {
+    updateBinary(
+      binary.type,
+      (b) => b.copyWith(
+        downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Extracting archive...'),
+      ),
+    );
+
     // Create a temporary directory for extraction
     final tempDir = Directory(path.join(extractDir.path, 'temp', path.basenameWithoutExtension(binary.binary)));
     try {
@@ -473,6 +494,13 @@ class DownloadManager extends ChangeNotifier {
 
     try {
       await extractArchiveToDisk(archive, tempDir.path);
+
+      updateBinary(
+        binary.type,
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Moving files...'),
+        ),
+      );
 
       log.d('Moving files from temp directory to final location');
       await for (final entity in tempDir.list()) {
@@ -504,6 +532,18 @@ class DownloadManager extends ChangeNotifier {
 
         await safeMove(entity, targetPath);
       }
+
+      updateBinary(
+        binary.type,
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(
+            progress: 0.9999,
+            total: 1.0,
+            isDownloading: true,
+            message: 'Setting permissions...',
+          ),
+        ),
+      );
 
       // Clean up temp directory
       await tempDir.delete(recursive: true);

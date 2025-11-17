@@ -28,10 +28,16 @@ class LogRoute extends _i6.PageRouteInfo<LogRouteArgs> {
     _i7.Key? key,
     required String logPath,
     required String title,
+    _i8.BinaryType? binaryType,
     List<_i6.PageRouteInfo>? children,
   }) : super(
          LogRoute.name,
-         args: LogRouteArgs(key: key, logPath: logPath, title: title),
+         args: LogRouteArgs(
+           key: key,
+           logPath: logPath,
+           title: title,
+           binaryType: binaryType,
+         ),
          initialChildren: children,
        );
 
@@ -45,13 +51,19 @@ class LogRoute extends _i6.PageRouteInfo<LogRouteArgs> {
         key: args.key,
         logPath: args.logPath,
         title: args.title,
+        binaryType: args.binaryType,
       );
     },
   );
 }
 
 class LogRouteArgs {
-  const LogRouteArgs({this.key, required this.logPath, required this.title});
+  const LogRouteArgs({
+    this.key,
+    required this.logPath,
+    required this.title,
+    this.binaryType,
+  });
 
   final _i7.Key? key;
 
@@ -59,20 +71,26 @@ class LogRouteArgs {
 
   final String title;
 
+  final _i8.BinaryType? binaryType;
+
   @override
   String toString() {
-    return 'LogRouteArgs{key: $key, logPath: $logPath, title: $title}';
+    return 'LogRouteArgs{key: $key, logPath: $logPath, title: $title, binaryType: $binaryType}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! LogRouteArgs) return false;
-    return key == other.key && logPath == other.logPath && title == other.title;
+    return key == other.key &&
+        logPath == other.logPath &&
+        title == other.title &&
+        binaryType == other.binaryType;
   }
 
   @override
-  int get hashCode => key.hashCode ^ logPath.hashCode ^ title.hashCode;
+  int get hashCode =>
+      key.hashCode ^ logPath.hashCode ^ title.hashCode ^ binaryType.hashCode;
 }
 
 /// generated route for

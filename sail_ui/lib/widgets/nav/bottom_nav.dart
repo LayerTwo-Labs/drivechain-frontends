@@ -9,7 +9,7 @@ class BottomNav extends StatelessWidget {
   final List<Widget> balanceEndWidgets;
   final ConnectionMonitor additionalConnection;
   final bool mainchainInfo;
-  final Function(String, String) navigateToLogs;
+  final Function(String, String, BinaryType) navigateToLogs;
   final bool onlyShowAdditional;
 
   const BottomNav({
@@ -181,23 +181,6 @@ class BottomNav extends StatelessWidget {
                     ),
                     navigateToLogs: model.navigateToLogs,
                   ),
-                  SailCard(
-                    child: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailText.primary15('CPU Miner', bold: true),
-                        SailText.secondary12('Mining...'),
-                        Expanded(child: Container()),
-                        SailButton(
-                          variant: ButtonVariant.icon,
-                          onPressed: () async => {
-                            // TODO: Stop miner
-                          },
-                          icon: SailSVGAsset.square,
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ],
@@ -283,7 +266,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
 
   final bool mainchainInfo;
-  final Function(String, String) navigateToLogs;
+  final Function(String, String, BinaryType) navigateToLogs;
 
   BottomNavViewModel({required this.additionalConnection, required this.mainchainInfo, required this.navigateToLogs}) {
     initChangeTracker();

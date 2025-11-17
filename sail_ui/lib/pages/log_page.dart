@@ -15,8 +15,9 @@ import 'package:stacked/stacked.dart';
 class LogPage extends StatefulWidget {
   final String logPath;
   final String title;
+  final BinaryType? binaryType;
 
-  const LogPage({super.key, required this.logPath, required this.title});
+  const LogPage({super.key, required this.logPath, required this.title, this.binaryType});
 
   @override
   State<LogPage> createState() => _LogPageState();
@@ -42,7 +43,7 @@ class _LogPageState extends State<LogPage> {
             ),
             SingleTabItem(
               label: 'Process Logs',
-              child: const _ProcessLogsTab(),
+              child: _ProcessLogsTab(binaryType: widget.binaryType),
             ),
           ],
         ),
@@ -371,7 +372,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
 }
 
 class _ProcessLogsTab extends StatefulWidget {
-  const _ProcessLogsTab();
+  final BinaryType? binaryType;
+
+  const _ProcessLogsTab({this.binaryType});
 
   @override
   State<_ProcessLogsTab> createState() => _ProcessLogsTabState();
@@ -401,7 +404,11 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
   Widget build(BuildContext context) {
     final allLogs = <ProcessLogEntry>[];
 
-    for (final binary in _binaryProvider.binaries) {
+    final binariesToShow = widget.binaryType != null
+        ? _binaryProvider.binaries.where((b) => b.type == widget.binaryType)
+        : _binaryProvider.binaries;
+
+    for (final binary in binariesToShow) {
       allLogs.addAll(binary.startupLogs);
     }
 
