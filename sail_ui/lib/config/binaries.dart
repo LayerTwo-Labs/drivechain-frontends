@@ -763,6 +763,7 @@ class Enforcer extends Binary {
     RegExp(r'Synced \d+ blocks in'),
     RegExp(r'enforcer synced to tip!'),
     RegExp(r'Initial mempool sync complete'),
+    RegExp(r'initial_mempool_sync:'),
   ];
 
   @override
