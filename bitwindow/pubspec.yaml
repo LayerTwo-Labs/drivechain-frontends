@@ -12,7 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  file_picker: ^10.3.3
+  file_picker: ^10.3.6
 
   dart_coin_rpc:
     git:
@@ -22,7 +22,7 @@ dependencies:
   dio: 5.9.0
   stacked: ^3.5.0
   qr_flutter: ^4.1.0
-  http: ^1.5.0
+  http: ^1.6.0
   intl: ^0.20.2
   cupertino_icons: ^1.0.8
   collection: ^1.19.1
@@ -31,10 +31,10 @@ dependencies:
     path: ../sail_ui
   logger: ^2.6.2
   google_fonts: ^6.3.2
-  auto_route: ^10.2.0
+  auto_route: ^10.2.2
   fixnum: ^1.1.1
   get_it: ^8.3.0
-  meta: ^1.16.0
+  meta: ^1.17.0
   protobuf: ^4.2.0
   dotted_border: ^3.1.0
   window_manager: ^0.5.1
@@ -44,7 +44,7 @@ dependencies:
   path: ^1.9.1
   url_launcher: ^6.3.2
   pointycastle: ^3.9.1
-  crypto: ^3.0.6
+  crypto: ^3.0.7
   encrypt: ^5.0.3
   connectrpc: ^1.0.0
   desktop_multi_window: ^0.3.0
@@ -53,8 +53,8 @@ dependencies:
   dart_bip32_bip44: ^0.2.0
   bs58: ^1.0.2
   auto_updater: ^1.0.0
-  bitcoin_base: ^6.9.0
-  blockchain_utils: ^5.2.0
+  bitcoin_base: ^7.0.0
+  blockchain_utils: ^5.4.0
   bech32: ^0.2.2
   archive: ^4.0.7
   csv: ^6.0.0
@@ -65,8 +65,8 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  auto_route_generator: ^10.2.5
-  build_runner: ^2.10.1
+  auto_route_generator: ^10.2.6
+  build_runner: ^2.10.3
   flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
