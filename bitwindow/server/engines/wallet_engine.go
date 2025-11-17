@@ -404,7 +404,22 @@ func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 		AvoidReuse:         false,
 	}))
 	if err != nil {
-		return fmt.Errorf("create Bitcoin Core wallet: %w", err)
+		// If wallet already exists on disk, load it instead
+		if strings.Contains(err.Error(), "Database already exists") {
+			zerolog.Ctx(ctx).Info().
+				Str("wallet_name", walletName).
+				Msg("Bitcoin Core wallet already exists on disk, loading it")
+
+			_, err = bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
+				Filename:      walletName,
+				LoadOnStartup: true,
+			}))
+			if err != nil {
+				return fmt.Errorf("load Bitcoin Core wallet: %w", err)
+			}
+		} else {
+			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
+		}
 	}
 
 	// Import descriptors for receiving and change addresses with key origin info
@@ -536,7 +551,22 @@ func (e *WalletEngine) createWatchOnlyWallet(
 		AvoidReuse:         false,
 	}))
 	if err != nil {
-		return fmt.Errorf("create Bitcoin Core wallet: %w", err)
+		// If wallet already exists on disk, load it instead
+		if strings.Contains(err.Error(), "Database already exists") {
+			zerolog.Ctx(ctx).Info().
+				Str("wallet_name", walletName).
+				Msg("Bitcoin Core watch-only wallet already exists on disk, loading it")
+
+			_, err = bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
+				Filename:      walletName,
+				LoadOnStartup: false,
+			}))
+			if err != nil {
+				return fmt.Errorf("load Bitcoin Core wallet: %w", err)
+			}
+		} else {
+			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
+		}
 	}
 
 	// Import the descriptor or xpub
@@ -788,7 +818,22 @@ func (e *WalletEngine) createBitcoinCoreWalletForSync(
 		AvoidReuse:         false,
 	}))
 	if err != nil {
-		return fmt.Errorf("create Bitcoin Core wallet: %w", err)
+		// If wallet already exists on disk, load it instead
+		if strings.Contains(err.Error(), "Database already exists") {
+			zerolog.Ctx(ctx).Info().
+				Str("wallet_name", walletName).
+				Msg("Bitcoin Core wallet already exists on disk, loading it")
+
+			_, err = bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
+				Filename:      walletName,
+				LoadOnStartup: false,
+			}))
+			if err != nil {
+				return fmt.Errorf("load Bitcoin Core wallet: %w", err)
+			}
+		} else {
+			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
+		}
 	}
 
 	// Import descriptors
