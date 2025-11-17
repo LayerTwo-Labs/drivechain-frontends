@@ -300,7 +300,7 @@ class ProcessManager extends ChangeNotifier {
   }
 
   void _captureStartupLog(Binary binary, String line) {
-    final patterns = binary.interestingLogPatterns;
+    final patterns = binary.startupLogPatterns;
     if (patterns.isEmpty) {
       return;
     }
@@ -313,7 +313,7 @@ class ProcessManager extends ChangeNotifier {
     final timestamp = _extractTimestamp(line) ?? DateTime.now();
     final cleanedMessage = _cleanMessage(line);
 
-    binary.addProcessLog(timestamp, cleanedMessage);
+    binary.addStartupLog(timestamp, cleanedMessage);
   }
 
   DateTime? _extractTimestamp(String line) {

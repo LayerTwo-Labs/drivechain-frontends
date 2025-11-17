@@ -402,7 +402,7 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
     final allLogs = <ProcessLogEntry>[];
 
     for (final binary in _binaryProvider.binaries) {
-      allLogs.addAll(binary.processLogs);
+      allLogs.addAll(binary.startupLogs);
     }
 
     allLogs.sort((a, b) => a.timestamp.compareTo(b.timestamp));

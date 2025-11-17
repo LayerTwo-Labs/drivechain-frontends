@@ -292,7 +292,10 @@ class BinaryProvider extends ChangeNotifier {
     try {
       await _processManager.start(binary, args, cleanup, environment: environment);
 
-      final timeout = const Duration(seconds: 30);
+      // Base timeout of 30 seconds, extended if binary is pushing logs
+      var timeout = const Duration(seconds: 30);
+      final startTime = DateTime.now();
+
       try {
         await Future.any([
           // Happy case: able to connect. we start a poller at the
@@ -319,8 +322,23 @@ class BinaryProvider extends ChangeNotifier {
             return res != null;
           }),
 
-          Future.delayed(timeout).then((_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s"),
-          // Timeout case!
+          // Dynamic timeout: extends if binary is pushing logs
+          Future.doWhile(() async {
+            await Future.delayed(const Duration(milliseconds: 500));
+            final elapsed = DateTime.now().difference(startTime);
+
+            // If binary has recent log activity, keep extending timeout
+            if (binary.hasRecentStartupLogActivity) {
+              return true; // Keep waiting
+            }
+
+            // Otherwise check if we've exceeded base timeout
+            if (elapsed >= timeout) {
+              throw "'$binary' connection timed out after ${elapsed.inSeconds}s";
+            }
+
+            return true; // Keep waiting
+          }),
         ]);
 
         log.i('init binaries: $binary connected');

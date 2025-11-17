@@ -76,27 +76,35 @@ abstract class Binary {
       metadata.remoteTimestamp!.isAfter(metadata.downloadedTimestamp!);
 
   // Process log storage (in-memory, session-based)
-  List<ProcessLogEntry> processLogs = [];
+  List<ProcessLogEntry> startupLogs = [];
 
-  void addProcessLog(DateTime timestamp, String message) {
-    processLogs.add(
+  void addStartupLog(DateTime timestamp, String message) {
+    startupLogs.add(
       ProcessLogEntry(
         timestamp: timestamp,
         message: message,
       ),
     );
 
-    if (processLogs.length > 1000) {
-      processLogs.removeAt(0);
+    if (startupLogs.length > 1000) {
+      startupLogs.removeAt(0);
     }
   }
 
   void clearProcessLogs() {
-    processLogs.clear();
+    startupLogs.clear();
+  }
+
+  // Check if process has recent log activity (within last 30 seconds)
+  bool get hasRecentStartupLogActivity {
+    if (startupLogs.isEmpty) return false;
+    final lastLog = startupLogs.last;
+    final now = DateTime.now();
+    return now.difference(lastLog.timestamp).inSeconds < 30;
   }
 
   // Override in subclasses to define interesting log patterns
-  List<RegExp> get interestingLogPatterns => [];
+  List<RegExp> get startupLogPatterns => [];
 
   @override
   bool operator ==(Object other) =>
@@ -560,7 +568,7 @@ class BitcoinCore extends Binary {
   Color get color => SailColorScheme.green;
 
   @override
-  List<RegExp> get interestingLogPatterns => [
+  List<RegExp> get startupLogPatterns => [
     RegExp(r'init message:'),
     RegExp(r'Verifying last \d+ blocks'),
     RegExp(r'Verification progress: \d+%'),
@@ -730,6 +738,32 @@ class Enforcer extends Binary {
 
   @override
   Color get color => SailColorScheme.green;
+
+  @override
+  List<RegExp> get startupLogPatterns => [
+    RegExp(r'Starting up bip300301_enforcer'),
+    RegExp(r'verified mainchain REST server is enabled'),
+    RegExp(r'verified mainchain REST server at'),
+    RegExp(r'created mainchain JSON-RPC client'),
+    RegExp(r'Connected to mainchain client network=\w+ blocks=\d+'),
+    RegExp(r'Created validator DBs in'),
+    RegExp(r'Instantiating \w+ wallet'),
+    RegExp(r'creating esplora client esplora_url='),
+    RegExp(r'esplora client initialized height=\d+'),
+    RegExp(r'Created database connection to'),
+    RegExp(r'Loaded existing BDK wallet'),
+    RegExp(r'wallet inner: wired together components'),
+    RegExp(r'Listening for JSON-RPC on'),
+    RegExp(r'Listening for gRPC on'),
+    RegExp(r'Connected to ZMQ server'),
+    RegExp(r'Reached main tip at height \d+!'),
+    RegExp(r'Synced \d+ headers in'),
+    RegExp(r'starting batched sync'),
+    RegExp(r'Synced batch of \d+ blocks in'),
+    RegExp(r'Synced \d+ blocks in'),
+    RegExp(r'enforcer synced to tip!'),
+    RegExp(r'Initial mempool sync complete'),
+  ];
 
   @override
   Enforcer copyWith({
