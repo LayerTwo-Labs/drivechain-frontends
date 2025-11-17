@@ -387,12 +387,12 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (mainchain.initializingBinary) {
-      final latestLog = mainchain.binary.processLogs.lastOrNull?.message;
+      final latestLog = mainchain.binary.startupLogs.lastOrNull?.message;
       return latestLog ?? 'Initializing bitcoind..';
     }
 
     if (enforcer.initializingBinary || enforcer.startupError != null) {
-      final latestLog = enforcer.binary.processLogs.lastOrNull?.message;
+      final latestLog = enforcer.binary.startupLogs.lastOrNull?.message;
       return latestLog ?? 'Initializing enforcer..';
     }
 

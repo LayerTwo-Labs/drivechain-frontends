@@ -133,7 +133,7 @@ class DaemonConnectionCard extends StatelessWidget {
                   infoMessage ??
                       connection.connectionError ??
                       (connection.initializingBinary || !connection.connected
-                          ? (providerBinary?.processLogs.lastOrNull?.message ?? 'Initializing...')
+                          ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
                           : connection.connected
                           ? ''
                           : 'Unknown error occured'),
