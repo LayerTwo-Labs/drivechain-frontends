@@ -75,6 +75,29 @@ abstract class Binary {
       metadata.remoteTimestamp != null &&
       metadata.remoteTimestamp!.isAfter(metadata.downloadedTimestamp!);
 
+  // Process log storage (in-memory, session-based)
+  List<ProcessLogEntry> processLogs = [];
+
+  void addProcessLog(DateTime timestamp, String message) {
+    processLogs.add(
+      ProcessLogEntry(
+        timestamp: timestamp,
+        message: message,
+      ),
+    );
+
+    if (processLogs.length > 1000) {
+      processLogs.removeAt(0);
+    }
+  }
+
+  void clearProcessLogs() {
+    processLogs.clear();
+  }
+
+  // Override in subclasses to define interesting log patterns
+  List<RegExp> get interestingLogPatterns => [];
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -462,7 +485,17 @@ abstract class Binary {
     return '$name :$port';
   }
 
-  void addBootArg(String arg) {
+  void addBootArg(String arg, {bool override = false}) {
+    // If override is true, first remove any existing args with the same key
+    if (override) {
+      // Extract the key (everything before '=')
+      final key = arg.split('=').first;
+      // Remove any existing args with the same key
+      extraBootArgs = List<String>.from(extraBootArgs)
+        ..removeWhere((existingArg) => existingArg.split('=').first == key);
+    }
+
+    // Don't add if exact arg already exists
     if (extraBootArgs.contains(arg)) {
       return;
     }
@@ -525,6 +558,19 @@ class BitcoinCore extends Binary {
 
   @override
   Color get color => SailColorScheme.green;
+
+  @override
+  List<RegExp> get interestingLogPatterns => [
+    RegExp(r'init message:'),
+    RegExp(r'Verifying last \d+ blocks'),
+    RegExp(r'Verification progress: \d+%'),
+    RegExp(r'Verification: No coin database inconsistencies'),
+    RegExp(r'Loading block index'),
+    RegExp(r'Done loading'),
+    RegExp(r'Synchronizing blockheaders'),
+    RegExp(r'Rescan completed in'),
+    RegExp(r'Rescan started from block'),
+  ];
 
   @override
   BitcoinCore copyWith({
@@ -1389,4 +1435,14 @@ class DownloadInfo {
 
   @override
   int get hashCode => Object.hash(progress, total, error, hash, downloadedAt, isDownloading);
+}
+
+class ProcessLogEntry {
+  final DateTime timestamp;
+  final String message;
+
+  ProcessLogEntry({
+    required this.timestamp,
+    required this.message,
+  });
 }

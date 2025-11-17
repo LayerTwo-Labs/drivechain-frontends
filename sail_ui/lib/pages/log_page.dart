@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
@@ -22,6 +23,44 @@ class LogPage extends StatefulWidget {
 }
 
 class _LogPageState extends State<LogPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: SailColorScheme.blackLighter,
+      appBar: AppBar(
+        title: SailText.primary20(widget.title, color: SailColorScheme.whiteDark),
+        backgroundColor: SailColorScheme.blackLighter,
+        foregroundColor: SailColorScheme.whiteDark,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: InlineTabBar(
+          tabs: [
+            SingleTabItem(
+              label: 'File Logs',
+              child: _FileLogsTab(logPath: widget.logPath),
+            ),
+            SingleTabItem(
+              label: 'Process Logs',
+              child: const _ProcessLogsTab(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FileLogsTab extends StatefulWidget {
+  final String logPath;
+
+  const _FileLogsTab({required this.logPath});
+
+  @override
+  State<_FileLogsTab> createState() => _FileLogsTabState();
+}
+
+class _FileLogsTabState extends State<_FileLogsTab> {
   final ScrollController _scrollController = ScrollController();
   final List<String> _logLines = [];
   final FocusNode _focusNode = FocusNode();
@@ -42,47 +81,49 @@ class _LogPageState extends State<LogPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: SailColorScheme.blackLighter,
-      appBar: AppBar(
-        title: SailText.primary20(widget.title, color: SailColorScheme.whiteDark),
-        backgroundColor: SailColorScheme.blackLighter,
-        foregroundColor: SailColorScheme.whiteDark,
-        actions: [
-          SailButton(
-            onPressed: () async {
-              final logFile = File(widget.logPath);
-              await openFile(logFile);
-            },
-            variant: ButtonVariant.primary,
-            label: 'Open Log File',
-            icon: SailSVGAsset.download,
-          ),
-        ],
-      ),
-      body: SelectableRegion(
-        focusNode: _focusNode,
-        selectionControls: DesktopTextSelectionControls(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          child: ListView.builder(
-            controller: _scrollController,
-            itemCount: _logLines.length + 1,
-            itemBuilder: (context, index) {
-              if (index == _logLines.length) {
-                return const SizedBox(height: 100);
-              }
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
-                child: Text.rich(
-                  _parseAnsiCodes(_logLines[index]),
-                  style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 10, color: SailColorScheme.whiteDark),
-                ),
-              );
-            },
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            SailButton(
+              onPressed: () async {
+                final logFile = File(widget.logPath);
+                await openFile(logFile);
+              },
+              variant: ButtonVariant.primary,
+              label: 'Open Log File',
+              icon: SailSVGAsset.download,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: SelectableRegion(
+            focusNode: _focusNode,
+            selectionControls: DesktopTextSelectionControls(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: _logLines.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == _logLines.length) {
+                    return const SizedBox(height: 100);
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+                    child: Text.rich(
+                      _parseAnsiCodes(_logLines[index]),
+                      style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 10, color: SailColorScheme.whiteDark),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -293,12 +334,14 @@ class _LogPageState extends State<LogPage> {
         final wasAtBottom = _stickToBottom;
         final previousOffset = _scrollController.hasClients ? _scrollController.offset : 0;
 
-        setState(() {
-          _logLines.addAll(newLines);
-          if (_logLines.length > maxLines) {
-            _logLines.removeRange(0, _logLines.length - maxLines);
-          }
-        });
+        if (mounted) {
+          setState(() {
+            _logLines.addAll(newLines);
+            if (_logLines.length > maxLines) {
+              _logLines.removeRange(0, _logLines.length - maxLines);
+            }
+          });
+        }
 
         _lastPosition = length;
 
@@ -324,6 +367,96 @@ class _LogPageState extends State<LogPage> {
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+}
+
+class _ProcessLogsTab extends StatefulWidget {
+  const _ProcessLogsTab();
+
+  @override
+  State<_ProcessLogsTab> createState() => _ProcessLogsTabState();
+}
+
+class _ProcessLogsTabState extends State<_ProcessLogsTab> {
+  final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Environment.isInTest) {
+      _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allLogs = <ProcessLogEntry>[];
+
+    for (final binary in _binaryProvider.binaries) {
+      allLogs.addAll(binary.processLogs);
+    }
+
+    allLogs.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    if (allLogs.isEmpty) {
+      return Center(
+        child: SailText.secondary13(
+          'No process logs captured yet. Logs will appear here when binaries output interesting events.',
+        ),
+      );
+    }
+
+    return SelectableRegion(
+      focusNode: FocusNode(),
+      selectionControls: DesktopTextSelectionControls(),
+      child: ListView.builder(
+        itemCount: allLogs.length,
+        itemBuilder: (context, index) {
+          final log = allLogs[index];
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 120,
+                  child: SailText.secondary12(
+                    formatDate(log.timestamp, long: false),
+                    color: SailColorScheme.greyLight,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SailText.primary12(
+                    log.message,
+                    color: SailColorScheme.whiteDark,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 16),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: log.message));
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
