@@ -76,6 +76,12 @@ class ProcessManager extends ChangeNotifier {
             if (!isSpam(data)) {
               log.d('${file.path.split(Platform.pathSeparator).last}: $data');
             }
+            // Process each line separately for log capture
+            for (final line in data.split('\n')) {
+              if (line.trim().isNotEmpty) {
+                _captureStartupLog(binary, line);
+              }
+            }
           },
           onError: (error, stack) {
             log.e('Stdout stream error: $error\n$stack');
@@ -104,6 +110,12 @@ class ProcessManager extends ChangeNotifier {
               // Strip ANSI color codes from the log output
               final cleanData = data.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
               log.e('${file.path}: $cleanData');
+            }
+            // Process each line separately for log capture
+            for (final line in data.split('\n')) {
+              if (line.trim().isNotEmpty) {
+                _captureStartupLog(binary, line);
+              }
             }
           },
           onError: (error, stack) {
@@ -285,6 +297,44 @@ class ProcessManager extends ChangeNotifier {
         log.e('Failed to kill process $pid: $e');
       }
     }
+  }
+
+  void _captureStartupLog(Binary binary, String line) {
+    final patterns = binary.interestingLogPatterns;
+    if (patterns.isEmpty) {
+      return;
+    }
+
+    final isInteresting = patterns.any((pattern) => pattern.hasMatch(line));
+    if (!isInteresting) {
+      return;
+    }
+
+    final timestamp = _extractTimestamp(line) ?? DateTime.now();
+    final cleanedMessage = _cleanMessage(line);
+
+    binary.addProcessLog(timestamp, cleanedMessage);
+  }
+
+  DateTime? _extractTimestamp(String line) {
+    // Bitcoin Core timestamp format: 2025-11-17T06:08:29Z
+    final timestampRegex = RegExp(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)');
+    final match = timestampRegex.firstMatch(line);
+    if (match != null) {
+      try {
+        return DateTime.parse(match.group(1)!);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  String _cleanMessage(String line) {
+    // Remove timestamp prefix if present
+    final cleaned = line.replaceFirst(RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\s*'), '');
+    // Strip ANSI color codes
+    return cleaned.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
   }
 }
 
