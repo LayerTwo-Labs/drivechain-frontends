@@ -442,6 +442,23 @@ extension type BitcoinServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<bitcoinbitcoindv1alphabitcoin.LoadWalletResponse> loadWallet(
+    bitcoinbitcoindv1alphabitcoin.LoadWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinService.loadWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<bitcoinbitcoindv1alphabitcoin.BackupWalletResponse> backupWallet(
     bitcoinbitcoindv1alphabitcoin.BackupWalletRequest input, {
     connect.Headers? headers,

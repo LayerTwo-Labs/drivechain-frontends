@@ -6164,6 +6164,128 @@ class CreateWalletResponse extends $pb.GeneratedMessage {
   void clearWarning() => clearField(2);
 }
 
+class LoadWalletRequest extends $pb.GeneratedMessage {
+  factory LoadWalletRequest({
+    $core.String? filename,
+    $core.bool? loadOnStartup,
+  }) {
+    final $result = create();
+    if (filename != null) {
+      $result.filename = filename;
+    }
+    if (loadOnStartup != null) {
+      $result.loadOnStartup = loadOnStartup;
+    }
+    return $result;
+  }
+  LoadWalletRequest._() : super();
+  factory LoadWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory LoadWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LoadWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'filename')
+    ..aOB(2, _omitFieldNames ? '' : 'loadOnStartup')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  LoadWalletRequest clone() => LoadWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  LoadWalletRequest copyWith(void Function(LoadWalletRequest) updates) => super.copyWith((message) => updates(message as LoadWalletRequest)) as LoadWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LoadWalletRequest create() => LoadWalletRequest._();
+  LoadWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<LoadWalletRequest> createRepeated() => $pb.PbList<LoadWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static LoadWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LoadWalletRequest>(create);
+  static LoadWalletRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get filename => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set filename($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFilename() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFilename() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get loadOnStartup => $_getBF(1);
+  @$pb.TagNumber(2)
+  set loadOnStartup($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasLoadOnStartup() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLoadOnStartup() => clearField(2);
+}
+
+class LoadWalletResponse extends $pb.GeneratedMessage {
+  factory LoadWalletResponse({
+    $core.String? name,
+    $core.Iterable<$core.String>? warnings,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (warnings != null) {
+      $result.warnings.addAll(warnings);
+    }
+    return $result;
+  }
+  LoadWalletResponse._() : super();
+  factory LoadWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory LoadWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LoadWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..pPS(2, _omitFieldNames ? '' : 'warnings')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  LoadWalletResponse clone() => LoadWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  LoadWalletResponse copyWith(void Function(LoadWalletResponse) updates) => super.copyWith((message) => updates(message as LoadWalletResponse)) as LoadWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LoadWalletResponse create() => LoadWalletResponse._();
+  LoadWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<LoadWalletResponse> createRepeated() => $pb.PbList<LoadWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static LoadWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LoadWalletResponse>(create);
+  static LoadWalletResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.List<$core.String> get warnings => $_getList(1);
+}
+
 class BackupWalletRequest extends $pb.GeneratedMessage {
   factory BackupWalletRequest({
     $core.String? destination,
@@ -9493,6 +9615,9 @@ class BitcoinServiceApi {
   ;
   $async.Future<CreateWalletResponse> createWallet($pb.ClientContext? ctx, CreateWalletRequest request) =>
     _client.invoke<CreateWalletResponse>(ctx, 'BitcoinService', 'CreateWallet', request, CreateWalletResponse())
+  ;
+  $async.Future<LoadWalletResponse> loadWallet($pb.ClientContext? ctx, LoadWalletRequest request) =>
+    _client.invoke<LoadWalletResponse>(ctx, 'BitcoinService', 'LoadWallet', request, LoadWalletResponse())
   ;
   $async.Future<BackupWalletResponse> backupWallet($pb.ClientContext? ctx, BackupWalletRequest request) =>
     _client.invoke<BackupWalletResponse>(ctx, 'BitcoinService', 'BackupWallet', request, BackupWalletResponse())

@@ -6,7 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 class DaemonConnectionCard extends StatelessWidget {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
 
-  final void Function(String name, String logPath)? navigateToLogs;
+  final void Function(String name, String logPath, BinaryType type)? navigateToLogs;
   final RPCConnection connection;
   final SyncInfo? syncInfo;
   final Future<void> Function() restartDaemon;
@@ -80,7 +80,8 @@ class DaemonConnectionCard extends StatelessWidget {
                 ),
               SailButton(
                 variant: ButtonVariant.ghost,
-                onPressed: () async => navigateToLogs!(connection.binary.binary, connection.binary.logPath()),
+                onPressed: () async =>
+                    navigateToLogs!(connection.binary.binary, connection.binary.logPath(), connection.binary.type),
                 label: 'View logs',
               ),
               SailButton(

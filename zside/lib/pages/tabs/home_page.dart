@@ -194,11 +194,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                           rpc: _rpc,
                           name: _rpc.chain.name,
                         ),
-                        navigateToLogs: (title, logPath) {
+                        navigateToLogs: (title, logPath, binaryType) {
                           GetIt.I.get<AppRouter>().push(
                             LogRoute(
                               title: title,
                               logPath: logPath,
+                              binaryType: binaryType,
                             ),
                           );
                         },
