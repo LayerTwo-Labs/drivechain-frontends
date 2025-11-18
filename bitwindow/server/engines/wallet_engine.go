@@ -89,6 +89,22 @@ func NewWalletEngine(
 		coreWallets:       make(map[string]string),
 	}
 	e.unlockCond = sync.NewCond(&e.mu)
+
+	// Auto-unlock unencrypted wallets at startup
+	if !wallet.IsWalletEncrypted(walletDir) {
+		walletData, err := wallet.LoadUnencryptedWallet(walletDir)
+		if err != nil {
+			// Log error but continue - encrypted wallets will be unlocked via RPC
+			fmt.Printf("WARNING: Failed to auto-unlock unencrypted wallet: %v\n", err)
+		} else {
+			if unlockErr := e.Unlock(walletData); unlockErr != nil {
+				fmt.Printf("WARNING: Failed to unlock wallet engine: %v\n", unlockErr)
+			} else {
+				fmt.Printf("INFO: Auto-unlocked unencrypted wallet at startup\n")
+			}
+		}
+	}
+
 	return e
 }
 
@@ -178,17 +194,28 @@ func (e *WalletEngine) IsUnlocked() bool {
 	return e.isUnlocked
 }
 
-// GetSeed returns the seed hex (only available when unlocked)
+// GetEnforcerSeed returns the enforcer wallet's seed hex
 // Used by ChequeEngine for deriving cheque addresses
-func (e *WalletEngine) GetSeed() (string, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	if !e.isUnlocked {
-		return "", errors.New("wallet is locked")
+func (e *WalletEngine) GetEnforcerSeed() (string, error) {
+	wallets, err := e.loadAllWallets()
+	if err != nil {
+		return "", fmt.Errorf("load wallets: %w", err)
 	}
 
-	return e.seedHex, nil
+	// Find enforcer wallet
+	enforcerWallets := lo.Filter(wallets, func(w WalletInfo, _ int) bool {
+		return w.WalletType == WalletTypeEnforcer
+	})
+
+	if len(enforcerWallets) == 0 {
+		return "", errors.New("no enforcer wallet found")
+	}
+
+	if enforcerWallets[0].Master.SeedHex == "" {
+		return "", errors.New("enforcer wallet has no seed")
+	}
+
+	return enforcerWallets[0].Master.SeedHex, nil
 }
 
 // GetActiveWallet returns the active wallet

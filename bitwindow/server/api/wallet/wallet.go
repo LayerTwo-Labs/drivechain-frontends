@@ -73,8 +73,10 @@ func New(
 
 	// Initialize watch wallet in background
 	go func() {
-		if err := s.ensureWatchWallet(ctx); err != nil {
-			zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to initialize watch wallet")
+		// Use background context since this runs independently of startup
+		bgCtx := context.Background()
+		if err := s.ensureWatchWallet(bgCtx); err != nil {
+			zerolog.Ctx(bgCtx).Warn().Err(err).Msg("failed to initialize watch wallet")
 		}
 	}()
 
@@ -1583,21 +1585,16 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[pb.UnlockW
 
 	log.Info().Msg("attempting to unlock wallet")
 
-	var walletData map[string]interface{}
-	var err error
+	// Unencrypted wallets cannot be unlocked (they have no password)
+	if !wallet.IsWalletEncrypted(s.walletDir) {
+		log.Info().Msg("wallet is not encrypted, no unlock needed")
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not encrypted"))
+	}
 
-	if wallet.IsWalletEncrypted(s.walletDir) {
-		walletData, err = wallet.DecryptWallet(s.walletDir, c.Msg.Password)
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to decrypt wallet")
-			return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("incorrect password"))
-		}
-	} else {
-		walletData, err = wallet.LoadUnencryptedWallet(s.walletDir)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to load unencrypted wallet")
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load wallet: %w", err))
-		}
+	walletData, err := wallet.DecryptWallet(s.walletDir, c.Msg.Password)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to decrypt wallet")
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("incorrect password"))
 	}
 
 	if err := s.walletEngine.Unlock(walletData); err != nil {
@@ -1786,6 +1783,11 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
+	}
+
+	// Ensure the watch wallet exists before querying
+	if err := s.ensureWatchWallet(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("ensure watch wallet: %w", err))
 	}
 
 	// Query bitcoind for UTXOs on address using the watch wallet
@@ -2184,6 +2186,12 @@ func (s *Server) serializeTx(tx *wire.MsgTx) (string, error) {
 func (s *Server) ensureWatchWallet(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
+	// Debug: Check if context is already canceled
+	if ctx.Err() != nil {
+		log.Error().Err(ctx.Err()).Msg("ensureWatchWallet called with canceled context!")
+		return fmt.Errorf("context already canceled: %w", ctx.Err())
+	}
+
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("bitcoind not available: %w", err)
@@ -2197,18 +2205,41 @@ func (s *Server) ensureWatchWallet(ctx context.Context) error {
 
 	walletExists := lo.Contains(wallets.Msg.Wallets, engines.ChequeWalletName)
 
-	// Create wallet if it doesn't exist
+	// Create or load wallet if it doesn't exist in memory
 	if !walletExists {
 		log.Info().Msg("creating cheque wallet (watch-only)")
+
+		// Debug: Check context again before CreateWallet
+		if ctx.Err() != nil {
+			log.Error().Err(ctx.Err()).Msg("context canceled before CreateWallet!")
+			return fmt.Errorf("context canceled before CreateWallet: %w", ctx.Err())
+		}
+
 		_, err = bitcoind.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
 			Name:               engines.ChequeWalletName,
 			DisablePrivateKeys: true, // Watch-only wallet
 			Blank:              true,
 		}))
-		if err != nil && !strings.Contains(err.Error(), "already exists") {
-			return fmt.Errorf("failed to create cheque wallet: %w", err)
+		if err != nil {
+			log.Warn().Err(err).Msg("CreateWallet returned error")
+			// If wallet exists on disk but not loaded, try loading it
+			if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "Database already exists") {
+				log.Info().Msg("cheque wallet exists on disk, loading it")
+				_, loadErr := bitcoind.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
+					Filename: engines.ChequeWalletName,
+				}))
+				if loadErr != nil {
+					log.Error().Err(loadErr).Msg("Failed to load existing cheque wallet")
+					return fmt.Errorf("load cheque wallet: %w", loadErr)
+				}
+				log.Info().Msg("cheque wallet loaded successfully")
+			} else {
+				log.Error().Err(err).Msg("Failed to create cheque wallet with unexpected error")
+				return fmt.Errorf("create cheque wallet: %w", err)
+			}
+		} else {
+			log.Info().Msg("cheque wallet created successfully")
 		}
-		log.Info().Msg("cheque wallet created successfully")
 	}
 
 	return nil

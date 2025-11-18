@@ -205,6 +205,13 @@ class DownloadManager extends ChangeNotifier {
 
       // Extract the binary
       await _extractBinary(extractDir, filePath, downloadsDir, binary);
+
+      // Update metadata immediately after extraction to set binaryPath
+      final updatedBinary = await binary.updateMetadata(appDir);
+      updateBinary(
+        binary.type,
+        (b) => b.copyWith(metadata: updatedBinary.metadata),
+      );
     } catch (e) {
       // Update binary state to show error
       updateBinary(
