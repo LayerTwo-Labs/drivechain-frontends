@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -15,6 +16,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -101,7 +103,7 @@ func (e *ChequeEngine) deriveChequeKey(seedHex string, index uint32) (*hdkeychai
 // DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
 func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
 	// Get seed from wallet engine
-	seedHex, err := e.walletEngine.GetSeed()
+	seedHex, err := e.walletEngine.GetEnforcerSeed()
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +132,7 @@ func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
 // DeriveChequePrivateKey derives the WIF private key at m/44'/0'/999'/{index}
 func (e *ChequeEngine) DeriveChequePrivateKey(index uint32) (string, error) {
 	// Get seed from wallet engine
-	seedHex, err := e.walletEngine.GetSeed()
+	seedHex, err := e.walletEngine.GetEnforcerSeed()
 	if err != nil {
 		return "", err
 	}
@@ -156,7 +158,7 @@ func (e *ChequeEngine) DeriveChequePrivateKey(index uint32) (string, error) {
 // ScanForFunds scans the first count addresses for UTXOs
 func (e *ChequeEngine) ScanForFunds(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, count int) ([]ChequeRecovery, error) {
 	// Get seed from wallet engine
-	seedHex, err := e.walletEngine.GetSeed()
+	seedHex, err := e.walletEngine.GetEnforcerSeed()
 	if err != nil {
 		return nil, err
 	}
@@ -254,16 +256,49 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		}
 	}
 
-	seedHex, err := e.walletEngine.GetSeed()
+	seedHex, err := e.walletEngine.GetEnforcerSeed()
 	if err != nil {
-		log.Warn().Err(err).Msg("cannot import cheque descriptor: wallet not unlocked")
+		log.Warn().Err(err).Msg("cannot import cheque descriptor: enforcer wallet not found")
 		return
 	}
 
 	bitcoind, err := e.bitcoind.Get(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("failed to get bitcoind for descriptor import")
+		log.Warn().Err(err).Msg("cannot import cheque descriptor: bitcoind not available")
 		return
+	}
+
+	// Ensure cheque wallet exists in Bitcoin Core
+	wallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		log.Warn().Err(err).Msg("cannot import cheque descriptor: failed to list wallets")
+		return
+	}
+
+	walletExists := lo.Contains(wallets.Msg.Wallets, ChequeWalletName)
+	if !walletExists {
+		// Create watch-only cheque wallet
+		_, err = bitcoind.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
+			Name:               ChequeWalletName,
+			DisablePrivateKeys: true,
+			Blank:              true,
+		}))
+		if err != nil {
+			// If wallet exists on disk but not loaded, try loading it
+			if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "Database already exists") {
+				log.Info().Msg("cheque wallet exists on disk, loading it")
+				_, loadErr := bitcoind.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
+					Filename: ChequeWalletName,
+				}))
+				if loadErr != nil {
+					log.Error().Err(loadErr).Msg("cannot import cheque descriptor: failed to load cheque wallet")
+					return
+				}
+			} else {
+				log.Error().Err(err).Msg("cannot import cheque descriptor: failed to create cheque wallet")
+				return
+			}
+		}
 	}
 
 	seedBytes, err := hex.DecodeString(seedHex)
@@ -329,7 +364,6 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 			},
 		},
 	}))
-
 	if err != nil {
 		log.Error().Err(err).Msg("failed to import cheque descriptor")
 		return
