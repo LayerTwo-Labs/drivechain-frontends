@@ -69,6 +69,9 @@ type WalletEngine struct {
 	// Maps walletId -> Bitcoin Core wallet name (cache)
 	coreWallets map[string]string
 
+	// Cached wallet metadata (populated during unlock for encrypted wallets)
+	walletCache map[string]*WalletInfo
+
 	// Sync throttling
 	lastSync time.Time
 }
@@ -87,20 +90,16 @@ func NewWalletEngine(
 		chainParams:       chainParams,
 		isUnlocked:        false,
 		coreWallets:       make(map[string]string),
+		walletCache:       make(map[string]*WalletInfo),
 	}
 	e.unlockCond = sync.NewCond(&e.mu)
 
 	// Auto-unlock unencrypted wallets at startup
 	if !wallet.IsWalletEncrypted(walletDir) {
 		walletData, err := wallet.LoadUnencryptedWallet(walletDir)
-		if err != nil {
-			// Log error but continue - encrypted wallets will be unlocked via RPC
-			fmt.Printf("WARNING: Failed to auto-unlock unencrypted wallet: %v\n", err)
-		} else {
+		if err == nil {
 			if unlockErr := e.Unlock(walletData); unlockErr != nil {
-				fmt.Printf("WARNING: Failed to unlock wallet engine: %v\n", unlockErr)
-			} else {
-				fmt.Printf("INFO: Auto-unlocked unencrypted wallet at startup\n")
+				zerolog.Ctx(context.Background()).Warn().Err(unlockErr).Msg("failed to unlock wallet engine")
 			}
 		}
 	}
@@ -165,6 +164,28 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 		return fmt.Errorf("invalid seed hex: %w", err)
 	}
 
+	// Cache all wallet metadata for encrypted wallets
+	e.walletCache = make(map[string]*WalletInfo)
+	for _, w := range wallets {
+		walletMap, ok := w.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		// Parse wallet info
+		walletBytes, err := json.Marshal(walletMap)
+		if err != nil {
+			continue
+		}
+
+		var walletInfo WalletInfo
+		if err := json.Unmarshal(walletBytes, &walletInfo); err != nil {
+			continue
+		}
+
+		e.walletCache[walletInfo.ID] = &walletInfo
+	}
+
 	e.seedHex = seedHex
 	e.activeWalletId = activeWalletId
 	e.isUnlocked = true
@@ -185,6 +206,7 @@ func (e *WalletEngine) Lock() {
 	e.seedHex = ""
 	e.activeWalletId = ""
 	e.isUnlocked = false
+	e.walletCache = make(map[string]*WalletInfo)
 }
 
 // IsUnlocked returns whether the engine is unlocked
@@ -262,6 +284,25 @@ func (e *WalletEngine) GetChainParams() *chaincfg.Params {
 
 // GetWalletInfo reads wallet.json and returns info for the specified walletId
 func (e *WalletEngine) GetWalletInfo(ctx context.Context, walletId string) (*WalletInfo, error) {
+	// Check if wallet is encrypted
+	if wallet.IsWalletEncrypted(e.walletDir) {
+		// For encrypted wallets, use the cache populated during unlock
+		e.mu.RLock()
+		defer e.mu.RUnlock()
+
+		if !e.isUnlocked {
+			return nil, errors.New("wallet is encrypted and locked")
+		}
+
+		walletInfo, exists := e.walletCache[walletId]
+		if !exists {
+			return nil, fmt.Errorf("wallet %s not found in cache", walletId)
+		}
+
+		return walletInfo, nil
+	}
+
+	// For unencrypted wallets, read from file
 	walletFile := filepath.Join(e.walletDir, "wallet.json")
 
 	data, err := os.ReadFile(walletFile)
@@ -279,15 +320,15 @@ func (e *WalletEngine) GetWalletInfo(ctx context.Context, walletId string) (*Wal
 		return nil, fmt.Errorf("parse wallet.json: %w", err)
 	}
 
-	wallet := lo.Filter(walletData.Wallets, func(w WalletInfo, _ int) bool {
+	walletInfo := lo.Filter(walletData.Wallets, func(w WalletInfo, _ int) bool {
 		return w.ID == walletId
 	})
 
-	if len(wallet) == 0 {
+	if len(walletInfo) == 0 {
 		return nil, fmt.Errorf("wallet %s not found", walletId)
 	}
 
-	return &wallet[0], nil
+	return &walletInfo[0], nil
 }
 
 // GetActiveWalletInfo returns the WalletInfo for the currently active wallet
@@ -721,6 +762,26 @@ func (e *WalletEngine) SyncWallets(ctx context.Context) error {
 }
 
 func (e *WalletEngine) loadAllWallets() ([]WalletInfo, error) {
+	// Check if wallet is encrypted
+	if wallet.IsWalletEncrypted(e.walletDir) {
+		// For encrypted wallets, use the cache populated during unlock
+		e.mu.RLock()
+		defer e.mu.RUnlock()
+
+		if !e.isUnlocked {
+			return nil, errors.New("wallet is encrypted and locked")
+		}
+
+		// Extract wallets from cache
+		wallets := make([]WalletInfo, 0, len(e.walletCache))
+		for _, w := range e.walletCache {
+			wallets = append(wallets, *w)
+		}
+
+		return wallets, nil
+	}
+
+	// For unencrypted wallets, read from file
 	walletFile := filepath.Join(e.walletDir, "wallet.json")
 
 	data, err := os.ReadFile(walletFile)
