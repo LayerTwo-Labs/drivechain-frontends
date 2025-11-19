@@ -46,10 +46,7 @@ class WalletWriterProvider extends ChangeNotifier {
 
   Future<bool> hasExistingWallet() async {
     final fileExists = await _walletReader.getWalletFile().exists();
-    if (!fileExists) return false;
-
-    // File exists, but check if there are actually any wallets in it
-    return _walletReader.wallets.isNotEmpty;
+    return fileExists;
   }
 
   /// Load wallet - reads from WalletReaderProvider cache (thread-safe)

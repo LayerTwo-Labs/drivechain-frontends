@@ -124,29 +124,6 @@ class ChequesTab extends StatelessWidget {
       viewModelBuilder: () => ChequesTabViewModel(),
       onViewModelReady: (model) => model.refresh(),
       builder: (context, model, child) {
-        // Check if wallet became locked during an operation
-        if (model.checkWalletLocked()) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showUnlockDialog(context, model);
-          });
-        }
-
-        if (!model.isWalletUnlocked) {
-          return Center(
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SailText.primary15('Wallet must be unlocked to view cheques'),
-                SailButton(
-                  label: 'Unlock Wallet',
-                  onPressed: () async => _showUnlockDialog(context, model),
-                ),
-              ],
-            ),
-          );
-        }
-
         return SailCard(
           title: 'Your Checks',
           error: model.modelError,

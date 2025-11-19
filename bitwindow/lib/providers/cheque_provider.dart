@@ -154,11 +154,6 @@ class ChequeProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
-    if (!_isWalletUnlocked) {
-      log.w('Cannot fetch cheques: wallet is locked');
-      return;
-    }
-
     _isLoading = true;
     modelError = null;
     notifyListeners();
@@ -178,12 +173,6 @@ class ChequeProvider extends ChangeNotifier {
   }
 
   Future<Cheque?> createCheque(int expectedAmountSats) async {
-    if (!_isWalletUnlocked) {
-      modelError = 'Wallet must be unlocked to create cheques';
-      notifyListeners();
-      return null;
-    }
-
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
