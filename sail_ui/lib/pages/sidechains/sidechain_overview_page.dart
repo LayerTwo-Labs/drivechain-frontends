@@ -44,7 +44,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                   children: [
                                     SailSkeletonizer(
                                       enabled: !model.balanceInitialized,
-                                      description: 'Waiting for thunder to boot...',
+                                      description: 'Waiting for ${model.sidechainName} to boot...',
                                       child: SailText.primary24(
                                         '${formatBitcoin(model.totalBalance)} ${model.ticker}',
                                         bold: true,
@@ -85,7 +85,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                 SailTextField(
                                   loading: LoadingDetails(
                                     enabled: model.receiveAddress == null,
-                                    description: 'Waiting for thunder to boot...',
+                                    description: 'Waiting for ${model.sidechainName} to boot...',
                                   ),
                                   controller: TextEditingController(text: model.receiveAddress),
                                   hintText: 'Generating deposit address...',
@@ -546,7 +546,7 @@ class BalanceRow extends StatelessWidget {
           SailText.secondary15(label),
           SailSkeletonizer(
             enabled: loading,
-            description: 'Waiting for thunder to boot...',
+            description: 'Waiting for sidechain to boot...',
             child: SailText.secondary15('${formatBitcoin(amount)} $ticker'),
           ),
         ],

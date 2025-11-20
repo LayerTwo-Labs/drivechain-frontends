@@ -251,10 +251,22 @@ class DownloadManager extends ChangeNotifier {
   }
 
   Future<String> _downloadGithubBinary(Binary binary, Directory downloadsDir) async {
-    // For GitHub-based releases, download binary directly from releases
-    final response = await http.get(Uri.parse(binary.metadata.downloadConfig.baseUrl));
+    final response = await http.get(
+      Uri.parse(binary.metadata.downloadConfig.baseUrl),
+      headers: {
+        'User-Agent': 'Drivechain-Frontends',
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    );
+
+    if (response.statusCode == 403) {
+      throw Exception(
+        'GitHub API rate limit exceeded. Please wait a few minutes and try again, or download manually from ${binary.metadata.downloadConfig.baseUrl}',
+      );
+    }
+
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch GitHub release: ${response.statusCode}');
+      throw Exception('GitHub API returned ${response.statusCode}. Please try again later.');
     }
 
     // Use the regex pattern from binary configuration

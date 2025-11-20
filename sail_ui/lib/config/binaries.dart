@@ -416,24 +416,51 @@ abstract class Binary {
   }
 
   Future<DateTime?> _checkGithubReleaseDate() async {
+    final url = metadata.downloadConfig.baseUrl;
+
+    // Check cache first
+    final cached = _GitHubCache.get(url);
+    if (cached != null) {
+      log.d('Using cached GitHub release date for $name');
+      return cached;
+    }
+
     try {
-      // For GitHub-based releases, download binary directly from releases
-      final response = await http.get(Uri.parse(metadata.downloadConfig.baseUrl));
+      log.d('Fetching GitHub release date for $name');
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'Drivechain-Frontends',
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      );
+
+      if (response.statusCode == 403) {
+        log.d('GitHub API rate limit exceeded for $name, skipping version check');
+        _GitHubCache.set(url, null); // Cache the failure too
+        return null;
+      }
+
       if (response.statusCode != 200) {
-        throw Exception('Failed to fetch GitHub release: ${response.statusCode}');
+        log.d('GitHub API returned ${response.statusCode} for $name, skipping version check');
+        _GitHubCache.set(url, null);
+        return null;
       }
 
       final publishedAt = json.decode(response.body)['published_at'] as String?;
 
       if (publishedAt == null) {
-        log.w('Warning: No published_at field in GitHub release for $name');
+        log.d('No published_at field in GitHub release for $name');
+        _GitHubCache.set(url, null);
         return null;
       }
 
-      // Parse ISO 8601 timestamp from GitHub
-      return DateTime.parse(publishedAt);
+      final releaseDate = DateTime.parse(publishedAt);
+      _GitHubCache.set(url, releaseDate); // Cache the result
+      return releaseDate;
     } catch (e) {
-      log.w('Warning: Failed to check GitHub release date for $name: $e');
+      log.d('Could not check GitHub release date for $name: ${e.toString().split('\n').first}');
+      _GitHubCache.set(url, null); // Cache the failure
       return null;
     }
   }
@@ -510,6 +537,35 @@ abstract class Binary {
 
     extraBootArgs = List<String>.from(extraBootArgs)..add(arg);
   }
+}
+
+// Global cache for GitHub API responses (1 minute TTL)
+class _GitHubCache {
+  static final Map<String, _CacheEntry> _cache = {};
+
+  static DateTime? get(String url) {
+    final entry = _cache[url];
+    if (entry == null) return null;
+
+    // Check if cache entry is still valid (1 minute TTL)
+    if (DateTime.now().difference(entry.timestamp).inMinutes >= 1) {
+      _cache.remove(url);
+      return null;
+    }
+
+    return entry.releaseDate;
+  }
+
+  static void set(String url, DateTime? releaseDate) {
+    _cache[url] = _CacheEntry(releaseDate, DateTime.now());
+  }
+}
+
+class _CacheEntry {
+  final DateTime? releaseDate;
+  final DateTime timestamp;
+
+  _CacheEntry(this.releaseDate, this.timestamp);
 }
 
 class BitcoinCore extends Binary {
