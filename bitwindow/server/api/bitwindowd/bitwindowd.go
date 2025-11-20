@@ -837,3 +837,110 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 
 	return <-errs
 }
+
+func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNetworkStatsResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bitcoind client: %w", err))
+	}
+
+	// Fetch blockchain info
+	blockchainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get blockchain info: %w", err))
+	}
+
+	// Calculate average block time from last 144 blocks
+	avgBlockTime, err := s.calculateAverageBlockTime(ctx, bitcoind, int64(blockchainInfo.Msg.Blocks))
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("calculate average block time")
+		avgBlockTime = 600.0 // Default to 10 minutes
+	}
+
+	// Get peer info
+	peerInfo, err := bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get peer info: %w", err))
+	}
+
+	// Count connections by direction
+	connectionsIn := int32(0)
+	connectionsOut := int32(0)
+	for _, peer := range peerInfo.Msg.Peers {
+		if peer.Inbound {
+			connectionsIn++
+		} else {
+			connectionsOut++
+		}
+	}
+
+	// TODO: Add getnetworkinfo, getnettotals, getmininginfo RPCs to btc-buf
+	// For now, use available data
+	return connect.NewResponse(&pb.GetNetworkStatsResponse{
+		NetworkHashrate:     0,                                      // TODO: Get from getmininginfo
+		Difficulty:          0,                                      // TODO: Get difficulty from block header
+		PeerCount:           int32(len(peerInfo.Msg.Peers)),
+		TotalBytesReceived:  0,                                      // TODO: Get from getnettotals
+		TotalBytesSent:      0,                                      // TODO: Get from getnettotals
+		BlockHeight:         int64(blockchainInfo.Msg.Blocks),
+		AvgBlockTime:        avgBlockTime,
+		NetworkVersion:      0,                                      // TODO: Get from getnetworkinfo
+		Subversion:          "",                                     // TODO: Get from getnetworkinfo
+		ConnectionsIn:       connectionsIn,
+		ConnectionsOut:      connectionsOut,
+		BitcoindBandwidth:   nil,                                    // TODO: Implement per-process bandwidth tracking
+		EnforcerBandwidth:   nil,                                    // TODO: Implement per-process bandwidth tracking
+	}), nil
+}
+
+func (s *Server) calculateAverageBlockTime(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, currentHeight int64) (float64, error) {
+	// Get blocks from last 144 blocks or from genesis if we don't have that many
+	lookback := min(int64(144), currentHeight)
+	if lookback <= 1 {
+		return 600.0, nil // Default to 10 minutes if not enough blocks
+	}
+
+	// Get the first block in range
+	firstHeight := currentHeight - lookback
+	firstBlock, err := s.getBlockAtHeight(ctx, bitcoind, firstHeight)
+	if err != nil {
+		return 0, fmt.Errorf("get first block: %w", err)
+	}
+
+	// Get the last block (current tip)
+	lastBlock, err := s.getBlockAtHeight(ctx, bitcoind, currentHeight)
+	if err != nil {
+		return 0, fmt.Errorf("get last block: %w", err)
+	}
+
+	// Calculate average
+	timeDiff := lastBlock - firstBlock
+	if timeDiff <= 0 {
+		return 600.0, nil
+	}
+
+	return float64(timeDiff) / float64(lookback), nil
+}
+
+func (s *Server) getBlockAtHeight(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, height int64) (int64, error) {
+	hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+		Height: uint32(height),
+	}))
+	if err != nil {
+		return 0, fmt.Errorf("get block hash: %w", err)
+	}
+
+	block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		Hash:      hash.Msg.Hash,
+		Verbosity: 1,
+	}))
+	if err != nil {
+		return 0, fmt.Errorf("get block: %w", err)
+	}
+
+	if block.Msg.Time == nil {
+		return 0, fmt.Errorf("block time is nil for height %d", height)
+	}
+
+	return block.Msg.Time.Seconds, nil
+}

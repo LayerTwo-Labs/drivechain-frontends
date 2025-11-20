@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
 import 'package:bitwindow/pages/bitcoin_conf_editor_page.dart';
 import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
@@ -148,6 +149,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/m4-explorer',
       page: M4ExplorerRoute.page,
+    ),
+    AutoRoute(
+      path: '/network-statistics',
+      page: NetworkStatisticsRoute.page,
     ),
   ];
 }

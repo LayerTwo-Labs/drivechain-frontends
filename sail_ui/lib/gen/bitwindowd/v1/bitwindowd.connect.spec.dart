@@ -105,4 +105,12 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.ListBlocksRequest.new,
     bitwindowdv1bitwindowd.ListBlocksResponse.new,
   );
+
+  /// Get network statistics
+  static const getNetworkStats = connect.Spec(
+    '/$name/GetNetworkStats',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.GetNetworkStatsResponse.new,
+  );
 }

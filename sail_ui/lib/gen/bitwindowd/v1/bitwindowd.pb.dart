@@ -1916,6 +1916,380 @@ class MineBlocksResponse extends $pb.GeneratedMessage {
   MineBlocksResponse_HashRate ensureHashRate() => $_ensure(1);
 }
 
+class GetNetworkStatsResponse extends $pb.GeneratedMessage {
+  factory GetNetworkStatsResponse({
+    $core.double? networkHashrate,
+    $core.double? difficulty,
+    $core.int? peerCount,
+    $fixnum.Int64? totalBytesReceived,
+    $fixnum.Int64? totalBytesSent,
+    $fixnum.Int64? blockHeight,
+    $core.double? avgBlockTime,
+    $core.int? networkVersion,
+    $core.String? subversion,
+    $core.int? connectionsIn,
+    $core.int? connectionsOut,
+    ProcessBandwidth? bitcoindBandwidth,
+    ProcessBandwidth? enforcerBandwidth,
+  }) {
+    final $result = create();
+    if (networkHashrate != null) {
+      $result.networkHashrate = networkHashrate;
+    }
+    if (difficulty != null) {
+      $result.difficulty = difficulty;
+    }
+    if (peerCount != null) {
+      $result.peerCount = peerCount;
+    }
+    if (totalBytesReceived != null) {
+      $result.totalBytesReceived = totalBytesReceived;
+    }
+    if (totalBytesSent != null) {
+      $result.totalBytesSent = totalBytesSent;
+    }
+    if (blockHeight != null) {
+      $result.blockHeight = blockHeight;
+    }
+    if (avgBlockTime != null) {
+      $result.avgBlockTime = avgBlockTime;
+    }
+    if (networkVersion != null) {
+      $result.networkVersion = networkVersion;
+    }
+    if (subversion != null) {
+      $result.subversion = subversion;
+    }
+    if (connectionsIn != null) {
+      $result.connectionsIn = connectionsIn;
+    }
+    if (connectionsOut != null) {
+      $result.connectionsOut = connectionsOut;
+    }
+    if (bitcoindBandwidth != null) {
+      $result.bitcoindBandwidth = bitcoindBandwidth;
+    }
+    if (enforcerBandwidth != null) {
+      $result.enforcerBandwidth = enforcerBandwidth;
+    }
+    return $result;
+  }
+  GetNetworkStatsResponse._() : super();
+  factory GetNetworkStatsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNetworkStatsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNetworkStatsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'networkHashrate', $pb.PbFieldType.OD)
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'difficulty', $pb.PbFieldType.OD)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'peerCount', $pb.PbFieldType.O3)
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'totalBytesReceived', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'totalBytesSent', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aInt64(6, _omitFieldNames ? '' : 'blockHeight')
+    ..a<$core.double>(7, _omitFieldNames ? '' : 'avgBlockTime', $pb.PbFieldType.OD)
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'networkVersion', $pb.PbFieldType.O3)
+    ..aOS(9, _omitFieldNames ? '' : 'subversion')
+    ..a<$core.int>(10, _omitFieldNames ? '' : 'connectionsIn', $pb.PbFieldType.O3)
+    ..a<$core.int>(11, _omitFieldNames ? '' : 'connectionsOut', $pb.PbFieldType.O3)
+    ..aOM<ProcessBandwidth>(12, _omitFieldNames ? '' : 'bitcoindBandwidth', subBuilder: ProcessBandwidth.create)
+    ..aOM<ProcessBandwidth>(13, _omitFieldNames ? '' : 'enforcerBandwidth', subBuilder: ProcessBandwidth.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNetworkStatsResponse clone() => GetNetworkStatsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNetworkStatsResponse copyWith(void Function(GetNetworkStatsResponse) updates) => super.copyWith((message) => updates(message as GetNetworkStatsResponse)) as GetNetworkStatsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkStatsResponse create() => GetNetworkStatsResponse._();
+  GetNetworkStatsResponse createEmptyInstance() => create();
+  static $pb.PbList<GetNetworkStatsResponse> createRepeated() => $pb.PbList<GetNetworkStatsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkStatsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNetworkStatsResponse>(create);
+  static GetNetworkStatsResponse? _defaultInstance;
+
+  /// Network hashrate in hashes per second
+  @$pb.TagNumber(1)
+  $core.double get networkHashrate => $_getN(0);
+  @$pb.TagNumber(1)
+  set networkHashrate($core.double v) { $_setDouble(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasNetworkHashrate() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNetworkHashrate() => clearField(1);
+
+  /// Current difficulty
+  @$pb.TagNumber(2)
+  $core.double get difficulty => $_getN(1);
+  @$pb.TagNumber(2)
+  set difficulty($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDifficulty() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDifficulty() => clearField(2);
+
+  /// Number of connected peers
+  @$pb.TagNumber(3)
+  $core.int get peerCount => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set peerCount($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasPeerCount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPeerCount() => clearField(3);
+
+  /// Total bytes received (from Bitcoin RPC)
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get totalBytesReceived => $_getI64(3);
+  @$pb.TagNumber(4)
+  set totalBytesReceived($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasTotalBytesReceived() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTotalBytesReceived() => clearField(4);
+
+  /// Total bytes sent (from Bitcoin RPC)
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get totalBytesSent => $_getI64(4);
+  @$pb.TagNumber(5)
+  set totalBytesSent($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasTotalBytesSent() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTotalBytesSent() => clearField(5);
+
+  /// Current block height
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get blockHeight => $_getI64(5);
+  @$pb.TagNumber(6)
+  set blockHeight($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasBlockHeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearBlockHeight() => clearField(6);
+
+  /// Average block time (seconds) over last 144 blocks
+  @$pb.TagNumber(7)
+  $core.double get avgBlockTime => $_getN(6);
+  @$pb.TagNumber(7)
+  set avgBlockTime($core.double v) { $_setDouble(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasAvgBlockTime() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearAvgBlockTime() => clearField(7);
+
+  /// Network version (protocol version)
+  @$pb.TagNumber(8)
+  $core.int get networkVersion => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set networkVersion($core.int v) { $_setSignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasNetworkVersion() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearNetworkVersion() => clearField(8);
+
+  /// Subversion (user agent string)
+  @$pb.TagNumber(9)
+  $core.String get subversion => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set subversion($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasSubversion() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearSubversion() => clearField(9);
+
+  /// Number of connections (in/out)
+  @$pb.TagNumber(10)
+  $core.int get connectionsIn => $_getIZ(9);
+  @$pb.TagNumber(10)
+  set connectionsIn($core.int v) { $_setSignedInt32(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasConnectionsIn() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearConnectionsIn() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.int get connectionsOut => $_getIZ(10);
+  @$pb.TagNumber(11)
+  set connectionsOut($core.int v) { $_setSignedInt32(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasConnectionsOut() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearConnectionsOut() => clearField(11);
+
+  /// Per-process bandwidth statistics (OS-level)
+  @$pb.TagNumber(12)
+  ProcessBandwidth get bitcoindBandwidth => $_getN(11);
+  @$pb.TagNumber(12)
+  set bitcoindBandwidth(ProcessBandwidth v) { setField(12, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasBitcoindBandwidth() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearBitcoindBandwidth() => clearField(12);
+  @$pb.TagNumber(12)
+  ProcessBandwidth ensureBitcoindBandwidth() => $_ensure(11);
+
+  @$pb.TagNumber(13)
+  ProcessBandwidth get enforcerBandwidth => $_getN(12);
+  @$pb.TagNumber(13)
+  set enforcerBandwidth(ProcessBandwidth v) { setField(13, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasEnforcerBandwidth() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearEnforcerBandwidth() => clearField(13);
+  @$pb.TagNumber(13)
+  ProcessBandwidth ensureEnforcerBandwidth() => $_ensure(12);
+}
+
+class ProcessBandwidth extends $pb.GeneratedMessage {
+  factory ProcessBandwidth({
+    $core.String? processName,
+    $core.int? pid,
+    $core.double? rxBytesPerSec,
+    $core.double? txBytesPerSec,
+    $fixnum.Int64? totalRxBytes,
+    $fixnum.Int64? totalTxBytes,
+    $core.int? connectionCount,
+  }) {
+    final $result = create();
+    if (processName != null) {
+      $result.processName = processName;
+    }
+    if (pid != null) {
+      $result.pid = pid;
+    }
+    if (rxBytesPerSec != null) {
+      $result.rxBytesPerSec = rxBytesPerSec;
+    }
+    if (txBytesPerSec != null) {
+      $result.txBytesPerSec = txBytesPerSec;
+    }
+    if (totalRxBytes != null) {
+      $result.totalRxBytes = totalRxBytes;
+    }
+    if (totalTxBytes != null) {
+      $result.totalTxBytes = totalTxBytes;
+    }
+    if (connectionCount != null) {
+      $result.connectionCount = connectionCount;
+    }
+    return $result;
+  }
+  ProcessBandwidth._() : super();
+  factory ProcessBandwidth.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ProcessBandwidth.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ProcessBandwidth', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'processName')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'pid', $pb.PbFieldType.O3)
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'rxBytesPerSec', $pb.PbFieldType.OD)
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'txBytesPerSec', $pb.PbFieldType.OD)
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'totalRxBytes', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(6, _omitFieldNames ? '' : 'totalTxBytes', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'connectionCount', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ProcessBandwidth clone() => ProcessBandwidth()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ProcessBandwidth copyWith(void Function(ProcessBandwidth) updates) => super.copyWith((message) => updates(message as ProcessBandwidth)) as ProcessBandwidth;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProcessBandwidth create() => ProcessBandwidth._();
+  ProcessBandwidth createEmptyInstance() => create();
+  static $pb.PbList<ProcessBandwidth> createRepeated() => $pb.PbList<ProcessBandwidth>();
+  @$core.pragma('dart2js:noInline')
+  static ProcessBandwidth getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ProcessBandwidth>(create);
+  static ProcessBandwidth? _defaultInstance;
+
+  /// Process name
+  @$pb.TagNumber(1)
+  $core.String get processName => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set processName($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasProcessName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProcessName() => clearField(1);
+
+  /// Process ID
+  @$pb.TagNumber(2)
+  $core.int get pid => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set pid($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPid() => clearField(2);
+
+  /// Bytes received per second (current rate)
+  @$pb.TagNumber(3)
+  $core.double get rxBytesPerSec => $_getN(2);
+  @$pb.TagNumber(3)
+  set rxBytesPerSec($core.double v) { $_setDouble(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasRxBytesPerSec() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRxBytesPerSec() => clearField(3);
+
+  /// Bytes sent per second (current rate)
+  @$pb.TagNumber(4)
+  $core.double get txBytesPerSec => $_getN(3);
+  @$pb.TagNumber(4)
+  set txBytesPerSec($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasTxBytesPerSec() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTxBytesPerSec() => clearField(4);
+
+  /// Total bytes received since process start
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get totalRxBytes => $_getI64(4);
+  @$pb.TagNumber(5)
+  set totalRxBytes($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasTotalRxBytes() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTotalRxBytes() => clearField(5);
+
+  /// Total bytes sent since process start
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get totalTxBytes => $_getI64(5);
+  @$pb.TagNumber(6)
+  set totalTxBytes($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasTotalTxBytes() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTotalTxBytes() => clearField(6);
+
+  /// Number of active connections
+  @$pb.TagNumber(7)
+  $core.int get connectionCount => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set connectionCount($core.int v) { $_setSignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasConnectionCount() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearConnectionCount() => clearField(7);
+}
+
 class BitwindowdServiceApi {
   $pb.RpcClient _client;
   BitwindowdServiceApi(this._client);
@@ -1958,6 +2332,9 @@ class BitwindowdServiceApi {
   ;
   $async.Future<ListBlocksResponse> listBlocks($pb.ClientContext? ctx, ListBlocksRequest request) =>
     _client.invoke<ListBlocksResponse>(ctx, 'BitwindowdService', 'ListBlocks', request, ListBlocksResponse())
+  ;
+  $async.Future<GetNetworkStatsResponse> getNetworkStats($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetNetworkStatsResponse>(ctx, 'BitwindowdService', 'GetNetworkStats', request, GetNetworkStatsResponse())
   ;
 }
 

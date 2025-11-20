@@ -149,6 +149,11 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
+  Future<GetNetworkStatsResponse> getNetworkStats() {
+    return Future.value(GetNetworkStatsResponse());
+  }
+
+  @override
   Stream<MineBlocksResponse> mineBlocks() {
     return Stream.periodic(const Duration(seconds: 1)).map((_) => MineBlocksResponse());
   }

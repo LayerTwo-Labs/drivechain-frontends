@@ -58,63 +58,6 @@ class ChequesTabViewModel extends BaseViewModel {
   }
 }
 
-Future<void> _showUnlockDialog(BuildContext context, ChequesTabViewModel model) async {
-  final passwordController = TextEditingController();
-  bool isUnlocking = false;
-
-  await showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        backgroundColor: SailTheme.of(context).colors.background,
-        title: SailText.primary15('Unlock Wallet'),
-        content: SizedBox(
-          width: 400,
-          child: SailColumn(
-            spacing: SailStyleValues.padding12,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailText.secondary13('Enter your wallet password to access cheques'),
-              SailTextField(
-                controller: passwordController,
-                hintText: 'Password',
-                obscureText: true,
-                maxLines: 1,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          SailButton(
-            label: 'Cancel',
-            variant: ButtonVariant.ghost,
-            onPressed: () async => Navigator.of(context).pop(),
-          ),
-          SailButton(
-            label: 'Unlock',
-            loading: isUnlocking,
-            onPressed: () async {
-              setState(() => isUnlocking = true);
-              final success = await model.unlockWallet(passwordController.text);
-
-              if (success && context.mounted) {
-                Navigator.of(context).pop();
-              } else {
-                setState(() => isUnlocking = false);
-                if (context.mounted) {
-                  showSnackBar(context, model.modelError ?? 'Failed to unlock wallet');
-                }
-              }
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-
-  passwordController.dispose();
-}
-
 class ChequesTab extends StatelessWidget {
   const ChequesTab({super.key});
 

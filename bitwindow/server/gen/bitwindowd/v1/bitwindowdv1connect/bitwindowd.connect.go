@@ -72,6 +72,9 @@ const (
 	// BitwindowdServiceListBlocksProcedure is the fully-qualified name of the BitwindowdService's
 	// ListBlocks RPC.
 	BitwindowdServiceListBlocksProcedure = "/bitwindowd.v1.BitwindowdService/ListBlocks"
+	// BitwindowdServiceGetNetworkStatsProcedure is the fully-qualified name of the BitwindowdService's
+	// GetNetworkStats RPC.
+	BitwindowdServiceGetNetworkStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetNetworkStats"
 )
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
@@ -93,6 +96,8 @@ type BitwindowdServiceClient interface {
 	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
 	// Lists blocks with pagination support
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
+	// Get network statistics
+	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
@@ -184,6 +189,12 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlocks")),
 			connect.WithClientOptions(opts...),
 		),
+		getNetworkStats: connect.NewClient[emptypb.Empty, v1.GetNetworkStatsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceGetNetworkStatsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -202,6 +213,7 @@ type bitwindowdServiceClient struct {
 	getFireplaceStats      *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
 	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
 	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
+	getNetworkStats        *connect.Client[emptypb.Empty, v1.GetNetworkStatsResponse]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
@@ -269,6 +281,11 @@ func (c *bitwindowdServiceClient) ListBlocks(ctx context.Context, req *connect.R
 	return c.listBlocks.CallUnary(ctx, req)
 }
 
+// GetNetworkStats calls bitwindowd.v1.BitwindowdService.GetNetworkStats.
+func (c *bitwindowdServiceClient) GetNetworkStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error) {
+	return c.getNetworkStats.CallUnary(ctx, req)
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -288,6 +305,8 @@ type BitwindowdServiceHandler interface {
 	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
 	// Lists blocks with pagination support
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
+	// Get network statistics
+	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
 }
 
 // NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -375,6 +394,12 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("ListBlocks")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceGetNetworkStatsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceGetNetworkStatsProcedure,
+		svc.GetNetworkStats,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
@@ -403,6 +428,8 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceListRecentTransactionsHandler.ServeHTTP(w, r)
 		case BitwindowdServiceListBlocksProcedure:
 			bitwindowdServiceListBlocksHandler.ServeHTTP(w, r)
+		case BitwindowdServiceGetNetworkStatsProcedure:
+			bitwindowdServiceGetNetworkStatsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -462,4 +489,8 @@ func (UnimplementedBitwindowdServiceHandler) ListRecentTransactions(context.Cont
 
 func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListBlocks is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetNetworkStats is not implemented"))
 }
