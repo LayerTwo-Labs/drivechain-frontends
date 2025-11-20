@@ -234,8 +234,7 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> start(Binary binary) async {
     await _downloadManager.downloadIfMissing(binary);
 
-    final SettingsProvider settings = GetIt.I.get<SettingsProvider>();
-    if (binary.chainLayer == 2 && !settings.useTestSidechains) {
+    if (binary.chainLayer == 2) {
       binary = binary as Sidechain;
       log.i('booting sidechain ${binary.name}');
 

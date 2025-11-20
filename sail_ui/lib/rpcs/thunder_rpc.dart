@@ -70,7 +70,11 @@ class ThunderLive extends ThunderRPC {
     return client;
   }
 
-  ThunderLive() : super(binaryType: BinaryType.thunder, restartOnFailure: false) {
+  ThunderLive()
+    : super(
+        binaryType: BinaryType.thunder,
+        restartOnFailure: false,
+      ) {
     startConnectionTimer();
   }
 
