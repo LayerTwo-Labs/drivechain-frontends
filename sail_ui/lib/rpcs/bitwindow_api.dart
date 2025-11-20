@@ -369,6 +369,8 @@ abstract class BitwindowAPI {
 
   Future<List<RecentTransaction>> listRecentTransactions();
   Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
+
+  Future<GetNetworkStatsResponse> getNetworkStats();
 }
 
 class _BitwindowAPILive implements BitwindowAPI {
@@ -483,6 +485,17 @@ class _BitwindowAPILive implements BitwindowAPI {
       return (response.recentBlocks, response.hasMore);
     } catch (e) {
       final error = 'could not list blocks: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<GetNetworkStatsResponse> getNetworkStats() async {
+    try {
+      final response = await _client.getNetworkStats(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not get network stats: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

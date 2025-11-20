@@ -6,7 +6,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/dialogs/base58_decoder_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
-import 'package:bitwindow/dialogs/paper_check_dialog.dart';
 import 'package:bitwindow/dialogs/paper_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
@@ -466,11 +465,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Write a Check',
-                      onSelected: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => const PaperCheckDialog(),
-                        );
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(CreateChequeRoute());
                       },
                     ),
                   ],
@@ -592,7 +588,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Network Statistics',
-                      onSelected: null,
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(NetworkStatisticsRoute());
+                      },
                     ),
                     PlatformMenuItem(
                       label: 'Sidechain Activation',

@@ -406,6 +406,62 @@ final $typed_data.Uint8List mineBlocksResponseDescriptor = $convert.base64Decode
     'IIaGFzaFJhdGUaJwoISGFzaFJhdGUSGwoJaGFzaF9yYXRlGAEgASgBUghoYXNoUmF0ZRorCgpC'
     'bG9ja0ZvdW5kEh0KCmJsb2NrX2hhc2gYASABKAlSCWJsb2NrSGFzaEIHCgVldmVudA==');
 
+@$core.Deprecated('Use getNetworkStatsResponseDescriptor instead')
+const GetNetworkStatsResponse$json = {
+  '1': 'GetNetworkStatsResponse',
+  '2': [
+    {'1': 'network_hashrate', '3': 1, '4': 1, '5': 1, '10': 'networkHashrate'},
+    {'1': 'difficulty', '3': 2, '4': 1, '5': 1, '10': 'difficulty'},
+    {'1': 'peer_count', '3': 3, '4': 1, '5': 5, '10': 'peerCount'},
+    {'1': 'total_bytes_received', '3': 4, '4': 1, '5': 4, '10': 'totalBytesReceived'},
+    {'1': 'total_bytes_sent', '3': 5, '4': 1, '5': 4, '10': 'totalBytesSent'},
+    {'1': 'block_height', '3': 6, '4': 1, '5': 3, '10': 'blockHeight'},
+    {'1': 'avg_block_time', '3': 7, '4': 1, '5': 1, '10': 'avgBlockTime'},
+    {'1': 'network_version', '3': 8, '4': 1, '5': 5, '10': 'networkVersion'},
+    {'1': 'subversion', '3': 9, '4': 1, '5': 9, '10': 'subversion'},
+    {'1': 'connections_in', '3': 10, '4': 1, '5': 5, '10': 'connectionsIn'},
+    {'1': 'connections_out', '3': 11, '4': 1, '5': 5, '10': 'connectionsOut'},
+    {'1': 'bitcoind_bandwidth', '3': 12, '4': 1, '5': 11, '6': '.bitwindowd.v1.ProcessBandwidth', '10': 'bitcoindBandwidth'},
+    {'1': 'enforcer_bandwidth', '3': 13, '4': 1, '5': 11, '6': '.bitwindowd.v1.ProcessBandwidth', '10': 'enforcerBandwidth'},
+  ],
+};
+
+/// Descriptor for `GetNetworkStatsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNetworkStatsResponseDescriptor = $convert.base64Decode(
+    'ChdHZXROZXR3b3JrU3RhdHNSZXNwb25zZRIpChBuZXR3b3JrX2hhc2hyYXRlGAEgASgBUg9uZX'
+    'R3b3JrSGFzaHJhdGUSHgoKZGlmZmljdWx0eRgCIAEoAVIKZGlmZmljdWx0eRIdCgpwZWVyX2Nv'
+    'dW50GAMgASgFUglwZWVyQ291bnQSMAoUdG90YWxfYnl0ZXNfcmVjZWl2ZWQYBCABKARSEnRvdG'
+    'FsQnl0ZXNSZWNlaXZlZBIoChB0b3RhbF9ieXRlc19zZW50GAUgASgEUg50b3RhbEJ5dGVzU2Vu'
+    'dBIhCgxibG9ja19oZWlnaHQYBiABKANSC2Jsb2NrSGVpZ2h0EiQKDmF2Z19ibG9ja190aW1lGA'
+    'cgASgBUgxhdmdCbG9ja1RpbWUSJwoPbmV0d29ya192ZXJzaW9uGAggASgFUg5uZXR3b3JrVmVy'
+    'c2lvbhIeCgpzdWJ2ZXJzaW9uGAkgASgJUgpzdWJ2ZXJzaW9uEiUKDmNvbm5lY3Rpb25zX2luGA'
+    'ogASgFUg1jb25uZWN0aW9uc0luEicKD2Nvbm5lY3Rpb25zX291dBgLIAEoBVIOY29ubmVjdGlv'
+    'bnNPdXQSTgoSYml0Y29pbmRfYmFuZHdpZHRoGAwgASgLMh8uYml0d2luZG93ZC52MS5Qcm9jZX'
+    'NzQmFuZHdpZHRoUhFiaXRjb2luZEJhbmR3aWR0aBJOChJlbmZvcmNlcl9iYW5kd2lkdGgYDSAB'
+    'KAsyHy5iaXR3aW5kb3dkLnYxLlByb2Nlc3NCYW5kd2lkdGhSEWVuZm9yY2VyQmFuZHdpZHRo');
+
+@$core.Deprecated('Use processBandwidthDescriptor instead')
+const ProcessBandwidth$json = {
+  '1': 'ProcessBandwidth',
+  '2': [
+    {'1': 'process_name', '3': 1, '4': 1, '5': 9, '10': 'processName'},
+    {'1': 'pid', '3': 2, '4': 1, '5': 5, '10': 'pid'},
+    {'1': 'rx_bytes_per_sec', '3': 3, '4': 1, '5': 1, '10': 'rxBytesPerSec'},
+    {'1': 'tx_bytes_per_sec', '3': 4, '4': 1, '5': 1, '10': 'txBytesPerSec'},
+    {'1': 'total_rx_bytes', '3': 5, '4': 1, '5': 4, '10': 'totalRxBytes'},
+    {'1': 'total_tx_bytes', '3': 6, '4': 1, '5': 4, '10': 'totalTxBytes'},
+    {'1': 'connection_count', '3': 7, '4': 1, '5': 5, '10': 'connectionCount'},
+  ],
+};
+
+/// Descriptor for `ProcessBandwidth`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List processBandwidthDescriptor = $convert.base64Decode(
+    'ChBQcm9jZXNzQmFuZHdpZHRoEiEKDHByb2Nlc3NfbmFtZRgBIAEoCVILcHJvY2Vzc05hbWUSEA'
+    'oDcGlkGAIgASgFUgNwaWQSJwoQcnhfYnl0ZXNfcGVyX3NlYxgDIAEoAVINcnhCeXRlc1BlclNl'
+    'YxInChB0eF9ieXRlc19wZXJfc2VjGAQgASgBUg10eEJ5dGVzUGVyU2VjEiQKDnRvdGFsX3J4X2'
+    'J5dGVzGAUgASgEUgx0b3RhbFJ4Qnl0ZXMSJAoOdG90YWxfdHhfYnl0ZXMYBiABKARSDHRvdGFs'
+    'VHhCeXRlcxIpChBjb25uZWN0aW9uX2NvdW50GAcgASgFUg9jb25uZWN0aW9uQ291bnQ=');
+
 const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
@@ -422,6 +478,7 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'GetFireplaceStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetFireplaceStatsResponse'},
     {'1': 'ListRecentTransactions', '2': '.bitwindowd.v1.ListRecentTransactionsRequest', '3': '.bitwindowd.v1.ListRecentTransactionsResponse'},
     {'1': 'ListBlocks', '2': '.bitwindowd.v1.ListBlocksRequest', '3': '.bitwindowd.v1.ListBlocksResponse'},
+    {'1': 'GetNetworkStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetNetworkStatsResponse'},
   ],
 };
 
@@ -449,6 +506,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.ListBlocksRequest': ListBlocksRequest$json,
   '.bitwindowd.v1.ListBlocksResponse': ListBlocksResponse$json,
   '.bitwindowd.v1.Block': Block$json,
+  '.bitwindowd.v1.GetNetworkStatsResponse': GetNetworkStatsResponse$json,
+  '.bitwindowd.v1.ProcessBandwidth': ProcessBandwidth$json,
 };
 
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -473,5 +532,7 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     '5zZRJ1ChZMaXN0UmVjZW50VHJhbnNhY3Rpb25zEiwuYml0d2luZG93ZC52MS5MaXN0UmVjZW50'
     'VHJhbnNhY3Rpb25zUmVxdWVzdBotLmJpdHdpbmRvd2QudjEuTGlzdFJlY2VudFRyYW5zYWN0aW'
     '9uc1Jlc3BvbnNlElEKCkxpc3RCbG9ja3MSIC5iaXR3aW5kb3dkLnYxLkxpc3RCbG9ja3NSZXF1'
-    'ZXN0GiEuYml0d2luZG93ZC52MS5MaXN0QmxvY2tzUmVzcG9uc2U=');
+    'ZXN0GiEuYml0d2luZG93ZC52MS5MaXN0QmxvY2tzUmVzcG9uc2USUQoPR2V0TmV0d29ya1N0YX'
+    'RzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiYuYml0d2luZG93ZC52MS5HZXROZXR3b3JrU3Rh'
+    'dHNSZXNwb25zZQ==');
 

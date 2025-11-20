@@ -347,6 +347,22 @@ class M4ExplorerRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [NetworkStatisticsPage]
+class NetworkStatisticsRoute extends PageRouteInfo<void> {
+  const NetworkStatisticsRoute({List<PageRouteInfo>? children})
+    : super(NetworkStatisticsRoute.name, initialChildren: children);
+
+  static const String name = 'NetworkStatisticsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const NetworkStatisticsPage();
+    },
+  );
+}
+
+/// generated route for
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
   const OverviewRoute({List<PageRouteInfo>? children})
