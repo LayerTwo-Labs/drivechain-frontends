@@ -12,7 +12,8 @@ class M4Provider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
 
-  List<drivechainpb.WithdrawalBundle> withdrawalBundles = [];
+  // M4 data per sidechain slot
+  Map<int, List<drivechainpb.WithdrawalBundle>> withdrawalBundlesBySidechain = {};
   List<m4pb.M4HistoryEntry> history = [];
   List<m4pb.M4Vote> votePreferences = [];
   bool isLoading = false;
@@ -28,37 +29,55 @@ class M4Provider extends ChangeNotifier {
 
   Future<void> _init() async {
     if (_bitwindowRPC.connected) {
-      await fetch();
+      await fetchAll();
     }
   }
 
   void _onBitwindowConnectionChanged() {
     if (_bitwindowRPC.connected) {
-      fetch();
+      fetchAll();
     }
   }
 
   void _onNewBlock() {
-    fetch();
+    fetchAll();
   }
 
-  Future<void> fetch() async {
+  // Fetch M4 data for all active sidechains
+  Future<void> fetchAll() async {
     isLoading = true;
     modelError = null;
     notifyListeners();
 
     try {
+      // Get list of active sidechains
+      final sidechains = await _bitwindowRPC.drivechain.listSidechains();
+
+      // Fetch withdrawal bundles for each active sidechain in parallel
+      final bundleFutures = sidechains.map((sidechain) async {
+        try {
+          final bundles = await _bitwindowRPC.drivechain.listWithdrawals(
+            sidechainId: sidechain.slot,
+            startBlockHeight: 0,
+            endBlockHeight: 999999999,
+          );
+          return MapEntry(sidechain.slot, bundles);
+        } catch (e) {
+          log.w('Failed to fetch withdrawal bundles for sidechain ${sidechain.slot}: $e');
+          return MapEntry(sidechain.slot, <drivechainpb.WithdrawalBundle>[]);
+        }
+      });
+
+      // Fetch history and vote preferences
       final results = await Future.wait([
-        _bitwindowRPC.drivechain.listWithdrawals(
-          sidechainId: 0,
-          startBlockHeight: 0,
-          endBlockHeight: 999999999,
-        ),
+        Future.wait(bundleFutures),
         _bitwindowRPC.m4.getM4History(limit: 10),
         _bitwindowRPC.m4.getVotePreferences(),
       ]);
 
-      withdrawalBundles = results[0] as List<drivechainpb.WithdrawalBundle>;
+      withdrawalBundlesBySidechain = Map.fromEntries(
+        results[0] as List<MapEntry<int, List<drivechainpb.WithdrawalBundle>>>,
+      );
       history = results[1] as List<m4pb.M4HistoryEntry>;
       votePreferences = results[2] as List<m4pb.M4Vote>;
       modelError = null;
@@ -69,6 +88,11 @@ class M4Provider extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Get withdrawal bundles for a specific sidechain
+  List<drivechainpb.WithdrawalBundle> getWithdrawalBundles(int sidechainSlot) {
+    return withdrawalBundlesBySidechain[sidechainSlot] ?? [];
   }
 
   Future<void> setVotePreference({
@@ -83,7 +107,7 @@ class M4Provider extends ChangeNotifier {
         bundleHash: bundleHash,
       );
 
-      await fetch();
+      await fetchAll();
       modelError = null;
       notifyListeners();
     } catch (e) {
@@ -109,7 +133,7 @@ class M4Provider extends ChangeNotifier {
   void startPolling({Duration interval = const Duration(seconds: 10)}) {
     stopPolling();
     _pollTimer = Timer.periodic(interval, (_) async {
-      await fetch();
+      await fetchAll();
     });
   }
 
