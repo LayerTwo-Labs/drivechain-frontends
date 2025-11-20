@@ -101,16 +101,17 @@ class ZSideLive extends ZSideRPC {
     return client;
   }
 
-  ZSideLive() : super(binaryType: BinaryType.zSide, restartOnFailure: false) {
+  ZSideLive()
+    : super(
+        binaryType: BinaryType.zSide,
+        restartOnFailure: false,
+      ) {
     startConnectionTimer();
   }
 
   @override
   Future<List<String>> binaryArgs() async {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final thunderBinary = binaryProvider.binaries.where((b) => b.name == binary.name).first;
-
-    return thunderBinary.extraBootArgs;
+    return binary.extraBootArgs;
   }
 
   @override
