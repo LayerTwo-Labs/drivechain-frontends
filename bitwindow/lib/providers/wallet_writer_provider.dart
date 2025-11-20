@@ -178,14 +178,57 @@ class WalletWriterProvider extends ChangeNotifier {
   }) async {
     _logger.i('createWatchOnlyWallet: Creating watch-only wallet named "$name"');
 
-    // TODO: Implement watch-only wallet creation
-    // This requires:
-    // 1. Validating the xpub/descriptor
-    // 2. Creating a WalletData structure without master/mnemonic
-    // 3. Importing to Bitcoin Core as watch-only
-    // 4. Backend support in wallet_manager.go
+    await _walletLock.synchronized(() async {
+      final walletId = _generateWalletId();
+      final isDescriptor = xpubOrDescriptor.contains('(') && xpubOrDescriptor.contains(')');
 
-    throw UnimplementedError('Watch-only wallet creation not yet fully implemented');
+      // Create watch-only wallet structure matching backend's WalletInfo format
+      final walletJson = {
+        'id': walletId,
+        'name': name,
+        'wallet_type': 'watchOnly',
+        'gradient': gradient.toJson(),
+        'created_at': DateTime.now().toIso8601String(),
+        'version': 1,
+        // Watch-only wallets don't have master/l1/sidechains
+        'master': {'seed_hex': ''},
+        'l1': {'mnemonic': ''},
+        'sidechains': <Map<String, dynamic>>[],
+        'watch_only': {
+          if (isDescriptor) 'descriptor': xpubOrDescriptor else 'xpub': xpubOrDescriptor,
+        },
+      };
+
+      // Load existing wallet.json structure
+      final walletFile = _walletReader.getWalletFile();
+      Map<String, dynamic> walletFileData;
+
+      if (await walletFile.exists()) {
+        // Read and decrypt if needed
+        final content = await walletFile.readAsString();
+        walletFileData = jsonDecode(content) as Map<String, dynamic>;
+      } else {
+        // Create new structure
+        walletFileData = {
+          'version': 1,
+          'wallets': [],
+        };
+      }
+
+      // Add new wallet to wallets array
+      final wallets = walletFileData['wallets'] as List<dynamic>? ?? [];
+      wallets.add(walletJson);
+      walletFileData['wallets'] = wallets;
+      walletFileData['activeWalletId'] = walletId;
+
+      // Save to file
+      await walletFile.writeAsString(jsonEncode(walletFileData));
+
+      // Reload wallet reader to pick up the new wallet
+      await _walletReader.init();
+
+      _logger.i('createWatchOnlyWallet: Successfully created watch-only wallet $walletId');
+    });
   }
 
   Future<Map<String, dynamic>> _genWallet({
