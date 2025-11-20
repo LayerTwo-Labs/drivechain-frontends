@@ -98,107 +98,99 @@ class CreateTimestampPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailPage(
-      title: 'Timestamp a File',
-      body: ViewModelBuilder<CreateTimestampViewModel>.reactive(
-        viewModelBuilder: () => CreateTimestampViewModel(),
-        builder: (context, model, child) {
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: SailCard(
-                title: 'Select File to Timestamp',
-                error: model.modelError,
-                child: Padding(
+    return ViewModelBuilder<CreateTimestampViewModel>.reactive(
+      viewModelBuilder: () => CreateTimestampViewModel(),
+      builder: (context, model, child) {
+        return Scaffold(
+          backgroundColor: SailTheme.of(context).colors.background,
+          appBar: AppBar(
+            backgroundColor: SailTheme.of(context).colors.background,
+            foregroundColor: SailTheme.of(context).colors.text,
+            title: SailText.primary20('Timestamp a File'),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 600),
                   padding: const EdgeInsets.all(SailStyleValues.padding20),
-                  child: SailColumn(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     spacing: SailStyleValues.padding20,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SailText.secondary13(
                         'Upload a file (max 1MB) to timestamp on the Bitcoin blockchain. '
                         'This will create a permanent, verifiable proof that the file existed at this time.',
                       ),
-                      const SizedBox(height: SailStyleValues.padding08),
-                      Container(
-                        padding: const EdgeInsets.all(SailStyleValues.padding16),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: context.sailTheme.colors.text.withValues(alpha: 0.2),
-                          ),
-                          borderRadius: SailStyleValues.borderRadius,
-                        ),
-                        child: SailColumn(
+                      if (model.selectedFile == null)
+                        Column(
                           spacing: SailStyleValues.padding12,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (model.selectedFile == null)
-                              Center(
-                                child: SailColumn(
-                                  spacing: SailStyleValues.padding12,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SailSVG.icon(
-                                      SailSVGAsset.iconDownload,
-                                      width: 48,
-                                      color: context.sailTheme.colors.text.withValues(alpha: 0.5),
-                                    ),
-                                    SailText.secondary13('No file selected'),
-                                  ],
-                                ),
-                              )
-                            else
-                              SailColumn(
-                                spacing: SailStyleValues.padding08,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      SailSVG.icon(
-                                        SailSVGAsset.iconSuccess,
-                                        width: 24,
-                                      ),
-                                      const SizedBox(width: SailStyleValues.padding08),
-                                      Expanded(
-                                        child: SailText.primary13(
-                                          model.selectedFilename ?? 'Unknown',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SailText.secondary12('Size: ${model.fileSizeFormatted}'),
-                                ],
-                              ),
-                            const SizedBox(height: SailStyleValues.padding08),
-                            SailButton(
-                              label: model.selectedFile == null ? 'Choose File' : 'Change File',
-                              variant: ButtonVariant.secondary,
-                              onPressed: () async => model.pickFile(),
-                              icon: SailSVGAsset.iconSearch,
+                            SailSVG.icon(
+                              SailSVGAsset.iconDownload,
+                              width: 48,
+                              color: context.sailTheme.colors.text.withValues(alpha: 0.5),
                             ),
+                            SailText.secondary13('No file selected'),
+                          ],
+                        )
+                      else
+                        Column(
+                          spacing: SailStyleValues.padding08,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                SailSVG.icon(
+                                  SailSVGAsset.iconSuccess,
+                                  width: 24,
+                                ),
+                                const SizedBox(width: SailStyleValues.padding08),
+                                Expanded(
+                                  child: SailText.primary13(
+                                    model.selectedFilename ?? 'Unknown',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SailText.secondary12('Size: ${model.fileSizeFormatted}'),
                           ],
                         ),
+                      SailButton(
+                        label: model.selectedFile == null ? 'Choose File' : 'Change File',
+                        variant: ButtonVariant.secondary,
+                        onPressed: () async => model.pickFile(),
+                        icon: SailSVGAsset.iconSearch,
                       ),
-                      const SizedBox(height: SailStyleValues.padding20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SailButton(
-                              label: 'Cancel',
-                              variant: ButtonVariant.ghost,
-                              onPressed: () async => GetIt.I.get<AppRouter>().pop(),
-                            ),
+                      if (model.modelError != null)
+                        Container(
+                          padding: const EdgeInsets.all(SailStyleValues.padding12),
+                          decoration: BoxDecoration(
+                            color: context.sailTheme.colors.error.withValues(alpha: 0.1),
+                            borderRadius: SailStyleValues.borderRadiusSmall,
+                            border: Border.all(color: context.sailTheme.colors.error),
                           ),
-                          const SizedBox(width: SailStyleValues.padding12),
-                          Expanded(
-                            flex: 2,
-                            child: SailButton(
-                              label: 'Timestamp File',
-                              loading: model.isCreating,
-                              disabled: model.selectedFile == null,
-                              onPressed: () async => model.timestampFile(context),
-                            ),
+                          child: SailText.secondary13(
+                            model.modelError!,
+                            color: context.sailTheme.colors.error,
+                          ),
+                        ),
+                      Row(
+                        spacing: SailStyleValues.padding08,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          SailButton(
+                            label: 'Cancel',
+                            variant: ButtonVariant.ghost,
+                            onPressed: () async => GetIt.I.get<AppRouter>().pop(),
+                          ),
+                          SailButton(
+                            label: 'Timestamp File',
+                            loading: model.isCreating,
+                            disabled: model.selectedFile == null,
+                            onPressed: () async => model.timestampFile(context),
                           ),
                         ],
                       ),
@@ -207,9 +199,9 @@ class CreateTimestampPage extends StatelessWidget {
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
