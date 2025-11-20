@@ -1,7 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/m4_provider.dart';
+import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/sail_ui.dart';
@@ -15,7 +17,8 @@ class M4ExplorerPage extends StatefulWidget {
 }
 
 class _M4ExplorerPageState extends State<M4ExplorerPage> {
-  M4Provider? _m4Provider;
+  int? _selectedSidechainSlot;
+  late M4Provider _m4Provider;
 
   @override
   void initState() {
@@ -25,8 +28,14 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
 
   @override
   void dispose() {
-    _m4Provider?.dispose();
+    _m4Provider.dispose();
     super.dispose();
+  }
+
+  void _selectSidechain(int slot) {
+    setState(() {
+      _selectedSidechainSlot = slot;
+    });
   }
 
   @override
@@ -39,60 +48,163 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
         backgroundColor: theme.colors.background,
         foregroundColor: theme.colors.text,
         title: SailText.primary20('M4 Explorer', bold: true),
+        leading: _selectedSidechainSlot != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  setState(() {
+                    _selectedSidechainSlot = null;
+                  });
+                },
+              )
+            : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _m4Provider?.fetch(),
+            onPressed: () => _m4Provider.fetchAll(),
           ),
         ],
       ),
       body: SafeArea(
-        child: ListenableBuilder(
-          listenable: _m4Provider!,
-          builder: (context, child) {
-            if (_m4Provider!.isLoading && _m4Provider!.history.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (_m4Provider!.modelError != null) {
-              return Center(
-                child: SailText.primary15(
-                  'Error: ${_m4Provider!.modelError}',
-                ),
-              );
-            }
-
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildWithdrawalBundlesSection(theme),
-                    const SizedBox(height: 24),
-                    _buildVotePreferencesSection(theme),
-                    const SizedBox(height: 24),
-                    _buildM4HistorySection(theme),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+        child: _selectedSidechainSlot == null ? _buildSidechainSelectionTable() : _buildM4Details(),
       ),
     );
   }
 
+  Widget _buildSidechainSelectionTable() {
+    final sidechainProvider = GetIt.I.get<SidechainProvider>();
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ListenableBuilder(
+      listenable: sidechainProvider,
+      builder: (context, child) {
+        // Get list of active sidechains
+        final activeSidechains = <int>[];
+        for (int slot = 0; slot < sidechainProvider.sidechains.length; slot++) {
+          if (sidechainProvider.sidechains[slot] != null) {
+            activeSidechains.add(slot);
+          }
+        }
+
+        if (sidechainProvider.sidechains.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (activeSidechains.isEmpty) {
+          return Center(
+            child: SailText.primary15('No active sidechains found'),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary20('Select a sidechain to view M4 data', bold: true),
+              const SizedBox(height: 16),
+              Expanded(
+                child: SailTable(
+                  getRowId: (index) => activeSidechains[index].toString(),
+                  headerBuilder: (context) => [
+                    const SailTableHeaderCell(name: 'Slot'),
+                    const SailTableHeaderCell(name: 'Name'),
+                    const SailTableHeaderCell(name: 'Balance'),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final slot = activeSidechains[row];
+                    final sidechain = sidechainProvider.sidechains[slot];
+                    final textColor = context.sailTheme.colors.text;
+
+                    return [
+                      SailTableCell(
+                        value: '$slot:',
+                        textColor: textColor,
+                        child: InkWell(
+                          onTap: () => _selectSidechain(slot),
+                          child: SailText.primary13('$slot:', color: textColor),
+                        ),
+                      ),
+                      SailTableCell(
+                        value: sidechain?.info.title ?? '',
+                        textColor: textColor,
+                        child: InkWell(
+                          onTap: () => _selectSidechain(slot),
+                          child: SailText.primary13(sidechain?.info.title ?? '', color: textColor),
+                        ),
+                      ),
+                      SailTableCell(
+                        value: formatter.formatSats(sidechain?.info.balanceSatoshi.toInt() ?? 0),
+                        textColor: textColor,
+                        child: InkWell(
+                          onTap: () => _selectSidechain(slot),
+                          child: SailText.primary13(
+                            formatter.formatSats(sidechain?.info.balanceSatoshi.toInt() ?? 0),
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                    ];
+                  },
+                  rowCount: activeSidechains.length,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildM4Details() {
+    return ListenableBuilder(
+      listenable: _m4Provider,
+      builder: (context, child) {
+        final theme = SailTheme.of(context);
+
+        if (_m4Provider.isLoading && _m4Provider.history.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (_m4Provider.modelError != null) {
+          return Center(
+            child: SailText.primary15(
+              'Error: ${_m4Provider.modelError}',
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildWithdrawalBundlesSection(theme),
+                const SizedBox(height: 24),
+                _buildVotePreferencesSection(theme),
+                const SizedBox(height: 24),
+                _buildM4HistorySection(theme),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildWithdrawalBundlesSection(SailThemeData theme) {
+    final bundles = _m4Provider.getWithdrawalBundles(_selectedSidechainSlot!);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary20('Withdrawal Bundles', bold: true),
         const SizedBox(height: 12),
-        if (_m4Provider!.withdrawalBundles.isEmpty)
+        if (bundles.isEmpty)
           SailText.secondary13('No withdrawal bundles found')
         else
-          ..._m4Provider!.withdrawalBundles.map((bundle) => _buildWithdrawalBundleCard(theme, bundle)),
+          ...bundles.map((bundle) => _buildWithdrawalBundleCard(theme, bundle)),
       ],
     );
   }
@@ -185,10 +297,10 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
           ],
         ),
         const SizedBox(height: 12),
-        if (_m4Provider!.votePreferences.isEmpty)
+        if (_m4Provider.votePreferences.isEmpty)
           SailText.secondary13('No vote preferences set')
         else
-          ..._m4Provider!.votePreferences.map((vote) => _buildVotePreferenceCard(theme, vote)),
+          ..._m4Provider.votePreferences.map((vote) => _buildVotePreferenceCard(theme, vote)),
         const SizedBox(height: 12),
         SailButton(
           label: 'Set Vote Preference',
@@ -230,10 +342,10 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
       children: [
         SailText.primary20('Recent M4 Messages', bold: true),
         const SizedBox(height: 12),
-        if (_m4Provider!.history.isEmpty)
+        if (_m4Provider.history.isEmpty)
           SailText.secondary13('No M4 messages found')
         else
-          ..._m4Provider!.history.map((entry) => _buildHistoryCard(theme, entry)),
+          ..._m4Provider.history.map((entry) => _buildHistoryCard(theme, entry)),
       ],
     );
   }
@@ -362,7 +474,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
     );
 
     if (result == true && mounted) {
-      await _m4Provider!.setVotePreference(
+      await _m4Provider.setVotePreference(
         sidechainSlot: selectedSlot,
         voteType: voteType,
         bundleHash: bundleHashController.text.isEmpty ? null : bundleHashController.text,
@@ -375,7 +487,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
   }
 
   Future<void> _showGenerateM4BytesDialog() async {
-    final result = await _m4Provider!.generateM4Bytes();
+    final result = await _m4Provider.generateM4Bytes();
     if (result == null) {
       if (mounted) {
         showSnackBar(context, 'Failed to generate M4 bytes');
