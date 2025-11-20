@@ -114,6 +114,7 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   double? get pegAmount => double.tryParse(bitcoinAmountController.text);
   double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0), 0);
+  String get sidechainName => _rpc.chain.name;
 
   String get totalBitcoinAmount =>
       formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)));
@@ -269,7 +270,7 @@ class DepositTab extends StatelessWidget {
               SailTextField(
                 loading: LoadingDetails(
                   enabled: model.depositAddress == null,
-                  description: 'Waiting for thunder to boot...',
+                  description: 'Waiting for ${model.sidechainName} to boot...',
                 ),
                 controller: TextEditingController(text: model.depositAddress),
                 hintText: 'Generating deposit address...',

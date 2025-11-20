@@ -348,6 +348,11 @@ class OverviewTabViewModel extends BaseViewModel {
   }
 
   Future<void> generateTransparentAddress() async {
+    if (isGeneratingTransparentAddress) {
+      log.d('already generating transparent address, skipping duplicate request');
+      return;
+    }
+
     try {
       isGeneratingTransparentAddress = true;
       receiveError = null;
@@ -363,8 +368,9 @@ class OverviewTabViewModel extends BaseViewModel {
 
       transparentReceiveAddress = await _rpc.getNewTransparentAddress();
       receiveError = null;
+      log.i('generated transparent address: $transparentReceiveAddress');
     } catch (error) {
-      log.e('Failed to generate transparent address', error: error);
+      log.e('generate transparent address: $error');
       receiveError = error.toString();
       transparentReceiveAddress = null;
     } finally {
@@ -374,6 +380,11 @@ class OverviewTabViewModel extends BaseViewModel {
   }
 
   Future<void> generateShieldedAddress() async {
+    if (isGeneratingShieldedAddress) {
+      log.d('already generating shielded address, skipping duplicate request');
+      return;
+    }
+
     try {
       isGeneratingShieldedAddress = true;
       shieldedReceiveError = null;
@@ -389,8 +400,9 @@ class OverviewTabViewModel extends BaseViewModel {
 
       shieldedReceiveAddress = await _rpc.getNewShieldedAddress();
       shieldedReceiveError = null;
+      log.i('generated shielded address: $shieldedReceiveAddress');
     } catch (error) {
-      log.e('Failed to generate shielded address', error: error);
+      log.e('generate shielded address: $error');
       shieldedReceiveError = error.toString();
       shieldedReceiveAddress = null;
     } finally {
