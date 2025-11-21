@@ -13,16 +13,16 @@ import (
 
 // Stats represents network bandwidth statistics for a process
 type Stats struct {
-	PID              int
-	ProcessName      string
-	RxBytesPerSec    float64 // Current receive rate (bytes/sec)
-	TxBytesPerSec    float64 // Current transmit rate (bytes/sec)
-	TotalRxBytes     uint64  // Total bytes received
-	TotalTxBytes     uint64  // Total bytes sent
-	ConnectionCount  int32   // Number of active network connections
-	lastRx           uint64
-	lastTx           uint64
-	lastSampleTime   time.Time
+	PID             int
+	ProcessName     string
+	RxBytesPerSec   float64 // Current receive rate (bytes/sec)
+	TxBytesPerSec   float64 // Current transmit rate (bytes/sec)
+	TotalRxBytes    uint64  // Total bytes received
+	TotalTxBytes    uint64  // Total bytes sent
+	ConnectionCount int32   // Number of active network connections
+	lastRx          uint64
+	lastTx          uint64
+	lastSampleTime  time.Time
 }
 
 // Tracker maintains bandwidth statistics for multiple processes

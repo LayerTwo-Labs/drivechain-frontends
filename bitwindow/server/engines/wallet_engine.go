@@ -168,14 +168,18 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	// 1. Explicitly set activeWalletId
 	// 2. Enforcer wallet (if exists)
 	// 3. First wallet in list
-	if activeWallet != nil {
+	switch {
+	case activeWallet != nil:
 		// Already found by activeWalletId
-	} else if enforcerWallet != nil {
+
+	case enforcerWallet != nil:
 		activeWallet = enforcerWallet
 		activeWalletId = enforcerWalletId
-	} else if firstWallet != nil {
+
+	case firstWallet != nil:
 		activeWallet = firstWallet
 		activeWalletId = firstWalletId
+
 	}
 
 	if activeWallet == nil {
