@@ -328,6 +328,36 @@ func (mr *MockBitcoinServiceClientMockRecorder) GetDescriptorInfo(arg0, arg1 any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDescriptorInfo", reflect.TypeOf((*MockBitcoinServiceClient)(nil).GetDescriptorInfo), arg0, arg1)
 }
 
+// GetNetTotals mocks base method.
+func (m *MockBitcoinServiceClient) GetNetTotals(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.GetNetTotalsRequest]) (*connect.Response[bitcoindv1alpha.GetNetTotalsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNetTotals", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.GetNetTotalsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNetTotals indicates an expected call of GetNetTotals.
+func (mr *MockBitcoinServiceClientMockRecorder) GetNetTotals(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNetTotals", reflect.TypeOf((*MockBitcoinServiceClient)(nil).GetNetTotals), arg0, arg1)
+}
+
+// GetNetworkInfo mocks base method.
+func (m *MockBitcoinServiceClient) GetNetworkInfo(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.GetNetworkInfoRequest]) (*connect.Response[bitcoindv1alpha.GetNetworkInfoResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNetworkInfo", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.GetNetworkInfoResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNetworkInfo indicates an expected call of GetNetworkInfo.
+func (mr *MockBitcoinServiceClientMockRecorder) GetNetworkInfo(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNetworkInfo", reflect.TypeOf((*MockBitcoinServiceClient)(nil).GetNetworkInfo), arg0, arg1)
+}
+
 // GetNewAddress mocks base method.
 func (m *MockBitcoinServiceClient) GetNewAddress(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.GetNewAddressRequest]) (*connect.Response[bitcoindv1alpha.GetNewAddressResponse], error) {
 	m.ctrl.T.Helper()

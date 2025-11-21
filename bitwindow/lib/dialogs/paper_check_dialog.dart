@@ -3,6 +3,9 @@ import 'package:bitwindow/utils/paper_wallet_generator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -125,6 +128,182 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$label copied to clipboard')),
     );
+  }
+
+  Future<void> _printPaperCheck() async {
+    if (_keypair == null || _txid == null) return;
+
+    final pdf = pw.Document();
+    final amount = _amountController.text.trim();
+
+    final recipientQr = await QrPainter(
+      data: _keypair!.publicAddress,
+      version: QrVersions.auto,
+      gapless: false,
+      eyeStyle: const QrEyeStyle(
+        eyeShape: QrEyeShape.square,
+        color: Color(0xFF000000),
+      ),
+      dataModuleStyle: const QrDataModuleStyle(
+        dataModuleShape: QrDataModuleShape.square,
+        color: Color(0xFF000000),
+      ),
+    ).toImageData(300);
+
+    final redemptionQr = await QrPainter(
+      data: _keypair!.privateKeyWIF,
+      version: QrVersions.auto,
+      gapless: false,
+      eyeStyle: const QrEyeStyle(
+        eyeShape: QrEyeShape.square,
+        color: Color(0xFF000000),
+      ),
+      dataModuleStyle: const QrDataModuleStyle(
+        dataModuleShape: QrDataModuleShape.square,
+        color: Color(0xFF000000),
+      ),
+    ).toImageData(300);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4.landscape,
+        build: (pw.Context context) {
+          return pw.Container(
+            padding: const pw.EdgeInsets.all(40),
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  'BITCOIN PAPER CHECK',
+                  style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  'Amount: $amount BTC',
+                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 30),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+                  children: [
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(20),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.blue, width: 3),
+                        ),
+                        child: pw.Column(
+                          children: [
+                            pw.Text(
+                              'RECIPIENT',
+                              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                            ),
+                            pw.SizedBox(height: 5),
+                            pw.Text('Bitcoin Address', style: const pw.TextStyle(fontSize: 12)),
+                            pw.SizedBox(height: 15),
+                            if (recipientQr != null)
+                              pw.Image(
+                                pw.MemoryImage(recipientQr.buffer.asUint8List()),
+                                width: 200,
+                                height: 200,
+                              ),
+                            pw.SizedBox(height: 15),
+                            pw.Text(
+                              _keypair!.publicAddress,
+                              style: const pw.TextStyle(fontSize: 9),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                            pw.SizedBox(height: 10),
+                            pw.Text(
+                              'Give this check to the recipient',
+                              style: const pw.TextStyle(fontSize: 10),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(width: 30),
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(20),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.red, width: 3),
+                        ),
+                        child: pw.Column(
+                          children: [
+                            pw.Text(
+                              'REDEEM',
+                              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                            ),
+                            pw.SizedBox(height: 5),
+                            pw.Text('Private Key (WIF)', style: const pw.TextStyle(fontSize: 12)),
+                            pw.SizedBox(height: 15),
+                            if (redemptionQr != null)
+                              pw.Image(
+                                pw.MemoryImage(redemptionQr.buffer.asUint8List()),
+                                width: 200,
+                                height: 200,
+                              ),
+                            pw.SizedBox(height: 15),
+                            pw.Text(
+                              _keypair!.privateKeyWIF,
+                              style: const pw.TextStyle(fontSize: 9),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                            pw.SizedBox(height: 10),
+                            pw.Text(
+                              'Recipient needs this key to redeem',
+                              style: const pw.TextStyle(fontSize: 10, color: PdfColors.red),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 30),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(15),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.orange, width: 2),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'SECURITY WARNINGS',
+                        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        '• Anyone with the private key can spend these funds',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        '• Store this check in a secure location',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        '• Do not share the private key except with the intended recipient',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        'Transaction ID: $_txid',
+                        style: const pw.TextStyle(fontSize: 8),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
   @override
@@ -335,13 +514,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
             children: [
               SailButton(
                 label: 'Print',
-                onPressed: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Printing will be implemented in a future update'),
-                    ),
-                  );
-                },
+                onPressed: () async => _printPaperCheck(),
               ),
               const SizedBox(width: 12),
               SailButton(

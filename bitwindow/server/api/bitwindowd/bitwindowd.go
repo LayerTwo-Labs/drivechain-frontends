@@ -5,7 +5,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os/exec"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -21,6 +24,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -44,12 +48,13 @@ func New(
 	config config.Config,
 ) *Server {
 	s := &Server{
-		onShutdown:   onShutdown,
-		db:           db,
-		validator:    validator,
-		wallet:       wallet,
-		bitcoind:     bitcoind,
-		walletEngine: walletEngine,
+		onShutdown:       onShutdown,
+		db:               db,
+		validator:        validator,
+		wallet:           wallet,
+		bitcoind:         bitcoind,
+		walletEngine:     walletEngine,
+		bandwidthTracker: bandwidth.NewTracker(),
 
 		config: config,
 	}
@@ -57,12 +62,13 @@ func New(
 }
 
 type Server struct {
-	onShutdown   func(ctx context.Context)
-	db           *sql.DB
-	validator    *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet       *service.Service[validatorrpc.WalletServiceClient]
-	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
-	walletEngine *engines.WalletEngine
+	onShutdown        func(ctx context.Context)
+	db                *sql.DB
+	validator         *service.Service[validatorrpc.ValidatorServiceClient]
+	wallet            *service.Service[validatorrpc.WalletServiceClient]
+	bitcoind          *service.Service[corerpc.BitcoinServiceClient]
+	walletEngine      *engines.WalletEngine
+	bandwidthTracker  *bandwidth.Tracker
 
 	config config.Config
 }
@@ -80,8 +86,9 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) 
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
-		// TODO: Add stop rpc bitcoind.Stop(ctx, connect.NewRequest(&emptypb.Empty{}))
-		zerolog.Ctx(ctx).Info().Msg("bitcoind shutdown complete")
+		// Note: Stop RPC not available in btc-buf yet
+		// bitcoind will be stopped via SIGTERM by the process manager
+		zerolog.Ctx(ctx).Info().Msg("bitcoind will be stopped by process manager")
 	} else {
 		zerolog.Ctx(ctx).Info().Msg("mainchain was not booted by GUI, not shutting down bitcoind..")
 	}
@@ -764,8 +771,7 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 	}
 
 	switch info.Msg.Chain {
-	// TODO: add forknet?
-	case "regtest", "testnet3", "testnet4":
+	case "regtest", "testnet3", "testnet4", "forknet":
 	default:
 		return connect.NewError(
 			connect.CodeFailedPrecondition,
@@ -786,7 +792,7 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 		RpcURL:          s.config.BitcoinCoreURL,
 		RpcUser:         s.config.BitcoinCoreRpcUser,
 		RpcPass:         s.config.BitcoinCoreRpcPassword,
-		Routines:        1, // TODO: configurable?
+		Routines:        1, // Single routine sufficient for regtest/testnet mining
 		CoinbaseAddress: address,
 	})
 	if err != nil {
@@ -857,6 +863,39 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		avgBlockTime = 600.0 // Default to 10 minutes
 	}
 
+	// Get difficulty from latest block
+	difficulty := 0.0
+	if blockchainInfo.Msg.Blocks > 0 {
+		hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+			Height: blockchainInfo.Msg.Blocks,
+		}))
+		if err != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("get latest block hash for difficulty")
+		} else {
+			block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+				Hash:      hash.Msg.Hash,
+				Verbosity: 1,
+			}))
+			if err != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).Msg("get latest block for difficulty")
+			} else {
+				difficulty = block.Msg.Difficulty
+			}
+		}
+	}
+
+	// Get network info for version and subversion
+	networkInfo, err := bitcoind.GetNetworkInfo(ctx, connect.NewRequest(&corepb.GetNetworkInfoRequest{}))
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("get network info")
+	}
+
+	// Get net totals for bandwidth statistics
+	netTotals, err := bitcoind.GetNetTotals(ctx, connect.NewRequest(&corepb.GetNetTotalsRequest{}))
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("get net totals")
+	}
+
 	// Get peer info
 	peerInfo, err := bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
 	if err != nil {
@@ -874,23 +913,95 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 		}
 	}
 
-	// TODO: Add getnetworkinfo, getnettotals, getmininginfo RPCs to btc-buf
-	// For now, use available data
+	// Extract network info fields
+	networkVersion := int32(0)
+	subversion := ""
+	if networkInfo != nil {
+		networkVersion = int32(networkInfo.Msg.Version)
+		subversion = networkInfo.Msg.Subversion
+	}
+
+	// Extract bandwidth statistics
+	totalBytesReceived := uint64(0)
+	totalBytesSent := uint64(0)
+	if netTotals != nil {
+		totalBytesReceived = netTotals.Msg.TotalBytesRecv
+		totalBytesSent = netTotals.Msg.TotalBytesSent
+	}
+
+	// Get per-process bandwidth statistics
+	var bitcoindBandwidth *pb.ProcessBandwidth
+	bitcoindPID := findPIDByName("bitcoind")
+	if bitcoindPID > 0 {
+		stats, err := s.bandwidthTracker.GetStats(bitcoindPID, "bitcoind")
+		if err == nil {
+			bitcoindBandwidth = &pb.ProcessBandwidth{
+				ProcessName:     stats.ProcessName,
+				Pid:             int32(stats.PID),
+				RxBytesPerSec:   stats.RxBytesPerSec,
+				TxBytesPerSec:   stats.TxBytesPerSec,
+				TotalRxBytes:    stats.TotalRxBytes,
+				TotalTxBytes:    stats.TotalTxBytes,
+				ConnectionCount: stats.ConnectionCount,
+			}
+		}
+	}
+
+	var enforcerBandwidth *pb.ProcessBandwidth
+	enforcerPID := findPIDByName("bip300301-enforcer")
+	if enforcerPID > 0 {
+		stats, err := s.bandwidthTracker.GetStats(enforcerPID, "bip300301-enforcer")
+		if err == nil {
+			enforcerBandwidth = &pb.ProcessBandwidth{
+				ProcessName:     stats.ProcessName,
+				Pid:             int32(stats.PID),
+				RxBytesPerSec:   stats.RxBytesPerSec,
+				TxBytesPerSec:   stats.TxBytesPerSec,
+				TotalRxBytes:    stats.TotalRxBytes,
+				TotalTxBytes:    stats.TotalTxBytes,
+				ConnectionCount: stats.ConnectionCount,
+			}
+		}
+	}
+
 	return connect.NewResponse(&pb.GetNetworkStatsResponse{
-		NetworkHashrate:     0,                                      // TODO: Get from getmininginfo
-		Difficulty:          0,                                      // TODO: Get difficulty from block header
+		NetworkHashrate:     0, // Requires getmininginfo (mining-specific)
+		Difficulty:          difficulty,
 		PeerCount:           int32(len(peerInfo.Msg.Peers)),
-		TotalBytesReceived:  0,                                      // TODO: Get from getnettotals
-		TotalBytesSent:      0,                                      // TODO: Get from getnettotals
+		TotalBytesReceived:  totalBytesReceived,
+		TotalBytesSent:      totalBytesSent,
 		BlockHeight:         int64(blockchainInfo.Msg.Blocks),
 		AvgBlockTime:        avgBlockTime,
-		NetworkVersion:      0,                                      // TODO: Get from getnetworkinfo
-		Subversion:          "",                                     // TODO: Get from getnetworkinfo
+		NetworkVersion:      networkVersion,
+		Subversion:          subversion,
 		ConnectionsIn:       connectionsIn,
 		ConnectionsOut:      connectionsOut,
-		BitcoindBandwidth:   nil,                                    // TODO: Implement per-process bandwidth tracking
-		EnforcerBandwidth:   nil,                                    // TODO: Implement per-process bandwidth tracking
+		BitcoindBandwidth:   bitcoindBandwidth,
+		EnforcerBandwidth:   enforcerBandwidth,
 	}), nil
+}
+
+// findPIDByName finds a process PID by its name
+func findPIDByName(processName string) int {
+	cmd := exec.Command("pgrep", "-x", processName)
+	output, err := cmd.Output()
+	if err != nil {
+		return 0
+	}
+
+	pidStr := strings.TrimSpace(string(output))
+	if pidStr == "" {
+		return 0
+	}
+
+	// pgrep may return multiple PIDs, take the first one
+	lines := strings.Split(pidStr, "\n")
+	pid, err := strconv.Atoi(lines[0])
+	if err != nil {
+		return 0
+	}
+
+	return pid
 }
 
 func (s *Server) calculateAverageBlockTime(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, currentHeight int64) (float64, error) {
