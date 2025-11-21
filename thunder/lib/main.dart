@@ -144,7 +144,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   );
 
   // Initialize WindowProvider for the main window
-  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
+  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
   log.i('starting thunder');

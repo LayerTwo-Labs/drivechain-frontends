@@ -133,11 +133,10 @@ class WalletReaderProvider extends ChangeNotifier {
   /// Load all wallets from single wallet.json file
   /// MUST be called within _lock.synchronized() OR from init() after lock is released
   Future<void> _loadWalletIntoCache() async {
-    wallets = [];
-    activeWalletId = null;
-
     final walletFile = getWalletFile();
     if (!await walletFile.exists()) {
+      wallets = [];
+      activeWalletId = null;
       return;
     }
 
@@ -158,10 +157,10 @@ class WalletReaderProvider extends ChangeNotifier {
             fileJson = jsonDecode(decryptedJson) as Map<String, dynamic>;
             _encryptionKey = key;
           } else {
-            return; // Encrypted but no metadata
+            return; // Encrypted but no metadata - keep existing wallets
           }
         } else {
-          return; // Encrypted but not unlocked
+          return; // Encrypted but not unlocked - keep existing wallets
         }
       } else {
         // Not encrypted - load directly
@@ -170,17 +169,22 @@ class WalletReaderProvider extends ChangeNotifier {
       }
 
       // Parse the file structure: { version, activeWalletId, wallets: [...] }
-      activeWalletId = fileJson['activeWalletId'] as String?;
+      final newActiveWalletId = fileJson['activeWalletId'] as String?;
       final walletsJson = fileJson['wallets'] as List<dynamic>?;
 
+      final newWallets = <WalletData>[];
       if (walletsJson != null) {
         for (final walletJson in walletsJson) {
           final wallet = WalletData.fromJson(walletJson as Map<String, dynamic>);
-          wallets.add(wallet);
+          newWallets.add(wallet);
           _logger.i('_loadWalletIntoCache: Loaded wallet ${wallet.id} named "${wallet.name}"');
         }
       }
-      _logger.i('_loadWalletIntoCache: Total wallets loaded: ${wallets.length}');
+      _logger.i('_loadWalletIntoCache: Total wallets loaded: ${newWallets.length}');
+
+      // Only update state after successfully loading
+      wallets = newWallets;
+      activeWalletId = newActiveWalletId;
     } catch (e, stack) {
       _logger.e('Failed to load wallet file: $e\n$stack');
     }

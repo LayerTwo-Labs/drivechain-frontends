@@ -131,6 +131,11 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 
 	// Find active wallet
 	var activeWallet map[string]any
+	var firstWallet map[string]any
+	var firstWalletId string
+	var enforcerWallet map[string]any
+	var enforcerWalletId string
+
 	for _, w := range wallets {
 		wallet, ok := w.(map[string]any)
 		if !ok {
@@ -138,14 +143,43 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 		}
 
 		walletId, _ := wallet["id"].(string)
-		if activeWalletId == "" || walletId == activeWalletId {
+		walletType, _ := wallet["wallet_type"].(string)
+
+		// Track first wallet as fallback
+		if firstWallet == nil {
+			firstWallet = wallet
+			firstWalletId = walletId
+		}
+
+		// Track enforcer wallet as preferred fallback
+		if walletType == "enforcer" {
+			enforcerWallet = wallet
+			enforcerWalletId = walletId
+		}
+
+		// If activeWalletId is set, use that specific wallet
+		if activeWalletId != "" && walletId == activeWalletId {
 			activeWallet = wallet
 			break
 		}
 	}
 
+	// Select wallet in order of preference:
+	// 1. Explicitly set activeWalletId
+	// 2. Enforcer wallet (if exists)
+	// 3. First wallet in list
+	if activeWallet != nil {
+		// Already found by activeWalletId
+	} else if enforcerWallet != nil {
+		activeWallet = enforcerWallet
+		activeWalletId = enforcerWalletId
+	} else if firstWallet != nil {
+		activeWallet = firstWallet
+		activeWalletId = firstWalletId
+	}
+
 	if activeWallet == nil {
-		return errors.New("active wallet not found in wallets array")
+		return errors.New("no wallets found in wallets array")
 	}
 
 	// Extract master seed from active wallet

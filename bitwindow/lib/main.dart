@@ -81,9 +81,11 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   Directory? applicationDir;
   File? logFile;
+  bool isSubWindow = false;
 
   // If arguments are not empty, parse them for sub-window mode
   if (arguments.isNotEmpty) {
+    isSubWindow = true;
     final parsedArgs = jsonDecode(arguments) as Map<String, dynamic>;
 
     if (parsedArgs['application_dir'] != null) {
@@ -111,7 +113,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
-  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir);
+  final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: !isSubWindow);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
   GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: storage, log: log));
@@ -211,14 +213,31 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   return runApp(BitwindowApp(log: log));
 }
 
-void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) {
+void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) async {
   final arguments = jsonDecode(argumentsStr) as Map<String, dynamic>;
   final windowType = arguments['window_type'] as String?;
   final windowTitle = arguments['window_title'] as String?;
+  final windowX = arguments['window_x'] as double? ?? 100;
+  final windowY = arguments['window_y'] as double? ?? 100;
+  final windowWidth = arguments['window_width'] as double? ?? 800;
+  final windowHeight = arguments['window_height'] as double? ?? 600;
 
   if (windowTitle == null) {
     throw ArgumentError('Missing required arguments for multi-window mode: window_title');
   }
+
+  // Initialize window manager for sub-window
+  await windowManager.ensureInitialized();
+
+  // Initialize the current window's controller for receiving method calls
+  final windowController = await WindowController.fromCurrentEngine();
+  await windowController.doCustomInitialize();
+
+  // Set window position, size, and title
+  await windowManager.setPosition(Offset(windowX, windowY));
+  await windowManager.setSize(Size(windowWidth, windowHeight));
+  await windowManager.setTitle(windowTitle);
+  await windowManager.show();
 
   Widget child = SailCard(
     title: 'Unknown window type: $windowType',

@@ -85,44 +85,26 @@ class WindowProvider extends ChangeNotifier {
   WindowProvider._create({required this.logFile, required this.appDir});
 
   // Async factory
-  static Future<WindowProvider> newInstance(File logFile, Directory appDir) async {
+  static Future<WindowProvider> newInstance(File logFile, Directory appDir, {bool isMainWindow = false}) async {
     final instance = WindowProvider._create(logFile: logFile, appDir: appDir);
-    await instance._initialize();
+    await instance._initialize(isMainWindow: isMainWindow);
     return instance;
   }
 
   /// Initialize the window provider
-  Future<void> _initialize() async {
-    // Set up method handler for receiving messages from other windows
-    const channel = WindowMethodChannel('sail_ui_window_channel');
-    await channel.setMethodCallHandler(_handleMethodCall);
+  Future<void> _initialize({required bool isMainWindow}) async {
+    // Only the main window registers the handler in unidirectional mode
+    // Sub-windows can invoke methods but don't register
+    if (isMainWindow) {
+      const channel = WindowMethodChannel('sail_ui_window_channel', mode: ChannelMode.unidirectional);
+      await channel.setMethodCallHandler(_handleMethodCall);
+    }
   }
 
   /// Create a new window with the specified window type
   Future<WindowInfo?> open(SailWindow windowType) async {
     try {
-      final windowConfig = {
-        'window_type': windowType.identifier,
-        'window_title': windowType.name,
-        'application_dir': appDir.path,
-        'log_file': logFile.path,
-      };
-
-      final title = windowType.name;
-      log.i('Creating window: $title with type: ${windowType.identifier}');
-
-      final windowController = await WindowController.create(
-        WindowConfiguration(
-          hiddenAtLaunch: true,
-          arguments: jsonEncode(windowConfig),
-        ),
-      );
-
-      // Initialize the window controller extension
-      await windowController.doCustomInitialize();
-
       final screen = PlatformDispatcher.instance.displays.first;
-      // Get the actual physical size (accounting for display scaling)
       final physicalSize = screen.size;
       final devicePixelRatio = screen.devicePixelRatio;
       final actualScreenSize = Size(physicalSize.width / devicePixelRatio, physicalSize.height / devicePixelRatio);
@@ -130,17 +112,13 @@ class WindowProvider extends ChangeNotifier {
       var windowPosition = windowType.defaultPosition ?? const Offset(100, 100);
       var windowSize = windowType.defaultSize ?? const Size(800, 600);
 
-      // If set to some proportion of maxFinite, USE THAT PROPORTION relative to the actualScreenSize
-      // For example if defaultSize == maxFinite / 2, then windowSize = actualScreenSize / 2
-      // If defaultSize == maxFinite, then windowSize = actualScreenSize
+      // Calculate proportional sizes
       if (windowSize.width == double.maxFinite) {
         windowSize = Size(actualScreenSize.width, windowSize.height);
       } else if (windowSize.width > actualScreenSize.width) {
-        // Check if it's a proportion of maxFinite
         final proportion = windowSize.width / double.maxFinite;
         if (proportion > 0 && proportion <= 1) {
-          final newWidth = actualScreenSize.width * proportion;
-          windowSize = Size(newWidth, windowSize.height);
+          windowSize = Size(actualScreenSize.width * proportion, windowSize.height);
         } else {
           windowSize = Size(actualScreenSize.width, windowSize.height);
         }
@@ -149,17 +127,14 @@ class WindowProvider extends ChangeNotifier {
       if (windowSize.height == double.maxFinite) {
         windowSize = Size(windowSize.width, actualScreenSize.height);
       } else if (windowSize.height > actualScreenSize.height) {
-        // Check if it's a proportion of maxFinite
         final proportion = windowSize.height / double.maxFinite;
         if (proportion > 0 && proportion <= 1) {
-          final newHeight = actualScreenSize.height * proportion;
-          windowSize = Size(windowSize.width, newHeight);
+          windowSize = Size(windowSize.width, actualScreenSize.height * proportion);
         } else {
           windowSize = Size(windowSize.width, actualScreenSize.height);
         }
       }
 
-      // now do the exact same for window offset/position!
       if (windowPosition.dx > actualScreenSize.width) {
         final proportion = windowPosition.dx / double.maxFinite;
         if (proportion > 0 && proportion <= 1) {
@@ -178,9 +153,28 @@ class WindowProvider extends ChangeNotifier {
         }
       }
 
-      await windowController.setFrame(windowPosition & windowSize);
-      await windowController.setTitle(title);
-      await windowController.show();
+      final windowConfig = {
+        'window_type': windowType.identifier,
+        'window_title': windowType.name,
+        'application_dir': appDir.path,
+        'log_file': logFile.path,
+        'window_x': windowPosition.dx,
+        'window_y': windowPosition.dy,
+        'window_width': windowSize.width,
+        'window_height': windowSize.height,
+      };
+
+      final title = windowType.name;
+      log.i('Creating window: $title with type: ${windowType.identifier}');
+
+      final windowController = await WindowController.create(
+        WindowConfiguration(
+          hiddenAtLaunch: true,
+          arguments: jsonEncode(windowConfig),
+        ),
+      );
+
+      // Window will set its own position/size/title in runMultiWindow()
 
       final windowInfo = WindowInfo(
         id: windowController.windowId,
@@ -234,9 +228,8 @@ class WindowProvider extends ChangeNotifier {
 
   Future<dynamic> sendMessageTo(String windowId, String method, dynamic arguments) async {
     try {
-      final windowController = WindowController.fromWindowId(windowId);
-      const channel = WindowMethodChannel('sail_ui_window_channel');
-      final response = await windowController.invokeMethod(channel.name, MethodCall(method, arguments));
+      const channel = WindowMethodChannel('sail_ui_window_channel', mode: ChannelMode.unidirectional);
+      final response = await channel.invokeMethod(method, arguments);
       return response;
     } catch (e) {
       log.e('could not send message to window $windowId: $e', error: e);
@@ -259,9 +252,8 @@ class WindowProvider extends ChangeNotifier {
 
   Future<dynamic> sendMessageToMain(String method, dynamic arguments) async {
     try {
-      final windowController = WindowController.fromWindowId('0');
-      const channel = WindowMethodChannel('sail_ui_window_channel');
-      final response = await windowController.invokeMethod(channel.name, MethodCall(method, arguments));
+      const channel = WindowMethodChannel('sail_ui_window_channel', mode: ChannelMode.unidirectional);
+      final response = await channel.invokeMethod(method, arguments);
       return response;
     } catch (e) {
       log.e('could not send message to main window: $e', error: e);
