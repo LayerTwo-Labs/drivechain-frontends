@@ -36,6 +36,11 @@ class _DebugWindowState extends State<DebugWindow> {
             child: BitwindowConsoleTab(),
           ),
           TabItem(
+            label: 'Network',
+            icon: SailSVGAsset.iconNetwork,
+            child: NetworkTab(),
+          ),
+          TabItem(
             label: 'Peers',
             icon: SailSVGAsset.iconPeers,
             child: PeersTab(),
@@ -180,15 +185,138 @@ class InfoSection extends StatelessWidget {
   }
 }
 
-class NetworkTab extends StatelessWidget {
+class NetworkTab extends StatefulWidget {
   const NetworkTab({super.key});
 
   @override
+  State<NetworkTab> createState() => _NetworkTabState();
+}
+
+class _NetworkTabState extends State<NetworkTab> {
+  BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
+  GetNetworkStatsResponse? _networkStats;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNetworkStats();
+  }
+
+  Future<void> _loadNetworkStats() async {
+    setState(() => _isLoading = true);
+    try {
+      final stats = await bitwindow.bitwindowd.getNetworkStats();
+      setState(() {
+        _networkStats = stats;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const SailCard(
-      title: 'Network Traffic',
-      subtitle: 'View network traffic and statistics',
-      child: Center(child: Text('Network tab content coming soon')),
+    if (_isLoading) {
+      return const SailCard(
+        title: 'Network Statistics',
+        subtitle: 'Bitcoin network and node statistics',
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_networkStats == null) {
+      return SailCard(
+        title: 'Network Statistics',
+        subtitle: 'Bitcoin network and node statistics',
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SailText.secondary13('Failed to load network statistics'),
+              const SizedBox(height: 16),
+              SailButton(
+                label: 'Retry',
+                onPressed: () async => _loadNetworkStats(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SailCard(
+      title: 'Network Statistics',
+      subtitle: 'Bitcoin network and node statistics',
+      child: SingleChildScrollView(
+        child: SailColumn(
+          spacing: SailStyleValues.padding25,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SailButton(
+                  label: 'Refresh',
+                  onPressed: () async => _loadNetworkStats(),
+                  variant: ButtonVariant.secondary,
+                ),
+              ],
+            ),
+            InfoSection(
+              title: 'Connection Status',
+              details: {
+                'Connected Peers': _networkStats!.peerCount.toString(),
+                'Inbound Connections': _networkStats!.connectionsIn.toString(),
+                'Outbound Connections': _networkStats!.connectionsOut.toString(),
+              },
+            ),
+            InfoSection(
+              title: 'Block Information',
+              details: {
+                'Current Height': _networkStats!.blockHeight.toString(),
+                'Average Block Time': '${_networkStats!.avgBlockTime.toStringAsFixed(1)}s',
+                'Difficulty': _networkStats!.difficulty.toStringAsFixed(2),
+              },
+            ),
+            InfoSection(
+              title: 'Network Activity',
+              details: {
+                'Total Bytes Received': '${_networkStats!.totalBytesReceived} bytes',
+                'Total Bytes Sent': '${_networkStats!.totalBytesSent} bytes',
+                'Network Version': _networkStats!.networkVersion.toString(),
+              },
+            ),
+            if (_networkStats!.hasBitcoindBandwidth())
+              InfoSection(
+                title: 'Bitcoind Process (PID ${_networkStats!.bitcoindBandwidth.pid})',
+                details: {
+                  'RX Rate': '${(_networkStats!.bitcoindBandwidth.rxBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
+                  'TX Rate': '${(_networkStats!.bitcoindBandwidth.txBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
+                  'Total RX':
+                      '${(_networkStats!.bitcoindBandwidth.totalRxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
+                  'Total TX':
+                      '${(_networkStats!.bitcoindBandwidth.totalTxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
+                  'Connections': _networkStats!.bitcoindBandwidth.connectionCount.toString(),
+                },
+              ),
+            if (_networkStats!.hasEnforcerBandwidth())
+              InfoSection(
+                title: 'Enforcer Process (PID ${_networkStats!.enforcerBandwidth.pid})',
+                details: {
+                  'RX Rate': '${(_networkStats!.enforcerBandwidth.rxBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
+                  'TX Rate': '${(_networkStats!.enforcerBandwidth.txBytesPerSec / 1024).toStringAsFixed(2)} KB/s',
+                  'Total RX':
+                      '${(_networkStats!.enforcerBandwidth.totalRxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
+                  'Total TX':
+                      '${(_networkStats!.enforcerBandwidth.totalTxBytes.toInt() / 1024 / 1024).toStringAsFixed(2)} MB',
+                  'Connections': _networkStats!.enforcerBandwidth.connectionCount.toString(),
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

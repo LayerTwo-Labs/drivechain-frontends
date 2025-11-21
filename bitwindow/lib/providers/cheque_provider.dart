@@ -68,10 +68,6 @@ class ChequeProvider extends ChangeNotifier {
   }
 
   void _onWalletReaderChanged() {
-    log.d(
-      '_onWalletReaderChanged: frontend unlocked=${_walletReader.isWalletUnlocked}, backend unlocked=$_isWalletUnlocked',
-    );
-
     // When wallet reader is unlocked, try to propagate to backend
     if (_walletReader.isWalletUnlocked && !_isWalletUnlocked) {
       final password = _walletReader.unlockedPassword ?? _pendingPassword;
@@ -154,13 +150,16 @@ class ChequeProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
+    final walletId = _walletReader.activeWalletId;
+    if (walletId == null) {
+      return;
+    }
+
     _isLoading = true;
     modelError = null;
     notifyListeners();
 
     try {
-      final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
       _cheques = await _bitwindowRPC.wallet.listCheques(walletId);
       modelError = null;
     } catch (e) {

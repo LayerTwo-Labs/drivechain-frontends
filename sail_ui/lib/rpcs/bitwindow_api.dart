@@ -1277,7 +1277,6 @@ class _DrivechainAPILive implements DrivechainAPI {
         endBlockHeight: endBlockHeight,
       );
       final response = await _client.listWithdrawals(request);
-      log.i('Successfully listed ${response.bundles.length} withdrawal bundles for sidechain $sidechainId');
       return response.bundles;
     } catch (e) {
       final error = 'could not list withdrawals: ${extractConnectException(e)}';
