@@ -62,13 +62,13 @@ func New(
 }
 
 type Server struct {
-	onShutdown        func(ctx context.Context)
-	db                *sql.DB
-	validator         *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet            *service.Service[validatorrpc.WalletServiceClient]
-	bitcoind          *service.Service[corerpc.BitcoinServiceClient]
-	walletEngine      *engines.WalletEngine
-	bandwidthTracker  *bandwidth.Tracker
+	onShutdown       func(ctx context.Context)
+	db               *sql.DB
+	validator        *service.Service[validatorrpc.ValidatorServiceClient]
+	wallet           *service.Service[validatorrpc.WalletServiceClient]
+	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
+	walletEngine     *engines.WalletEngine
+	bandwidthTracker *bandwidth.Tracker
 
 	config config.Config
 }
@@ -917,7 +917,7 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	networkVersion := int32(0)
 	subversion := ""
 	if networkInfo != nil {
-		networkVersion = int32(networkInfo.Msg.Version)
+		networkVersion = networkInfo.Msg.Version
 		subversion = networkInfo.Msg.Subversion
 	}
 
@@ -965,19 +965,19 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	}
 
 	return connect.NewResponse(&pb.GetNetworkStatsResponse{
-		NetworkHashrate:     0, // Requires getmininginfo (mining-specific)
-		Difficulty:          difficulty,
-		PeerCount:           int32(len(peerInfo.Msg.Peers)),
-		TotalBytesReceived:  totalBytesReceived,
-		TotalBytesSent:      totalBytesSent,
-		BlockHeight:         int64(blockchainInfo.Msg.Blocks),
-		AvgBlockTime:        avgBlockTime,
-		NetworkVersion:      networkVersion,
-		Subversion:          subversion,
-		ConnectionsIn:       connectionsIn,
-		ConnectionsOut:      connectionsOut,
-		BitcoindBandwidth:   bitcoindBandwidth,
-		EnforcerBandwidth:   enforcerBandwidth,
+		NetworkHashrate:    0, // Requires getmininginfo (mining-specific)
+		Difficulty:         difficulty,
+		PeerCount:          int32(len(peerInfo.Msg.Peers)),
+		TotalBytesReceived: totalBytesReceived,
+		TotalBytesSent:     totalBytesSent,
+		BlockHeight:        int64(blockchainInfo.Msg.Blocks),
+		AvgBlockTime:       avgBlockTime,
+		NetworkVersion:     networkVersion,
+		Subversion:         subversion,
+		ConnectionsIn:      connectionsIn,
+		ConnectionsOut:     connectionsOut,
+		BitcoindBandwidth:  bitcoindBandwidth,
+		EnforcerBandwidth:  enforcerBandwidth,
 	}), nil
 }
 
