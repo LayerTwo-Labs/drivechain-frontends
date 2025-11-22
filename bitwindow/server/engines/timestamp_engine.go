@@ -10,15 +10,20 @@ import (
 	"os"
 	"time"
 
+	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 )
 
 type TimestampEngine struct {
-	db     *sql.DB
-	log    zerolog.Logger
-	wallet WalletService
+	db       *sql.DB
+	log      zerolog.Logger
+	wallet   WalletService
+	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 }
 
 // WalletService interface for sending transactions
@@ -26,12 +31,123 @@ type WalletService interface {
 	SendTransaction(ctx context.Context, opReturnData []byte) (string, error)
 }
 
-func NewTimestampEngine(db *sql.DB, log zerolog.Logger, wallet WalletService) *TimestampEngine {
+func NewTimestampEngine(
+	db *sql.DB,
+	log zerolog.Logger,
+	wallet WalletService,
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+) *TimestampEngine {
 	return &TimestampEngine{
-		db:     db,
-		log:    log.With().Str("component", "timestamp_engine").Logger(),
-		wallet: wallet,
+		db:       db,
+		log:      log.With().Str("component", "timestamp_engine").Logger(),
+		wallet:   wallet,
+		bitcoind: bitcoind,
 	}
+}
+
+func (e *TimestampEngine) Run(ctx context.Context) error {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	e.log.Info().Msg("timestamp engine started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			e.log.Info().Msg("timestamp engine stopped")
+			return ctx.Err()
+		case <-ticker.C:
+			if err := e.checkConfirmations(ctx); err != nil {
+				e.log.Warn().Err(err).Msg("check confirmations")
+			}
+		}
+	}
+}
+
+func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
+	confirmingTimestamps, err := timestamps.List(ctx, e.db, timestamps.WithStatus(timestamps.StatusConfirming))
+	if err != nil {
+		return fmt.Errorf("list confirming timestamps: %w", err)
+	}
+
+	if len(confirmingTimestamps) == 0 {
+		return nil
+	}
+
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("get bitcoind client: %w", err)
+	}
+
+	e.log.Debug().
+		Int("count", len(confirmingTimestamps)).
+		Msg("checking confirmations for timestamps")
+
+	for _, ts := range confirmingTimestamps {
+		if ts.TxID == nil {
+			continue
+		}
+
+		resp, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+			Txid:      *ts.TxID,
+			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+		}))
+		if err != nil {
+			e.log.Warn().
+				Err(err).
+				Str("txid", *ts.TxID).
+				Msg("get raw transaction")
+			continue
+		}
+
+		confirmations := resp.Msg.Confirmations
+
+		if confirmations >= 1 {
+			now := time.Now()
+			var blockHeight *int64
+
+			// Get block height from blockhash if available
+			if resp.Msg.Blockhash != "" {
+				blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+					Hash:      resp.Msg.Blockhash,
+					Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+				}))
+				if err != nil {
+					e.log.Warn().
+						Err(err).
+						Str("blockhash", resp.Msg.Blockhash).
+						Msg("get block")
+				} else {
+					height := int64(blockResp.Msg.Height)
+					blockHeight = &height
+				}
+			}
+
+			if err := timestamps.Update(
+				ctx,
+				e.db,
+				ts.ID,
+				ts.TxID,
+				blockHeight,
+				timestamps.StatusConfirmed,
+				&now,
+			); err != nil {
+				e.log.Warn().
+					Err(err).
+					Int64("id", ts.ID).
+					Msg("update timestamp")
+				continue
+			}
+
+			e.log.Info().
+				Int64("id", ts.ID).
+				Str("txid", *ts.TxID).
+				Uint32("confirmations", confirmations).
+				Msg("timestamp confirmed")
+		}
+	}
+
+	return nil
 }
 
 func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fileData []byte) (*timestamps.FileTimestamp, error) {
@@ -151,16 +267,61 @@ func (e *TimestampEngine) UpgradeTimestamp(ctx context.Context, id int64) (bool,
 		return false, nil, "no transaction ID", nil
 	}
 
-	// TODO: Query Bitcoin node to check if transaction is confirmed
-	// For now, we'll just mark it as pending upgrade
-	// This would need to be implemented with actual RPC calls to bitcoind
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		return false, nil, "", fmt.Errorf("get bitcoind client: %w", err)
+	}
 
-	e.log.Debug().
-		Int64("id", id).
-		Str("txid", *timestamp.TxID).
-		Msg("checking transaction confirmation status")
+	resp, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid:      *timestamp.TxID,
+		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+	}))
+	if err != nil {
+		return false, nil, "", fmt.Errorf("get raw transaction: %w", err)
+	}
 
-	return false, nil, "confirmation check not yet implemented - check txid on block explorer", nil
+	confirmations := resp.Msg.Confirmations
+
+	if confirmations >= 1 {
+		now := time.Now()
+		var blockHeight *int64
+
+		// Get block height from blockhash if available
+		if resp.Msg.Blockhash != "" {
+			blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+				Hash:      resp.Msg.Blockhash,
+				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+			}))
+			if err != nil {
+				e.log.Warn().
+					Err(err).
+					Str("blockhash", resp.Msg.Blockhash).
+					Msg("get block")
+			} else {
+				height := int64(blockResp.Msg.Height)
+				blockHeight = &height
+			}
+		}
+
+		if err := timestamps.Update(
+			ctx,
+			e.db,
+			timestamp.ID,
+			timestamp.TxID,
+			blockHeight,
+			timestamps.StatusConfirmed,
+			&now,
+		); err != nil {
+			return false, nil, "", fmt.Errorf("update timestamp: %w", err)
+		}
+
+		if blockHeight != nil {
+			return true, blockHeight, fmt.Sprintf("confirmed at block %d", *blockHeight), nil
+		}
+		return true, nil, "confirmed", nil
+	}
+
+	return false, nil, fmt.Sprintf("waiting for confirmations (currently %d)", confirmations), nil
 }
 
 func (e *TimestampEngine) UpgradeAllPending(ctx context.Context) error {

@@ -840,6 +840,10 @@ func (e *WalletEngine) loadAllWallets() ([]WalletInfo, error) {
 	return walletData.Wallets, nil
 }
 
+func (e *WalletEngine) GetAllWallets(ctx context.Context) ([]WalletInfo, error) {
+	return e.loadAllWallets()
+}
+
 func (e *WalletEngine) ensureBitcoinCoreWallets(ctx context.Context, wallets []WalletInfo) error {
 	log := zerolog.Ctx(ctx)
 

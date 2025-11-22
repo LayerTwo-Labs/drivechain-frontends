@@ -91,7 +91,7 @@ func New(
 
 	// Create timestamp engine for file timestamping
 	walletAdapter := engines.NewWalletAdapter(walletSvc)
-	timestampEngine := engines.NewTimestampEngine(svcs.Database, zerolog.Ctx(ctx).With().Str("component", "timestamp").Logger(), walletAdapter)
+	timestampEngine := engines.NewTimestampEngine(svcs.Database, zerolog.Ctx(ctx).With().Str("component", "timestamp").Logger(), walletAdapter, bitcoindSvc)
 
 	// Create M4 engine for M4 Explorer
 	m4Engine := engines.NewM4Engine(svcs.Database)
