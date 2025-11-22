@@ -107,6 +107,11 @@ class TimestampDetailPage extends StatelessWidget {
                   value: _formatDate(ts.createdAt),
                 ),
                 StatusRow(status: ts.status),
+                if (ts.status == 'confirming' || ts.status == 'confirmed')
+                  InfoRow(
+                    label: 'Confirmations',
+                    value: ts.confirmations.toString(),
+                  ),
                 if (ts.hasTxid())
                   CopyRow(
                     label: 'Transaction ID',

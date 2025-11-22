@@ -9,6 +9,8 @@ import (
 	"sort"
 
 	"connectrpc.com/connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
@@ -33,11 +35,13 @@ func New(
 	database *sql.DB,
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	timestampEngine *engines.TimestampEngine,
+	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 ) *Server {
 	return &Server{
 		database:        database,
 		wallet:          wallet,
 		timestampEngine: timestampEngine,
+		bitcoind:        bitcoind,
 	}
 }
 
@@ -45,6 +49,7 @@ type Server struct {
 	database        *sql.DB
 	wallet          *service.Service[validatorrpc.WalletServiceClient]
 	timestampEngine *engines.TimestampEngine
+	bitcoind        *service.Service[corerpc.BitcoinServiceClient]
 }
 
 // ListOPReturn implements miscv1connect.MiscServiceHandler.
@@ -298,18 +303,54 @@ func (s *Server) ListTimestamps(ctx context.Context, req *connect.Request[emptyp
 		return nil, fmt.Errorf("list timestamps: %w", err)
 	}
 
+	// Get bitcoind client for fetching confirmations
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		// If bitcoind is not available, just return timestamps without confirmations
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("bitcoind not available, returning timestamps without confirmations")
+		return connect.NewResponse(&miscv1.ListTimestampsResponse{
+			Timestamps: lo.Map(tsList, func(ts timestamps.FileTimestamp, _ int) *miscv1.FileTimestamp {
+				return timestampToProto(ts, 0)
+			}),
+		}), nil
+	}
+
+	// Fetch confirmations for each timestamp with a txid
+	protoTimestamps := make([]*miscv1.FileTimestamp, len(tsList))
+	for i, ts := range tsList {
+		var confirmations uint32
+
+		if ts.TxID != nil && (ts.Status == timestamps.StatusConfirming || ts.Status == timestamps.StatusConfirmed) {
+			resp, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+				Txid:      *ts.TxID,
+				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+			}))
+			if err != nil {
+				zerolog.Ctx(ctx).Warn().
+					Err(err).
+					Str("txid", *ts.TxID).
+					Msg("get confirmations for timestamp")
+			} else {
+				confirmations = resp.Msg.Confirmations
+			}
+		}
+
+		protoTimestamps[i] = timestampToProto(ts, confirmations)
+	}
+
 	return connect.NewResponse(&miscv1.ListTimestampsResponse{
-		Timestamps: lo.Map(tsList, timestampToProto),
+		Timestamps: protoTimestamps,
 	}), nil
 }
 
-func timestampToProto(ts timestamps.FileTimestamp, _ int) *miscv1.FileTimestamp {
+func timestampToProto(ts timestamps.FileTimestamp, confirmations uint32) *miscv1.FileTimestamp {
 	proto := &miscv1.FileTimestamp{
-		Id:        ts.ID,
-		Filename:  ts.Filename,
-		FileHash:  ts.FileHash,
-		Status:    string(ts.Status),
-		CreatedAt: timestamppb.New(ts.CreatedAt),
+		Id:            ts.ID,
+		Filename:      ts.Filename,
+		FileHash:      ts.FileHash,
+		Status:        string(ts.Status),
+		CreatedAt:     timestamppb.New(ts.CreatedAt),
+		Confirmations: confirmations,
 	}
 
 	if ts.TxID != nil {

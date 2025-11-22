@@ -25,6 +25,20 @@ abstract final class BitcoinService {
     bitcoinbitcoindv1alphabitcoin.GetPeerInfoResponse.new,
   );
 
+  static const getNetworkInfo = connect.Spec(
+    '/$name/GetNetworkInfo',
+    connect.StreamType.unary,
+    bitcoinbitcoindv1alphabitcoin.GetNetworkInfoRequest.new,
+    bitcoinbitcoindv1alphabitcoin.GetNetworkInfoResponse.new,
+  );
+
+  static const getNetTotals = connect.Spec(
+    '/$name/GetNetTotals',
+    connect.StreamType.unary,
+    bitcoinbitcoindv1alphabitcoin.GetNetTotalsRequest.new,
+    bitcoinbitcoindv1alphabitcoin.GetNetTotalsResponse.new,
+  );
+
   /// Fetches in-wallet transactions
   static const getTransaction = connect.Spec(
     '/$name/GetTransaction',

@@ -135,7 +135,7 @@ class TimestampsTable extends StatelessWidget {
             ),
             SailTableCell(value: _formatDate(timestamp.createdAt)),
             SailTableCell(
-              value: _getStatusLabel(timestamp.status),
+              value: _getStatusLabel(timestamp.status, timestamp.confirmations),
               textColor: _getStatusColor(context, timestamp.status),
             ),
             SailTableCell(
@@ -178,14 +178,14 @@ class TimestampsTable extends StatelessWidget {
     return '${hash.substring(0, 10)}...${hash.substring(hash.length - 10)}';
   }
 
-  String _getStatusLabel(String status) {
+  String _getStatusLabel(String status, int confirmations) {
     switch (status) {
       case 'pending':
         return 'Pending';
       case 'confirming':
-        return 'Confirming';
+        return confirmations > 0 ? 'Confirming ($confirmations)' : 'Confirming (0)';
       case 'confirmed':
-        return 'Confirmed';
+        return confirmations > 0 ? 'Confirmed ($confirmations)' : 'Confirmed';
       case 'failed':
         return 'Failed';
       default:

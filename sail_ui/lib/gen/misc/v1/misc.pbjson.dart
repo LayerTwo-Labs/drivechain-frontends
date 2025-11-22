@@ -225,6 +225,7 @@ const FileTimestamp$json = {
     {'1': 'status', '3': 6, '4': 1, '5': 9, '10': 'status'},
     {'1': 'created_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
     {'1': 'confirmed_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 2, '10': 'confirmedAt', '17': true},
+    {'1': 'confirmations', '3': 9, '4': 1, '5': 13, '10': 'confirmations'},
   ],
   '8': [
     {'1': '_txid'},
@@ -240,8 +241,8 @@ final $typed_data.Uint8List fileTimestampDescriptor = $convert.base64Decode(
     'AQESJgoMYmxvY2tfaGVpZ2h0GAUgASgDSAFSC2Jsb2NrSGVpZ2h0iAEBEhYKBnN0YXR1cxgGIA'
     'EoCVIGc3RhdHVzEjkKCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0'
     'YW1wUgljcmVhdGVkQXQSQgoMY29uZmlybWVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLl'
-    'RpbWVzdGFtcEgCUgtjb25maXJtZWRBdIgBAUIHCgVfdHhpZEIPCg1fYmxvY2tfaGVpZ2h0Qg8K'
-    'DV9jb25maXJtZWRfYXQ=');
+    'RpbWVzdGFtcEgCUgtjb25maXJtZWRBdIgBARIkCg1jb25maXJtYXRpb25zGAkgASgNUg1jb25m'
+    'aXJtYXRpb25zQgcKBV90eGlkQg8KDV9ibG9ja19oZWlnaHRCDwoNX2NvbmZpcm1lZF9hdA==');
 
 @$core.Deprecated('Use listTimestampsResponseDescriptor instead')
 const ListTimestampsResponse$json = {

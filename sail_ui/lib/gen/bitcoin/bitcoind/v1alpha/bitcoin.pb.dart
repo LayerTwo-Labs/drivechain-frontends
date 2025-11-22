@@ -890,6 +890,568 @@ class GetPeerInfoResponse extends $pb.GeneratedMessage {
   $core.List<Peer> get peers => $_getList(0);
 }
 
+class GetNetworkInfoRequest extends $pb.GeneratedMessage {
+  factory GetNetworkInfoRequest() => create();
+  GetNetworkInfoRequest._() : super();
+  factory GetNetworkInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNetworkInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNetworkInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoRequest clone() => GetNetworkInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoRequest copyWith(void Function(GetNetworkInfoRequest) updates) => super.copyWith((message) => updates(message as GetNetworkInfoRequest)) as GetNetworkInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoRequest create() => GetNetworkInfoRequest._();
+  GetNetworkInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetNetworkInfoRequest> createRepeated() => $pb.PbList<GetNetworkInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNetworkInfoRequest>(create);
+  static GetNetworkInfoRequest? _defaultInstance;
+}
+
+class GetNetworkInfoResponse_Network extends $pb.GeneratedMessage {
+  factory GetNetworkInfoResponse_Network({
+    $core.String? name,
+    $core.bool? limited,
+    $core.bool? reachable,
+    $core.String? proxy,
+    $core.bool? proxyRandomizeCredentials,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (limited != null) {
+      $result.limited = limited;
+    }
+    if (reachable != null) {
+      $result.reachable = reachable;
+    }
+    if (proxy != null) {
+      $result.proxy = proxy;
+    }
+    if (proxyRandomizeCredentials != null) {
+      $result.proxyRandomizeCredentials = proxyRandomizeCredentials;
+    }
+    return $result;
+  }
+  GetNetworkInfoResponse_Network._() : super();
+  factory GetNetworkInfoResponse_Network.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNetworkInfoResponse_Network.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNetworkInfoResponse.Network', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'limited')
+    ..aOB(3, _omitFieldNames ? '' : 'reachable')
+    ..aOS(4, _omitFieldNames ? '' : 'proxy')
+    ..aOB(5, _omitFieldNames ? '' : 'proxyRandomizeCredentials')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoResponse_Network clone() => GetNetworkInfoResponse_Network()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoResponse_Network copyWith(void Function(GetNetworkInfoResponse_Network) updates) => super.copyWith((message) => updates(message as GetNetworkInfoResponse_Network)) as GetNetworkInfoResponse_Network;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoResponse_Network create() => GetNetworkInfoResponse_Network._();
+  GetNetworkInfoResponse_Network createEmptyInstance() => create();
+  static $pb.PbList<GetNetworkInfoResponse_Network> createRepeated() => $pb.PbList<GetNetworkInfoResponse_Network>();
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoResponse_Network getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNetworkInfoResponse_Network>(create);
+  static GetNetworkInfoResponse_Network? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get limited => $_getBF(1);
+  @$pb.TagNumber(2)
+  set limited($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasLimited() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLimited() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get reachable => $_getBF(2);
+  @$pb.TagNumber(3)
+  set reachable($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasReachable() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearReachable() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get proxy => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set proxy($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasProxy() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearProxy() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get proxyRandomizeCredentials => $_getBF(4);
+  @$pb.TagNumber(5)
+  set proxyRandomizeCredentials($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasProxyRandomizeCredentials() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearProxyRandomizeCredentials() => clearField(5);
+}
+
+class GetNetworkInfoResponse_LocalAddress extends $pb.GeneratedMessage {
+  factory GetNetworkInfoResponse_LocalAddress({
+    $core.String? address,
+    $core.int? port,
+    $core.int? score,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    if (port != null) {
+      $result.port = port;
+    }
+    if (score != null) {
+      $result.score = score;
+    }
+    return $result;
+  }
+  GetNetworkInfoResponse_LocalAddress._() : super();
+  factory GetNetworkInfoResponse_LocalAddress.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNetworkInfoResponse_LocalAddress.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNetworkInfoResponse.LocalAddress', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'port', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'score', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoResponse_LocalAddress clone() => GetNetworkInfoResponse_LocalAddress()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoResponse_LocalAddress copyWith(void Function(GetNetworkInfoResponse_LocalAddress) updates) => super.copyWith((message) => updates(message as GetNetworkInfoResponse_LocalAddress)) as GetNetworkInfoResponse_LocalAddress;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoResponse_LocalAddress create() => GetNetworkInfoResponse_LocalAddress._();
+  GetNetworkInfoResponse_LocalAddress createEmptyInstance() => create();
+  static $pb.PbList<GetNetworkInfoResponse_LocalAddress> createRepeated() => $pb.PbList<GetNetworkInfoResponse_LocalAddress>();
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoResponse_LocalAddress getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNetworkInfoResponse_LocalAddress>(create);
+  static GetNetworkInfoResponse_LocalAddress? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get port => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set port($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPort() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPort() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get score => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set score($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasScore() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearScore() => clearField(3);
+}
+
+class GetNetworkInfoResponse extends $pb.GeneratedMessage {
+  factory GetNetworkInfoResponse({
+    $core.int? version,
+    $core.String? subversion,
+    $core.int? protocolVersion,
+    $core.String? localServices,
+    $core.Iterable<$core.String>? localServicesNames,
+    $core.bool? localRelay,
+    $fixnum.Int64? timeOffset,
+    $core.int? connections,
+    $core.int? connectionsIn,
+    $core.int? connectionsOut,
+    $core.bool? networkActive,
+    $core.Iterable<GetNetworkInfoResponse_Network>? networks,
+    $core.double? relayFee,
+    $core.double? incrementalFee,
+    $core.Iterable<GetNetworkInfoResponse_LocalAddress>? localAddresses,
+    $core.Iterable<$core.String>? warnings,
+  }) {
+    final $result = create();
+    if (version != null) {
+      $result.version = version;
+    }
+    if (subversion != null) {
+      $result.subversion = subversion;
+    }
+    if (protocolVersion != null) {
+      $result.protocolVersion = protocolVersion;
+    }
+    if (localServices != null) {
+      $result.localServices = localServices;
+    }
+    if (localServicesNames != null) {
+      $result.localServicesNames.addAll(localServicesNames);
+    }
+    if (localRelay != null) {
+      $result.localRelay = localRelay;
+    }
+    if (timeOffset != null) {
+      $result.timeOffset = timeOffset;
+    }
+    if (connections != null) {
+      $result.connections = connections;
+    }
+    if (connectionsIn != null) {
+      $result.connectionsIn = connectionsIn;
+    }
+    if (connectionsOut != null) {
+      $result.connectionsOut = connectionsOut;
+    }
+    if (networkActive != null) {
+      $result.networkActive = networkActive;
+    }
+    if (networks != null) {
+      $result.networks.addAll(networks);
+    }
+    if (relayFee != null) {
+      $result.relayFee = relayFee;
+    }
+    if (incrementalFee != null) {
+      $result.incrementalFee = incrementalFee;
+    }
+    if (localAddresses != null) {
+      $result.localAddresses.addAll(localAddresses);
+    }
+    if (warnings != null) {
+      $result.warnings.addAll(warnings);
+    }
+    return $result;
+  }
+  GetNetworkInfoResponse._() : super();
+  factory GetNetworkInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNetworkInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNetworkInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'version', $pb.PbFieldType.O3)
+    ..aOS(2, _omitFieldNames ? '' : 'subversion')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'protocolVersion', $pb.PbFieldType.O3)
+    ..aOS(4, _omitFieldNames ? '' : 'localServices')
+    ..pPS(5, _omitFieldNames ? '' : 'localServicesNames')
+    ..aOB(6, _omitFieldNames ? '' : 'localRelay')
+    ..aInt64(7, _omitFieldNames ? '' : 'timeOffset')
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'connections', $pb.PbFieldType.O3)
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'connectionsIn', $pb.PbFieldType.O3)
+    ..a<$core.int>(10, _omitFieldNames ? '' : 'connectionsOut', $pb.PbFieldType.O3)
+    ..aOB(11, _omitFieldNames ? '' : 'networkActive')
+    ..pc<GetNetworkInfoResponse_Network>(12, _omitFieldNames ? '' : 'networks', $pb.PbFieldType.PM, subBuilder: GetNetworkInfoResponse_Network.create)
+    ..a<$core.double>(13, _omitFieldNames ? '' : 'relayFee', $pb.PbFieldType.OD)
+    ..a<$core.double>(14, _omitFieldNames ? '' : 'incrementalFee', $pb.PbFieldType.OD)
+    ..pc<GetNetworkInfoResponse_LocalAddress>(15, _omitFieldNames ? '' : 'localAddresses', $pb.PbFieldType.PM, subBuilder: GetNetworkInfoResponse_LocalAddress.create)
+    ..pPS(16, _omitFieldNames ? '' : 'warnings')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoResponse clone() => GetNetworkInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNetworkInfoResponse copyWith(void Function(GetNetworkInfoResponse) updates) => super.copyWith((message) => updates(message as GetNetworkInfoResponse)) as GetNetworkInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoResponse create() => GetNetworkInfoResponse._();
+  GetNetworkInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetNetworkInfoResponse> createRepeated() => $pb.PbList<GetNetworkInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetNetworkInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNetworkInfoResponse>(create);
+  static GetNetworkInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get version => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set version($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasVersion() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearVersion() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get subversion => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set subversion($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSubversion() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSubversion() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get protocolVersion => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set protocolVersion($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasProtocolVersion() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearProtocolVersion() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get localServices => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set localServices($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasLocalServices() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLocalServices() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.List<$core.String> get localServicesNames => $_getList(4);
+
+  @$pb.TagNumber(6)
+  $core.bool get localRelay => $_getBF(5);
+  @$pb.TagNumber(6)
+  set localRelay($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasLocalRelay() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearLocalRelay() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get timeOffset => $_getI64(6);
+  @$pb.TagNumber(7)
+  set timeOffset($fixnum.Int64 v) { $_setInt64(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasTimeOffset() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearTimeOffset() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get connections => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set connections($core.int v) { $_setSignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasConnections() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearConnections() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get connectionsIn => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set connectionsIn($core.int v) { $_setSignedInt32(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasConnectionsIn() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearConnectionsIn() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.int get connectionsOut => $_getIZ(9);
+  @$pb.TagNumber(10)
+  set connectionsOut($core.int v) { $_setSignedInt32(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasConnectionsOut() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearConnectionsOut() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.bool get networkActive => $_getBF(10);
+  @$pb.TagNumber(11)
+  set networkActive($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasNetworkActive() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearNetworkActive() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.List<GetNetworkInfoResponse_Network> get networks => $_getList(11);
+
+  @$pb.TagNumber(13)
+  $core.double get relayFee => $_getN(12);
+  @$pb.TagNumber(13)
+  set relayFee($core.double v) { $_setDouble(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasRelayFee() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearRelayFee() => clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.double get incrementalFee => $_getN(13);
+  @$pb.TagNumber(14)
+  set incrementalFee($core.double v) { $_setDouble(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasIncrementalFee() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearIncrementalFee() => clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.List<GetNetworkInfoResponse_LocalAddress> get localAddresses => $_getList(14);
+
+  @$pb.TagNumber(16)
+  $core.List<$core.String> get warnings => $_getList(15);
+}
+
+class GetNetTotalsRequest extends $pb.GeneratedMessage {
+  factory GetNetTotalsRequest() => create();
+  GetNetTotalsRequest._() : super();
+  factory GetNetTotalsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNetTotalsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNetTotalsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNetTotalsRequest clone() => GetNetTotalsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNetTotalsRequest copyWith(void Function(GetNetTotalsRequest) updates) => super.copyWith((message) => updates(message as GetNetTotalsRequest)) as GetNetTotalsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNetTotalsRequest create() => GetNetTotalsRequest._();
+  GetNetTotalsRequest createEmptyInstance() => create();
+  static $pb.PbList<GetNetTotalsRequest> createRepeated() => $pb.PbList<GetNetTotalsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetNetTotalsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNetTotalsRequest>(create);
+  static GetNetTotalsRequest? _defaultInstance;
+}
+
+class GetNetTotalsResponse extends $pb.GeneratedMessage {
+  factory GetNetTotalsResponse({
+    $fixnum.Int64? totalBytesRecv,
+    $fixnum.Int64? totalBytesSent,
+    $fixnum.Int64? timeMillis,
+  }) {
+    final $result = create();
+    if (totalBytesRecv != null) {
+      $result.totalBytesRecv = totalBytesRecv;
+    }
+    if (totalBytesSent != null) {
+      $result.totalBytesSent = totalBytesSent;
+    }
+    if (timeMillis != null) {
+      $result.timeMillis = timeMillis;
+    }
+    return $result;
+  }
+  GetNetTotalsResponse._() : super();
+  factory GetNetTotalsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetNetTotalsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNetTotalsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'totalBytesRecv', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'totalBytesSent', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aInt64(3, _omitFieldNames ? '' : 'timeMillis')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetNetTotalsResponse clone() => GetNetTotalsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetNetTotalsResponse copyWith(void Function(GetNetTotalsResponse) updates) => super.copyWith((message) => updates(message as GetNetTotalsResponse)) as GetNetTotalsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetNetTotalsResponse create() => GetNetTotalsResponse._();
+  GetNetTotalsResponse createEmptyInstance() => create();
+  static $pb.PbList<GetNetTotalsResponse> createRepeated() => $pb.PbList<GetNetTotalsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetNetTotalsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetNetTotalsResponse>(create);
+  static GetNetTotalsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get totalBytesRecv => $_getI64(0);
+  @$pb.TagNumber(1)
+  set totalBytesRecv($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTotalBytesRecv() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTotalBytesRecv() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get totalBytesSent => $_getI64(1);
+  @$pb.TagNumber(2)
+  set totalBytesSent($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTotalBytesSent() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTotalBytesSent() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get timeMillis => $_getI64(2);
+  @$pb.TagNumber(3)
+  set timeMillis($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTimeMillis() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTimeMillis() => clearField(3);
+}
+
 class GetNewAddressRequest extends $pb.GeneratedMessage {
   factory GetNewAddressRequest({
     $core.String? label,
@@ -9546,6 +10108,12 @@ class BitcoinServiceApi {
   ;
   $async.Future<GetPeerInfoResponse> getPeerInfo($pb.ClientContext? ctx, GetPeerInfoRequest request) =>
     _client.invoke<GetPeerInfoResponse>(ctx, 'BitcoinService', 'GetPeerInfo', request, GetPeerInfoResponse())
+  ;
+  $async.Future<GetNetworkInfoResponse> getNetworkInfo($pb.ClientContext? ctx, GetNetworkInfoRequest request) =>
+    _client.invoke<GetNetworkInfoResponse>(ctx, 'BitcoinService', 'GetNetworkInfo', request, GetNetworkInfoResponse())
+  ;
+  $async.Future<GetNetTotalsResponse> getNetTotals($pb.ClientContext? ctx, GetNetTotalsRequest request) =>
+    _client.invoke<GetNetTotalsResponse>(ctx, 'BitcoinService', 'GetNetTotals', request, GetNetTotalsResponse())
   ;
   $async.Future<GetTransactionResponse> getTransaction($pb.ClientContext? ctx, GetTransactionRequest request) =>
     _client.invoke<GetTransactionResponse>(ctx, 'BitcoinService', 'GetTransaction', request, GetTransactionResponse())

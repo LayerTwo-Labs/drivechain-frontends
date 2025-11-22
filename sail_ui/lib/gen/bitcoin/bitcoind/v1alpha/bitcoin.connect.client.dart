@@ -43,6 +43,40 @@ extension type BitcoinServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<bitcoinbitcoindv1alphabitcoin.GetNetworkInfoResponse> getNetworkInfo(
+    bitcoinbitcoindv1alphabitcoin.GetNetworkInfoRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinService.getNetworkInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoinbitcoindv1alphabitcoin.GetNetTotalsResponse> getNetTotals(
+    bitcoinbitcoindv1alphabitcoin.GetNetTotalsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinService.getNetTotals,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Fetches in-wallet transactions
   Future<bitcoinbitcoindv1alphabitcoin.GetTransactionResponse> getTransaction(
     bitcoinbitcoindv1alphabitcoin.GetTransactionRequest input, {

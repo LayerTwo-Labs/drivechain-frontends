@@ -103,6 +103,7 @@ message FileTimestamp {
   string status = 6;
   google.protobuf.Timestamp created_at = 7;
   optional google.protobuf.Timestamp confirmed_at = 8;
+  uint32 confirmations = 9;
 }
 
 message ListTimestampsResponse {
