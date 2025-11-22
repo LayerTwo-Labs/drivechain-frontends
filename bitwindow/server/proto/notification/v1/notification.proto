@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package notification.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service NotificationService {
+  // Watch returns a stream of notification events
+  rpc Watch(google.protobuf.Empty) returns (stream NotificationEvent);
+}
+
+message NotificationEvent {
+  google.protobuf.Timestamp timestamp = 1;
+
+  oneof event {
+    TransactionEvent transaction = 2;
+    TimestampEvent timestamp_event = 3;
+    SystemEvent system = 4;
+  }
+}
+
+message TransactionEvent {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_RECEIVED = 1;
+    TYPE_SENT = 2;
+    TYPE_CONFIRMED = 3;
+  }
+  Type type = 1;
+  string txid = 2;
+  uint64 amount_sats = 3;
+  uint32 confirmations = 4;
+}
+
+message TimestampEvent {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_CREATED = 1;
+    TYPE_CONFIRMED = 2;
+  }
+  Type type = 1;
+  int64 id = 2;
+  string filename = 3;
+  string txid = 4;
+  optional int64 block_height = 5;
+}
+
+message SystemEvent {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_SERVICE_CONNECTED = 1;
+    TYPE_SERVICE_DISCONNECTED = 2;
+    TYPE_SYNC_COMPLETED = 3;
+    TYPE_BLOCK_FOUND = 4;
+  }
+  Type type = 1;
+  string message = 2;
+}

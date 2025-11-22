@@ -224,6 +224,9 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	go func() {
 		errs <- srv.TimestampEngine.Run(ctx)
 	}()
+	go func() {
+		errs <- srv.NotificationEngine.Run(ctx)
+	}()
 
 	// If Bitcoin Core publishes raw transactions, we can use this to handle
 	// pending mempool entries. ZMQ notifications might not be available
