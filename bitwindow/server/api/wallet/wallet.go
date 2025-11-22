@@ -5,11 +5,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -509,23 +506,13 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 // syncCoreAddresses syncs derived addresses to the addressbook
 // This ensures the addressbook stays in sync with wallet state
 func (s *Server) syncCoreAddresses(ctx context.Context) error {
-	// Read wallet.json to get all Bitcoin Core wallets
-	walletFile := filepath.Join(s.walletDir, "wallet.json")
-	data, err := os.ReadFile(walletFile)
+	wallets, err := s.walletEngine.GetAllWallets(ctx)
 	if err != nil {
-		return fmt.Errorf("read wallet.json: %w", err)
-	}
-
-	var walletData struct {
-		Wallets []engines.WalletInfo `json:"wallets"`
-	}
-
-	if err := json.Unmarshal(data, &walletData); err != nil {
-		return fmt.Errorf("parse wallet.json: %w", err)
+		return fmt.Errorf("get wallets: %w", err)
 	}
 
 	// Sync addresses for each Bitcoin Core wallet
-	for _, wallet := range walletData.Wallets {
+	for _, wallet := range wallets {
 		if wallet.WalletType != engines.WalletTypeBitcoinCore && wallet.WalletType != engines.WalletTypeWatchOnly {
 			continue
 		}

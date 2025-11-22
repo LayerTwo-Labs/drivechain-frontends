@@ -92,13 +92,27 @@ func Update(ctx context.Context, db *sql.DB, id int64, txid *string, blockHeight
 	return nil
 }
 
-func List(ctx context.Context, db *sql.DB) ([]FileTimestamp, error) {
-	rows, err := db.QueryContext(ctx, `
-		SELECT id, filename, file_hash, txid, block_height,
-		       status, created_at, confirmed_at
-		FROM file_timestamps
-		ORDER BY created_at DESC
-	`)
+type ListOpts struct {
+	Status *Status
+}
+
+func List(ctx context.Context, db *sql.DB, opts ...func(*ListOpts)) ([]FileTimestamp, error) {
+	conf := &ListOpts{}
+	for _, opt := range opts {
+		opt(conf)
+	}
+
+	query := sq.
+		Select("id", "filename", "file_hash", "txid", "block_height", "status", "created_at", "confirmed_at").
+		From("file_timestamps").
+		OrderBy("created_at DESC")
+
+	if conf.Status != nil {
+		query = query.Where(sq.Eq{"status": *conf.Status})
+	}
+
+	sql, args := query.MustSql()
+	rows, err := db.QueryContext(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list file timestamps: query: %w", err)
 	}
@@ -129,6 +143,12 @@ func List(ctx context.Context, db *sql.DB) ([]FileTimestamp, error) {
 	}
 
 	return timestamps, nil
+}
+
+func WithStatus(status Status) func(*ListOpts) {
+	return func(opts *ListOpts) {
+		opts.Status = &status
+	}
 }
 
 func Get(ctx context.Context, db *sql.DB, id int64) (*FileTimestamp, error) {

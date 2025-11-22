@@ -233,7 +233,7 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	address, err := btcutil.DecodeAddress(req.Msg.Address, nil)
+	address, err := btcutil.DecodeAddress(req.Msg.Address, s.walletEngine.GetChainParams())
 	if err != nil {
 		err = fmt.Errorf("invalid address: %w", err)
 		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid address format")
