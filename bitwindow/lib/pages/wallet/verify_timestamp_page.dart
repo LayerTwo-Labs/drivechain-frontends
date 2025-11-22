@@ -207,7 +207,10 @@ class VerifyTimestampPage extends StatelessWidget {
                               SailText.secondary13(model.verificationResult!.message),
                               const SizedBox(height: SailStyleValues.padding08),
                               TimestampInfoRow(label: 'Filename', value: model.verificationResult!.timestamp.filename),
-                              TimestampInfoRow(label: 'Created', value: _formatDate(model.verificationResult!.timestamp.createdAt)),
+                              TimestampInfoRow(
+                                label: 'Created',
+                                value: _formatDate(model.verificationResult!.timestamp.createdAt),
+                              ),
                               if (model.verificationResult!.timestamp.hasTxid())
                                 TimestampInfoRow(label: 'Transaction', value: model.verificationResult!.timestamp.txid),
                             ],

@@ -20,6 +20,7 @@ import (
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	api_m4 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/m4"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
+	api_notification "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/notification"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -30,6 +31,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1/healthv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -96,16 +98,20 @@ func New(
 	// Create M4 engine for M4 Explorer
 	m4Engine := engines.NewM4Engine(svcs.Database)
 
+	// Create notification engine for streaming notifications
+	notificationEngine := engines.NewNotificationEngine(svcs.Database, zerolog.Ctx(ctx).With().Str("component", "notification").Logger(), bitcoindSvc)
+
 	srv := &Server{
-		mux:             mux,
-		Bitcoind:        bitcoindSvc,
-		Enforcer:        validatorSvc,
-		Wallet:          walletSvc,
-		Crypto:          cryptoSvc,
-		WalletEngine:    walletEngine,
-		ChequeEngine:    chequeEngine,
-		TimestampEngine: timestampEngine,
-		M4Engine:        m4Engine,
+		mux:                mux,
+		Bitcoind:           bitcoindSvc,
+		Enforcer:           validatorSvc,
+		Wallet:             walletSvc,
+		Crypto:             cryptoSvc,
+		WalletEngine:       walletEngine,
+		ChequeEngine:       chequeEngine,
+		TimestampEngine:    timestampEngine,
+		M4Engine:           m4Engine,
+		NotificationEngine: notificationEngine,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
@@ -188,6 +194,9 @@ func New(
 	Register(srv, m4v1connect.NewM4ServiceHandler, m4v1connect.M4ServiceHandler(api_m4.NewServer(
 		m4Engine,
 	)))
+	Register(srv, notificationv1connect.NewNotificationServiceHandler, notificationv1connect.NotificationServiceHandler(api_notification.New(
+		notificationEngine,
+	)))
 
 	// Register all enforcer services, only to be used as a bridge
 	enforcer := api_enforcer.New(validatorSvc, walletSvc, cryptoSvc)
@@ -206,14 +215,15 @@ type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
 
-	Enforcer        *service.Service[validatorrpc.ValidatorServiceClient]
-	Bitcoind        *service.Service[corerpc.BitcoinServiceClient]
-	Wallet          *service.Service[validatorrpc.WalletServiceClient]
-	Crypto          *service.Service[cryptorpc.CryptoServiceClient]
-	WalletEngine    *engines.WalletEngine
-	ChequeEngine    *engines.ChequeEngine
-	TimestampEngine *engines.TimestampEngine
-	M4Engine        *engines.M4Engine
+	Enforcer           *service.Service[validatorrpc.ValidatorServiceClient]
+	Bitcoind           *service.Service[corerpc.BitcoinServiceClient]
+	Wallet             *service.Service[validatorrpc.WalletServiceClient]
+	Crypto             *service.Service[cryptorpc.CryptoServiceClient]
+	WalletEngine       *engines.WalletEngine
+	ChequeEngine       *engines.ChequeEngine
+	TimestampEngine    *engines.TimestampEngine
+	M4Engine           *engines.M4Engine
+	NotificationEngine *engines.NotificationEngine
 }
 
 func (s *Server) Handler() http.Handler {
