@@ -759,6 +759,7 @@ type FileTimestamp struct {
 	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	ConfirmedAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=confirmed_at,json=confirmedAt,proto3,oneof" json:"confirmed_at,omitempty"`
+	Confirmations uint32                 `protobuf:"varint,9,opt,name=confirmations,proto3" json:"confirmations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -847,6 +848,13 @@ func (x *FileTimestamp) GetConfirmedAt() *timestamppb.Timestamp {
 		return x.ConfirmedAt
 	}
 	return nil
+}
+
+func (x *FileTimestamp) GetConfirmations() uint32 {
+	if x != nil {
+		return x.Confirmations
+	}
+	return 0
 }
 
 type ListTimestampsResponse struct {
@@ -1044,7 +1052,7 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x15TimestampFileResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
 	"\tfile_hash\x18\x02 \x01(\tR\bfileHash\x12\x12\n" +
-	"\x04txid\x18\x03 \x01(\tR\x04txid\"\xdb\x02\n" +
+	"\x04txid\x18\x03 \x01(\tR\x04txid\"\x81\x03\n" +
 	"\rFileTimestamp\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12\x1b\n" +
@@ -1054,7 +1062,8 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x06status\x18\x06 \x01(\tR\x06status\x129\n" +
 	"\n" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12B\n" +
-	"\fconfirmed_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampH\x02R\vconfirmedAt\x88\x01\x01B\a\n" +
+	"\fconfirmed_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampH\x02R\vconfirmedAt\x88\x01\x01\x12$\n" +
+	"\rconfirmations\x18\t \x01(\rR\rconfirmationsB\a\n" +
 	"\x05_txidB\x0f\n" +
 	"\r_block_heightB\x0f\n" +
 	"\r_confirmed_at\"P\n" +

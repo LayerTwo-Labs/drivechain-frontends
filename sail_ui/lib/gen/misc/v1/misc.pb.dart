@@ -934,6 +934,7 @@ class FileTimestamp extends $pb.GeneratedMessage {
     $core.String? status,
     $0.Timestamp? createdAt,
     $0.Timestamp? confirmedAt,
+    $core.int? confirmations,
   }) {
     final $result = create();
     if (id != null) {
@@ -960,6 +961,9 @@ class FileTimestamp extends $pb.GeneratedMessage {
     if (confirmedAt != null) {
       $result.confirmedAt = confirmedAt;
     }
+    if (confirmations != null) {
+      $result.confirmations = confirmations;
+    }
     return $result;
   }
   FileTimestamp._() : super();
@@ -975,6 +979,7 @@ class FileTimestamp extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'status')
     ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
     ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'confirmedAt', subBuilder: $0.Timestamp.create)
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -1074,6 +1079,15 @@ class FileTimestamp extends $pb.GeneratedMessage {
   void clearConfirmedAt() => clearField(8);
   @$pb.TagNumber(8)
   $0.Timestamp ensureConfirmedAt() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  $core.int get confirmations => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set confirmations($core.int v) { $_setUnsignedInt32(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasConfirmations() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearConfirmations() => clearField(9);
 }
 
 class ListTimestampsResponse extends $pb.GeneratedMessage {

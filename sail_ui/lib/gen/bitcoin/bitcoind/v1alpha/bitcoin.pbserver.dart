@@ -24,6 +24,8 @@ export 'bitcoin.pb.dart';
 abstract class BitcoinServiceBase extends $pb.GeneratedService {
   $async.Future<$4.GetBlockchainInfoResponse> getBlockchainInfo($pb.ServerContext ctx, $4.GetBlockchainInfoRequest request);
   $async.Future<$4.GetPeerInfoResponse> getPeerInfo($pb.ServerContext ctx, $4.GetPeerInfoRequest request);
+  $async.Future<$4.GetNetworkInfoResponse> getNetworkInfo($pb.ServerContext ctx, $4.GetNetworkInfoRequest request);
+  $async.Future<$4.GetNetTotalsResponse> getNetTotals($pb.ServerContext ctx, $4.GetNetTotalsRequest request);
   $async.Future<$4.GetTransactionResponse> getTransaction($pb.ServerContext ctx, $4.GetTransactionRequest request);
   $async.Future<$4.ListSinceBlockResponse> listSinceBlock($pb.ServerContext ctx, $4.ListSinceBlockRequest request);
   $async.Future<$4.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $4.GetNewAddressRequest request);
@@ -69,6 +71,8 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetBlockchainInfo': return $4.GetBlockchainInfoRequest();
       case 'GetPeerInfo': return $4.GetPeerInfoRequest();
+      case 'GetNetworkInfo': return $4.GetNetworkInfoRequest();
+      case 'GetNetTotals': return $4.GetNetTotalsRequest();
       case 'GetTransaction': return $4.GetTransactionRequest();
       case 'ListSinceBlock': return $4.ListSinceBlockRequest();
       case 'GetNewAddress': return $4.GetNewAddressRequest();
@@ -117,6 +121,8 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetBlockchainInfo': return this.getBlockchainInfo(ctx, request as $4.GetBlockchainInfoRequest);
       case 'GetPeerInfo': return this.getPeerInfo(ctx, request as $4.GetPeerInfoRequest);
+      case 'GetNetworkInfo': return this.getNetworkInfo(ctx, request as $4.GetNetworkInfoRequest);
+      case 'GetNetTotals': return this.getNetTotals(ctx, request as $4.GetNetTotalsRequest);
       case 'GetTransaction': return this.getTransaction(ctx, request as $4.GetTransactionRequest);
       case 'ListSinceBlock': return this.listSinceBlock(ctx, request as $4.ListSinceBlockRequest);
       case 'GetNewAddress': return this.getNewAddress(ctx, request as $4.GetNewAddressRequest);

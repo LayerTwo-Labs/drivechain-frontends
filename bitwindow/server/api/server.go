@@ -180,7 +180,7 @@ func New(
 		ctx, svcs.Database, bitcoindSvc, walletSvc, cryptoSvc, chequeEngine, walletEngine, svcs.WalletDir,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
-		svcs.Database, walletSvc, timestampEngine,
+		svcs.Database, walletSvc, timestampEngine, bitcoindSvc,
 	)))
 	Register(srv, healthv1connect.NewHealthServiceHandler, healthv1connect.HealthServiceHandler(api_health.New(
 		svcs.Database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,

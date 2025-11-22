@@ -230,6 +230,107 @@ final $typed_data.Uint8List getPeerInfoResponseDescriptor = $convert.base64Decod
     'ChNHZXRQZWVySW5mb1Jlc3BvbnNlEjQKBXBlZXJzGAEgAygLMh4uYml0Y29pbi5iaXRjb2luZC'
     '52MWFscGhhLlBlZXJSBXBlZXJz');
 
+@$core.Deprecated('Use getNetworkInfoRequestDescriptor instead')
+const GetNetworkInfoRequest$json = {
+  '1': 'GetNetworkInfoRequest',
+};
+
+/// Descriptor for `GetNetworkInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNetworkInfoRequestDescriptor = $convert.base64Decode(
+    'ChVHZXROZXR3b3JrSW5mb1JlcXVlc3Q=');
+
+@$core.Deprecated('Use getNetworkInfoResponseDescriptor instead')
+const GetNetworkInfoResponse$json = {
+  '1': 'GetNetworkInfoResponse',
+  '2': [
+    {'1': 'version', '3': 1, '4': 1, '5': 5, '10': 'version'},
+    {'1': 'subversion', '3': 2, '4': 1, '5': 9, '10': 'subversion'},
+    {'1': 'protocol_version', '3': 3, '4': 1, '5': 5, '10': 'protocolVersion'},
+    {'1': 'local_services', '3': 4, '4': 1, '5': 9, '10': 'localServices'},
+    {'1': 'local_services_names', '3': 5, '4': 3, '5': 9, '10': 'localServicesNames'},
+    {'1': 'local_relay', '3': 6, '4': 1, '5': 8, '10': 'localRelay'},
+    {'1': 'time_offset', '3': 7, '4': 1, '5': 3, '10': 'timeOffset'},
+    {'1': 'connections', '3': 8, '4': 1, '5': 5, '10': 'connections'},
+    {'1': 'connections_in', '3': 9, '4': 1, '5': 5, '10': 'connectionsIn'},
+    {'1': 'connections_out', '3': 10, '4': 1, '5': 5, '10': 'connectionsOut'},
+    {'1': 'network_active', '3': 11, '4': 1, '5': 8, '10': 'networkActive'},
+    {'1': 'networks', '3': 12, '4': 3, '5': 11, '6': '.bitcoin.bitcoind.v1alpha.GetNetworkInfoResponse.Network', '10': 'networks'},
+    {'1': 'relay_fee', '3': 13, '4': 1, '5': 1, '10': 'relayFee'},
+    {'1': 'incremental_fee', '3': 14, '4': 1, '5': 1, '10': 'incrementalFee'},
+    {'1': 'local_addresses', '3': 15, '4': 3, '5': 11, '6': '.bitcoin.bitcoind.v1alpha.GetNetworkInfoResponse.LocalAddress', '10': 'localAddresses'},
+    {'1': 'warnings', '3': 16, '4': 3, '5': 9, '10': 'warnings'},
+  ],
+  '3': [GetNetworkInfoResponse_Network$json, GetNetworkInfoResponse_LocalAddress$json],
+};
+
+@$core.Deprecated('Use getNetworkInfoResponseDescriptor instead')
+const GetNetworkInfoResponse_Network$json = {
+  '1': 'Network',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'limited', '3': 2, '4': 1, '5': 8, '10': 'limited'},
+    {'1': 'reachable', '3': 3, '4': 1, '5': 8, '10': 'reachable'},
+    {'1': 'proxy', '3': 4, '4': 1, '5': 9, '10': 'proxy'},
+    {'1': 'proxy_randomize_credentials', '3': 5, '4': 1, '5': 8, '10': 'proxyRandomizeCredentials'},
+  ],
+};
+
+@$core.Deprecated('Use getNetworkInfoResponseDescriptor instead')
+const GetNetworkInfoResponse_LocalAddress$json = {
+  '1': 'LocalAddress',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'port', '3': 2, '4': 1, '5': 13, '10': 'port'},
+    {'1': 'score', '3': 3, '4': 1, '5': 5, '10': 'score'},
+  ],
+};
+
+/// Descriptor for `GetNetworkInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNetworkInfoResponseDescriptor = $convert.base64Decode(
+    'ChZHZXROZXR3b3JrSW5mb1Jlc3BvbnNlEhgKB3ZlcnNpb24YASABKAVSB3ZlcnNpb24SHgoKc3'
+    'VidmVyc2lvbhgCIAEoCVIKc3VidmVyc2lvbhIpChBwcm90b2NvbF92ZXJzaW9uGAMgASgFUg9w'
+    'cm90b2NvbFZlcnNpb24SJQoObG9jYWxfc2VydmljZXMYBCABKAlSDWxvY2FsU2VydmljZXMSMA'
+    'oUbG9jYWxfc2VydmljZXNfbmFtZXMYBSADKAlSEmxvY2FsU2VydmljZXNOYW1lcxIfCgtsb2Nh'
+    'bF9yZWxheRgGIAEoCFIKbG9jYWxSZWxheRIfCgt0aW1lX29mZnNldBgHIAEoA1IKdGltZU9mZn'
+    'NldBIgCgtjb25uZWN0aW9ucxgIIAEoBVILY29ubmVjdGlvbnMSJQoOY29ubmVjdGlvbnNfaW4Y'
+    'CSABKAVSDWNvbm5lY3Rpb25zSW4SJwoPY29ubmVjdGlvbnNfb3V0GAogASgFUg5jb25uZWN0aW'
+    '9uc091dBIlCg5uZXR3b3JrX2FjdGl2ZRgLIAEoCFINbmV0d29ya0FjdGl2ZRJUCghuZXR3b3Jr'
+    'cxgMIAMoCzI4LmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXROZXR3b3JrSW5mb1Jlc3Bvbn'
+    'NlLk5ldHdvcmtSCG5ldHdvcmtzEhsKCXJlbGF5X2ZlZRgNIAEoAVIIcmVsYXlGZWUSJwoPaW5j'
+    'cmVtZW50YWxfZmVlGA4gASgBUg5pbmNyZW1lbnRhbEZlZRJmCg9sb2NhbF9hZGRyZXNzZXMYDy'
+    'ADKAsyPS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0TmV0d29ya0luZm9SZXNwb25zZS5M'
+    'b2NhbEFkZHJlc3NSDmxvY2FsQWRkcmVzc2VzEhoKCHdhcm5pbmdzGBAgAygJUgh3YXJuaW5ncx'
+    'qrAQoHTmV0d29yaxISCgRuYW1lGAEgASgJUgRuYW1lEhgKB2xpbWl0ZWQYAiABKAhSB2xpbWl0'
+    'ZWQSHAoJcmVhY2hhYmxlGAMgASgIUglyZWFjaGFibGUSFAoFcHJveHkYBCABKAlSBXByb3h5Ej'
+    '4KG3Byb3h5X3JhbmRvbWl6ZV9jcmVkZW50aWFscxgFIAEoCFIZcHJveHlSYW5kb21pemVDcmVk'
+    'ZW50aWFscxpSCgxMb2NhbEFkZHJlc3MSGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcxISCgRwb3'
+    'J0GAIgASgNUgRwb3J0EhQKBXNjb3JlGAMgASgFUgVzY29yZQ==');
+
+@$core.Deprecated('Use getNetTotalsRequestDescriptor instead')
+const GetNetTotalsRequest$json = {
+  '1': 'GetNetTotalsRequest',
+};
+
+/// Descriptor for `GetNetTotalsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNetTotalsRequestDescriptor = $convert.base64Decode(
+    'ChNHZXROZXRUb3RhbHNSZXF1ZXN0');
+
+@$core.Deprecated('Use getNetTotalsResponseDescriptor instead')
+const GetNetTotalsResponse$json = {
+  '1': 'GetNetTotalsResponse',
+  '2': [
+    {'1': 'total_bytes_recv', '3': 1, '4': 1, '5': 4, '10': 'totalBytesRecv'},
+    {'1': 'total_bytes_sent', '3': 2, '4': 1, '5': 4, '10': 'totalBytesSent'},
+    {'1': 'time_millis', '3': 3, '4': 1, '5': 3, '10': 'timeMillis'},
+  ],
+};
+
+/// Descriptor for `GetNetTotalsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNetTotalsResponseDescriptor = $convert.base64Decode(
+    'ChRHZXROZXRUb3RhbHNSZXNwb25zZRIoChB0b3RhbF9ieXRlc19yZWN2GAEgASgEUg50b3RhbE'
+    'J5dGVzUmVjdhIoChB0b3RhbF9ieXRlc19zZW50GAIgASgEUg50b3RhbEJ5dGVzU2VudBIfCgt0'
+    'aW1lX21pbGxpcxgDIAEoA1IKdGltZU1pbGxpcw==');
+
 @$core.Deprecated('Use getNewAddressRequestDescriptor instead')
 const GetNewAddressRequest$json = {
   '1': 'GetNewAddressRequest',
@@ -2143,6 +2244,8 @@ const $core.Map<$core.String, $core.dynamic> BitcoinServiceBase$json = {
   '2': [
     {'1': 'GetBlockchainInfo', '2': '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoResponse'},
     {'1': 'GetPeerInfo', '2': '.bitcoin.bitcoind.v1alpha.GetPeerInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetPeerInfoResponse'},
+    {'1': 'GetNetworkInfo', '2': '.bitcoin.bitcoind.v1alpha.GetNetworkInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetNetworkInfoResponse'},
+    {'1': 'GetNetTotals', '2': '.bitcoin.bitcoind.v1alpha.GetNetTotalsRequest', '3': '.bitcoin.bitcoind.v1alpha.GetNetTotalsResponse'},
     {'1': 'GetTransaction', '2': '.bitcoin.bitcoind.v1alpha.GetTransactionRequest', '3': '.bitcoin.bitcoind.v1alpha.GetTransactionResponse'},
     {'1': 'ListSinceBlock', '2': '.bitcoin.bitcoind.v1alpha.ListSinceBlockRequest', '3': '.bitcoin.bitcoind.v1alpha.ListSinceBlockResponse'},
     {'1': 'GetNewAddress', '2': '.bitcoin.bitcoind.v1alpha.GetNewAddressRequest', '3': '.bitcoin.bitcoind.v1alpha.GetNewAddressResponse'},
@@ -2197,6 +2300,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinSer
   '.google.protobuf.Duration': $1.Duration$json,
   '.bitcoin.bitcoind.v1alpha.Peer.BytesSentPerMsgEntry': Peer_BytesSentPerMsgEntry$json,
   '.bitcoin.bitcoind.v1alpha.Peer.BytesReceivedPerMsgEntry': Peer_BytesReceivedPerMsgEntry$json,
+  '.bitcoin.bitcoind.v1alpha.GetNetworkInfoRequest': GetNetworkInfoRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetNetworkInfoResponse': GetNetworkInfoResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetNetworkInfoResponse.Network': GetNetworkInfoResponse_Network$json,
+  '.bitcoin.bitcoind.v1alpha.GetNetworkInfoResponse.LocalAddress': GetNetworkInfoResponse_LocalAddress$json,
+  '.bitcoin.bitcoind.v1alpha.GetNetTotalsRequest': GetNetTotalsRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetNetTotalsResponse': GetNetTotalsResponse$json,
   '.bitcoin.bitcoind.v1alpha.GetTransactionRequest': GetTransactionRequest$json,
   '.bitcoin.bitcoind.v1alpha.GetTransactionResponse': GetTransactionResponse$json,
   '.bitcoin.bitcoind.v1alpha.GetTransactionResponse.Details': GetTransactionResponse_Details$json,
@@ -2324,87 +2433,91 @@ final $typed_data.Uint8List bitcoinServiceDescriptor = $convert.base64Decode(
     'QudjFhbHBoYS5HZXRCbG9ja2NoYWluSW5mb1JlcXVlc3QaMy5iaXRjb2luLmJpdGNvaW5kLnYx'
     'YWxwaGEuR2V0QmxvY2tjaGFpbkluZm9SZXNwb25zZRJqCgtHZXRQZWVySW5mbxIsLmJpdGNvaW'
     '4uYml0Y29pbmQudjFhbHBoYS5HZXRQZWVySW5mb1JlcXVlc3QaLS5iaXRjb2luLmJpdGNvaW5k'
-    'LnYxYWxwaGEuR2V0UGVlckluZm9SZXNwb25zZRJzCg5HZXRUcmFuc2FjdGlvbhIvLmJpdGNvaW'
-    '4uYml0Y29pbmQudjFhbHBoYS5HZXRUcmFuc2FjdGlvblJlcXVlc3QaMC5iaXRjb2luLmJpdGNv'
-    'aW5kLnYxYWxwaGEuR2V0VHJhbnNhY3Rpb25SZXNwb25zZRJzCg5MaXN0U2luY2VCbG9jaxIvLm'
-    'JpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0U2luY2VCbG9ja1JlcXVlc3QaMC5iaXRjb2lu'
-    'LmJpdGNvaW5kLnYxYWxwaGEuTGlzdFNpbmNlQmxvY2tSZXNwb25zZRJwCg1HZXROZXdBZGRyZX'
-    'NzEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXF1ZXN0Gi8uYml0'
-    'Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXNwb25zZRJwCg1HZXRXYWxsZX'
-    'RJbmZvEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXF1ZXN0Gi8u'
-    'Yml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXNwb25zZRJqCgtHZXRCYW'
-    'xhbmNlcxIsLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRCYWxhbmNlc1JlcXVlc3QaLS5i'
-    'aXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmFsYW5jZXNSZXNwb25zZRJVCgRTZW5kEiUuYm'
-    'l0Y29pbi5iaXRjb2luZC52MWFscGhhLlNlbmRSZXF1ZXN0GiYuYml0Y29pbi5iaXRjb2luZC52'
-    'MWFscGhhLlNlbmRSZXNwb25zZRJwCg1TZW5kVG9BZGRyZXNzEi4uYml0Y29pbi5iaXRjb2luZC'
-    '52MWFscGhhLlNlbmRUb0FkZHJlc3NSZXF1ZXN0Gi8uYml0Y29pbi5iaXRjb2luZC52MWFscGhh'
-    'LlNlbmRUb0FkZHJlc3NSZXNwb25zZRJeCgdCdW1wRmVlEiguYml0Y29pbi5iaXRjb2luZC52MW'
-    'FscGhhLkJ1bXBGZWVSZXF1ZXN0GikuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkJ1bXBGZWVS'
-    'ZXNwb25zZRJ5ChBFc3RpbWF0ZVNtYXJ0RmVlEjEuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLk'
-    'VzdGltYXRlU21hcnRGZWVSZXF1ZXN0GjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkVzdGlt'
-    'YXRlU21hcnRGZWVSZXNwb25zZRJ8ChFJbXBvcnREZXNjcmlwdG9ycxIyLmJpdGNvaW4uYml0Y2'
-    '9pbmQudjFhbHBoYS5JbXBvcnREZXNjcmlwdG9yc1JlcXVlc3QaMy5iaXRjb2luLmJpdGNvaW5k'
-    'LnYxYWxwaGEuSW1wb3J0RGVzY3JpcHRvcnNSZXNwb25zZRJUCgtMaXN0V2FsbGV0cxIWLmdvb2'
-    'dsZS5wcm90b2J1Zi5FbXB0eRotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0V2FsbGV0'
-    'c1Jlc3BvbnNlEmoKC0xpc3RVbnNwZW50EiwuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkxpc3'
-    'RVbnNwZW50UmVxdWVzdBotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0VW5zcGVudFJl'
-    'c3BvbnNlEnkKEExpc3RUcmFuc2FjdGlvbnMSMS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuTG'
-    'lzdFRyYW5zYWN0aW9uc1JlcXVlc3QaMi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuTGlzdFRy'
-    'YW5zYWN0aW9uc1Jlc3BvbnNlEnwKEUdldERlc2NyaXB0b3JJbmZvEjIuYml0Y29pbi5iaXRjb2'
-    'luZC52MWFscGhhLkdldERlc2NyaXB0b3JJbmZvUmVxdWVzdBozLmJpdGNvaW4uYml0Y29pbmQu'
-    'djFhbHBoYS5HZXREZXNjcmlwdG9ySW5mb1Jlc3BvbnNlEnMKDkdldEFkZHJlc3NJbmZvEi8uYm'
-    'l0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEFkZHJlc3NJbmZvUmVxdWVzdBowLmJpdGNvaW4u'
-    'Yml0Y29pbmQudjFhbHBoYS5HZXRBZGRyZXNzSW5mb1Jlc3BvbnNlEnAKDUdldFJhd01lbXBvb2'
-    'wSLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0UmF3TWVtcG9vbFJlcXVlc3QaLy5iaXRj'
-    'b2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0UmF3TWVtcG9vbFJlc3BvbnNlEnwKEUdldFJhd1RyYW'
-    '5zYWN0aW9uEjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFJhd1RyYW5zYWN0aW9uUmVx'
-    'dWVzdBozLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRSYXdUcmFuc2FjdGlvblJlc3Bvbn'
-    'NlEoUBChREZWNvZGVSYXdUcmFuc2FjdGlvbhI1LmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5E'
-    'ZWNvZGVSYXdUcmFuc2FjdGlvblJlcXVlc3QaNi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuRG'
-    'Vjb2RlUmF3VHJhbnNhY3Rpb25SZXNwb25zZRKFAQoUQ3JlYXRlUmF3VHJhbnNhY3Rpb24SNS5i'
-    'aXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuQ3JlYXRlUmF3VHJhbnNhY3Rpb25SZXF1ZXN0GjYuYm'
-    'l0Y29pbi5iaXRjb2luZC52MWFscGhhLkNyZWF0ZVJhd1RyYW5zYWN0aW9uUmVzcG9uc2USfwoS'
-    'U2VuZFJhd1RyYW5zYWN0aW9uEjMuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlNlbmRSYXdUcm'
-    'Fuc2FjdGlvblJlcXVlc3QaNC5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuU2VuZFJhd1RyYW5z'
-    'YWN0aW9uUmVzcG9uc2USYQoIR2V0QmxvY2sSKS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2'
-    'V0QmxvY2tSZXF1ZXN0GiouYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEJsb2NrUmVzcG9u'
-    'c2USbQoMR2V0QmxvY2tIYXNoEi0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEJsb2NrSG'
-    'FzaFJlcXVlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmxvY2tIYXNoUmVzcG9u'
-    'c2USbQoMQ3JlYXRlV2FsbGV0Ei0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkNyZWF0ZVdhbG'
-    'xldFJlcXVlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuQ3JlYXRlV2FsbGV0UmVzcG9u'
-    'c2USZwoKTG9hZFdhbGxldBIrLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5Mb2FkV2FsbGV0Um'
-    'VxdWVzdBosLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5Mb2FkV2FsbGV0UmVzcG9uc2USbQoM'
-    'QmFja3VwV2FsbGV0Ei0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkJhY2t1cFdhbGxldFJlcX'
-    'Vlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuQmFja3VwV2FsbGV0UmVzcG9uc2USbQoM'
-    'VW5sb2FkV2FsbGV0Ei0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlVubG9hZFdhbGxldFJlcX'
-    'Vlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuVW5sb2FkV2FsbGV0UmVzcG9uc2UScAoN'
-    'S2V5UG9vbFJlZmlsbBIuLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5LZXlQb29sUmVmaWxsUm'
-    'VxdWVzdBovLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5LZXlQb29sUmVmaWxsUmVzcG9uc2US'
-    'ZwoKR2V0QWNjb3VudBIrLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRBY2NvdW50UmVxdW'
-    'VzdBosLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRBY2NvdW50UmVzcG9uc2USZwoKU2V0'
-    'QWNjb3VudBIrLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5TZXRBY2NvdW50UmVxdWVzdBosLm'
-    'JpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5TZXRBY2NvdW50UmVzcG9uc2USiAEKFUdldEFkZHJl'
-    'c3Nlc0J5QWNjb3VudBI2LmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRBZGRyZXNzZXNCeU'
-    'FjY291bnRSZXF1ZXN0GjcuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEFkZHJlc3Nlc0J5'
-    'QWNjb3VudFJlc3BvbnNlEm0KDExpc3RBY2NvdW50cxItLmJpdGNvaW4uYml0Y29pbmQudjFhbH'
-    'BoYS5MaXN0QWNjb3VudHNSZXF1ZXN0Gi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkxpc3RB'
-    'Y2NvdW50c1Jlc3BvbnNlEnMKDkNyZWF0ZU11bHRpc2lnEi8uYml0Y29pbi5iaXRjb2luZC52MW'
-    'FscGhhLkNyZWF0ZU11bHRpc2lnUmVxdWVzdBowLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5D'
-    'cmVhdGVNdWx0aXNpZ1Jlc3BvbnNlEmcKCkNyZWF0ZVBzYnQSKy5iaXRjb2luLmJpdGNvaW5kLn'
-    'YxYWxwaGEuQ3JlYXRlUHNidFJlcXVlc3QaLC5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuQ3Jl'
-    'YXRlUHNidFJlc3BvbnNlEmcKCkRlY29kZVBzYnQSKy5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaG'
-    'EuRGVjb2RlUHNidFJlcXVlc3QaLC5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuRGVjb2RlUHNi'
-    'dFJlc3BvbnNlEmoKC0FuYWx5emVQc2J0EiwuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkFuYW'
-    'x5emVQc2J0UmVxdWVzdBotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5BbmFseXplUHNidFJl'
-    'c3BvbnNlEmoKC0NvbWJpbmVQc2J0EiwuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkNvbWJpbm'
-    'VQc2J0UmVxdWVzdBotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5Db21iaW5lUHNidFJlc3Bv'
-    'bnNlEnMKDlV0eG9VcGRhdGVQc2J0Ei8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlV0eG9VcG'
-    'RhdGVQc2J0UmVxdWVzdBowLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5VdHhvVXBkYXRlUHNi'
-    'dFJlc3BvbnNlEmQKCUpvaW5Qc2J0cxIqLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5Kb2luUH'
-    'NidHNSZXF1ZXN0GisuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkpvaW5Qc2J0c1Jlc3BvbnNl'
-    'EnwKEVRlc3RNZW1wb29sQWNjZXB0EjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlRlc3RNZW'
-    '1wb29sQWNjZXB0UmVxdWVzdBozLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5UZXN0TWVtcG9v'
-    'bEFjY2VwdFJlc3BvbnNlEmQKE0dldFptcU5vdGlmaWNhdGlvbnMSFi5nb29nbGUucHJvdG9idW'
-    'YuRW1wdHkaNS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0Wm1xTm90aWZpY2F0aW9uc1Jl'
-    'c3BvbnNl');
+    'LnYxYWxwaGEuR2V0UGVlckluZm9SZXNwb25zZRJzCg5HZXROZXR3b3JrSW5mbxIvLmJpdGNvaW'
+    '4uYml0Y29pbmQudjFhbHBoYS5HZXROZXR3b3JrSW5mb1JlcXVlc3QaMC5iaXRjb2luLmJpdGNv'
+    'aW5kLnYxYWxwaGEuR2V0TmV0d29ya0luZm9SZXNwb25zZRJtCgxHZXROZXRUb3RhbHMSLS5iaX'
+    'Rjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0TmV0VG90YWxzUmVxdWVzdBouLmJpdGNvaW4uYml0'
+    'Y29pbmQudjFhbHBoYS5HZXROZXRUb3RhbHNSZXNwb25zZRJzCg5HZXRUcmFuc2FjdGlvbhIvLm'
+    'JpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRUcmFuc2FjdGlvblJlcXVlc3QaMC5iaXRjb2lu'
+    'LmJpdGNvaW5kLnYxYWxwaGEuR2V0VHJhbnNhY3Rpb25SZXNwb25zZRJzCg5MaXN0U2luY2VCbG'
+    '9jaxIvLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0U2luY2VCbG9ja1JlcXVlc3QaMC5i'
+    'aXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuTGlzdFNpbmNlQmxvY2tSZXNwb25zZRJwCg1HZXROZX'
+    'dBZGRyZXNzEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXF1ZXN0'
+    'Gi8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXNwb25zZRJwCg1HZX'
+    'RXYWxsZXRJbmZvEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXF1'
+    'ZXN0Gi8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXNwb25zZRJqCg'
+    'tHZXRCYWxhbmNlcxIsLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRCYWxhbmNlc1JlcXVl'
+    'c3QaLS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmFsYW5jZXNSZXNwb25zZRJVCgRTZW'
+    '5kEiUuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlNlbmRSZXF1ZXN0GiYuYml0Y29pbi5iaXRj'
+    'b2luZC52MWFscGhhLlNlbmRSZXNwb25zZRJwCg1TZW5kVG9BZGRyZXNzEi4uYml0Y29pbi5iaX'
+    'Rjb2luZC52MWFscGhhLlNlbmRUb0FkZHJlc3NSZXF1ZXN0Gi8uYml0Y29pbi5iaXRjb2luZC52'
+    'MWFscGhhLlNlbmRUb0FkZHJlc3NSZXNwb25zZRJeCgdCdW1wRmVlEiguYml0Y29pbi5iaXRjb2'
+    'luZC52MWFscGhhLkJ1bXBGZWVSZXF1ZXN0GikuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkJ1'
+    'bXBGZWVSZXNwb25zZRJ5ChBFc3RpbWF0ZVNtYXJ0RmVlEjEuYml0Y29pbi5iaXRjb2luZC52MW'
+    'FscGhhLkVzdGltYXRlU21hcnRGZWVSZXF1ZXN0GjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhh'
+    'LkVzdGltYXRlU21hcnRGZWVSZXNwb25zZRJ8ChFJbXBvcnREZXNjcmlwdG9ycxIyLmJpdGNvaW'
+    '4uYml0Y29pbmQudjFhbHBoYS5JbXBvcnREZXNjcmlwdG9yc1JlcXVlc3QaMy5iaXRjb2luLmJp'
+    'dGNvaW5kLnYxYWxwaGEuSW1wb3J0RGVzY3JpcHRvcnNSZXNwb25zZRJUCgtMaXN0V2FsbGV0cx'
+    'IWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0'
+    'V2FsbGV0c1Jlc3BvbnNlEmoKC0xpc3RVbnNwZW50EiwuYml0Y29pbi5iaXRjb2luZC52MWFscG'
+    'hhLkxpc3RVbnNwZW50UmVxdWVzdBotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0VW5z'
+    'cGVudFJlc3BvbnNlEnkKEExpc3RUcmFuc2FjdGlvbnMSMS5iaXRjb2luLmJpdGNvaW5kLnYxYW'
+    'xwaGEuTGlzdFRyYW5zYWN0aW9uc1JlcXVlc3QaMi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEu'
+    'TGlzdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEnwKEUdldERlc2NyaXB0b3JJbmZvEjIuYml0Y29pbi'
+    '5iaXRjb2luZC52MWFscGhhLkdldERlc2NyaXB0b3JJbmZvUmVxdWVzdBozLmJpdGNvaW4uYml0'
+    'Y29pbmQudjFhbHBoYS5HZXREZXNjcmlwdG9ySW5mb1Jlc3BvbnNlEnMKDkdldEFkZHJlc3NJbm'
+    'ZvEi8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEFkZHJlc3NJbmZvUmVxdWVzdBowLmJp'
+    'dGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRBZGRyZXNzSW5mb1Jlc3BvbnNlEnAKDUdldFJhd0'
+    '1lbXBvb2wSLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0UmF3TWVtcG9vbFJlcXVlc3Qa'
+    'Ly5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0UmF3TWVtcG9vbFJlc3BvbnNlEnwKEUdldF'
+    'Jhd1RyYW5zYWN0aW9uEjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFJhd1RyYW5zYWN0'
+    'aW9uUmVxdWVzdBozLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRSYXdUcmFuc2FjdGlvbl'
+    'Jlc3BvbnNlEoUBChREZWNvZGVSYXdUcmFuc2FjdGlvbhI1LmJpdGNvaW4uYml0Y29pbmQudjFh'
+    'bHBoYS5EZWNvZGVSYXdUcmFuc2FjdGlvblJlcXVlc3QaNi5iaXRjb2luLmJpdGNvaW5kLnYxYW'
+    'xwaGEuRGVjb2RlUmF3VHJhbnNhY3Rpb25SZXNwb25zZRKFAQoUQ3JlYXRlUmF3VHJhbnNhY3Rp'
+    'b24SNS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuQ3JlYXRlUmF3VHJhbnNhY3Rpb25SZXF1ZX'
+    'N0GjYuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkNyZWF0ZVJhd1RyYW5zYWN0aW9uUmVzcG9u'
+    'c2USfwoSU2VuZFJhd1RyYW5zYWN0aW9uEjMuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlNlbm'
+    'RSYXdUcmFuc2FjdGlvblJlcXVlc3QaNC5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuU2VuZFJh'
+    'd1RyYW5zYWN0aW9uUmVzcG9uc2USYQoIR2V0QmxvY2sSKS5iaXRjb2luLmJpdGNvaW5kLnYxYW'
+    'xwaGEuR2V0QmxvY2tSZXF1ZXN0GiouYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEJsb2Nr'
+    'UmVzcG9uc2USbQoMR2V0QmxvY2tIYXNoEi0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE'
+    'Jsb2NrSGFzaFJlcXVlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmxvY2tIYXNo'
+    'UmVzcG9uc2USbQoMQ3JlYXRlV2FsbGV0Ei0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkNyZW'
+    'F0ZVdhbGxldFJlcXVlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuQ3JlYXRlV2FsbGV0'
+    'UmVzcG9uc2USZwoKTG9hZFdhbGxldBIrLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5Mb2FkV2'
+    'FsbGV0UmVxdWVzdBosLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5Mb2FkV2FsbGV0UmVzcG9u'
+    'c2USbQoMQmFja3VwV2FsbGV0Ei0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkJhY2t1cFdhbG'
+    'xldFJlcXVlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuQmFja3VwV2FsbGV0UmVzcG9u'
+    'c2USbQoMVW5sb2FkV2FsbGV0Ei0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlVubG9hZFdhbG'
+    'xldFJlcXVlc3QaLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuVW5sb2FkV2FsbGV0UmVzcG9u'
+    'c2UScAoNS2V5UG9vbFJlZmlsbBIuLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5LZXlQb29sUm'
+    'VmaWxsUmVxdWVzdBovLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5LZXlQb29sUmVmaWxsUmVz'
+    'cG9uc2USZwoKR2V0QWNjb3VudBIrLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRBY2NvdW'
+    '50UmVxdWVzdBosLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRBY2NvdW50UmVzcG9uc2US'
+    'ZwoKU2V0QWNjb3VudBIrLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5TZXRBY2NvdW50UmVxdW'
+    'VzdBosLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5TZXRBY2NvdW50UmVzcG9uc2USiAEKFUdl'
+    'dEFkZHJlc3Nlc0J5QWNjb3VudBI2LmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRBZGRyZX'
+    'NzZXNCeUFjY291bnRSZXF1ZXN0GjcuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEFkZHJl'
+    'c3Nlc0J5QWNjb3VudFJlc3BvbnNlEm0KDExpc3RBY2NvdW50cxItLmJpdGNvaW4uYml0Y29pbm'
+    'QudjFhbHBoYS5MaXN0QWNjb3VudHNSZXF1ZXN0Gi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhh'
+    'Lkxpc3RBY2NvdW50c1Jlc3BvbnNlEnMKDkNyZWF0ZU11bHRpc2lnEi8uYml0Y29pbi5iaXRjb2'
+    'luZC52MWFscGhhLkNyZWF0ZU11bHRpc2lnUmVxdWVzdBowLmJpdGNvaW4uYml0Y29pbmQudjFh'
+    'bHBoYS5DcmVhdGVNdWx0aXNpZ1Jlc3BvbnNlEmcKCkNyZWF0ZVBzYnQSKy5iaXRjb2luLmJpdG'
+    'NvaW5kLnYxYWxwaGEuQ3JlYXRlUHNidFJlcXVlc3QaLC5iaXRjb2luLmJpdGNvaW5kLnYxYWxw'
+    'aGEuQ3JlYXRlUHNidFJlc3BvbnNlEmcKCkRlY29kZVBzYnQSKy5iaXRjb2luLmJpdGNvaW5kLn'
+    'YxYWxwaGEuRGVjb2RlUHNidFJlcXVlc3QaLC5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuRGVj'
+    'b2RlUHNidFJlc3BvbnNlEmoKC0FuYWx5emVQc2J0EiwuYml0Y29pbi5iaXRjb2luZC52MWFscG'
+    'hhLkFuYWx5emVQc2J0UmVxdWVzdBotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5BbmFseXpl'
+    'UHNidFJlc3BvbnNlEmoKC0NvbWJpbmVQc2J0EiwuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLk'
+    'NvbWJpbmVQc2J0UmVxdWVzdBotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5Db21iaW5lUHNi'
+    'dFJlc3BvbnNlEnMKDlV0eG9VcGRhdGVQc2J0Ei8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLl'
+    'V0eG9VcGRhdGVQc2J0UmVxdWVzdBowLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5VdHhvVXBk'
+    'YXRlUHNidFJlc3BvbnNlEmQKCUpvaW5Qc2J0cxIqLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS'
+    '5Kb2luUHNidHNSZXF1ZXN0GisuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkpvaW5Qc2J0c1Jl'
+    'c3BvbnNlEnwKEVRlc3RNZW1wb29sQWNjZXB0EjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLl'
+    'Rlc3RNZW1wb29sQWNjZXB0UmVxdWVzdBozLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5UZXN0'
+    'TWVtcG9vbEFjY2VwdFJlc3BvbnNlEmQKE0dldFptcU5vdGlmaWNhdGlvbnMSFi5nb29nbGUucH'
+    'JvdG9idWYuRW1wdHkaNS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0Wm1xTm90aWZpY2F0'
+    'aW9uc1Jlc3BvbnNl');
 
