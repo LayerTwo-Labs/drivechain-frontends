@@ -33,10 +33,6 @@ class WalletReaderProvider extends ChangeNotifier {
   );
 
   List<WalletMetadata> get availableWallets {
-    _logger.i('availableWallets getter: Returning ${wallets.length} wallets');
-    for (final w in wallets) {
-      _logger.i('  - ${w.id} "${w.name}"');
-    }
     return wallets
         .map(
           (w) => WalletMetadata(

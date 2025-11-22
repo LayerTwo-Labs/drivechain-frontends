@@ -89,121 +89,55 @@ class TimestampDetailPage extends StatelessWidget {
 
           final ts = model.timestamp!;
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: SailCard(
-                title: 'Timestamp Information',
-                child: Padding(
-                  padding: const EdgeInsets.all(SailStyleValues.padding20),
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding16,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildInfoRow(context, 'Filename', ts.filename),
-                      _buildCopyRow(
-                        context,
-                        'File Hash',
-                        ts.fileHash,
-                        () => model.copyHash(context),
-                      ),
-                      _buildInfoRow(
-                        context,
-                        'Created',
-                        _formatDate(ts.createdAt),
-                      ),
-                      _buildStatusRow(context, ts.status),
-                      if (ts.hasTxid())
-                        _buildCopyRow(
-                          context,
-                          'Transaction ID',
-                          ts.txid,
-                          () => model.copyTxid(context),
-                        ),
-                      if (ts.hasBlockHeight())
-                        _buildInfoRow(
-                          context,
-                          'Block Height',
-                          ts.blockHeight.toString(),
-                        ),
-                      if (ts.hasConfirmedAt())
-                        _buildInfoRow(
-                          context,
-                          'Confirmed',
-                          _formatDate(ts.confirmedAt),
-                        ),
-                      const SizedBox(height: SailStyleValues.padding20),
-                      SailButton(
-                        label: 'Close',
-                        onPressed: () async => GetIt.I.get<AppRouter>().pop(),
-                      ),
-                    ],
-                  ),
+          return Padding(
+            padding: const EdgeInsets.all(SailStyleValues.padding32),
+            child: SailColumn(
+              mainAxisSize: MainAxisSize.min,
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InfoRow(label: 'Filename', value: ts.filename),
+                CopyRow(
+                  label: 'File Hash',
+                  value: ts.fileHash,
+                  onCopy: () => model.copyHash(context),
                 ),
-              ),
+                InfoRow(
+                  label: 'Created',
+                  value: _formatDate(ts.createdAt),
+                ),
+                StatusRow(status: ts.status),
+                if (ts.hasTxid())
+                  CopyRow(
+                    label: 'Transaction ID',
+                    value: ts.txid,
+                    onCopy: () => model.copyTxid(context),
+                  ),
+                if (ts.hasBlockHeight())
+                  InfoRow(
+                    label: 'Block Height',
+                    value: ts.blockHeight.toString(),
+                  ),
+                if (ts.hasConfirmedAt())
+                  InfoRow(
+                    label: 'Confirmed',
+                    value: _formatDate(ts.confirmedAt),
+                  ),
+                const SizedBox(height: SailStyleValues.padding16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SailButton(
+                      label: 'Close',
+                      onPressed: () async => GetIt.I.get<AppRouter>().pop(),
+                    ),
+                  ],
+                ),
+              ],
             ),
           );
         },
       ),
-    );
-  }
-
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    return SailRow(
-      spacing: SailStyleValues.padding12,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 150,
-          child: SailText.secondary13(label),
-        ),
-        Expanded(
-          child: SailText.primary13(value),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCopyRow(
-    BuildContext context,
-    String label,
-    String value,
-    VoidCallback onCopy,
-  ) {
-    return SailRow(
-      spacing: SailStyleValues.padding12,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 150,
-          child: SailText.secondary13(label),
-        ),
-        Expanded(
-          child: SailText.primary13(
-            value.length > 50 ? '${value.substring(0, 50)}...' : value,
-          ),
-        ),
-        IconButton(
-          icon: SailSVG.icon(SailSVGAsset.iconCopy),
-          onPressed: onCopy,
-          iconSize: 16,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatusRow(BuildContext context, String status) {
-    return SailRow(
-      spacing: SailStyleValues.padding12,
-      children: [
-        SizedBox(
-          width: 150,
-          child: SailText.secondary13('Status'),
-        ),
-        Expanded(
-          child: SailText.primary13(status.toUpperCase()),
-        ),
-      ],
     );
   }
 
@@ -217,5 +151,100 @@ class TimestampDetailPage extends StatelessWidget {
     } catch (e) {
       return '-';
     }
+  }
+}
+
+class InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const InfoRow({
+    super.key,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 150,
+          child: SailText.secondary13(label),
+        ),
+        const SizedBox(width: SailStyleValues.padding12),
+        Flexible(
+          child: SailText.primary13(value),
+        ),
+      ],
+    );
+  }
+}
+
+class CopyRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final VoidCallback onCopy;
+
+  const CopyRow({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onCopy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 150,
+          child: SailText.secondary13(label),
+        ),
+        const SizedBox(width: SailStyleValues.padding12),
+        Flexible(
+          child: SailText.primary13(
+            value.length > 50 ? '${value.substring(0, 50)}...' : value,
+          ),
+        ),
+        const SizedBox(width: SailStyleValues.padding12),
+        IconButton(
+          icon: SailSVG.icon(SailSVGAsset.iconCopy),
+          onPressed: onCopy,
+          iconSize: 16,
+        ),
+      ],
+    );
+  }
+}
+
+class StatusRow extends StatelessWidget {
+  final String status;
+
+  const StatusRow({
+    super.key,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 150,
+          child: SailText.secondary13('Status'),
+        ),
+        const SizedBox(width: SailStyleValues.padding12),
+        Flexible(
+          child: SailText.primary13(status.toUpperCase()),
+        ),
+      ],
+    );
   }
 }

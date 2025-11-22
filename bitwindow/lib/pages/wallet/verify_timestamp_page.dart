@@ -206,10 +206,10 @@ class VerifyTimestampPage extends StatelessWidget {
                               const SizedBox(height: SailStyleValues.padding08),
                               SailText.secondary13(model.verificationResult!.message),
                               const SizedBox(height: SailStyleValues.padding08),
-                              _buildInfoRow('Filename', model.verificationResult!.timestamp.filename),
-                              _buildInfoRow('Created', _formatDate(model.verificationResult!.timestamp.createdAt)),
+                              TimestampInfoRow(label: 'Filename', value: model.verificationResult!.timestamp.filename),
+                              TimestampInfoRow(label: 'Created', value: _formatDate(model.verificationResult!.timestamp.createdAt)),
                               if (model.verificationResult!.timestamp.hasTxid())
-                                _buildInfoRow('Transaction', model.verificationResult!.timestamp.txid),
+                                TimestampInfoRow(label: 'Transaction', value: model.verificationResult!.timestamp.txid),
                             ],
                           ),
                         ),
@@ -247,7 +247,31 @@ class VerifyTimestampPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return '-';
+    try {
+      final dt = DateTime.fromMillisecondsSinceEpoch(
+        timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,
+      );
+      return DateFormat('MMM d, yyyy HH:mm:ss').format(dt);
+    } catch (e) {
+      return '-';
+    }
+  }
+}
+
+class TimestampInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const TimestampInfoRow({
+    super.key,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -263,17 +287,5 @@ class VerifyTimestampPage extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return '-';
-    try {
-      final dt = DateTime.fromMillisecondsSinceEpoch(
-        timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,
-      );
-      return DateFormat('MMM d, yyyy HH:mm:ss').format(dt);
-    } catch (e) {
-      return '-';
-    }
   }
 }

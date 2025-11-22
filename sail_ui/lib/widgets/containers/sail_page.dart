@@ -24,7 +24,7 @@ class SailPage extends StatelessWidget {
     final scaffold = SelectionArea(
       child: Scaffold(
         backgroundColor: backgroundColor,
-        appBar: widgetTitle == null
+        appBar: widgetTitle == null && title == null
             ? null
             : SailAppBar.build(
                 context,
@@ -54,17 +54,21 @@ class SailPage extends StatelessWidget {
           children: [
             Expanded(child: Container()),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
+              constraints: const BoxConstraints(maxWidth: 900),
               child: SailColumn(
                 spacing: 0,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(top: SailStyleValues.padding64),
-                    child: SailText.primary24(title ?? ''),
+                    padding: const EdgeInsets.only(top: SailStyleValues.padding32, bottom: SailStyleValues.padding32),
+                    child: SailText.primary24(
+                      title ?? '',
+                      bold: true,
+                    ),
                   ),
-                  const SailSpacing(SailStyleValues.padding08),
-                  SailText.secondary13(subtitle ?? ''),
-                  const SailSpacing(SailStyleValues.padding64),
+                  if (subtitle != null) ...[
+                    const SailSpacing(SailStyleValues.padding08),
+                    SailText.secondary13(subtitle ?? ''),
+                  ],
                   body,
                 ],
               ),
