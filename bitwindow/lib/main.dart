@@ -131,10 +131,6 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
-  // Initialize NotificationStreamProvider eagerly to start listening immediately
-  final notificationStreamProvider = NotificationStreamProvider();
-  GetIt.I.registerSingleton<NotificationStreamProvider>(notificationStreamProvider);
-
   await copyBinariesFromAssets(log, applicationDir);
 
   // Load initial binary states
@@ -190,6 +186,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // Register the abstract HomepageProvider as an alias to the concrete implementation
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
+  GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
 
   return (applicationDir, logFile, log);
 }

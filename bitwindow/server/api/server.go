@@ -99,7 +99,7 @@ func New(
 	m4Engine := engines.NewM4Engine(svcs.Database)
 
 	// Create notification engine for streaming notifications
-	notificationEngine := engines.NewNotificationEngine(svcs.Database, zerolog.Ctx(ctx).With().Str("component", "notification").Logger(), bitcoindSvc)
+	notificationEngine := engines.NewNotificationEngine(svcs.Database, bitcoindSvc)
 
 	srv := &Server{
 		mux:                mux,
