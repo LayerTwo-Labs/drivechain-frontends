@@ -904,6 +904,7 @@ func (x *ListTimestampsResponse) GetTimestamps() []*FileTimestamp {
 type VerifyTimestampRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FileData      []byte                 `protobuf:"bytes,1,opt,name=file_data,json=fileData,proto3" json:"file_data,omitempty"`
+	Filename      *string                `protobuf:"bytes,2,opt,name=filename,proto3,oneof" json:"filename,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -943,6 +944,13 @@ func (x *VerifyTimestampRequest) GetFileData() []byte {
 		return x.FileData
 	}
 	return nil
+}
+
+func (x *VerifyTimestampRequest) GetFilename() string {
+	if x != nil && x.Filename != nil {
+		return *x.Filename
+	}
+	return ""
 }
 
 type VerifyTimestampResponse struct {
@@ -1070,9 +1078,11 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x16ListTimestampsResponse\x126\n" +
 	"\n" +
 	"timestamps\x18\x01 \x03(\v2\x16.misc.v1.FileTimestampR\n" +
-	"timestamps\"5\n" +
+	"timestamps\"c\n" +
 	"\x16VerifyTimestampRequest\x12\x1b\n" +
-	"\tfile_data\x18\x01 \x01(\fR\bfileData\"i\n" +
+	"\tfile_data\x18\x01 \x01(\fR\bfileData\x12\x1f\n" +
+	"\bfilename\x18\x02 \x01(\tH\x00R\bfilename\x88\x01\x01B\v\n" +
+	"\t_filename\"i\n" +
 	"\x17VerifyTimestampResponse\x124\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x16.misc.v1.FileTimestampR\ttimestamp\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage2\xef\x04\n" +
@@ -1164,6 +1174,7 @@ func file_misc_v1_misc_proto_init() {
 	file_misc_v1_misc_proto_msgTypes[1].OneofWrappers = []any{}
 	file_misc_v1_misc_proto_msgTypes[8].OneofWrappers = []any{}
 	file_misc_v1_misc_proto_msgTypes[13].OneofWrappers = []any{}
+	file_misc_v1_misc_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

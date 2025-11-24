@@ -483,10 +483,12 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     // Real mainnet gets minimal standard Bitcoin Core config
     if (_detectedNetwork == Network.NETWORK_MAINNET) {
+      final mainnetDatadir = _getMainnetDatadir();
       return '''# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
 # Standard Bitcoin Core mainnet configuration
+datadir=$mainnetDatadir
 rpcuser=user
 rpcpassword=password
 server=1

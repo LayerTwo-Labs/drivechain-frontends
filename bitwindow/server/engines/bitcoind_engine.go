@@ -3,6 +3,7 @@ package engines
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -353,6 +355,68 @@ func (p *Parser) handleCreateTopic(
 	return nil
 }
 
+func (p *Parser) handleTimestamp(
+	ctx context.Context, data []byte, txid string, height *uint32,
+) error {
+	// Check if data starts with "STAMP" prefix (5 bytes) followed by 32-byte hash
+	if len(data) != 37 { // 5 bytes prefix + 32 bytes hash
+		return nil
+	}
+
+	prefix := string(data[:5])
+	if prefix != TimestampPrefix {
+		return nil
+	}
+
+	// Extract the 32-byte SHA256 hash
+	hashBytes := data[5:]
+	if len(hashBytes) != sha256.Size {
+		return nil
+	}
+
+	fileHash := hex.EncodeToString(hashBytes)
+
+	// Check if we already have this timestamp
+	existing, err := timestamps.GetByHash(ctx, p.db, fileHash)
+	if err != nil {
+		return fmt.Errorf("check existing timestamp: %w", err)
+	}
+	if existing != nil {
+		return nil // Already discovered
+	}
+
+	var blockHeight *int64
+	if height != nil {
+		h := int64(*height)
+		blockHeight = &h
+	}
+
+	// Create discovered timestamp
+	now := time.Now()
+	timestamp := timestamps.FileTimestamp{
+		Filename:    "", // Unknown for discovered timestamps
+		FileHash:    fileHash,
+		TxID:        &txid,
+		BlockHeight: blockHeight,
+		Status:      timestamps.StatusConfirmed,
+		CreatedAt:   now,
+		ConfirmedAt: &now,
+	}
+
+	id, err := timestamps.Create(ctx, p.db, timestamp)
+	if err != nil {
+		return fmt.Errorf("create discovered timestamp: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Int64("id", id).
+		Str("hash", fileHash).
+		Str("txid", txid).
+		Msg("discovered timestamp on blockchain")
+
+	return nil
+}
+
 func (p *Parser) currentHeight(ctx context.Context) (uint32, chainhash.Hash, error) {
 	bitcoind, err := p.bitcoind.Get(ctx)
 	if err != nil {
@@ -470,6 +534,14 @@ func (p *Parser) handleOpReturns(
 			if err := p.handleCreateTopic(ctx, info, txid); err != nil {
 				return nil, err
 			}
+		}
+
+		// Check if this is a timestamp with STAMP prefix
+		if err := p.handleTimestamp(ctx, data, txid, height); err != nil {
+			zerolog.Ctx(ctx).Warn().
+				Err(err).
+				Str("txid", txid).
+				Msg("handle timestamp")
 		}
 
 		zerolog.Ctx(ctx).Debug().

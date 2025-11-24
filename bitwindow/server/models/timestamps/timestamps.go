@@ -206,3 +206,21 @@ func GetByHash(ctx context.Context, db *sql.DB, fileHash string) (*FileTimestamp
 
 	return &timestamp, nil
 }
+
+func UpdateFilename(ctx context.Context, db *sql.DB, id int64, filename string) error {
+	_, err := db.ExecContext(ctx, `
+		UPDATE file_timestamps
+		SET filename = ?
+		WHERE id = ?
+	`, filename, id)
+	if err != nil {
+		return fmt.Errorf("update filename: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Debug().
+		Int64("id", id).
+		Str("filename", filename).
+		Msg("updated timestamp filename")
+
+	return nil
+}
