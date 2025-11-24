@@ -19,6 +19,11 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 )
 
+const (
+	// TimestampPrefix is prepended to SHA256 hash in OP_RETURN to identify timestamp transactions
+	TimestampPrefix = "STAMP"
+)
+
 type TimestampEngine struct {
 	db       *sql.DB
 	log      zerolog.Logger
@@ -174,12 +179,15 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 		return existing, nil
 	}
 
-	// Create Bitcoin OP_RETURN transaction with file hash
+	// Create Bitcoin OP_RETURN transaction with prefixed file hash
 	if e.wallet == nil {
 		return nil, fmt.Errorf("wallet service not available")
 	}
 
-	txid, err := e.wallet.SendTransaction(ctx, hash[:])
+	// Prepend TMSTAMP prefix to hash for protocol identification
+	opReturnData := append([]byte(TimestampPrefix), hash[:]...)
+
+	txid, err := e.wallet.SendTransaction(ctx, opReturnData)
 	if err != nil {
 		return nil, fmt.Errorf("send timestamp transaction: %w", err)
 	}
@@ -231,7 +239,7 @@ func (e *TimestampEngine) GetTimestamp(ctx context.Context, id int64) (*timestam
 	return timestamp, nil
 }
 
-func (e *TimestampEngine) VerifyTimestamp(ctx context.Context, fileData []byte) (*timestamps.FileTimestamp, error) {
+func (e *TimestampEngine) VerifyTimestamp(ctx context.Context, fileData []byte, filename string) (*timestamps.FileTimestamp, error) {
 	hash := sha256.Sum256(fileData)
 	fileHash := hex.EncodeToString(hash[:])
 
@@ -244,9 +252,22 @@ func (e *TimestampEngine) VerifyTimestamp(ctx context.Context, fileData []byte) 
 		return nil, fmt.Errorf("no timestamp found for this file")
 	}
 
+	// If this is a discovered timestamp with no filename, update it
+	if timestamp.Filename == "" && filename != "" {
+		if err := timestamps.UpdateFilename(ctx, e.db, timestamp.ID, filename); err != nil {
+			e.log.Warn().
+				Err(err).
+				Int64("id", timestamp.ID).
+				Msg("update filename for discovered timestamp")
+		} else {
+			timestamp.Filename = filename
+		}
+	}
+
 	e.log.Info().
 		Str("hash", fileHash).
 		Str("txid", *timestamp.TxID).
+		Str("filename", timestamp.Filename).
 		Msg("file timestamp verified")
 
 	return timestamp, nil

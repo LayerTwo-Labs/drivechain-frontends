@@ -112,6 +112,7 @@ message ListTimestampsResponse {
 
 message VerifyTimestampRequest {
   bytes file_data = 1;
+  optional string filename = 2;
 }
 
 message VerifyTimestampResponse {

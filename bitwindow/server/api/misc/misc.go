@@ -372,7 +372,12 @@ func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("file data must be set"))
 	}
 
-	ts, err := s.timestampEngine.VerifyTimestamp(ctx, req.Msg.FileData)
+	filename := ""
+	if req.Msg.Filename != nil {
+		filename = *req.Msg.Filename
+	}
+
+	ts, err := s.timestampEngine.VerifyTimestamp(ctx, req.Msg.FileData, filename)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
