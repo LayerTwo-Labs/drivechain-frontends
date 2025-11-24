@@ -1,6 +1,6 @@
-import 'dart:async';
-
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/models/bandwidth_data.dart';
+import 'package:bitwindow/providers/network_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -14,76 +14,29 @@ class NetworkStatisticsPage extends StatefulWidget {
   State<NetworkStatisticsPage> createState() => _NetworkStatisticsPageState();
 }
 
-class BandwidthDataPoint {
-  final DateTime time;
-  final double rxBytes;
-  final double txBytes;
-
-  BandwidthDataPoint({required this.time, required this.rxBytes, required this.txBytes});
-}
-
 class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
-  final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  final NetworkProvider _networkProvider = GetIt.I.get<NetworkProvider>();
 
-  GetNetworkStatsResponse? stats;
-  bool isLoading = true;
-  String? error;
-  Timer? refreshTimer;
-
-  // In-memory bandwidth history (last 60 data points = 5 minutes at 5s intervals)
-  final List<BandwidthDataPoint> bandwidthHistory = [];
-  static const int maxDataPoints = 60;
+  GetNetworkStatsResponse? get stats => _networkProvider.stats;
+  List<BandwidthDataPoint> get bandwidthHistory => _networkProvider.bandwidthHistory;
+  String? get error => _networkProvider.error;
+  bool get isLoading => stats == null && error == null;
 
   @override
   void initState() {
     super.initState();
-    fetchStats();
-
-    // Auto-refresh every 5 seconds
-    refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted) {
-        fetchStats();
-      }
-    });
+    _networkProvider.addListener(_onProviderChanged);
   }
 
   @override
   void dispose() {
-    refreshTimer?.cancel();
+    _networkProvider.removeListener(_onProviderChanged);
     super.dispose();
   }
 
-  Future<void> fetchStats() async {
-    try {
-      final response = await bitwindowRPC.bitwindowd.getNetworkStats();
-      if (mounted) {
-        setState(() {
-          stats = response;
-          error = null;
-          isLoading = false;
-
-          // Add data point to history
-          bandwidthHistory.add(
-            BandwidthDataPoint(
-              time: DateTime.now(),
-              rxBytes: response.totalBytesReceived.toDouble(),
-              txBytes: response.totalBytesSent.toDouble(),
-            ),
-          );
-
-          // Keep only last maxDataPoints
-          if (bandwidthHistory.length > maxDataPoints) {
-            bandwidthHistory.removeAt(0);
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          error = e.toString();
-          isLoading = false;
-        });
-      }
+  void _onProviderChanged() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -123,11 +76,7 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                     SailButton(
                       label: 'Retry',
                       onPressed: () async {
-                        setState(() {
-                          isLoading = true;
-                          error = null;
-                        });
-                        await fetchStats();
+                        await _networkProvider.fetch();
                       },
                     ),
                   ],
@@ -296,8 +245,8 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
       final timeDiff = curr.time.difference(prev.time).inSeconds;
 
       if (timeDiff > 0) {
-        final rxRate = (curr.rxBytes - prev.rxBytes) / timeDiff;
-        final txRate = (curr.txBytes - prev.txBytes) / timeDiff;
+        final rxRate = (curr.totalRxBytes - prev.totalRxBytes) / timeDiff;
+        final txRate = (curr.totalTxBytes - prev.totalTxBytes) / timeDiff;
 
         rxSpots.add(FlSpot(i.toDouble(), rxRate));
         txSpots.add(FlSpot(i.toDouble(), txRate));

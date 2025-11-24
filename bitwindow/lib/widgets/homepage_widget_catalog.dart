@@ -2,9 +2,14 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
+import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
+import 'package:bitwindow/widgets/network_stats_widget.dart';
+import 'package:bitwindow/widgets/peers_table_widget.dart';
+import 'package:bitwindow/widgets/traffic_graph_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -151,6 +156,39 @@ class HomepageWidgetCatalog {
       builder: (_) => SizedBox(
         height: 500,
         child: const GraffitiExplorerView(),
+      ),
+    ),
+    'network_traffic': HomepageWidgetInfo(
+      id: 'network_traffic',
+      name: 'Network Traffic',
+      description: 'Real-time bandwidth graph',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconNetwork,
+      builder: (_) => ListenableBuilder(
+        listenable: GetIt.I.get<NetworkProvider>(),
+        builder: (context, child) => const TrafficGraphWidget(),
+      ),
+    ),
+    'network_stats': HomepageWidgetInfo(
+      id: 'network_stats',
+      name: 'Network Stats',
+      description: 'Peer connections and bandwidth summary',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconGlobe,
+      builder: (_) => ListenableBuilder(
+        listenable: GetIt.I.get<NetworkProvider>(),
+        builder: (context, child) => const NetworkStatsWidget(),
+      ),
+    ),
+    'peers_table': HomepageWidgetInfo(
+      id: 'peers_table',
+      name: 'Connected Peers',
+      description: 'List of connected network peers',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.iconPeers,
+      builder: (_) => SizedBox(
+        height: 400,
+        child: const PeersTableWidget(),
       ),
     ),
   };

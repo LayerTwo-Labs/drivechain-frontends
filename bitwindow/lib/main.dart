@@ -16,6 +16,7 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/providers/cheque_provider.dart';
 import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
@@ -169,6 +170,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     ),
   );
   GetIt.I.registerSingleton<BlockchainProvider>(BlockchainProvider());
+  GetIt.I.registerSingleton<NetworkProvider>(NetworkProvider());
   GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
   GetIt.I.registerSingleton<NewsProvider>(NewsProvider());
   GetIt.I.registerSingleton<SidechainProvider>(SidechainProvider());
