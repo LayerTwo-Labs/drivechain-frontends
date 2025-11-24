@@ -13,7 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   file_picker: ^10.3.6
-  fl_chart: ^0.70.1
+  fl_chart: ^1.1.1
   printing: ^5.13.4
   pdf: ^3.11.1
 
