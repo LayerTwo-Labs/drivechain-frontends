@@ -20,6 +20,7 @@ class Network extends $pb.ProtobufEnum {
   static const Network NETWORK_REGTEST = Network._(3, _omitEnumNames ? '' : 'NETWORK_REGTEST');
   static const Network NETWORK_SIGNET = Network._(4, _omitEnumNames ? '' : 'NETWORK_SIGNET');
   static const Network NETWORK_TESTNET = Network._(5, _omitEnumNames ? '' : 'NETWORK_TESTNET');
+  static const Network NETWORK_FORKNET = Network._(6, _omitEnumNames ? '' : 'NETWORK_FORKNET');
 
   static const $core.List<Network> values = <Network> [
     NETWORK_UNSPECIFIED,
@@ -28,6 +29,7 @@ class Network extends $pb.ProtobufEnum {
     NETWORK_REGTEST,
     NETWORK_SIGNET,
     NETWORK_TESTNET,
+    NETWORK_FORKNET,
   ];
 
   static final $core.Map<$core.int, Network> _byValue = $pb.ProtobufEnum.initByValue(values);

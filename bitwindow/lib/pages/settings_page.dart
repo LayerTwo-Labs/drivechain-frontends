@@ -292,6 +292,10 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
               items: [
                 SailDropdownItem<Network>(
                   value: Network.NETWORK_MAINNET,
+                  label: 'Mainnet',
+                ),
+                SailDropdownItem<Network>(
+                  value: Network.NETWORK_FORKNET,
                   label: 'Forknet',
                 ),
                 SailDropdownItem<Network>(
@@ -301,10 +305,6 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
                 SailDropdownItem<Network>(
                   value: Network.NETWORK_TESTNET,
                   label: 'Testnet',
-                ),
-                SailDropdownItem<Network>(
-                  value: Network.NETWORK_REGTEST,
-                  label: 'Regtest',
                 ),
               ],
               onChanged: (Network? network) async {
@@ -2526,7 +2526,8 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
 
   String _networkDisplayName(Network network) {
     return switch (network) {
-      Network.NETWORK_MAINNET => 'Forknet',
+      Network.NETWORK_MAINNET => 'Mainnet',
+      Network.NETWORK_FORKNET => 'Forknet',
       Network.NETWORK_TESTNET => 'Testnet',
       Network.NETWORK_SIGNET => 'Signet',
       Network.NETWORK_REGTEST => 'Regtest',

@@ -76,6 +76,9 @@ class EnforcerLive extends EnforcerRPC {
       case Network.NETWORK_MAINNET:
         binary.addBootArg('--wallet-esplora-url=https://mempool.space/api');
 
+      case Network.NETWORK_FORKNET:
+        binary.addBootArg('--wallet-esplora-url=https://mempool.space/api');
+
       case Network.NETWORK_SIGNET:
       default:
       // default is signet, for which we dont need anything extra

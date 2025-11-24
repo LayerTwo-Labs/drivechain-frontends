@@ -38,6 +38,7 @@ class CoreConnectionSettings extends ChangeNotifier {
     // Use correct default port based on network
     final defaultPort = switch (network) {
       Network.NETWORK_MAINNET => 8332,
+      Network.NETWORK_FORKNET => 18301,
       Network.NETWORK_TESTNET => 18332,
       Network.NETWORK_SIGNET => 38332,
       Network.NETWORK_REGTEST => 18443,

@@ -405,6 +405,8 @@ func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error)
 
 func getChainParams(network config.Network) *chaincfg.Params {
 	switch network {
+	case config.NetworkMainnet:
+		return &chaincfg.MainNetParams
 	case config.NetworkForknet:
 		return &chaincfg.MainNetParams
 	case config.NetworkTestnet:

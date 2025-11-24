@@ -50,7 +50,9 @@ class BitcoinCorePidTracker {
   String _getNetworkSubdir(Network network) {
     switch (network) {
       case Network.NETWORK_MAINNET:
-        return ''; // Mainnet uses root datadir
+        return ''; // Real mainnet uses root datadir
+      case Network.NETWORK_FORKNET:
+        return ''; // Forknet uses root datadir
       case Network.NETWORK_TESTNET:
         return 'testnet3'; // Testnet uses testnet3 subdirectory
       case Network.NETWORK_SIGNET:

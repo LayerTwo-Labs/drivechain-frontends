@@ -50,7 +50,8 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     // Fall back to network defaults if no custom port set
     return switch (_detectedNetwork) {
-      Network.NETWORK_MAINNET => 18301, // forknet default
+      Network.NETWORK_MAINNET => 8332, // real Bitcoin mainnet
+      Network.NETWORK_FORKNET => 18301, // forknet
       Network.NETWORK_TESTNET => 18332,
       Network.NETWORK_SIGNET => 38332,
       Network.NETWORK_REGTEST => 18443,
@@ -132,35 +133,48 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     if (_currentConfig == null) return;
 
-    // Clear any existing network settings
-    _currentConfig!.globalSettings.remove('chain');
-    _currentConfig!.globalSettings.remove('testnet');
-    _currentConfig!.globalSettings.remove('testnet4');
-    _currentConfig!.globalSettings.remove('signet');
-    _currentConfig!.globalSettings.remove('regtest');
+    // Check if we're crossing L2L/non-L2L boundary
+    final oldIsL2L = _isL2LNetwork(_detectedNetwork);
+    final newIsL2L = _isL2LNetwork(network);
+    final crossingBoundary = oldIsL2L != newIsL2L;
 
-    // Set the new network
-    switch (network) {
-      case Network.NETWORK_MAINNET:
-        _currentConfig!.setSetting('chain', 'main');
-        break;
-      case Network.NETWORK_TESTNET:
-        _currentConfig!.setSetting('chain', 'test');
-        break;
-      case Network.NETWORK_SIGNET:
-        _currentConfig!.setSetting('chain', 'signet');
-        break;
-      case Network.NETWORK_REGTEST:
-        _currentConfig!.setSetting('chain', 'regtest');
-        break;
-      case Network.NETWORK_UNKNOWN:
-      case Network.NETWORK_UNSPECIFIED:
-        // Use signet as default for unknown/unspecified networks
-        _currentConfig!.setSetting('chain', 'signet');
-        break;
+    if (crossingBoundary) {
+      // Crossing L2L boundary - regenerate config from scratch
+      _detectedNetwork = network;
+      final newConfigContent = getDefaultConfig();
+      _currentConfig = BitcoinConfig.parse(newConfigContent);
+    } else {
+      // Staying within same category - just update chain setting
+      _currentConfig!.globalSettings.remove('chain');
+      _currentConfig!.globalSettings.remove('testnet');
+      _currentConfig!.globalSettings.remove('testnet4');
+      _currentConfig!.globalSettings.remove('signet');
+      _currentConfig!.globalSettings.remove('regtest');
+
+      switch (network) {
+        case Network.NETWORK_MAINNET:
+          _currentConfig!.setSetting('chain', 'main');
+          break;
+        case Network.NETWORK_FORKNET:
+          _currentConfig!.setSetting('chain', 'main');
+          break;
+        case Network.NETWORK_TESTNET:
+          _currentConfig!.setSetting('chain', 'test');
+          break;
+        case Network.NETWORK_SIGNET:
+          _currentConfig!.setSetting('chain', 'signet');
+          break;
+        case Network.NETWORK_REGTEST:
+          _currentConfig!.setSetting('chain', 'regtest');
+          break;
+        case Network.NETWORK_UNKNOWN:
+        case Network.NETWORK_UNSPECIFIED:
+          _currentConfig!.setSetting('chain', 'signet');
+          break;
+      }
+
+      _detectedNetwork = network;
     }
-
-    _detectedNetwork = network;
 
     // Save the config
     await _saveConfig();
@@ -168,6 +182,13 @@ class BitcoinConfProvider extends ChangeNotifier {
     _updateMainchainRPCConfig(_createConnectionSettings());
 
     notifyListeners();
+  }
+
+  /// Check if network supports Layer2 Labs (drivechain) features
+  bool _isL2LNetwork(Network network) {
+    return network == Network.NETWORK_FORKNET ||
+        network == Network.NETWORK_SIGNET ||
+        network == Network.NETWORK_REGTEST;
   }
 
   /// Restart all services when mainnet toggle changes
@@ -311,7 +332,10 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   ({bool hasPrivateConf, String path}) _getConfigFileInfo() {
-    final datadir = BitcoinCore().datadir();
+    // Use network-specific datadir:
+    // - MAINNET: ~/Library/Application Support/Bitcoin (standard Bitcoin Core)
+    // - FORKNET/SIGNET/TESTNET/REGTEST: ~/Library/Application Support/Drivechain
+    final datadir = _detectedNetwork == Network.NETWORK_MAINNET ? _getMainnetDatadir() : BitcoinCore().datadir();
 
     if (BitcoinCore().confFile() == 'bitcoin.conf') {
       return (hasPrivateConf: true, path: path.join(datadir, 'bitcoin.conf'));
@@ -320,6 +344,12 @@ class BitcoinConfProvider extends ChangeNotifier {
     // Fall back to our generated config
     final bitwindowConfPath = path.join(datadir, 'bitwindow-bitcoin.conf');
     return (hasPrivateConf: false, path: bitwindowConfPath);
+  }
+
+  /// Get the standard Bitcoin Core datadir for real mainnet
+  String _getMainnetDatadir() {
+    final appDir = BitcoinCore().appdir();
+    return path.join(appDir, 'Bitcoin');
   }
 
   void _detectNetworkFromConfig() {
@@ -331,7 +361,14 @@ class BitcoinConfProvider extends ChangeNotifier {
       switch (chainSetting.toLowerCase()) {
         case 'main':
         case 'mainnet':
-          _detectedNetwork = Network.NETWORK_MAINNET;
+          // Distinguish between real mainnet and forknet by checking for drivechain settings
+          // Forknet configs have drivechain=1 in the [main] section
+          final drivechainSetting = _currentConfig!.getEffectiveSetting('drivechain', 'main');
+          if (drivechainSetting == '1') {
+            _detectedNetwork = Network.NETWORK_FORKNET;
+          } else {
+            _detectedNetwork = Network.NETWORK_MAINNET;
+          }
           return;
         case 'test':
         case 'testnet':
@@ -444,6 +481,22 @@ class BitcoinConfProvider extends ChangeNotifier {
   String getDefaultConfig() {
     final currentNetwork = _detectedNetwork.toCoreNetwork();
 
+    // Real mainnet gets minimal standard Bitcoin Core config
+    if (_detectedNetwork == Network.NETWORK_MAINNET) {
+      return '''# Generated code. Any changes to this file *will* get overwritten.
+# source: bitwindow bitcoin config settings
+
+# Standard Bitcoin Core mainnet configuration
+rpcuser=user
+rpcpassword=password
+server=1
+listen=1
+txindex=1
+chain=main
+''';
+    }
+
+    // Forknet and other networks get full drivechain config
     return '''# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
@@ -479,7 +532,7 @@ signetblocktime=60
 signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
 acceptnonstdtxn=1
 
-# Mainnet-specific settings (forknet)
+# Forknet-specific settings (drivechain testnet on mainnet params)
 [main]
 port=8300
 rpcport=18301

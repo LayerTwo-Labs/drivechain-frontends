@@ -37,14 +37,18 @@ CoreConnectionSettings readRPCConfig(
   final log = GetIt.I.get<Logger>();
 
   final conf = File(filePath([datadir, confFile]));
-  // Mainnet == empty string, special datadirs only apply to non-mainnet
-  final networkDir = filePath([datadir, network == Network.NETWORK_MAINNET ? '' : network.toReadableNet()]);
+  // Both mainnet and forknet use root datadir, other networks use subdirs
+  final networkDir = filePath([
+    datadir,
+    (network == Network.NETWORK_MAINNET || network == Network.NETWORK_FORKNET) ? '' : network.toReadableNet(),
+  ]);
 
   final cookie = File(filePath([networkDir, '.cookie']));
 
   // Use correct default port based on network
   final defaultPort = switch (network) {
-    Network.NETWORK_MAINNET => 18301, // forknet
+    Network.NETWORK_MAINNET => 8332, // real Bitcoin mainnet
+    Network.NETWORK_FORKNET => 18301, // forknet
     Network.NETWORK_TESTNET => 18332,
     Network.NETWORK_SIGNET => 38332,
     Network.NETWORK_REGTEST => 18443,
@@ -192,6 +196,8 @@ extension NetworkExtensions on Network {
   String toReadableNet() {
     switch (this) {
       case Network.NETWORK_MAINNET:
+        return 'mainnet';
+      case Network.NETWORK_FORKNET:
         return 'forknet';
       case Network.NETWORK_SIGNET:
         return 'signet';
@@ -209,6 +215,8 @@ extension NetworkExtensions on Network {
   String toCoreNetwork() {
     switch (this) {
       case Network.NETWORK_MAINNET:
+        return 'main';
+      case Network.NETWORK_FORKNET:
         return 'main';
       case Network.NETWORK_SIGNET:
         return 'signet';

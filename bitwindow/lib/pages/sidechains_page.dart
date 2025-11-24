@@ -92,6 +92,52 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    // Check if network supports sidechains
+    if (!viewModel.networkSupportsSidechains) {
+      return SailCard(
+        title: 'Sidechains',
+        subtitle: 'Not available on this network',
+        child: Padding(
+          padding: const EdgeInsets.all(SailStyleValues.padding20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary20('Unlock Sidechains with BIP300'),
+              const SailSpacing(SailStyleValues.padding20),
+              SailText.secondary13(
+                'Sidechains are only available on Drivechain-enabled networks (Forknet and Signet). '
+                'These networks implement BIP300, which enables trustless two-way pegged sidechains.',
+              ),
+              const SailSpacing(SailStyleValues.padding20),
+              SailText.primary15('What are Sidechains?'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailText.secondary13(
+                'Sidechains allow you to move your Bitcoin to separate blockchains with different features, '
+                'while maintaining the security and scarcity of Bitcoin. Think of them as Bitcoin-backed '
+                'altcoins that you can freely move between.',
+              ),
+              const SailSpacing(SailStyleValues.padding20),
+              SailText.primary15('How to Enable Sidechains'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailText.secondary13(
+                '1. Go to Settings\n'
+                '2. Switch to "Forknet" or "Signet" network\n'
+                '3. Restart BitWindow\n'
+                '4. Return to this tab to activate sidechains',
+              ),
+              const SailSpacing(SailStyleValues.padding20),
+              SailText.primary15('Learn More'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailText.secondary13(
+                'BIP300 (Hashrate Escrows) and BIP301 (Blind Merged Mining) enable true sidechain functionality. '
+                'Visit drivechain.info to learn more about how Drivechain works and why it matters for Bitcoin.',
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final error = viewModel.isUsingBitcoinCoreWallet
         ? 'Switch to your enforcer wallet to interact with sidechains'
         : viewModel.error('sidechain');
@@ -419,6 +465,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final SidechainProvider _sidechainProvider = GetIt.I.get<SidechainProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+  final BitcoinConfProvider _confProvider = GetIt.I.get<BitcoinConfProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   final TextEditingController addressController = TextEditingController();
@@ -440,6 +487,14 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
+
+  /// Check if current network supports sidechains (L2L networks only)
+  bool get networkSupportsSidechains {
+    final network = _confProvider.network;
+    return network == Network.NETWORK_FORKNET ||
+        network == Network.NETWORK_SIGNET ||
+        network == Network.NETWORK_REGTEST;
+  }
 
   bool get isUsingBitcoinCoreWallet {
     final activeWallet = _walletReader.activeWallet;
