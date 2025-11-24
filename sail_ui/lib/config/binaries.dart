@@ -969,6 +969,7 @@ extension BinaryPaths on Binary {
     // Get network-specific subdirectory
     final networkDir = switch (confProvider.network) {
       Network.NETWORK_MAINNET => '', // mainnet uses root datadir
+      Network.NETWORK_FORKNET => '', // forknet uses root datadir
       Network.NETWORK_SIGNET => 'signet',
       Network.NETWORK_REGTEST => 'regtest',
       Network.NETWORK_TESTNET => 'testnet',
