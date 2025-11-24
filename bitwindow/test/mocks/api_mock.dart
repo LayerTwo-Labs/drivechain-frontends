@@ -6,6 +6,7 @@ import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/health/v1/health.pb.dart';
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
+import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
@@ -24,7 +25,8 @@ class MockAPI extends BitwindowRPC {
   final HealthAPI health = MockHealthAPI();
   @override
   final M4API m4 = MockM4API();
-
+  @override
+  final NotificationAPI notifications = MockNotificationAPI();
   @override
   Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
 
@@ -72,6 +74,10 @@ class MockAPI extends BitwindowRPC {
   List<String> getMethods() {
     return [];
   }
+
+  @override
+  Stream<NotificationEvent> get notificationStream =>
+      Stream.periodic(const Duration(seconds: 1)).map((_) => NotificationEvent());
 }
 
 class MockBitwindowdAPI implements BitwindowAPI {
@@ -503,5 +509,12 @@ class MockM4API implements M4API {
   @override
   Future<m4pb.GenerateM4BytesResponse> generateM4Bytes() async {
     return m4pb.GenerateM4BytesResponse();
+  }
+}
+
+class MockNotificationAPI implements NotificationAPI {
+  @override
+  Stream<NotificationEvent> watch() {
+    return Stream.periodic(const Duration(seconds: 1)).map((_) => NotificationEvent());
   }
 }

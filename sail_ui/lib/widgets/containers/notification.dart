@@ -35,28 +35,30 @@ class SailNotification extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: SailTheme.of(context).colors.backgroundSecondary,
+              border: Border.all(
+                color: SailTheme.of(context).colors.divider,
+                width: 1,
+              ),
+              borderRadius: SailStyleValues.borderRadius,
               boxShadow: [
                 BoxShadow(color: SailTheme.of(context).colors.shadow, blurRadius: 8, offset: const Offset(0, 2)),
               ],
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 250),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          SailSVG.fromAsset(SailSVGAsset.iconInfo, color: findColorForType(dialogType)),
-                          const SizedBox(width: 8),
-                          SailText.primary13(title, color: theme.colors.text, overflow: TextOverflow.visible),
-                        ],
-                      ),
-                      SailText.primary12(content, color: theme.colors.text, overflow: TextOverflow.visible),
-                    ],
-                  ),
+                SailSVG.fromAsset(SailSVGAsset.iconInfo, color: findColorForType(dialogType)),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.primary13(title, color: theme.colors.text),
+                    SailText.primary12(content, color: theme.colors.text),
+                  ],
                 ),
+                const SizedBox(width: 8),
                 SailButton(
                   variant: ButtonVariant.icon,
                   icon: SailSVGAsset.iconClose,

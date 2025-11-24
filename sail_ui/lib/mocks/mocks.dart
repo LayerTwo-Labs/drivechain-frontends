@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
@@ -275,7 +276,12 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   HealthAPI get health => throw UnimplementedError();
   @override
+  NotificationAPI get notifications => throw UnimplementedError();
+  @override
   Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
+  @override
+  Stream<NotificationEvent> get notificationStream =>
+      Stream.periodic(const Duration(seconds: 1)).map((_) => NotificationEvent());
 
   @override
   bool get connected => _connected;

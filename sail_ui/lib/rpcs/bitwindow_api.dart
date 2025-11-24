@@ -12,6 +12,8 @@ import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
     hide UnspentOutput, GetNewAddressRequest, ListTransactionsRequest, ListUnspentRequest;
 import 'package:sail_ui/gen/m4/v1/m4.connect.client.dart';
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
+import 'package:sail_ui/gen/notification/v1/notification.connect.client.dart';
+import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -30,9 +32,13 @@ abstract class BitwindowRPC extends RPCConnection {
   MiscAPI get misc;
   M4API get m4;
   HealthAPI get health;
+  NotificationAPI get notifications;
 
   /// Stream of health check updates
   Stream<CheckResponse> get healthStream;
+
+  /// Stream of notification events
+  Stream<NotificationEvent> get notificationStream;
 
   Future<dynamic> callRAW(String url, [String body = '{}']);
   List<String> getMethods();
@@ -53,6 +59,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   late M4API m4;
   @override
   late HealthAPI health;
+  @override
+  late NotificationAPI notifications;
 
   BitwindowRPCLive({required String host, required int port})
     : super(binaryType: BinaryType.bitWindow, restartOnFailure: true) {
@@ -71,6 +79,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     misc = _MiscAPILive(MiscServiceClient(transport));
     m4 = _M4APILive(M4ServiceClient(transport));
     health = _HealthAPILive(HealthServiceClient(transport));
+    notifications = _NotificationAPILive(NotificationServiceClient(transport));
 
     // must test connection before moving on, in case it is already running!
     await startConnectionTimer();
@@ -207,6 +216,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       'm4.v1.M4Service/GetM4History',
       'm4.v1.M4Service/GetVotePreferences',
       'm4.v1.M4Service/SetVotePreference',
+      'notification.v1.NotificationService/Watch',
       'wallet.v1.WalletService/CreateSidechainDeposit',
       'wallet.v1.WalletService/GetBalance',
       'wallet.v1.WalletService/GetNewAddress',
@@ -223,22 +233,31 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   // Keep track of the current stream subscription
   StreamSubscription<CheckResponse>? _healthStreamSubscription;
+  StreamSubscription<NotificationEvent>? _notificationStreamSubscription;
 
   // Stream controller to broadcast health updates
   final StreamController<CheckResponse> _healthStreamController = StreamController<CheckResponse>.broadcast();
+  final StreamController<NotificationEvent> _notificationStreamController =
+      StreamController<NotificationEvent>.broadcast();
 
   /// Stream of health check updates
   @override
   Stream<CheckResponse> get healthStream => _healthStreamController.stream;
 
+  /// Stream of notification events
+  @override
+  Stream<NotificationEvent> get notificationStream => _notificationStreamController.stream;
+
   @override
   void onConnectionStateChanged(bool isConnected) {
     if (isConnected) {
-      log.i('Connection state changed to true, starting health stream');
+      log.i('Connection state changed to true, starting health and notification streams');
       startHealthStream();
+      startNotificationStream();
     } else {
-      log.i('Connection state changed to false, stopping health stream');
+      log.i('Connection state changed to false, stopping health and notification streams');
       _healthStreamSubscription?.cancel();
+      _notificationStreamSubscription?.cancel();
       _previousHealthResponse = null;
     }
   }
@@ -292,10 +311,49 @@ class BitwindowRPCLive extends BitwindowRPC {
         });
   }
 
+  void startNotificationStream() {
+    // Cancel any existing subscription first
+    _notificationStreamSubscription?.cancel();
+
+    _notificationStreamSubscription =
+        notifications.watch().listen(
+          (event) {
+            // Broadcast to notification stream listeners
+            _notificationStreamController.add(event);
+          },
+          onError: (error) {
+            log.e('Notification stream error: $error');
+            if (error is Exception) {
+              log.e('Error details: ${error.toString()}');
+            }
+
+            // If we're still connected, try to restart the stream after a delay
+            if (connected) {
+              log.i('Notification stream dropped, but still connected, restarting in 5 seconds...');
+              Future.delayed(const Duration(seconds: 5), () {
+                startNotificationStream();
+              });
+            }
+          },
+          cancelOnError: false,
+        )..onDone(() {
+          log.i('Notification stream completed');
+          // If we're still connected, restart the stream
+          if (connected) {
+            log.i('Stream completed but still connected, restarting notification stream in 5 seconds...');
+            Future.delayed(const Duration(seconds: 5), () {
+              startNotificationStream();
+            });
+          }
+        });
+  }
+
   @override
   void dispose() {
     _healthStreamSubscription?.cancel();
+    _notificationStreamSubscription?.cancel();
     _healthStreamController.close();
+    _notificationStreamController.close();
     super.dispose();
   }
 
@@ -1508,6 +1566,28 @@ class _HealthAPILive implements HealthAPI {
       return response;
     } catch (e) {
       final error = 'could not watch health: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+}
+
+abstract class NotificationAPI {
+  Stream<NotificationEvent> watch();
+}
+
+class _NotificationAPILive implements NotificationAPI {
+  final NotificationServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _NotificationAPILive(this._client);
+
+  @override
+  Stream<NotificationEvent> watch() {
+    try {
+      final response = _client.watch(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not watch notifications: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

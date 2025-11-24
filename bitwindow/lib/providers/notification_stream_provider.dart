@@ -10,6 +10,7 @@ import 'package:sail_ui/sail_ui.dart';
 class NotificationStreamProvider extends ChangeNotifier {
   final log = GetIt.I.get<Logger>();
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
+  final BitwindowRPC bitwindow = GetIt.I.get<BitwindowRPC>();
 
   StreamSubscription<NotificationEvent>? _subscription;
   bool isConnected = false;
@@ -20,19 +21,34 @@ class NotificationStreamProvider extends ChangeNotifier {
 
   Future<void> _startListening() async {
     try {
-      // TODO: Create ConnectRPC client for notifications
-      // For now, this is a placeholder until we set up the client
-      log.w('Notification stream not yet implemented with ConnectRPC');
+      // Subscribe to the notification stream from BitwindowRPC
+      _subscription = bitwindow.notificationStream.listen(
+        _handleEvent,
+        onError: (error) {
+          log.e('Notification stream error: $error');
+          isConnected = false;
+          notifyListeners();
+          unawaited(_reconnect());
+        },
+        onDone: () {
+          log.i('Notification stream closed');
+          isConnected = false;
+          notifyListeners();
+          unawaited(_reconnect());
+        },
+      );
 
-      isConnected = false;
+      isConnected = true;
       notifyListeners();
+      log.i('Notification stream started successfully');
     } catch (e) {
       log.e('Failed to start notification stream: $e');
+      isConnected = false;
+      notifyListeners();
       unawaited(_reconnect());
     }
   }
 
-  // ignore: unused_element
   void _handleEvent(NotificationEvent event) {
     log.d('Received notification event: ${event.whichEvent()}');
 

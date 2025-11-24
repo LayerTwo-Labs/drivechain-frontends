@@ -14,12 +14,12 @@ import (
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type NotificationEngine struct {
 	db       *sql.DB
-	log      zerolog.Logger
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 
 	mu          sync.RWMutex
@@ -32,12 +32,10 @@ type NotificationEngine struct {
 
 func NewNotificationEngine(
 	db *sql.DB,
-	log zerolog.Logger,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 ) *NotificationEngine {
 	return &NotificationEngine{
 		db:                      db,
-		log:                     log.With().Str("component", "notification_engine").Logger(),
 		bitcoind:                bitcoind,
 		subscribers:             make([]chan *notificationv1.NotificationEvent, 0),
 		lastSeenTxs:             make(map[string]uint32),
@@ -46,7 +44,8 @@ func NewNotificationEngine(
 }
 
 func (e *NotificationEngine) Run(ctx context.Context) error {
-	e.log.Info().Msg("notification engine started")
+	log := zerolog.Ctx(ctx)
+	log.Info().Msg("notification engine started")
 
 	// Watch for timestamp confirmations
 	go e.watchTimestamps(ctx)
@@ -55,11 +54,12 @@ func (e *NotificationEngine) Run(ctx context.Context) error {
 	go e.watchWalletTransactions(ctx)
 
 	<-ctx.Done()
-	e.log.Info().Msg("notification engine stopped")
+	log.Info().Msg("notification engine stopped")
 	return ctx.Err()
 }
 
 func (e *NotificationEngine) watchTimestamps(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
@@ -69,13 +69,15 @@ func (e *NotificationEngine) watchTimestamps(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if err := e.checkTimestampConfirmations(ctx); err != nil {
-				e.log.Warn().Err(err).Msg("check timestamp confirmations")
+				log.Warn().Err(err).Msg("check timestamp confirmations")
 			}
 		}
 	}
 }
 
 func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) error {
+	log := zerolog.Ctx(ctx)
+
 	// Get all confirming timestamps
 	confirmingTimestamps, err := timestamps.List(ctx, e.db, timestamps.WithStatus(timestamps.StatusConfirming))
 	if err != nil {
@@ -103,7 +105,7 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 		}))
 		if err != nil {
-			e.log.Warn().
+			log.Warn().
 				Err(err).
 				Str("txid", *ts.TxID).
 				Msg("get raw transaction for notification")
@@ -137,12 +139,12 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 				},
 			}
 
-			e.broadcast(event)
+			e.broadcast(ctx, event)
 
 			// Mark as notified
 			e.lastConfirmedTimestamps[ts.ID] = true
 
-			e.log.Info().
+			log.Info().
 				Int64("id", ts.ID).
 				Str("filename", ts.Filename).
 				Msg("timestamp confirmed notification sent")
@@ -153,6 +155,7 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 }
 
 func (e *NotificationEngine) watchWalletTransactions(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
@@ -162,27 +165,49 @@ func (e *NotificationEngine) watchWalletTransactions(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if err := e.checkWalletTransactions(ctx); err != nil {
-				e.log.Warn().Err(err).Msg("check wallet transactions")
+				log.Warn().Err(err).Msg("check wallet transactions")
 			}
 		}
 	}
 }
 
 func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error {
+	log := zerolog.Ctx(ctx)
+
 	bitcoind, err := e.bitcoind.Get(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Get recent transactions from all wallets
-	resp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
-		Count: 100,
-	}))
+	// Get list of loaded wallets
+	walletsResp, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
 	if err != nil {
 		return err
 	}
 
-	for _, tx := range resp.Msg.Transactions {
+	// Check transactions for each wallet
+	for _, walletName := range walletsResp.Msg.Wallets {
+		resp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
+			Count:  100,
+			Wallet: walletName,
+		}))
+		if err != nil {
+			log.Warn().
+				Err(err).
+				Str("wallet", walletName).
+				Msg("list transactions for wallet")
+			continue
+		}
+
+		e.processWalletTransactions(ctx, resp.Msg.Transactions)
+	}
+
+	return nil
+}
+
+func (e *NotificationEngine) processWalletTransactions(ctx context.Context, transactions []*corepb.GetTransactionResponse) {
+	log := zerolog.Ctx(ctx)
+	for _, tx := range transactions {
 		txid := tx.Txid
 		confirmations := uint32(tx.Confirmations)
 
@@ -203,8 +228,8 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 					},
 				},
 			}
-			e.broadcast(event)
-			e.log.Info().
+			e.broadcast(ctx, event)
+			log.Info().
 				Str("txid", txid).
 				Float64("amount", tx.Amount).
 				Msg("received transaction notification sent")
@@ -223,8 +248,8 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 					},
 				},
 			}
-			e.broadcast(event)
-			e.log.Info().
+			e.broadcast(ctx, event)
+			log.Info().
 				Str("txid", txid).
 				Float64("amount", -tx.Amount).
 				Msg("sent transaction notification sent")
@@ -247,8 +272,8 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 					},
 				},
 			}
-			e.broadcast(event)
-			e.log.Info().
+			e.broadcast(ctx, event)
+			log.Info().
 				Str("txid", txid).
 				Uint32("confirmations", confirmations).
 				Msg("transaction confirmed notification sent")
@@ -259,18 +284,17 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 			e.lastSeenTxs[txid] = confirmations
 		}
 	}
-
-	return nil
 }
 
 func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notificationv1.NotificationEvent {
+	log := zerolog.Ctx(ctx)
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	ch := make(chan *notificationv1.NotificationEvent, 10)
 	e.subscribers = append(e.subscribers, ch)
 
-	e.log.Debug().
+	log.Debug().
 		Int("subscriber_count", len(e.subscribers)).
 		Msg("new subscriber added")
 
@@ -286,7 +310,7 @@ func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notification
 		})
 		close(ch)
 
-		e.log.Debug().
+		log.Debug().
 			Int("subscriber_count", len(e.subscribers)).
 			Msg("subscriber removed")
 	}()
@@ -294,7 +318,8 @@ func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notification
 	return ch
 }
 
-func (e *NotificationEngine) broadcast(event *notificationv1.NotificationEvent) {
+func (e *NotificationEngine) broadcast(ctx context.Context, event *notificationv1.NotificationEvent) {
+	log := zerolog.Ctx(ctx)
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -302,7 +327,7 @@ func (e *NotificationEngine) broadcast(event *notificationv1.NotificationEvent) 
 		select {
 		case sub <- event:
 		default:
-			e.log.Warn().Msg("subscriber channel full, dropping event")
+			log.Warn().Msg("subscriber channel full, dropping event")
 		}
 	}
 }
