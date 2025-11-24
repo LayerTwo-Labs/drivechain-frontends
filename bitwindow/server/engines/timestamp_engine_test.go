@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
@@ -263,6 +264,7 @@ func TestTimestampEngine_UpgradeTimestamp(t *testing.T) {
 				return &connect.Response[corepb.GetBlockResponse]{
 					Msg: &corepb.GetBlockResponse{
 						Height: blockHeight,
+						Time:   timestamppb.Now(),
 					},
 				}, nil
 			}).

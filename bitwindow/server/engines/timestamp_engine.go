@@ -108,10 +108,10 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 		confirmations := resp.Msg.Confirmations
 
 		if confirmations >= 1 {
-			now := time.Now()
 			var blockHeight *int64
+			var confirmedAt *time.Time
 
-			// Get block height from blockhash if available
+			// Get block height and time from blockhash if available
 			if resp.Msg.Blockhash != "" {
 				blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 					Hash:      resp.Msg.Blockhash,
@@ -125,6 +125,10 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 				} else {
 					height := int64(blockResp.Msg.Height)
 					blockHeight = &height
+					if blockResp.Msg.Time != nil {
+						t := blockResp.Msg.Time.AsTime()
+						confirmedAt = &t
+					}
 				}
 			}
 
@@ -135,7 +139,7 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 				ts.TxID,
 				blockHeight,
 				timestamps.StatusConfirmed,
-				&now,
+				confirmedAt,
 			); err != nil {
 				e.log.Warn().
 					Err(err).
@@ -304,10 +308,10 @@ func (e *TimestampEngine) UpgradeTimestamp(ctx context.Context, id int64) (bool,
 	confirmations := resp.Msg.Confirmations
 
 	if confirmations >= 1 {
-		now := time.Now()
 		var blockHeight *int64
+		var confirmedAt *time.Time
 
-		// Get block height from blockhash if available
+		// Get block height and time from blockhash if available
 		if resp.Msg.Blockhash != "" {
 			blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 				Hash:      resp.Msg.Blockhash,
@@ -321,6 +325,10 @@ func (e *TimestampEngine) UpgradeTimestamp(ctx context.Context, id int64) (bool,
 			} else {
 				height := int64(blockResp.Msg.Height)
 				blockHeight = &height
+				if blockResp.Msg.Time != nil {
+					t := blockResp.Msg.Time.AsTime()
+					confirmedAt = &t
+				}
 			}
 		}
 
@@ -331,7 +339,7 @@ func (e *TimestampEngine) UpgradeTimestamp(ctx context.Context, id int64) (bool,
 			timestamp.TxID,
 			blockHeight,
 			timestamps.StatusConfirmed,
-			&now,
+			confirmedAt,
 		); err != nil {
 			return false, nil, "", fmt.Errorf("update timestamp: %w", err)
 		}
