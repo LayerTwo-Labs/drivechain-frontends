@@ -99,6 +99,7 @@ class VerifyTimestampPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SailPage(
       title: 'Verify File Timestamp',
+      scrollable: true,
       body: ViewModelBuilder<VerifyTimestampViewModel>.reactive(
         viewModelBuilder: () => VerifyTimestampViewModel(),
         builder: (context, model, child) {
@@ -207,10 +208,21 @@ class VerifyTimestampPage extends StatelessWidget {
                               SailText.secondary13(model.verificationResult!.message),
                               const SizedBox(height: SailStyleValues.padding08),
                               TimestampInfoRow(label: 'Filename', value: model.verificationResult!.timestamp.filename),
-                              TimestampInfoRow(
-                                label: 'Created',
-                                value: _formatDate(model.verificationResult!.timestamp.createdAt),
-                              ),
+                              if (model.verificationResult!.timestamp.hasConfirmedAt())
+                                TimestampInfoRow(
+                                  label: 'Timestamped',
+                                  value: _formatDate(model.verificationResult!.timestamp.confirmedAt),
+                                ),
+                              if (model.verificationResult!.timestamp.hasBlockHeight())
+                                TimestampInfoRow(
+                                  label: 'Block Height',
+                                  value: model.verificationResult!.timestamp.blockHeight.toString(),
+                                ),
+                              if (model.verificationResult!.timestamp.confirmations > 0)
+                                TimestampInfoRow(
+                                  label: 'Confirmations',
+                                  value: model.verificationResult!.timestamp.confirmations.toString(),
+                                ),
                               if (model.verificationResult!.timestamp.hasTxid())
                                 TimestampInfoRow(label: 'Transaction', value: model.verificationResult!.timestamp.txid),
                             ],

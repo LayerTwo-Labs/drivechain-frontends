@@ -319,7 +319,7 @@ func (p *Parser) opReturnForTXID(
 		panic("PROGRAMMER ERROR: non-nil, zero create time")
 	}
 
-	opReturns, err := p.handleOpReturns(ctx, tx, height)
+	opReturns, err := p.handleOpReturns(ctx, tx, height, createdAt)
 	if err != nil {
 		return fmt.Errorf("find OP_RETURNs: %w", err)
 	}
@@ -356,7 +356,7 @@ func (p *Parser) handleCreateTopic(
 }
 
 func (p *Parser) handleTimestamp(
-	ctx context.Context, data []byte, txid string, height *uint32,
+	ctx context.Context, data []byte, txid string, height *uint32, blockTime *time.Time,
 ) error {
 	// Check if data starts with "STAMP" prefix (5 bytes) followed by 32-byte hash
 	if len(data) != 37 { // 5 bytes prefix + 32 bytes hash
@@ -400,7 +400,7 @@ func (p *Parser) handleTimestamp(
 		BlockHeight: blockHeight,
 		Status:      timestamps.StatusConfirmed,
 		CreatedAt:   now,
-		ConfirmedAt: &now,
+		ConfirmedAt: blockTime, // Use actual block timestamp
 	}
 
 	id, err := timestamps.Create(ctx, p.db, timestamp)
@@ -482,7 +482,7 @@ func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, e
 
 // finds all OP_RETURN outputs for a specific tx
 func (p *Parser) handleOpReturns(
-	ctx context.Context, tx *wire.MsgTx, height *uint32,
+	ctx context.Context, tx *wire.MsgTx, height *uint32, blockTime *time.Time,
 ) ([]opreturns.OPReturn, error) {
 	txid := tx.TxID()
 
@@ -537,7 +537,7 @@ func (p *Parser) handleOpReturns(
 		}
 
 		// Check if this is a timestamp with STAMP prefix
-		if err := p.handleTimestamp(ctx, data, txid, height); err != nil {
+		if err := p.handleTimestamp(ctx, data, txid, height, blockTime); err != nil {
 			zerolog.Ctx(ctx).Warn().
 				Err(err).
 				Str("txid", txid).
