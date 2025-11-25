@@ -119,7 +119,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                           final binaryProvider = GetIt.I.get<BinaryProvider>();
                           final appDir = GetIt.I.get<BinaryProvider>().appDir;
 
-                          await binaryProvider.stop(widget.connection.binary);
+                          await binaryProvider.stop(widget.connection.binary, skipDownstream: true);
 
                           await widget.connection.binary.wipeAsset(binDir(appDir.path));
                           await widget.connection.binary.wipeAppDir();

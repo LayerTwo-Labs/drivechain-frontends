@@ -391,7 +391,8 @@ class BinaryProvider extends ChangeNotifier {
 
   // Stops the binary you pass. First gracefully,
   // then forcefully.
-  Future<void> stop(Binary binary) async {
+  // If skipDownstream is true, bitwindow won't stop downstream services (enforcer, bitcoind).
+  Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
     // Step 1: Call RPC stop()
     try {
       switch (binary) {
@@ -400,7 +401,7 @@ class BinaryProvider extends ChangeNotifier {
         case Enforcer():
           await enforcerRPC?.stop();
         case BitWindow():
-          await bitwindowRPC?.stop();
+          await bitwindowRPC?.bitwindowd.stop(skipDownstream: skipDownstream);
         case Thunder():
           await thunderRPC?.stop();
         case BitNames():

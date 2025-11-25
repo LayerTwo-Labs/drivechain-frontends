@@ -21,6 +21,57 @@ import 'bitwindowd.pbenum.dart';
 
 export 'bitwindowd.pbenum.dart';
 
+class StopBitwindowRequest extends $pb.GeneratedMessage {
+  factory StopBitwindowRequest({
+    $core.bool? skipDownstream,
+  }) {
+    final $result = create();
+    if (skipDownstream != null) {
+      $result.skipDownstream = skipDownstream;
+    }
+    return $result;
+  }
+  StopBitwindowRequest._() : super();
+  factory StopBitwindowRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StopBitwindowRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StopBitwindowRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'skipDownstream')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StopBitwindowRequest clone() => StopBitwindowRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StopBitwindowRequest copyWith(void Function(StopBitwindowRequest) updates) => super.copyWith((message) => updates(message as StopBitwindowRequest)) as StopBitwindowRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StopBitwindowRequest create() => StopBitwindowRequest._();
+  StopBitwindowRequest createEmptyInstance() => create();
+  static $pb.PbList<StopBitwindowRequest> createRepeated() => $pb.PbList<StopBitwindowRequest>();
+  @$core.pragma('dart2js:noInline')
+  static StopBitwindowRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StopBitwindowRequest>(create);
+  static StopBitwindowRequest? _defaultInstance;
+
+  /// If true, only stop bitwindow itself without stopping downstream services (enforcer, bitcoind)
+  @$pb.TagNumber(1)
+  $core.bool get skipDownstream => $_getBF(0);
+  @$pb.TagNumber(1)
+  set skipDownstream($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSkipDownstream() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSkipDownstream() => clearField(1);
+}
+
 class CreateDenialRequest extends $pb.GeneratedMessage {
   factory CreateDenialRequest({
     $core.String? txid,
@@ -2294,7 +2345,7 @@ class BitwindowdServiceApi {
   $pb.RpcClient _client;
   BitwindowdServiceApi(this._client);
 
-  $async.Future<$1.Empty> stop($pb.ClientContext? ctx, $1.Empty request) =>
+  $async.Future<$1.Empty> stop($pb.ClientContext? ctx, StopBitwindowRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'Stop', request, $1.Empty())
   ;
   $async.Future<MineBlocksResponse> mineBlocks($pb.ClientContext? ctx, $1.Empty request) =>
