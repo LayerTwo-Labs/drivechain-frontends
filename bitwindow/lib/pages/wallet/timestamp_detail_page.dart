@@ -103,8 +103,8 @@ class TimestampDetailPage extends StatelessWidget {
                   onCopy: () => model.copyHash(context),
                 ),
                 InfoRow(
-                  label: 'Created',
-                  value: _formatDate(ts.createdAt),
+                  label: 'Timestamped',
+                  value: _formatDate(ts.confirmedAt),
                 ),
                 StatusRow(status: ts.status),
                 if (ts.status == 'confirming' || ts.status == 'confirmed')
@@ -122,11 +122,6 @@ class TimestampDetailPage extends StatelessWidget {
                   InfoRow(
                     label: 'Block Height',
                     value: ts.blockHeight.toString(),
-                  ),
-                if (ts.hasConfirmedAt())
-                  InfoRow(
-                    label: 'Confirmed',
-                    value: _formatDate(ts.confirmedAt),
                   ),
                 const SizedBox(height: SailStyleValues.padding16),
                 Row(
