@@ -41,15 +41,15 @@ import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
-Color getNetworkAccentColor(Network network) {
+Color getNetworkAccentColor(BitcoinNetwork network) {
   switch (network) {
-    case Network.NETWORK_MAINNET:
+    case BitcoinNetwork.NETWORK_MAINNET:
       return const Color.fromARGB(255, 255, 153, 0); // Orange (current)
-    case Network.NETWORK_TESTNET:
+    case BitcoinNetwork.NETWORK_TESTNET:
       return const Color.fromARGB(255, 34, 139, 34); // Green
-    case Network.NETWORK_SIGNET:
+    case BitcoinNetwork.NETWORK_SIGNET:
       return const Color.fromARGB(255, 65, 105, 225); // Blue
-    case Network.NETWORK_REGTEST:
+    case BitcoinNetwork.NETWORK_REGTEST:
       return const Color.fromARGB(255, 220, 20, 60); // Red
     default:
       return const Color.fromARGB(255, 128, 128, 128); // Gray
@@ -347,7 +347,7 @@ class BitwindowApp extends StatefulWidget {
 
 class _BitwindowAppState extends State<BitwindowApp> {
   late BitcoinConfProvider _bitcoinConfProvider;
-  Network? _currentNetwork;
+  BitcoinNetwork? _currentNetwork;
 
   @override
   void initState() {

@@ -31,6 +31,27 @@ final $typed_data.Uint8List directionDescriptor = $convert.base64Decode(
     'CglEaXJlY3Rpb24SGQoVRElSRUNUSU9OX1VOU1BFQ0lGSUVEEAASEgoORElSRUNUSU9OX1NFTk'
     'QQARIVChFESVJFQ1RJT05fUkVDRUlWRRAC');
 
+@$core.Deprecated('Use bitcoinNetworkDescriptor instead')
+const BitcoinNetwork$json = {
+  '1': 'BitcoinNetwork',
+  '2': [
+    {'1': 'BITCOIN_NETWORK_UNSPECIFIED', '2': 0},
+    {'1': 'BITCOIN_NETWORK_UNKNOWN', '2': 1},
+    {'1': 'BITCOIN_NETWORK_MAINNET', '2': 2},
+    {'1': 'BITCOIN_NETWORK_REGTEST', '2': 3},
+    {'1': 'BITCOIN_NETWORK_SIGNET', '2': 4},
+    {'1': 'BITCOIN_NETWORK_TESTNET', '2': 5},
+    {'1': 'BITCOIN_NETWORK_FORKNET', '2': 6},
+  ],
+};
+
+/// Descriptor for `BitcoinNetwork`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List bitcoinNetworkDescriptor = $convert.base64Decode(
+    'Cg5CaXRjb2luTmV0d29yaxIfChtCSVRDT0lOX05FVFdPUktfVU5TUEVDSUZJRUQQABIbChdCSV'
+    'RDT0lOX05FVFdPUktfVU5LTk9XThABEhsKF0JJVENPSU5fTkVUV09SS19NQUlOTkVUEAISGwoX'
+    'QklUQ09JTl9ORVRXT1JLX1JFR1RFU1QQAxIaChZCSVRDT0lOX05FVFdPUktfU0lHTkVUEAQSGw'
+    'oXQklUQ09JTl9ORVRXT1JLX1RFU1RORVQQBRIbChdCSVRDT0lOX05FVFdPUktfRk9SS05FVBAG');
+
 @$core.Deprecated('Use createDenialRequestDescriptor instead')
 const CreateDenialRequest$json = {
   '1': 'CreateDenialRequest',

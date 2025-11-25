@@ -142,7 +142,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     setState(() {});
   }
 
-  Future<void> _handleNetworkChange(Network? network) async {
+  Future<void> _handleNetworkChange(BitcoinNetwork? network) async {
     if (network == null) return;
 
     // Save the current network before switching
@@ -165,7 +165,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     }
 
     // If switching TO mainnet, check if we need to require a blocks directory
-    if (network == Network.NETWORK_MAINNET) {
+    if (network == BitcoinNetwork.NETWORK_MAINNET) {
       // Check if we already have a custom datadir configured
       final hasDataDirConfigured = _selectedDataDir != null;
 
@@ -264,7 +264,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final showDataDir = _confProvider.network == Network.NETWORK_MAINNET || _selectedDataDir != null;
+    final showDataDir = _confProvider.network == BitcoinNetwork.NETWORK_MAINNET || _selectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
     return SailColumn(
@@ -286,28 +286,28 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           children: [
             SailText.primary15('Bitcoin Network'),
             const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<Network>(
+            SailDropdownButton<BitcoinNetwork>(
               value: _confProvider.network,
               enabled: _confProvider.canEditNetwork,
               items: [
-                SailDropdownItem<Network>(
-                  value: Network.NETWORK_MAINNET,
+                SailDropdownItem<BitcoinNetwork>(
+                  value: BitcoinNetwork.NETWORK_MAINNET,
                   label: 'Mainnet',
                 ),
-                SailDropdownItem<Network>(
-                  value: Network.NETWORK_FORKNET,
+                SailDropdownItem<BitcoinNetwork>(
+                  value: BitcoinNetwork.NETWORK_FORKNET,
                   label: 'Forknet',
                 ),
-                SailDropdownItem<Network>(
-                  value: Network.NETWORK_SIGNET,
+                SailDropdownItem<BitcoinNetwork>(
+                  value: BitcoinNetwork.NETWORK_SIGNET,
                   label: 'Signet',
                 ),
-                SailDropdownItem<Network>(
-                  value: Network.NETWORK_TESTNET,
+                SailDropdownItem<BitcoinNetwork>(
+                  value: BitcoinNetwork.NETWORK_TESTNET,
                   label: 'Testnet',
                 ),
               ],
-              onChanged: (Network? network) async {
+              onChanged: (BitcoinNetwork? network) async {
                 if (network != null && _confProvider.canEditNetwork) {
                   await _handleNetworkChange(network);
                 }
@@ -2337,8 +2337,8 @@ class NetworkSwapStep {
 }
 
 class NetworkSwapProgressDialog extends StatefulWidget {
-  final Network fromNetwork;
-  final Network toNetwork;
+  final BitcoinNetwork fromNetwork;
+  final BitcoinNetwork toNetwork;
   final Future<void> Function(void Function(String) updateStatus) swapFunction;
 
   const NetworkSwapProgressDialog({
@@ -2524,13 +2524,13 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
     );
   }
 
-  String _networkDisplayName(Network network) {
+  String _networkDisplayName(BitcoinNetwork network) {
     return switch (network) {
-      Network.NETWORK_MAINNET => 'Mainnet',
-      Network.NETWORK_FORKNET => 'Forknet',
-      Network.NETWORK_TESTNET => 'Testnet',
-      Network.NETWORK_SIGNET => 'Signet',
-      Network.NETWORK_REGTEST => 'Regtest',
+      BitcoinNetwork.NETWORK_MAINNET => 'Mainnet',
+      BitcoinNetwork.NETWORK_FORKNET => 'Forknet',
+      BitcoinNetwork.NETWORK_TESTNET => 'Testnet',
+      BitcoinNetwork.NETWORK_SIGNET => 'Signet',
+      BitcoinNetwork.NETWORK_REGTEST => 'Regtest',
       _ => 'Unknown',
     };
   }

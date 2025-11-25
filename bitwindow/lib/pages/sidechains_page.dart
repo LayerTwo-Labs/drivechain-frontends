@@ -491,9 +491,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   /// Check if current network supports sidechains (L2L networks only)
   bool get networkSupportsSidechains {
     final network = _confProvider.network;
-    return network == Network.NETWORK_FORKNET ||
-        network == Network.NETWORK_SIGNET ||
-        network == Network.NETWORK_REGTEST;
+    return network == BitcoinNetwork.NETWORK_FORKNET ||
+        network == BitcoinNetwork.NETWORK_SIGNET ||
+        network == BitcoinNetwork.NETWORK_REGTEST;
   }
 
   bool get isUsingBitcoinCoreWallet {

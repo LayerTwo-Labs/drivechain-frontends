@@ -843,27 +843,27 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       ],
                       endWidget: SailRow(
                         children: [
-                          SailDropdownButton<Network>(
+                          SailDropdownButton<BitcoinNetwork>(
                             value: _confProvider.network,
                             items: [
-                              SailDropdownItem<Network>(
-                                value: Network.NETWORK_MAINNET,
+                              SailDropdownItem<BitcoinNetwork>(
+                                value: BitcoinNetwork.NETWORK_MAINNET,
                                 label: 'Mainnet',
                               ),
-                              SailDropdownItem<Network>(
-                                value: Network.NETWORK_FORKNET,
+                              SailDropdownItem<BitcoinNetwork>(
+                                value: BitcoinNetwork.NETWORK_FORKNET,
                                 label: 'Forknet',
                               ),
-                              SailDropdownItem<Network>(
-                                value: Network.NETWORK_SIGNET,
+                              SailDropdownItem<BitcoinNetwork>(
+                                value: BitcoinNetwork.NETWORK_SIGNET,
                                 label: 'Signet',
                               ),
-                              SailDropdownItem<Network>(
-                                value: Network.NETWORK_TESTNET,
+                              SailDropdownItem<BitcoinNetwork>(
+                                value: BitcoinNetwork.NETWORK_TESTNET,
                                 label: 'Testnet',
                               ),
                             ],
-                            onChanged: (Network? network) async {
+                            onChanged: (BitcoinNetwork? network) async {
                               if (network == null || !_confProvider.canEditNetwork) return;
 
                               await _confProvider.restartServicesWithProgress(

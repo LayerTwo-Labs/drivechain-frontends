@@ -11,7 +11,7 @@ class CoreConnectionSettings extends ChangeNotifier {
   final String username;
   final String password;
   final bool ssl = false;
-  final Network network;
+  final BitcoinNetwork network;
 
   // Map to store arbitrary config values from config file
   final Map<String, String> configValues;
@@ -34,14 +34,14 @@ class CoreConnectionSettings extends ChangeNotifier {
   }
 
   /// Factory constructor for creating an empty/default config
-  static CoreConnectionSettings empty([Network network = Network.NETWORK_SIGNET]) {
+  static CoreConnectionSettings empty([BitcoinNetwork network = BitcoinNetwork.NETWORK_SIGNET]) {
     // Use correct default port based on network
     final defaultPort = switch (network) {
-      Network.NETWORK_MAINNET => 8332,
-      Network.NETWORK_FORKNET => 18301,
-      Network.NETWORK_TESTNET => 18332,
-      Network.NETWORK_SIGNET => 38332,
-      Network.NETWORK_REGTEST => 18443,
+      BitcoinNetwork.NETWORK_MAINNET => 8332,
+      BitcoinNetwork.NETWORK_FORKNET => 18301,
+      BitcoinNetwork.NETWORK_TESTNET => 18332,
+      BitcoinNetwork.NETWORK_SIGNET => 38332,
+      BitcoinNetwork.NETWORK_REGTEST => 18443,
       _ => 38332, // fallback to signet
     };
 
@@ -63,7 +63,7 @@ class CoreConnectionSettings extends ChangeNotifier {
     required int port,
     required String username,
     required String password,
-    required Network network,
+    required BitcoinNetwork network,
     required Map<String, String> configValues,
     required Set<String> configFromFile,
   }) {
