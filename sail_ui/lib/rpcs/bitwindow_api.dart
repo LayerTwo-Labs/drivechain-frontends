@@ -388,11 +388,12 @@ class BitwindowRPCLive extends BitwindowRPC {
     } catch (e) {
       final errorString = e.toString().toLowerCase();
 
-      // Only recreate when the HTTP/2 connection itself is dropped
-      // These specific errors indicate the HTTP/2 client connection was terminated
+      // Only recreate when the HTTP/2 connection itself is dropped or exhausted
+      // These specific errors indicate the HTTP/2 client connection was terminated or stream limit reached
       if (errorString.contains('http/2 connection is finishing') ||
           errorString.contains('connection closed') ||
-          errorString.contains('stream closed')) {
+          errorString.contains('stream closed') ||
+          errorString.contains('_cancreatenewstream')) {
         log.w('HTTP/2 connection dropped, recreating: ${e.toString()}');
         _recreateConnection();
         // Retry the operation with the new connection
