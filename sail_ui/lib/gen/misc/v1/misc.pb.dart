@@ -1137,10 +1137,14 @@ class ListTimestampsResponse extends $pb.GeneratedMessage {
 class VerifyTimestampRequest extends $pb.GeneratedMessage {
   factory VerifyTimestampRequest({
     $core.List<$core.int>? fileData,
+    $core.String? filename,
   }) {
     final $result = create();
     if (fileData != null) {
       $result.fileData = fileData;
+    }
+    if (filename != null) {
+      $result.filename = filename;
     }
     return $result;
   }
@@ -1150,6 +1154,7 @@ class VerifyTimestampRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VerifyTimestampRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
     ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'fileData', $pb.PbFieldType.OY)
+    ..aOS(2, _omitFieldNames ? '' : 'filename')
     ..hasRequiredFields = false
   ;
 
@@ -1182,6 +1187,15 @@ class VerifyTimestampRequest extends $pb.GeneratedMessage {
   $core.bool hasFileData() => $_has(0);
   @$pb.TagNumber(1)
   void clearFileData() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get filename => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set filename($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFilename() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFilename() => clearField(2);
 }
 
 class VerifyTimestampResponse extends $pb.GeneratedMessage {

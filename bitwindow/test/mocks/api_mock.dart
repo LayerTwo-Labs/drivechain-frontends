@@ -82,7 +82,7 @@ class MockAPI extends BitwindowRPC {
 
 class MockBitwindowdAPI implements BitwindowAPI {
   @override
-  Future<void> stop() async {
+  Future<void> stop({bool skipDownstream = false}) async {
     return;
   }
 
@@ -469,7 +469,7 @@ class MockMiscAPI implements MiscAPI {
   }
 
   @override
-  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData) async {
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename) async {
     return VerifyTimestampResponse();
   }
 }
