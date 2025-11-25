@@ -170,19 +170,30 @@ func IsCreateTopic(data []byte) (TopicInfo, bool) {
 		return TopicInfo{}, false
 	}
 
-	// First 8 chars should be the hex topic
-	topic := hex.EncodeToString(data[:TopicIdLength])
-	topicID, err := ValidNewsTopicID(topic)
+	// First 8 bytes are the topic ID
+	topicID, err := ValidNewsTopicID(hex.EncodeToString(data[:TopicIdLength]))
 	if err != nil {
 		return TopicInfo{}, false
 	}
 
-	// Check if "new" follows the topic
-	name, ok := bytes.CutPrefix(data[TopicIdLength:], newTopicTag)
+	// Check if "new" follows the topic ID
+	rest := data[TopicIdLength:]
+	if !bytes.HasPrefix(rest, newTopicTag) {
+		return TopicInfo{}, false
+	}
+
+	// Name is everything after "new"
+	name := string(rest[len(newTopicTag):])
+
+	// Legacy topic created without double "new" prefix
+	if name == "sflashbitcoinsucks" {
+		name = "newsflashbitcoinsucks"
+	}
+
 	return TopicInfo{
 		ID:   topicID,
-		Name: string(name),
-	}, ok
+		Name: name,
+	}, true
 }
 
 func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, txid string) error {
