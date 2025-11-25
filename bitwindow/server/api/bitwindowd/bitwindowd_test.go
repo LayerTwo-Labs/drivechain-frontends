@@ -36,7 +36,7 @@ func TestService_Stop(t *testing.T) {
 		database := database.Test(t)
 		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
 
-		_, err := cli.Stop(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.Stop(context.Background(), connect.NewRequest(&v1.StopBitwindowRequest{}))
 		require.NoError(t, err)
 	})
 
@@ -49,7 +49,7 @@ func TestService_Stop(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 0)
 		defer cancel()
 
-		_, err := cli.Stop(ctx, connect.NewRequest(&emptypb.Empty{}))
+		_, err := cli.Stop(ctx, connect.NewRequest(&v1.StopBitwindowRequest{}))
 		require.Error(t, err)
 	})
 }

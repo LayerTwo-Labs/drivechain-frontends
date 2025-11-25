@@ -6,7 +6,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service BitwindowdService {
-  rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc Stop(StopBitwindowRequest) returns (google.protobuf.Empty);
 
   rpc MineBlocks(google.protobuf.Empty) returns (stream MineBlocksResponse);
 
@@ -36,6 +36,11 @@ service BitwindowdService {
 
   // Get network statistics
   rpc GetNetworkStats(google.protobuf.Empty) returns (GetNetworkStatsResponse);
+}
+
+message StopBitwindowRequest {
+  // If true, only stop bitwindow itself without stopping downstream services (enforcer, bitcoind)
+  bool skip_downstream = 1;
 }
 
 message CreateDenialRequest {

@@ -404,7 +404,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 }
 
 abstract class BitwindowAPI {
-  Future<void> stop();
+  Future<void> stop({bool skipDownstream = false});
 
   // CPU mining
   Stream<MineBlocksResponse> mineBlocks();
@@ -438,8 +438,8 @@ class _BitwindowAPILive implements BitwindowAPI {
   _BitwindowAPILive(this._client);
 
   @override
-  Future<void> stop() async {
-    await _client.stop(Empty());
+  Future<void> stop({bool skipDownstream = false}) async {
+    await _client.stop(StopBitwindowRequest(skipDownstream: skipDownstream));
   }
 
   @override

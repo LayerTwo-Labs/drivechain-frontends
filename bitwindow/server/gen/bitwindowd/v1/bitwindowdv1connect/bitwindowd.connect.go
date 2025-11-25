@@ -79,7 +79,7 @@ const (
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceClient interface {
-	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	Stop(context.Context, *connect.Request[v1.StopBitwindowRequest]) (*connect.Response[emptypb.Empty], error)
 	MineBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.MineBlocksResponse], error)
 	// Deniability operations
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
@@ -111,7 +111,7 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 	baseURL = strings.TrimRight(baseURL, "/")
 	bitwindowdServiceMethods := v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods()
 	return &bitwindowdServiceClient{
-		stop: connect.NewClient[emptypb.Empty, emptypb.Empty](
+		stop: connect.NewClient[v1.StopBitwindowRequest, emptypb.Empty](
 			httpClient,
 			baseURL+BitwindowdServiceStopProcedure,
 			connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
@@ -200,7 +200,7 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 
 // bitwindowdServiceClient implements BitwindowdServiceClient.
 type bitwindowdServiceClient struct {
-	stop                   *connect.Client[emptypb.Empty, emptypb.Empty]
+	stop                   *connect.Client[v1.StopBitwindowRequest, emptypb.Empty]
 	mineBlocks             *connect.Client[emptypb.Empty, v1.MineBlocksResponse]
 	createDenial           *connect.Client[v1.CreateDenialRequest, emptypb.Empty]
 	cancelDenial           *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
@@ -217,7 +217,7 @@ type bitwindowdServiceClient struct {
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
-func (c *bitwindowdServiceClient) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+func (c *bitwindowdServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopBitwindowRequest]) (*connect.Response[emptypb.Empty], error) {
 	return c.stop.CallUnary(ctx, req)
 }
 
@@ -288,7 +288,7 @@ func (c *bitwindowdServiceClient) GetNetworkStats(ctx context.Context, req *conn
 
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
-	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	Stop(context.Context, *connect.Request[v1.StopBitwindowRequest]) (*connect.Response[emptypb.Empty], error)
 	MineBlocks(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.MineBlocksResponse]) error
 	// Deniability operations
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
@@ -439,7 +439,7 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 // UnimplementedBitwindowdServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBitwindowdServiceHandler struct{}
 
-func (UnimplementedBitwindowdServiceHandler) Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+func (UnimplementedBitwindowdServiceHandler) Stop(context.Context, *connect.Request[v1.StopBitwindowRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.Stop is not implemented"))
 }
 

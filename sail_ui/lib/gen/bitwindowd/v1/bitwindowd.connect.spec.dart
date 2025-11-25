@@ -4,8 +4,8 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 import "bitwindowd.pb.dart" as bitwindowdv1bitwindowd;
+import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 abstract final class BitwindowdService {
   /// Fully-qualified name of the BitwindowdService service.
@@ -14,7 +14,7 @@ abstract final class BitwindowdService {
   static const stop = connect.Spec(
     '/$name/Stop',
     connect.StreamType.unary,
-    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.StopBitwindowRequest.new,
     googleprotobufempty.Empty.new,
   );
 

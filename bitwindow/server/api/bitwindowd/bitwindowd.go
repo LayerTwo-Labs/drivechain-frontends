@@ -73,12 +73,17 @@ type Server struct {
 	config config.Config
 }
 
-// EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+// Stop implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.StopBitwindowRequest]) (*connect.Response[emptypb.Empty], error) {
 	defer func() {
 		zerolog.Ctx(ctx).Info().Msg("shutting down..")
 		s.onShutdown(ctx)
 	}()
+
+	if req.Msg.SkipDownstream {
+		zerolog.Ctx(ctx).Info().Msg("skip_downstream=true, not stopping enforcer or bitcoind")
+		return connect.NewResponse(&emptypb.Empty{}), nil
+	}
 
 	if s.config.GuiBootedMainchain {
 		zerolog.Ctx(ctx).Info().Msg("mainchain was booted by GUI, shutting down bitcoind..")
@@ -1043,7 +1048,7 @@ func (s *Server) getBlockAtHeight(ctx context.Context, bitcoind corerpc.BitcoinS
 
 	block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 		Hash:      hash.Msg.Hash,
-		Verbosity: 1,
+		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
 	if err != nil {
 		return 0, fmt.Errorf("get block: %w", err)
