@@ -3,11 +3,13 @@ package engines
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
 	"connectrpc.com/connect"
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/notifications"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -24,10 +26,6 @@ type NotificationEngine struct {
 
 	mu          sync.RWMutex
 	subscribers []chan *notificationv1.NotificationEvent
-
-	// Track last seen state to detect changes
-	lastSeenTxs             map[string]uint32 // txid -> confirmations
-	lastConfirmedTimestamps map[int64]bool
 }
 
 func NewNotificationEngine(
@@ -35,11 +33,9 @@ func NewNotificationEngine(
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 ) *NotificationEngine {
 	return &NotificationEngine{
-		db:                      db,
-		bitcoind:                bitcoind,
-		subscribers:             make([]chan *notificationv1.NotificationEvent, 0),
-		lastSeenTxs:             make(map[string]uint32),
-		lastConfirmedTimestamps: make(map[int64]bool),
+		db:          db,
+		bitcoind:    bitcoind,
+		subscribers: make([]chan *notificationv1.NotificationEvent, 0),
 	}
 }
 
@@ -95,7 +91,13 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 		}
 
 		// Check if already notified
-		if e.lastConfirmedTimestamps[ts.ID] {
+		eventID := fmt.Sprintf("%d", ts.ID)
+		notified, err := notifications.HasBeenNotified(ctx, e.db, notifications.EventTypeTimestamp, eventID)
+		if err != nil {
+			log.Warn().Err(err).Int64("id", ts.ID).Msg("check timestamp notification status")
+			continue
+		}
+		if notified {
 			continue
 		}
 
@@ -142,7 +144,9 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 			e.broadcast(ctx, event)
 
 			// Mark as notified
-			e.lastConfirmedTimestamps[ts.ID] = true
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTimestamp, eventID); err != nil {
+				log.Warn().Err(err).Int64("id", ts.ID).Msg("mark timestamp notified")
+			}
 
 			log.Info().
 				Int64("id", ts.ID).
@@ -211,11 +215,27 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 		txid := tx.Txid
 		confirmations := uint32(tx.Confirmations)
 
-		// Check if this is a new transaction or confirmation state changed
-		lastConfirmations, seen := e.lastSeenTxs[txid]
+		// Check if we've already notified about this transaction
+		notified, err := notifications.HasBeenNotified(ctx, e.db, notifications.EventTypeTransaction, txid)
+		if err != nil {
+			log.Warn().Err(err).Str("txid", txid).Msg("check transaction notification status")
+			continue
+		}
+
+		// For confirmation notifications, use a separate event type
+		confEventID := txid + ":confirmed"
+		confNotified, err := notifications.HasBeenNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID)
+		if err != nil {
+			log.Warn().Err(err).Str("txid", txid).Msg("check transaction confirmation notification status")
+			continue
+		}
+
+		if notified && confNotified {
+			continue
+		}
 
 		switch {
-		case !seen && tx.Amount > 0:
+		case !notified && tx.Amount > 0:
 			// Received transaction
 			event := &notificationv1.NotificationEvent{
 				Timestamp: timestamppb.Now(),
@@ -229,13 +249,15 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 				},
 			}
 			e.broadcast(ctx, event)
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, txid); err != nil {
+				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
+			}
 			log.Info().
 				Str("txid", txid).
 				Float64("amount", tx.Amount).
 				Msg("received transaction notification sent")
-			e.lastSeenTxs[txid] = confirmations
 
-		case !seen && tx.Amount < 0:
+		case !notified && tx.Amount < 0:
 			// Sent transaction
 			event := &notificationv1.NotificationEvent{
 				Timestamp: timestamppb.Now(),
@@ -249,18 +271,22 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 				},
 			}
 			e.broadcast(ctx, event)
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, txid); err != nil {
+				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
+			}
 			log.Info().
 				Str("txid", txid).
 				Float64("amount", -tx.Amount).
 				Msg("sent transaction notification sent")
-			e.lastSeenTxs[txid] = confirmations
 
-		case !seen:
-			// New transaction with zero amount - just track it
-			e.lastSeenTxs[txid] = confirmations
+		case !notified:
+			// New transaction with zero amount - just mark as seen
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, txid); err != nil {
+				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
+			}
 
-		case lastConfirmations == 0 && confirmations >= 1:
-			// Transaction just got first confirmation
+		case !confNotified && confirmations >= 1:
+			// Transaction just got first confirmation (and we haven't notified about it)
 			event := &notificationv1.NotificationEvent{
 				Timestamp: timestamppb.Now(),
 				Event: &notificationv1.NotificationEvent_Transaction{
@@ -273,15 +299,13 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 				},
 			}
 			e.broadcast(ctx, event)
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
+				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction confirmation notified")
+			}
 			log.Info().
 				Str("txid", txid).
 				Uint32("confirmations", confirmations).
 				Msg("transaction confirmed notification sent")
-			e.lastSeenTxs[txid] = confirmations
-
-		default:
-			// Just update the confirmation count
-			e.lastSeenTxs[txid] = confirmations
 		}
 	}
 }
