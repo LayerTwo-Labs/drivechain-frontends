@@ -88,7 +88,7 @@ class TimestampProvider extends ChangeNotifier {
     }
   }
 
-  Future<VerifyTimestampResponse?> verifyFile(List<int> fileData) async {
+  Future<VerifyTimestampResponse?> verifyFile(List<int> fileData, String filename) async {
     if (fileData.length > maxFileSizeBytes) {
       modelError = 'File too large. Maximum size: 1MB';
       notifyListeners();
@@ -96,7 +96,7 @@ class TimestampProvider extends ChangeNotifier {
     }
 
     try {
-      final resp = await _bitwindowRPC.misc.verifyTimestamp(fileData);
+      final resp = await _bitwindowRPC.misc.verifyTimestamp(fileData, filename);
       modelError = null;
       return resp;
     } catch (e) {

@@ -262,12 +262,17 @@ const VerifyTimestampRequest$json = {
   '1': 'VerifyTimestampRequest',
   '2': [
     {'1': 'file_data', '3': 1, '4': 1, '5': 12, '10': 'fileData'},
+    {'1': 'filename', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'filename', '17': true},
+  ],
+  '8': [
+    {'1': '_filename'},
   ],
 };
 
 /// Descriptor for `VerifyTimestampRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List verifyTimestampRequestDescriptor = $convert.base64Decode(
-    'ChZWZXJpZnlUaW1lc3RhbXBSZXF1ZXN0EhsKCWZpbGVfZGF0YRgBIAEoDFIIZmlsZURhdGE=');
+    'ChZWZXJpZnlUaW1lc3RhbXBSZXF1ZXN0EhsKCWZpbGVfZGF0YRgBIAEoDFIIZmlsZURhdGESHw'
+    'oIZmlsZW5hbWUYAiABKAlIAFIIZmlsZW5hbWWIAQFCCwoJX2ZpbGVuYW1l');
 
 @$core.Deprecated('Use verifyTimestampResponseDescriptor instead')
 const VerifyTimestampResponse$json = {

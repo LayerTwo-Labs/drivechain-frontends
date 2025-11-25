@@ -440,7 +440,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<void> stop({bool skipDownstream = false}) async {
-    await _client.stop(StopBitwindowRequest(skipDownstream: skipDownstream));
+    await _client.stop(StopRequest(skipDownstream: skipDownstream));
   }
 
   @override
@@ -1352,7 +1352,7 @@ abstract class MiscAPI {
   Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content);
   Future<TimestampFileResponse> timestampFile(String filename, List<int> fileData);
   Future<List<FileTimestamp>> listTimestamps();
-  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData);
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename);
 }
 
 class _MiscAPILive implements MiscAPI {
@@ -1452,10 +1452,12 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData) async {
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename) async {
     try {
       final response = await _client.verifyTimestamp(
-        VerifyTimestampRequest()..fileData = fileData,
+        VerifyTimestampRequest()
+          ..fileData = fileData
+          ..filename = filename,
       );
       return response;
     } catch (e) {

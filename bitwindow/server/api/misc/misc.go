@@ -303,54 +303,22 @@ func (s *Server) ListTimestamps(ctx context.Context, req *connect.Request[emptyp
 		return nil, fmt.Errorf("list timestamps: %w", err)
 	}
 
-	// Get bitcoind client for fetching confirmations
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		// If bitcoind is not available, just return timestamps without confirmations
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("bitcoind not available, returning timestamps without confirmations")
-		return connect.NewResponse(&miscv1.ListTimestampsResponse{
-			Timestamps: lo.Map(tsList, func(ts timestamps.FileTimestamp, _ int) *miscv1.FileTimestamp {
-				return timestampToProto(ts, 0)
-			}),
-		}), nil
-	}
-
-	// Fetch confirmations for each timestamp with a txid
-	protoTimestamps := make([]*miscv1.FileTimestamp, len(tsList))
-	for i, ts := range tsList {
-		var confirmations uint32
-
-		if ts.TxID != nil && (ts.Status == timestamps.StatusConfirming || ts.Status == timestamps.StatusConfirmed) {
-			resp, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				Txid:      *ts.TxID,
-				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-			}))
-			if err != nil {
-				zerolog.Ctx(ctx).Warn().
-					Err(err).
-					Str("txid", *ts.TxID).
-					Msg("get confirmations for timestamp")
-			} else {
-				confirmations = resp.Msg.Confirmations
-			}
-		}
-
-		protoTimestamps[i] = timestampToProto(ts, confirmations)
-	}
+	currentBlockHeight := s.getCurrentBlockHeight(ctx)
 
 	return connect.NewResponse(&miscv1.ListTimestampsResponse{
-		Timestamps: protoTimestamps,
+		Timestamps: lo.Map(tsList, func(ts timestamps.FileTimestamp, _ int) *miscv1.FileTimestamp {
+			return timestampToProto(ts, currentBlockHeight)
+		}),
 	}), nil
 }
 
-func timestampToProto(ts timestamps.FileTimestamp, confirmations uint32) *miscv1.FileTimestamp {
+func timestampToProto(ts timestamps.FileTimestamp, currentBlockHeight int64) *miscv1.FileTimestamp {
 	proto := &miscv1.FileTimestamp{
-		Id:            ts.ID,
-		Filename:      ts.Filename,
-		FileHash:      ts.FileHash,
-		Status:        string(ts.Status),
-		CreatedAt:     timestamppb.New(ts.CreatedAt),
-		Confirmations: confirmations,
+		Id:        ts.ID,
+		Filename:  ts.Filename,
+		FileHash:  ts.FileHash,
+		Status:    string(ts.Status),
+		CreatedAt: timestamppb.New(ts.CreatedAt),
 	}
 
 	if ts.TxID != nil {
@@ -358,6 +326,9 @@ func timestampToProto(ts timestamps.FileTimestamp, confirmations uint32) *miscv1
 	}
 	if ts.BlockHeight != nil {
 		proto.BlockHeight = ts.BlockHeight
+		if currentBlockHeight > 0 {
+			proto.Confirmations = uint32(currentBlockHeight - *ts.BlockHeight + 1)
+		}
 	}
 	if ts.ConfirmedAt != nil {
 		proto.ConfirmedAt = timestamppb.New(*ts.ConfirmedAt)
@@ -382,8 +353,22 @@ func (s *Server) VerifyTimestamp(ctx context.Context, req *connect.Request[miscv
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 
+	currentBlockHeight := s.getCurrentBlockHeight(ctx)
+
 	return connect.NewResponse(&miscv1.VerifyTimestampResponse{
-		Timestamp: timestampToProto(*ts, 0),
+		Timestamp: timestampToProto(*ts, currentBlockHeight),
 		Message:   fmt.Sprintf("File verified! Transaction: %s", *ts.TxID),
 	}), nil
+}
+
+func (s *Server) getCurrentBlockHeight(ctx context.Context) int64 {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return 0
+	}
+	info, err := bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
+	if err != nil {
+		return 0
+	}
+	return int64(info.Msg.Blocks)
 }
