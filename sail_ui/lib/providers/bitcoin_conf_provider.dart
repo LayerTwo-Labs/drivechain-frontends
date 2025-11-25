@@ -20,13 +20,13 @@ class BitcoinConfProvider extends ChangeNotifier {
   // Config file state
   bool _hasPrivateBitcoinConf = false;
   String? _currentConfigPath;
-  Network _detectedNetwork = Network.NETWORK_SIGNET;
+  BitcoinNetwork _detectedNetwork = BitcoinNetwork.NETWORK_SIGNET;
   String? _detectedDataDir;
   BitcoinConfig? _currentConfig;
 
   // Getters for settings integration
   bool get hasPrivateBitcoinConf => _hasPrivateBitcoinConf;
-  Network get network {
+  BitcoinNetwork get network {
     return _detectedNetwork;
   }
 
@@ -50,11 +50,11 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     // Fall back to network defaults if no custom port set
     return switch (_detectedNetwork) {
-      Network.NETWORK_MAINNET => 8332, // real Bitcoin mainnet
-      Network.NETWORK_FORKNET => 18301, // forknet
-      Network.NETWORK_TESTNET => 18332,
-      Network.NETWORK_SIGNET => 38332,
-      Network.NETWORK_REGTEST => 18443,
+      BitcoinNetwork.NETWORK_MAINNET => 8332, // real Bitcoin mainnet
+      BitcoinNetwork.NETWORK_FORKNET => 18301, // forknet
+      BitcoinNetwork.NETWORK_TESTNET => 18332,
+      BitcoinNetwork.NETWORK_SIGNET => 38332,
+      BitcoinNetwork.NETWORK_REGTEST => 18443,
       _ => 38332, // fallback to signet
     };
   }
@@ -125,7 +125,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Update network setting - only allowed when using bitwindow-bitcoin.conf
-  Future<void> updateNetwork(Network network) async {
+  Future<void> updateNetwork(BitcoinNetwork network) async {
     if (_hasPrivateBitcoinConf) {
       log.w('Cannot update network - controlled by user bitcoin.conf');
       return;
@@ -152,23 +152,23 @@ class BitcoinConfProvider extends ChangeNotifier {
       _currentConfig!.globalSettings.remove('regtest');
 
       switch (network) {
-        case Network.NETWORK_MAINNET:
+        case BitcoinNetwork.NETWORK_MAINNET:
           _currentConfig!.setSetting('chain', 'main');
           break;
-        case Network.NETWORK_FORKNET:
+        case BitcoinNetwork.NETWORK_FORKNET:
           _currentConfig!.setSetting('chain', 'main');
           break;
-        case Network.NETWORK_TESTNET:
+        case BitcoinNetwork.NETWORK_TESTNET:
           _currentConfig!.setSetting('chain', 'test');
           break;
-        case Network.NETWORK_SIGNET:
+        case BitcoinNetwork.NETWORK_SIGNET:
           _currentConfig!.setSetting('chain', 'signet');
           break;
-        case Network.NETWORK_REGTEST:
+        case BitcoinNetwork.NETWORK_REGTEST:
           _currentConfig!.setSetting('chain', 'regtest');
           break;
-        case Network.NETWORK_UNKNOWN:
-        case Network.NETWORK_UNSPECIFIED:
+        case BitcoinNetwork.NETWORK_UNKNOWN:
+        case BitcoinNetwork.NETWORK_UNSPECIFIED:
           _currentConfig!.setSetting('chain', 'signet');
           break;
       }
@@ -185,10 +185,10 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Check if network supports Layer2 Labs (drivechain) features
-  bool _isL2LNetwork(Network network) {
-    return network == Network.NETWORK_FORKNET ||
-        network == Network.NETWORK_SIGNET ||
-        network == Network.NETWORK_REGTEST;
+  bool _isL2LNetwork(BitcoinNetwork network) {
+    return network == BitcoinNetwork.NETWORK_FORKNET ||
+        network == BitcoinNetwork.NETWORK_SIGNET ||
+        network == BitcoinNetwork.NETWORK_REGTEST;
   }
 
   /// Restart all services when mainnet toggle changes
@@ -242,7 +242,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Restart services with detailed progress updates for UI
-  Future<void> restartServicesWithProgress(Network newNetwork, void Function(String) updateStatus) async {
+  Future<void> restartServicesWithProgress(BitcoinNetwork newNetwork, void Function(String) updateStatus) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
 
     final binaries = [
@@ -335,7 +335,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     // Use network-specific datadir:
     // - MAINNET: ~/Library/Application Support/Bitcoin (standard Bitcoin Core)
     // - FORKNET/SIGNET/TESTNET/REGTEST: ~/Library/Application Support/Drivechain
-    final datadir = _detectedNetwork == Network.NETWORK_MAINNET ? _getMainnetDatadir() : BitcoinCore().datadir();
+    final datadir = _detectedNetwork == BitcoinNetwork.NETWORK_MAINNET ? _getMainnetDatadir() : BitcoinCore().datadir();
 
     if (BitcoinCore().confFile() == 'bitcoin.conf') {
       return (hasPrivateConf: true, path: path.join(datadir, 'bitcoin.conf'));
@@ -365,40 +365,40 @@ class BitcoinConfProvider extends ChangeNotifier {
           // Forknet configs have drivechain=1 in the [main] section
           final drivechainSetting = _currentConfig!.getEffectiveSetting('drivechain', 'main');
           if (drivechainSetting == '1') {
-            _detectedNetwork = Network.NETWORK_FORKNET;
+            _detectedNetwork = BitcoinNetwork.NETWORK_FORKNET;
           } else {
-            _detectedNetwork = Network.NETWORK_MAINNET;
+            _detectedNetwork = BitcoinNetwork.NETWORK_MAINNET;
           }
           return;
         case 'test':
         case 'testnet':
-          _detectedNetwork = Network.NETWORK_TESTNET;
+          _detectedNetwork = BitcoinNetwork.NETWORK_TESTNET;
           return;
         case 'signet':
-          _detectedNetwork = Network.NETWORK_SIGNET;
+          _detectedNetwork = BitcoinNetwork.NETWORK_SIGNET;
           return;
         case 'regtest':
-          _detectedNetwork = Network.NETWORK_REGTEST;
+          _detectedNetwork = BitcoinNetwork.NETWORK_REGTEST;
           return;
       }
     }
 
     // Check for legacy boolean flags
     if (_currentConfig!.getSetting('testnet') == '1') {
-      _detectedNetwork = Network.NETWORK_TESTNET;
+      _detectedNetwork = BitcoinNetwork.NETWORK_TESTNET;
       return;
     }
     if (_currentConfig!.getSetting('signet') == '1') {
-      _detectedNetwork = Network.NETWORK_SIGNET;
+      _detectedNetwork = BitcoinNetwork.NETWORK_SIGNET;
       return;
     }
     if (_currentConfig!.getSetting('regtest') == '1') {
-      _detectedNetwork = Network.NETWORK_REGTEST;
+      _detectedNetwork = BitcoinNetwork.NETWORK_REGTEST;
       return;
     }
 
     // Default to signet if no network specified
-    _detectedNetwork = Network.NETWORK_SIGNET;
+    _detectedNetwork = BitcoinNetwork.NETWORK_SIGNET;
   }
 
   void _detectDataDirFromConfig() {
@@ -482,7 +482,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     final currentNetwork = _detectedNetwork.toCoreNetwork();
 
     // Real mainnet gets minimal standard Bitcoin Core config
-    if (_detectedNetwork == Network.NETWORK_MAINNET) {
+    if (_detectedNetwork == BitcoinNetwork.NETWORK_MAINNET) {
       final mainnetDatadir = _getMainnetDatadir();
       return '''# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings

@@ -229,7 +229,7 @@ class NodeConnectionViewModel extends BaseViewModel {
   ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
   MainchainRPC get mainRPC => GetIt.I.get<MainchainRPC>();
 
-  late Network network;
+  late BitcoinNetwork network;
 
   Future<void> _initNetwork() async {
     network = GetIt.I.get<BitcoinConfProvider>().network;

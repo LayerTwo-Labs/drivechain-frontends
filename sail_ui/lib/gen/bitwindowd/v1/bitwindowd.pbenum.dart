@@ -30,5 +30,30 @@ class Direction extends $pb.ProtobufEnum {
   const Direction._($core.int v, $core.String n) : super(v, n);
 }
 
+class BitcoinNetwork extends $pb.ProtobufEnum {
+  static const BitcoinNetwork NETWORK_UNSPECIFIED = BitcoinNetwork._(0, _omitEnumNames ? '' : 'NETWORK_UNSPECIFIED');
+  static const BitcoinNetwork NETWORK_UNKNOWN = BitcoinNetwork._(1, _omitEnumNames ? '' : 'NETWORK_UNKNOWN');
+  static const BitcoinNetwork NETWORK_MAINNET = BitcoinNetwork._(2, _omitEnumNames ? '' : 'NETWORK_MAINNET');
+  static const BitcoinNetwork NETWORK_REGTEST = BitcoinNetwork._(3, _omitEnumNames ? '' : 'NETWORK_REGTEST');
+  static const BitcoinNetwork NETWORK_SIGNET = BitcoinNetwork._(4, _omitEnumNames ? '' : 'NETWORK_SIGNET');
+  static const BitcoinNetwork NETWORK_TESTNET = BitcoinNetwork._(5, _omitEnumNames ? '' : 'NETWORK_TESTNET');
+  static const BitcoinNetwork NETWORK_FORKNET = BitcoinNetwork._(6, _omitEnumNames ? '' : 'NETWORK_FORKNET');
+
+  static const $core.List<BitcoinNetwork> values = <BitcoinNetwork> [
+    NETWORK_UNSPECIFIED,
+    NETWORK_UNKNOWN,
+    NETWORK_MAINNET,
+    NETWORK_REGTEST,
+    NETWORK_SIGNET,
+    NETWORK_TESTNET,
+    NETWORK_FORKNET,
+  ];
+
+  static final $core.Map<$core.int, BitcoinNetwork> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static BitcoinNetwork? valueOf($core.int value) => _byValue[value];
+
+  const BitcoinNetwork._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

@@ -30,7 +30,7 @@ CoreConnectionSettings readRPCConfig(
   String datadir,
   String confFile,
   Binary chain,
-  Network network, {
+  BitcoinNetwork network, {
   // if set, will force this network, irregardless of runtime argument
   bool useCookieAuth = true,
 }) {
@@ -40,18 +40,20 @@ CoreConnectionSettings readRPCConfig(
   // Both mainnet and forknet use root datadir, other networks use subdirs
   final networkDir = filePath([
     datadir,
-    (network == Network.NETWORK_MAINNET || network == Network.NETWORK_FORKNET) ? '' : network.toReadableNet(),
+    (network == BitcoinNetwork.NETWORK_MAINNET || network == BitcoinNetwork.NETWORK_FORKNET)
+        ? ''
+        : network.toReadableNet(),
   ]);
 
   final cookie = File(filePath([networkDir, '.cookie']));
 
   // Use correct default port based on network
   final defaultPort = switch (network) {
-    Network.NETWORK_MAINNET => 8332, // real Bitcoin mainnet
-    Network.NETWORK_FORKNET => 18301, // forknet
-    Network.NETWORK_TESTNET => 18332,
-    Network.NETWORK_SIGNET => 38332,
-    Network.NETWORK_REGTEST => 18443,
+    BitcoinNetwork.NETWORK_MAINNET => 8332, // real Bitcoin mainnet
+    BitcoinNetwork.NETWORK_FORKNET => 18301, // forknet
+    BitcoinNetwork.NETWORK_TESTNET => 18332,
+    BitcoinNetwork.NETWORK_SIGNET => 38332,
+    BitcoinNetwork.NETWORK_REGTEST => 18443,
     _ => 38332, // fallback to signet for unknown networks
   };
 
@@ -192,20 +194,20 @@ void addEntryIfNotSet(List<String> args, String key, String value) {
   args.add(newEntry);
 }
 
-extension NetworkExtensions on Network {
+extension NetworkExtensions on BitcoinNetwork {
   String toReadableNet() {
     switch (this) {
-      case Network.NETWORK_MAINNET:
+      case BitcoinNetwork.NETWORK_MAINNET:
         return 'mainnet';
-      case Network.NETWORK_FORKNET:
+      case BitcoinNetwork.NETWORK_FORKNET:
         return 'forknet';
-      case Network.NETWORK_SIGNET:
+      case BitcoinNetwork.NETWORK_SIGNET:
         return 'signet';
-      case Network.NETWORK_REGTEST:
+      case BitcoinNetwork.NETWORK_REGTEST:
         return 'regtest';
-      case Network.NETWORK_TESTNET:
+      case BitcoinNetwork.NETWORK_TESTNET:
         return 'testnet';
-      case Network.NETWORK_UNSPECIFIED || Network.NETWORK_UNKNOWN:
+      case BitcoinNetwork.NETWORK_UNSPECIFIED || BitcoinNetwork.NETWORK_UNKNOWN:
       default:
         return 'unknown';
     }
@@ -214,17 +216,17 @@ extension NetworkExtensions on Network {
   /// Get the Bitcoin Core config section name for this network
   String toCoreNetwork() {
     switch (this) {
-      case Network.NETWORK_MAINNET:
+      case BitcoinNetwork.NETWORK_MAINNET:
         return 'main';
-      case Network.NETWORK_FORKNET:
+      case BitcoinNetwork.NETWORK_FORKNET:
         return 'main';
-      case Network.NETWORK_SIGNET:
+      case BitcoinNetwork.NETWORK_SIGNET:
         return 'signet';
-      case Network.NETWORK_REGTEST:
+      case BitcoinNetwork.NETWORK_REGTEST:
         return 'regtest';
-      case Network.NETWORK_TESTNET:
+      case BitcoinNetwork.NETWORK_TESTNET:
         return 'test';
-      case Network.NETWORK_UNSPECIFIED || Network.NETWORK_UNKNOWN:
+      case BitcoinNetwork.NETWORK_UNSPECIFIED || BitcoinNetwork.NETWORK_UNKNOWN:
       default:
         return 'unknown';
     }
