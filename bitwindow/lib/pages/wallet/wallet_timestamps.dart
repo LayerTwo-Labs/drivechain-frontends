@@ -120,7 +120,7 @@ class TimestampsTable extends StatelessWidget {
         headerBuilder: (context) => [
           SailTableHeaderCell(name: 'Filename'),
           SailTableHeaderCell(name: 'Hash'),
-          SailTableHeaderCell(name: 'Created'),
+          SailTableHeaderCell(name: 'Timestamped'),
           SailTableHeaderCell(name: 'Status'),
           SailTableHeaderCell(name: 'Block Height'),
           SailTableHeaderCell(name: 'Actions'),
@@ -133,7 +133,7 @@ class TimestampsTable extends StatelessWidget {
               value: _truncateHash(timestamp.fileHash),
               copyValue: timestamp.fileHash,
             ),
-            SailTableCell(value: _formatDate(timestamp.createdAt)),
+            SailTableCell(value: _formatDate(timestamp.confirmedAt)),
             SailTableCell(
               value: _getStatusLabel(timestamp.status, timestamp.confirmations),
               textColor: _getStatusColor(context, timestamp.status),

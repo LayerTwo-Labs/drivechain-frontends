@@ -303,7 +303,8 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 func (p *Parser) HandleNewRawTransaction(
 	ctx context.Context, tx *wire.MsgTx,
 ) error {
-	if err := p.opReturnForTXID(ctx, tx, nil, nil); err != nil {
+	now := time.Now()
+	if err := p.opReturnForTXID(ctx, tx, nil, &now); err != nil {
 		return fmt.Errorf("find op return for txid: %w", err)
 	}
 
@@ -356,7 +357,7 @@ func (p *Parser) handleCreateTopic(
 }
 
 func (p *Parser) handleTimestamp(
-	ctx context.Context, data []byte, txid string, height *uint32, blockTime *time.Time,
+	ctx context.Context, data []byte, txid string, height *uint32,
 ) error {
 	// Check if data starts with "STAMP" prefix (5 bytes) followed by 32-byte hash
 	if len(data) != 37 { // 5 bytes prefix + 32 bytes hash
@@ -376,19 +377,55 @@ func (p *Parser) handleTimestamp(
 
 	fileHash := hex.EncodeToString(hashBytes)
 
+	// Fetch the actual block time from the transaction
+	var confirmedAt *time.Time
+	var blockHeight *int64
+
+	bitcoind, err := p.bitcoind.Get(ctx)
+	if err == nil {
+		resp, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+			Txid:      txid,
+			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+		}))
+		if err == nil && resp.Msg.Blockhash != "" {
+			blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+				Hash:      resp.Msg.Blockhash,
+				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+			}))
+			if err == nil {
+				if blockResp.Msg.Time != nil {
+					t := blockResp.Msg.Time.AsTime()
+					confirmedAt = &t
+				}
+				h := int64(blockResp.Msg.Height)
+				blockHeight = &h
+			}
+		}
+	}
+
+	// Fallback to passed height if we couldn't fetch
+	if blockHeight == nil && height != nil {
+		h := int64(*height)
+		blockHeight = &h
+	}
+
 	// Check if we already have this timestamp
 	existing, err := timestamps.GetByHash(ctx, p.db, fileHash)
 	if err != nil {
 		return fmt.Errorf("check existing timestamp: %w", err)
 	}
 	if existing != nil {
-		return nil // Already discovered
-	}
-
-	var blockHeight *int64
-	if height != nil {
-		h := int64(*height)
-		blockHeight = &h
+		// Already exists - update block height and confirmed time if missing
+		if (existing.BlockHeight == nil && blockHeight != nil) || (existing.ConfirmedAt == nil && confirmedAt != nil) {
+			newConfirmedAt := existing.ConfirmedAt
+			if newConfirmedAt == nil {
+				newConfirmedAt = confirmedAt
+			}
+			if err := timestamps.Update(ctx, p.db, existing.ID, existing.TxID, blockHeight, timestamps.StatusConfirmed, newConfirmedAt); err != nil {
+				return fmt.Errorf("update existing timestamp: %w", err)
+			}
+		}
+		return nil
 	}
 
 	// Create discovered timestamp
@@ -400,7 +437,7 @@ func (p *Parser) handleTimestamp(
 		BlockHeight: blockHeight,
 		Status:      timestamps.StatusConfirmed,
 		CreatedAt:   now,
-		ConfirmedAt: blockTime, // Use actual block timestamp
+		ConfirmedAt: confirmedAt,
 	}
 
 	id, err := timestamps.Create(ctx, p.db, timestamp)
@@ -482,7 +519,7 @@ func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, e
 
 // finds all OP_RETURN outputs for a specific tx
 func (p *Parser) handleOpReturns(
-	ctx context.Context, tx *wire.MsgTx, height *uint32, blockTime *time.Time,
+	ctx context.Context, tx *wire.MsgTx, height *uint32, _ *time.Time,
 ) ([]opreturns.OPReturn, error) {
 	txid := tx.TxID()
 
@@ -537,7 +574,7 @@ func (p *Parser) handleOpReturns(
 		}
 
 		// Check if this is a timestamp with STAMP prefix
-		if err := p.handleTimestamp(ctx, data, txid, height, blockTime); err != nil {
+		if err := p.handleTimestamp(ctx, data, txid, height); err != nil {
 			zerolog.Ctx(ctx).Warn().
 				Err(err).
 				Str("txid", txid).

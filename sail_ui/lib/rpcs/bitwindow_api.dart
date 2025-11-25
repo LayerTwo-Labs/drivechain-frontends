@@ -440,7 +440,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<void> stop({bool skipDownstream = false}) async {
-    await _client.stop(StopRequest(skipDownstream: skipDownstream));
+    await _client.stop(StopBitwindowRequest(skipDownstream: skipDownstream));
   }
 
   @override

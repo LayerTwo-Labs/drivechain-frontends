@@ -33,13 +33,15 @@ type FileTimestamp struct {
 func Create(ctx context.Context, db *sql.DB, timestamp FileTimestamp) (int64, error) {
 	builder := sq.
 		Insert("file_timestamps").
-		Columns("filename", "file_hash", "txid", "status", "created_at").
+		Columns("filename", "file_hash", "txid", "block_height", "status", "created_at", "confirmed_at").
 		Values(
 			timestamp.Filename,
 			timestamp.FileHash,
 			timestamp.TxID,
+			timestamp.BlockHeight,
 			timestamp.Status,
 			timestamp.CreatedAt,
+			timestamp.ConfirmedAt,
 		)
 
 	sql, args := builder.MustSql()
