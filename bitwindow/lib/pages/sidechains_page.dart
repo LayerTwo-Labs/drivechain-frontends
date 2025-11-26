@@ -366,7 +366,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
           ),
         ],
         rowBuilder: (context, row, selected) {
-          final slot = row; // This is now the slot number (0-254)
+          final slot = row; // This is now the slot number (0-255)
           final sidechain = viewModel.sidechains[slot];
           final textColor = sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
           final buttonWidget = viewModel.sidechainWidget(slot);
@@ -765,7 +765,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   void incrementSelectedIndex() {
-    _selectedIndex = min(254, (_selectedIndex ?? 0) + 1);
+    _selectedIndex = min(255, (_selectedIndex ?? 0) + 1);
     notifyListeners();
   }
 
@@ -782,7 +782,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   List<WithdrawalBundle> get sortedWithdrawals {
-    return _sidechainProvider.sidechains[_selectedIndex ?? 254]?.withdrawals ?? [];
+    return _sidechainProvider.sidechains[_selectedIndex ?? 255]?.withdrawals ?? [];
   }
 
   void sortDeposits(String column) {
@@ -823,7 +823,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   List<ListSidechainDepositsResponse_SidechainDeposit> get recentDeposits =>
-      _sidechainProvider.sidechains[_selectedIndex ?? 254]?.deposits ?? [];
+      _sidechainProvider.sidechains[_selectedIndex ?? 255]?.deposits ?? [];
 
   Future<void> clearAddress() async {
     addressController.clear();
@@ -831,7 +831,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   Future<void> formatAddress() async {
-    final sidechain = sidechainForSlot(_selectedIndex ?? 254);
+    final sidechain = sidechainForSlot(_selectedIndex ?? 255);
     if (sidechain == null) {
       return;
     }
@@ -868,7 +868,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       setBusy(true);
       await _api.wallet.createSidechainDeposit(
         walletId,
-        _selectedIndex ?? 254,
+        _selectedIndex ?? 255,
         addressController.text,
         double.parse(depositAmountController.text),
         double.parse(feeController.text),
