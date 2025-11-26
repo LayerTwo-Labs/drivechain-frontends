@@ -831,11 +831,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   Future<void> formatAddress() async {
-    final sidechain = sidechainForSlot(_selectedIndex ?? 255);
-    if (sidechain == null) {
+    if (_selectedIndex == null) {
       return;
     }
-    addressController.text = formatDepositAddress(addressController.text, sidechain.slot);
+
+    addressController.text = formatDepositAddress(addressController.text, _selectedIndex!);
     notifyListeners();
   }
 
@@ -1040,7 +1040,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                 message: isDisabled ? 'Disabled' : (viewModel.formatError ?? 'Format as deposit address'),
                 child: SailButton(
                   variant: ButtonVariant.icon,
-                  onPressed: isDisabled ? null : viewModel.formatAddress,
+                  onPressed: viewModel.formatAddress,
                   disabled: isDisabled || viewModel.formatError != null,
                   icon: SailSVGAsset.iconFormat,
                 ),
