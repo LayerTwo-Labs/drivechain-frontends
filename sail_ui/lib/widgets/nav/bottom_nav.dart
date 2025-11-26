@@ -88,10 +88,11 @@ class BottomNav extends StatelessWidget {
                                   : const BoxDecoration(),
                               child: SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: model.connectionColor),
                             ),
-                            if (model.connectionStatus == 'All binaries connected')
-                              SailText.secondary12(model.connectionStatus)
-                            else
-                              SailText.primary12(model.connectionStatus),
+                            Flexible(
+                              child: model.connectionStatus == 'All binaries connected'
+                                  ? SailText.secondary12(model.connectionStatus, overflow: TextOverflow.ellipsis)
+                                  : SailText.primary12(model.connectionStatus, overflow: TextOverflow.ellipsis),
+                            ),
                           ],
                         ),
                       ),
@@ -356,6 +357,24 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     return SailColorScheme.orange;
   }
 
+  /// Extracts just the message from log lines like:
+  /// `2025-11-26T06:16:51.195731Z INFO bip300301_enforcer: app/main.rs:376: Listening for JSON-RPC`
+  /// Returns just `Listening for JSON-RPC`
+  String _prettifyMessage(String message) {
+    // Match pattern: timestamp INFO/WARN/etc module: file.rs:line: 'message' or message
+    final logPattern = RegExp(r'^\d{2,4}-\d{2}-\d{2}T[\d:.]+Z\s+\w+\s+.*?:\d+:\s*(.+)$');
+    final match = logPattern.firstMatch(message);
+    if (match != null) {
+      var extracted = match.group(1)!.trim();
+      // Remove surrounding single quotes if present
+      if (extracted.startsWith("'") && extracted.endsWith("'")) {
+        extracted = extracted.substring(1, extracted.length - 1);
+      }
+      return extracted;
+    }
+    return message;
+  }
+
   String get connectionStatus {
     if (syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ?? false) {
       return 'Downloading mainchain...';
@@ -371,12 +390,12 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (mainchain.initializingBinary) {
       final latestLog = mainchain.binary.startupLogs.lastOrNull?.message;
-      return latestLog ?? 'Initializing bitcoind..';
+      return _prettifyMessage(latestLog ?? 'Initializing bitcoind..');
     }
 
     if (enforcer.initializingBinary || enforcer.startupError != null) {
       final latestLog = enforcer.binary.startupLogs.lastOrNull?.message;
-      return latestLog ?? 'Initializing enforcer..';
+      return _prettifyMessage(latestLog ?? 'Initializing enforcer..');
     }
 
     if (additionalConnection.initializingBinary) {
@@ -384,15 +403,15 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (mainchain.connectionError != null || mainchain.startupError != null) {
-      return mainchain.connectionError ?? mainchain.startupError!;
+      return _prettifyMessage(mainchain.connectionError ?? mainchain.startupError!);
     }
 
     if (enforcer.connectionError != null || enforcer.startupError != null) {
-      return enforcer.connectionError ?? enforcer.startupError!;
+      return _prettifyMessage(enforcer.connectionError ?? enforcer.startupError!);
     }
 
     if (additionalConnection.connectionError != null || additionalConnection.rpc.startupError != null) {
-      return additionalConnection.connectionError ?? additionalConnection.rpc.startupError!;
+      return _prettifyMessage(additionalConnection.connectionError ?? additionalConnection.rpc.startupError!);
     }
 
     if (!mainchain.connected) {

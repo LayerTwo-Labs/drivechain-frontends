@@ -88,33 +88,76 @@ class ChequesTab extends StatelessWidget {
                 )
               : null,
           child: model.cheques.isEmpty
-              ? Center(
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding16,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SailText.primary15('No cheques yet'),
-                      SailRow(
-                        spacing: SailStyleValues.padding08,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SailButton(
-                            label: 'Cash a Cheque',
-                            variant: ButtonVariant.secondary,
-                            onPressed: () async => model.cashCheque(context),
-                          ),
-                          SailButton(
-                            label: 'Create Your First Cheque',
-                            onPressed: () async => model.createNewCheque(context),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              ? ChequesEmptyState(
+                  onCreateCheque: () => model.createNewCheque(context),
+                  onCashCheque: () => model.cashCheque(context),
                 )
               : ChequesTable(cheques: model.cheques),
         );
       },
+    );
+  }
+}
+
+class ChequesEmptyState extends StatelessWidget {
+  final VoidCallback onCreateCheque;
+  final VoidCallback onCashCheque;
+
+  const ChequesEmptyState({
+    super.key,
+    required this.onCreateCheque,
+    required this.onCashCheque,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(SailStyleValues.padding20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.primary20('Send Bitcoin Without an Internet Connection'),
+          const SailSpacing(SailStyleValues.padding20),
+          SailText.secondary13(
+            'Checks let you transfer Bitcoin to anyone. '
+            'Create a check with a specific amount, and the recipient can cash it later '
+            "when they're ready to claim the bitcoin.",
+          ),
+          const SailSpacing(SailStyleValues.padding20),
+          SailText.primary15('How It Works'),
+          const SailSpacing(SailStyleValues.padding08),
+          SailText.secondary13(
+            '1. Create a check for a specific amount\n'
+            '2. Share the check data with anyone (QR code, text, print on paper)\n'
+            '3. The recipient cashes the check when convenient\n'
+            '4. Funds move directly to their wallet',
+          ),
+          const SailSpacing(SailStyleValues.padding20),
+          SailText.primary15('Why Use Checks?'),
+          const SailSpacing(SailStyleValues.padding08),
+          SailText.secondary13(
+            "• Gift Bitcoin without needing the recipient's address upfront\n"
+            "• Pay someone who's currently offline\n"
+            '• Pre-fund payments that can be claimed later\n'
+            '• Share value via any communication channel',
+          ),
+          const SailSpacing(SailStyleValues.padding20),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailButton(
+                label: 'Cash a Check',
+                variant: ButtonVariant.secondary,
+                onPressed: () async => onCashCheque(),
+              ),
+              SailButton(
+                label: 'Create Your First Check',
+                onPressed: () async => onCreateCheque(),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
