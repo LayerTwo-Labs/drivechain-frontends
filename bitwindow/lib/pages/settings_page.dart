@@ -7,6 +7,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
+import 'package:bitwindow/dialogs/remove_encryption_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart' show bootBinaries;
@@ -649,24 +650,48 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                 ),
               ),
               const SailSpacing(SailStyleValues.padding08),
-              SailButton(
-                label: 'Change Password',
-                onPressed: () async {
-                  final result = await ChangePasswordDialog.show(context);
-                  if (result == true && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Password changed successfully'),
-                        backgroundColor: theme.colors.success,
-                      ),
-                    );
-                  }
-                },
-                skipLoading: true,
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailButton(
+                    label: 'Change Password',
+                    onPressed: () async {
+                      final result = await ChangePasswordDialog.show(context);
+                      if (result == true && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Password changed successfully'),
+                            backgroundColor: theme.colors.success,
+                          ),
+                        );
+                      }
+                    },
+                    skipLoading: true,
+                  ),
+                  SailButton(
+                    label: 'Remove Encryption',
+                    variant: ButtonVariant.ghost,
+                    onPressed: () async {
+                      final result = await RemoveEncryptionDialog.show(context);
+                      if (result == true) {
+                        await _checkEncryptionStatus();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Encryption removed successfully'),
+                              backgroundColor: theme.colors.success,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    skipLoading: true,
+                  ),
+                ],
               ),
               const SailSpacing(4),
               SailText.secondary12(
-                'Change your wallet encryption password',
+                'Manage your wallet encryption settings',
               ),
             ],
           ),
