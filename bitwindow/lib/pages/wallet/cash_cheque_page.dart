@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/providers/cheque_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -14,9 +13,8 @@ class CashChequePage extends StatefulWidget {
 }
 
 class _CashChequePageState extends State<CashChequePage> {
-  final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
-  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+  final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
   final TextEditingController _wifController = TextEditingController();
   bool _isCashing = false;
 
@@ -88,16 +86,6 @@ class _CashChequePageState extends State<CashChequePage> {
       return;
     }
 
-    // Check if wallet is locked before attempting to import cheque
-    if (!_chequeProvider.isWalletUnlocked) {
-      if (!mounted) return;
-      await _showUnlockDialog();
-      // After unlock dialog closes, check again if unlocked
-      if (!_chequeProvider.isWalletUnlocked) {
-        return;
-      }
-    }
-
     setState(() {
       _isCashing = true;
     });
@@ -106,24 +94,17 @@ class _CashChequePageState extends State<CashChequePage> {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
-      // Get user's receive address
       final destinationAddress = await _bitwindowRPC.wallet.getNewAddress(walletId);
 
-      // Sweep the cheque to the user's wallet
       final result = await _bitwindowRPC.wallet.sweepCheque(
         walletId,
         wif,
         destinationAddress,
-        10, // Default fee rate of 10 sat/vbyte
+        10,
       );
-
-      setState(() {
-        _isCashing = false;
-      });
 
       if (!mounted) return;
 
-      // Navigate to success page
       await context.router.replace(
         CashChequeSuccessRoute(
           txid: result.txid,
@@ -131,18 +112,28 @@ class _CashChequePageState extends State<CashChequePage> {
         ),
       );
     } catch (e) {
-      setState(() {
-        _isCashing = false;
-      });
+      if (!mounted) return;
 
-      if (mounted) {
-        // Check if wallet became locked during operation
-        if (e.toString().toLowerCase().contains('wallet is locked') && !_chequeProvider.isWalletUnlocked) {
+      if (e.toString().toLowerCase().contains('wallet is locked')) {
+        final isEncrypted = await _walletReader.isWalletEncrypted();
+        if (!mounted) return;
+        if (isEncrypted) {
           await _showUnlockDialog();
-          return;
+          if (!mounted) return;
+          if (_walletReader.isWalletUnlocked) {
+            await _cashCheque();
+          }
+        } else {
+          showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
         }
-
+      } else {
         showSnackBar(context, 'Failed to cash cheque: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCashing = false;
+        });
       }
     }
   }
@@ -184,14 +175,14 @@ class _CashChequePageState extends State<CashChequePage> {
               loading: isUnlocking,
               onPressed: () async {
                 setState(() => isUnlocking = true);
-                final success = await _chequeProvider.unlockWallet(passwordController.text);
+                final success = await _walletReader.unlockWallet(passwordController.text);
 
                 if (success && context.mounted) {
                   Navigator.of(context).pop();
                 } else {
                   setState(() => isUnlocking = false);
                   if (context.mounted) {
-                    showSnackBar(context, _chequeProvider.modelError ?? 'Failed to unlock wallet');
+                    showSnackBar(context, 'Incorrect password');
                   }
                 }
               },

@@ -15,6 +15,7 @@ class CreateChequePage extends StatefulWidget {
 
 class _CreateChequePageState extends State<CreateChequePage> {
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
+  final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
   final TextEditingController _amountController = TextEditingController();
   bool _isCreating = false;
 
@@ -88,45 +89,41 @@ class _CreateChequePageState extends State<CreateChequePage> {
       return;
     }
 
-    // Check if wallet is locked before attempting to create cheque
-    if (!_chequeProvider.isWalletUnlocked) {
-      if (!mounted) return;
-      await _showUnlockDialog();
-      // After unlock dialog closes, check again if unlocked
-      if (!_chequeProvider.isWalletUnlocked) {
-        return;
-      }
-    }
-
     final sats = (btcAmount * 100000000).toInt();
 
     setState(() {
       _isCreating = true;
     });
 
-    final cheque = await _chequeProvider.createCheque(sats);
+    try {
+      final cheque = await _chequeProvider.createCheque(sats);
+      if (!mounted) return;
+      await context.router.replace(ChequeDetailRoute(chequeId: cheque.id.toInt()));
+    } catch (e) {
+      if (!mounted) return;
 
-    setState(() {
-      _isCreating = false;
-    });
-
-    if (cheque == null) {
-      if (mounted) {
-        // Check if wallet became locked during operation
-        if (!_chequeProvider.isWalletUnlocked) {
+      if (e.toString().toLowerCase().contains('wallet is locked')) {
+        final isEncrypted = await _walletReader.isWalletEncrypted();
+        if (!mounted) return;
+        if (isEncrypted) {
           await _showUnlockDialog();
-          return;
+          if (!mounted) return;
+          if (_walletReader.isWalletUnlocked) {
+            await _createCheque();
+          }
+        } else {
+          showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
         }
-
-        showSnackBar(context, _chequeProvider.modelError ?? 'Failed to create cheque');
+      } else {
+        showSnackBar(context, e.toString());
       }
-      return;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreating = false;
+        });
+      }
     }
-
-    if (!mounted) return;
-
-    // Navigate to the cheque detail page
-    await context.router.replace(ChequeDetailRoute(chequeId: cheque.id.toInt()));
   }
 
   Future<void> _showUnlockDialog() async {
@@ -166,14 +163,14 @@ class _CreateChequePageState extends State<CreateChequePage> {
               loading: isUnlocking,
               onPressed: () async {
                 setState(() => isUnlocking = true);
-                final success = await _chequeProvider.unlockWallet(passwordController.text);
+                final success = await _walletReader.unlockWallet(passwordController.text);
 
                 if (success && context.mounted) {
                   Navigator.of(context).pop();
                 } else {
                   setState(() => isUnlocking = false);
                   if (context.mounted) {
-                    showSnackBar(context, _chequeProvider.modelError ?? 'Failed to unlock wallet');
+                    showSnackBar(context, 'Incorrect password');
                   }
                 }
               },

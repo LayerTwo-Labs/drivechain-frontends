@@ -9,17 +9,14 @@ import 'package:stacked/stacked.dart';
 
 class ChequesTabViewModel extends BaseViewModel {
   final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
-  bool _wasUnlocked = true;
 
   List<Cheque> get cheques => _chequeProvider.cheques;
   bool get isLoading => _chequeProvider.isLoading;
   @override
   String? get modelError => _chequeProvider.modelError;
-  bool get isWalletUnlocked => _chequeProvider.isWalletUnlocked;
 
   ChequesTabViewModel() {
     _chequeProvider.addListener(_onChequeProviderChanged);
-    _wasUnlocked = _chequeProvider.isWalletUnlocked;
   }
 
   void _onChequeProviderChanged() {
@@ -30,25 +27,12 @@ class ChequesTabViewModel extends BaseViewModel {
     await _chequeProvider.fetch();
   }
 
-  Future<bool> unlockWallet(String password) async {
-    return await _chequeProvider.unlockWallet(password);
-  }
-
   void createNewCheque(BuildContext context) {
     GetIt.I.get<AppRouter>().push(const CreateChequeRoute());
   }
 
   void cashCheque(BuildContext context) {
     GetIt.I.get<AppRouter>().push(const CashChequeRoute());
-  }
-
-  bool checkWalletLocked() {
-    if (_wasUnlocked && !_chequeProvider.isWalletUnlocked) {
-      _wasUnlocked = false;
-      return true;
-    }
-    _wasUnlocked = _chequeProvider.isWalletUnlocked;
-    return false;
   }
 
   @override
