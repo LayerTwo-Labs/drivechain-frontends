@@ -44,7 +44,7 @@ class _CreateChequePageState extends State<CreateChequePage> {
                 spacing: SailStyleValues.padding32,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SailText.primary24('How much should the cheque be for?'),
+                  SailText.primary24('How much should the check be for?'),
                   SailTextField(
                     controller: _amountController,
                     hintText: '0.00000000',
@@ -142,7 +142,7 @@ class _CreateChequePageState extends State<CreateChequePage> {
               spacing: SailStyleValues.padding12,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SailText.secondary13('Enter your wallet password to create cheques'),
+                SailText.secondary13('Enter your wallet password to create checks'),
                 SailTextField(
                   controller: passwordController,
                   hintText: 'Password',
