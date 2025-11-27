@@ -52,15 +52,51 @@ class WalletReaderProvider extends ChangeNotifier {
 
   WalletReaderProvider(this.bitwindowAppDir) {
     _startWatchingWalletsDirectory();
+    _startBackendConnectionListener();
   }
 
   @override
   void dispose() {
     _walletDirWatcher?.cancel();
     _reloadDebounceTimer?.cancel();
+    _stopBackendConnectionListener();
     wallets = [];
     _encryptionKey = null;
     super.dispose();
+  }
+
+  /// Listen for backend reconnections to auto-unlock
+  void _startBackendConnectionListener() {
+    if (!GetIt.I.isRegistered<BitwindowRPC>()) return;
+
+    final bitwindow = GetIt.I.get<BitwindowRPC>();
+    bitwindow.addListener(_onBackendConnectionChanged);
+  }
+
+  void _stopBackendConnectionListener() {
+    if (!GetIt.I.isRegistered<BitwindowRPC>()) return;
+
+    final bitwindow = GetIt.I.get<BitwindowRPC>();
+    bitwindow.removeListener(_onBackendConnectionChanged);
+  }
+
+  /// When backend reconnects, auto-unlock if we have cached password
+  void _onBackendConnectionChanged() {
+    if (unlockedPassword == null) return;
+
+    // Run async unlock in background
+    Future.microtask(() async {
+      try {
+        final bitwindow = GetIt.I.get<BitwindowRPC>();
+        if (!bitwindow.connected) return;
+
+        await bitwindow.wallet.unlockWallet(unlockedPassword!);
+        _logger.i('_onBackendConnectionChanged: Auto-unlocked backend after reconnect');
+      } catch (e) {
+        // Might already be unlocked or other error - that's OK
+        _logger.d('_onBackendConnectionChanged: Backend unlock skipped: $e');
+      }
+    });
   }
 
   void _startWatchingWalletsDirectory() {
@@ -248,6 +284,19 @@ class WalletReaderProvider extends ChangeNotifier {
         _encryptionKey = key;
         unlockedPassword = password;
         await _loadWalletIntoCache();
+
+        // Also unlock the backend if BitwindowRPC is available
+        try {
+          if (GetIt.I.isRegistered<BitwindowRPC>()) {
+            final bitwindow = GetIt.I.get<BitwindowRPC>();
+            await bitwindow.wallet.unlockWallet(password);
+            _logger.i('unlockWallet: Backend wallet unlocked');
+          }
+        } catch (e) {
+          _logger.w('unlockWallet: Failed to unlock backend wallet: $e');
+          // Continue anyway - frontend is unlocked
+        }
+
         notifyListeners();
         return true;
       } catch (e, stack) {
@@ -263,6 +312,17 @@ class WalletReaderProvider extends ChangeNotifier {
       wallets = [];
       _encryptionKey = null;
       unlockedPassword = null;
+
+      // Also lock the backend if BitwindowRPC is available
+      try {
+        if (GetIt.I.isRegistered<BitwindowRPC>()) {
+          final bitwindow = GetIt.I.get<BitwindowRPC>();
+          await bitwindow.wallet.lockWallet();
+          _logger.i('lockWallet: Backend wallet locked');
+        }
+      } catch (e) {
+        _logger.w('lockWallet: Failed to lock backend wallet: $e');
+      }
 
       try {
         final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
@@ -373,6 +433,54 @@ class WalletReaderProvider extends ChangeNotifier {
         notifyListeners();
       } catch (e, stack) {
         _logger.e('changePassword: Failed to change password: $e\n$stack');
+        rethrow;
+      }
+    });
+  }
+
+  /// Remove encryption from wallet entirely
+  Future<void> removeEncryption(String password) async {
+    await _lock.synchronized(() async {
+      try {
+        if (!await _isWalletEncrypted()) {
+          throw Exception('Wallet is not encrypted');
+        }
+
+        final unlocked = await unlockWallet(password);
+        if (!unlocked || wallets.isEmpty) {
+          throw Exception('Incorrect password');
+        }
+
+        final walletFile = getWalletFile();
+        final metadataFile = _getMetadataFile();
+
+        // Read and decrypt wallet data
+        final encryptedData = await walletFile.readAsString();
+        final decryptedJson = EncryptionService.decrypt(encryptedData, _encryptionKey!);
+
+        // Create backup before removing encryption
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final backupFile = File('${walletFile.path}.backup_before_decryption_$timestamp');
+        await walletFile.copy(backupFile.path);
+
+        // Write decrypted JSON
+        await walletFile.writeAsString(decryptedJson);
+
+        // Delete metadata file
+        if (await metadataFile.exists()) {
+          await metadataFile.delete();
+        }
+
+        // Clear encryption state
+        _encryptionKey = null;
+        unlockedPassword = null;
+
+        // Reload wallet from unencrypted file
+        await _loadWalletIntoCache();
+
+        notifyListeners();
+      } catch (e, stack) {
+        _logger.e('removeEncryption: Failed to remove encryption: $e\n$stack');
         rethrow;
       }
     });

@@ -52,7 +52,10 @@ class ChequesTab extends StatelessWidget {
       onViewModelReady: (model) => model.refresh(),
       builder: (context, model, child) {
         return SailCard(
-          title: 'Your Checks',
+          title: model.cheques.isEmpty ? 'Send Bitcoin Without an Internet Connection' : 'Your Checks',
+          subtitle: model.cheques.isEmpty
+              ? "Checks let you transfer Bitcoin to anyone. Create a check with a specific amount, and the recipient can cash it later when they're ready to claim the bitcoin."
+              : null,
           error: model.modelError,
           bottomPadding: false,
           widgetHeaderEnd: model.cheques.isNotEmpty
@@ -95,52 +98,47 @@ class ChequesEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(SailStyleValues.padding20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailText.primary20('Send Bitcoin Without an Internet Connection'),
-          const SailSpacing(SailStyleValues.padding20),
-          SailText.secondary13(
-            'Checks let you transfer Bitcoin to anyone. '
-            'Create a check with a specific amount, and the recipient can cash it later '
-            "when they're ready to claim the bitcoin.",
-          ),
-          const SailSpacing(SailStyleValues.padding20),
-          SailText.primary15('How It Works'),
-          const SailSpacing(SailStyleValues.padding08),
-          SailText.secondary13(
-            '1. Create a check for a specific amount\n'
-            '2. Share the check data with anyone (QR code, text, print on paper)\n'
-            '3. The recipient cashes the check when convenient\n'
-            '4. Funds move directly to their wallet',
-          ),
-          const SailSpacing(SailStyleValues.padding20),
-          SailText.primary15('Why Use Checks?'),
-          const SailSpacing(SailStyleValues.padding08),
-          SailText.secondary13(
-            "• Gift Bitcoin without needing the recipient's address upfront\n"
-            "• Pay someone who's currently offline\n"
-            '• Pre-fund payments that can be claimed later\n'
-            '• Share value via any communication channel',
-          ),
-          const SailSpacing(SailStyleValues.padding20),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SailButton(
-                label: 'Cash a Check',
-                variant: ButtonVariant.secondary,
-                onPressed: () async => onCashCheque(),
-              ),
-              SailButton(
-                label: 'Create Your First Check',
-                onPressed: () async => onCreateCheque(),
-              ),
-            ],
-          ),
-        ],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(SailStyleValues.padding20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('How It Works'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(
+              '1. Create a check for a specific amount\n'
+              '2. Share the check data with anyone (QR code, text, print on paper)\n'
+              '3. The recipient cashes the check when convenient\n'
+              '4. Funds move directly to their wallet',
+            ),
+            const SailSpacing(SailStyleValues.padding20),
+            SailText.primary15('Why Use Checks?'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(
+              "• Gift Bitcoin without needing the recipient's address upfront\n"
+              "• Pay someone who's currently offline\n"
+              '• Pre-fund payments that can be claimed later\n'
+              '• Share value via any communication channel',
+            ),
+            const SailSpacing(SailStyleValues.padding20),
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailButton(
+                  label: 'Cash a Check',
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async => onCashCheque(),
+                ),
+                SailButton(
+                  label: 'Create Your First Check',
+                  onPressed: () async => onCreateCheque(),
+                ),
+                Expanded(child: Container()),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
