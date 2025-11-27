@@ -17,136 +17,24 @@ class ChequeProvider extends ChangeNotifier {
   List<Cheque> _cheques = [];
   bool _isLoading = false;
   String? modelError;
-  bool _isWalletUnlocked = false;
-  String? _pendingPassword;
-  StreamSubscription? _healthStreamSubscription;
 
   List<Cheque> get cheques => _cheques;
   bool get isLoading => _isLoading;
-  bool get isWalletUnlocked => _isWalletUnlocked;
 
   Timer? _pollTimer;
   int? _pollingChequeId;
-  Timer? _unlockCheckTimer;
 
   ChequeProvider() {
-    _walletReader.addListener(_onWalletReaderChanged);
-    _bitwindowRPC.addListener(_onBitwindowConnectionChanged);
     GetIt.I.get<BlockchainProvider>().addListener(_onNewBlock);
     _init();
   }
 
   Future<void> _init() async {
-    await checkUnlockStatus();
-
-    // If frontend wallet is already unlocked but backend isn't, unlock backend
-    if (_walletReader.isWalletUnlocked && !_isWalletUnlocked) {
-      final password = _walletReader.unlockedPassword;
-      log.d('_init: password=${password != null ? "present" : "null"}');
-      if (password != null) {
-        log.d('_init: frontend already unlocked, unlocking backend');
-        await unlockWallet(password);
-      }
-    }
-
-    if (_isWalletUnlocked) {
-      await fetch();
-    }
-    _setupHealthStreamListener();
-  }
-
-  void _onBitwindowConnectionChanged() {
-    if (_bitwindowRPC.connected && _pendingPassword != null) {
-      _tryUnlockBackend(_pendingPassword!);
-    }
+    await fetch();
   }
 
   void _onNewBlock() {
-    if (_isWalletUnlocked) {
-      fetch();
-    }
-  }
-
-  void _onWalletReaderChanged() {
-    // When wallet reader is unlocked, try to propagate to backend
-    if (_walletReader.isWalletUnlocked && !_isWalletUnlocked) {
-      final password = _walletReader.unlockedPassword ?? _pendingPassword;
-      log.d('_onWalletReaderChanged: attempting unlock with password=${password != null ? "present" : "null"}');
-      if (password != null) {
-        unlockWallet(password);
-      }
-    } else if (!_walletReader.isWalletUnlocked && _isWalletUnlocked) {
-      // Wallet was locked, propagate to backend
-      log.d('_onWalletReaderChanged: locking backend');
-      lockWallet();
-    }
-  }
-
-  void _setupHealthStreamListener() {
-    _healthStreamSubscription?.cancel();
-
-    // Listen to bitwindow health check stream for connection status changes
-    _healthStreamSubscription = _bitwindowRPC.healthStream.listen((healthResponse) {
-      // When backend comes online and we have a pending password, try to unlock
-      if (_pendingPassword != null && !_isWalletUnlocked) {
-        _tryUnlockBackend(_pendingPassword!);
-      }
-    });
-  }
-
-  Future<void> checkUnlockStatus() async {
-    try {
-      await _bitwindowRPC.wallet.isWalletUnlocked();
-      _isWalletUnlocked = true;
-    } catch (e) {
-      _isWalletUnlocked = false;
-    }
-    notifyListeners();
-  }
-
-  Future<bool> _tryUnlockBackend(String password) async {
-    try {
-      await _bitwindowRPC.wallet.unlockWallet(password);
-      _isWalletUnlocked = true;
-      modelError = null;
-      await fetch();
-      notifyListeners();
-      return true;
-    } catch (e) {
-      log.w('Backend unlock attempt failed: $e');
-      return false;
-    }
-  }
-
-  Future<bool> unlockWallet(String password) async {
-    _pendingPassword = password;
-    final success = await _tryUnlockBackend(password);
-
-    if (success) {
-      _pendingPassword = null;
-      _startUnlockCheckTimer();
-    }
-
-    return success;
-  }
-
-  /// Call this when the wallet reader provider unlocks with a password
-  void propagateUnlock(String password) {
-    _pendingPassword = password;
-    // Health stream listener will automatically try unlock when backend is ready
-  }
-
-  Future<void> lockWallet() async {
-    try {
-      await _bitwindowRPC.wallet.lockWallet();
-      _isWalletUnlocked = false;
-      _cheques = [];
-      stopPolling();
-      _stopUnlockCheckTimer();
-      notifyListeners();
-    } catch (e) {
-      log.e('Failed to lock wallet: $e');
-    }
+    fetch();
   }
 
   Future<void> fetch() async {
@@ -171,34 +59,21 @@ class ChequeProvider extends ChangeNotifier {
     }
   }
 
-  Future<Cheque?> createCheque(int expectedAmountSats) async {
-    try {
-      final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
-      final resp = await _bitwindowRPC.wallet.createCheque(walletId, expectedAmountSats);
+  Future<Cheque> createCheque(int expectedAmountSats) async {
+    final walletId = _walletReader.activeWalletId;
+    if (walletId == null) throw Exception('No active wallet');
+    final resp = await _bitwindowRPC.wallet.createCheque(walletId, expectedAmountSats);
 
-      final cheque = Cheque(
-        id: resp.id,
-        derivationIndex: resp.derivationIndex,
-        address: resp.address,
-        expectedAmountSats: Int64(expectedAmountSats),
-      );
+    final cheque = Cheque(
+      id: resp.id,
+      derivationIndex: resp.derivationIndex,
+      address: resp.address,
+      expectedAmountSats: Int64(expectedAmountSats),
+    );
 
-      _cheques.insert(0, cheque);
-      notifyListeners();
-      return cheque;
-    } catch (e) {
-      log.e('Failed to create cheque: $e');
-      modelError = e.toString();
-
-      // Check if error is wallet locked
-      if (e.toString().toLowerCase().contains('wallet is locked')) {
-        _isWalletUnlocked = false;
-      }
-
-      notifyListeners();
-      return null;
-    }
+    _cheques.insert(0, cheque);
+    notifyListeners();
+    return cheque;
   }
 
   Future<Cheque?> getCheque(int id) async {
@@ -242,35 +117,21 @@ class ChequeProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
-    try {
-      final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
-      final result = await _bitwindowRPC.wallet.sweepCheque(
-        walletId,
-        privateKeyWif,
-        destinationAddress,
-        feeSatPerVbyte,
-      );
-      await fetch();
-      return result.txid;
-    } catch (e) {
-      log.e('Failed to sweep cheque: $e');
-      modelError = e.toString();
-
-      // Check if error is wallet locked
-      if (e.toString().toLowerCase().contains('wallet is locked')) {
-        _isWalletUnlocked = false;
-      }
-
-      notifyListeners();
-      return null;
-    }
+  Future<String> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
+    final walletId = _walletReader.activeWalletId;
+    if (walletId == null) throw Exception('No active wallet');
+    final result = await _bitwindowRPC.wallet.sweepCheque(
+      walletId,
+      privateKeyWif,
+      destinationAddress,
+      feeSatPerVbyte,
+    );
+    await fetch();
+    return result.txid;
   }
 
   Future<bool> deleteCheque(int id) async {
     try {
-      // Stop polling if we're deleting the cheque being polled
       if (_pollingChequeId == id) {
         stopPolling();
       }
@@ -299,7 +160,6 @@ class ChequeProvider extends ChangeNotifier {
           stopPolling();
         }
       } catch (e) {
-        // Cheque might have been deleted or other error
         log.w('Error checking cheque funding (cheque may have been deleted): $e');
         stopPolling();
       }
@@ -312,46 +172,10 @@ class ChequeProvider extends ChangeNotifier {
     _pollingChequeId = null;
   }
 
-  void _startUnlockCheckTimer() {
-    _stopUnlockCheckTimer();
-    _unlockCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      await _checkAndAutoUnlock();
-    });
-  }
-
-  void _stopUnlockCheckTimer() {
-    _unlockCheckTimer?.cancel();
-    _unlockCheckTimer = null;
-  }
-
-  Future<void> _checkAndAutoUnlock() async {
-    final password = _walletReader.unlockedPassword;
-    if (password == null) {
-      _stopUnlockCheckTimer();
-      return;
-    }
-
-    try {
-      await _bitwindowRPC.wallet.isWalletUnlocked();
-      // Wallet is unlocked, all good
-    } catch (e) {
-      // Wallet is locked, auto-unlock it
-      log.i('Backend wallet locked, auto-unlocking...');
-      final success = await _tryUnlockBackend(password);
-      if (!success) {
-        log.w('Auto-unlock failed, will retry in 5 seconds');
-      }
-    }
-  }
-
   @override
   void dispose() {
-    _walletReader.removeListener(_onWalletReaderChanged);
-    _bitwindowRPC.removeListener(_onBitwindowConnectionChanged);
     GetIt.I.get<BlockchainProvider>().removeListener(_onNewBlock);
-    _healthStreamSubscription?.cancel();
     stopPolling();
-    _stopUnlockCheckTimer();
     super.dispose();
   }
 }

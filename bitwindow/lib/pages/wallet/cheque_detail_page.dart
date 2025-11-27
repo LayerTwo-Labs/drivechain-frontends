@@ -31,7 +31,6 @@ class ChequeDetailViewModel extends BaseViewModel {
   }
 
   void _onChequeProviderChanged() {
-    // Reload when provider updates (e.g., from polling)
     _loadCheque();
   }
 
@@ -43,7 +42,6 @@ class ChequeDetailViewModel extends BaseViewModel {
     if (_cheque == null) {
       modelError = 'Check not found';
     } else if (!_cheque!.hasFundedTxid()) {
-      // Start polling if not yet funded
       _chequeProvider.startPolling(chequeId);
     }
 
@@ -80,11 +78,10 @@ class ChequeDetailViewModel extends BaseViewModel {
 
       final amountSats = _cheque!.expectedAmountSats.toInt();
 
-      // Send bitcoin to the cheque address using the enforcer wallet
       final txid = await bitwindowRPC.wallet.sendTransaction(
         walletId,
         {_cheque!.address: amountSats},
-        feeSatPerVbyte: 10, // Default fee rate
+        feeSatPerVbyte: 10,
       );
 
       if (!context.mounted) return;
@@ -94,7 +91,6 @@ class ChequeDetailViewModel extends BaseViewModel {
         'Transaction sent! TXID: ${txid.substring(0, 10)}...',
       );
 
-      // Navigate back to wallet page
       Navigator.of(context).pop();
     } catch (e) {
       if (!context.mounted) return;
@@ -109,16 +105,6 @@ class ChequeDetailViewModel extends BaseViewModel {
   Future<void> sweepCheque(BuildContext context) async {
     if (_cheque == null || !_cheque!.hasFundedTxid()) return;
 
-    // Check if wallet is locked before attempting sweep
-    if (!_chequeProvider.isWalletUnlocked) {
-      if (!context.mounted) return;
-      await _showUnlockDialog(context);
-      // After unlock dialog closes, check again if unlocked
-      if (!_chequeProvider.isWalletUnlocked) {
-        return;
-      }
-    }
-
     final destinationAddress = _transactionProvider.address;
     if (destinationAddress.isEmpty) {
       if (context.mounted) {
@@ -127,7 +113,6 @@ class ChequeDetailViewModel extends BaseViewModel {
       return;
     }
 
-    // Get the private key WIF - this requires the cheque to have it
     if (!_cheque!.hasPrivateKeyWif() || _cheque!.privateKeyWif.isEmpty) {
       if (context.mounted) {
         showSnackBar(context, 'Private key not available - wallet may be locked');
@@ -139,24 +124,8 @@ class ChequeDetailViewModel extends BaseViewModel {
       final txid = await _chequeProvider.sweepCheque(
         _cheque!.privateKeyWif,
         destinationAddress,
-        10, // Default fee rate of 10 sat/vbyte
+        10,
       );
-
-      if (txid == null) {
-        if (!context.mounted) return;
-
-        // Check if wallet became locked during operation
-        if (!_chequeProvider.isWalletUnlocked) {
-          await _showUnlockDialog(context);
-          return;
-        }
-
-        showSnackBar(
-          context,
-          'Failed to sweep cheque: ${_chequeProvider.modelError ?? "Unknown error"}',
-        );
-        return;
-      }
 
       if (!context.mounted) return;
 
@@ -165,15 +134,25 @@ class ChequeDetailViewModel extends BaseViewModel {
         'Check swept! TXID: ${txid.substring(0, 10)}...',
       );
 
-      // Navigate back to wallet page
       Navigator.of(context).pop();
     } catch (e) {
       if (!context.mounted) return;
 
-      showSnackBar(
-        context,
-        'Failed to sweep cheque: $e',
-      );
+      if (e.toString().toLowerCase().contains('wallet is locked')) {
+        final isEncrypted = await _walletReader.isWalletEncrypted();
+        if (!context.mounted) return;
+        if (isEncrypted) {
+          await _showUnlockDialog(context);
+          if (!context.mounted) return;
+          if (_walletReader.isWalletUnlocked) {
+            await sweepCheque(context);
+          }
+        } else {
+          showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
+        }
+      } else {
+        showSnackBar(context, 'Failed to sweep cheque: $e');
+      }
     }
   }
 
@@ -214,14 +193,14 @@ class ChequeDetailViewModel extends BaseViewModel {
               loading: isUnlocking,
               onPressed: () async {
                 setState(() => isUnlocking = true);
-                final success = await _chequeProvider.unlockWallet(passwordController.text);
+                final success = await _walletReader.unlockWallet(passwordController.text);
 
                 if (success && context.mounted) {
                   Navigator.of(context).pop();
                 } else {
                   setState(() => isUnlocking = false);
                   if (context.mounted) {
-                    showSnackBar(context, _chequeProvider.modelError ?? 'Failed to unlock wallet');
+                    showSnackBar(context, 'Incorrect password');
                   }
                 }
               },
@@ -304,7 +283,6 @@ class ChequeDetailPage extends StatelessWidget {
                                 child: Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    // Outer circle
                                     Container(
                                       width: 32,
                                       height: 32,
@@ -315,7 +293,6 @@ class ChequeDetailPage extends StatelessWidget {
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.2),
                                       ),
                                     ),
-                                    // Middle circle
                                     Container(
                                       width: 20,
                                       height: 20,
@@ -326,7 +303,6 @@ class ChequeDetailPage extends StatelessWidget {
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.5),
                                       ),
                                     ),
-                                    // Inner circle
                                     Container(
                                       width: 12,
                                       height: 12,
@@ -346,8 +322,6 @@ class ChequeDetailPage extends StatelessWidget {
                               ),
                             ],
                           ),
-
-                          // QR Code
                           if (!cheque.hasFundedTxid())
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding20),
@@ -362,8 +336,6 @@ class ChequeDetailPage extends StatelessWidget {
                                 backgroundColor: context.sailTheme.colors.backgroundSecondary,
                               ),
                             ),
-
-                          // Address with copy button
                           if (!cheque.hasFundedTxid())
                             SailRow(
                               spacing: SailStyleValues.padding08,
@@ -378,8 +350,6 @@ class ChequeDetailPage extends StatelessWidget {
                                 CopyButton(text: cheque.address),
                               ],
                             ),
-
-                          // Private key section (only shown when funded)
                           if (cheque.hasFundedTxid() && cheque.hasPrivateKeyWif() && cheque.privateKeyWif.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding16),
@@ -427,8 +397,6 @@ class ChequeDetailPage extends StatelessWidget {
                                 ],
                               ),
                             ),
-
-                          // Fund button (only if not funded)
                           if (!cheque.hasFundedTxid())
                             SizedBox(
                               width: 400,
@@ -467,8 +435,6 @@ class ChequeDetailPage extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                          // Sweep button (only if funded)
                           if (cheque.hasFundedTxid())
                             SizedBox(
                               width: 400,

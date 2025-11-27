@@ -118,11 +118,8 @@ class WalletReaderProvider extends ChangeNotifier {
 
   /// Initialize - load wallet file
   Future<void> init() async {
-    _logger.i('[LOCK] init: Acquiring lock');
     await _lock.synchronized(() async {
-      _logger.i('[LOCK] init: Lock acquired');
       await _loadWalletIntoCache();
-      _logger.i('[LOCK] init: Releasing lock');
     });
   }
 

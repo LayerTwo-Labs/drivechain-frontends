@@ -102,7 +102,7 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
             children: [
               const BootTitle(
                 title: 'Decrypt Your Wallet',
-                subtitle: 'Your wallet is encrypted. Please enter your password to unlock it and continue.',
+                subtitle: 'Your wallet is encrypted. Please enter your password to unlock it.',
               ),
               const Spacer(),
               // Password input
