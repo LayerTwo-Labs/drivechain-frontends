@@ -229,12 +229,11 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final response = await _client().call('transfer', {
-      'dest': address,
-      'value': btcToSatoshi(amount),
-      'fee': btcToSatoshi(0.00001), // Fixed fee
-      'memo': null,
-    });
+    final response = await _client().call('transfer', [
+      address,
+      btcToSatoshi(amount).toInt(),
+      btcToSatoshi(0.00001).toInt(),
+    ]);
     return response as String;
   }
 

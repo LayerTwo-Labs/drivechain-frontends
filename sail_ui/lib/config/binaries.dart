@@ -185,13 +185,28 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['bitdrive', network.toReadableNet(), 'debug.log', 'mining.txt']);
 
       case BinaryType.bitnames:
-        await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(dir, [
+          'data.mdb',
+          'logs',
+          'wallet.mdb', // bitwindow has a backup!
+        ]);
 
       case BinaryType.bitassets:
-        await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(dir, [
+          'data.mdb', 'logs',
+          'wallet.mdb', // bitwindow has a backup!
+        ]);
 
       case BinaryType.thunder:
-        await _deleteFilesInDir(dir, ['data.mdb', 'logs', 'start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']);
+        await _deleteFilesInDir(dir, [
+          'data.mdb',
+          'logs',
+          'start.sh',
+          'thunder.conf',
+          'thunder.zip',
+          'thunder_app',
+          'wallet.mdb', // bitwindow has a backup!
+        ]);
 
       case BinaryType.zSide:
         await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
