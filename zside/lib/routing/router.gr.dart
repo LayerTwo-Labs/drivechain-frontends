@@ -154,22 +154,6 @@ class ZSideMeltCastTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ZSideRPCTabPage]
-class ZSideRPCTabRoute extends PageRouteInfo<void> {
-  const ZSideRPCTabRoute({List<PageRouteInfo>? children})
-    : super(ZSideRPCTabRoute.name, initialChildren: children);
-
-  static const String name = 'ZSideRPCTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const ZSideRPCTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [ZSideShieldDeshieldTabPage]
 class ZSideShieldDeshieldTabRoute extends PageRouteInfo<void> {
   const ZSideShieldDeshieldTabRoute({List<PageRouteInfo>? children})

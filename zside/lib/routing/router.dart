@@ -6,7 +6,6 @@ import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
 import 'package:zside/pages/tabs/zside/zside_bill_page.dart';
 import 'package:zside/pages/tabs/zside/zside_melt_cast_page.dart';
-import 'package:zside/pages/tabs/zside/zside_rpc_tab_page.dart';
 import 'package:zside/pages/tabs/zside/zside_shield_deshield_page.dart';
 import 'package:zside/pages/tabs/zside/zside_transfer_page.dart';
 import 'package:zside/pages/tabs/zside_configure_homepage_page.dart';
@@ -59,9 +58,6 @@ class AppRouter extends RootStackRouter {
         ),
         AutoRoute(
           page: ZSideTransferTabRoute.page,
-        ),
-        AutoRoute(
-          page: ZSideRPCTabRoute.page,
         ),
         AutoRoute(
           page: SettingsTabRoute.page,
