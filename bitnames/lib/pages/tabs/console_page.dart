@@ -16,14 +16,10 @@ class _ConsoleTabPageState extends State<ConsoleTabPage> {
   Widget build(BuildContext context) {
     return QtPage(
       child: SailColumn(
-        spacing: SailStyleValues.padding10,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           const Expanded(
             child: IntegratedConsoleView(),
           ),
-          const SailSpacing(SailStyleValues.padding40),
         ],
       ),
     );

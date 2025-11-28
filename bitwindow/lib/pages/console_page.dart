@@ -15,9 +15,9 @@ class _ConsolePageState extends State<ConsolePage> {
   @override
   Widget build(BuildContext context) {
     return QtPage(
-      child: Column(
+      child: SailColumn(
         children: [
-          Expanded(
+          const Expanded(
             child: IntegratedConsoleView(),
           ),
         ],
