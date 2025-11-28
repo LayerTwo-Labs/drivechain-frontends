@@ -50,8 +50,14 @@ Future<void> runMultiWindow(
   );
 
   switch (arguments['window_type']) {
-    case 'console':
+    case SubWindowTypes.consoleId:
       child = const IntegratedConsoleView();
+      break;
+    case SubWindowTypes.logsId:
+      child = LogPage(
+        logPath: logFile.path,
+        title: 'BitNames Logs',
+      );
       break;
   }
 
