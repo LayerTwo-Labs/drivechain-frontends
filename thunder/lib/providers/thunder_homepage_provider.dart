@@ -1,6 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:thunder/widgets/thunder_widget_catalog.dart';
+import 'package:thunder/widgets/homepage_widget_catalog.dart';
 
 class ThunderHomepageConfigurationSetting extends SettingValue<HomepageConfiguration> {
   @override
