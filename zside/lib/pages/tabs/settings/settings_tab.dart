@@ -3,330 +3,326 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/pages/router.gr.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
-import 'package:zside/config/runtime_args.dart';
 import 'package:zside/gen/version.dart';
 import 'package:zside/main.dart';
-import 'package:zside/routing/router.dart';
 
 @RoutePage()
-class SettingsTabPage extends StatelessWidget {
+class SettingsTabPage extends StatefulWidget {
   const SettingsTabPage({super.key});
+
+  @override
+  State<SettingsTabPage> createState() => _SettingsTabPageState();
+}
+
+class _SettingsTabPageState extends State<SettingsTabPage> {
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return SailPage(
-      title: 'Settings',
-      subtitle: 'Manage your node connections and theme',
-      scrollable: true,
-      body: ViewModelBuilder.reactive(
-        viewModelBuilder: () => NodeConnectionViewModel(),
-        builder: ((context, model, child) {
-          return SailColumn(
-            spacing: SailStyleValues.padding64,
-            children: [
-              ViewModelBuilder.reactive(
-                viewModelBuilder: () => ThemeSettingsViewModel(),
-                builder: ((context, settingsmodel, child) {
-                  return SailColumn(
-                    spacing: SailStyleValues.padding10,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: SailStyleValues.padding20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary20('Font'),
-                            SailText.secondary13('Choose your preferred font'),
-                          ],
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 640,
-                            ),
-                            child: SailColumn(
-                              spacing: SailStyleValues.padding10,
-                              children: [
-                                SailRow(
-                                  spacing: SailStyleValues.padding16,
-                                  children: [
-                                    SailButton(
-                                      label: 'Inter',
-                                      onPressed: () async {
-                                        settingsmodel.setFont(SailFontValues.inter);
-                                      },
-                                      disabled: settingsmodel.font == SailFontValues.inter,
-                                    ),
-                                    SailButton(
-                                      label: 'IBM Plex Mono',
-                                      onPressed: () async {
-                                        settingsmodel.setFont(SailFontValues.ibmMono);
-                                      },
-                                      disabled: settingsmodel.font == SailFontValues.ibmMono,
-                                    ),
-                                  ],
-                                ),
-                                if (settingsmodel.font != settingsmodel.fontOnLoad)
-                                  SailText.primary12(
-                                    'Must restart app to apply font changes',
-                                    color: theme.colors.orangeLight,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Expanded(child: Container()),
-                        ],
-                      ),
-                      const SailSpacing(SailStyleValues.padding20),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SailText.primary20('Bitcoin Unit'),
-                          SailText.secondary13('Choose how Bitcoin amounts are displayed'),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 640),
-                            child: SailDropdownButton<BitcoinUnit>(
-                              value: settingsmodel.bitcoinUnit,
-                              items: const [
-                                SailDropdownItem<BitcoinUnit>(
-                                  value: BitcoinUnit.btc,
-                                  label: 'BTC',
-                                ),
-                                SailDropdownItem<BitcoinUnit>(
-                                  value: BitcoinUnit.sats,
-                                  label: 'Satoshis',
-                                ),
-                              ],
-                              onChanged: (BitcoinUnit? newValue) async {
-                                if (newValue != null) {
-                                  await settingsmodel.setBitcoinUnit(newValue);
-                                }
-                              },
-                            ),
-                          ),
-                          Expanded(child: Container()),
-                        ],
-                      ),
-                      const SailSpacing(SailStyleValues.padding20),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SailText.primary20('Log file'),
-                          SailText.secondary13('View application logs and debugging information'),
-                        ],
-                      ),
-                      SailButton(
-                        label: 'Open Log File',
-                        onPressed: settingsmodel.openLogRoute,
-                        variant: ButtonVariant.secondary,
-                      ),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 350),
-                        child: SailText.secondary13(
-                          'The application writes logs to this location. When reporting bugs, please include the content of this file.',
-                        ),
-                      ),
-                      StaticActionField(
-                        copyable: true,
-                        prefixWidget: Padding(
-                          padding: const EdgeInsets.only(right: SailStyleValues.padding10),
-                          child: SailSVG.icon(SailSVGAsset.iconCopy),
-                        ),
-                        value: settingsmodel.logdir,
-                      ),
-                    ],
-                  );
-                }),
-              ),
-              // App Version Information Section
-              SailColumn(
-                spacing: SailStyleValues.padding10,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: SailStyleValues.padding20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.primary20('Application Info'),
-                        SailText.secondary13('Version and build information'),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: 640,
-                        ),
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding10,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailColumn(
-                              spacing: SailStyleValues.padding04,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Version'),
-                                SailText.secondary13(AppVersion.versionString),
-                              ],
-                            ),
-                            SailColumn(
-                              spacing: SailStyleValues.padding04,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Build Date'),
-                                SailText.secondary13(AppVersion.buildDate),
-                              ],
-                            ),
-                            SailColumn(
-                              spacing: SailStyleValues.padding04,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Commit'),
-                                SailText.secondary13(AppVersion.commitFull),
-                              ],
-                            ),
-                            SailColumn(
-                              spacing: SailStyleValues.padding04,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13('Application'),
-                                SailText.secondary13(AppVersion.appName),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(child: Container()),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          );
-        }),
+    return QtPage(
+      child: SingleChildScrollView(
+        child: SailColumn(
+          spacing: SailStyleValues.padding10,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            SailText.primary24(
+              'Settings',
+              bold: true,
+            ),
+            SailText.secondary13('Manage your ZSide settings.'),
+            const SailSpacing(SailStyleValues.padding10),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: theme.colors.divider,
+            ),
+            const SailSpacing(SailStyleValues.padding10),
+
+            // Navigation and Content side by side
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left navigation
+                SideNav(
+                  items: const [
+                    SideNavItem(label: 'General'),
+                    SideNavItem(label: 'Reset'),
+                    SideNavItem(label: 'Info'),
+                  ],
+                  selectedIndex: _selectedIndex,
+                  onItemSelected: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
+                ),
+                const SailSpacing(SailStyleValues.padding40),
+                // Right content area
+                Expanded(
+                  child: _buildContent(),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _buildContent() {
+    switch (_selectedIndex) {
+      case 0:
+        return _GeneralSettingsContent();
+      case 1:
+        return _ResetSettingsContent();
+      case 2:
+        return _InfoSettingsContent();
+      default:
+        return _GeneralSettingsContent();
+    }
+  }
 }
 
-enum ConnectionStatus { connected, unconnected }
+class _GeneralSettingsContent extends StatefulWidget {
+  @override
+  State<_GeneralSettingsContent> createState() => _GeneralSettingsContentState();
+}
 
-class NodeConnectionViewModel extends BaseViewModel {
-  ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
-  MainchainRPC get mainRPC => GetIt.I.get<MainchainRPC>();
+class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
+  final _settingsProvider = GetIt.I.get<SettingsProvider>();
 
-  late BitcoinNetwork network;
-
-  Future<void> _initNetwork() async {
-    network = GetIt.I.get<BitcoinConfProvider>().network;
-  }
-
-  NodeConnectionViewModel() {
-    mainRPC.addListener(notifyListeners);
-    mainRPC.conf.addListener(notifyListeners);
-
-    rpc.addListener(notifyListeners);
-
-    _initNetwork();
-  }
-
-  Timer? _connectionTimer;
-
-  void reconnectSidechain() async {
-    notifyListeners();
-
-    // calling this will propagate the results to the local
-    // sidechainConnected bool
-    await rpc.testConnection();
-
-    notifyListeners();
-  }
-
-  void reconnectMainchain() async {
-    // calling this will propagate the results to the local
-    // mainchainConnected bool
-    await mainRPC.testConnection();
+  @override
+  void initState() {
+    super.initState();
+    _settingsProvider.addListener(_onSettingsChanged);
   }
 
   @override
   void dispose() {
-    _connectionTimer?.cancel();
-    rpc.removeListener(notifyListeners);
-
-    mainRPC.removeListener(notifyListeners);
-    mainRPC.conf.removeListener(notifyListeners);
-
+    _settingsProvider.removeListener(_onSettingsChanged);
     super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Profile section header
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('General'),
+            SailText.secondary13('Enable or disable various settings'),
+          ],
+        ),
+
+        // Theme Toggle
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Theme'),
+            const SailSpacing(SailStyleValues.padding08),
+            ToggleThemeButton(),
+          ],
+        ),
+
+        // Font Dropdown
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Font'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<SailFontValues>(
+              value: _settingsProvider.font,
+              items: [
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.inter,
+                  label: 'Inter',
+                ),
+                SailDropdownItem<SailFontValues>(
+                  value: SailFontValues.ibmMono,
+                  label: 'IBM Plex Mono',
+                ),
+              ],
+              onChanged: (SailFontValues? newValue) async {
+                if (newValue != null) {
+                  await _settingsProvider.updateFont(newValue);
+                  if (context.mounted) {
+                    final app = SailApp.of(context);
+                    await app.loadFont(newValue);
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+
+        // Bitcoin Unit Dropdown
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Bitcoin Unit'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<BitcoinUnit>(
+              value: _settingsProvider.bitcoinUnit,
+              items: const [
+                SailDropdownItem<BitcoinUnit>(
+                  value: BitcoinUnit.btc,
+                  label: 'BTC',
+                ),
+                SailDropdownItem<BitcoinUnit>(
+                  value: BitcoinUnit.sats,
+                  label: 'Satoshis',
+                ),
+              ],
+              onChanged: (BitcoinUnit? newValue) async {
+                if (newValue != null) {
+                  await _settingsProvider.updateBitcoinUnit(newValue);
+                }
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12('Choose how Bitcoin amounts are displayed'),
+          ],
+        ),
+      ],
+    );
   }
 }
 
-class ThemeSettingsViewModel extends BaseViewModel {
-  ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
-  SettingsProvider get _settingsProvider => GetIt.I.get<SettingsProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
+class _ResetSettingsContent extends StatefulWidget {
+  @override
+  State<_ResetSettingsContent> createState() => _ResetSettingsContentState();
+}
 
-  ThemeSettingsViewModel() {
-    _settingsProvider.addListener(notifyListeners);
-    _init();
-  }
+class _ResetSettingsContentState extends State<_ResetSettingsContent> {
+  Future<void> _onResetAllChains() async {
+    await showDialog(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Reset All Blockchain Data?',
+        subtitle:
+            'Are you sure you want to reset all blockchain data for ZSide? Wallets are not touched. This action cannot be undone.',
+        confirmButtonVariant: ButtonVariant.destructive,
+        onConfirm: () async {
+          final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-  String logdir = '';
-  SailThemeValues theme = SailThemeValues.light;
-  SailFontValues font = SailFontValues.inter;
-  SailFontValues fontOnLoad = SailFontValues.inter;
-  BitcoinUnit get bitcoinUnit => _settingsProvider.bitcoinUnit;
+          final binary = ZSide();
 
-  void setTheme(SailThemeValues newTheme) async {
-    theme = newTheme;
-    await _clientSettings.setValue(ThemeSetting().withValue(theme));
-    notifyListeners();
-  }
+          await binaryProvider.stop(binary);
 
-  Future<void> _init() async {
-    theme = (await _clientSettings.getValue(ThemeSetting())).value;
-    font = (await _clientSettings.getValue(FontSetting())).value;
-    fontOnLoad = font;
-    final logFile = await getLogFile(await RuntimeArgs.datadir());
-    logdir = logFile.path;
-    notifyListeners();
-  }
+          await Future.delayed(const Duration(seconds: 3));
 
-  void setFont(SailFontValues newFont) async {
-    font = newFont;
-    await _clientSettings.setValue(FontSetting().withValue(font));
-    notifyListeners();
-  }
+          await binary.wipeAppDir();
 
-  Future<void> setBitcoinUnit(BitcoinUnit newUnit) async {
-    await _settingsProvider.updateBitcoinUnit(newUnit);
-  }
+          bootBinaries(GetIt.I.get<Logger>());
 
-  Future<void> openLogRoute() async {
-    await _router.push(
-      LogRoute(
-        title: 'ZSide',
-        logPath: logdir,
+          final zsideRPC = GetIt.I.get<ZSideRPC>();
+          while (!zsideRPC.connected) {
+            await Future.delayed(const Duration(seconds: 1));
+          }
+
+          if (context.mounted) Navigator.of(context).pop();
+        },
       ),
     );
   }
 
   @override
-  void dispose() {
-    _settingsProvider.removeListener(notifyListeners);
-    super.dispose();
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('Reset'),
+            SailText.secondary13('Reset blockchain data'),
+          ],
+        ),
+        SailButton(
+          label: 'Reset ZSide Data',
+          variant: ButtonVariant.destructive,
+          onPressed: _onResetAllChains,
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoSettingsContent extends StatefulWidget {
+  @override
+  State<_InfoSettingsContent> createState() => _InfoSettingsContentState();
+}
+
+class _InfoSettingsContentState extends State<_InfoSettingsContent> {
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('Info'),
+            SailText.secondary13('Application version and build information'),
+          ],
+        ),
+
+        // Version Information
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Version'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.versionString),
+          ],
+        ),
+
+        // Build Date
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Build Date'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.buildDate),
+          ],
+        ),
+
+        // Commit Hash
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Commit'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.commitFull),
+          ],
+        ),
+
+        // App Name
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Application'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13(AppVersion.appName),
+          ],
+        ),
+      ],
+    );
   }
 }
