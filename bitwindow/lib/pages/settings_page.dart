@@ -7,7 +7,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
-import 'package:bitwindow/dialogs/remove_encryption_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart' show bootBinaries;
@@ -672,18 +671,8 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                     label: 'Remove Encryption',
                     variant: ButtonVariant.ghost,
                     onPressed: () async {
-                      final result = await RemoveEncryptionDialog.show(context);
-                      if (result == true) {
-                        await _checkEncryptionStatus();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Encryption removed successfully'),
-                              backgroundColor: theme.colors.success,
-                            ),
-                          );
-                        }
-                      }
+                      await GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
+                      await _checkEncryptionStatus();
                     },
                     skipLoading: true,
                   ),
