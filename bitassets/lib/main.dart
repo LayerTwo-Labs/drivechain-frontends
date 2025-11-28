@@ -94,7 +94,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   return (applicationDir, logFile, log);
 }
 
-void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) async {
+Future<void> runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) async {
   final arguments = jsonDecode(argumentsStr) as Map<String, dynamic>;
   log.i('starting bitassets');
   final bitassets = GetIt.I.get<BitAssetsRPC>();
