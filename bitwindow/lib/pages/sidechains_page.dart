@@ -240,7 +240,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             ),
             SailTableCell(
               key: buttonWidget?.key,
-              value: '          ',
+              value: '                    ',
               child: buttonWidget,
             ),
             if (binary != null)
