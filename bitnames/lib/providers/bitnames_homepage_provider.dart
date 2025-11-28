@@ -47,83 +47,78 @@ class BitnamesHomepageConfiguration {
 class BitnamesHomepageProvider extends HomepageProvider {
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
-  HomepageConfiguration _configuration = BitnamesHomepageConfiguration.defaultConfiguration;
-  HomepageConfiguration _tempConfiguration = BitnamesHomepageConfiguration.defaultConfiguration;
-  bool _isLoading = false;
-  bool _hasUnsavedChanges = false;
-
   @override
-  HomepageConfiguration get configuration => _configuration;
+  HomepageConfiguration configuration = BitnamesHomepageConfiguration.defaultConfiguration;
   @override
-  HomepageConfiguration get tempConfiguration => _tempConfiguration;
+  HomepageConfiguration tempConfiguration = BitnamesHomepageConfiguration.defaultConfiguration;
   @override
-  bool get isLoading => _isLoading;
+  bool isLoading = false;
   @override
-  bool get hasUnsavedChanges => _hasUnsavedChanges;
+  bool hasUnsavedChanges = false;
 
   BitnamesHomepageProvider() {
     _loadConfiguration();
   }
 
   Future<void> _loadConfiguration() async {
-    _isLoading = true;
+    isLoading = true;
     notifyListeners();
 
     try {
       final setting = BitnamesHomepageConfigurationSetting();
       final loadedSetting = await _settings.getValue(setting);
-      _configuration = loadedSetting.value;
-      _tempConfiguration = _configuration;
+      configuration = loadedSetting.value;
+      tempConfiguration = configuration;
     } catch (e) {
-      _configuration = BitnamesHomepageConfiguration.defaultConfiguration;
-      _tempConfiguration = _configuration;
+      configuration = BitnamesHomepageConfiguration.defaultConfiguration;
+      tempConfiguration = configuration;
     } finally {
-      _isLoading = false;
+      isLoading = false;
       notifyListeners();
     }
   }
 
   @override
   Future<void> saveConfiguration() async {
-    _isLoading = true;
+    isLoading = true;
     notifyListeners();
 
     try {
-      final setting = BitnamesHomepageConfigurationSetting(newValue: _tempConfiguration);
+      final setting = BitnamesHomepageConfigurationSetting(newValue: tempConfiguration);
       await _settings.setValue(setting);
-      _configuration = _tempConfiguration;
-      _hasUnsavedChanges = false;
+      configuration = tempConfiguration;
+      hasUnsavedChanges = false;
     } finally {
-      _isLoading = false;
+      isLoading = false;
       notifyListeners();
     }
   }
 
   @override
   void addWidget(String widgetId) {
-    _tempConfiguration = _tempConfiguration.addWidget(widgetId);
-    _hasUnsavedChanges = true;
+    tempConfiguration = tempConfiguration.addWidget(widgetId);
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
   @override
   void removeWidget(int index) {
-    _tempConfiguration = _tempConfiguration.removeWidget(index);
-    _hasUnsavedChanges = true;
+    tempConfiguration = tempConfiguration.removeWidget(index);
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
   @override
   void reorderWidgets(int oldIndex, int newIndex) {
-    _tempConfiguration = _tempConfiguration.reorderWidgets(oldIndex, newIndex);
-    _hasUnsavedChanges = true;
+    tempConfiguration = tempConfiguration.reorderWidgets(oldIndex, newIndex);
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
   @override
   void undoChanges() {
-    _tempConfiguration = _configuration;
-    _hasUnsavedChanges = false;
+    tempConfiguration = configuration;
+    hasUnsavedChanges = false;
     notifyListeners();
   }
 
