@@ -131,13 +131,15 @@ class DaemonConnectionCard extends StatelessWidget {
               SailSpacing(SailStyleValues.padding04),
               if (infoMessage != null || connection.connectionError != null || !connection.connected)
                 SailText.secondary12(
-                  infoMessage ??
-                      connection.connectionError ??
-                      (connection.initializingBinary || !connection.connected
-                          ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
-                          : connection.connected
-                          ? ''
-                          : 'Unknown error occured'),
+                  prettifyLogMessage(
+                    infoMessage ??
+                        connection.connectionError ??
+                        (connection.initializingBinary || !connection.connected
+                            ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
+                            : connection.connected
+                            ? ''
+                            : 'Unknown error occured'),
+                  ),
                 ),
             ],
           ),

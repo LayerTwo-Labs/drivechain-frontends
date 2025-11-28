@@ -484,3 +484,21 @@ String extractConnectException(Object error) {
     return messageIfUnknown;
   }
 }
+
+/// Extracts just the message from log lines like:
+/// `2025-11-26T06:16:51.195731Z INFO bip300301_enforcer: app/main.rs:376: Listening for JSON-RPC`
+/// Returns just `Listening for JSON-RPC`
+String prettifyLogMessage(String message) {
+  // Match pattern: timestamp INFO/WARN/etc module: file.rs:line: 'message' or message
+  final logPattern = RegExp(r'^\d{2,4}-\d{2}-\d{2}T[\d:.]+Z\s+\w+\s+.*?:\d+:\s*(.+)$');
+  final match = logPattern.firstMatch(message);
+  if (match != null) {
+    var extracted = match.group(1)!.trim();
+    // Remove surrounding single quotes if present
+    if (extracted.startsWith("'") && extracted.endsWith("'")) {
+      extracted = extracted.substring(1, extracted.length - 1);
+    }
+    return extracted;
+  }
+  return message;
+}
