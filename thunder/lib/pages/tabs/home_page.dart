@@ -167,17 +167,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         icon: SailSVGAsset.settings,
                       ),
                     ],
-                    endWidget: SailRow(
-                      children: [
-                        SailButton(
-                          onPressed: () async {
-                            await GetIt.I.get<AppRouter>().push(ThunderConfigureHomepageRoute());
-                          },
-                          variant: ButtonVariant.primary,
-                          label: 'Configure Homepage',
-                          small: true,
-                        ),
-                      ],
+                    endWidget: SailButton(
+                      label: 'Configure Homepage',
+                      small: true,
+                      onPressed: () async {
+                        await GetIt.I.get<AppRouter>().push(ThunderConfigureHomepageRoute());
+                      },
                     ),
                   ),
                   body: Column(
