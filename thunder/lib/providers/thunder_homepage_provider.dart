@@ -47,83 +47,78 @@ class ThunderHomepageConfiguration {
 class ThunderHomepageProvider extends HomepageProvider {
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
-  HomepageConfiguration _configuration = ThunderHomepageConfiguration.defaultConfiguration;
-  HomepageConfiguration _tempConfiguration = ThunderHomepageConfiguration.defaultConfiguration;
-  bool _isLoading = false;
-  bool _hasUnsavedChanges = false;
-
   @override
-  HomepageConfiguration get configuration => _configuration;
+  HomepageConfiguration configuration = ThunderHomepageConfiguration.defaultConfiguration;
   @override
-  HomepageConfiguration get tempConfiguration => _tempConfiguration;
+  HomepageConfiguration tempConfiguration = ThunderHomepageConfiguration.defaultConfiguration;
   @override
-  bool get isLoading => _isLoading;
+  bool isLoading = false;
   @override
-  bool get hasUnsavedChanges => _hasUnsavedChanges;
+  bool hasUnsavedChanges = false;
 
   ThunderHomepageProvider() {
     _loadConfiguration();
   }
 
   Future<void> _loadConfiguration() async {
-    _isLoading = true;
+    isLoading = true;
     notifyListeners();
 
     try {
       final setting = ThunderHomepageConfigurationSetting();
       final loadedSetting = await _settings.getValue(setting);
-      _configuration = loadedSetting.value;
-      _tempConfiguration = _configuration;
+      configuration = loadedSetting.value;
+      tempConfiguration = configuration;
     } catch (e) {
-      _configuration = ThunderHomepageConfiguration.defaultConfiguration;
-      _tempConfiguration = _configuration;
+      configuration = ThunderHomepageConfiguration.defaultConfiguration;
+      tempConfiguration = configuration;
     } finally {
-      _isLoading = false;
+      isLoading = false;
       notifyListeners();
     }
   }
 
   @override
   Future<void> saveConfiguration() async {
-    _isLoading = true;
+    isLoading = true;
     notifyListeners();
 
     try {
-      final setting = ThunderHomepageConfigurationSetting(newValue: _tempConfiguration);
+      final setting = ThunderHomepageConfigurationSetting(newValue: tempConfiguration);
       await _settings.setValue(setting);
-      _configuration = _tempConfiguration;
-      _hasUnsavedChanges = false;
+      configuration = tempConfiguration;
+      hasUnsavedChanges = false;
     } finally {
-      _isLoading = false;
+      isLoading = false;
       notifyListeners();
     }
   }
 
   @override
   void addWidget(String widgetId) {
-    _tempConfiguration = _tempConfiguration.addWidget(widgetId);
-    _hasUnsavedChanges = true;
+    tempConfiguration = tempConfiguration.addWidget(widgetId);
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
   @override
   void removeWidget(int index) {
-    _tempConfiguration = _tempConfiguration.removeWidget(index);
-    _hasUnsavedChanges = true;
+    tempConfiguration = tempConfiguration.removeWidget(index);
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
   @override
   void reorderWidgets(int oldIndex, int newIndex) {
-    _tempConfiguration = _tempConfiguration.reorderWidgets(oldIndex, newIndex);
-    _hasUnsavedChanges = true;
+    tempConfiguration = tempConfiguration.reorderWidgets(oldIndex, newIndex);
+    hasUnsavedChanges = true;
     notifyListeners();
   }
 
   @override
   void undoChanges() {
-    _tempConfiguration = _configuration;
-    _hasUnsavedChanges = false;
+    tempConfiguration = configuration;
+    hasUnsavedChanges = false;
     notifyListeners();
   }
 
