@@ -119,20 +119,32 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   return (applicationDir, logFile, log);
 }
 
-void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) {
+Future<void> runMultiWindow(
+  String argumentsStr,
+  Logger log,
+  Directory applicationDir,
+  File logFile,
+) async {
   final arguments = jsonDecode(argumentsStr) as Map<String, dynamic>;
-  log.i('starting zside in multi window');
-  final zside = GetIt.I.get<ZSideRPC>();
 
   Widget child = SailCard(
     child: SailText.primary15('no window type provided, the programmers messed up'),
   );
 
   switch (arguments['window_type']) {
-    case 'console':
+    case SubWindowTypes.consoleId:
       child = const IntegratedConsoleView();
       break;
+    case SubWindowTypes.logsId:
+      child = LogPage(
+        logPath: logFile.path,
+        title: 'ZSide Logs',
+      );
+      break;
   }
+
+  log.i('starting zside in multi window');
+  final zside = GetIt.I.get<ZSideRPC>();
 
   return runApp(
     buildSailWindowApp(
