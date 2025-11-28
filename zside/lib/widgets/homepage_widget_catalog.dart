@@ -25,7 +25,6 @@ class ZSideWidgetCatalog {
           return ListenableBuilder(
             listenable: formatter,
             builder: (context, child) => SizedBox(
-              height: 200,
               child: SailCard(
                 title: 'Balance',
                 child: SailColumn(

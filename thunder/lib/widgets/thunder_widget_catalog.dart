@@ -20,7 +20,6 @@ class ThunderWidgetCatalog {
           return ListenableBuilder(
             listenable: formatter,
             builder: (context, child) => SizedBox(
-              height: 200, // Fixed height to prevent layout issues
               child: SailCard(
                 title: 'Balance',
                 child: SailColumn(
