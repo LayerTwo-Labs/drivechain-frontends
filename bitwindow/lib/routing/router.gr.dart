@@ -379,6 +379,22 @@ class OverviewRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [RemoveEncryptionPage]
+class RemoveEncryptionRoute extends PageRouteInfo<void> {
+  const RemoveEncryptionRoute({List<PageRouteInfo>? children})
+    : super(RemoveEncryptionRoute.name, initialChildren: children);
+
+  static const String name = 'RemoveEncryptionRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const RemoveEncryptionPage();
+    },
+  );
+}
+
+/// generated route for
 /// [RootPage]
 class RootRoute extends PageRouteInfo<void> {
   const RootRoute({List<PageRouteInfo>? children})
@@ -456,6 +472,62 @@ class SidechainsRoute extends PageRouteInfo<void> {
       return const SidechainsPage();
     },
   );
+}
+
+/// generated route for
+/// [SuccessPage]
+class SuccessRoute extends PageRouteInfo<SuccessRouteArgs> {
+  SuccessRoute({
+    Key? key,
+    required String title,
+    String? subtitle,
+    List<PageRouteInfo>? children,
+  }) : super(
+         SuccessRoute.name,
+         args: SuccessRouteArgs(key: key, title: title, subtitle: subtitle),
+         initialChildren: children,
+       );
+
+  static const String name = 'SuccessRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<SuccessRouteArgs>();
+      return SuccessPage(
+        key: args.key,
+        title: args.title,
+        subtitle: args.subtitle,
+      );
+    },
+  );
+}
+
+class SuccessRouteArgs {
+  const SuccessRouteArgs({this.key, required this.title, this.subtitle});
+
+  final Key? key;
+
+  final String title;
+
+  final String? subtitle;
+
+  @override
+  String toString() {
+    return 'SuccessRouteArgs{key: $key, title: $title, subtitle: $subtitle}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SuccessRouteArgs) return false;
+    return key == other.key &&
+        title == other.title &&
+        subtitle == other.subtitle;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ title.hashCode ^ subtitle.hashCode;
 }
 
 /// generated route for

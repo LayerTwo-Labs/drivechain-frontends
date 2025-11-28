@@ -5,7 +5,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/dialogs/base58_decoder_dialog.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
-import 'package:bitwindow/dialogs/remove_encryption_dialog.dart';
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
 import 'package:bitwindow/dialogs/paper_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
@@ -363,10 +362,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Remove Encryption',
                       onSelected: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => const RemoveEncryptionDialog(),
-                        );
+                        GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
                       },
                     ),
                     PlatformMenuItem(

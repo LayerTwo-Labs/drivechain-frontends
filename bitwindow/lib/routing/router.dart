@@ -7,7 +7,9 @@ import 'package:bitwindow/pages/cpu_mining_page.dart';
 import 'package:bitwindow/pages/explorer/m4_explorer_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
 import 'package:bitwindow/pages/overview_page.dart';
+import 'package:bitwindow/pages/remove_encryption_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
+import 'package:bitwindow/pages/success_page.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
@@ -153,6 +155,14 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/network-statistics',
       page: NetworkStatisticsRoute.page,
+    ),
+    AutoRoute(
+      path: '/remove-encryption',
+      page: RemoveEncryptionRoute.page,
+    ),
+    AutoRoute(
+      path: '/success',
+      page: SuccessRoute.page,
     ),
   ];
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert' show utf8;
 import 'dart:math';
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/success_page.dart';
 import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:convert/convert.dart' show hex;
@@ -834,79 +835,55 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
     final runningSidechains = binaryProvider.runningBinaries.whereType<Sidechain>().toList();
     final hasRunningSidechains = runningSidechains.isNotEmpty;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0),
-        child: SizedBox(
-          width: 800,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              BootTitle(
-                title: 'Wallet Created',
-                subtitle: hasRunningSidechains
-                    ? 'Your wallet was created successfully.\r\n\r\nI can see you have some sidechains running. Do you want to restart them to apply the new wallet?'
-                    : 'Your wallet was created successfully. You can now continue to the world of Drivechain.',
-              ),
-              SailSVG.icon(
-                SailSVGAsset.iconSuccess,
-                width: 64,
-                height: 64,
-                color: hasRunningSidechains ? theme.colors.orange : theme.colors.success,
-              ),
-              const Spacer(),
-              if (hasRunningSidechains)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailButton(
-                      label: 'Continue without restart',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async {
-                        await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
-                      },
-                    ),
-                    SailButton(
-                      label: 'Restart and Continue',
-                      variant: ButtonVariant.primary,
-                      loadingLabel: 'Restarting ${runningSidechains.length} sidechains',
-                      onPressed: () async {
-                        // Restart all running sidechains
-                        await Future.wait(
-                          runningSidechains.map((sidechain) => binaryProvider.stop(sidechain)),
-                        );
-                        await Future.delayed(const Duration(seconds: 3));
-                        for (final sidechain in runningSidechains) {
-                          unawaited(binaryProvider.start(sidechain));
-                        }
-                        if (mounted) {
-                          await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
-                        }
-                      },
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SailButton(
-                      label: 'Continue',
-                      variant: ButtonVariant.primary,
-                      onPressed: () async {
-                        await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
-                      },
-                    ),
-                  ],
+    return SuccessScreen(
+      title: 'Wallet Created',
+      subtitle: hasRunningSidechains
+          ? 'Your wallet was created successfully.\r\n\r\nI can see you have some sidechains running. Do you want to restart them to apply the new wallet?'
+          : 'Your wallet was created successfully. You can now continue to the world of Drivechain.',
+      iconColor: hasRunningSidechains ? theme.colors.orange : theme.colors.success,
+      actions: hasRunningSidechains
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailButton(
+                  label: 'Continue without restart',
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async {
+                    await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+                  },
                 ),
-              const SizedBox(height: 32),
-            ],
-          ),
-        ),
-      ),
+                SailButton(
+                  label: 'Restart and Continue',
+                  variant: ButtonVariant.primary,
+                  loadingLabel: 'Restarting ${runningSidechains.length} sidechains',
+                  onPressed: () async {
+                    await Future.wait(
+                      runningSidechains.map((sidechain) => binaryProvider.stop(sidechain)),
+                    );
+                    await Future.delayed(const Duration(seconds: 3));
+                    for (final sidechain in runningSidechains) {
+                      unawaited(binaryProvider.start(sidechain));
+                    }
+                    if (mounted) {
+                      await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+                    }
+                  },
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SailButton(
+                  label: 'Continue',
+                  variant: ButtonVariant.primary,
+                  onPressed: () async {
+                    await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+                  },
+                ),
+              ],
+            ),
     );
   }
 }
