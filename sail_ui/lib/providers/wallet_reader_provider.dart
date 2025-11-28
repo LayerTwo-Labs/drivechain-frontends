@@ -258,52 +258,57 @@ class WalletReaderProvider extends ChangeNotifier {
     }
 
     return await _lock.synchronized(() async {
-      try {
-        final metadata = await _loadMetadata();
-        if (metadata == null || !metadata.encrypted) {
-          return false;
-        }
+      return await _unlockWalletInternal(password);
+    });
+  }
 
-        final walletFile = getWalletFile();
-        if (!await walletFile.exists()) {
-          return false;
-        }
-
-        final salt = base64.decode(metadata.salt);
-        final key = await EncryptionService.deriveKey(password, salt, metadata.iterations);
-
-        // Test password
-        try {
-          final encryptedData = await walletFile.readAsString();
-          EncryptionService.decrypt(encryptedData, key);
-        } catch (e) {
-          return false; // Wrong password
-        }
-
-        // Password is correct, store it and reload
-        _encryptionKey = key;
-        unlockedPassword = password;
-        await _loadWalletIntoCache();
-
-        // Also unlock the backend if BitwindowRPC is available
-        try {
-          if (GetIt.I.isRegistered<BitwindowRPC>()) {
-            final bitwindow = GetIt.I.get<BitwindowRPC>();
-            await bitwindow.wallet.unlockWallet(password);
-            _logger.i('unlockWallet: Backend wallet unlocked');
-          }
-        } catch (e) {
-          _logger.w('unlockWallet: Failed to unlock backend wallet: $e');
-          // Continue anyway - frontend is unlocked
-        }
-
-        notifyListeners();
-        return true;
-      } catch (e, stack) {
-        _logger.e('unlockWallet: Unexpected error: $e\n$stack');
+  /// Internal unlock without lock - call only when already holding _lock
+  Future<bool> _unlockWalletInternal(String password) async {
+    try {
+      final metadata = await _loadMetadata();
+      if (metadata == null || !metadata.encrypted) {
         return false;
       }
-    });
+
+      final walletFile = getWalletFile();
+      if (!await walletFile.exists()) {
+        return false;
+      }
+
+      final salt = base64.decode(metadata.salt);
+      final key = await EncryptionService.deriveKey(password, salt, metadata.iterations);
+
+      // Test password
+      try {
+        final encryptedData = await walletFile.readAsString();
+        EncryptionService.decrypt(encryptedData, key);
+      } catch (e) {
+        return false; // Wrong password
+      }
+
+      // Password is correct, store it and reload
+      _encryptionKey = key;
+      unlockedPassword = password;
+      await _loadWalletIntoCache();
+
+      // Also unlock the backend if BitwindowRPC is available
+      try {
+        if (GetIt.I.isRegistered<BitwindowRPC>()) {
+          final bitwindow = GetIt.I.get<BitwindowRPC>();
+          await bitwindow.wallet.unlockWallet(password);
+          _logger.i('unlockWallet: Backend wallet unlocked');
+        }
+      } catch (e) {
+        _logger.w('unlockWallet: Failed to unlock backend wallet: $e');
+        // Continue anyway - frontend is unlocked
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e, stack) {
+      _logger.e('unlockWallet: Unexpected error: $e\n$stack');
+      return false;
+    }
   }
 
   /// Lock wallets (clear cache)
@@ -446,7 +451,7 @@ class WalletReaderProvider extends ChangeNotifier {
           throw Exception('Wallet is not encrypted');
         }
 
-        final unlocked = await unlockWallet(password);
+        final unlocked = await _unlockWalletInternal(password);
         if (!unlocked || wallets.isEmpty) {
           throw Exception('Incorrect password');
         }
