@@ -176,8 +176,6 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
-  final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
-
   log.i('starting zside');
   final zside = GetIt.I.get<ZSideRPC>();
   final router = GetIt.I.get<AppRouter>();
@@ -185,20 +183,42 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   runApp(
     SailApp(
       dense: false,
-      // the initial route is defined in routing/router.dart
-      builder: (context) => MaterialApp.router(
-        routerDelegate: router.delegate(),
-        routeInformationParser: router.defaultRouteParser(),
-        title: zside.chain.name,
-        theme: ThemeData(
-          fontFamily: font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter',
-          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: zside.chain.color),
-        ),
-      ),
+      builder: (context) {
+        return _ZSideAppContent(
+          router: router,
+          zside: zside,
+        );
+      },
       accentColor: zside.chain.color,
       log: log,
     ),
   );
+}
+
+class _ZSideAppContent extends StatelessWidget {
+  final AppRouter router;
+  final ZSideRPC zside;
+
+  const _ZSideAppContent({
+    required this.router,
+    required this.zside,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final font = theme.font;
+
+    return MaterialApp.router(
+      routerDelegate: router.delegate(),
+      routeInformationParser: router.defaultRouteParser(),
+      title: zside.chain.name,
+      theme: ThemeData(
+        fontFamily: font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter',
+        colorScheme: ColorScheme.fromSwatch().copyWith(secondary: zside.chain.color),
+      ),
+    );
+  }
 }
 
 bool isCurrentChainActive({
