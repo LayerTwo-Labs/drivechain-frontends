@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/routing/password_guard.dart';
+import 'package:zside/pages/tabs/console_page.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
 import 'package:zside/pages/tabs/zside/zside_bill_page.dart';
@@ -58,6 +59,9 @@ class AppRouter extends RootStackRouter {
         ),
         AutoRoute(
           page: ZSideTransferTabRoute.page,
+        ),
+        AutoRoute(
+          page: ConsoleTabRoute.page,
         ),
         AutoRoute(
           page: SettingsTabRoute.page,

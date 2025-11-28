@@ -27,6 +27,9 @@ enum Tabs {
   ZSideShieldDeshield,
   ZSideMeltCast,
 
+  // sidechain console route
+  Console,
+
   // trailing common routes
   SettingsHome,
 }
@@ -136,6 +139,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             ZSideShieldDeshieldTabRoute(),
             ZSideMeltCastTabRoute(),
 
+            // sidechain console route
+            ConsoleTabRoute(),
+
             // trailing common routes
             SettingsTabRoute(),
           ],
@@ -175,6 +181,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                           tabsRouter.setActiveIndex(Tabs.ZSideMeltCast.index);
                         },
                       ),
+                      TopNavRoute(
+                        label: 'Console',
+                        optionalKey: Tabs.Console.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.Console.index);
+                        },
+                      ),
+                      TopNavRoute(
+                        icon: SailSVGAsset.settings,
+                      ),
                     ],
                     endWidget: SailButton(
                       label: 'Configure Homepage',
@@ -203,13 +219,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             ),
                           );
                         },
-                        endWidgets: [
-                          SailButton(
-                            icon: SailSVGAsset.settings,
-                            variant: ButtonVariant.icon,
-                            onPressed: () async => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
-                          ),
-                        ],
+                        endWidgets: [],
                       ),
                     ],
                   ),
