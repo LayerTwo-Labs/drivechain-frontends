@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -45,22 +44,24 @@ func NewDeniability(
 
 func (e *DeniabilityEngine) Run(ctx context.Context) error {
 	logger := zerolog.Ctx(ctx)
-	logger.Info().Msg("starting deniability engine")
+	logger.Info().Msg("deniability: starting engine")
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info().Msg("deniability engine shutting down")
+			logger.Info().Msg("deniability: engine shutting down")
 			return nil
 
 		case <-ticker.C:
-			if err := e.checkDenials(ctx); err != nil {
-				if !strings.Contains(err.Error(), "does not accept connections") {
-					logger.Debug().Err(err).Msg("error checking denials")
-				}
+			// Skip if wallet service isn't connected yet
+			if !e.wallet.IsConnected() {
 				continue
+			}
+
+			if err := e.checkDenials(ctx); err != nil {
+				logger.Warn().Err(err).Msg("deniability: error checking denials")
 			}
 		}
 	}
@@ -84,30 +85,44 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 		logger.Info().
 			Int64("denial_id", denial.ID).
 			Time("next_execution", *denial.NextExecution).
-			Msg("executing denial")
+			Msg("deniability: executing denial")
 
 		// It's time! Execute.
+		execStart := time.Now()
 		if err := e.ExecuteDenial(ctx, utxos, denial); err != nil {
 			logger.Error().
 				Err(err).
 				Int64("denial_id", denial.ID).
-				Msg("could not execute denial")
+				Dur("duration", time.Since(execStart)).
+				Msg("deniability: could not execute denial")
 			continue
 		}
+		logger.Info().
+			Int64("denial_id", denial.ID).
+			Dur("duration", time.Since(execStart)).
+			Msg("deniability: finished executing denial")
 	}
 
 	return nil
 }
 
 func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, []deniability.Denial, error) {
-	// then get all active denials
+	logger := zerolog.Ctx(ctx)
+
 	denials, err := deniability.List(ctx, e.db, deniability.WithExcludeCancelled())
 	if err != nil {
 		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
 
+	if len(denials) == 0 {
+		return nil, nil, nil
+	}
+
 	// Build a map of wallet_id -> UTXOs for efficient lookup
 	walletUTXOs := make(map[string][]*pb.ListUnspentOutputsResponse_Output)
+
+	// Track wallets that had errors to avoid repeated attempts
+	failedWallets := make(map[string]bool)
 
 	for _, denial := range denials {
 		walletId := ""
@@ -115,11 +130,21 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 			walletId = *denial.WalletID
 		}
 
+		// Skip if we already failed to get UTXOs for this wallet
+		if failedWallets[walletId] {
+			continue
+		}
+
 		// Only fetch UTXOs for each wallet once
 		if _, exists := walletUTXOs[walletId]; !exists {
-			utxos, err := e.listUTXOsForWallet(ctx, walletId)
+			rpcCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			utxos, err := e.listUTXOsForWallet(rpcCtx, walletId)
+			cancel()
+
 			if err != nil {
-				return nil, nil, fmt.Errorf("list utxos for wallet %s: %w", walletId, err)
+				failedWallets[walletId] = true
+				logger.Warn().Err(err).Str("wallet_id", walletId).Msg("deniability: wallet error, will retry")
+				continue
 			}
 			walletUTXOs[walletId] = utxos
 		}
@@ -154,7 +179,13 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 			walletId = *denial.WalletID
 		}
 
-		utxos := walletUTXOs[walletId]
+		// If we don't have UTXOs for this wallet, it means the wallet failed
+		// and the denial was already cancelled in CleanupDenials
+		utxos, hasWallet := walletUTXOs[walletId]
+		if !hasWallet {
+			continue
+		}
+
 		utxoExists := lo.ContainsBy(utxos, func(utxo *pb.ListUnspentOutputsResponse_Output) bool {
 			return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
 		})
@@ -277,7 +308,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		return fmt.Errorf("send transaction: %w", err)
 	}
 
-	newUTXOs, err := e.waitForUTXOsToAppear(ctx, txid, destinations)
+	newUTXOs, err := e.waitForUTXOsToAppear(ctx, walletId, txid, destinations)
 	if err != nil {
 		return fmt.Errorf("wait for tx to appear: %w", err)
 	}
@@ -379,21 +410,50 @@ func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 }
 
 // the enforcer wallet takes a few seconds/minutes to add the sent transaction
-// to the wallet utxos. This function waits for the passed txid to appear. Waits
-// forever, and only returns an error if the enforcer returns an error
+// to the wallet utxos. This function waits for the passed txid to appear with a timeout.
 func (e *DeniabilityEngine) waitForUTXOsToAppear(
 	ctx context.Context,
+	walletId string,
 	txid string,
 	destinations map[string]uint64,
 ) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+	logger := zerolog.Ctx(ctx)
+
+	// Use a ticker for proper wait pattern
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	// Timeout after 5 minutes - if UTXO hasn't appeared by then, something is wrong
+	timeout := time.After(5 * time.Minute)
+
+	// Track retry attempts for logging
+	attempts := 0
+	const maxLogAttempts = 10 // Only log first N attempts to avoid spam
+
 	for {
 		select {
 		case <-ctx.Done():
-			panic("findNewUTXOs loop exited due to context cancellation")
-		default:
-			utxos, err := e.listWalletUTXOs(ctx)
+			return nil, fmt.Errorf("context cancelled while waiting for UTXO %s", txid)
+		case <-timeout:
+			return nil, fmt.Errorf("timeout after 5 minutes waiting for UTXO %s to appear (tried %d times)", txid, attempts)
+		case <-ticker.C:
+			attempts++
+
+			// Create a timeout context for the RPC call to prevent hanging
+			rpcCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			utxos, err := e.listUTXOsForWallet(rpcCtx, walletId)
+			cancel()
+
 			if err != nil {
-				return nil, fmt.Errorf("list utxos: %w", err)
+				// Log error but continue retrying - might be transient
+				if attempts <= maxLogAttempts {
+					logger.Warn().
+						Err(err).
+						Str("txid", txid).
+						Int("attempt", attempts).
+						Msg("error listing UTXOs while waiting for transaction, will retry")
+				}
+				continue
 			}
 
 			var foundUTXOs []*pb.ListUnspentOutputsResponse_Output
@@ -403,16 +463,25 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 					if _, exists := destinations[utxo.Address.Value]; exists {
 						foundUTXOs = append(foundUTXOs, utxo)
 					}
-
 					// any non-matched is change. We don't care about those
 				}
 			}
 
 			if len(foundUTXOs) > 0 {
+				logger.Info().
+					Str("txid", txid).
+					Int("attempts", attempts).
+					Int("found_utxos", len(foundUTXOs)).
+					Msg("UTXO appeared in wallet")
 				return foundUTXOs, nil
 			}
 
-			time.Sleep(time.Second)
+			if attempts <= maxLogAttempts || attempts%60 == 0 {
+				logger.Debug().
+					Str("txid", txid).
+					Int("attempt", attempts).
+					Msg("waiting for UTXO to appear in wallet")
+			}
 		}
 	}
 }
@@ -544,32 +613,6 @@ func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId str
 	walletType, err := e.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	switch walletType {
-	case WalletTypeEnforcer:
-		return e.listEnforcerUTXOs(ctx)
-
-	case WalletTypeBitcoinCore:
-		return e.listBitcoinCoreUTXOs(ctx, walletId)
-
-	case WalletTypeWatchOnly:
-		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
-
-	default:
-		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
-	}
-}
-
-// listWalletUTXOs gets all unspent transaction outputs from the active wallet
-func (e *DeniabilityEngine) listWalletUTXOs(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, error) {
-	if e.walletEngine == nil {
-		return e.listEnforcerUTXOs(ctx)
-	}
-
-	walletType, walletId, err := e.getActiveWalletType(ctx)
-	if err != nil {
-		return e.listEnforcerUTXOs(ctx)
 	}
 
 	switch walletType {

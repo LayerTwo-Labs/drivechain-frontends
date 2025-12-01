@@ -139,8 +139,8 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not query deniabilities: %w", err)
 	}
-	defer database.SafeDefer(ctx, rows.Close)
 
+	// First, collect all denials from the query (don't do nested queries while rows are open)
 	var deniabilities []Denial
 	for rows.Next() {
 		var denial Denial
@@ -157,18 +157,24 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 			&denial.TipVout,
 		)
 		if err != nil {
+			rows.Close()
 			return nil, fmt.Errorf("could not scan deniability: %w", err)
 		}
-		denial, err = denial.addExecutionData(ctx, db)
-		if err != nil {
-			return nil, fmt.Errorf("could not add execution data to deniability: %w", err)
-		}
-
 		deniabilities = append(deniabilities, denial)
 	}
 
 	if err := rows.Err(); err != nil {
+		rows.Close()
 		return nil, fmt.Errorf("could not iterate over deniabilities: %w", err)
+	}
+	rows.Close() // Close rows BEFORE doing nested queries
+
+	// Now add execution data in a separate loop (safe to do nested queries now)
+	for i := range deniabilities {
+		deniabilities[i], err = deniabilities[i].addExecutionData(ctx, db)
+		if err != nil {
+			return nil, fmt.Errorf("could not add execution data to deniability: %w", err)
+		}
 	}
 
 	return deniabilities, nil
