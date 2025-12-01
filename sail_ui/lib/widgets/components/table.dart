@@ -87,17 +87,13 @@ class _SailTableState extends State<SailTable> {
   void didUpdateWidget(SailTable oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Recalculate column widths when data changes
-    if (oldWidget.rowCount != widget.rowCount ||
-        oldWidget.selectedRowId != widget.selectedRowId ||
-        oldWidget.sortColumnIndex != widget.sortColumnIndex ||
-        oldWidget.sortAscending != widget.sortAscending) {
-      // Update internal state
-      _selectedId = widget.selectedRowId;
-      _sortColumnIndex = widget.sortColumnIndex;
-      _sortAscending = widget.sortAscending ?? true;
+    // Update internal state for selection/sort (no column resize needed)
+    _selectedId = widget.selectedRowId;
+    _sortColumnIndex = widget.sortColumnIndex;
+    _sortAscending = widget.sortAscending ?? true;
 
-      // Trigger column resize if we have a valid width constraint
+    // Only recalculate column widths when row count changes
+    if (oldWidget.rowCount != widget.rowCount) {
       if (_currentConstraints != null && mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -182,8 +178,16 @@ class _SailTableState extends State<SailTable> {
       columnWidths[col] = max(columnWidths[col], headerWidth);
     }
 
-    // Measure all rows
-    for (int row = 0; row < widget.rowCount; row++) {
+    // Sample up to 20 rows for width calculation (first 10 + last 10)
+    final rowsToSample = <int>[];
+    if (widget.rowCount <= 20) {
+      rowsToSample.addAll(List.generate(widget.rowCount, (i) => i));
+    } else {
+      rowsToSample.addAll(List.generate(10, (i) => i));
+      rowsToSample.addAll(List.generate(10, (i) => widget.rowCount - 10 + i));
+    }
+
+    for (int row in rowsToSample) {
       final cells = widget.rowBuilder(context, row, false);
       for (int col = 0; col < cells.length && col < _numColumns!; col++) {
         final cellWidth = _calculateColumnWidth(cells[col]);
@@ -385,6 +389,7 @@ class _SailTableState extends State<SailTable> {
       padding: EdgeInsets.zero,
       controller: _verticalController,
       itemCount: widget.rowCount,
+      itemExtent: widget.cellHeight,
       itemBuilder: (context, index) => _buildRow(context, index),
     );
   }
