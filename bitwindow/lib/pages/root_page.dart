@@ -605,10 +605,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       },
                     ),
                     PlatformMenuItem(
-                      label: 'Mining Pools',
-                      onSelected: null,
-                    ),
-                    PlatformMenuItem(
                       label: 'Network Statistics',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(NetworkStatisticsRoute());
@@ -622,7 +618,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Sidechain Withdrawal Admin',
-                      onSelected: null,
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
+                      },
                     ),
                   ],
                 ),

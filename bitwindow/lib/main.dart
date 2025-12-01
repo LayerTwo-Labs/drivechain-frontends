@@ -22,6 +22,7 @@ import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart';
+import 'package:bitwindow/providers/m4_provider.dart';
 import 'package:bitwindow/providers/mining_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/notification_stream_provider.dart';
@@ -174,6 +175,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
   GetIt.I.registerSingleton<NewsProvider>(NewsProvider());
   GetIt.I.registerSingleton<SidechainProvider>(SidechainProvider());
+  GetIt.I.registerSingleton<M4Provider>(M4Provider());
   GetIt.I.registerSingleton<AddressBookProvider>(AddressBookProvider());
   GetIt.I.registerSingleton<MiningProvider>(MiningProvider());
   GetIt.I.registerSingleton<HDWalletProvider>(HDWalletProvider(applicationDir));
