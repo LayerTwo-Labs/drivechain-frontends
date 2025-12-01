@@ -1000,10 +1000,10 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
     return SailCard(
       error: isDisabled ? 'Switch to your enforcer wallet to interact with sidechains' : null,
       bottomPadding: false,
-      child: SailColumn(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: SailStyleValues.padding08,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           SailRow(
             spacing: SailStyleValues.padding08,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -1047,6 +1047,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
               ),
             ],
           ),
+          const SizedBox(height: SailStyleValues.padding08),
           SailRow(
             spacing: SailStyleValues.padding08,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -1070,7 +1071,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
               ),
             ],
           ),
-          SailPadding(
+          Padding(
             padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
             child: SailText.secondary13(
               'The sidechain may also deduct a fee from your deposit.',
@@ -1087,16 +1088,19 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
             onPressed: () async => viewModel.deposit(context),
           ),
           const SizedBox(height: SailStyleValues.padding16),
-          Expanded(
+          SizedBox(
+            height: 250,
             child: SailCard(
               title:
                   'Your Recent Deposits${viewModel.selectedIndex != null && viewModel.sidechains[viewModel.selectedIndex!] != null ? " to ${viewModel.sidechains[viewModel.selectedIndex!]!.info.title}" : ""}',
               subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
               shadowSize: ShadowSize.none,
+              bottomPadding: false,
               child: RecentDepositsTable(),
             ),
           ),
         ],
+        ),
       ),
     );
   }
