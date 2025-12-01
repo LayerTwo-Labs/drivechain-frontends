@@ -14,6 +14,7 @@ import (
 // Denial represents a deniability plan
 type Denial struct {
 	ID              int64
+	WalletID        *string
 	TipTXID         string
 	TipVout         int32
 	DelayDuration   time.Duration
@@ -38,18 +39,19 @@ type ExecutedDenial struct {
 }
 
 // Create creates a new denial plan
-func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDuration time.Duration, numHops int32) (Denial, error) {
+func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout int32, delayDuration time.Duration, numHops int32) (Denial, error) {
 	var id int64
 	err := db.QueryRowContext(ctx, `
 		INSERT INTO denials (
+			wallet_id,
 			initial_txid,
 			initial_vout,
 			delay_duration,
 			num_hops,
 			created_at
-		) VALUES (?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?)
 		RETURNING id
-	`, txid, vout, delayDuration, numHops, time.Now()).Scan(&id)
+	`, walletID, txid, vout, delayDuration, numHops, time.Now()).Scan(&id)
 	if err != nil {
 		return Denial{}, err
 	}
@@ -83,6 +85,7 @@ func selectDenialQuery() string {
 	return `
 		SELECT
 			d.id,
+			d.wallet_id,
 			d.delay_duration,
 			d.num_hops,
 			d.created_at,
@@ -143,6 +146,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 		var denial Denial
 		err := rows.Scan(
 			&denial.ID,
+			&denial.WalletID,
 			&denial.DelayDuration,
 			&denial.NumHops,
 			&denial.CreatedAt,
@@ -288,6 +292,7 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	var denial Denial
 	err := row.Scan(
 		&denial.ID,
+		&denial.WalletID,
 		&denial.DelayDuration,
 		&denial.NumHops,
 		&denial.CreatedAt,
@@ -334,6 +339,7 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 	var denial Denial
 	err := row.Scan(
 		&denial.ID,
+		&denial.WalletID,
 		&denial.DelayDuration,
 		&denial.NumHops,
 		&denial.CreatedAt,
