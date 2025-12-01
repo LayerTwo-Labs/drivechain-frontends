@@ -1004,102 +1004,102 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                flex: 2, // take up 2/3 of the space
-                child: SailTextField(
-                  label: 'Sidechain Deposit Address',
-                  controller: viewModel.addressController,
-                  hintText: 's${viewModel._selectedIndex ?? 0}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
-                  size: TextFieldSize.small,
-                  enabled: !isDisabled,
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  flex: 2, // take up 2/3 of the space
+                  child: SailTextField(
+                    label: 'Sidechain Deposit Address',
+                    controller: viewModel.addressController,
+                    hintText: 's${viewModel._selectedIndex ?? 0}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
+                    size: TextFieldSize.small,
+                    enabled: !isDisabled,
+                  ),
                 ),
-              ),
-              SailButton(
-                variant: ButtonVariant.icon,
-                onPressed: isDisabled
-                    ? null
-                    : () async {
-                        try {
-                          final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                          if (clipboardData?.text != null) {
-                            viewModel.addressController.text = clipboardData!.text!;
-                            viewModel.notifyListeners(); // Make sure UI updates
-                          }
-                        } catch (e) {
-                          if (!context.mounted) return;
-                          showSnackBar(context, 'Error accessing clipboard');
-                        }
-                      },
-                icon: SailSVGAsset.iconCopy,
-              ),
-              Tooltip(
-                message: isDisabled ? 'Disabled' : (viewModel.formatError ?? 'Format as deposit address'),
-                child: SailButton(
+                SailButton(
                   variant: ButtonVariant.icon,
-                  onPressed: viewModel.formatAddress,
-                  disabled: isDisabled || viewModel.formatError != null,
-                  icon: SailSVGAsset.iconFormat,
+                  onPressed: isDisabled
+                      ? null
+                      : () async {
+                          try {
+                            final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                            if (clipboardData?.text != null) {
+                              viewModel.addressController.text = clipboardData!.text!;
+                              viewModel.notifyListeners(); // Make sure UI updates
+                            }
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            showSnackBar(context, 'Error accessing clipboard');
+                          }
+                        },
+                  icon: SailSVGAsset.iconCopy,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: SailStyleValues.padding08),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                flex: 2, // take up 2/3 of the space
-                child: NumericField(
-                  label: 'Deposit Amount',
-                  controller: viewModel.depositAmountController,
-                  hintText: '0.00',
-                  enabled: !isDisabled,
+                Tooltip(
+                  message: isDisabled ? 'Disabled' : (viewModel.formatError ?? 'Format as deposit address'),
+                  child: SailButton(
+                    variant: ButtonVariant.icon,
+                    onPressed: viewModel.formatAddress,
+                    disabled: isDisabled || viewModel.formatError != null,
+                    icon: SailSVGAsset.iconFormat,
+                  ),
                 ),
-              ),
-              UnitDropdown(
-                value: Unit.BTC,
-                onChanged: (_) => {},
-                enabled: false,
-              ),
-              Expanded(
-                child: Container(),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
-            child: SailText.secondary13(
-              'The sidechain may also deduct a fee from your deposit.',
-              color: context.sailTheme.colors.textTertiary,
+              ],
             ),
-          ),
-          SailButton(
-            label: 'Deposit',
-            disabled:
-                isDisabled ||
-                viewModel.addressController.text == '' ||
-                viewModel.depositAmountController.text == '' ||
-                viewModel.feeController.text == '',
-            onPressed: () async => viewModel.deposit(context),
-          ),
-          const SizedBox(height: SailStyleValues.padding16),
-          SizedBox(
-            height: 250,
-            child: SailCard(
-              title:
-                  'Your Recent Deposits${viewModel.selectedIndex != null && viewModel.sidechains[viewModel.selectedIndex!] != null ? " to ${viewModel.sidechains[viewModel.selectedIndex!]!.info.title}" : ""}',
-              subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
-              shadowSize: ShadowSize.none,
-              bottomPadding: false,
-              child: RecentDepositsTable(),
+            const SizedBox(height: SailStyleValues.padding08),
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  flex: 2, // take up 2/3 of the space
+                  child: NumericField(
+                    label: 'Deposit Amount',
+                    controller: viewModel.depositAmountController,
+                    hintText: '0.00',
+                    enabled: !isDisabled,
+                  ),
+                ),
+                UnitDropdown(
+                  value: Unit.BTC,
+                  onChanged: (_) => {},
+                  enabled: false,
+                ),
+                Expanded(
+                  child: Container(),
+                ),
+              ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
+              child: SailText.secondary13(
+                'The sidechain may also deduct a fee from your deposit.',
+                color: context.sailTheme.colors.textTertiary,
+              ),
+            ),
+            SailButton(
+              label: 'Deposit',
+              disabled:
+                  isDisabled ||
+                  viewModel.addressController.text == '' ||
+                  viewModel.depositAmountController.text == '' ||
+                  viewModel.feeController.text == '',
+              onPressed: () async => viewModel.deposit(context),
+            ),
+            const SizedBox(height: SailStyleValues.padding16),
+            SizedBox(
+              height: 250,
+              child: SailCard(
+                title:
+                    'Your Recent Deposits${viewModel.selectedIndex != null && viewModel.sidechains[viewModel.selectedIndex!] != null ? " to ${viewModel.sidechains[viewModel.selectedIndex!]!.info.title}" : ""}',
+                subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
+                shadowSize: ShadowSize.none,
+                bottomPadding: false,
+                child: RecentDepositsTable(),
+              ),
+            ),
+          ],
         ),
       ),
     );

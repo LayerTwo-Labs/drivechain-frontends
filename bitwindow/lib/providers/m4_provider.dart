@@ -20,6 +20,8 @@ class M4Provider extends ChangeNotifier {
   String? modelError;
 
   Timer? _pollTimer;
+  bool _disposed = false;
+  bool _settingVote = false;
 
   M4Provider() {
     _bitwindowRPC.addListener(_onBitwindowConnectionChanged);
@@ -45,6 +47,8 @@ class M4Provider extends ChangeNotifier {
 
   // Fetch M4 data for all active sidechains
   Future<void> fetchAll() async {
+    if (_disposed || _settingVote) return;
+
     isLoading = true;
     modelError = null;
     notifyListeners();
@@ -85,8 +89,10 @@ class M4Provider extends ChangeNotifier {
       log.e('Failed to fetch M4 data: $e');
       modelError = e.toString();
     } finally {
-      isLoading = false;
-      notifyListeners();
+      if (!_disposed) {
+        isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -100,6 +106,8 @@ class M4Provider extends ChangeNotifier {
     required String voteType,
     String? bundleHash,
   }) async {
+    if (_disposed) return;
+    _settingVote = true;
     try {
       await _bitwindowRPC.m4.setVotePreference(
         sidechainSlot: sidechainSlot,
@@ -107,23 +115,31 @@ class M4Provider extends ChangeNotifier {
         bundleHash: bundleHash,
       );
 
-      await fetchAll();
+      // Only refresh vote preferences, not all data
+      votePreferences = await _bitwindowRPC.m4.getVotePreferences();
+      if (_disposed) return;
       modelError = null;
       notifyListeners();
     } catch (e) {
       log.e('Failed to set vote preference: $e');
+      if (_disposed) return;
       modelError = e.toString();
       notifyListeners();
+      rethrow;
+    } finally {
+      _settingVote = false;
     }
   }
 
   Future<m4pb.GenerateM4BytesResponse?> generateM4Bytes() async {
+    if (_disposed) return null;
     try {
       final resp = await _bitwindowRPC.m4.generateM4Bytes();
       modelError = null;
       return resp;
     } catch (e) {
       log.e('Failed to generate M4 bytes: $e');
+      if (_disposed) return null;
       modelError = e.toString();
       notifyListeners();
       return null;
@@ -144,6 +160,7 @@ class M4Provider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _bitwindowRPC.removeListener(_onBitwindowConnectionChanged);
     GetIt.I.get<BlockchainProvider>().removeListener(_onNewBlock);
     stopPolling();

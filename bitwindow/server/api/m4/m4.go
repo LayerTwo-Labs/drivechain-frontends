@@ -129,47 +129,110 @@ func (s *Server) GenerateM4Bytes(
 	ctx context.Context,
 	req *connect.Request[m4pb.GenerateM4BytesRequest],
 ) (*connect.Response[m4pb.GenerateM4BytesResponse], error) {
+	// Get all pending withdrawal bundles
+	bundles, err := s.m4Engine.GetWithdrawalBundles(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("get withdrawal bundles: %w", err)
+	}
+
+	// Group bundles by sidechain
+	bundlesBySidechain := make(map[uint8][]m4models.WithdrawalBundle)
+	for _, b := range bundles {
+		if b.Status == "pending" {
+			bundlesBySidechain[b.SidechainSlot] = append(bundlesBySidechain[b.SidechainSlot], b)
+		}
+	}
+
+	// If no pending bundles, M4 is not required
+	if len(bundlesBySidechain) == 0 {
+		return connect.NewResponse(&m4pb.GenerateM4BytesResponse{
+			Hex:            "",
+			Interpretation: "Not required - no pending withdrawal bundles.",
+		}), nil
+	}
+
+	// Get user's vote preferences
 	prefs, err := s.m4Engine.GetVotePreferences(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get vote preferences: %w", err)
 	}
 
-	m4Bytes := m4models.EncodeVotePreferences(prefs)
-	hexStr := hex.EncodeToString(m4Bytes)
+	// Build preference map for quick lookup
+	prefMap := make(map[uint8]m4models.VotePreference)
+	for _, p := range prefs {
+		prefMap[p.SidechainSlot] = p
+	}
 
-	// Generate human-readable interpretation
-	interpretation := generateInterpretation(prefs)
+	// Generate M4 bytes using version 0x02 (2 bytes per sidechain)
+	// Only include sidechains that have pending bundles
+	var m4Bytes []byte
+	m4Bytes = append(m4Bytes, 0x02) // Version
+
+	var interpretation string
+	interpretation = "M4 Vote Bytes:\n\n"
+
+	// Process sidechains in order
+	for slot := 0; slot <= 255; slot++ {
+		sidechainBundles, hasBundles := bundlesBySidechain[uint8(slot)]
+		if !hasBundles {
+			continue
+		}
+
+		pref, hasPreference := prefMap[uint8(slot)]
+
+		var voteBytes [2]byte
+		var voteDesc string
+
+		switch {
+		case !hasPreference || pref.VoteType == m4models.VoteTypeAbstain:
+			// Abstain: 0xFFFF
+			voteBytes[0] = 0xFF
+			voteBytes[1] = 0xFF
+			voteDesc = "Abstain from all withdrawals"
+		case pref.VoteType == m4models.VoteTypeAlarm:
+			// Alarm (downvote all): 0xFFFE
+			voteBytes[0] = 0xFE
+			voteBytes[1] = 0xFF
+			voteDesc = "Alarm - Downvote all withdrawals"
+		case pref.VoteType == m4models.VoteTypeUpvote:
+			// Find bundle index by hash
+			bundleIndex := uint16(0xFFFF) // Default to abstain if not found
+			if pref.BundleHash != nil {
+				for i, b := range sidechainBundles {
+					if b.BundleHash == *pref.BundleHash {
+						bundleIndex = uint16(i)
+						break
+					}
+				}
+			}
+			if bundleIndex == 0xFFFF {
+				voteBytes[0] = 0xFF
+				voteBytes[1] = 0xFF
+				voteDesc = "Abstain (bundle not found)"
+			} else {
+				// Little-endian encoding
+				voteBytes[0] = byte(bundleIndex & 0xFF)
+				voteBytes[1] = byte(bundleIndex >> 8)
+				voteDesc = fmt.Sprintf("Upvote withdrawal #%d", bundleIndex)
+				if pref.BundleHash != nil {
+					hash := *pref.BundleHash
+					if len(hash) > 16 {
+						hash = hash[:16] + "..."
+					}
+					voteDesc += fmt.Sprintf(" (%s)", hash)
+				}
+			}
+		}
+
+		m4Bytes = append(m4Bytes, voteBytes[0], voteBytes[1])
+		interpretation += fmt.Sprintf("Sidechain #%d: %02x%02x\n  %s\n  (%d pending bundles)\n\n",
+			slot, voteBytes[0], voteBytes[1], voteDesc, len(sidechainBundles))
+	}
+
+	hexStr := hex.EncodeToString(m4Bytes)
 
 	return connect.NewResponse(&m4pb.GenerateM4BytesResponse{
 		Hex:            hexStr,
 		Interpretation: interpretation,
 	}), nil
-}
-
-func generateInterpretation(prefs []m4models.VotePreference) string {
-	if len(prefs) == 0 {
-		return "No vote preferences set"
-	}
-
-	var result string
-	result += "M4 Vote Settings:\n\n"
-
-	for _, pref := range prefs {
-		result += fmt.Sprintf("Sidechain #%d:\n", pref.SidechainSlot)
-		switch pref.VoteType {
-		case m4models.VoteTypeAbstain:
-			result += "  Abstain from all withdrawals\n"
-		case m4models.VoteTypeAlarm:
-			result += "  Alarm - Downvote all withdrawals\n"
-		case m4models.VoteTypeUpvote:
-			if pref.BundleHash != nil {
-				result += fmt.Sprintf("  Upvote withdrawal: %s\n", *pref.BundleHash)
-			} else {
-				result += "  Upvote (bundle hash not set)\n"
-			}
-		}
-		result += "\n"
-	}
-
-	return result
 }
