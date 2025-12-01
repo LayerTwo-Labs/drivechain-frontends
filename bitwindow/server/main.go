@@ -203,7 +203,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}()
 
 	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
-	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db)
+	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db, srv.WalletEngine)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 

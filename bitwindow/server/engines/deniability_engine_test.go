@@ -39,10 +39,10 @@ func TestDeniabilityEngine(t *testing.T) {
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(walletService, bitcoindService, db)
+		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
 
-		// Create a denial
-		denial, err := deniability.Create(ctx, db, "test-txid", 0, 1*time.Hour, 3)
+		// Create a denial with empty wallet_id (legacy behavior)
+		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
 
 		// Mock wallet response with no matching UTXO
@@ -86,10 +86,10 @@ func TestDeniabilityEngine(t *testing.T) {
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(walletService, bitcoindService, db)
+		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
 
-		// Create a denial
-		denial, err := deniability.Create(ctx, db, "test-txid", 0, 1*time.Hour, 3)
+		// Create a denial with empty wallet_id (legacy behavior)
+		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
 
 		// Mock wallet responses
@@ -178,10 +178,10 @@ func TestDeniabilityEngine(t *testing.T) {
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(walletService, bitcoindService, db)
+		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
 
-		// Create a denial
-		denial, err := deniability.Create(ctx, db, "test-txid", 0, 1*time.Hour, 3)
+		// Create a denial with empty wallet_id (legacy behavior)
+		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
 
 		// Process UTXO with insufficient amount

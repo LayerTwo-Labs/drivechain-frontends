@@ -15,6 +15,7 @@ import (
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -22,20 +23,23 @@ import (
 )
 
 type DeniabilityEngine struct {
-	wallet   *service.Service[validatorrpc.WalletServiceClient]
-	bitcoind *service.Service[corerpc.BitcoinServiceClient]
-	db       *sql.DB
+	wallet       *service.Service[validatorrpc.WalletServiceClient]
+	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+	db           *sql.DB
+	walletEngine *WalletEngine
 }
 
 func NewDeniability(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	db *sql.DB,
+	walletEngine *WalletEngine,
 ) *DeniabilityEngine {
 	return &DeniabilityEngine{
-		wallet:   wallet,
-		bitcoind: bitcoind,
-		db:       db,
+		wallet:       wallet,
+		bitcoind:     bitcoind,
+		db:           db,
+		walletEngine: walletEngine,
 	}
 }
 
@@ -96,20 +100,33 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 }
 
 func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, []deniability.Denial, error) {
-	// all denial checking starts with a list of current utxos
-	utxos, err := e.listWalletUTXOs(ctx)
-	if err != nil {
-		return nil, nil, fmt.Errorf("list utxos: %w", err)
-	}
-
 	// then get all active denials
 	denials, err := deniability.List(ctx, e.db, deniability.WithExcludeCancelled())
 	if err != nil {
 		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
 
+	// Build a map of wallet_id -> UTXOs for efficient lookup
+	walletUTXOs := make(map[string][]*pb.ListUnspentOutputsResponse_Output)
+
+	for _, denial := range denials {
+		walletId := ""
+		if denial.WalletID != nil {
+			walletId = *denial.WalletID
+		}
+
+		// Only fetch UTXOs for each wallet once
+		if _, exists := walletUTXOs[walletId]; !exists {
+			utxos, err := e.listUTXOsForWallet(ctx, walletId)
+			if err != nil {
+				return nil, nil, fmt.Errorf("list utxos for wallet %s: %w", walletId, err)
+			}
+			walletUTXOs[walletId] = utxos
+		}
+	}
+
 	// if any denial tips are missing from the wallet, we must abort them before moving on
-	if err := e.cancelIfUTXOIsGone(ctx, utxos, denials); err != nil {
+	if err := e.cancelIfUTXOIsGone(ctx, walletUTXOs, denials); err != nil {
 		return nil, nil, fmt.Errorf("handle aborted denials: %w", err)
 	}
 
@@ -119,13 +136,25 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
 
-	return utxos, denials, nil
+	// Flatten all UTXOs for ExecuteDenial (which will also re-verify)
+	var allUTXOs []*pb.ListUnspentOutputsResponse_Output
+	for _, utxos := range walletUTXOs {
+		allUTXOs = append(allUTXOs, utxos...)
+	}
+
+	return allUTXOs, denials, nil
 }
 
-func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) error {
+func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs map[string][]*pb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) error {
 	logger := zerolog.Ctx(ctx)
 
 	for _, denial := range denials {
+		walletId := ""
+		if denial.WalletID != nil {
+			walletId = *denial.WalletID
+		}
+
+		utxos := walletUTXOs[walletId]
 		utxoExists := lo.ContainsBy(utxos, func(utxo *pb.ListUnspentOutputsResponse_Output) bool {
 			return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
 		})
@@ -174,11 +203,6 @@ func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListU
 }
 
 func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
-	wallet, err := e.wallet.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("deniability/process: %w", err)
-	}
-
 	logger := zerolog.Ctx(ctx).With().
 		Int64("denial_id", denial.ID).
 		Str("utxo_txid", utxo.Txid.Hex.Value).
@@ -200,9 +224,100 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		return nil
 	}
 
-	destinations, err := e.chooseDenialStrategy(ctx, denial, utxo, fee)
+	// Use the denial's stored wallet_id to determine routing
+	var walletType WalletType
+	var walletId string
+	var err error
+
+	if denial.WalletID != nil && *denial.WalletID != "" {
+		// Use the wallet_id stored with the denial
+		walletId = *denial.WalletID
+		if e.walletEngine != nil {
+			walletType, err = e.walletEngine.GetWalletBackendType(ctx, walletId)
+			if err != nil {
+				return fmt.Errorf("get wallet type for denial %d: %w", denial.ID, err)
+			}
+		} else {
+			walletType = WalletTypeEnforcer
+		}
+	} else {
+		// Legacy denial without wallet_id - use active wallet or fall back to enforcer
+		if e.walletEngine != nil {
+			walletType, walletId, err = e.getActiveWalletType(ctx)
+			if err != nil {
+				walletType = WalletTypeEnforcer
+			}
+		} else {
+			walletType = WalletTypeEnforcer
+		}
+	}
+
+	destinations, err := e.chooseDenialStrategy(ctx, denial, utxo, fee, walletType, walletId)
 	if err != nil {
 		return fmt.Errorf("choose denial strategy: %w", err)
+	}
+
+	// Send transaction based on wallet type
+	var txid string
+	switch walletType {
+	case WalletTypeEnforcer:
+		txid, err = e.sendEnforcerTransaction(ctx, utxo, destinations, fee)
+	case WalletTypeBitcoinCore:
+		txid, err = e.sendBitcoinCoreTransaction(ctx, walletId, destinations)
+	case WalletTypeWatchOnly:
+		return fmt.Errorf("cannot send transactions from watch-only wallet")
+	default:
+		return fmt.Errorf("unknown wallet type: %s", walletType)
+	}
+
+	if err != nil {
+		logger.Error().
+			Err(err).
+			Msg("failed to send transaction")
+		return fmt.Errorf("send transaction: %w", err)
+	}
+
+	newUTXOs, err := e.waitForUTXOsToAppear(ctx, txid, destinations)
+	if err != nil {
+		return fmt.Errorf("wait for tx to appear: %w", err)
+	}
+
+	for _, newUTXO := range newUTXOs {
+		if newUTXO.Txid.Hex.Value != txid {
+			panic("DEVELOPER ERROR: returned UTXO txid did not match sent txid")
+		}
+
+		if err := deniability.RecordExecution(ctx, e.db, denial.ID,
+			utxo.Txid.Hex.Value,
+			int32(utxo.Vout),
+			txid,
+			newUTXO.Vout,
+		); err != nil {
+			logger.Error().
+				Err(err).
+				Str("to_txid", txid).
+				Msg("failed to record execution")
+			return fmt.Errorf("record execution: %w", err)
+		}
+	}
+
+	logger.Info().
+		Str("to_txid", txid).
+		Msg("executed denial split")
+
+	return nil
+}
+
+// sendEnforcerTransaction sends a transaction via the enforcer wallet
+func (e *DeniabilityEngine) sendEnforcerTransaction(
+	ctx context.Context,
+	utxo *pb.ListUnspentOutputsResponse_Output,
+	destinations map[string]uint64,
+	fee uint64,
+) (string, error) {
+	wallet, err := e.wallet.Get(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get enforcer wallet: %w", err)
 	}
 
 	sendResp, err := wallet.SendTransaction(ctx, &connect.Request[pb.SendTransactionRequest]{
@@ -224,41 +339,43 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		},
 	})
 	if err != nil {
-		logger.Error().
-			Err(err).
-			Msg("failed to send transaction")
-		return fmt.Errorf("send transaction: %w", err)
+		return "", err
 	}
 
-	newUTXOs, err := e.waitForUTXOsToAppear(ctx, sendResp.Msg.Txid.Hex.Value, destinations)
+	return sendResp.Msg.Txid.Hex.Value, nil
+}
+
+// sendBitcoinCoreTransaction sends a transaction via Bitcoin Core
+func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
+	ctx context.Context,
+	walletId string,
+	destinations map[string]uint64,
+) (string, error) {
+	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
-		return fmt.Errorf("wait for tx to appear: %w", err)
+		return "", fmt.Errorf("get bitcoin core wallet name: %w", err)
 	}
 
-	for _, newUTXO := range newUTXOs {
-		if newUTXO.Txid.Hex.Value != sendResp.Msg.Txid.Hex.Value {
-			panic("DEVELOPER ERROR: returned UTXO txid did not match sent txid")
-		}
-
-		if err := deniability.RecordExecution(ctx, e.db, denial.ID,
-			utxo.Txid.Hex.Value,
-			int32(utxo.Vout),
-			sendResp.Msg.Txid.Hex.Value,
-			newUTXO.Vout,
-		); err != nil {
-			logger.Error().
-				Err(err).
-				Str("to_txid", sendResp.Msg.Txid.Hex.Value).
-				Msg("failed to record execution")
-			return fmt.Errorf("record execution: %w", err)
-		}
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get bitcoind client: %w", err)
 	}
 
-	logger.Info().
-		Str("to_txid", sendResp.Msg.Txid.Hex.Value).
-		Msg("executed denial split")
+	// Convert satoshi amounts to BTC (Bitcoin Core uses BTC, not satoshis)
+	btcDestinations := make(map[string]float64)
+	for addr, sats := range destinations {
+		btcDestinations[addr] = float64(sats) / 1e8
+	}
 
-	return nil
+	resp, err := bitcoind.Send(ctx, connect.NewRequest(&corepb.SendRequest{
+		Destinations: btcDestinations,
+		Wallet:       coreWalletName,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("bitcoin core send: %w", err)
+	}
+
+	return resp.Msg.Txid, nil
 }
 
 // the enforcer wallet takes a few seconds/minutes to add the sent transaction
@@ -301,29 +418,44 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 }
 
 func (e *DeniabilityEngine) chooseDenialStrategy(
-	ctx context.Context, denial deniability.Denial, utxo *pb.ListUnspentOutputsResponse_Output, fee uint64,
+	ctx context.Context,
+	denial deniability.Denial,
+	utxo *pb.ListUnspentOutputsResponse_Output,
+	fee uint64,
+	walletType WalletType,
+	walletId string,
 ) (map[string]uint64, error) {
-
 	// currently we only have one strategy, but we'll keep the structure
-	return e.simpleSplit(ctx, denial, utxo, fee)
+	return e.simpleSplit(ctx, denial, utxo, fee, walletType, walletId)
 }
 
 // simpleSplit sends 10-90% of the utxo to a new address. Change is indistinguishable, making it a somewhat OK
 // strategy for bamboozling chain analysis
 func (e *DeniabilityEngine) simpleSplit(
-	ctx context.Context, denial deniability.Denial, utxo *pb.ListUnspentOutputsResponse_Output, fee uint64,
+	ctx context.Context,
+	denial deniability.Denial,
+	utxo *pb.ListUnspentOutputsResponse_Output,
+	fee uint64,
+	walletType WalletType,
+	walletId string,
 ) (map[string]uint64, error) {
-	wallet, err := e.wallet.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("deniability/split: %w", err)
+	// Get a new address based on wallet type
+	var address string
+	var err error
+
+	switch walletType {
+	case WalletTypeEnforcer:
+		address, err = e.getEnforcerNewAddress(ctx)
+	case WalletTypeBitcoinCore:
+		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
+	case WalletTypeWatchOnly:
+		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
+	default:
+		return nil, fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
 	}
 
-	// Create two new addresses for the split
-	addr, err := wallet.CreateNewAddress(ctx, &connect.Request[pb.CreateNewAddressRequest]{
-		Msg: &pb.CreateNewAddressRequest{},
-	})
 	if err != nil {
-		return nil, fmt.Errorf("get first new address: %w", err)
+		return nil, fmt.Errorf("get new address: %w", err)
 	}
 
 	availableAmount := utxo.ValueSats - fee
@@ -341,8 +473,48 @@ func (e *DeniabilityEngine) simpleSplit(
 		Msg("calculated split amounts")
 
 	return map[string]uint64{
-		addr.Msg.Address: sendAmount,
+		address: sendAmount,
 	}, nil
+}
+
+// getEnforcerNewAddress creates a new address from the enforcer wallet
+func (e *DeniabilityEngine) getEnforcerNewAddress(ctx context.Context) (string, error) {
+	wallet, err := e.wallet.Get(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get enforcer wallet: %w", err)
+	}
+
+	addr, err := wallet.CreateNewAddress(ctx, &connect.Request[pb.CreateNewAddressRequest]{
+		Msg: &pb.CreateNewAddressRequest{},
+	})
+	if err != nil {
+		return "", fmt.Errorf("create new address: %w", err)
+	}
+
+	return addr.Msg.Address, nil
+}
+
+// getBitcoinCoreNewAddress creates a new address from a Bitcoin Core wallet
+func (e *DeniabilityEngine) getBitcoinCoreNewAddress(ctx context.Context, walletId string) (string, error) {
+	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	if err != nil {
+		return "", fmt.Errorf("get bitcoin core wallet name: %w", err)
+	}
+
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get bitcoind client: %w", err)
+	}
+
+	resp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
+		Wallet:      coreWalletName,
+		AddressType: "bech32",
+	}))
+	if err != nil {
+		return "", fmt.Errorf("bitcoin core get new address: %w", err)
+	}
+
+	return resp.Msg.Address, nil
 }
 
 type UTXO struct {
@@ -351,8 +523,72 @@ type UTXO struct {
 	Amount uint64
 }
 
-// listUTXOs gets all unspent transaction outputs from the wallet
+// getActiveWalletType returns the wallet type and wallet ID for the active wallet
+// Returns error if wallet is encrypted and locked, or if no enforcer wallet exists
+func (e *DeniabilityEngine) getActiveWalletType(ctx context.Context) (WalletType, string, error) {
+	activeWallet, err := e.walletEngine.GetActiveWallet(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("get active wallet: %w", err)
+	}
+
+	return activeWallet.WalletType, activeWallet.ID, nil
+}
+
+// listUTXOsForWallet gets UTXOs for a specific wallet ID
+func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId string) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+	if walletId == "" || e.walletEngine == nil {
+		// Legacy denial without wallet_id or no wallet engine - use enforcer
+		return e.listEnforcerUTXOs(ctx)
+	}
+
+	walletType, err := e.walletEngine.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	switch walletType {
+	case WalletTypeEnforcer:
+		return e.listEnforcerUTXOs(ctx)
+
+	case WalletTypeBitcoinCore:
+		return e.listBitcoinCoreUTXOs(ctx, walletId)
+
+	case WalletTypeWatchOnly:
+		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
+
+	default:
+		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
+	}
+}
+
+// listWalletUTXOs gets all unspent transaction outputs from the active wallet
 func (e *DeniabilityEngine) listWalletUTXOs(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+	if e.walletEngine == nil {
+		return e.listEnforcerUTXOs(ctx)
+	}
+
+	walletType, walletId, err := e.getActiveWalletType(ctx)
+	if err != nil {
+		return e.listEnforcerUTXOs(ctx)
+	}
+
+	switch walletType {
+	case WalletTypeEnforcer:
+		return e.listEnforcerUTXOs(ctx)
+
+	case WalletTypeBitcoinCore:
+		return e.listBitcoinCoreUTXOs(ctx, walletId)
+
+	case WalletTypeWatchOnly:
+		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
+
+	default:
+		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
+	}
+}
+
+// listEnforcerUTXOs lists UTXOs from the enforcer wallet
+func (e *DeniabilityEngine) listEnforcerUTXOs(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, error) {
 	wallet, err := e.wallet.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: %w", err)
@@ -366,4 +602,40 @@ func (e *DeniabilityEngine) listWalletUTXOs(ctx context.Context) ([]*pb.ListUnsp
 	}
 
 	return resp.Msg.Outputs, nil
+}
+
+// listBitcoinCoreUTXOs lists UTXOs from a Bitcoin Core wallet
+func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId string) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get bitcoin core wallet name: %w", err)
+	}
+
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get bitcoind client: %w", err)
+	}
+
+	resp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+		Wallet: coreWalletName,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
+	}
+
+	// Convert Bitcoin Core UTXOs to the enforcer format for compatibility
+	var outputs []*pb.ListUnspentOutputsResponse_Output
+	for _, utxo := range resp.Msg.Unspent {
+		valueSats := uint64(utxo.Amount * 100000000)
+		outputs = append(outputs, &pb.ListUnspentOutputsResponse_Output{
+			Txid: &commonv1.ReverseHex{
+				Hex: &wrapperspb.StringValue{Value: utxo.Txid},
+			},
+			Vout:      utxo.Vout,
+			Address:   &wrapperspb.StringValue{Value: utxo.Address},
+			ValueSats: valueSats,
+		})
+	}
+
+	return outputs, nil
 }

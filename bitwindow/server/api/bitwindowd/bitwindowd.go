@@ -122,11 +122,6 @@ func (s *Server) CreateDenial(
 	ctx context.Context,
 	req *connect.Request[pb.CreateDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	if req.Msg.DelaySeconds <= 0 {
 		err := fmt.Errorf("delay_seconds must be positive")
 		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid delay_seconds")
@@ -139,26 +134,36 @@ func (s *Server) CreateDenial(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	// Get active wallet to determine routing
+	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
 	if err != nil {
-		err = fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list unspent outputs")
-		return nil, err
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get active wallet")
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not get active wallet: %w", err))
 	}
 
-	// Check if UTXO exists
+	// Check if wallet type supports deniability
+	if activeWallet.WalletType == engines.WalletTypeWatchOnly {
+		err := fmt.Errorf("deniability is not supported for watch-only wallets")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("unsupported wallet type")
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	// List UTXOs based on wallet type
 	var utxoExists bool
-	for _, utxo := range utxos.Msg.Outputs {
-		if utxo.Txid.Hex.Value == req.Msg.Txid && utxo.Vout == req.Msg.Vout {
-			utxoExists = true
-			zerolog.Ctx(ctx).Info().
-				Str("txid", utxo.Txid.Hex.Value).
-				Uint32("vout", utxo.Vout).
-				Uint64("value_sats", utxo.ValueSats).
-				Bool("is_internal", utxo.IsInternal).
-				Msg("CreateDenial: found matching UTXO")
-			break
-		}
+	switch activeWallet.WalletType {
+	case engines.WalletTypeEnforcer:
+		utxoExists, err = s.checkEnforcerUTXO(ctx, req.Msg.Txid, req.Msg.Vout)
+	case engines.WalletTypeBitcoinCore:
+		utxoExists, err = s.checkBitcoinCoreUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
+	case engines.WalletTypeWatchOnly:
+		err = fmt.Errorf("deniability is not supported for watch-only wallets")
+	default:
+		err = fmt.Errorf("unknown wallet type: %s", activeWallet.WalletType)
+	}
+
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not check UTXO")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	if !utxoExists {
@@ -199,12 +204,14 @@ func (s *Server) CreateDenial(
 		Uint32("vout", req.Msg.Vout).
 		Int32("delay_seconds", req.Msg.DelaySeconds).
 		Int32("num_hops", req.Msg.NumHops).
+		Str("wallet_id", activeWallet.ID).
 		Msg("CreateDenial: creating new denial")
 
-	// UTXO exists, create the denial
+	// UTXO exists, create the denial with the wallet ID
 	_, err = deniability.Create(
 		ctx,
 		s.db,
+		activeWallet.ID,
 		req.Msg.Txid,
 		int32(req.Msg.Vout),
 		time.Duration(req.Msg.DelaySeconds)*time.Second,
@@ -1059,4 +1066,53 @@ func (s *Server) getBlockAtHeight(ctx context.Context, bitcoind corerpc.BitcoinS
 	}
 
 	return block.Msg.Time.Seconds, nil
+}
+
+// checkEnforcerUTXO checks if a UTXO exists in the enforcer wallet
+func (s *Server) checkEnforcerUTXO(ctx context.Context, txid string, vout uint32) (bool, error) {
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return false, fmt.Errorf("get enforcer wallet: %w", err)
+	}
+
+	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	if err != nil {
+		return false, fmt.Errorf("list enforcer utxos: %w", err)
+	}
+
+	for _, utxo := range utxos.Msg.Outputs {
+		if utxo.Txid.Hex.Value == txid && utxo.Vout == vout {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// checkBitcoinCoreUTXO checks if a UTXO exists in a Bitcoin Core wallet
+func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return false, fmt.Errorf("get bitcoind: %w", err)
+	}
+
+	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletID)
+	if err != nil {
+		return false, fmt.Errorf("get wallet name: %w", err)
+	}
+
+	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+		Wallet: walletName,
+	}))
+	if err != nil {
+		return false, fmt.Errorf("list bitcoin core utxos: %w", err)
+	}
+
+	for _, utxo := range utxos.Msg.Unspent {
+		if utxo.Txid == txid && utxo.Vout == vout {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
