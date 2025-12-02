@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
@@ -13,6 +13,7 @@ class ChequeProvider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
+  SyncProvider get _syncProvider => GetIt.I.get<SyncProvider>();
 
   List<Cheque> _cheques = [];
   bool _isLoading = false;
@@ -25,7 +26,7 @@ class ChequeProvider extends ChangeNotifier {
   int? _pollingChequeId;
 
   ChequeProvider() {
-    GetIt.I.get<BlockchainProvider>().addListener(_onNewBlock);
+    _syncProvider.addListener(_onNewBlock);
     _init();
   }
 
@@ -34,7 +35,9 @@ class ChequeProvider extends ChangeNotifier {
   }
 
   void _onNewBlock() {
-    fetch();
+    if (_syncProvider.isSynced) {
+      fetch();
+    }
   }
 
   Future<void> fetch() async {
@@ -174,7 +177,7 @@ class ChequeProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    GetIt.I.get<BlockchainProvider>().removeListener(_onNewBlock);
+    _syncProvider.removeListener(_onNewBlock);
     stopPolling();
     super.dispose();
   }

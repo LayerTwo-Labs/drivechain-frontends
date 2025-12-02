@@ -1,16 +1,17 @@
 import 'dart:async';
 
-import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
+import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class M4Provider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  SyncProvider get _syncProvider => GetIt.I.get<SyncProvider>();
 
   // M4 data per sidechain slot
   Map<int, List<drivechainpb.WithdrawalBundle>> withdrawalBundlesBySidechain = {};
@@ -25,7 +26,7 @@ class M4Provider extends ChangeNotifier {
 
   M4Provider() {
     _bitwindowRPC.addListener(_onBitwindowConnectionChanged);
-    GetIt.I.get<BlockchainProvider>().addListener(_onNewBlock);
+    _syncProvider.addListener(_onNewBlock);
     _init();
   }
 
@@ -42,7 +43,9 @@ class M4Provider extends ChangeNotifier {
   }
 
   void _onNewBlock() {
-    fetchAll();
+    if (_syncProvider.isSynced) {
+      fetchAll();
+    }
   }
 
   // Fetch M4 data for all active sidechains
@@ -162,7 +165,7 @@ class M4Provider extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _bitwindowRPC.removeListener(_onBitwindowConnectionChanged);
-    GetIt.I.get<BlockchainProvider>().removeListener(_onNewBlock);
+    _syncProvider.removeListener(_onNewBlock);
     stopPolling();
     super.dispose();
   }
