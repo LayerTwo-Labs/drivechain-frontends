@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	connectrpc.com/connect v1.19.1
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/barebitcoin/btc-buf v0.0.0-20251121193755-8a7459bd0cf1
+	github.com/barebitcoin/btc-buf v0.0.0-20251202201854-efb1eb3c5e20
 	github.com/brianvoe/gofakeit/v7 v7.11.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
