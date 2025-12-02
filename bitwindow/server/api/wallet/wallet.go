@@ -258,6 +258,18 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		destinations[addr] = float64(sats) / 1e8
 	}
 
+	// If requiredInputs is specified, use raw transaction flow
+	if len(c.Msg.RequiredInputs) > 0 {
+		txid, err := s.sendWithRequiredInputs(ctx, bitcoind, coreWalletName, c.Msg.RequiredInputs, destinations)
+		if err != nil {
+			return nil, err
+		}
+		log.Info().Msgf("send tx: broadcast transaction with required inputs (Bitcoin Core): %s", txid)
+		return connect.NewResponse(&pb.SendTransactionResponse{
+			Txid: txid,
+		}), nil
+	}
+
 	sendReq := &corepb.SendRequest{
 		Destinations: destinations,
 		Wallet:       coreWalletName,
@@ -280,6 +292,74 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	return connect.NewResponse(&pb.SendTransactionResponse{
 		Txid: resp.Msg.Txid,
 	}), nil
+}
+
+// sendWithRequiredInputs creates and broadcasts a transaction using specific inputs.
+// This is used when the caller wants to spend specific UTXOs.
+func (s *Server) sendWithRequiredInputs(
+	ctx context.Context,
+	bitcoind corerpc.BitcoinServiceClient,
+	walletName string,
+	requiredInputs []*pb.UnspentOutput,
+	destinations map[string]float64,
+) (string, error) {
+	log := zerolog.Ctx(ctx)
+
+	// Build inputs for CreateRawTransaction
+	inputs := make([]*corepb.CreateRawTransactionRequest_Input, 0, len(requiredInputs))
+	for _, utxo := range requiredInputs {
+		parts := strings.Split(utxo.Output, ":")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid UTXO format: %s", utxo.Output)
+		}
+		txid := parts[0]
+		vout, err := strconv.ParseUint(parts[1], 10, 32)
+		if err != nil {
+			return "", fmt.Errorf("invalid vout in UTXO %s: %w", utxo.Output, err)
+		}
+		inputs = append(inputs, &corepb.CreateRawTransactionRequest_Input{
+			Txid: txid,
+			Vout: uint32(vout),
+		})
+	}
+
+	// Create raw transaction
+	createResp, err := bitcoind.CreateRawTransaction(ctx, connect.NewRequest(&corepb.CreateRawTransactionRequest{
+		Inputs:  inputs,
+		Outputs: destinations,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("create raw transaction: %w", err)
+	}
+
+	rawTxHex := createResp.Msg.Tx.Hex
+	log.Debug().Msgf("created raw transaction: %s", rawTxHex)
+
+	// Sign the transaction using signrawtransactionwithwallet
+	signResp, err := bitcoind.SignRawTransactionWithWallet(ctx, connect.NewRequest(&corepb.SignRawTransactionWithWalletRequest{
+		HexString: rawTxHex,
+		Wallet:    walletName,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("sign transaction: %w", err)
+	}
+
+	if !signResp.Msg.Complete {
+		return "", fmt.Errorf("transaction signing incomplete")
+	}
+
+	signedTxHex := signResp.Msg.Hex
+	log.Debug().Msgf("signed transaction: %s", signedTxHex)
+
+	// Broadcast the signed transaction
+	sendResp, err := bitcoind.SendRawTransaction(ctx, connect.NewRequest(&corepb.SendRawTransactionRequest{
+		HexString: signedTxHex,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("broadcast transaction: %w", err)
+	}
+
+	return sendResp.Msg.Txid, nil
 }
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
