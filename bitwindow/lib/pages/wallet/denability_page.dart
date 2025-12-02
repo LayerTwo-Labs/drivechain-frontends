@@ -26,17 +26,165 @@ class DeniabilityTab extends StatelessWidget {
           builder: (context, model, child) {
             final error = model.error('deniability');
 
-            return DeniabilityTable(
-              newWindowButton: newWindowButton,
-              error: error,
-              utxos: model.utxos,
-              model: model,
-              onDeny: (output) => model.showDenyDialog(context, output),
-              onCancel: model.cancelDenial,
+            return SailColumn(
+              spacing: SailStyleValues.padding16,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: DenyAllButton(
+                        onPressed: () => model.showDenyAllDialog(context),
+                        utxoCount: model.utxosWithoutDenial.length,
+                      ),
+                    ),
+                    const SizedBox(width: SailStyleValues.padding16),
+                    Expanded(
+                      child: ConsolidateButton(
+                        onPressed: () => model.showConsolidateDialog(context),
+                        utxoCount: model.utxos.length,
+                      ),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: DeniabilityTable(
+                    newWindowButton: newWindowButton,
+                    error: error,
+                    utxos: model.utxos,
+                    model: model,
+                    onDeny: (output) => model.showDenyDialog(context, output),
+                    onCancel: model.cancelDenial,
+                  ),
+                ),
+              ],
             );
           },
         );
       },
+    );
+  }
+}
+
+class DenyAllButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final int utxoCount;
+
+  const DenyAllButton({
+    super.key,
+    required this.onPressed,
+    required this.utxoCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return InkWell(
+      onTap: utxoCount > 0 ? onPressed : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          borderRadius: SailStyleValues.borderRadius,
+          gradient: LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              theme.colors.orange.withValues(alpha: utxoCount > 0 ? 0.25 : 0.1),
+              theme.colors.orangeLight.withValues(alpha: utxoCount > 0 ? 0.25 : 0.1),
+            ],
+          ),
+          border: Border.all(
+            color: utxoCount > 0 ? theme.colors.orange : theme.colors.divider,
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            SailRow(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.icon(
+                  SailSVGAsset.iconSend,
+                  color: utxoCount > 0 ? theme.colors.text : theme.colors.textTertiary,
+                  height: 24,
+                ),
+                SailText.primary24(
+                  'Deny All',
+                  bold: true,
+                  color: utxoCount > 0 ? null : theme.colors.textTertiary,
+                ),
+              ],
+            ),
+            SailText.secondary13(
+              utxoCount > 0
+                  ? 'Click here to start deniability on all $utxoCount UTXOs'
+                  : 'All UTXOs already have active deniability',
+              color: theme.colors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ConsolidateButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final int utxoCount;
+
+  const ConsolidateButton({
+    super.key,
+    required this.onPressed,
+    required this.utxoCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final canConsolidate = utxoCount > 1;
+
+    return InkWell(
+      onTap: canConsolidate ? onPressed : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          borderRadius: SailStyleValues.borderRadius,
+          color: theme.colors.backgroundSecondary,
+          border: Border.all(
+            color: canConsolidate ? theme.colors.primary : theme.colors.divider,
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            SailRow(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.icon(
+                  SailSVGAsset.iconReceive,
+                  color: canConsolidate ? theme.colors.text : theme.colors.textTertiary,
+                  height: 24,
+                ),
+                SailText.primary24(
+                  'Consolidate',
+                  bold: true,
+                  color: canConsolidate ? null : theme.colors.textTertiary,
+                ),
+              ],
+            ),
+            SailText.secondary13(
+              canConsolidate
+                  ? 'Click here to merge all $utxoCount UTXOs into one'
+                  : 'Need more than 1 UTXO to consolidate',
+              color: theme.colors.textSecondary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -400,6 +548,14 @@ class DeniabilityViewModel extends BaseViewModel {
 
   List<UnspentOutput> get utxos => transactionProvider.utxos;
 
+  List<UnspentOutput> get utxosWithoutDenial => utxos.where((u) {
+    if (!u.hasDenialInfo()) return true;
+    // Has denial info but it's cancelled or completed
+    if (u.denialInfo.hasCancelTime()) return true;
+    if (u.denialInfo.nextExecutionTime.toDateTime().second == 0) return true;
+    return false;
+  }).toList();
+
   DeniabilityViewModel() {
     transactionProvider.addListener(notifyListeners);
     transactionProvider.addListener(errorListener);
@@ -423,6 +579,20 @@ class DeniabilityViewModel extends BaseViewModel {
     showDialog(
       context: context,
       builder: (context) => DenialDialog(output: output),
+    );
+  }
+
+  void showDenyAllDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => DenyAllDialog(utxos: utxosWithoutDenial),
+    );
+  }
+
+  void showConsolidateDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => ConsolidateDialog(utxos: utxos),
     );
   }
 
