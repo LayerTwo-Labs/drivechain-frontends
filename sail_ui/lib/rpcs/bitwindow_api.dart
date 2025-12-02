@@ -994,7 +994,11 @@ class _BitcoindAPILive implements BitcoindAPI {
   @override
   Future<GetRawTransactionResponse> getRawTransaction(String txid) async {
     try {
-      final response = await _client.getRawTransaction(GetRawTransactionRequest()..txid = txid);
+      final response = await _client.getRawTransaction(
+        GetRawTransactionRequest()
+          ..txid = txid
+          ..verbosity = GetRawTransactionRequest_Verbosity.VERBOSITY_TX_INFO,
+      );
       return response;
     } catch (e) {
       final error = 'could not get transaction: ${extractConnectException(e)}';

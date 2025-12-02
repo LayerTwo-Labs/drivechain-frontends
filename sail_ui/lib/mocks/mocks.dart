@@ -908,6 +908,9 @@ class MockSyncProvider implements SyncProvider {
 
   @override
   void clearState() {}
+
+  @override
+  bool get isSynced => true;
 }
 
 class MockBitcoindAPI implements BitcoindAPI {
