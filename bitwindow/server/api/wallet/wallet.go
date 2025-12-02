@@ -1108,7 +1108,6 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
-	// Helper to find label for an address
 	getLabel := func(addr string) string {
 		for _, entry := range addressBookEntries {
 			if entry.Address == addr {
@@ -1118,90 +1117,120 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 		return ""
 	}
 
+	var utxos []*pb.UnspentOutput
 	if walletType == engines.WalletTypeEnforcer {
-		// Enforcer path
-		wallet, err := s.wallet.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		// First get all UTXOs from the wallet
-		utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
-		}
-
-		denials, err := deniability.List(ctx, s.database)
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not list denials: %w", err)
-		}
-
-		var utxosWithInfo []*pb.UnspentOutput
-		for _, utxo := range utxos.Msg.Outputs {
-			// Try to get the timestamp from the transaction (if available)
-			var receivedAt *timestamppb.Timestamp
-			if utxo.UnconfirmedLastSeen != nil {
-				receivedAt = utxo.UnconfirmedLastSeen
-			} else if utxo.ConfirmedAtTime != nil {
-				receivedAt = utxo.ConfirmedAtTime
-			}
-
-			utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
-				Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
-				Address:    utxo.Address.Value,
-				Label:      getLabel(utxo.Address.Value),
-				ValueSats:  utxo.ValueSats,
-				ReceivedAt: receivedAt,
-				IsChange:   utxo.IsInternal,
-				DenialInfo: s.addDenialInfo(utxo, denials),
-			})
-		}
-
-		return connect.NewResponse(&pb.ListUnspentResponse{
-			Utxos: utxosWithInfo,
-		}), nil
+		utxos, err = s.listUnspentEnforcer(ctx, getLabel)
 	} else {
-		// Bitcoin Core path
-		coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
-		if err != nil {
-			return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+		utxos, err = s.listUnspentBitcoinCore(ctx, walletId, getLabel)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&pb.ListUnspentResponse{Utxos: utxos}), nil
+}
+
+func (s *Server) listUnspentEnforcer(ctx context.Context, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
+	}
+
+	denials, err := deniability.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list denials: %w", err)
+	}
+
+	var utxosWithInfo []*pb.UnspentOutput
+	for _, utxo := range utxos.Msg.Outputs {
+		var receivedAt *timestamppb.Timestamp
+		if utxo.UnconfirmedLastSeen != nil {
+			receivedAt = utxo.UnconfirmedLastSeen
+		} else if utxo.ConfirmedAtTime != nil {
+			receivedAt = utxo.ConfirmedAtTime
 		}
 
-		bitcoind, err := s.bitcoind.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
+		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
+			Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
+			Address:    utxo.Address.Value,
+			Label:      getLabel(utxo.Address.Value),
+			ValueSats:  utxo.ValueSats,
+			ReceivedAt: receivedAt,
+			IsChange:   utxo.IsInternal,
+			DenialInfo: s.addDenialInfo(utxo, denials),
+		})
+	}
 
-		resp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+	return utxosWithInfo, nil
+}
+
+func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
+	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+		Wallet: coreWalletName,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoin Core list unspent: %w", err)
+	}
+
+	denials, err := deniability.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("bitcoin core: could not list denials: %w", err)
+	}
+
+	// Collect unique txids to fetch timestamps
+	txidSet := make(map[string]struct{})
+	for _, utxo := range resp.Msg.Unspent {
+		txidSet[utxo.Txid] = struct{}{}
+	}
+
+	txTimestamps := make(map[string]*timestamppb.Timestamp)
+	for txid := range txidSet {
+		txResp, err := bitcoind.GetTransaction(ctx, connect.NewRequest(&corepb.GetTransactionRequest{
+			Txid:   txid,
 			Wallet: coreWalletName,
 		}))
 		if err != nil {
-			return nil, fmt.Errorf("bitcoin Core list unspent: %w", err)
+			zerolog.Ctx(ctx).Warn().Err(err).Str("txid", txid).Msg("failed to get transaction timestamp")
+			continue
 		}
-
-		var utxosWithInfo []*pb.UnspentOutput
-		for _, utxo := range resp.Msg.Unspent {
-			// Convert BTC to satoshis
-			valueSats := uint64(utxo.Amount * 100000000)
-
-			var receivedAt *timestamppb.Timestamp
-			// Bitcoin Core doesn't provide timestamp for UTXOs directly
-
-			utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
-				Output:     fmt.Sprintf("%s:%d", utxo.Txid, utxo.Vout),
-				Address:    utxo.Address,
-				Label:      getLabel(utxo.Address),
-				ValueSats:  valueSats,
-				ReceivedAt: receivedAt,
-				IsChange:   false, // Bitcoin Core doesn't expose change flag
-				DenialInfo: nil,   // Deniability only works with enforcer
-			})
+		if txResp.Msg.TimeReceived != nil {
+			txTimestamps[txid] = txResp.Msg.TimeReceived
+		} else if txResp.Msg.Time != nil {
+			txTimestamps[txid] = txResp.Msg.Time
 		}
-
-		return connect.NewResponse(&pb.ListUnspentResponse{
-			Utxos: utxosWithInfo,
-		}), nil
 	}
+
+	var utxosWithInfo []*pb.UnspentOutput
+	for _, utxo := range resp.Msg.Unspent {
+		valueSats := uint64(utxo.Amount * 100000000)
+
+		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
+			Output:     fmt.Sprintf("%s:%d", utxo.Txid, utxo.Vout),
+			Address:    utxo.Address,
+			Label:      getLabel(utxo.Address),
+			ValueSats:  valueSats,
+			ReceivedAt: txTimestamps[utxo.Txid],
+			IsChange:   false,
+			DenialInfo: s.addDenialInfoForCore(utxo.Txid, int32(utxo.Vout), denials),
+		})
+	}
+
+	return utxosWithInfo, nil
 }
 
 func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
@@ -1279,6 +1308,81 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 			}
 		}),
 		// hops completed == index of execution +1 (no execution == 0 hops completed)
+		HopsCompleted: uint32(executionIndex) + 1,
+		IsChange:      isChange,
+	}
+}
+
+func (s *Server) addDenialInfoForCore(txid string, vout int32, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
+	sort.Slice(denials, func(i, j int) bool {
+		return denials[i].UpdatedAt.Before(denials[j].UpdatedAt)
+	})
+
+	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
+		if d.TipTXID == txid && d.TipVout == vout {
+			return true
+		}
+
+		return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
+			return e.ToTxID == txid
+		})
+	})
+
+	if !found {
+		return nil
+	}
+
+	return s.denialToProtoCore(txid, vout, denialInfo)
+}
+
+func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial) *bitwindowdv1.DenialInfo {
+	var cancelTime *timestamppb.Timestamp
+	if d.CancelledAt != nil {
+		cancelTime = timestamppb.New(*d.CancelledAt)
+	}
+
+	var nextExecutionTime *timestamppb.Timestamp
+	isTip := d.TipTXID == txid && d.TipVout == vout
+	if d.NextExecution != nil && isTip {
+		nextExecutionTime = timestamppb.New(*d.NextExecution)
+	}
+
+	sort.Slice(d.ExecutedDenials, func(i, j int) bool {
+		return d.ExecutedDenials[i].CreatedAt.Before(d.ExecutedDenials[j].CreatedAt)
+	})
+	uniqueBeforeThisUTXO := lo.UniqBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) string {
+		return e.ToTxID
+	})
+
+	executionIndex := -1
+	for i, e := range uniqueBeforeThisUTXO {
+		if e.ToTxID == txid {
+			executionIndex = i
+			break
+		}
+	}
+
+	isChange := executionIndex != -1 && !isTip
+	hopsCompleted := uint32(executionIndex) + 1
+
+	return &bitwindowdv1.DenialInfo{
+		Id:                d.ID,
+		NumHops:           lo.If(isTip, d.NumHops).Else(int32(hopsCompleted)),
+		DelaySeconds:      int32(d.DelayDuration.Seconds()),
+		CreateTime:        timestamppb.New(d.CreatedAt),
+		CancelTime:        cancelTime,
+		CancelReason:      d.CancelReason,
+		NextExecutionTime: nextExecutionTime,
+		Executions: lo.Map(d.ExecutedDenials, func(e deniability.ExecutedDenial, _ int) *bitwindowdv1.ExecutedDenial {
+			return &bitwindowdv1.ExecutedDenial{
+				Id:         e.ID,
+				DenialId:   e.DenialID,
+				FromTxid:   e.FromTxID,
+				FromVout:   uint32(e.FromVout),
+				ToTxid:     e.ToTxID,
+				CreateTime: timestamppb.New(e.CreatedAt),
+			}
+		}),
 		HopsCompleted: uint32(executionIndex) + 1,
 		IsChange:      isChange,
 	}
