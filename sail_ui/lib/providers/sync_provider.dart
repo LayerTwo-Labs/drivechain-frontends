@@ -66,6 +66,12 @@ class SyncProvider extends ChangeNotifier {
   SyncConnection get enforcer => SyncConnection(rpc: enforcerRPC, name: Enforcer().name);
   final SyncConnection? additionalConnection;
 
+  /// Returns true only when all connections (mainchain, enforcer, and additional if present) are fully synced.
+  bool get isSynced =>
+      (mainchainSyncInfo?.isSynced ?? false) &&
+      (enforcerSyncInfo?.isSynced ?? false) &&
+      (additionalConnection == null || (additionalSyncInfo?.isSynced ?? false));
+
   static const Duration AGGRESSIVE_INTERVAL = Duration(milliseconds: 100);
   static const Duration PASSIVE_INTERVAL = Duration(seconds: 5);
 

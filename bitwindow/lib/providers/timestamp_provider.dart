@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
+import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 const int maxFileSizeBytes = 1024 * 1024; // 1MB
@@ -12,6 +12,7 @@ const int maxFileSizeBytes = 1024 * 1024; // 1MB
 class TimestampProvider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  SyncProvider get _syncProvider => GetIt.I.get<SyncProvider>();
 
   List<FileTimestamp> timestamps = [];
   bool isLoading = false;
@@ -21,7 +22,7 @@ class TimestampProvider extends ChangeNotifier {
 
   TimestampProvider() {
     _bitwindowRPC.addListener(_onBitwindowConnectionChanged);
-    GetIt.I.get<BlockchainProvider>().addListener(_onNewBlock);
+    _syncProvider.addListener(_onNewBlock);
     _init();
   }
 
@@ -38,7 +39,9 @@ class TimestampProvider extends ChangeNotifier {
   }
 
   void _onNewBlock() {
-    fetch();
+    if (_syncProvider.isSynced) {
+      fetch();
+    }
   }
 
   Future<void> fetch() async {
@@ -126,7 +129,7 @@ class TimestampProvider extends ChangeNotifier {
   @override
   void dispose() {
     _bitwindowRPC.removeListener(_onBitwindowConnectionChanged);
-    GetIt.I.get<BlockchainProvider>().removeListener(_onNewBlock);
+    _syncProvider.removeListener(_onNewBlock);
     stopPolling();
     super.dispose();
   }
