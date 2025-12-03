@@ -10099,6 +10099,267 @@ class GetZmqNotificationsResponse extends $pb.GeneratedMessage {
   $core.List<GetZmqNotificationsResponse_Notification> get notifications => $_getList(0);
 }
 
+class SignRawTransactionWithWalletRequest extends $pb.GeneratedMessage {
+  factory SignRawTransactionWithWalletRequest({
+    $core.String? hexString,
+    $core.String? wallet,
+  }) {
+    final $result = create();
+    if (hexString != null) {
+      $result.hexString = hexString;
+    }
+    if (wallet != null) {
+      $result.wallet = wallet;
+    }
+    return $result;
+  }
+  SignRawTransactionWithWalletRequest._() : super();
+  factory SignRawTransactionWithWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignRawTransactionWithWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignRawTransactionWithWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'hexString')
+    ..aOS(2, _omitFieldNames ? '' : 'wallet')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignRawTransactionWithWalletRequest clone() => SignRawTransactionWithWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignRawTransactionWithWalletRequest copyWith(void Function(SignRawTransactionWithWalletRequest) updates) => super.copyWith((message) => updates(message as SignRawTransactionWithWalletRequest)) as SignRawTransactionWithWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignRawTransactionWithWalletRequest create() => SignRawTransactionWithWalletRequest._();
+  SignRawTransactionWithWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<SignRawTransactionWithWalletRequest> createRepeated() => $pb.PbList<SignRawTransactionWithWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SignRawTransactionWithWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignRawTransactionWithWalletRequest>(create);
+  static SignRawTransactionWithWalletRequest? _defaultInstance;
+
+  /// The transaction hex string
+  @$pb.TagNumber(1)
+  $core.String get hexString => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set hexString($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasHexString() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHexString() => clearField(1);
+
+  /// Only needs to be set if dealing with multiple wallets at the same time.
+  @$pb.TagNumber(2)
+  $core.String get wallet => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set wallet($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWallet() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWallet() => clearField(2);
+}
+
+/// Script verification errors (if there are any)
+class SignRawTransactionWithWalletResponse_Error extends $pb.GeneratedMessage {
+  factory SignRawTransactionWithWalletResponse_Error({
+    $core.String? txid,
+    $core.int? vout,
+    $core.Iterable<$core.String>? witness,
+    $core.String? scriptSig,
+    $core.int? sequence,
+    $core.String? error,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (witness != null) {
+      $result.witness.addAll(witness);
+    }
+    if (scriptSig != null) {
+      $result.scriptSig = scriptSig;
+    }
+    if (sequence != null) {
+      $result.sequence = sequence;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    return $result;
+  }
+  SignRawTransactionWithWalletResponse_Error._() : super();
+  factory SignRawTransactionWithWalletResponse_Error.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignRawTransactionWithWalletResponse_Error.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignRawTransactionWithWalletResponse.Error', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..pPS(3, _omitFieldNames ? '' : 'witness')
+    ..aOS(4, _omitFieldNames ? '' : 'scriptSig')
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'sequence', $pb.PbFieldType.OU3)
+    ..aOS(6, _omitFieldNames ? '' : 'error')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignRawTransactionWithWalletResponse_Error clone() => SignRawTransactionWithWalletResponse_Error()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignRawTransactionWithWalletResponse_Error copyWith(void Function(SignRawTransactionWithWalletResponse_Error) updates) => super.copyWith((message) => updates(message as SignRawTransactionWithWalletResponse_Error)) as SignRawTransactionWithWalletResponse_Error;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignRawTransactionWithWalletResponse_Error create() => SignRawTransactionWithWalletResponse_Error._();
+  SignRawTransactionWithWalletResponse_Error createEmptyInstance() => create();
+  static $pb.PbList<SignRawTransactionWithWalletResponse_Error> createRepeated() => $pb.PbList<SignRawTransactionWithWalletResponse_Error>();
+  @$core.pragma('dart2js:noInline')
+  static SignRawTransactionWithWalletResponse_Error getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignRawTransactionWithWalletResponse_Error>(create);
+  static SignRawTransactionWithWalletResponse_Error? _defaultInstance;
+
+  /// The hash of the referenced, previous transaction
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  /// The index of the output to spent and used as input
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+
+  /// The witness data
+  @$pb.TagNumber(3)
+  $core.List<$core.String> get witness => $_getList(2);
+
+  /// The hex-encoded signature script
+  @$pb.TagNumber(4)
+  $core.String get scriptSig => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set scriptSig($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasScriptSig() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearScriptSig() => clearField(4);
+
+  /// Script sequence number
+  @$pb.TagNumber(5)
+  $core.int get sequence => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set sequence($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSequence() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSequence() => clearField(5);
+
+  /// Verification or signing error related to the input
+  @$pb.TagNumber(6)
+  $core.String get error => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set error($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasError() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearError() => clearField(6);
+}
+
+class SignRawTransactionWithWalletResponse extends $pb.GeneratedMessage {
+  factory SignRawTransactionWithWalletResponse({
+    $core.String? hex,
+    $core.bool? complete,
+    $core.Iterable<SignRawTransactionWithWalletResponse_Error>? errors,
+  }) {
+    final $result = create();
+    if (hex != null) {
+      $result.hex = hex;
+    }
+    if (complete != null) {
+      $result.complete = complete;
+    }
+    if (errors != null) {
+      $result.errors.addAll(errors);
+    }
+    return $result;
+  }
+  SignRawTransactionWithWalletResponse._() : super();
+  factory SignRawTransactionWithWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignRawTransactionWithWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignRawTransactionWithWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'hex')
+    ..aOB(2, _omitFieldNames ? '' : 'complete')
+    ..pc<SignRawTransactionWithWalletResponse_Error>(3, _omitFieldNames ? '' : 'errors', $pb.PbFieldType.PM, subBuilder: SignRawTransactionWithWalletResponse_Error.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignRawTransactionWithWalletResponse clone() => SignRawTransactionWithWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignRawTransactionWithWalletResponse copyWith(void Function(SignRawTransactionWithWalletResponse) updates) => super.copyWith((message) => updates(message as SignRawTransactionWithWalletResponse)) as SignRawTransactionWithWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignRawTransactionWithWalletResponse create() => SignRawTransactionWithWalletResponse._();
+  SignRawTransactionWithWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<SignRawTransactionWithWalletResponse> createRepeated() => $pb.PbList<SignRawTransactionWithWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SignRawTransactionWithWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignRawTransactionWithWalletResponse>(create);
+  static SignRawTransactionWithWalletResponse? _defaultInstance;
+
+  /// The hex-encoded raw transaction with signature(s)
+  @$pb.TagNumber(1)
+  $core.String get hex => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set hex($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasHex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHex() => clearField(1);
+
+  /// If the transaction has a complete set of signatures
+  @$pb.TagNumber(2)
+  $core.bool get complete => $_getBF(1);
+  @$pb.TagNumber(2)
+  set complete($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasComplete() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearComplete() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<SignRawTransactionWithWalletResponse_Error> get errors => $_getList(2);
+}
+
 class BitcoinServiceApi {
   $pb.RpcClient _client;
   BitcoinServiceApi(this._client);
@@ -10174,6 +10435,9 @@ class BitcoinServiceApi {
   ;
   $async.Future<SendRawTransactionResponse> sendRawTransaction($pb.ClientContext? ctx, SendRawTransactionRequest request) =>
     _client.invoke<SendRawTransactionResponse>(ctx, 'BitcoinService', 'SendRawTransaction', request, SendRawTransactionResponse())
+  ;
+  $async.Future<SignRawTransactionWithWalletResponse> signRawTransactionWithWallet($pb.ClientContext? ctx, SignRawTransactionWithWalletRequest request) =>
+    _client.invoke<SignRawTransactionWithWalletResponse>(ctx, 'BitcoinService', 'SignRawTransactionWithWallet', request, SignRawTransactionWithWalletResponse())
   ;
   $async.Future<GetBlockResponse> getBlock($pb.ClientContext? ctx, GetBlockRequest request) =>
     _client.invoke<GetBlockResponse>(ctx, 'BitcoinService', 'GetBlock', request, GetBlockResponse())

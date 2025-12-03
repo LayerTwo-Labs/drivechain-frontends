@@ -424,6 +424,23 @@ extension type BitcoinServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<bitcoinbitcoindv1alphabitcoin.SignRawTransactionWithWalletResponse> signRawTransactionWithWallet(
+    bitcoinbitcoindv1alphabitcoin.SignRawTransactionWithWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinService.signRawTransactionWithWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<bitcoinbitcoindv1alphabitcoin.GetBlockResponse> getBlock(
     bitcoinbitcoindv1alphabitcoin.GetBlockRequest input, {
     connect.Headers? headers,
