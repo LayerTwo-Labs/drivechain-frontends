@@ -97,6 +97,7 @@ class MockBitwindowdAPI implements BitwindowAPI {
     required int vout,
     required int numHops,
     required int delaySeconds,
+    List<int>? targetUtxoSizes,
   }) {
     return Future.value();
   }
@@ -162,6 +163,16 @@ class MockBitwindowdAPI implements BitwindowAPI {
   @override
   Stream<MineBlocksResponse> mineBlocks() {
     return Stream.periodic(const Duration(seconds: 1)).map((_) => MineBlocksResponse());
+  }
+
+  @override
+  Future<void> pauseDenial(Int64 id) {
+    return Future.value();
+  }
+
+  @override
+  Future<void> resumeDenial(Int64 id) {
+    return Future.value();
   }
 }
 

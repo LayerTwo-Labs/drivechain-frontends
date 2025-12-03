@@ -26,6 +26,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$2.MineBlocksResponse> mineBlocks($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> createDenial($pb.ServerContext ctx, $2.CreateDenialRequest request);
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $2.CancelDenialRequest request);
+  $async.Future<$1.Empty> pauseDenial($pb.ServerContext ctx, $2.PauseDenialRequest request);
+  $async.Future<$1.Empty> resumeDenial($pb.ServerContext ctx, $2.ResumeDenialRequest request);
   $async.Future<$2.CreateAddressBookEntryResponse> createAddressBookEntry($pb.ServerContext ctx, $2.CreateAddressBookEntryRequest request);
   $async.Future<$2.ListAddressBookResponse> listAddressBook($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> updateAddressBookEntry($pb.ServerContext ctx, $2.UpdateAddressBookEntryRequest request);
@@ -43,6 +45,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'MineBlocks': return $1.Empty();
       case 'CreateDenial': return $2.CreateDenialRequest();
       case 'CancelDenial': return $2.CancelDenialRequest();
+      case 'PauseDenial': return $2.PauseDenialRequest();
+      case 'ResumeDenial': return $2.ResumeDenialRequest();
       case 'CreateAddressBookEntry': return $2.CreateAddressBookEntryRequest();
       case 'ListAddressBook': return $1.Empty();
       case 'UpdateAddressBookEntry': return $2.UpdateAddressBookEntryRequest();
@@ -63,6 +67,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'MineBlocks': return this.mineBlocks(ctx, request as $1.Empty);
       case 'CreateDenial': return this.createDenial(ctx, request as $2.CreateDenialRequest);
       case 'CancelDenial': return this.cancelDenial(ctx, request as $2.CancelDenialRequest);
+      case 'PauseDenial': return this.pauseDenial(ctx, request as $2.PauseDenialRequest);
+      case 'ResumeDenial': return this.resumeDenial(ctx, request as $2.ResumeDenialRequest);
       case 'CreateAddressBookEntry': return this.createAddressBookEntry(ctx, request as $2.CreateAddressBookEntryRequest);
       case 'ListAddressBook': return this.listAddressBook(ctx, request as $1.Empty);
       case 'UpdateAddressBookEntry': return this.updateAddressBookEntry(ctx, request as $2.UpdateAddressBookEntryRequest);

@@ -42,7 +42,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
 
 		// Create a denial with empty wallet_id (legacy behavior)
-		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3)
+		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
 		// Mock wallet response with no matching UTXO
@@ -89,7 +89,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
 
 		// Create a denial with empty wallet_id (legacy behavior)
-		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3)
+		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
 		// Mock wallet responses
@@ -181,7 +181,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
 
 		// Create a denial with empty wallet_id (legacy behavior)
-		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3)
+		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
 		// Process UTXO with insufficient amount

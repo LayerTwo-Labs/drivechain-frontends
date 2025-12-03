@@ -54,6 +54,8 @@ class DeniabilityTab extends StatelessWidget {
                     model: model,
                     onDeny: (output, valueSats) => model.showDenyDialog(context, output, valueSats),
                     onCancel: model.cancelDenial,
+                    onPause: model.pauseDenial,
+                    onResume: model.resumeDenial,
                   ),
                 ),
               ],
@@ -195,6 +197,8 @@ class DeniabilityTable extends StatefulWidget {
   final List<UnspentOutput> utxos;
   final void Function(String output, int valueSats) onDeny;
   final void Function(Int64) onCancel;
+  final void Function(Int64) onPause;
+  final void Function(Int64) onResume;
   final DeniabilityViewModel model;
 
   const DeniabilityTable({
@@ -204,6 +208,8 @@ class DeniabilityTable extends StatefulWidget {
     required this.model,
     required this.onDeny,
     required this.onCancel,
+    required this.onPause,
+    required this.onResume,
     required this.newWindowButton,
   });
 
@@ -287,7 +293,9 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   String status = '-';
                   String nextExecution = '-';
                   String hops = '0';
-                  bool canCancel = false;
+                  bool canControl = false;
+                  bool isPaused = false;
+                  bool isTip = false;
 
                   if (hasDenialInfo) {
                     final completedHops = utxo.denialInfo.hopsCompleted;
@@ -297,15 +305,21 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                       hops = '$completedHops';
                     }
 
+                    isPaused = utxo.denialInfo.hasPausedAt();
+                    isTip = !utxo.denialInfo.isChange;
+
                     status = utxo.denialInfo.hasCancelTime()
                         ? 'Cancelled'
+                        : isPaused
+                        ? 'Paused'
                         : utxo.denialInfo.nextExecutionTime.toDateTime().second == 0
                         ? 'Completed'
                         : 'Ongoing';
                     nextExecution = utxo.denialInfo.hasNextExecutionTime()
                         ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString()
                         : '-';
-                    canCancel = status == 'Ongoing';
+                    // Only the tip can be controlled (paused/resumed/cancelled)
+                    canControl = isTip && (status == 'Ongoing' || status == 'Paused');
 
                     if (status == 'Cancelled') {
                       hops = '$completedHops';
@@ -341,12 +355,26 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                       value: formatDate(utxo.receivedAt.toDateTime()),
                     ),
                     SailTableCell(
-                      value: canCancel ? 'Cancel' : '-',
-                      child: canCancel
-                          ? SailButton(
-                              label: 'Cancel',
-                              onPressed: () async => widget.onCancel(utxo.denialInfo.id),
-                              insideTable: true,
+                      value: canControl ? (isPaused ? 'Resume' : 'Pause') : 'Deny',
+                      child: canControl
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SailButton(
+                                  label: isPaused ? 'Resume' : 'Pause',
+                                  onPressed: () async => isPaused
+                                      ? widget.onResume(utxo.denialInfo.id)
+                                      : widget.onPause(utxo.denialInfo.id),
+                                  insideTable: true,
+                                ),
+                                const SizedBox(width: 4),
+                                SailButton(
+                                  label: 'Cancel',
+                                  onPressed: () async => widget.onCancel(utxo.denialInfo.id),
+                                  insideTable: true,
+                                  variant: ButtonVariant.secondary,
+                                ),
+                              ],
                             )
                           : SailButton(
                               label: 'Deny',
@@ -440,9 +468,13 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
           aValue = a.denialInfo.hasCancelTime()
               ? 'Cancelled'
+              : a.denialInfo.hasPausedAt()
+              ? 'Paused'
               : (a.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
           bValue = b.denialInfo.hasCancelTime()
               ? 'Cancelled'
+              : b.denialInfo.hasPausedAt()
+              ? 'Paused'
               : (b.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
           return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
         default:
@@ -533,6 +565,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   String _getDeniabilityStatus(UnspentOutput utxo) {
     if (!utxo.hasDenialInfo()) return 'No deniability';
     if (utxo.denialInfo.hasCancelTime()) return 'Cancelled';
+    if (utxo.denialInfo.hasPausedAt()) return 'Paused';
 
     final completedHops = utxo.denialInfo.executions.length;
     final totalHops = utxo.denialInfo.numHops;
@@ -599,6 +632,24 @@ class DeniabilityViewModel extends BaseViewModel {
   void cancelDenial(Int64 id) async {
     try {
       await api.bitwindowd.cancelDenial(id);
+      await transactionProvider.fetch();
+    } catch (e) {
+      setError(e.toString());
+    }
+  }
+
+  void pauseDenial(Int64 id) async {
+    try {
+      await api.bitwindowd.pauseDenial(id);
+      await transactionProvider.fetch();
+    } catch (e) {
+      setError(e.toString());
+    }
+  }
+
+  void resumeDenial(Int64 id) async {
+    try {
+      await api.bitwindowd.resumeDenial(id);
       await transactionProvider.fetch();
     } catch (e) {
       setError(e.toString());

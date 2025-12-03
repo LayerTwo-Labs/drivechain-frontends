@@ -26,6 +26,7 @@ type Denial struct {
 	UpdatedAt       time.Time
 	CancelledAt     *time.Time
 	CancelReason    *string
+	PausedAt        *time.Time
 	NextExecution   *time.Time
 	ExecutedDenials []ExecutedDenial
 }
@@ -110,6 +111,7 @@ func selectDenialQuery() string {
 			d.updated_at,
 			d.cancelled_at,
 			d.cancelled_reason,
+			d.paused_at,
 			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
 			COALESCE(e.to_vout, d.initial_vout) as tip_vout
 		FROM denials d
@@ -194,6 +196,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 			&denial.UpdatedAt,
 			&denial.CancelledAt,
 			&denial.CancelReason,
+			&denial.PausedAt,
 			&denial.TipTXID,
 			&denial.TipVout,
 		)
@@ -283,6 +286,42 @@ func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 	return nil
 }
 
+// Pause marks a deniability plan as paused
+func Pause(ctx context.Context, db *sql.DB, id int64) error {
+	rows, err := db.ExecContext(ctx, `
+		UPDATE denials
+			SET paused_at = ?
+		WHERE id = ? AND paused_at IS NULL AND cancelled_at IS NULL
+	`, time.Now(), id)
+	if err != nil {
+		return fmt.Errorf("could not pause deniability: %w", err)
+	}
+
+	if rows, _ := rows.RowsAffected(); rows == 0 {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("denial not found or already paused/cancelled"))
+	}
+
+	return nil
+}
+
+// Resume resumes a paused deniability plan
+func Resume(ctx context.Context, db *sql.DB, id int64) error {
+	rows, err := db.ExecContext(ctx, `
+		UPDATE denials
+			SET paused_at = NULL
+		WHERE id = ? AND paused_at IS NOT NULL
+	`, id)
+	if err != nil {
+		return fmt.Errorf("could not resume deniability: %w", err)
+	}
+
+	if rows, _ := rows.RowsAffected(); rows == 0 {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("denial not found or not paused"))
+	}
+
+	return nil
+}
+
 // nextExecution calculates when the next execution should occur for a deniability plan
 // Returns nil if all hops have been completed
 func nextExecution(denial Denial, executions []ExecutedDenial) *time.Time {
@@ -303,6 +342,11 @@ func lastExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 
 	if denial.CancelledAt != nil {
 		// If cancelled, next hop is never
+		return nil
+	}
+
+	if denial.PausedAt != nil {
+		// If paused, next hop is never
 		return nil
 	}
 
@@ -353,6 +397,7 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 		&denial.UpdatedAt,
 		&denial.CancelledAt,
 		&denial.CancelReason,
+		&denial.PausedAt,
 		&denial.TipTXID,
 		&denial.TipVout,
 	)
@@ -406,6 +451,7 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		&denial.UpdatedAt,
 		&denial.CancelledAt,
 		&denial.CancelReason,
+		&denial.PausedAt,
 		&denial.TipTXID,
 		&denial.TipVout,
 	)

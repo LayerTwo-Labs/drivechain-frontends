@@ -40,6 +40,20 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
   );
 
+  static const pauseDenial = connect.Spec(
+    '/$name/PauseDenial',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.PauseDenialRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const resumeDenial = connect.Spec(
+    '/$name/ResumeDenial',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ResumeDenialRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
   /// Wallet operations
   static const createAddressBookEntry = connect.Spec(
     '/$name/CreateAddressBookEntry',
