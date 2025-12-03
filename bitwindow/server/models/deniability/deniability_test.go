@@ -24,7 +24,7 @@ func TestDeniability(t *testing.T) {
 		delayDuration := time.Duration(gofakeit.IntRange(1, 24)) * time.Hour
 		numHops := gofakeit.Int32()
 
-		denial, err := Create(ctx, db, "test-wallet", txid, vout, delayDuration, numHops)
+		denial, err := Create(ctx, db, "test-wallet", txid, vout, delayDuration, numHops, nil)
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 
@@ -39,7 +39,7 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// First create a denial
-		denial, err := Create(ctx, db, "test-wallet", "initial-txid", 0, 1*time.Hour, 3)
+		denial, err := Create(ctx, db, "test-wallet", "initial-txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 
@@ -78,10 +78,10 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create multiple denials
-		denial1, err := Create(ctx, db, "test-wallet", "txid1", 0, 1*time.Hour, 3)
+		denial1, err := Create(ctx, db, "test-wallet", "txid1", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 		require.NotNil(t, denial1)
-		denial2, err := Create(ctx, db, "test-wallet", "txid2", 1, 2*time.Hour, 4)
+		denial2, err := Create(ctx, db, "test-wallet", "txid2", 1, 2*time.Hour, 4, nil)
 		require.NoError(t, err)
 		require.NotNil(t, denial2)
 
@@ -108,7 +108,7 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		denial, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3)
+		denial, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 
@@ -146,7 +146,7 @@ func TestDeniability(t *testing.T) {
 
 		// Create a denial
 		delayDuration := time.Duration(gofakeit.IntRange(1, 24)) * time.Hour
-		denial, err := Create(ctx, db, "test-wallet", "txid", 0, delayDuration, 3)
+		denial, err := Create(ctx, db, "test-wallet", "txid", 0, delayDuration, 3, nil)
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 
@@ -169,7 +169,7 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		_, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3)
+		_, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
 		// Get the denial by tip
@@ -192,7 +192,7 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		denial, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3)
+		denial, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 
@@ -212,7 +212,7 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		denialReturn, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3)
+		denialReturn, err := Create(ctx, db, "test-wallet", "txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
 		// Get the denial by ID

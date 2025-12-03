@@ -240,6 +240,32 @@ func (s *Server) CancelDenial(
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
+func (s *Server) PauseDenial(
+	ctx context.Context,
+	req *connect.Request[pb.PauseDenialRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	err := deniability.Pause(ctx, s.db, req.Msg.Id)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not pause denial")
+		return nil, err
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) ResumeDenial(
+	ctx context.Context,
+	req *connect.Request[pb.ResumeDenialRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	err := deniability.Resume(ctx, s.db, req.Msg.Id)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not resume denial")
+		return nil, err
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
 func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Request[pb.CreateAddressBookEntryRequest]) (*connect.Response[pb.CreateAddressBookEntryResponse], error) {
 	direction, err := addressbook.DirectionFromProto(req.Msg.Direction)
 	if err != nil {

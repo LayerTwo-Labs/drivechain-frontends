@@ -99,11 +99,13 @@ const DenialInfo$json = {
     {'1': 'hops_completed', '3': 9, '4': 1, '5': 13, '10': 'hopsCompleted'},
     {'1': 'is_change', '3': 10, '4': 1, '5': 8, '10': 'isChange'},
     {'1': 'target_utxo_sizes', '3': 11, '4': 3, '5': 3, '10': 'targetUtxoSizes'},
+    {'1': 'paused_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 3, '10': 'pausedAt', '17': true},
   ],
   '8': [
     {'1': '_cancel_time'},
     {'1': '_cancel_reason'},
     {'1': '_next_execution_time'},
+    {'1': '_paused_at'},
   ],
 };
 
@@ -118,8 +120,9 @@ final $typed_data.Uint8List denialInfoDescriptor = $convert.base64Decode(
     'b25UaW1liAEBEj0KCmV4ZWN1dGlvbnMYCCADKAsyHS5iaXR3aW5kb3dkLnYxLkV4ZWN1dGVkRG'
     'VuaWFsUgpleGVjdXRpb25zEiUKDmhvcHNfY29tcGxldGVkGAkgASgNUg1ob3BzQ29tcGxldGVk'
     'EhsKCWlzX2NoYW5nZRgKIAEoCFIIaXNDaGFuZ2USKgoRdGFyZ2V0X3V0eG9fc2l6ZXMYCyADKA'
-    'NSD3RhcmdldFV0eG9TaXplc0IOCgxfY2FuY2VsX3RpbWVCEAoOX2NhbmNlbF9yZWFzb25CFgoU'
-    'X25leHRfZXhlY3V0aW9uX3RpbWU=');
+    'NSD3RhcmdldFV0eG9TaXplcxI8CglwYXVzZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYu'
+    'VGltZXN0YW1wSANSCHBhdXNlZEF0iAEBQg4KDF9jYW5jZWxfdGltZUIQCg5fY2FuY2VsX3JlYX'
+    'NvbkIWChRfbmV4dF9leGVjdXRpb25fdGltZUIMCgpfcGF1c2VkX2F0');
 
 @$core.Deprecated('Use executedDenialDescriptor instead')
 const ExecutedDenial$json = {
@@ -152,6 +155,30 @@ const CancelDenialRequest$json = {
 /// Descriptor for `CancelDenialRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List cancelDenialRequestDescriptor = $convert.base64Decode(
     'ChNDYW5jZWxEZW5pYWxSZXF1ZXN0Eg4KAmlkGAEgASgDUgJpZA==');
+
+@$core.Deprecated('Use pauseDenialRequestDescriptor instead')
+const PauseDenialRequest$json = {
+  '1': 'PauseDenialRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+  ],
+};
+
+/// Descriptor for `PauseDenialRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List pauseDenialRequestDescriptor = $convert.base64Decode(
+    'ChJQYXVzZURlbmlhbFJlcXVlc3QSDgoCaWQYASABKANSAmlk');
+
+@$core.Deprecated('Use resumeDenialRequestDescriptor instead')
+const ResumeDenialRequest$json = {
+  '1': 'ResumeDenialRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+  ],
+};
+
+/// Descriptor for `ResumeDenialRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List resumeDenialRequestDescriptor = $convert.base64Decode(
+    'ChNSZXN1bWVEZW5pYWxSZXF1ZXN0Eg4KAmlkGAEgASgDUgJpZA==');
 
 @$core.Deprecated('Use createAddressBookEntryRequestDescriptor instead')
 const CreateAddressBookEntryRequest$json = {
@@ -507,6 +534,8 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'MineBlocks', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.MineBlocksResponse', '6': true},
     {'1': 'CreateDenial', '2': '.bitwindowd.v1.CreateDenialRequest', '3': '.google.protobuf.Empty'},
     {'1': 'CancelDenial', '2': '.bitwindowd.v1.CancelDenialRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'PauseDenial', '2': '.bitwindowd.v1.PauseDenialRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'ResumeDenial', '2': '.bitwindowd.v1.ResumeDenialRequest', '3': '.google.protobuf.Empty'},
     {'1': 'CreateAddressBookEntry', '2': '.bitwindowd.v1.CreateAddressBookEntryRequest', '3': '.bitwindowd.v1.CreateAddressBookEntryResponse'},
     {'1': 'ListAddressBook', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.ListAddressBookResponse'},
     {'1': 'UpdateAddressBookEntry', '2': '.bitwindowd.v1.UpdateAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
@@ -529,6 +558,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.MineBlocksResponse.HashRate': MineBlocksResponse_HashRate$json,
   '.bitwindowd.v1.CreateDenialRequest': CreateDenialRequest$json,
   '.bitwindowd.v1.CancelDenialRequest': CancelDenialRequest$json,
+  '.bitwindowd.v1.PauseDenialRequest': PauseDenialRequest$json,
+  '.bitwindowd.v1.ResumeDenialRequest': ResumeDenialRequest$json,
   '.bitwindowd.v1.CreateAddressBookEntryRequest': CreateAddressBookEntryRequest$json,
   '.bitwindowd.v1.CreateAddressBookEntryResponse': CreateAddressBookEntryResponse$json,
   '.bitwindowd.v1.AddressBookEntry': AddressBookEntry$json,
@@ -556,22 +587,25 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'LnByb3RvYnVmLkVtcHR5GiEuYml0d2luZG93ZC52MS5NaW5lQmxvY2tzUmVzcG9uc2UwARJKCg'
     'xDcmVhdGVEZW5pYWwSIi5iaXR3aW5kb3dkLnYxLkNyZWF0ZURlbmlhbFJlcXVlc3QaFi5nb29n'
     'bGUucHJvdG9idWYuRW1wdHkSSgoMQ2FuY2VsRGVuaWFsEiIuYml0d2luZG93ZC52MS5DYW5jZW'
-    'xEZW5pYWxSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EnUKFkNyZWF0ZUFkZHJlc3NC'
-    'b29rRW50cnkSLC5iaXR3aW5kb3dkLnYxLkNyZWF0ZUFkZHJlc3NCb29rRW50cnlSZXF1ZXN0Gi'
-    '0uYml0d2luZG93ZC52MS5DcmVhdGVBZGRyZXNzQm9va0VudHJ5UmVzcG9uc2USUQoPTGlzdEFk'
-    'ZHJlc3NCb29rEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiYuYml0d2luZG93ZC52MS5MaXN0QW'
-    'RkcmVzc0Jvb2tSZXNwb25zZRJeChZVcGRhdGVBZGRyZXNzQm9va0VudHJ5EiwuYml0d2luZG93'
-    'ZC52MS5VcGRhdGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbX'
-    'B0eRJeChZEZWxldGVBZGRyZXNzQm9va0VudHJ5EiwuYml0d2luZG93ZC52MS5EZWxldGVBZGRy'
-    'ZXNzQm9va0VudHJ5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJJCgtHZXRTeW5jSW'
-    '5mbxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRoiLmJpdHdpbmRvd2QudjEuR2V0U3luY0luZm9S'
-    'ZXNwb25zZRJWChJTZXRUcmFuc2FjdGlvbk5vdGUSKC5iaXR3aW5kb3dkLnYxLlNldFRyYW5zYW'
-    'N0aW9uTm90ZVJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSVQoRR2V0RmlyZXBsYWNl'
-    'U3RhdHMSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKC5iaXR3aW5kb3dkLnYxLkdldEZpcmVwbG'
-    'FjZVN0YXRzUmVzcG9uc2USdQoWTGlzdFJlY2VudFRyYW5zYWN0aW9ucxIsLmJpdHdpbmRvd2Qu'
-    'djEuTGlzdFJlY2VudFRyYW5zYWN0aW9uc1JlcXVlc3QaLS5iaXR3aW5kb3dkLnYxLkxpc3RSZW'
-    'NlbnRUcmFuc2FjdGlvbnNSZXNwb25zZRJRCgpMaXN0QmxvY2tzEiAuYml0d2luZG93ZC52MS5M'
-    'aXN0QmxvY2tzUmVxdWVzdBohLmJpdHdpbmRvd2QudjEuTGlzdEJsb2Nrc1Jlc3BvbnNlElEKD0'
-    'dldE5ldHdvcmtTdGF0cxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEu'
-    'R2V0TmV0d29ya1N0YXRzUmVzcG9uc2U=');
+    'xEZW5pYWxSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EkgKC1BhdXNlRGVuaWFsEiEu'
+    'Yml0d2luZG93ZC52MS5QYXVzZURlbmlhbFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdH'
+    'kSSgoMUmVzdW1lRGVuaWFsEiIuYml0d2luZG93ZC52MS5SZXN1bWVEZW5pYWxSZXF1ZXN0GhYu'
+    'Z29vZ2xlLnByb3RvYnVmLkVtcHR5EnUKFkNyZWF0ZUFkZHJlc3NCb29rRW50cnkSLC5iaXR3aW'
+    '5kb3dkLnYxLkNyZWF0ZUFkZHJlc3NCb29rRW50cnlSZXF1ZXN0Gi0uYml0d2luZG93ZC52MS5D'
+    'cmVhdGVBZGRyZXNzQm9va0VudHJ5UmVzcG9uc2USUQoPTGlzdEFkZHJlc3NCb29rEhYuZ29vZ2'
+    'xlLnByb3RvYnVmLkVtcHR5GiYuYml0d2luZG93ZC52MS5MaXN0QWRkcmVzc0Jvb2tSZXNwb25z'
+    'ZRJeChZVcGRhdGVBZGRyZXNzQm9va0VudHJ5EiwuYml0d2luZG93ZC52MS5VcGRhdGVBZGRyZX'
+    'NzQm9va0VudHJ5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJeChZEZWxldGVBZGRy'
+    'ZXNzQm9va0VudHJ5EiwuYml0d2luZG93ZC52MS5EZWxldGVBZGRyZXNzQm9va0VudHJ5UmVxdW'
+    'VzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJJCgtHZXRTeW5jSW5mbxIWLmdvb2dsZS5wcm90'
+    'b2J1Zi5FbXB0eRoiLmJpdHdpbmRvd2QudjEuR2V0U3luY0luZm9SZXNwb25zZRJWChJTZXRUcm'
+    'Fuc2FjdGlvbk5vdGUSKC5iaXR3aW5kb3dkLnYxLlNldFRyYW5zYWN0aW9uTm90ZVJlcXVlc3Qa'
+    'Fi5nb29nbGUucHJvdG9idWYuRW1wdHkSVQoRR2V0RmlyZXBsYWNlU3RhdHMSFi5nb29nbGUucH'
+    'JvdG9idWYuRW1wdHkaKC5iaXR3aW5kb3dkLnYxLkdldEZpcmVwbGFjZVN0YXRzUmVzcG9uc2US'
+    'dQoWTGlzdFJlY2VudFRyYW5zYWN0aW9ucxIsLmJpdHdpbmRvd2QudjEuTGlzdFJlY2VudFRyYW'
+    '5zYWN0aW9uc1JlcXVlc3QaLS5iaXR3aW5kb3dkLnYxLkxpc3RSZWNlbnRUcmFuc2FjdGlvbnNS'
+    'ZXNwb25zZRJRCgpMaXN0QmxvY2tzEiAuYml0d2luZG93ZC52MS5MaXN0QmxvY2tzUmVxdWVzdB'
+    'ohLmJpdHdpbmRvd2QudjEuTGlzdEJsb2Nrc1Jlc3BvbnNlElEKD0dldE5ldHdvcmtTdGF0cxIW'
+    'Lmdvb2dsZS5wcm90b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuR2V0TmV0d29ya1N0YXRzUm'
+    'VzcG9uc2U=');
 

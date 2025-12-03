@@ -13,6 +13,8 @@ service BitwindowdService {
   // Deniability operations
   rpc CreateDenial(CreateDenialRequest) returns (google.protobuf.Empty);
   rpc CancelDenial(CancelDenialRequest) returns (google.protobuf.Empty);
+  rpc PauseDenial(PauseDenialRequest) returns (google.protobuf.Empty);
+  rpc ResumeDenial(ResumeDenialRequest) returns (google.protobuf.Empty);
 
   // Wallet operations
   rpc CreateAddressBookEntry(CreateAddressBookEntryRequest) returns (CreateAddressBookEntryResponse);
@@ -67,6 +69,7 @@ message DenialInfo {
   bool is_change = 10;
   // Target UTXO sizes user wants to create (one per hop)
   repeated int64 target_utxo_sizes = 11;
+  optional google.protobuf.Timestamp paused_at = 12;
 }
 
 message ExecutedDenial {
@@ -79,6 +82,14 @@ message ExecutedDenial {
 }
 
 message CancelDenialRequest {
+  int64 id = 1;
+}
+
+message PauseDenialRequest {
+  int64 id = 1;
+}
+
+message ResumeDenialRequest {
   int64 id = 1;
 }
 

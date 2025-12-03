@@ -419,6 +419,8 @@ abstract class BitwindowAPI {
     List<int>? targetUtxoSizes,
   });
   Future<void> cancelDenial(Int64 id);
+  Future<void> pauseDenial(Int64 id);
+  Future<void> resumeDenial(Int64 id);
   Future<GetSyncInfoResponse> getSyncInfo();
 
   // Address book methods here
@@ -478,6 +480,16 @@ class _BitwindowAPILive implements BitwindowAPI {
   @override
   Future<void> cancelDenial(Int64 id) async {
     await _client.cancelDenial(CancelDenialRequest()..id = id);
+  }
+
+  @override
+  Future<void> pauseDenial(Int64 id) async {
+    await _client.pauseDenial(PauseDenialRequest()..id = id);
+  }
+
+  @override
+  Future<void> resumeDenial(Int64 id) async {
+    await _client.resumeDenial(ResumeDenialRequest()..id = id);
   }
 
   @override

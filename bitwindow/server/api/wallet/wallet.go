@@ -1350,6 +1350,11 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 		cancelTime = timestamppb.New(*d.CancelledAt)
 	}
 
+	var pausedAt *timestamppb.Timestamp
+	if d.PausedAt != nil {
+		pausedAt = timestamppb.New(*d.PausedAt)
+	}
+
 	var nextExecutionTime *timestamppb.Timestamp
 	isTip := d.TipTXID == utxo.Txid.Hex.Value && d.TipVout == int32(utxo.Vout)
 	if d.NextExecution != nil && isTip {
@@ -1383,6 +1388,7 @@ func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 		CreateTime:        timestamppb.New(d.CreatedAt),
 		CancelTime:        cancelTime,
 		CancelReason:      d.CancelReason,
+		PausedAt:          pausedAt,
 		NextExecutionTime: nextExecutionTime,
 		Executions: lo.Map(d.ExecutedDenials, func(e deniability.ExecutedDenial, _ int) *bitwindowdv1.ExecutedDenial {
 			return &bitwindowdv1.ExecutedDenial{
@@ -1428,6 +1434,11 @@ func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial
 		cancelTime = timestamppb.New(*d.CancelledAt)
 	}
 
+	var pausedAt *timestamppb.Timestamp
+	if d.PausedAt != nil {
+		pausedAt = timestamppb.New(*d.PausedAt)
+	}
+
 	var nextExecutionTime *timestamppb.Timestamp
 	isTip := d.TipTXID == txid && d.TipVout == vout
 	if d.NextExecution != nil && isTip {
@@ -1459,6 +1470,7 @@ func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial
 		CreateTime:        timestamppb.New(d.CreatedAt),
 		CancelTime:        cancelTime,
 		CancelReason:      d.CancelReason,
+		PausedAt:          pausedAt,
 		NextExecutionTime: nextExecutionTime,
 		Executions: lo.Map(d.ExecutedDenials, func(e deniability.ExecutedDenial, _ int) *bitwindowdv1.ExecutedDenial {
 			return &bitwindowdv1.ExecutedDenial{

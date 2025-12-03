@@ -78,6 +78,40 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<googleprotobufempty.Empty> pauseDenial(
+    bitwindowdv1bitwindowd.PauseDenialRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.pauseDenial,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<googleprotobufempty.Empty> resumeDenial(
+    bitwindowdv1bitwindowd.ResumeDenialRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.resumeDenial,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Wallet operations
   Future<bitwindowdv1bitwindowd.CreateAddressBookEntryResponse> createAddressBookEntry(
     bitwindowdv1bitwindowd.CreateAddressBookEntryRequest input, {

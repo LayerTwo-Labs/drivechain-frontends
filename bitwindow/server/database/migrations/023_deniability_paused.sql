@@ -1,0 +1,1 @@
+ALTER TABLE denials ADD COLUMN paused_at TIMESTAMP;

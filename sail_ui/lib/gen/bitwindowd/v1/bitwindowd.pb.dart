@@ -188,6 +188,7 @@ class DenialInfo extends $pb.GeneratedMessage {
     $core.int? hopsCompleted,
     $core.bool? isChange,
     $core.Iterable<$fixnum.Int64>? targetUtxoSizes,
+    $0.Timestamp? pausedAt,
   }) {
     final $result = create();
     if (id != null) {
@@ -223,6 +224,9 @@ class DenialInfo extends $pb.GeneratedMessage {
     if (targetUtxoSizes != null) {
       $result.targetUtxoSizes.addAll(targetUtxoSizes);
     }
+    if (pausedAt != null) {
+      $result.pausedAt = pausedAt;
+    }
     return $result;
   }
   DenialInfo._() : super();
@@ -241,6 +245,7 @@ class DenialInfo extends $pb.GeneratedMessage {
     ..a<$core.int>(9, _omitFieldNames ? '' : 'hopsCompleted', $pb.PbFieldType.OU3)
     ..aOB(10, _omitFieldNames ? '' : 'isChange')
     ..p<$fixnum.Int64>(11, _omitFieldNames ? '' : 'targetUtxoSizes', $pb.PbFieldType.K6)
+    ..aOM<$0.Timestamp>(12, _omitFieldNames ? '' : 'pausedAt', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -358,6 +363,17 @@ class DenialInfo extends $pb.GeneratedMessage {
   /// Target UTXO sizes user wants to create (one per hop)
   @$pb.TagNumber(11)
   $core.List<$fixnum.Int64> get targetUtxoSizes => $_getList(10);
+
+  @$pb.TagNumber(12)
+  $0.Timestamp get pausedAt => $_getN(11);
+  @$pb.TagNumber(12)
+  set pausedAt($0.Timestamp v) { setField(12, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasPausedAt() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearPausedAt() => clearField(12);
+  @$pb.TagNumber(12)
+  $0.Timestamp ensurePausedAt() => $_ensure(11);
 }
 
 class ExecutedDenial extends $pb.GeneratedMessage {
@@ -521,6 +537,106 @@ class CancelDenialRequest extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static CancelDenialRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelDenialRequest>(create);
   static CancelDenialRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+}
+
+class PauseDenialRequest extends $pb.GeneratedMessage {
+  factory PauseDenialRequest({
+    $fixnum.Int64? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
+  PauseDenialRequest._() : super();
+  factory PauseDenialRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PauseDenialRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PauseDenialRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PauseDenialRequest clone() => PauseDenialRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PauseDenialRequest copyWith(void Function(PauseDenialRequest) updates) => super.copyWith((message) => updates(message as PauseDenialRequest)) as PauseDenialRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PauseDenialRequest create() => PauseDenialRequest._();
+  PauseDenialRequest createEmptyInstance() => create();
+  static $pb.PbList<PauseDenialRequest> createRepeated() => $pb.PbList<PauseDenialRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PauseDenialRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PauseDenialRequest>(create);
+  static PauseDenialRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+}
+
+class ResumeDenialRequest extends $pb.GeneratedMessage {
+  factory ResumeDenialRequest({
+    $fixnum.Int64? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
+  ResumeDenialRequest._() : super();
+  factory ResumeDenialRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ResumeDenialRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResumeDenialRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ResumeDenialRequest clone() => ResumeDenialRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ResumeDenialRequest copyWith(void Function(ResumeDenialRequest) updates) => super.copyWith((message) => updates(message as ResumeDenialRequest)) as ResumeDenialRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResumeDenialRequest create() => ResumeDenialRequest._();
+  ResumeDenialRequest createEmptyInstance() => create();
+  static $pb.PbList<ResumeDenialRequest> createRepeated() => $pb.PbList<ResumeDenialRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ResumeDenialRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResumeDenialRequest>(create);
+  static ResumeDenialRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get id => $_getI64(0);
@@ -2376,6 +2492,12 @@ class BitwindowdServiceApi {
   ;
   $async.Future<$1.Empty> cancelDenial($pb.ClientContext? ctx, CancelDenialRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CancelDenial', request, $1.Empty())
+  ;
+  $async.Future<$1.Empty> pauseDenial($pb.ClientContext? ctx, PauseDenialRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'PauseDenial', request, $1.Empty())
+  ;
+  $async.Future<$1.Empty> resumeDenial($pb.ClientContext? ctx, ResumeDenialRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'ResumeDenial', request, $1.Empty())
   ;
   $async.Future<CreateAddressBookEntryResponse> createAddressBookEntry($pb.ClientContext? ctx, CreateAddressBookEntryRequest request) =>
     _client.invoke<CreateAddressBookEntryResponse>(ctx, 'BitwindowdService', 'CreateAddressBookEntry', request, CreateAddressBookEntryResponse())
