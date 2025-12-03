@@ -150,7 +150,7 @@ func ValidNewsTopicID(topic string) (TopicID, error) {
 	}
 
 	if len(decode) != TopicIdLength {
-		return TopicID{}, fmt.Errorf("topic ID %q is not 8 bytes: %d", topic, len(decode))
+		return TopicID{}, fmt.Errorf("topic ID %q is not 4 bytes: %d", topic, len(decode))
 	}
 
 	return TopicID(decode), nil
@@ -163,7 +163,7 @@ type TopicInfo struct {
 
 var newTopicTag = []byte("new")
 
-const TopicIdLength = 8
+const TopicIdLength = 4
 
 func IsCreateTopic(data []byte) (TopicInfo, bool) {
 	if len(data) < TopicIdLength+len(newTopicTag) {
