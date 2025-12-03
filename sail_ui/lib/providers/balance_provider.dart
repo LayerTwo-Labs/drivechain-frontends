@@ -38,6 +38,15 @@ class BalanceProvider extends ChangeNotifier {
     fetch();
   }
 
+  void clear() {
+    for (final rpc in connections) {
+      _balances[rpc] = (0.0, 0.0);
+    }
+    initialized = false;
+    error = null;
+    notifyListeners();
+  }
+
   Future<void> fetch() async {
     if (_isFetching) {
       return;

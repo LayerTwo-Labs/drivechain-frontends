@@ -774,6 +774,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 // Run the switch in a microtask to allow UI to update first
                                 await Future.microtask(() async {
                                   try {
+                                    // Clear previous wallet data FIRST
+                                    GetIt.I.get<TransactionProvider>().clear();
+                                    GetIt.I.get<BalanceProvider>().clear();
+
                                     // Step 1: Switch the active wallet (updates UI immediately)
                                     log.i('Step 1: Switching active wallet');
                                     await _walletReader

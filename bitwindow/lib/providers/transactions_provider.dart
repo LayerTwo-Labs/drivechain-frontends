@@ -49,6 +49,16 @@ class TransactionProvider extends ChangeNotifier {
     });
   }
 
+  void clear() {
+    walletTransactions = [];
+    utxos = [];
+    receiveAddresses = [];
+    address = '';
+    initialized = false;
+    error = null;
+    notifyListeners();
+  }
+
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
     if (_isFetching) {
