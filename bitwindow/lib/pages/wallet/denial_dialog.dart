@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
@@ -6,12 +8,26 @@ import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DenialDialog extends StatefulWidget {
-  final String output;
+  /// For single UTXO mode, pass the output string (txid:vout)
+  final String? output;
+
+  /// For single UTXO mode, the value in satoshis
+  final int? valueSats;
+
+  /// For batch mode, pass a list of UTXOs
+  final List<UnspentOutput>? utxos;
+
+  /// Fee per hop in satoshis (matches server/engines/deniability_engine.go)
+  static const int feePerHopSats = 10000;
 
   const DenialDialog({
     super.key,
-    required this.output,
-  });
+    this.output,
+    this.valueSats,
+    this.utxos,
+  }) : assert(output != null || utxos != null, 'Either output or utxos must be provided');
+
+  bool get isBatchMode => utxos != null && utxos!.isNotEmpty;
 
   @override
   State<DenialDialog> createState() => _DenialDialogState();
@@ -20,180 +36,22 @@ class DenialDialog extends StatefulWidget {
 class _DenialDialogState extends State<DenialDialog> {
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
   final TransactionProvider transactionProvider = GetIt.I.get<TransactionProvider>();
+  final SettingsProvider settingsProvider = GetIt.I.get<SettingsProvider>();
+
+  BitcoinUnit get currentUnit => settingsProvider.bitcoinUnit;
 
   final hopsController = TextEditingController(text: '3');
   final minutesController = TextEditingController(text: '2');
   final hoursController = TextEditingController(text: '0');
   final daysController = TextEditingController(text: '0');
-
-  Future<void> setNormalDefaults() async {
-    setState(() {
-      hopsController.text = '3';
-      minutesController.text = '2';
-      hoursController.text = '0';
-      daysController.text = '0';
-    });
-  }
-
-  Future<void> setParanoidDefaults() async {
-    setState(() {
-      hopsController.text = '6';
-      minutesController.text = '0';
-      hoursController.text = '0';
-      daysController.text = '2';
-    });
-  }
-
-  int getTotalSeconds() {
-    final minutes = int.tryParse(minutesController.text) ?? 0;
-    final hours = int.tryParse(hoursController.text) ?? 0;
-    final days = int.tryParse(daysController.text) ?? 0;
-
-    return minutes * 60 + hours * 3600 + days * 86400;
-  }
-
-  @override
-  void dispose() {
-    hopsController.dispose();
-    minutesController.dispose();
-    hoursController.dispose();
-    daysController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailDialog(
-      title: 'Start Automatic Denial',
-      maxWidth: 700,
-      maxHeight: 600,
-      actions: [
-        SailButton(
-          label: 'Cancel',
-          onPressed: () async => Navigator.pop(context),
-          variant: ButtonVariant.secondary,
-        ),
-        SailButton(
-          label: 'Start',
-          onPressed: () async {
-            final hops = int.tryParse(hopsController.text) ?? 3;
-            await api.bitwindowd.createDenial(
-              txid: widget.output.split(':').first,
-              vout: int.parse(widget.output.split(':').last),
-              numHops: hops,
-              delaySeconds: getTotalSeconds(),
-            );
-            await transactionProvider.fetch();
-            if (context.mounted) Navigator.pop(context);
-          },
-        ),
-      ],
-      child: SailColumn(
-        spacing: SailStyleValues.padding12,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Delay input row
-          SailText.primary15('Send coins to yourself...'),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SailText.primary15('...with random delays of up to'),
-              Expanded(
-                child: SailTextField(
-                  controller: minutesController,
-                  size: TextFieldSize.small,
-                  textFieldType: TextFieldType.number,
-                  hintText: '0',
-                ),
-              ),
-              SailText.primary15('min'),
-              Expanded(
-                child: SailTextField(
-                  controller: hoursController,
-                  size: TextFieldSize.small,
-                  textFieldType: TextFieldType.number,
-                  hintText: '0',
-                ),
-              ),
-              SailText.primary15('hr'),
-              Expanded(
-                child: SailTextField(
-                  controller: daysController,
-                  size: TextFieldSize.small,
-                  textFieldType: TextFieldType.number,
-                  hintText: '0',
-                ),
-              ),
-              SailText.primary15('day(s)...'),
-            ],
-          ),
-
-          // Hops input row
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SailText.primary15('...and stop after'),
-              SizedBox(
-                width: 90,
-                child: SailTextField(
-                  controller: hopsController,
-                  size: TextFieldSize.small,
-                  textFieldType: TextFieldType.number,
-                  hintText: '3 hops',
-                ),
-              ),
-              SailText.primary15('hops.'),
-            ],
-          ),
-
-          // Default buttons
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SailText.primary15('Defaults:'),
-              SailButton(
-                label: 'Normal',
-                onPressed: setNormalDefaults,
-                variant: ButtonVariant.secondary,
-              ),
-              SailButton(
-                label: 'Paranoid',
-                onPressed: setParanoidDefaults,
-                variant: ButtonVariant.secondary,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class DenyAllDialog extends StatefulWidget {
-  final List<UnspentOutput> utxos;
-
-  const DenyAllDialog({
-    super.key,
-    required this.utxos,
-  });
-
-  @override
-  State<DenyAllDialog> createState() => _DenyAllDialogState();
-}
-
-class _DenyAllDialogState extends State<DenyAllDialog> {
-  final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
-  final TransactionProvider transactionProvider = GetIt.I.get<TransactionProvider>();
-
-  final hopsController = TextEditingController(text: '3');
-  final minutesController = TextEditingController(text: '2');
-  final hoursController = TextEditingController(text: '0');
-  final daysController = TextEditingController(text: '0');
+  final List<TextEditingController> targetSizeControllers = [];
 
   bool isProcessing = false;
   int processedCount = 0;
   String? errorMessage;
 
+  int get maxTargetSizes => 1 << (int.tryParse(hopsController.text) ?? 3); // 2^hops
+
   Future<void> setNormalDefaults() async {
     setState(() {
       hopsController.text = '3';
@@ -220,32 +78,103 @@ class _DenyAllDialogState extends State<DenyAllDialog> {
     return minutes * 60 + hours * 3600 + days * 86400;
   }
 
-  Future<void> denyAll() async {
+  List<int>? getTargetUtxoSizes() {
+    final sizes = targetSizeControllers
+        .map((c) {
+          final text = c.text.trim();
+          if (text.isEmpty) return null;
+          // Parse as the current unit and convert to sats
+          return parseAmountToSatoshis(text, currentUnit);
+        })
+        .whereType<int>()
+        .where((s) => s > 0)
+        .toList();
+    return sizes.isEmpty ? null : sizes;
+  }
+
+  void addTargetSize() {
+    if (targetSizeControllers.length < maxTargetSizes) {
+      setState(() {
+        targetSizeControllers.add(TextEditingController());
+      });
+    }
+  }
+
+  void removeTargetSize(int index) {
+    setState(() {
+      targetSizeControllers[index].dispose();
+      targetSizeControllers.removeAt(index);
+    });
+  }
+
+  Future<void> startDenial() async {
+    final hops = int.tryParse(hopsController.text) ?? 3;
+    final delaySeconds = getTotalSeconds();
+    final targetSizes = getTargetUtxoSizes();
+
+    // Validate target sizes don't exceed available balance
+    if (targetSizes != null && targetSizes.isNotEmpty) {
+      final totalFees = hops * DenialDialog.feePerHopSats;
+      final totalTargetSizes = targetSizes.fold(0, (sum, s) => sum + s);
+
+      int? available;
+      if (widget.isBatchMode) {
+        // For batch: validate against smallest UTXO
+        final minUtxo = widget.utxos!.map((u) => u.valueSats.toInt()).reduce(min);
+        available = minUtxo - totalFees;
+      } else if (widget.valueSats != null) {
+        available = widget.valueSats! - totalFees;
+      }
+
+      if (available != null && totalTargetSizes > available) {
+        setState(() {
+          errorMessage = 'Target sizes sum exceeds available balance after fees';
+        });
+        return;
+      }
+    }
+
     setState(() {
       isProcessing = true;
       processedCount = 0;
       errorMessage = null;
     });
 
-    final hops = int.tryParse(hopsController.text) ?? 3;
-    final delaySeconds = getTotalSeconds();
-
-    for (final utxo in widget.utxos) {
+    if (widget.isBatchMode) {
+      // Batch mode: process multiple UTXOs
+      for (final utxo in widget.utxos!) {
+        try {
+          await api.bitwindowd.createDenial(
+            txid: utxo.output.split(':').first,
+            vout: int.parse(utxo.output.split(':').last),
+            numHops: hops,
+            delaySeconds: delaySeconds,
+            targetUtxoSizes: targetSizes,
+          );
+          setState(() {
+            processedCount++;
+          });
+        } catch (e) {
+          setState(() {
+            errorMessage = 'Failed on UTXO ${utxo.output}: $e';
+          });
+          break;
+        }
+      }
+    } else {
+      // Single mode
       try {
         await api.bitwindowd.createDenial(
-          txid: utxo.output.split(':').first,
-          vout: int.parse(utxo.output.split(':').last),
+          txid: widget.output!.split(':').first,
+          vout: int.parse(widget.output!.split(':').last),
           numHops: hops,
           delaySeconds: delaySeconds,
+          targetUtxoSizes: targetSizes,
         );
-        setState(() {
-          processedCount++;
-        });
       } catch (e) {
         setState(() {
-          errorMessage = 'Failed on UTXO ${utxo.output}: $e';
+          errorMessage = 'Failed: $e';
         });
-        break;
       }
     }
 
@@ -266,13 +195,26 @@ class _DenyAllDialogState extends State<DenyAllDialog> {
     minutesController.dispose();
     hoursController.dispose();
     daysController.dispose();
+    for (final c in targetSizeControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isBatch = widget.isBatchMode;
+    final utxoCount = isBatch ? widget.utxos!.length : 1;
+
+    String buttonLabel;
+    if (isProcessing) {
+      buttonLabel = isBatch ? 'Processing ($processedCount/$utxoCount)...' : 'Starting...';
+    } else {
+      buttonLabel = isBatch ? 'Deny All' : 'Start';
+    }
+
     return SailDialog(
-      title: 'Deny All UTXOs',
+      title: isBatch ? 'Deny All UTXOs' : 'Start Automatic Denial',
       maxWidth: 700,
       maxHeight: 600,
       actions: [
@@ -283,8 +225,8 @@ class _DenyAllDialogState extends State<DenyAllDialog> {
           disabled: isProcessing,
         ),
         SailButton(
-          label: isProcessing ? 'Processing ($processedCount/${widget.utxos.length})...' : 'Deny All',
-          onPressed: denyAll,
+          label: buttonLabel,
+          onPressed: startDenial,
           disabled: isProcessing,
         ),
       ],
@@ -292,8 +234,10 @@ class _DenyAllDialogState extends State<DenyAllDialog> {
         spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary15('Starting deniability on ${widget.utxos.length} UTXOs'),
-          const SailSpacing(SailStyleValues.padding08),
+          if (isBatch) ...[
+            SailText.primary15('Starting deniability on $utxoCount UTXOs'),
+            const SailSpacing(SailStyleValues.padding08),
+          ],
 
           // Delay input row
           SailText.primary15('Send coins to yourself...'),
@@ -352,6 +296,39 @@ class _DenyAllDialogState extends State<DenyAllDialog> {
               SailText.primary15('hops.'),
             ],
           ),
+
+          // Target UTXO sizes (optional)
+          SailText.secondary13('With at least one UTXO of size:'),
+          for (int i = 0; i < targetSizeControllers.length; i++)
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SizedBox(
+                  width: 150,
+                  child: SailTextField(
+                    controller: targetSizeControllers[i],
+                    size: TextFieldSize.small,
+                    textFieldType: currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
+                    hintText: currentUnit.symbol,
+                    enabled: !isProcessing,
+                  ),
+                ),
+                if (i == targetSizeControllers.length - 1 && targetSizeControllers.length < maxTargetSizes)
+                  SailButton(
+                    label: '+',
+                    onPressed: () async => addTargetSize(),
+                    variant: ButtonVariant.ghost,
+                    disabled: isProcessing,
+                  ),
+              ],
+            ),
+          if (targetSizeControllers.isEmpty)
+            SailButton(
+              label: '+ Add target size',
+              onPressed: () async => addTargetSize(),
+              variant: ButtonVariant.ghost,
+              disabled: isProcessing,
+            ),
 
           // Default buttons
           SailRow(

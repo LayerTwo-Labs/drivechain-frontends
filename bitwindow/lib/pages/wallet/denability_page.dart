@@ -52,7 +52,7 @@ class DeniabilityTab extends StatelessWidget {
                     error: error,
                     utxos: model.utxos,
                     model: model,
-                    onDeny: (output) => model.showDenyDialog(context, output),
+                    onDeny: (output, valueSats) => model.showDenyDialog(context, output, valueSats),
                     onCancel: model.cancelDenial,
                   ),
                 ),
@@ -193,7 +193,7 @@ class DeniabilityTable extends StatefulWidget {
   final SailWindow? newWindowButton;
   final String? error;
   final List<UnspentOutput> utxos;
-  final void Function(String output) onDeny;
+  final void Function(String output, int valueSats) onDeny;
   final void Function(Int64) onCancel;
   final DeniabilityViewModel model;
 
@@ -350,7 +350,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                             )
                           : SailButton(
                               label: 'Deny',
-                              onPressed: () async => widget.onDeny(utxo.output),
+                              onPressed: () async => widget.onDeny(utxo.output, utxo.valueSats.toInt()),
                               insideTable: true,
                             ),
                     ),
@@ -575,17 +575,17 @@ class DeniabilityViewModel extends BaseViewModel {
     setErrorForObject('deniability', transactionProvider.error);
   }
 
-  void showDenyDialog(BuildContext context, String output) {
+  void showDenyDialog(BuildContext context, String output, int valueSats) {
     showDialog(
       context: context,
-      builder: (context) => DenialDialog(output: output),
+      builder: (context) => DenialDialog(output: output, valueSats: valueSats),
     );
   }
 
   void showDenyAllDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => DenyAllDialog(utxos: utxosWithoutDenial),
+      builder: (context) => DenialDialog(utxos: utxosWithoutDenial),
     );
   }
 
