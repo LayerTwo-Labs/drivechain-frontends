@@ -205,6 +205,7 @@ func (s *Server) CreateDenial(
 		Int32("delay_seconds", req.Msg.DelaySeconds).
 		Int32("num_hops", req.Msg.NumHops).
 		Str("wallet_id", activeWallet.ID).
+		Ints64("target_utxo_sizes", req.Msg.TargetUtxoSizes).
 		Msg("CreateDenial: creating new denial")
 
 	// UTXO exists, create the denial with the wallet ID
@@ -216,6 +217,7 @@ func (s *Server) CreateDenial(
 		int32(req.Msg.Vout),
 		time.Duration(req.Msg.DelaySeconds)*time.Second,
 		req.Msg.NumHops,
+		req.Msg.TargetUtxoSizes,
 	)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create denial")

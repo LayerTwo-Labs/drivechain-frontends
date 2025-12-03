@@ -179,13 +179,17 @@ func (x *StopBitwindowRequest) GetSkipDownstream() bool {
 }
 
 type CreateDenialRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	Vout          uint32                 `protobuf:"varint,2,opt,name=vout,proto3" json:"vout,omitempty"`
-	DelaySeconds  int32                  `protobuf:"varint,3,opt,name=delay_seconds,json=delaySeconds,proto3" json:"delay_seconds,omitempty"`
-	NumHops       int32                  `protobuf:"varint,4,opt,name=num_hops,json=numHops,proto3" json:"num_hops,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Txid         string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	Vout         uint32                 `protobuf:"varint,2,opt,name=vout,proto3" json:"vout,omitempty"`
+	DelaySeconds int32                  `protobuf:"varint,3,opt,name=delay_seconds,json=delaySeconds,proto3" json:"delay_seconds,omitempty"`
+	NumHops      int32                  `protobuf:"varint,4,opt,name=num_hops,json=numHops,proto3" json:"num_hops,omitempty"`
+	// If set, create UTXOs of these specific sizes (in satoshis).
+	// Each hop will try to create one UTXO of the next target size.
+	// Max length should equal num_hops.
+	TargetUtxoSizes []int64 `protobuf:"varint,5,rep,packed,name=target_utxo_sizes,json=targetUtxoSizes,proto3" json:"target_utxo_sizes,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CreateDenialRequest) Reset() {
@@ -246,6 +250,13 @@ func (x *CreateDenialRequest) GetNumHops() int32 {
 	return 0
 }
 
+func (x *CreateDenialRequest) GetTargetUtxoSizes() []int64 {
+	if x != nil {
+		return x.TargetUtxoSizes
+	}
+	return nil
+}
+
 type DenialInfo struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Id                int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -258,8 +269,10 @@ type DenialInfo struct {
 	Executions        []*ExecutedDenial      `protobuf:"bytes,8,rep,name=executions,proto3" json:"executions,omitempty"`
 	HopsCompleted     uint32                 `protobuf:"varint,9,opt,name=hops_completed,json=hopsCompleted,proto3" json:"hops_completed,omitempty"`
 	IsChange          bool                   `protobuf:"varint,10,opt,name=is_change,json=isChange,proto3" json:"is_change,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Target UTXO sizes user wants to create (one per hop)
+	TargetUtxoSizes []int64 `protobuf:"varint,11,rep,packed,name=target_utxo_sizes,json=targetUtxoSizes,proto3" json:"target_utxo_sizes,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *DenialInfo) Reset() {
@@ -360,6 +373,13 @@ func (x *DenialInfo) GetIsChange() bool {
 		return x.IsChange
 	}
 	return false
+}
+
+func (x *DenialInfo) GetTargetUtxoSizes() []int64 {
+	if x != nil {
+		return x.TargetUtxoSizes
+	}
+	return nil
 }
 
 type ExecutedDenial struct {
@@ -1884,12 +1904,13 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\n" +
 	"\x1ebitwindowd/v1/bitwindowd.proto\x12\rbitwindowd.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n" +
 	"\x14StopBitwindowRequest\x12'\n" +
-	"\x0fskip_downstream\x18\x01 \x01(\bR\x0eskipDownstream\"}\n" +
+	"\x0fskip_downstream\x18\x01 \x01(\bR\x0eskipDownstream\"\xa9\x01\n" +
 	"\x13CreateDenialRequest\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04vout\x18\x02 \x01(\rR\x04vout\x12#\n" +
 	"\rdelay_seconds\x18\x03 \x01(\x05R\fdelaySeconds\x12\x19\n" +
-	"\bnum_hops\x18\x04 \x01(\x05R\anumHops\"\x93\x04\n" +
+	"\bnum_hops\x18\x04 \x01(\x05R\anumHops\x12*\n" +
+	"\x11target_utxo_sizes\x18\x05 \x03(\x03R\x0ftargetUtxoSizes\"\xbf\x04\n" +
 	"\n" +
 	"DenialInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x19\n" +
@@ -1906,7 +1927,8 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"executions\x12%\n" +
 	"\x0ehops_completed\x18\t \x01(\rR\rhopsCompleted\x12\x1b\n" +
 	"\tis_change\x18\n" +
-	" \x01(\bR\bisChangeB\x0e\n" +
+	" \x01(\bR\bisChange\x12*\n" +
+	"\x11target_utxo_sizes\x18\v \x03(\x03R\x0ftargetUtxoSizesB\x0e\n" +
 	"\f_cancel_timeB\x10\n" +
 	"\x0e_cancel_reasonB\x16\n" +
 	"\x14_next_execution_time\"\xcd\x01\n" +

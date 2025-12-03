@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -19,6 +21,7 @@ type Denial struct {
 	TipVout         int32
 	DelayDuration   time.Duration
 	NumHops         int32
+	TargetUTXOSizes []int64 // Target UTXO sizes to create, one per hop
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	CancelledAt     *time.Time
@@ -38,8 +41,21 @@ type ExecutedDenial struct {
 	CreatedAt time.Time
 }
 
+// encodeTargetSizes converts []int64 to comma-separated string
+func encodeTargetSizes(sizes []int64) *string {
+	if len(sizes) == 0 {
+		return nil
+	}
+	parts := make([]string, len(sizes))
+	for i, s := range sizes {
+		parts[i] = strconv.FormatInt(s, 10)
+	}
+	result := strings.Join(parts, ",")
+	return &result
+}
+
 // Create creates a new denial plan
-func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout int32, delayDuration time.Duration, numHops int32) (Denial, error) {
+func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout int32, delayDuration time.Duration, numHops int32, targetUTXOSizes []int64) (Denial, error) {
 	var id int64
 	err := db.QueryRowContext(ctx, `
 		INSERT INTO denials (
@@ -48,10 +64,11 @@ func Create(ctx context.Context, db *sql.DB, walletID string, txid string, vout 
 			initial_vout,
 			delay_duration,
 			num_hops,
+			target_utxo_sizes,
 			created_at
-		) VALUES (?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
-	`, walletID, txid, vout, delayDuration, numHops, time.Now()).Scan(&id)
+	`, walletID, txid, vout, delayDuration, numHops, encodeTargetSizes(targetUTXOSizes), time.Now()).Scan(&id)
 	if err != nil {
 		return Denial{}, err
 	}
@@ -88,6 +105,7 @@ func selectDenialQuery() string {
 			d.wallet_id,
 			d.delay_duration,
 			d.num_hops,
+			d.target_utxo_sizes,
 			d.created_at,
 			d.updated_at,
 			d.cancelled_at,
@@ -125,6 +143,27 @@ func newConfig(opts []Option) config {
 	return conf
 }
 
+// parseTargetUTXOSizes parses comma-separated target sizes from the database
+func parseTargetUTXOSizes(data *string) ([]int64, error) {
+	if data == nil || *data == "" {
+		return nil, nil
+	}
+	parts := strings.Split(*data, ",")
+	sizes := make([]int64, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		v, err := strconv.ParseInt(p, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid size %q: %w", p, err)
+		}
+		sizes = append(sizes, v)
+	}
+	return sizes, nil
+}
+
 // List returns all denial plans
 func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	conf := newConfig(opts)
@@ -144,11 +183,13 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	var deniabilities []Denial
 	for rows.Next() {
 		var denial Denial
+		var targetSizesJSON *string
 		err := rows.Scan(
 			&denial.ID,
 			&denial.WalletID,
 			&denial.DelayDuration,
 			&denial.NumHops,
+			&targetSizesJSON,
 			&denial.CreatedAt,
 			&denial.UpdatedAt,
 			&denial.CancelledAt,
@@ -159,6 +200,11 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 		if err != nil {
 			rows.Close()
 			return nil, fmt.Errorf("could not scan deniability: %w", err)
+		}
+		denial.TargetUTXOSizes, err = parseTargetUTXOSizes(targetSizesJSON)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("could not parse target sizes: %w", err)
 		}
 		deniabilities = append(deniabilities, denial)
 	}
@@ -296,11 +342,13 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	row := db.QueryRowContext(ctx, query, args...)
 
 	var denial Denial
+	var targetSizesJSON *string
 	err := row.Scan(
 		&denial.ID,
 		&denial.WalletID,
 		&denial.DelayDuration,
 		&denial.NumHops,
+		&targetSizesJSON,
 		&denial.CreatedAt,
 		&denial.UpdatedAt,
 		&denial.CancelledAt,
@@ -313,6 +361,10 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 			return nil, nil // No matching record found, but that's okay
 		}
 		return nil, fmt.Errorf("could not get deniability by tip: %w", err)
+	}
+	denial.TargetUTXOSizes, err = parseTargetUTXOSizes(targetSizesJSON)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse target sizes: %w", err)
 	}
 
 	d, err := denial.addExecutionData(ctx, db)
@@ -343,11 +395,13 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		id)
 
 	var denial Denial
+	var targetSizesJSON *string
 	err := row.Scan(
 		&denial.ID,
 		&denial.WalletID,
 		&denial.DelayDuration,
 		&denial.NumHops,
+		&targetSizesJSON,
 		&denial.CreatedAt,
 		&denial.UpdatedAt,
 		&denial.CancelledAt,
@@ -360,6 +414,10 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 			return Denial{}, nil // No matching record found, but that's okay
 		}
 		return Denial{}, fmt.Errorf("could not get deniability: %w", err)
+	}
+	denial.TargetUTXOSizes, err = parseTargetUTXOSizes(targetSizesJSON)
+	if err != nil {
+		return Denial{}, fmt.Errorf("could not parse target sizes: %w", err)
 	}
 
 	return denial.addExecutionData(ctx, db)

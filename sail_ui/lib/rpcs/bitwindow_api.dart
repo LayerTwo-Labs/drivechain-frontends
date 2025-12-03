@@ -411,7 +411,13 @@ abstract class BitwindowAPI {
   Stream<MineBlocksResponse> mineBlocks();
 
   // Denial methods here
-  Future<void> createDenial({required String txid, required int vout, required int numHops, required int delaySeconds});
+  Future<void> createDenial({
+    required String txid,
+    required int vout,
+    required int numHops,
+    required int delaySeconds,
+    List<int>? targetUtxoSizes,
+  });
   Future<void> cancelDenial(Int64 id);
   Future<GetSyncInfoResponse> getSyncInfo();
 
@@ -460,10 +466,13 @@ class _BitwindowAPILive implements BitwindowAPI {
     required int vout,
     required int numHops,
     required int delaySeconds,
+    List<int>? targetUtxoSizes,
   }) async {
-    await _client.createDenial(
-      CreateDenialRequest(txid: txid, vout: vout, numHops: numHops, delaySeconds: delaySeconds),
-    );
+    final request = CreateDenialRequest(txid: txid, vout: vout, numHops: numHops, delaySeconds: delaySeconds);
+    if (targetUtxoSizes != null && targetUtxoSizes.isNotEmpty) {
+      request.targetUtxoSizes.addAll(targetUtxoSizes.map((s) => Int64(s)));
+    }
+    await _client.createDenial(request);
   }
 
   @override
