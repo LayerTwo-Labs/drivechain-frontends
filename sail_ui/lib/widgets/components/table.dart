@@ -92,14 +92,19 @@ class _SailTableState extends State<SailTable> {
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
 
-    // Only recalculate column widths when row count changes
+    // Recalculate column widths when row count changes
     if (oldWidget.rowCount != widget.rowCount) {
       if (_currentConstraints != null && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _resizeColumns(_currentConstraints!.maxWidth, force: true);
-          }
-        });
+        // For 0 → N transition (first data load), resize immediately
+        if (oldWidget.rowCount == 0 && widget.rowCount > 0) {
+          _resizeColumns(_currentConstraints!.maxWidth, force: true);
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _resizeColumns(_currentConstraints!.maxWidth, force: true);
+            }
+          });
+        }
       }
     }
   }
