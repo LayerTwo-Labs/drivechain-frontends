@@ -888,9 +888,16 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		existing, found := txMap[tx.Txid]
 		if !found {
 			var confirmation *pb.Confirmation
-			if tx.Confirmations > 0 && tx.BlockTime != nil {
-				confirmation = &pb.Confirmation{
-					Timestamp: tx.BlockTime,
+			if tx.Confirmations > 0 {
+				// BlockTime is always nil for ListTransactions in btc-buf, use Time or TimeReceived instead
+				timestamp := tx.Time
+				if timestamp == nil {
+					timestamp = tx.TimeReceived
+				}
+				if timestamp != nil {
+					confirmation = &pb.Confirmation{
+						Timestamp: timestamp,
+					}
 				}
 			}
 
