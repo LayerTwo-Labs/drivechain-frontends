@@ -48,6 +48,10 @@ message CreateDenialRequest {
   uint32 vout = 2;
   int32 delay_seconds = 3;
   int32 num_hops = 4;
+  // If set, create UTXOs of these specific sizes (in satoshis).
+  // Each hop will try to create one UTXO of the next target size.
+  // Max length should equal num_hops.
+  repeated int64 target_utxo_sizes = 5;
 }
 
 message DenialInfo {
@@ -61,6 +65,8 @@ message DenialInfo {
   repeated ExecutedDenial executions = 8;
   uint32 hops_completed = 9;
   bool is_change = 10;
+  // Target UTXO sizes user wants to create (one per hop)
+  repeated int64 target_utxo_sizes = 11;
 }
 
 message ExecutedDenial {

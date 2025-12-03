@@ -494,7 +494,13 @@ func (e *DeniabilityEngine) chooseDenialStrategy(
 	walletType WalletType,
 	walletId string,
 ) (map[string]uint64, error) {
-	// currently we only have one strategy, but we'll keep the structure
+	// If user specified target UTXO sizes, use the next one based on completed hops
+	completedHops := len(denial.ExecutedDenials)
+	if len(denial.TargetUTXOSizes) > completedHops {
+		targetSize := denial.TargetUTXOSizes[completedHops]
+		return e.targetAmountSplit(ctx, denial, utxo, fee, walletType, walletId, targetSize)
+	}
+	// Default: random split
 	return e.simpleSplit(ctx, denial, utxo, fee, walletType, walletId)
 }
 
@@ -543,6 +549,55 @@ func (e *DeniabilityEngine) simpleSplit(
 
 	return map[string]uint64{
 		address: sendAmount,
+	}, nil
+}
+
+// targetAmountSplit sends the user-specified target amount to a new address
+func (e *DeniabilityEngine) targetAmountSplit(
+	ctx context.Context,
+	denial deniability.Denial,
+	utxo *pb.ListUnspentOutputsResponse_Output,
+	fee uint64,
+	walletType WalletType,
+	walletId string,
+	targetSize int64,
+) (map[string]uint64, error) {
+	// Get a new address based on wallet type
+	var address string
+	var err error
+
+	switch walletType {
+	case WalletTypeEnforcer:
+		address, err = e.getEnforcerNewAddress(ctx)
+	case WalletTypeBitcoinCore:
+		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
+	case WalletTypeWatchOnly:
+		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
+	default:
+		return nil, fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("get new address: %w", err)
+	}
+
+	targetAmount := uint64(targetSize)
+	availableAmount := utxo.ValueSats - fee
+
+	// Ensure target amount doesn't exceed available
+	if targetAmount > availableAmount {
+		targetAmount = availableAmount
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Int64("denial_id", denial.ID).
+		Uint64("total_amount", utxo.ValueSats).
+		Uint64("fee", fee).
+		Uint64("target_amount", targetAmount).
+		Msg("using target amount split")
+
+	return map[string]uint64{
+		address: targetAmount,
 	}, nil
 }
 

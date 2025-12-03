@@ -78,6 +78,7 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
     $core.int? vout,
     $core.int? delaySeconds,
     $core.int? numHops,
+    $core.Iterable<$fixnum.Int64>? targetUtxoSizes,
   }) {
     final $result = create();
     if (txid != null) {
@@ -92,6 +93,9 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
     if (numHops != null) {
       $result.numHops = numHops;
     }
+    if (targetUtxoSizes != null) {
+      $result.targetUtxoSizes.addAll(targetUtxoSizes);
+    }
     return $result;
   }
   CreateDenialRequest._() : super();
@@ -103,6 +107,7 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
     ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'delaySeconds', $pb.PbFieldType.O3)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'numHops', $pb.PbFieldType.O3)
+    ..p<$fixnum.Int64>(5, _omitFieldNames ? '' : 'targetUtxoSizes', $pb.PbFieldType.K6)
     ..hasRequiredFields = false
   ;
 
@@ -162,6 +167,12 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   $core.bool hasNumHops() => $_has(3);
   @$pb.TagNumber(4)
   void clearNumHops() => clearField(4);
+
+  /// If set, create UTXOs of these specific sizes (in satoshis).
+  /// Each hop will try to create one UTXO of the next target size.
+  /// Max length should equal num_hops.
+  @$pb.TagNumber(5)
+  $core.List<$fixnum.Int64> get targetUtxoSizes => $_getList(4);
 }
 
 class DenialInfo extends $pb.GeneratedMessage {
@@ -176,6 +187,7 @@ class DenialInfo extends $pb.GeneratedMessage {
     $core.Iterable<ExecutedDenial>? executions,
     $core.int? hopsCompleted,
     $core.bool? isChange,
+    $core.Iterable<$fixnum.Int64>? targetUtxoSizes,
   }) {
     final $result = create();
     if (id != null) {
@@ -208,6 +220,9 @@ class DenialInfo extends $pb.GeneratedMessage {
     if (isChange != null) {
       $result.isChange = isChange;
     }
+    if (targetUtxoSizes != null) {
+      $result.targetUtxoSizes.addAll(targetUtxoSizes);
+    }
     return $result;
   }
   DenialInfo._() : super();
@@ -225,6 +240,7 @@ class DenialInfo extends $pb.GeneratedMessage {
     ..pc<ExecutedDenial>(8, _omitFieldNames ? '' : 'executions', $pb.PbFieldType.PM, subBuilder: ExecutedDenial.create)
     ..a<$core.int>(9, _omitFieldNames ? '' : 'hopsCompleted', $pb.PbFieldType.OU3)
     ..aOB(10, _omitFieldNames ? '' : 'isChange')
+    ..p<$fixnum.Int64>(11, _omitFieldNames ? '' : 'targetUtxoSizes', $pb.PbFieldType.K6)
     ..hasRequiredFields = false
   ;
 
@@ -338,6 +354,10 @@ class DenialInfo extends $pb.GeneratedMessage {
   $core.bool hasIsChange() => $_has(9);
   @$pb.TagNumber(10)
   void clearIsChange() => clearField(10);
+
+  /// Target UTXO sizes user wants to create (one per hop)
+  @$pb.TagNumber(11)
+  $core.List<$fixnum.Int64> get targetUtxoSizes => $_getList(10);
 }
 
 class ExecutedDenial extends $pb.GeneratedMessage {

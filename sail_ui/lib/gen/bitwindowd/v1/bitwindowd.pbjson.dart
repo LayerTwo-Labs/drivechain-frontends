@@ -73,6 +73,7 @@ const CreateDenialRequest$json = {
     {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
     {'1': 'delay_seconds', '3': 3, '4': 1, '5': 5, '10': 'delaySeconds'},
     {'1': 'num_hops', '3': 4, '4': 1, '5': 5, '10': 'numHops'},
+    {'1': 'target_utxo_sizes', '3': 5, '4': 3, '5': 3, '10': 'targetUtxoSizes'},
   ],
 };
 
@@ -80,7 +81,8 @@ const CreateDenialRequest$json = {
 final $typed_data.Uint8List createDenialRequestDescriptor = $convert.base64Decode(
     'ChNDcmVhdGVEZW5pYWxSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoDV'
     'IEdm91dBIjCg1kZWxheV9zZWNvbmRzGAMgASgFUgxkZWxheVNlY29uZHMSGQoIbnVtX2hvcHMY'
-    'BCABKAVSB251bUhvcHM=');
+    'BCABKAVSB251bUhvcHMSKgoRdGFyZ2V0X3V0eG9fc2l6ZXMYBSADKANSD3RhcmdldFV0eG9TaX'
+    'plcw==');
 
 @$core.Deprecated('Use denialInfoDescriptor instead')
 const DenialInfo$json = {
@@ -96,6 +98,7 @@ const DenialInfo$json = {
     {'1': 'executions', '3': 8, '4': 3, '5': 11, '6': '.bitwindowd.v1.ExecutedDenial', '10': 'executions'},
     {'1': 'hops_completed', '3': 9, '4': 1, '5': 13, '10': 'hopsCompleted'},
     {'1': 'is_change', '3': 10, '4': 1, '5': 8, '10': 'isChange'},
+    {'1': 'target_utxo_sizes', '3': 11, '4': 3, '5': 3, '10': 'targetUtxoSizes'},
   ],
   '8': [
     {'1': '_cancel_time'},
@@ -114,8 +117,9 @@ final $typed_data.Uint8List denialInfoDescriptor = $convert.base64Decode(
     '9uX3RpbWUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAJSEW5leHRFeGVjdXRp'
     'b25UaW1liAEBEj0KCmV4ZWN1dGlvbnMYCCADKAsyHS5iaXR3aW5kb3dkLnYxLkV4ZWN1dGVkRG'
     'VuaWFsUgpleGVjdXRpb25zEiUKDmhvcHNfY29tcGxldGVkGAkgASgNUg1ob3BzQ29tcGxldGVk'
-    'EhsKCWlzX2NoYW5nZRgKIAEoCFIIaXNDaGFuZ2VCDgoMX2NhbmNlbF90aW1lQhAKDl9jYW5jZW'
-    'xfcmVhc29uQhYKFF9uZXh0X2V4ZWN1dGlvbl90aW1l');
+    'EhsKCWlzX2NoYW5nZRgKIAEoCFIIaXNDaGFuZ2USKgoRdGFyZ2V0X3V0eG9fc2l6ZXMYCyADKA'
+    'NSD3RhcmdldFV0eG9TaXplc0IOCgxfY2FuY2VsX3RpbWVCEAoOX2NhbmNlbF9yZWFzb25CFgoU'
+    'X25leHRfZXhlY3V0aW9uX3RpbWU=');
 
 @$core.Deprecated('Use executedDenialDescriptor instead')
 const ExecutedDenial$json = {
