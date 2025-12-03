@@ -186,6 +186,13 @@ abstract final class BitcoinService {
     bitcoinbitcoindv1alphabitcoin.SendRawTransactionResponse.new,
   );
 
+  static const signRawTransactionWithWallet = connect.Spec(
+    '/$name/SignRawTransactionWithWallet',
+    connect.StreamType.unary,
+    bitcoinbitcoindv1alphabitcoin.SignRawTransactionWithWalletRequest.new,
+    bitcoinbitcoindv1alphabitcoin.SignRawTransactionWithWalletResponse.new,
+  );
+
   static const getBlock = connect.Spec(
     '/$name/GetBlock',
     connect.StreamType.unary,
