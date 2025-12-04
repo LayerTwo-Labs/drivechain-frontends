@@ -145,8 +145,8 @@ class DaemonConnectionCard extends StatelessWidget {
                             (connection.initializingBinary
                                 ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
                                 : !connection.connected
-                                    ? 'Not connected'
-                                    : ''),
+                                ? 'Not connected'
+                                : ''),
                       ),
                       monospace: true,
                     ),
