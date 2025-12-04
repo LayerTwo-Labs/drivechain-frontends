@@ -168,6 +168,9 @@ const WithdrawalBundle$json = {
     {'1': 'sequence_number', '3': 4, '4': 1, '5': 4, '10': 'sequenceNumber'},
     {'1': 'transaction_hex', '3': 5, '4': 1, '5': 9, '10': 'transactionHex'},
     {'1': 'block_height', '3': 6, '4': 1, '5': 13, '10': 'blockHeight'},
+    {'1': 'age', '3': 7, '4': 1, '5': 13, '10': 'age'},
+    {'1': 'max_age', '3': 8, '4': 1, '5': 13, '10': 'maxAge'},
+    {'1': 'blocks_left', '3': 9, '4': 1, '5': 13, '10': 'blocksLeft'},
   ],
 };
 
@@ -176,7 +179,9 @@ final $typed_data.Uint8List withdrawalBundleDescriptor = $convert.base64Decode(
     'ChBXaXRoZHJhd2FsQnVuZGxlEhIKBG02aWQYASABKAlSBG02aWQSIQoMc2lkZWNoYWluX2lkGA'
     'IgASgNUgtzaWRlY2hhaW5JZBIWCgZzdGF0dXMYAyABKAlSBnN0YXR1cxInCg9zZXF1ZW5jZV9u'
     'dW1iZXIYBCABKARSDnNlcXVlbmNlTnVtYmVyEicKD3RyYW5zYWN0aW9uX2hleBgFIAEoCVIOdH'
-    'JhbnNhY3Rpb25IZXgSIQoMYmxvY2tfaGVpZ2h0GAYgASgNUgtibG9ja0hlaWdodA==');
+    'JhbnNhY3Rpb25IZXgSIQoMYmxvY2tfaGVpZ2h0GAYgASgNUgtibG9ja0hlaWdodBIQCgNhZ2UY'
+    'ByABKA1SA2FnZRIXCgdtYXhfYWdlGAggASgNUgZtYXhBZ2USHwoLYmxvY2tzX2xlZnQYCSABKA'
+    '1SCmJsb2Nrc0xlZnQ=');
 
 @$core.Deprecated('Use listWithdrawalsResponseDescriptor instead')
 const ListWithdrawalsResponse$json = {

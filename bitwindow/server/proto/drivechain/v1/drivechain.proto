@@ -74,7 +74,12 @@ message WithdrawalBundle {
   string status = 3; // "succeeded", "failed", "pending"
   uint64 sequence_number = 4;
   string transaction_hex = 5;
-  uint32 block_height = 6;
+  uint32 block_height = 6; // Block when bundle was submitted
+
+  // Score tracking fields (BIP300)
+  uint32 age = 7;          // Blocks since submission
+  uint32 max_age = 8;      // Maximum voting period (26300 blocks)
+  uint32 blocks_left = 9;  // Remaining blocks before expiry
 }
 
 message ListWithdrawalsResponse {

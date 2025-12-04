@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
+import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -179,6 +180,10 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // Vote History
+              _buildVoteHistory(theme),
               const SizedBox(height: 32),
 
               // Back button
@@ -217,29 +222,148 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
         statusColor = theme.colors.orange;
     }
 
-    return ListTile(
-      title: Row(
-        children: [
-          Expanded(
-            child: SailText.primary13(
-              bundle.m6id.length > 20 ? '${bundle.m6id.substring(0, 20)}...' : bundle.m6id,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: SailText.secondary12(bundle.status.toUpperCase(), color: statusColor),
-          ),
-        ],
-      ),
-      subtitle: SailText.secondary12('Block ${bundle.blockHeight} · Seq ${bundle.sequenceNumber}'),
+    // Calculate progress percentage for pending bundles
+    final isPending = bundle.status.toLowerCase() == 'pending';
+    final progress = isPending && bundle.maxAge > 0 ? (bundle.age / bundle.maxAge).clamp(0.0, 1.0) : 0.0;
+
+    return InkWell(
       onTap: () {
         Clipboard.setData(ClipboardData(text: bundle.m6id));
         showSnackBar(context, 'Copied M6 Bundle Hash');
       },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row with hash and status
+            Row(
+              children: [
+                Expanded(
+                  child: SailText.primary13(
+                    bundle.m6id.length > 24 ? '${bundle.m6id.substring(0, 24)}...' : bundle.m6id,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: SailText.secondary12(bundle.status.toUpperCase(), color: statusColor),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            // Age and block info
+            if (isPending) ...[
+              Row(
+                children: [
+                  SailText.secondary12('Age: ${bundle.age} / ${bundle.maxAge}'),
+                  const SizedBox(width: 16),
+                  SailText.secondary12('Blocks left: ${bundle.blocksLeft}'),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress > 0.8 ? theme.colors.error : theme.colors.orange,
+                  ),
+                  minHeight: 4,
+                ),
+              ),
+            ] else
+              SailText.secondary12('Block ${bundle.blockHeight}'),
+            const Divider(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVoteHistory(SailThemeData theme) {
+    final history = _m4Provider.history;
+
+    return SailCard(
+      title: 'Vote History',
+      subtitle: 'Recent blocks showing withdrawal bundle votes',
+      padding: true,
+      secondary: true,
+      child: history.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: SailText.secondary13('No vote history available'),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: history.map((entry) => _buildHistoryEntry(theme, entry)).toList(),
+            ),
+    );
+  }
+
+  Widget _buildHistoryEntry(SailThemeData theme, m4pb.M4HistoryEntry entry) {
+    // Filter votes to only show ones for the selected sidechain
+    final relevantVotes = entry.votes.where((v) => v.sidechainSlot == _selectedSidechainSlot).toList();
+
+    return ExpansionTile(
+      title: SailText.primary13('Block #${entry.blockHeight}'),
+      subtitle: SailText.secondary12(
+        relevantVotes.isEmpty ? 'No votes for this sidechain' : '${relevantVotes.length} vote(s)',
+      ),
+      initiallyExpanded: false,
+      children: relevantVotes.isEmpty
+          ? [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SailText.secondary12('No withdrawal votes recorded in this block'),
+              ),
+            ]
+          : relevantVotes.map((vote) => _buildVoteEntry(theme, vote)).toList(),
+    );
+  }
+
+  Widget _buildVoteEntry(SailThemeData theme, m4pb.M4Vote vote) {
+    Color voteColor;
+    String voteLabel;
+    IconData voteIcon;
+
+    switch (vote.voteType.toLowerCase()) {
+      case 'upvote':
+        voteColor = theme.colors.success;
+        voteLabel = 'Upvote';
+        voteIcon = Icons.arrow_upward;
+      case 'alarm':
+      case 'downvote':
+        voteColor = theme.colors.error;
+        voteLabel = 'Alarm';
+        voteIcon = Icons.warning;
+      default:
+        voteColor = theme.colors.textSecondary;
+        voteLabel = 'Abstain';
+        voteIcon = Icons.remove;
+    }
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: voteColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(voteIcon, color: voteColor, size: 16),
+      ),
+      title: SailText.primary13(voteLabel, color: voteColor),
+      subtitle: vote.hasBundleHash()
+          ? SailText.secondary12(
+              'Bundle: ${vote.bundleHash.length > 16 ? '${vote.bundleHash.substring(0, 16)}...' : vote.bundleHash}',
+            )
+          : null,
+      dense: true,
     );
   }
 
