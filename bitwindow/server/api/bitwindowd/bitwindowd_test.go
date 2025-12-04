@@ -1090,7 +1090,7 @@ func TestService_GetFireplaceStats(t *testing.T) {
 		},
 	}))
 
-	topicID, err := opreturns.ValidNewsTopicID("deadbeefdeadbeef")
+	topicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
 	require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid1"))
 

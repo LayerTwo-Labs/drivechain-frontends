@@ -129,12 +129,12 @@ func TestService_BroadcastNews(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "12345678123456", // Too short, should be 16 hex characters
+			Topic:    "123456", // Too short, should be 8 hex characters (4 bytes)
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "is not 8 bytes")
+		assert.Contains(t, err.Error(), "is not 4 bytes")
 	})
 
 	t.Run("broadcast news with empty headline", func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
-			Topic:    "8765432187654321", // Non-existent topic
+			Topic:    "87654321", // Non-existent topic (4 bytes)
 			Headline: "Test News Headline",
 			Content:  "https://example.com/news",
 		}))
@@ -294,7 +294,7 @@ func TestService_CreateTopic(t *testing.T) {
 			SendTransaction(gomock.Any(), tests.Connect(&pb.SendTransactionRequest{
 				OpReturnMessage: &commonv1.Hex{
 					Hex: &wrapperspb.StringValue{
-						Value: "deadbeefdeadbeef" +
+						Value: "deadbeef" +
 							hex.EncodeToString([]byte("new")) +
 							hex.EncodeToString([]byte("Test Topic")),
 					},
@@ -312,7 +312,7 @@ func TestService_CreateTopic(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
 
 		resp, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
-			Topic: "deadbeefdeadbeef",
+			Topic: "deadbeef",
 			Name:  "Test Topic",
 		}))
 		require.NoError(t, err)
@@ -340,11 +340,11 @@ func TestService_CreateTopic(t *testing.T) {
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
 		_, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
-			Topic: "12345678123456", // Too short, should be 8 hex characters
+			Topic: "123456", // Too short, should be 8 hex characters (4 bytes)
 			Name:  "Test Topic",
 		}))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "is not 8 bytes")
+		assert.Contains(t, err.Error(), "is not 4 bytes")
 	})
 
 	t.Run("create topic with empty name", func(t *testing.T) {
@@ -660,7 +660,7 @@ func TestService_ListCoinNews(t *testing.T) {
 }
 
 func validTopicID() opreturns.TopicID {
-	buf := make([]byte, 8)
+	buf := make([]byte, opreturns.TopicIdLength)
 	if _, err := rand.Read(buf); err != nil {
 		panic(err)
 	}

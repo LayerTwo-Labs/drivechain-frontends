@@ -31,15 +31,15 @@ func TestOpReturnHandling(t *testing.T) {
 
 	db := database.Test(t)
 
-	knownTopicID, err := opreturns.ValidNewsTopicID("deadbeefdeadbeef")
+	knownTopicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
 
 	require.NoError(t, opreturns.CreateTopic(ctx, db, knownTopicID, "The Known Topic", "txid"))
 
-	unknownTopicID, err := opreturns.ValidNewsTopicID("1234567812345678")
+	unknownTopicID, err := opreturns.ValidNewsTopicID("12345678")
 	require.NoError(t, err)
 
-	newTopicID, err := opreturns.ValidNewsTopicID("8765432187654321")
+	newTopicID, err := opreturns.ValidNewsTopicID("87654321")
 	require.NoError(t, err)
 
 	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))

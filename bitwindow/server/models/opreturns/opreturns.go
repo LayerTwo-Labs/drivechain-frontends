@@ -170,7 +170,7 @@ func IsCreateTopic(data []byte) (TopicInfo, bool) {
 		return TopicInfo{}, false
 	}
 
-	// First 8 bytes are the topic ID
+	// First 4 bytes are the topic ID
 	topicID, err := ValidNewsTopicID(hex.EncodeToString(data[:TopicIdLength]))
 	if err != nil {
 		return TopicInfo{}, false
@@ -278,7 +278,7 @@ func TopicExists(ctx context.Context, db *sql.DB, topic TopicID) (bool, error) {
 	return exists, nil
 }
 
-// Format for OP_RETURN message: <topic (8 bytes)><headline (64 bytes)><message (arbitrary length)>
+// Format for OP_RETURN message: <topic (4 bytes)><headline (64 bytes)><message (arbitrary length)>
 func EncodeNewsMessage(topic TopicID, headline string, content string) []byte {
 	paddedHeadline := headline + string(make([]byte, 64-len(headline)))
 	return slices.Concat(
@@ -339,10 +339,11 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 			headline string
 			content  string
 		)
+		headlineEnd := TopicIdLength + 64
 		switch {
-		case len(opReturn.Data) >= 72:
-			headline = strings.TrimRight(string(opReturn.Data[TopicIdLength:72]), " ")
-			content = string(opReturn.Data[72:])
+		case len(opReturn.Data) >= headlineEnd:
+			headline = strings.TrimRight(string(opReturn.Data[TopicIdLength:headlineEnd]), " ")
+			content = string(opReturn.Data[headlineEnd:])
 
 		default:
 			headline = strings.TrimRight(string(opReturn.Data[TopicIdLength:]), " ")

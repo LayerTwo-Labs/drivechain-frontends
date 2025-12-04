@@ -233,8 +233,8 @@ class CoinNewsLargeViewModel extends BaseViewModel {
   bool _sortRightAscending = false;
   String _sortLeftColumn = 'date';
   String _sortRightColumn = 'date';
-  String leftTopic = 'a1a1a1a1a1a1a1a1';
-  String rightTopic = 'a2a2a2a2a2a2a2a2';
+  String leftTopic = 'a1a1a1a1';
+  String rightTopic = 'a2a2a2a2';
 
   bool get loading => !_newsProvider.initialized;
   List<Topic> get topics => _newsProvider.topics;
