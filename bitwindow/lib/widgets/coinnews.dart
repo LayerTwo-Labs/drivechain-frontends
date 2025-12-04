@@ -65,7 +65,7 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                           .map(
                             (topic) => SailDropdownItem(
                               value: topic.topic,
-                              label: topic.name,
+                              label: topic.confirmed ? topic.name : '${topic.name} (pending)',
                             ),
                           )
                           .toList(),
@@ -138,7 +138,10 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                               SailDropdownButton(
                                 items: viewModel.topics
                                     .map(
-                                      (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
+                                      (topic) => SailDropdownItem(
+                                        value: topic.topic,
+                                        label: topic.confirmed ? topic.name : '${topic.name} (pending)',
+                                      ),
                                     )
                                     .toList(),
                                 onChanged: (value) => viewModel.setLeftTopic(value),
@@ -168,7 +171,10 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                               SailDropdownButton(
                                 items: viewModel.topics
                                     .map(
-                                      (topic) => SailDropdownItem(value: topic.topic, label: topic.name),
+                                      (topic) => SailDropdownItem(
+                                        value: topic.topic,
+                                        label: topic.confirmed ? topic.name : '${topic.name} (pending)',
+                                      ),
                                     )
                                     .toList(),
                                 onChanged: (value) => viewModel.setRightTopic(value),
@@ -893,7 +899,7 @@ class CoinNewsTable extends StatelessWidget {
     final formatter = GetIt.I<FormatterProvider>();
 
     return SailSkeletonizer(
-      description: 'Waiting for backend to boot and load coin news..',
+      description: 'Waiting for backend to boot and for it to load coin news..',
       enabled: loading,
       duration: const Duration(seconds: 3),
       child: ListenableBuilder(

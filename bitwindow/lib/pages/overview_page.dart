@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart' as bitwindow;
 import 'package:bitwindow/providers/news_provider.dart';
@@ -527,7 +528,7 @@ class BroadcastNewsView extends StatelessWidget {
                   ...viewModel.topics.map(
                     (topic) => SailDropdownItem(
                       value: topic,
-                      label: topic.name,
+                      label: topic.confirmed ? topic.name : '${topic.name} (pending)',
                     ),
                   ),
                 ],
@@ -696,6 +697,7 @@ class CreateTopicView extends StatelessWidget {
     return ViewModelBuilder<CreateTopicViewModel>.reactive(
       viewModelBuilder: () => CreateTopicViewModel(),
       builder: (context, viewModel, child) {
+        final pendingTopics = viewModel.topics.where((t) => !t.confirmed).toList();
         return SailColumn(
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: SailStyleValues.padding16,
@@ -722,6 +724,34 @@ class CreateTopicView extends StatelessWidget {
                   viewModel.nameController.text.isEmpty ||
                   viewModel.identifierController.text.length != 8,
             ),
+            if (pendingTopics.isNotEmpty) ...[
+              const SailSpacing(8),
+              SailText.secondary13('Pending Topics (awaiting confirmation)'),
+              ...pendingTopics.map(
+                (topic) => InkWell(
+                  onDoubleTap: () => showTransactionDetails(context, topic.txid),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: context.sailTheme.colors.backgroundSecondary,
+                      borderRadius: SailStyleValues.borderRadius,
+                    ),
+                    child: SailRow(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        SailText.primary13(topic.name),
+                        SailText.secondary12('(${topic.topic})'),
+                        const Spacer(),
+                        SailText.secondary12(
+                          'double-click to view tx',
+                          italic: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         );
       },
@@ -764,9 +794,11 @@ class CreateTopicViewModel extends BaseViewModel {
     }
 
     try {
-      await _api.misc.createTopic(identifierController.text, nameController.text);
+      final response = await _api.misc.createTopic(identifierController.text, nameController.text);
+      await _newsProvider.fetch();
       if (!context.mounted) return;
-      showSnackBar(context, 'topic created successfully!');
+      Navigator.of(context).pop();
+      showSnackBar(context, 'topic created! txid: ${response.txid.substring(0, 8)}...');
     } catch (e) {
       showSnackBar(context, 'could not create topic: $e');
     }

@@ -35,35 +35,60 @@ class NewsProvider extends ChangeNotifier {
     _isFetching = true;
     error = null;
 
+    List<String> errors = [];
+    bool dataChanged = false;
+
+    // Fetch news independently
     try {
       final newNews = await api.misc.listCoinNews();
-      final newTopics = await api.misc.listTopics();
-      final newOPReturns = await api.misc.listOPReturns();
-
-      if (_dataHasChanged(newNews, newTopics, newOPReturns)) {
+      if (!listEquals(news, newNews)) {
         news = newNews;
-        topics = newTopics;
-        opReturns = newOPReturns;
-        initialized = true;
-        error = null;
-        notifyListeners();
+        dataChanged = true;
       }
     } catch (e) {
-      if (e.toString() != error) {
-        error = e.toString();
-        notifyListeners();
-      }
-    } finally {
-      _isFetching = false;
+      errors.add('News: ${e.toString()}');
     }
-  }
 
-  bool _dataHasChanged(
-    List<CoinNews> newNews,
-    List<Topic> newTopics,
-    List<OPReturn> newOPReturns,
-  ) {
-    return !listEquals(news, newNews) || !listEquals(topics, newTopics) || !listEquals(opReturns, newOPReturns);
+    // Fetch topics independently
+    try {
+      final newTopics = await api.misc.listTopics();
+      if (!listEquals(topics, newTopics)) {
+        topics = newTopics;
+        dataChanged = true;
+      }
+    } catch (e) {
+      errors.add('Topics: ${e.toString()}');
+    }
+
+    // Fetch OP_RETURNs independently
+    try {
+      final newOPReturns = await api.misc.listOPReturns();
+      if (!listEquals(opReturns, newOPReturns)) {
+        opReturns = newOPReturns;
+        dataChanged = true;
+      }
+    } catch (e) {
+      errors.add('OP_RETURNs: ${e.toString()}');
+    }
+
+    if (dataChanged || errors.isNotEmpty) {
+      if (dataChanged) {
+        initialized = true;
+      }
+
+      if (errors.isNotEmpty) {
+        final newError = errors.join('; ');
+        if (newError != error) {
+          error = newError;
+        }
+      } else {
+        error = null;
+      }
+
+      notifyListeners();
+    }
+
+    _isFetching = false;
   }
 
   @override
