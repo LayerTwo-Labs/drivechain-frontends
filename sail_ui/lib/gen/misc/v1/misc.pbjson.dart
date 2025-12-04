@@ -113,6 +113,8 @@ const Topic$json = {
     {'1': 'topic', '3': 2, '4': 1, '5': 9, '10': 'topic'},
     {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
     {'1': 'create_time', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
+    {'1': 'confirmed', '3': 5, '4': 1, '5': 8, '10': 'confirmed'},
+    {'1': 'txid', '3': 6, '4': 1, '5': 9, '10': 'txid'},
   ],
 };
 
@@ -120,7 +122,8 @@ const Topic$json = {
 final $typed_data.Uint8List topicDescriptor = $convert.base64Decode(
     'CgVUb3BpYxIOCgJpZBgBIAEoA1ICaWQSFAoFdG9waWMYAiABKAlSBXRvcGljEhIKBG5hbWUYAy'
     'ABKAlSBG5hbWUSOwoLY3JlYXRlX3RpbWUYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0'
-    'YW1wUgpjcmVhdGVUaW1l');
+    'YW1wUgpjcmVhdGVUaW1lEhwKCWNvbmZpcm1lZBgFIAEoCFIJY29uZmlybWVkEhIKBHR4aWQYBi'
+    'ABKAlSBHR4aWQ=');
 
 @$core.Deprecated('Use listTopicsResponseDescriptor instead')
 const ListTopicsResponse$json = {

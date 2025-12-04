@@ -1092,9 +1092,9 @@ func TestService_GetFireplaceStats(t *testing.T) {
 
 	topicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
-	require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid1"))
+	require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid1", true))
 
-	unknownTopicID, err := opreturns.ValidNewsTopicID("1234567887654321")
+	unknownTopicID, err := opreturns.ValidNewsTopicID("12345678")
 	require.NoError(t, err)
 
 	// one old coin news entry

@@ -432,6 +432,8 @@ class Topic extends $pb.GeneratedMessage {
     $core.String? topic,
     $core.String? name,
     $0.Timestamp? createTime,
+    $core.bool? confirmed,
+    $core.String? txid,
   }) {
     final $result = create();
     if (id != null) {
@@ -446,6 +448,12 @@ class Topic extends $pb.GeneratedMessage {
     if (createTime != null) {
       $result.createTime = createTime;
     }
+    if (confirmed != null) {
+      $result.confirmed = confirmed;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
     return $result;
   }
   Topic._() : super();
@@ -457,6 +465,8 @@ class Topic extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'topic')
     ..aOS(3, _omitFieldNames ? '' : 'name')
     ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
+    ..aOB(5, _omitFieldNames ? '' : 'confirmed')
+    ..aOS(6, _omitFieldNames ? '' : 'txid')
     ..hasRequiredFields = false
   ;
 
@@ -518,6 +528,26 @@ class Topic extends $pb.GeneratedMessage {
   void clearCreateTime() => clearField(4);
   @$pb.TagNumber(4)
   $0.Timestamp ensureCreateTime() => $_ensure(3);
+
+  /// Whether the topic creation transaction has been mined
+  @$pb.TagNumber(5)
+  $core.bool get confirmed => $_getBF(4);
+  @$pb.TagNumber(5)
+  set confirmed($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasConfirmed() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearConfirmed() => clearField(5);
+
+  /// Transaction ID of the topic creation
+  @$pb.TagNumber(6)
+  $core.String get txid => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set txid($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasTxid() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTxid() => clearField(6);
 }
 
 class ListTopicsResponse extends $pb.GeneratedMessage {

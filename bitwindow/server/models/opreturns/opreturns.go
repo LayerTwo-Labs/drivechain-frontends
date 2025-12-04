@@ -196,15 +196,16 @@ func IsCreateTopic(data []byte) (TopicInfo, bool) {
 	}, true
 }
 
-func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, txid string) error {
+func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, txid string, confirmed bool) error {
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO coin_news_topics (
 			topic,
 			name,
-			txid
-		) VALUES (?, ?, ?)
-		 ON CONFLICT (topic) DO NOTHING
-	`, topic.String(), name, txid)
+			txid,
+			confirmed
+		) VALUES (?, ?, ?, ?)
+		ON CONFLICT (topic) DO UPDATE SET confirmed = excluded.confirmed OR coin_news_topics.confirmed
+	`, topic.String(), name, txid, confirmed)
 	if err != nil {
 		return fmt.Errorf("create topic: %w", err)
 	}
@@ -213,9 +214,11 @@ func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, tx
 }
 
 type Topic struct {
-	ID    int64
-	Topic TopicID
-	Name  string
+	ID        int64
+	Topic     TopicID
+	Name      string
+	Confirmed bool
+	Txid      string
 
 	CreatedAt time.Time
 }
@@ -233,7 +236,7 @@ type CoinNews struct {
 
 func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	rows, err := db.QueryContext(ctx, `
-	SELECT id, topic, name, created_at
+	SELECT id, topic, name, confirmed, COALESCE(txid, ''), created_at
 	FROM coin_news_topics
 	ORDER BY created_at ASC
 `)
@@ -246,7 +249,7 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	for rows.Next() {
 		var topic Topic
 		var rawTopicID string
-		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.CreatedAt)
+		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("list topics: scan: %w", err)
 		}

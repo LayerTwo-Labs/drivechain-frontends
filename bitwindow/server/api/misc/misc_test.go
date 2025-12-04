@@ -93,7 +93,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		// First create a topic using the CreateTopic function
 		ctx := context.Background()
 		topicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid", true)
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
@@ -145,7 +145,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		ctx := context.Background()
 
 		topicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid", true)
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -166,7 +166,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		// First create a topic
 		ctx := context.Background()
 		topicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid", true)
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -231,7 +231,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		database := database.Test(t)
 		// First create a topic
 		ctx := context.Background()
-		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid", true)
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
@@ -265,7 +265,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		// First create a topic
 		ctx := context.Background()
 		topicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid")
+		err := opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid", true)
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
@@ -383,7 +383,7 @@ func TestService_CreateTopic(t *testing.T) {
 		// First create a topic
 		ctx := context.Background()
 		topicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID, "Existing Topic", "topic_txid")
+		err := opreturns.CreateTopic(ctx, database, topicID, "Existing Topic", "topic_txid", true)
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -418,10 +418,10 @@ func TestService_ListTopics(t *testing.T) {
 		// Insert test topics
 		ctx := context.Background()
 		topicID1 := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID1, "Norway Weekly", "a3a3a3a3")
+		err := opreturns.CreateTopic(ctx, database, topicID1, "Norway Weekly", "a3a3a3a3", true)
 		require.NoError(t, err)
 		topicID2 := validTopicID()
-		err = opreturns.CreateTopic(ctx, database, topicID2, "Bitcoin Weekly", "a4a4a4a4")
+		err = opreturns.CreateTopic(ctx, database, topicID2, "Bitcoin Weekly", "a4a4a4a4", true)
 		require.NoError(t, err)
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -461,11 +461,11 @@ func TestService_ListCoinNews(t *testing.T) {
 		// First create topics
 		ctx := context.Background()
 		topicID1 := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID1, "Test Topic 1", "topic_txid1")
+		err := opreturns.CreateTopic(ctx, database, topicID1, "Test Topic 1", "topic_txid1", true)
 		require.NoError(t, err)
 		topicID2 := validTopicID()
 		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, topicID2, "Test Topic 2", "topic_txid2")
+		err = opreturns.CreateTopic(ctx, database, topicID2, "Test Topic 2", "topic_txid2", true)
 		require.NoError(t, err)
 
 		// Insert coin news as OP_RETURN data
@@ -516,12 +516,12 @@ func TestService_ListCoinNews(t *testing.T) {
 		ctx := context.Background()
 
 		firstTopicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1")
+		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1", true)
 		require.NoError(t, err)
 
 		secondTopicID := validTopicID()
 		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2")
+		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2", true)
 		require.NoError(t, err)
 
 		// Insert coin news for both topics
@@ -568,10 +568,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		// First create topics
 		ctx := context.Background()
 		firstTopicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1")
+		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1", true)
 		require.NoError(t, err)
 		secondTopicID := validTopicID()
-		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2")
+		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2", true)
 		require.NoError(t, err)
 
 		// Insert coin news with specific timestamps
@@ -628,11 +628,11 @@ func TestService_ListCoinNews(t *testing.T) {
 		// First create topics
 		ctx := context.Background()
 		firstTopicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1")
+		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1", true)
 		require.NoError(t, err)
 
 		secondTopicID := validTopicID()
-		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2")
+		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2", true)
 		require.NoError(t, err)
 
 		// Insert 105 coin news entries
