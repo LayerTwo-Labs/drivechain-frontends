@@ -44,13 +44,13 @@ import 'package:window_manager/window_manager.dart';
 
 Color getNetworkAccentColor(BitcoinNetwork network) {
   switch (network) {
-    case BitcoinNetwork.NETWORK_MAINNET:
+    case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
       return const Color.fromARGB(255, 255, 153, 0); // Orange (current)
-    case BitcoinNetwork.NETWORK_TESTNET:
+    case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
       return const Color.fromARGB(255, 34, 139, 34); // Green
-    case BitcoinNetwork.NETWORK_SIGNET:
+    case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
       return const Color.fromARGB(255, 65, 105, 225); // Blue
-    case BitcoinNetwork.NETWORK_REGTEST:
+    case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
       return const Color.fromARGB(255, 220, 20, 60); // Red
     default:
       return const Color.fromARGB(255, 128, 128, 128); // Gray

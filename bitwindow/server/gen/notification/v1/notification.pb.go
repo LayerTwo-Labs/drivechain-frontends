@@ -179,33 +179,33 @@ func (SystemEvent_Type) EnumDescriptor() ([]byte, []int) {
 	return file_notification_v1_notification_proto_rawDescGZIP(), []int{3, 0}
 }
 
-type NotificationEvent struct {
+type WatchResponse struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Types that are valid to be assigned to Event:
 	//
-	//	*NotificationEvent_Transaction
-	//	*NotificationEvent_TimestampEvent
-	//	*NotificationEvent_System
-	Event         isNotificationEvent_Event `protobuf_oneof:"event"`
+	//	*WatchResponse_Transaction
+	//	*WatchResponse_TimestampEvent
+	//	*WatchResponse_System
+	Event         isWatchResponse_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *NotificationEvent) Reset() {
-	*x = NotificationEvent{}
+func (x *WatchResponse) Reset() {
+	*x = WatchResponse{}
 	mi := &file_notification_v1_notification_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *NotificationEvent) String() string {
+func (x *WatchResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*NotificationEvent) ProtoMessage() {}
+func (*WatchResponse) ProtoMessage() {}
 
-func (x *NotificationEvent) ProtoReflect() protoreflect.Message {
+func (x *WatchResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_notification_v1_notification_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -217,73 +217,73 @@ func (x *NotificationEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use NotificationEvent.ProtoReflect.Descriptor instead.
-func (*NotificationEvent) Descriptor() ([]byte, []int) {
+// Deprecated: Use WatchResponse.ProtoReflect.Descriptor instead.
+func (*WatchResponse) Descriptor() ([]byte, []int) {
 	return file_notification_v1_notification_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *NotificationEvent) GetTimestamp() *timestamppb.Timestamp {
+func (x *WatchResponse) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Timestamp
 	}
 	return nil
 }
 
-func (x *NotificationEvent) GetEvent() isNotificationEvent_Event {
+func (x *WatchResponse) GetEvent() isWatchResponse_Event {
 	if x != nil {
 		return x.Event
 	}
 	return nil
 }
 
-func (x *NotificationEvent) GetTransaction() *TransactionEvent {
+func (x *WatchResponse) GetTransaction() *TransactionEvent {
 	if x != nil {
-		if x, ok := x.Event.(*NotificationEvent_Transaction); ok {
+		if x, ok := x.Event.(*WatchResponse_Transaction); ok {
 			return x.Transaction
 		}
 	}
 	return nil
 }
 
-func (x *NotificationEvent) GetTimestampEvent() *TimestampEvent {
+func (x *WatchResponse) GetTimestampEvent() *TimestampEvent {
 	if x != nil {
-		if x, ok := x.Event.(*NotificationEvent_TimestampEvent); ok {
+		if x, ok := x.Event.(*WatchResponse_TimestampEvent); ok {
 			return x.TimestampEvent
 		}
 	}
 	return nil
 }
 
-func (x *NotificationEvent) GetSystem() *SystemEvent {
+func (x *WatchResponse) GetSystem() *SystemEvent {
 	if x != nil {
-		if x, ok := x.Event.(*NotificationEvent_System); ok {
+		if x, ok := x.Event.(*WatchResponse_System); ok {
 			return x.System
 		}
 	}
 	return nil
 }
 
-type isNotificationEvent_Event interface {
-	isNotificationEvent_Event()
+type isWatchResponse_Event interface {
+	isWatchResponse_Event()
 }
 
-type NotificationEvent_Transaction struct {
+type WatchResponse_Transaction struct {
 	Transaction *TransactionEvent `protobuf:"bytes,2,opt,name=transaction,proto3,oneof"`
 }
 
-type NotificationEvent_TimestampEvent struct {
+type WatchResponse_TimestampEvent struct {
 	TimestampEvent *TimestampEvent `protobuf:"bytes,3,opt,name=timestamp_event,json=timestampEvent,proto3,oneof"`
 }
 
-type NotificationEvent_System struct {
+type WatchResponse_System struct {
 	System *SystemEvent `protobuf:"bytes,4,opt,name=system,proto3,oneof"`
 }
 
-func (*NotificationEvent_Transaction) isNotificationEvent_Event() {}
+func (*WatchResponse_Transaction) isWatchResponse_Event() {}
 
-func (*NotificationEvent_TimestampEvent) isNotificationEvent_Event() {}
+func (*WatchResponse_TimestampEvent) isWatchResponse_Event() {}
 
-func (*NotificationEvent_System) isNotificationEvent_Event() {}
+func (*WatchResponse_System) isWatchResponse_Event() {}
 
 type TransactionEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -485,8 +485,8 @@ var File_notification_v1_notification_proto protoreflect.FileDescriptor
 
 const file_notification_v1_notification_proto_rawDesc = "" +
 	"\n" +
-	"\"notification/v1/notification.proto\x12\x0fnotification.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa1\x02\n" +
-	"\x11NotificationEvent\x128\n" +
+	"\"notification/v1/notification.proto\x12\x0fnotification.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9d\x02\n" +
+	"\rWatchResponse\x128\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12E\n" +
 	"\vtransaction\x18\x02 \x01(\v2!.notification.v1.TransactionEventH\x00R\vtransaction\x12J\n" +
 	"\x0ftimestamp_event\x18\x03 \x01(\v2\x1f.notification.v1.TimestampEventH\x00R\x0etimestampEvent\x126\n" +
@@ -522,9 +522,9 @@ const file_notification_v1_notification_proto_rawDesc = "" +
 	"\x16TYPE_SERVICE_CONNECTED\x10\x01\x12\x1d\n" +
 	"\x19TYPE_SERVICE_DISCONNECTED\x10\x02\x12\x17\n" +
 	"\x13TYPE_SYNC_COMPLETED\x10\x03\x12\x14\n" +
-	"\x10TYPE_BLOCK_FOUND\x10\x042\\\n" +
-	"\x13NotificationService\x12E\n" +
-	"\x05Watch\x12\x16.google.protobuf.Empty\x1a\".notification.v1.NotificationEvent0\x01B\xdc\x01\n" +
+	"\x10TYPE_BLOCK_FOUND\x10\x042X\n" +
+	"\x13NotificationService\x12A\n" +
+	"\x05Watch\x12\x16.google.protobuf.Empty\x1a\x1e.notification.v1.WatchResponse0\x01B\xdc\x01\n" +
 	"\x13com.notification.v1B\x11NotificationProtoP\x01ZUgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1;notificationv1\xa2\x02\x03NXX\xaa\x02\x0fNotification.V1\xca\x02\x0fNotification\\V1\xe2\x02\x1bNotification\\V1\\GPBMetadata\xea\x02\x10Notification::V1b\x06proto3"
 
 var (
@@ -545,7 +545,7 @@ var file_notification_v1_notification_proto_goTypes = []any{
 	(TransactionEvent_Type)(0),    // 0: notification.v1.TransactionEvent.Type
 	(TimestampEvent_Type)(0),      // 1: notification.v1.TimestampEvent.Type
 	(SystemEvent_Type)(0),         // 2: notification.v1.SystemEvent.Type
-	(*NotificationEvent)(nil),     // 3: notification.v1.NotificationEvent
+	(*WatchResponse)(nil),         // 3: notification.v1.WatchResponse
 	(*TransactionEvent)(nil),      // 4: notification.v1.TransactionEvent
 	(*TimestampEvent)(nil),        // 5: notification.v1.TimestampEvent
 	(*SystemEvent)(nil),           // 6: notification.v1.SystemEvent
@@ -553,15 +553,15 @@ var file_notification_v1_notification_proto_goTypes = []any{
 	(*emptypb.Empty)(nil),         // 8: google.protobuf.Empty
 }
 var file_notification_v1_notification_proto_depIdxs = []int32{
-	7, // 0: notification.v1.NotificationEvent.timestamp:type_name -> google.protobuf.Timestamp
-	4, // 1: notification.v1.NotificationEvent.transaction:type_name -> notification.v1.TransactionEvent
-	5, // 2: notification.v1.NotificationEvent.timestamp_event:type_name -> notification.v1.TimestampEvent
-	6, // 3: notification.v1.NotificationEvent.system:type_name -> notification.v1.SystemEvent
+	7, // 0: notification.v1.WatchResponse.timestamp:type_name -> google.protobuf.Timestamp
+	4, // 1: notification.v1.WatchResponse.transaction:type_name -> notification.v1.TransactionEvent
+	5, // 2: notification.v1.WatchResponse.timestamp_event:type_name -> notification.v1.TimestampEvent
+	6, // 3: notification.v1.WatchResponse.system:type_name -> notification.v1.SystemEvent
 	0, // 4: notification.v1.TransactionEvent.type:type_name -> notification.v1.TransactionEvent.Type
 	1, // 5: notification.v1.TimestampEvent.type:type_name -> notification.v1.TimestampEvent.Type
 	2, // 6: notification.v1.SystemEvent.type:type_name -> notification.v1.SystemEvent.Type
 	8, // 7: notification.v1.NotificationService.Watch:input_type -> google.protobuf.Empty
-	3, // 8: notification.v1.NotificationService.Watch:output_type -> notification.v1.NotificationEvent
+	3, // 8: notification.v1.NotificationService.Watch:output_type -> notification.v1.WatchResponse
 	8, // [8:9] is the sub-list for method output_type
 	7, // [7:8] is the sub-list for method input_type
 	7, // [7:7] is the sub-list for extension type_name
@@ -575,9 +575,9 @@ func file_notification_v1_notification_proto_init() {
 		return
 	}
 	file_notification_v1_notification_proto_msgTypes[0].OneofWrappers = []any{
-		(*NotificationEvent_Transaction)(nil),
-		(*NotificationEvent_TimestampEvent)(nil),
-		(*NotificationEvent_System)(nil),
+		(*WatchResponse_Transaction)(nil),
+		(*WatchResponse_TimestampEvent)(nil),
+		(*WatchResponse_System)(nil),
 	}
 	file_notification_v1_notification_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}

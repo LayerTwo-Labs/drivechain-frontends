@@ -10,7 +10,7 @@ import "bitwindowd.connect.spec.dart" as specs;
 
 extension type BitwindowdServiceClient (connect.Transport _transport) {
   Future<googleprotobufempty.Empty> stop(
-    bitwindowdv1bitwindowd.StopBitwindowRequest input, {
+    bitwindowdv1bitwindowd.BitwindowdServiceStopRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,

@@ -49,15 +49,15 @@ class BitcoinCorePidTracker {
   /// Get the network-specific subdirectory for the PID file
   String _getNetworkSubdir(BitcoinNetwork network) {
     switch (network) {
-      case BitcoinNetwork.NETWORK_MAINNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         return ''; // Real mainnet uses root datadir
-      case BitcoinNetwork.NETWORK_FORKNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return ''; // Forknet uses root datadir
-      case BitcoinNetwork.NETWORK_TESTNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         return 'testnet3'; // Testnet uses testnet3 subdirectory
-      case BitcoinNetwork.NETWORK_SIGNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
-      case BitcoinNetwork.NETWORK_REGTEST:
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
         return 'regtest';
       default:
         return ''; // Default to root

@@ -38,7 +38,7 @@ abstract class BitwindowRPC extends RPCConnection {
   Stream<CheckResponse> get healthStream;
 
   /// Stream of notification events
-  Stream<NotificationEvent> get notificationStream;
+  Stream<WatchResponse> get notificationStream;
 
   Future<dynamic> callRAW(String url, [String body = '{}']);
   List<String> getMethods();
@@ -233,12 +233,11 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   // Keep track of the current stream subscription
   StreamSubscription<CheckResponse>? _healthStreamSubscription;
-  StreamSubscription<NotificationEvent>? _notificationStreamSubscription;
+  StreamSubscription<WatchResponse>? _notificationStreamSubscription;
 
   // Stream controller to broadcast health updates
   final StreamController<CheckResponse> _healthStreamController = StreamController<CheckResponse>.broadcast();
-  final StreamController<NotificationEvent> _notificationStreamController =
-      StreamController<NotificationEvent>.broadcast();
+  final StreamController<WatchResponse> _notificationStreamController = StreamController<WatchResponse>.broadcast();
 
   /// Stream of health check updates
   @override
@@ -246,7 +245,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   /// Stream of notification events
   @override
-  Stream<NotificationEvent> get notificationStream => _notificationStreamController.stream;
+  Stream<WatchResponse> get notificationStream => _notificationStreamController.stream;
 
   @override
   void onConnectionStateChanged(bool isConnected) {
@@ -448,7 +447,7 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<void> stop({bool skipDownstream = false}) async {
-    await _client.stop(StopBitwindowRequest(skipDownstream: skipDownstream));
+    await _client.stop(BitwindowdServiceStopRequest(skipDownstream: skipDownstream));
   }
 
   @override
@@ -1600,7 +1599,7 @@ class _HealthAPILive implements HealthAPI {
 }
 
 abstract class NotificationAPI {
-  Stream<NotificationEvent> watch();
+  Stream<WatchResponse> watch();
 }
 
 class _NotificationAPILive implements NotificationAPI {
@@ -1610,7 +1609,7 @@ class _NotificationAPILive implements NotificationAPI {
   _NotificationAPILive(this._client);
 
   @override
-  Stream<NotificationEvent> watch() {
+  Stream<WatchResponse> watch() {
     try {
       final response = _client.watch(Empty());
       return response;

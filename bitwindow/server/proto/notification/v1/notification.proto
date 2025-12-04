@@ -7,10 +7,10 @@ import "google/protobuf/timestamp.proto";
 
 service NotificationService {
   // Watch returns a stream of notification events
-  rpc Watch(google.protobuf.Empty) returns (stream NotificationEvent);
+  rpc Watch(google.protobuf.Empty) returns (stream WatchResponse);
 }
 
-message NotificationEvent {
+message WatchResponse {
   google.protobuf.Timestamp timestamp = 1;
 
   oneof event {

@@ -165,7 +165,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     }
 
     // If switching TO mainnet, check if we need to require a blocks directory
-    if (network == BitcoinNetwork.NETWORK_MAINNET) {
+    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
       // Check if we already have a custom datadir configured
       final hasDataDirConfigured = _selectedDataDir != null;
 
@@ -264,7 +264,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final showDataDir = _confProvider.network == BitcoinNetwork.NETWORK_MAINNET || _selectedDataDir != null;
+    final showDataDir = _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || _selectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
     return SailColumn(
@@ -291,19 +291,19 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
               enabled: _confProvider.canEditNetwork,
               items: [
                 SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.NETWORK_MAINNET,
+                  value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
                   label: 'Mainnet',
                 ),
                 SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.NETWORK_FORKNET,
+                  value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
                   label: 'Forknet',
                 ),
                 SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.NETWORK_SIGNET,
+                  value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
                   label: 'Signet',
                 ),
                 SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.NETWORK_TESTNET,
+                  value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
                   label: 'Testnet',
                 ),
               ],
@@ -2540,11 +2540,11 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
 
   String _networkDisplayName(BitcoinNetwork network) {
     return switch (network) {
-      BitcoinNetwork.NETWORK_MAINNET => 'Mainnet',
-      BitcoinNetwork.NETWORK_FORKNET => 'Forknet',
-      BitcoinNetwork.NETWORK_TESTNET => 'Testnet',
-      BitcoinNetwork.NETWORK_SIGNET => 'Signet',
-      BitcoinNetwork.NETWORK_REGTEST => 'Regtest',
+      BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'Mainnet',
+      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'Forknet',
+      BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'Testnet',
+      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'Signet',
+      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'Regtest',
       _ => 'Unknown',
     };
   }

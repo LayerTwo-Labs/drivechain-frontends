@@ -74,7 +74,7 @@ type Server struct {
 }
 
 // Stop implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.StopBitwindowRequest]) (*connect.Response[emptypb.Empty], error) {
+func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
 	defer func() {
 		zerolog.Ctx(ctx).Info().Msg("shutting down..")
 		s.onShutdown(ctx)

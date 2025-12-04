@@ -76,8 +76,8 @@ class MockAPI extends BitwindowRPC {
   }
 
   @override
-  Stream<NotificationEvent> get notificationStream =>
-      Stream.periodic(const Duration(seconds: 1)).map((_) => NotificationEvent());
+  Stream<WatchResponse> get notificationStream =>
+      Stream.periodic(const Duration(seconds: 1)).map((_) => WatchResponse());
 }
 
 class MockBitwindowdAPI implements BitwindowAPI {
@@ -525,7 +525,7 @@ class MockM4API implements M4API {
 
 class MockNotificationAPI implements NotificationAPI {
   @override
-  Stream<NotificationEvent> watch() {
-    return Stream.periodic(const Duration(seconds: 1)).map((_) => NotificationEvent());
+  Stream<WatchResponse> watch() {
+    return Stream.periodic(const Duration(seconds: 1)).map((_) => WatchResponse());
   }
 }

@@ -867,19 +867,19 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                             value: _confProvider.network,
                             items: [
                               SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.NETWORK_MAINNET,
+                                value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
                                 label: 'Mainnet',
                               ),
                               SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.NETWORK_FORKNET,
+                                value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
                                 label: 'Forknet',
                               ),
                               SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.NETWORK_SIGNET,
+                                value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
                                 label: 'Signet',
                               ),
                               SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.NETWORK_TESTNET,
+                                value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
                                 label: 'Testnet',
                               ),
                             ],

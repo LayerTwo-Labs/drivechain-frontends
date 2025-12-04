@@ -26,7 +26,7 @@ type Server struct {
 func (s *Server) Watch(
 	ctx context.Context,
 	req *connect.Request[emptypb.Empty],
-	stream *connect.ServerStream[notificationv1.NotificationEvent],
+	stream *connect.ServerStream[notificationv1.WatchResponse],
 ) error {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("notification watch stream started")
@@ -58,13 +58,13 @@ func (s *Server) Watch(
 	}
 }
 
-func getEventType(event *notificationv1.NotificationEvent) string {
+func getEventType(event *notificationv1.WatchResponse) string {
 	switch event.Event.(type) {
-	case *notificationv1.NotificationEvent_Transaction:
+	case *notificationv1.WatchResponse_Transaction:
 		return "transaction"
-	case *notificationv1.NotificationEvent_TimestampEvent:
+	case *notificationv1.WatchResponse_TimestampEvent:
 		return "timestamp"
-	case *notificationv1.NotificationEvent_System:
+	case *notificationv1.WatchResponse_System:
 		return "system"
 	default:
 		return "unknown"

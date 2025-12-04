@@ -14,7 +14,7 @@ abstract final class BitwindowdService {
   static const stop = connect.Spec(
     '/$name/Stop',
     connect.StreamType.unary,
-    bitwindowdv1bitwindowd.StopBitwindowRequest.new,
+    bitwindowdv1bitwindowd.BitwindowdServiceStopRequest.new,
     googleprotobufempty.Empty.new,
   );
 

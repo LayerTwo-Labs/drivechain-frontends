@@ -21,8 +21,8 @@ import 'bitwindowd.pbenum.dart';
 
 export 'bitwindowd.pbenum.dart';
 
-class StopBitwindowRequest extends $pb.GeneratedMessage {
-  factory StopBitwindowRequest({
+class BitwindowdServiceStopRequest extends $pb.GeneratedMessage {
+  factory BitwindowdServiceStopRequest({
     $core.bool? skipDownstream,
   }) {
     final $result = create();
@@ -31,11 +31,11 @@ class StopBitwindowRequest extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  StopBitwindowRequest._() : super();
-  factory StopBitwindowRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StopBitwindowRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  BitwindowdServiceStopRequest._() : super();
+  factory BitwindowdServiceStopRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BitwindowdServiceStopRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StopBitwindowRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BitwindowdServiceStopRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'skipDownstream')
     ..hasRequiredFields = false
   ;
@@ -44,22 +44,22 @@ class StopBitwindowRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  StopBitwindowRequest clone() => StopBitwindowRequest()..mergeFromMessage(this);
+  BitwindowdServiceStopRequest clone() => BitwindowdServiceStopRequest()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  StopBitwindowRequest copyWith(void Function(StopBitwindowRequest) updates) => super.copyWith((message) => updates(message as StopBitwindowRequest)) as StopBitwindowRequest;
+  BitwindowdServiceStopRequest copyWith(void Function(BitwindowdServiceStopRequest) updates) => super.copyWith((message) => updates(message as BitwindowdServiceStopRequest)) as BitwindowdServiceStopRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static StopBitwindowRequest create() => StopBitwindowRequest._();
-  StopBitwindowRequest createEmptyInstance() => create();
-  static $pb.PbList<StopBitwindowRequest> createRepeated() => $pb.PbList<StopBitwindowRequest>();
+  static BitwindowdServiceStopRequest create() => BitwindowdServiceStopRequest._();
+  BitwindowdServiceStopRequest createEmptyInstance() => create();
+  static $pb.PbList<BitwindowdServiceStopRequest> createRepeated() => $pb.PbList<BitwindowdServiceStopRequest>();
   @$core.pragma('dart2js:noInline')
-  static StopBitwindowRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StopBitwindowRequest>(create);
-  static StopBitwindowRequest? _defaultInstance;
+  static BitwindowdServiceStopRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BitwindowdServiceStopRequest>(create);
+  static BitwindowdServiceStopRequest? _defaultInstance;
 
   /// If true, only stop bitwindow itself without stopping downstream services (enforcer, bitcoind)
   @$pb.TagNumber(1)
@@ -2481,7 +2481,7 @@ class BitwindowdServiceApi {
   $pb.RpcClient _client;
   BitwindowdServiceApi(this._client);
 
-  $async.Future<$1.Empty> stop($pb.ClientContext? ctx, StopBitwindowRequest request) =>
+  $async.Future<$1.Empty> stop($pb.ClientContext? ctx, BitwindowdServiceStopRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'Stop', request, $1.Empty())
   ;
   $async.Future<MineBlocksResponse> mineBlocks($pb.ClientContext? ctx, $1.Empty request) =>
