@@ -34,7 +34,7 @@ func TestOpReturnHandling(t *testing.T) {
 	knownTopicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
 
-	require.NoError(t, opreturns.CreateTopic(ctx, db, knownTopicID, "The Known Topic", "txid"))
+	require.NoError(t, opreturns.CreateTopic(ctx, db, knownTopicID, "The Known Topic", "txid", true))
 
 	unknownTopicID, err := opreturns.ValidNewsTopicID("12345678")
 	require.NoError(t, err)

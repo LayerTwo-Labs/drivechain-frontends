@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -188,16 +189,24 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	if err != nil {
 		return nil, fmt.Errorf("broadcast topic creation: %w", err)
 	}
+	txid := resp.Msg.Txid.Hex.Value
+
+	// Insert topic into database immediately so it's available in the UI
+	// before the transaction is mined
+	if err := opreturns.CreateTopic(ctx, s.database, topicID, req.Msg.Name, txid, false); err != nil {
+		// Log but don't fail - topic will also be created when block is processed
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to insert topic immediately")
+	}
 
 	log := zerolog.Ctx(ctx)
 	log.Info().
 		Stringer("topic", topicID).
 		Str("title", req.Msg.Name).
-		Str("txid", resp.Msg.Txid.String()).
+		Str("txid", txid).
 		Msg("broadcast create topic transaction")
 
 	return connect.NewResponse(&miscv1.CreateTopicResponse{
-		Txid: resp.Msg.Txid.Hex.Value,
+		Txid: txid,
 	}), nil
 }
 
@@ -219,6 +228,8 @@ func topicToProto(topic opreturns.Topic, _ int) *miscv1.Topic {
 		Topic:      topic.Topic.String(),
 		Name:       topic.Name,
 		CreateTime: timestamppb.New(topic.CreatedAt),
+		Confirmed:  topic.Confirmed,
+		Txid:       topic.Txid,
 	}
 }
 
@@ -260,11 +271,15 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 }
 
 func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
+	// Sanitize strings to valid UTF-8 for protobuf marshalling
+	headline := strings.ToValidUTF8(coinNews.Headline, "")
+	content := strings.ToValidUTF8(coinNews.Content, "")
+
 	return &miscv1.CoinNews{
 		Id:         coinNews.ID,
 		Topic:      coinNews.Topic.String(),
-		Headline:   coinNews.Headline,
-		Content:    coinNews.Content,
+		Headline:   headline,
+		Content:    content,
 		FeeSats:    int64(coinNews.Fee),
 		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
 	}

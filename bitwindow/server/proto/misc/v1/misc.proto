@@ -57,6 +57,11 @@ message Topic {
   string name = 3;
 
   google.protobuf.Timestamp create_time = 4;
+
+  // Whether the topic creation transaction has been mined
+  bool confirmed = 5;
+  // Transaction ID of the topic creation
+  string txid = 6;
 }
 
 message ListTopicsResponse {

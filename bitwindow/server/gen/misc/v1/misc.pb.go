@@ -352,11 +352,15 @@ func (x *CreateTopicResponse) GetTxid() string {
 }
 
 type Topic struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Topic      string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
+	Name       string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	CreateTime *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	// Whether the topic creation transaction has been mined
+	Confirmed bool `protobuf:"varint,5,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	// Transaction ID of the topic creation
+	Txid          string `protobuf:"bytes,6,opt,name=txid,proto3" json:"txid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -417,6 +421,20 @@ func (x *Topic) GetCreateTime() *timestamppb.Timestamp {
 		return x.CreateTime
 	}
 	return nil
+}
+
+func (x *Topic) GetConfirmed() bool {
+	if x != nil {
+		return x.Confirmed
+	}
+	return false
+}
+
+func (x *Topic) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
 }
 
 type ListTopicsResponse struct {
@@ -1032,13 +1050,15 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\")\n" +
 	"\x13CreateTopicResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\"~\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xb0\x01\n" +
 	"\x05Topic\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12;\n" +
 	"\vcreate_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"createTime\"<\n" +
+	"createTime\x12\x1c\n" +
+	"\tconfirmed\x18\x05 \x01(\bR\tconfirmed\x12\x12\n" +
+	"\x04txid\x18\x06 \x01(\tR\x04txid\"<\n" +
 	"\x12ListTopicsResponse\x12&\n" +
 	"\x06topics\x18\x01 \x03(\v2\x0e.misc.v1.TopicR\x06topics\":\n" +
 	"\x13ListCoinNewsRequest\x12\x19\n" +

@@ -340,7 +340,7 @@ func (p *Parser) handleCreateTopic(
 		Msgf("bitcoind_engine/parser: found create topic: %s", info.Name)
 
 	if err := opreturns.CreateTopic(
-		ctx, p.db, info.ID, info.Name, txid,
+		ctx, p.db, info.ID, info.Name, txid, true,
 	); err != nil {
 		return fmt.Errorf("persist create topic: %w", err)
 	}
