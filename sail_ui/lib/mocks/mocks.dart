@@ -8,7 +8,7 @@ import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
     : super(
-        conf: CoreConnectionSettings.empty(BitcoinNetwork.NETWORK_SIGNET),
+        conf: CoreConnectionSettings.empty(BitcoinNetwork.BITCOIN_NETWORK_SIGNET),
         binaryType: BinaryType.bitcoinCore,
         restartOnFailure: false,
       );
@@ -280,8 +280,8 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
   @override
-  Stream<NotificationEvent> get notificationStream =>
-      Stream.periodic(const Duration(seconds: 1)).map((_) => NotificationEvent());
+  Stream<WatchResponse> get notificationStream =>
+      Stream.periodic(const Duration(seconds: 1)).map((_) => WatchResponse());
 
   @override
   bool get connected => _connected;

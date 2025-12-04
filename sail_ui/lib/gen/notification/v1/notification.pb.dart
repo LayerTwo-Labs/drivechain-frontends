@@ -21,15 +21,15 @@ import 'notification.pbenum.dart';
 
 export 'notification.pbenum.dart';
 
-enum NotificationEvent_Event {
+enum WatchResponse_Event {
   transaction, 
   timestampEvent, 
   system, 
   notSet
 }
 
-class NotificationEvent extends $pb.GeneratedMessage {
-  factory NotificationEvent({
+class WatchResponse extends $pb.GeneratedMessage {
+  factory WatchResponse({
     $0.Timestamp? timestamp,
     TransactionEvent? transaction,
     TimestampEvent? timestampEvent,
@@ -50,17 +50,17 @@ class NotificationEvent extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  NotificationEvent._() : super();
-  factory NotificationEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory NotificationEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  WatchResponse._() : super();
+  factory WatchResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WatchResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static const $core.Map<$core.int, NotificationEvent_Event> _NotificationEvent_EventByTag = {
-    2 : NotificationEvent_Event.transaction,
-    3 : NotificationEvent_Event.timestampEvent,
-    4 : NotificationEvent_Event.system,
-    0 : NotificationEvent_Event.notSet
+  static const $core.Map<$core.int, WatchResponse_Event> _WatchResponse_EventByTag = {
+    2 : WatchResponse_Event.transaction,
+    3 : WatchResponse_Event.timestampEvent,
+    4 : WatchResponse_Event.system,
+    0 : WatchResponse_Event.notSet
   };
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'NotificationEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
     ..oo(0, [2, 3, 4])
     ..aOM<$0.Timestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
     ..aOM<TransactionEvent>(2, _omitFieldNames ? '' : 'transaction', subBuilder: TransactionEvent.create)
@@ -73,24 +73,24 @@ class NotificationEvent extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  NotificationEvent clone() => NotificationEvent()..mergeFromMessage(this);
+  WatchResponse clone() => WatchResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  NotificationEvent copyWith(void Function(NotificationEvent) updates) => super.copyWith((message) => updates(message as NotificationEvent)) as NotificationEvent;
+  WatchResponse copyWith(void Function(WatchResponse) updates) => super.copyWith((message) => updates(message as WatchResponse)) as WatchResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static NotificationEvent create() => NotificationEvent._();
-  NotificationEvent createEmptyInstance() => create();
-  static $pb.PbList<NotificationEvent> createRepeated() => $pb.PbList<NotificationEvent>();
+  static WatchResponse create() => WatchResponse._();
+  WatchResponse createEmptyInstance() => create();
+  static $pb.PbList<WatchResponse> createRepeated() => $pb.PbList<WatchResponse>();
   @$core.pragma('dart2js:noInline')
-  static NotificationEvent getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<NotificationEvent>(create);
-  static NotificationEvent? _defaultInstance;
+  static WatchResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchResponse>(create);
+  static WatchResponse? _defaultInstance;
 
-  NotificationEvent_Event whichEvent() => _NotificationEvent_EventByTag[$_whichOneof(0)]!;
+  WatchResponse_Event whichEvent() => _WatchResponse_EventByTag[$_whichOneof(0)]!;
   void clearEvent() => clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -404,8 +404,8 @@ class NotificationServiceApi {
   $pb.RpcClient _client;
   NotificationServiceApi(this._client);
 
-  $async.Future<NotificationEvent> watch($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<NotificationEvent>(ctx, 'NotificationService', 'Watch', request, NotificationEvent())
+  $async.Future<WatchResponse> watch($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<WatchResponse>(ctx, 'NotificationService', 'Watch', request, WatchResponse())
   ;
 }
 

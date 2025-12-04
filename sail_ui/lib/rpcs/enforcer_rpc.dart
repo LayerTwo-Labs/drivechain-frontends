@@ -67,19 +67,19 @@ class EnforcerLive extends EnforcerRPC {
 
     // now set the esplora-url
     switch (GetIt.I.get<BitcoinConfProvider>().network) {
-      case BitcoinNetwork.NETWORK_REGTEST:
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
         binary.addBootArg('--wallet-esplora-url=http://localhost:3002');
 
-      case BitcoinNetwork.NETWORK_TESTNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         throw Exception('testnet not supported for enforcer');
 
-      case BitcoinNetwork.NETWORK_MAINNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         binary.addBootArg('--wallet-esplora-url=https://mempool.space/api');
 
-      case BitcoinNetwork.NETWORK_FORKNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         binary.addBootArg('--wallet-esplora-url=https://mempool.space/api');
 
-      case BitcoinNetwork.NETWORK_SIGNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
       default:
       // default is signet, for which we dont need anything extra
     }

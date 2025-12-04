@@ -12,7 +12,7 @@ class NotificationStreamProvider extends ChangeNotifier {
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
   final BitwindowRPC bitwindow = GetIt.I.get<BitwindowRPC>();
 
-  StreamSubscription<NotificationEvent>? _subscription;
+  StreamSubscription<WatchResponse>? _subscription;
   bool isConnected = false;
 
   NotificationStreamProvider() {
@@ -49,7 +49,7 @@ class NotificationStreamProvider extends ChangeNotifier {
     }
   }
 
-  void _handleEvent(NotificationEvent event) {
+  void _handleEvent(WatchResponse event) {
     log.d('Received notification event: ${event.whichEvent()}');
 
     if (event.hasTransaction()) {

@@ -25,7 +25,7 @@ type NotificationEngine struct {
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 
 	mu          sync.RWMutex
-	subscribers []chan *notificationv1.NotificationEvent
+	subscribers []chan *notificationv1.WatchResponse
 }
 
 func NewNotificationEngine(
@@ -35,7 +35,7 @@ func NewNotificationEngine(
 	return &NotificationEngine{
 		db:          db,
 		bitcoind:    bitcoind,
-		subscribers: make([]chan *notificationv1.NotificationEvent, 0),
+		subscribers: make([]chan *notificationv1.WatchResponse, 0),
 	}
 }
 
@@ -128,9 +128,9 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 				}
 			}
 
-			event := &notificationv1.NotificationEvent{
+			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
-				Event: &notificationv1.NotificationEvent_TimestampEvent{
+				Event: &notificationv1.WatchResponse_TimestampEvent{
 					TimestampEvent: &notificationv1.TimestampEvent{
 						Type:        notificationv1.TimestampEvent_TYPE_CONFIRMED,
 						Id:          ts.ID,
@@ -237,9 +237,9 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 		switch {
 		case !notified && tx.Amount > 0:
 			// Received transaction
-			event := &notificationv1.NotificationEvent{
+			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
-				Event: &notificationv1.NotificationEvent_Transaction{
+				Event: &notificationv1.WatchResponse_Transaction{
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_RECEIVED,
 						Txid:          txid,
@@ -259,9 +259,9 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 
 		case !notified && tx.Amount < 0:
 			// Sent transaction
-			event := &notificationv1.NotificationEvent{
+			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
-				Event: &notificationv1.NotificationEvent_Transaction{
+				Event: &notificationv1.WatchResponse_Transaction{
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_SENT,
 						Txid:          txid,
@@ -287,9 +287,9 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 
 		case !confNotified && confirmations >= 1:
 			// Transaction just got first confirmation (and we haven't notified about it)
-			event := &notificationv1.NotificationEvent{
+			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
-				Event: &notificationv1.NotificationEvent_Transaction{
+				Event: &notificationv1.WatchResponse_Transaction{
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_CONFIRMED,
 						Txid:          txid,
@@ -310,12 +310,12 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 	}
 }
 
-func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notificationv1.NotificationEvent {
+func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notificationv1.WatchResponse {
 	log := zerolog.Ctx(ctx)
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	ch := make(chan *notificationv1.NotificationEvent, 10)
+	ch := make(chan *notificationv1.WatchResponse, 10)
 	e.subscribers = append(e.subscribers, ch)
 
 	log.Debug().
@@ -329,7 +329,7 @@ func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notification
 		defer e.mu.Unlock()
 
 		// Remove subscriber
-		e.subscribers = lo.Filter(e.subscribers, func(sub chan *notificationv1.NotificationEvent, _ int) bool {
+		e.subscribers = lo.Filter(e.subscribers, func(sub chan *notificationv1.WatchResponse, _ int) bool {
 			return sub != ch
 		})
 		close(ch)
@@ -342,7 +342,7 @@ func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notification
 	return ch
 }
 
-func (e *NotificationEngine) broadcast(ctx context.Context, event *notificationv1.NotificationEvent) {
+func (e *NotificationEngine) broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
 	log := zerolog.Ctx(ctx)
 	e.mu.RLock()
 	defer e.mu.RUnlock()

@@ -16,9 +16,9 @@ import 'dart:typed_data' as $typed_data;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
-@$core.Deprecated('Use notificationEventDescriptor instead')
-const NotificationEvent$json = {
-  '1': 'NotificationEvent',
+@$core.Deprecated('Use watchResponseDescriptor instead')
+const WatchResponse$json = {
+  '1': 'WatchResponse',
   '2': [
     {'1': 'timestamp', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'timestamp'},
     {'1': 'transaction', '3': 2, '4': 1, '5': 11, '6': '.notification.v1.TransactionEvent', '9': 0, '10': 'transaction'},
@@ -30,14 +30,14 @@ const NotificationEvent$json = {
   ],
 };
 
-/// Descriptor for `NotificationEvent`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List notificationEventDescriptor = $convert.base64Decode(
-    'ChFOb3RpZmljYXRpb25FdmVudBI4Cgl0aW1lc3RhbXAYASABKAsyGi5nb29nbGUucHJvdG9idW'
-    'YuVGltZXN0YW1wUgl0aW1lc3RhbXASRQoLdHJhbnNhY3Rpb24YAiABKAsyIS5ub3RpZmljYXRp'
-    'b24udjEuVHJhbnNhY3Rpb25FdmVudEgAUgt0cmFuc2FjdGlvbhJKCg90aW1lc3RhbXBfZXZlbn'
-    'QYAyABKAsyHy5ub3RpZmljYXRpb24udjEuVGltZXN0YW1wRXZlbnRIAFIOdGltZXN0YW1wRXZl'
-    'bnQSNgoGc3lzdGVtGAQgASgLMhwubm90aWZpY2F0aW9uLnYxLlN5c3RlbUV2ZW50SABSBnN5c3'
-    'RlbUIHCgVldmVudA==');
+/// Descriptor for `WatchResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchResponseDescriptor = $convert.base64Decode(
+    'Cg1XYXRjaFJlc3BvbnNlEjgKCXRpbWVzdGFtcBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW'
+    '1lc3RhbXBSCXRpbWVzdGFtcBJFCgt0cmFuc2FjdGlvbhgCIAEoCzIhLm5vdGlmaWNhdGlvbi52'
+    'MS5UcmFuc2FjdGlvbkV2ZW50SABSC3RyYW5zYWN0aW9uEkoKD3RpbWVzdGFtcF9ldmVudBgDIA'
+    'EoCzIfLm5vdGlmaWNhdGlvbi52MS5UaW1lc3RhbXBFdmVudEgAUg50aW1lc3RhbXBFdmVudBI2'
+    'CgZzeXN0ZW0YBCABKAsyHC5ub3RpZmljYXRpb24udjEuU3lzdGVtRXZlbnRIAFIGc3lzdGVtQg'
+    'cKBWV2ZW50');
 
 @$core.Deprecated('Use transactionEventDescriptor instead')
 const TransactionEvent$json = {
@@ -137,14 +137,14 @@ final $typed_data.Uint8List systemEventDescriptor = $convert.base64Decode(
 const $core.Map<$core.String, $core.dynamic> NotificationServiceBase$json = {
   '1': 'NotificationService',
   '2': [
-    {'1': 'Watch', '2': '.google.protobuf.Empty', '3': '.notification.v1.NotificationEvent', '6': true},
+    {'1': 'Watch', '2': '.google.protobuf.Empty', '3': '.notification.v1.WatchResponse', '6': true},
   ],
 };
 
 @$core.Deprecated('Use notificationServiceDescriptor instead')
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> NotificationServiceBase$messageJson = {
   '.google.protobuf.Empty': $1.Empty$json,
-  '.notification.v1.NotificationEvent': NotificationEvent$json,
+  '.notification.v1.WatchResponse': WatchResponse$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.notification.v1.TransactionEvent': TransactionEvent$json,
   '.notification.v1.TimestampEvent': TimestampEvent$json,
@@ -153,6 +153,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Notificati
 
 /// Descriptor for `NotificationService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
 final $typed_data.Uint8List notificationServiceDescriptor = $convert.base64Decode(
-    'ChNOb3RpZmljYXRpb25TZXJ2aWNlEkUKBVdhdGNoEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gi'
-    'Iubm90aWZpY2F0aW9uLnYxLk5vdGlmaWNhdGlvbkV2ZW50MAE=');
+    'ChNOb3RpZmljYXRpb25TZXJ2aWNlEkEKBVdhdGNoEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh'
+    '4ubm90aWZpY2F0aW9uLnYxLldhdGNoUmVzcG9uc2UwAQ==');
 

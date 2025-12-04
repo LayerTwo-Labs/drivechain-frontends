@@ -40,7 +40,7 @@ CoreConnectionSettings readRPCConfig(
   // Both mainnet and forknet use root datadir, other networks use subdirs
   final networkDir = filePath([
     datadir,
-    (network == BitcoinNetwork.NETWORK_MAINNET || network == BitcoinNetwork.NETWORK_FORKNET)
+    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
         ? ''
         : network.toReadableNet(),
   ]);
@@ -49,11 +49,11 @@ CoreConnectionSettings readRPCConfig(
 
   // Use correct default port based on network
   final defaultPort = switch (network) {
-    BitcoinNetwork.NETWORK_MAINNET => 8332, // real Bitcoin mainnet
-    BitcoinNetwork.NETWORK_FORKNET => 18301, // forknet
-    BitcoinNetwork.NETWORK_TESTNET => 18332,
-    BitcoinNetwork.NETWORK_SIGNET => 38332,
-    BitcoinNetwork.NETWORK_REGTEST => 18443,
+    BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332, // real Bitcoin mainnet
+    BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301, // forknet
+    BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
+    BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
+    BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 18443,
     _ => 38332, // fallback to signet for unknown networks
   };
 
@@ -197,17 +197,17 @@ void addEntryIfNotSet(List<String> args, String key, String value) {
 extension NetworkExtensions on BitcoinNetwork {
   String toReadableNet() {
     switch (this) {
-      case BitcoinNetwork.NETWORK_MAINNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         return 'mainnet';
-      case BitcoinNetwork.NETWORK_FORKNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'forknet';
-      case BitcoinNetwork.NETWORK_SIGNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
-      case BitcoinNetwork.NETWORK_REGTEST:
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
         return 'regtest';
-      case BitcoinNetwork.NETWORK_TESTNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         return 'testnet';
-      case BitcoinNetwork.NETWORK_UNSPECIFIED || BitcoinNetwork.NETWORK_UNKNOWN:
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
       default:
         return 'unknown';
     }
@@ -216,17 +216,17 @@ extension NetworkExtensions on BitcoinNetwork {
   /// Get the Bitcoin Core config section name for this network
   String toCoreNetwork() {
     switch (this) {
-      case BitcoinNetwork.NETWORK_MAINNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         return 'main';
-      case BitcoinNetwork.NETWORK_FORKNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'main';
-      case BitcoinNetwork.NETWORK_SIGNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
-      case BitcoinNetwork.NETWORK_REGTEST:
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
         return 'regtest';
-      case BitcoinNetwork.NETWORK_TESTNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         return 'test';
-      case BitcoinNetwork.NETWORK_UNSPECIFIED || BitcoinNetwork.NETWORK_UNKNOWN:
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
       default:
         return 'unknown';
     }

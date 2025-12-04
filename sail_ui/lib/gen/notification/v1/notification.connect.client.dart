@@ -10,7 +10,7 @@ import "notification.connect.spec.dart" as specs;
 
 extension type NotificationServiceClient (connect.Transport _transport) {
   /// Watch returns a stream of notification events
-  Stream<notificationv1notification.NotificationEvent> watch(
+  Stream<notificationv1notification.WatchResponse> watch(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,

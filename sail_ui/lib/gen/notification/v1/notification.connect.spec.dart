@@ -16,6 +16,6 @@ abstract final class NotificationService {
     '/$name/Watch',
     connect.StreamType.server,
     googleprotobufempty.Empty.new,
-    notificationv1notification.NotificationEvent.new,
+    notificationv1notification.WatchResponse.new,
   );
 }

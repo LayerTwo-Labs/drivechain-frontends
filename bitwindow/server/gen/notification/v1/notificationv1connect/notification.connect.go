@@ -42,7 +42,7 @@ const (
 // NotificationServiceClient is a client for the notification.v1.NotificationService service.
 type NotificationServiceClient interface {
 	// Watch returns a stream of notification events
-	Watch(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.NotificationEvent], error)
+	Watch(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
 }
 
 // NewNotificationServiceClient constructs a client for the notification.v1.NotificationService
@@ -56,7 +56,7 @@ func NewNotificationServiceClient(httpClient connect.HTTPClient, baseURL string,
 	baseURL = strings.TrimRight(baseURL, "/")
 	notificationServiceMethods := v1.File_notification_v1_notification_proto.Services().ByName("NotificationService").Methods()
 	return &notificationServiceClient{
-		watch: connect.NewClient[emptypb.Empty, v1.NotificationEvent](
+		watch: connect.NewClient[emptypb.Empty, v1.WatchResponse](
 			httpClient,
 			baseURL+NotificationServiceWatchProcedure,
 			connect.WithSchema(notificationServiceMethods.ByName("Watch")),
@@ -67,11 +67,11 @@ func NewNotificationServiceClient(httpClient connect.HTTPClient, baseURL string,
 
 // notificationServiceClient implements NotificationServiceClient.
 type notificationServiceClient struct {
-	watch *connect.Client[emptypb.Empty, v1.NotificationEvent]
+	watch *connect.Client[emptypb.Empty, v1.WatchResponse]
 }
 
 // Watch calls notification.v1.NotificationService.Watch.
-func (c *notificationServiceClient) Watch(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.NotificationEvent], error) {
+func (c *notificationServiceClient) Watch(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchResponse], error) {
 	return c.watch.CallServerStream(ctx, req)
 }
 
@@ -79,7 +79,7 @@ func (c *notificationServiceClient) Watch(ctx context.Context, req *connect.Requ
 // service.
 type NotificationServiceHandler interface {
 	// Watch returns a stream of notification events
-	Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.NotificationEvent]) error
+	Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchResponse]) error
 }
 
 // NewNotificationServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -108,6 +108,6 @@ func NewNotificationServiceHandler(svc NotificationServiceHandler, opts ...conne
 // UnimplementedNotificationServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNotificationServiceHandler struct{}
 
-func (UnimplementedNotificationServiceHandler) Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.NotificationEvent]) error {
+func (UnimplementedNotificationServiceHandler) Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("notification.v1.NotificationService.Watch is not implemented"))
 }

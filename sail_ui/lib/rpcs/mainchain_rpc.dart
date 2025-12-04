@@ -196,19 +196,19 @@ class MainchainRPCLive extends MainchainRPC {
     final configValues = conf.configValues;
 
     if (configValues['regtest'] == '1' || configValues['chain'] == 'regtest') {
-      return BitcoinNetwork.NETWORK_REGTEST;
+      return BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
     }
 
     if (configValues['testnet'] == '1' || configValues['chain'] == 'test' || configValues['chain'] == 'testnet4') {
-      return BitcoinNetwork.NETWORK_TESTNET;
+      return BitcoinNetwork.BITCOIN_NETWORK_TESTNET;
     }
 
     if (configValues['signet'] == '1' || configValues['chain'] == 'signet') {
-      return BitcoinNetwork.NETWORK_SIGNET;
+      return BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
     }
 
     // If no network flags are set, default to mainnet
-    return BitcoinNetwork.NETWORK_MAINNET;
+    return BitcoinNetwork.BITCOIN_NETWORK_MAINNET;
   }
 
   @override

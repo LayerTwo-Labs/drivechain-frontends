@@ -75,34 +75,34 @@ func (Direction) EnumDescriptor() ([]byte, []int) {
 type BitcoinNetwork int32
 
 const (
-	BitcoinNetwork_NETWORK_UNSPECIFIED BitcoinNetwork = 0
-	BitcoinNetwork_NETWORK_UNKNOWN     BitcoinNetwork = 1
-	BitcoinNetwork_NETWORK_MAINNET     BitcoinNetwork = 2
-	BitcoinNetwork_NETWORK_REGTEST     BitcoinNetwork = 3
-	BitcoinNetwork_NETWORK_SIGNET      BitcoinNetwork = 4
-	BitcoinNetwork_NETWORK_TESTNET     BitcoinNetwork = 5
-	BitcoinNetwork_NETWORK_FORKNET     BitcoinNetwork = 6
+	BitcoinNetwork_BITCOIN_NETWORK_UNSPECIFIED BitcoinNetwork = 0
+	BitcoinNetwork_BITCOIN_NETWORK_UNKNOWN     BitcoinNetwork = 1
+	BitcoinNetwork_BITCOIN_NETWORK_MAINNET     BitcoinNetwork = 2
+	BitcoinNetwork_BITCOIN_NETWORK_REGTEST     BitcoinNetwork = 3
+	BitcoinNetwork_BITCOIN_NETWORK_SIGNET      BitcoinNetwork = 4
+	BitcoinNetwork_BITCOIN_NETWORK_TESTNET     BitcoinNetwork = 5
+	BitcoinNetwork_BITCOIN_NETWORK_FORKNET     BitcoinNetwork = 6
 )
 
 // Enum value maps for BitcoinNetwork.
 var (
 	BitcoinNetwork_name = map[int32]string{
-		0: "NETWORK_UNSPECIFIED",
-		1: "NETWORK_UNKNOWN",
-		2: "NETWORK_MAINNET",
-		3: "NETWORK_REGTEST",
-		4: "NETWORK_SIGNET",
-		5: "NETWORK_TESTNET",
-		6: "NETWORK_FORKNET",
+		0: "BITCOIN_NETWORK_UNSPECIFIED",
+		1: "BITCOIN_NETWORK_UNKNOWN",
+		2: "BITCOIN_NETWORK_MAINNET",
+		3: "BITCOIN_NETWORK_REGTEST",
+		4: "BITCOIN_NETWORK_SIGNET",
+		5: "BITCOIN_NETWORK_TESTNET",
+		6: "BITCOIN_NETWORK_FORKNET",
 	}
 	BitcoinNetwork_value = map[string]int32{
-		"NETWORK_UNSPECIFIED": 0,
-		"NETWORK_UNKNOWN":     1,
-		"NETWORK_MAINNET":     2,
-		"NETWORK_REGTEST":     3,
-		"NETWORK_SIGNET":      4,
-		"NETWORK_TESTNET":     5,
-		"NETWORK_FORKNET":     6,
+		"BITCOIN_NETWORK_UNSPECIFIED": 0,
+		"BITCOIN_NETWORK_UNKNOWN":     1,
+		"BITCOIN_NETWORK_MAINNET":     2,
+		"BITCOIN_NETWORK_REGTEST":     3,
+		"BITCOIN_NETWORK_SIGNET":      4,
+		"BITCOIN_NETWORK_TESTNET":     5,
+		"BITCOIN_NETWORK_FORKNET":     6,
 	}
 )
 
@@ -133,7 +133,7 @@ func (BitcoinNetwork) EnumDescriptor() ([]byte, []int) {
 	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{1}
 }
 
-type StopBitwindowRequest struct {
+type BitwindowdServiceStopRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// If true, only stop bitwindow itself without stopping downstream services (enforcer, bitcoind)
 	SkipDownstream bool `protobuf:"varint,1,opt,name=skip_downstream,json=skipDownstream,proto3" json:"skip_downstream,omitempty"`
@@ -141,20 +141,20 @@ type StopBitwindowRequest struct {
 	sizeCache      protoimpl.SizeCache
 }
 
-func (x *StopBitwindowRequest) Reset() {
-	*x = StopBitwindowRequest{}
+func (x *BitwindowdServiceStopRequest) Reset() {
+	*x = BitwindowdServiceStopRequest{}
 	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StopBitwindowRequest) String() string {
+func (x *BitwindowdServiceStopRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StopBitwindowRequest) ProtoMessage() {}
+func (*BitwindowdServiceStopRequest) ProtoMessage() {}
 
-func (x *StopBitwindowRequest) ProtoReflect() protoreflect.Message {
+func (x *BitwindowdServiceStopRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -166,12 +166,12 @@ func (x *StopBitwindowRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StopBitwindowRequest.ProtoReflect.Descriptor instead.
-func (*StopBitwindowRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use BitwindowdServiceStopRequest.ProtoReflect.Descriptor instead.
+func (*BitwindowdServiceStopRequest) Descriptor() ([]byte, []int) {
 	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *StopBitwindowRequest) GetSkipDownstream() bool {
+func (x *BitwindowdServiceStopRequest) GetSkipDownstream() bool {
 	if x != nil {
 		return x.SkipDownstream
 	}
@@ -1998,8 +1998,8 @@ var File_bitwindowd_v1_bitwindowd_proto protoreflect.FileDescriptor
 
 const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\n" +
-	"\x1ebitwindowd/v1/bitwindowd.proto\x12\rbitwindowd.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n" +
-	"\x14StopBitwindowRequest\x12'\n" +
+	"\x1ebitwindowd/v1/bitwindowd.proto\x12\rbitwindowd.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"G\n" +
+	"\x1cBitwindowdServiceStopRequest\x12'\n" +
 	"\x0fskip_downstream\x18\x01 \x01(\bR\x0eskipDownstream\"\xa9\x01\n" +
 	"\x13CreateDenialRequest\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
@@ -2163,18 +2163,18 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\tDirection\x12\x19\n" +
 	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eDIRECTION_SEND\x10\x01\x12\x15\n" +
-	"\x11DIRECTION_RECEIVE\x10\x02*\xa6\x01\n" +
-	"\x0eBitcoinNetwork\x12\x17\n" +
-	"\x13NETWORK_UNSPECIFIED\x10\x00\x12\x13\n" +
-	"\x0fNETWORK_UNKNOWN\x10\x01\x12\x13\n" +
-	"\x0fNETWORK_MAINNET\x10\x02\x12\x13\n" +
-	"\x0fNETWORK_REGTEST\x10\x03\x12\x12\n" +
-	"\x0eNETWORK_SIGNET\x10\x04\x12\x13\n" +
-	"\x0fNETWORK_TESTNET\x10\x05\x12\x13\n" +
-	"\x0fNETWORK_FORKNET\x10\x062\xf2\n" +
+	"\x11DIRECTION_RECEIVE\x10\x02*\xde\x01\n" +
+	"\x0eBitcoinNetwork\x12\x1f\n" +
+	"\x1bBITCOIN_NETWORK_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17BITCOIN_NETWORK_UNKNOWN\x10\x01\x12\x1b\n" +
+	"\x17BITCOIN_NETWORK_MAINNET\x10\x02\x12\x1b\n" +
+	"\x17BITCOIN_NETWORK_REGTEST\x10\x03\x12\x1a\n" +
+	"\x16BITCOIN_NETWORK_SIGNET\x10\x04\x12\x1b\n" +
+	"\x17BITCOIN_NETWORK_TESTNET\x10\x05\x12\x1b\n" +
+	"\x17BITCOIN_NETWORK_FORKNET\x10\x062\xfa\n" +
 	"\n" +
-	"\x11BitwindowdService\x12C\n" +
-	"\x04Stop\x12#.bitwindowd.v1.StopBitwindowRequest\x1a\x16.google.protobuf.Empty\x12I\n" +
+	"\x11BitwindowdService\x12K\n" +
+	"\x04Stop\x12+.bitwindowd.v1.BitwindowdServiceStopRequest\x1a\x16.google.protobuf.Empty\x12I\n" +
 	"\n" +
 	"MineBlocks\x12\x16.google.protobuf.Empty\x1a!.bitwindowd.v1.MineBlocksResponse0\x01\x12J\n" +
 	"\fCreateDenial\x12\".bitwindowd.v1.CreateDenialRequest\x1a\x16.google.protobuf.Empty\x12J\n" +
@@ -2211,7 +2211,7 @@ var file_bitwindowd_v1_bitwindowd_proto_msgTypes = make([]protoimpl.MessageInfo,
 var file_bitwindowd_v1_bitwindowd_proto_goTypes = []any{
 	(Direction)(0),                         // 0: bitwindowd.v1.Direction
 	(BitcoinNetwork)(0),                    // 1: bitwindowd.v1.BitcoinNetwork
-	(*StopBitwindowRequest)(nil),           // 2: bitwindowd.v1.StopBitwindowRequest
+	(*BitwindowdServiceStopRequest)(nil),   // 2: bitwindowd.v1.BitwindowdServiceStopRequest
 	(*CreateDenialRequest)(nil),            // 3: bitwindowd.v1.CreateDenialRequest
 	(*DenialInfo)(nil),                     // 4: bitwindowd.v1.DenialInfo
 	(*ExecutedDenial)(nil),                 // 5: bitwindowd.v1.ExecutedDenial
@@ -2262,7 +2262,7 @@ var file_bitwindowd_v1_bitwindowd_proto_depIdxs = []int32{
 	27, // 17: bitwindowd.v1.MineBlocksResponse.hash_rate:type_name -> bitwindowd.v1.MineBlocksResponse.HashRate
 	26, // 18: bitwindowd.v1.GetNetworkStatsResponse.bitcoind_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
 	26, // 19: bitwindowd.v1.GetNetworkStatsResponse.enforcer_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
-	2,  // 20: bitwindowd.v1.BitwindowdService.Stop:input_type -> bitwindowd.v1.StopBitwindowRequest
+	2,  // 20: bitwindowd.v1.BitwindowdService.Stop:input_type -> bitwindowd.v1.BitwindowdServiceStopRequest
 	30, // 21: bitwindowd.v1.BitwindowdService.MineBlocks:input_type -> google.protobuf.Empty
 	3,  // 22: bitwindowd.v1.BitwindowdService.CreateDenial:input_type -> bitwindowd.v1.CreateDenialRequest
 	6,  // 23: bitwindowd.v1.BitwindowdService.CancelDenial:input_type -> bitwindowd.v1.CancelDenialRequest

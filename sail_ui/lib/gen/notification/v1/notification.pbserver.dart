@@ -22,7 +22,7 @@ import 'notification.pbjson.dart';
 export 'notification.pb.dart';
 
 abstract class NotificationServiceBase extends $pb.GeneratedService {
-  $async.Future<$7.NotificationEvent> watch($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$7.WatchResponse> watch($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {

@@ -34,14 +34,14 @@ class CoreConnectionSettings extends ChangeNotifier {
   }
 
   /// Factory constructor for creating an empty/default config
-  static CoreConnectionSettings empty([BitcoinNetwork network = BitcoinNetwork.NETWORK_SIGNET]) {
+  static CoreConnectionSettings empty([BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET]) {
     // Use correct default port based on network
     final defaultPort = switch (network) {
-      BitcoinNetwork.NETWORK_MAINNET => 8332,
-      BitcoinNetwork.NETWORK_FORKNET => 18301,
-      BitcoinNetwork.NETWORK_TESTNET => 18332,
-      BitcoinNetwork.NETWORK_SIGNET => 38332,
-      BitcoinNetwork.NETWORK_REGTEST => 18443,
+      BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332,
+      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301,
+      BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
+      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
+      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 18443,
       _ => 38332, // fallback to signet
     };
 

@@ -983,11 +983,11 @@ extension BinaryPaths on Binary {
 
     // Get network-specific subdirectory
     final networkDir = switch (confProvider.network) {
-      BitcoinNetwork.NETWORK_MAINNET => '', // mainnet uses root datadir
-      BitcoinNetwork.NETWORK_FORKNET => '', // forknet uses root datadir
-      BitcoinNetwork.NETWORK_SIGNET => 'signet',
-      BitcoinNetwork.NETWORK_REGTEST => 'regtest',
-      BitcoinNetwork.NETWORK_TESTNET => 'testnet',
+      BitcoinNetwork.BITCOIN_NETWORK_MAINNET => '', // mainnet uses root datadir
+      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => '', // forknet uses root datadir
+      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
+      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
+      BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'testnet',
       _ => 'signet', // default to signet for unknown networks
     };
 
