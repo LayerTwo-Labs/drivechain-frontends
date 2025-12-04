@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
+import 'package:sail_ui/providers/binaries/download_manager.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
@@ -1024,4 +1026,250 @@ class MockBitcoindAPI implements BitcoindAPI {
   Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request) {
     return Future.value(UtxoUpdatePsbtResponse());
   }
+}
+
+class MockBinary extends Binary {
+  final BinaryType _type;
+
+  MockBinary({BinaryType type = BinaryType.bitWindow})
+    : _type = type,
+      super(
+        name: _binaryTypeName(type),
+        version: '0.0.0',
+        description: 'Mock Binary',
+        repoUrl: 'https://mock.test',
+        directories: DirectoryConfig(
+          binary: {
+            OS.linux: '.mock',
+            OS.macos: 'Mock',
+            OS.windows: 'Mock',
+          },
+          flutterFrontend: {
+            OS.linux: '',
+            OS.macos: '',
+            OS.windows: '',
+          },
+        ),
+        metadata: MetadataConfig(
+          downloadConfig: DownloadConfig(
+            binary: 'mock',
+            baseUrl: 'https://mock.test',
+            files: {
+              OS.linux: 'mock',
+              OS.macos: 'mock',
+              OS.windows: 'mock',
+            },
+          ),
+          remoteTimestamp: null,
+          downloadedTimestamp: null,
+          binaryPath: null,
+          updateable: false,
+        ),
+        port: 8272,
+        chainLayer: 0,
+      );
+
+  @override
+  BinaryType get type => _type;
+
+  @override
+  Color get color => SailColorScheme.orange;
+
+  @override
+  Binary copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    String? walletFile,
+    DownloadInfo? downloadInfo,
+  }) {
+    return MockBinary(type: _type);
+  }
+}
+
+String _binaryTypeName(BinaryType type) {
+  switch (type) {
+    case BinaryType.bitcoinCore:
+      return 'Bitcoin Core';
+    case BinaryType.enforcer:
+      return 'Enforcer';
+    case BinaryType.bitWindow:
+      return 'BitWindow';
+    case BinaryType.thunder:
+      return 'Thunder';
+    case BinaryType.bitnames:
+      return 'Bitnames';
+    case BinaryType.bitassets:
+      return 'BitAssets';
+    case BinaryType.zSide:
+      return 'zSide';
+    case BinaryType.grpcurl:
+      return 'grpcurl';
+  }
+}
+
+class MockBinaryProvider extends BinaryProvider {
+  MockBinaryProvider()
+    // ignore: invalid_use_of_visible_for_testing_member
+    : super.test(
+        appDir: Directory('/tmp'),
+        downloadManager: MockDownloadManager(),
+        processManager: MockProcessManager(),
+      );
+
+  @override
+  List<Binary> get binaries => [
+    MockBinary(type: BinaryType.bitWindow),
+    MockBinary(type: BinaryType.zSide),
+    MockBinary(type: BinaryType.thunder),
+    MockBinary(type: BinaryType.bitnames),
+    MockBinary(type: BinaryType.bitassets),
+  ];
+
+  @override
+  Directory get appDir => Directory('/tmp');
+
+  @override
+  bool get mainchainConnected => true;
+
+  @override
+  bool get enforcerConnected => true;
+
+  @override
+  bool get bitwindowConnected => true;
+
+  @override
+  bool get thunderConnected => false;
+
+  @override
+  bool get bitnamesConnected => false;
+
+  @override
+  bool get bitassetsConnected => false;
+
+  @override
+  bool get zsideConnected => false;
+
+  @override
+  bool get mainchainInitializing => false;
+
+  @override
+  bool get enforcerInitializing => false;
+
+  @override
+  bool get bitwindowInitializing => false;
+
+  @override
+  bool get thunderInitializing => false;
+
+  @override
+  bool get bitnamesInitializing => false;
+
+  @override
+  bool get bitassetsInitializing => false;
+
+  @override
+  bool get zsideInitializing => false;
+
+  @override
+  bool get mainchainStopping => false;
+
+  @override
+  bool get enforcerStopping => false;
+
+  @override
+  bool get bitwindowStopping => false;
+
+  @override
+  bool get thunderStopping => false;
+
+  @override
+  bool get bitnamesStopping => false;
+
+  @override
+  bool get bitassetsStopping => false;
+
+  @override
+  bool get zsideStopping => false;
+
+  @override
+  String? get mainchainError => null;
+
+  @override
+  String? get enforcerError => null;
+
+  @override
+  String? get bitwindowError => null;
+
+  @override
+  String? get thunderError => null;
+
+  @override
+  String? get bitnamesError => null;
+
+  @override
+  String? get bitassetsError => null;
+
+  @override
+  String? get zsideError => null;
+
+  @override
+  String? get mainchainStartupError => null;
+
+  @override
+  String? get enforcerStartupError => null;
+
+  @override
+  String? get bitwindowStartupError => null;
+
+  @override
+  String? get thunderStartupError => null;
+
+  @override
+  String? get bitnamesStartupError => null;
+
+  @override
+  String? get bitassetsStartupError => null;
+
+  @override
+  String? get zsideStartupError => null;
+
+  @override
+  ExitTuple? exited(Binary binary) => null;
+
+  @override
+  Stream<String> stderr(Binary binary) => const Stream.empty();
+
+  @override
+  void setUseStarter(Binary binary, bool value) {}
+
+  @override
+  void addListener(listener) {}
+
+  @override
+  void removeListener(listener) {}
+
+  @override
+  void notifyListeners() {}
+
+  @override
+  bool get hasListeners => false;
+}
+
+class MockDownloadManager extends DownloadManager {
+  MockDownloadManager()
+    // ignore: invalid_use_of_visible_for_testing_member
+    : super.test(
+        appDir: Directory('/tmp'),
+        binaries: [MockBinary()],
+      );
+}
+
+class MockProcessManager extends ProcessManager {
+  MockProcessManager() : super(appDir: Directory('/tmp'));
 }
