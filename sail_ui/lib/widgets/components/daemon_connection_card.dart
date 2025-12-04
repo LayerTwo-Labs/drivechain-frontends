@@ -125,24 +125,35 @@ class DaemonConnectionCard extends StatelessWidget {
               width: 350,
               child: BlockStatus(name: connection.binary.name, syncInfo: syncInfo!),
             ),
-          SailColumn(
-            spacing: 0,
-            children: [
-              SailSpacing(SailStyleValues.padding04),
-              if (infoMessage != null || connection.connectionError != null || !connection.connected)
-                SailText.secondary12(
-                  prettifyLogMessage(
-                    infoMessage ??
-                        connection.connectionError ??
-                        (connection.initializingBinary || !connection.connected
-                            ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
-                            : connection.connected
-                            ? ''
-                            : 'Unknown error occured'),
+          if (infoMessage != null ||
+              connection.connectionError != null ||
+              connection.startupError != null ||
+              !connection.connected)
+            Padding(
+              padding: const EdgeInsets.only(top: SailStyleValues.padding04),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 100),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SailText.secondary12(
+                      prettifyLogMessage(
+                        infoMessage ??
+                            connection.connectionError ??
+                            connection.startupError ??
+                            (connection.initializingBinary
+                                ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
+                                : !connection.connected
+                                    ? 'Not connected'
+                                    : ''),
+                      ),
+                      monospace: true,
+                    ),
                   ),
                 ),
-            ],
-          ),
+              ),
+            ),
         ],
       ),
     );
