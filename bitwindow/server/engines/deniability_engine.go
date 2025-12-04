@@ -494,13 +494,27 @@ func (e *DeniabilityEngine) chooseDenialStrategy(
 	walletType WalletType,
 	walletId string,
 ) (map[string]uint64, error) {
-	// If user specified target UTXO sizes, use the next one based on completed hops
+	logger := zerolog.Ctx(ctx)
 	completedHops := len(denial.ExecutedDenials)
-	if len(denial.TargetUTXOSizes) > completedHops {
+
+	// Target sizes are now a sparse array where targetSizes[hopIndex] = amount
+	// A value of 0 means "use random split" for that hop
+	// The frontend pre-distributes user-specified amounts randomly across hop indices
+	if completedHops < len(denial.TargetUTXOSizes) {
 		targetSize := denial.TargetUTXOSizes[completedHops]
-		return e.targetAmountSplit(ctx, denial, utxo, fee, walletType, walletId, targetSize)
+		if targetSize > 0 {
+			logger.Info().
+				Int("hop", completedHops).
+				Int64("target_size", targetSize).
+				Msg("using pre-assigned target size for this hop")
+			return e.targetAmountSplit(ctx, denial, utxo, fee, walletType, walletId, targetSize)
+		}
 	}
-	// Default: random split
+
+	// No target size for this hop (or value is 0), use random split
+	logger.Info().
+		Int("hop", completedHops).
+		Msg("using random split for this hop")
 	return e.simpleSplit(ctx, denial, utxo, fee, walletType, walletId)
 }
 

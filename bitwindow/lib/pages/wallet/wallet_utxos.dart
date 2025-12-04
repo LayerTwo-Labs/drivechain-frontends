@@ -104,13 +104,58 @@ class _UTXOTableState extends State<UTXOTable> {
           aValue = a.valueSats;
           bValue = b.valueSats;
           break;
+        case 'deniability':
+          aValue = getDenialHops(a);
+          bValue = getDenialHops(b);
+          break;
       }
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
+  /// Get the number of completed denial hops for a UTXO
+  int getDenialHops(UnspentOutput utxo) {
+    if (!utxo.hasDenialInfo()) return 0;
+    return utxo.denialInfo.hopsCompleted;
+  }
+
+  /// Get the denial status for display
+  String getDenialStatus(UnspentOutput utxo) {
+    if (!utxo.hasDenialInfo()) return '-';
+
+    final hops = utxo.denialInfo.hopsCompleted;
+    final totalHops = utxo.denialInfo.numHops;
+
+    if (utxo.denialInfo.hasCancelTime()) {
+      return 'Cancelled ($hops)';
+    }
+    if (utxo.denialInfo.hasPausedAt()) {
+      return 'Paused ($hops/$totalHops)';
+    }
+    // Check if completed (no next execution time or next execution is epoch 0)
+    if (!utxo.denialInfo.hasNextExecutionTime() ||
+        utxo.denialInfo.nextExecutionTime.toDateTime().millisecondsSinceEpoch == 0) {
+      return 'Done ($hops)';
+    }
+    return 'Active ($hops/$totalHops)';
+  }
+
+  /// Get color based on denial hops: red (0), orange (1-2), green (3+)
+  Color? getDenialColor(BuildContext context, UnspentOutput utxo) {
+    final theme = SailTheme.of(context);
+    final hops = getDenialHops(utxo);
+
+    if (hops == 0) {
+      return theme.colors.error; // Red - no deniability
+    } else if (hops <= 2) {
+      return theme.colors.orange; // Orange - some deniability
+    } else {
+      return theme.colors.success; // Green - good deniability (3+)
+    }
+  }
+
   bool isDenied(UnspentOutput utxo) {
-    return utxo.hasDenialInfo() && !utxo.denialInfo.hasNextExecutionTime() && utxo.denialInfo.numHops > 1;
+    return utxo.hasDenialInfo() && getDenialHops(utxo) > 0;
   }
 
   @override
@@ -139,13 +184,12 @@ class _UTXOTableState extends State<UTXOTable> {
                     SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
                     SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
                     SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-                    SailTableHeaderCell(name: 'Denied Times', onSort: () => onSort('isDenied')),
+                    SailTableHeaderCell(name: 'Deniability', onSort: () => onSort('deniability')),
                     SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
                   ],
                   rowBuilder: (context, row, selected) {
                     final utxo = sortedEntries[row];
                     final formattedAmount = formatter.formatSats(utxo.valueSats.toInt());
-                    final isUtxoDenied = isDenied(utxo);
 
                     return [
                       SailTableCell(
@@ -165,7 +209,8 @@ class _UTXOTableState extends State<UTXOTable> {
                         monospace: true,
                       ),
                       SailTableCell(
-                        value: isUtxoDenied ? utxo.denialInfo.hopsCompleted.toString() : '',
+                        value: getDenialStatus(utxo),
+                        textColor: getDenialColor(context, utxo),
                         monospace: true,
                       ),
                       SailTableCell(
@@ -181,12 +226,12 @@ class _UTXOTableState extends State<UTXOTable> {
                     'output',
                     'address',
                     'label',
-                    'isDenied',
+                    'deniability',
                     'value',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['date', 'output', 'address', 'label', 'isDenied', 'value'][columnIndex]);
+                    onSort(['date', 'output', 'address', 'label', 'deniability', 'value'][columnIndex]);
                   },
                   onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
                   contextMenuItems: (rowId) {

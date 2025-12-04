@@ -78,8 +78,15 @@ class _DenialDialogState extends State<DenialDialog> {
     return minutes * 60 + hours * 3600 + days * 86400;
   }
 
+  /// Get target UTXO sizes distributed randomly across hops.
+  /// Returns a sparse array where the value at each index is the target amount
+  /// (0 means random split for that hop).
+  /// This ensures target amounts are created at random points during the denial process.
   List<int>? getTargetUtxoSizes() {
-    final sizes = targetSizeControllers
+    final hops = int.tryParse(hopsController.text) ?? 3;
+
+    // Parse the user-entered target sizes
+    final userSizes = targetSizeControllers
         .map((c) {
           final text = c.text.trim();
           if (text.isEmpty) return null;
@@ -89,7 +96,21 @@ class _DenialDialogState extends State<DenialDialog> {
         .whereType<int>()
         .where((s) => s > 0)
         .toList();
-    return sizes.isEmpty ? null : sizes;
+
+    if (userSizes.isEmpty) return null;
+
+    // Create a sparse array of size 'hops', initialized to 0 (meaning random split)
+    final distributed = List<int>.filled(hops, 0);
+
+    // Randomly assign each target size to a unique hop
+    final availableHops = List<int>.generate(hops, (i) => i);
+    availableHops.shuffle(Random());
+
+    for (var i = 0; i < userSizes.length && i < availableHops.length; i++) {
+      distributed[availableHops[i]] = userSizes[i];
+    }
+
+    return distributed;
   }
 
   void addTargetSize() {
