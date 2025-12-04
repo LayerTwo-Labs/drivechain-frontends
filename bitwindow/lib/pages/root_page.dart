@@ -520,7 +520,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Timestamp File(s)',
-                      onSelected: null,
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(const CreateTimestampRoute());
+                      },
                     ),
                   ],
                 ),
