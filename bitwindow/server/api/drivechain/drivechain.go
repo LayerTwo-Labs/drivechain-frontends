@@ -299,7 +299,13 @@ func (s *Server) ListWithdrawals(
 			fmt.Errorf("get two-way peg data: %w", err))
 	}
 
+	// BIP300 withdrawal verification period (max age for a bundle)
+	const withdrawalVerificationPeriod uint32 = 26300
+
 	bundles := make([]*pb.WithdrawalBundle, 0)
+
+	// Track submitted bundles to calculate age (need to find submission block)
+	bundleSubmissionBlock := make(map[string]uint32)
 
 	// Process blocks and extract withdrawal bundle events
 	for _, block := range pegData.Msg.Blocks {
@@ -316,10 +322,13 @@ func (s *Server) ListWithdrawals(
 				continue
 			}
 
+			m6id := withdrawalEvent.M6Id.Hex.Value
+
 			bundle := &pb.WithdrawalBundle{
-				M6Id:        withdrawalEvent.M6Id.Hex.Value,
+				M6Id:        m6id,
 				SidechainId: c.Msg.SidechainId,
 				BlockHeight: blockHeight,
+				MaxAge:      withdrawalVerificationPeriod,
 			}
 
 			// Determine status based on event type
@@ -334,8 +343,26 @@ func (s *Server) ListWithdrawals(
 				}
 			case *validatorpb.WithdrawalBundleEvent_Event_Failed_:
 				bundle.Status = "failed"
+			case *validatorpb.WithdrawalBundleEvent_Event_Submitted_:
+				bundle.Status = "pending"
+				// Track when this bundle was submitted
+				bundleSubmissionBlock[m6id] = blockHeight
 			default:
 				bundle.Status = "pending"
+			}
+
+			// Calculate age and blocks remaining for pending bundles
+			if bundle.Status == "pending" {
+				submissionBlock, ok := bundleSubmissionBlock[m6id]
+				if !ok {
+					submissionBlock = blockHeight // Use current block if we don't have submission
+				}
+				bundle.Age = currentHeight - submissionBlock
+				if bundle.Age < withdrawalVerificationPeriod {
+					bundle.BlocksLeft = withdrawalVerificationPeriod - bundle.Age
+				} else {
+					bundle.BlocksLeft = 0
+				}
 			}
 
 			bundles = append(bundles, bundle)

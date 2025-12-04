@@ -476,9 +476,13 @@ type WithdrawalBundle struct {
 	Status         string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"` // "succeeded", "failed", "pending"
 	SequenceNumber uint64                 `protobuf:"varint,4,opt,name=sequence_number,json=sequenceNumber,proto3" json:"sequence_number,omitempty"`
 	TransactionHex string                 `protobuf:"bytes,5,opt,name=transaction_hex,json=transactionHex,proto3" json:"transaction_hex,omitempty"`
-	BlockHeight    uint32                 `protobuf:"varint,6,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	BlockHeight    uint32                 `protobuf:"varint,6,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"` // Block when bundle was submitted
+	// Score tracking fields (BIP300)
+	Age           uint32 `protobuf:"varint,7,opt,name=age,proto3" json:"age,omitempty"`                                 // Blocks since submission
+	MaxAge        uint32 `protobuf:"varint,8,opt,name=max_age,json=maxAge,proto3" json:"max_age,omitempty"`             // Maximum voting period (26300 blocks)
+	BlocksLeft    uint32 `protobuf:"varint,9,opt,name=blocks_left,json=blocksLeft,proto3" json:"blocks_left,omitempty"` // Remaining blocks before expiry
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WithdrawalBundle) Reset() {
@@ -549,6 +553,27 @@ func (x *WithdrawalBundle) GetTransactionHex() string {
 func (x *WithdrawalBundle) GetBlockHeight() uint32 {
 	if x != nil {
 		return x.BlockHeight
+	}
+	return 0
+}
+
+func (x *WithdrawalBundle) GetAge() uint32 {
+	if x != nil {
+		return x.Age
+	}
+	return 0
+}
+
+func (x *WithdrawalBundle) GetMaxAge() uint32 {
+	if x != nil {
+		return x.MaxAge
+	}
+	return 0
+}
+
+func (x *WithdrawalBundle) GetBlocksLeft() uint32 {
+	if x != nil {
+		return x.BlocksLeft
 	}
 	return 0
 }
@@ -788,14 +813,18 @@ const file_drivechain_v1_drivechain_proto_rawDesc = "" +
 	"\x16ListWithdrawalsRequest\x12!\n" +
 	"\fsidechain_id\x18\x01 \x01(\rR\vsidechainId\x12,\n" +
 	"\x12start_block_height\x18\x02 \x01(\rR\x10startBlockHeight\x12(\n" +
-	"\x10end_block_height\x18\x03 \x01(\rR\x0eendBlockHeight\"\xd6\x01\n" +
+	"\x10end_block_height\x18\x03 \x01(\rR\x0eendBlockHeight\"\xa2\x02\n" +
 	"\x10WithdrawalBundle\x12\x12\n" +
 	"\x04m6id\x18\x01 \x01(\tR\x04m6id\x12!\n" +
 	"\fsidechain_id\x18\x02 \x01(\rR\vsidechainId\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12'\n" +
 	"\x0fsequence_number\x18\x04 \x01(\x04R\x0esequenceNumber\x12'\n" +
 	"\x0ftransaction_hex\x18\x05 \x01(\tR\x0etransactionHex\x12!\n" +
-	"\fblock_height\x18\x06 \x01(\rR\vblockHeight\"T\n" +
+	"\fblock_height\x18\x06 \x01(\rR\vblockHeight\x12\x10\n" +
+	"\x03age\x18\a \x01(\rR\x03age\x12\x17\n" +
+	"\amax_age\x18\b \x01(\rR\x06maxAge\x12\x1f\n" +
+	"\vblocks_left\x18\t \x01(\rR\n" +
+	"blocksLeft\"T\n" +
 	"\x17ListWithdrawalsResponse\x129\n" +
 	"\abundles\x18\x01 \x03(\v2\x1f.drivechain.v1.WithdrawalBundleR\abundles2\xb0\x03\n" +
 	"\x11DrivechainService\x12]\n" +

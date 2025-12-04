@@ -789,6 +789,9 @@ class WithdrawalBundle extends $pb.GeneratedMessage {
     $fixnum.Int64? sequenceNumber,
     $core.String? transactionHex,
     $core.int? blockHeight,
+    $core.int? age,
+    $core.int? maxAge,
+    $core.int? blocksLeft,
   }) {
     final $result = create();
     if (m6id != null) {
@@ -809,6 +812,15 @@ class WithdrawalBundle extends $pb.GeneratedMessage {
     if (blockHeight != null) {
       $result.blockHeight = blockHeight;
     }
+    if (age != null) {
+      $result.age = age;
+    }
+    if (maxAge != null) {
+      $result.maxAge = maxAge;
+    }
+    if (blocksLeft != null) {
+      $result.blocksLeft = blocksLeft;
+    }
     return $result;
   }
   WithdrawalBundle._() : super();
@@ -822,6 +834,9 @@ class WithdrawalBundle extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'sequenceNumber', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOS(5, _omitFieldNames ? '' : 'transactionHex')
     ..a<$core.int>(6, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'age', $pb.PbFieldType.OU3)
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'maxAge', $pb.PbFieldType.OU3)
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'blocksLeft', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -899,6 +914,34 @@ class WithdrawalBundle extends $pb.GeneratedMessage {
   $core.bool hasBlockHeight() => $_has(5);
   @$pb.TagNumber(6)
   void clearBlockHeight() => clearField(6);
+
+  /// Score tracking fields (BIP300)
+  @$pb.TagNumber(7)
+  $core.int get age => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set age($core.int v) { $_setUnsignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasAge() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearAge() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get maxAge => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set maxAge($core.int v) { $_setUnsignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasMaxAge() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearMaxAge() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get blocksLeft => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set blocksLeft($core.int v) { $_setUnsignedInt32(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasBlocksLeft() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearBlocksLeft() => clearField(9);
 }
 
 class ListWithdrawalsResponse extends $pb.GeneratedMessage {
