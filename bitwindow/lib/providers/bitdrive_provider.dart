@@ -75,11 +75,8 @@ class BitDriveProvider extends ChangeNotifier {
   static const int MULTISIG_FLAG = 0x02; // Flag to identify multisig transactions
 
   BitDriveProvider() {
-    // Listen for blockchain sync status changes
     blockchainProvider.addListener(_onSyncStatusChanged);
-    // Listen for enforcer connection changes
     enforcer.addListener(_onSyncStatusChanged);
-    init();
   }
 
   @override
@@ -90,6 +87,12 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   void _onSyncStatusChanged() async {
+    // Don't auto-restore until the user has explicitly opened BitDrive
+    // This prevents filesystem access and permission dialogs on startup
+    if (!initialized) {
+      return;
+    }
+
     if (blockchainProvider.syncProvider.mainchainSyncInfo == null) {
       return;
     }

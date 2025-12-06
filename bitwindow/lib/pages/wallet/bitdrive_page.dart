@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
@@ -16,203 +17,302 @@ class BitDriveTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return ViewModelBuilder<BitDriveViewModel>.reactive(
-          viewModelBuilder: () => BitDriveViewModel(),
-          builder: (context, model, child) {
-            final error = model.error('bitdrive');
-
-            return SailCard(
-              title: 'BitDrive',
-              subtitle: 'Store and retrieve content in the Bitcoin blockchain',
-              error: error,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding16,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Input area
-                        SailRow(
-                          spacing: SailStyleValues.padding16,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: SailColumn(
-                                spacing: SailStyleValues.padding08,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SailText.primary13('Content to Store'),
-                                  SailText.secondary12(
-                                    'Enter text or choose a file (max 1MB)',
-                                    color: context.sailTheme.colors.textTertiary,
-                                  ),
-                                  const SailSpacing(SailStyleValues.padding08),
-                                  SailTextField(
-                                    controller: model.textController,
-                                    maxLines: 3,
-                                    hintText: 'Enter text to store...',
-                                  ),
-                                  SailRow(
-                                    spacing: SailStyleValues.padding08,
-                                    children: [
-                                      SailButton(
-                                        label: 'Choose File',
-                                        onPressed: () => model.pickFile(context),
-                                      ),
-                                      if (model.selectedFileName != null)
-                                        Expanded(
-                                          child: SailText.secondary13(
-                                            model.selectedFileName!,
-                                          ),
-                                        ),
-                                      if (model.selectedFileName != null)
-                                        SailButton(
-                                          variant: ButtonVariant.icon,
-                                          icon: SailSVGAsset.iconClose,
-                                          onPressed: model.clearSelectedFile,
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Right side controls
-                            Expanded(
-                              flex: 1,
-                              child: SailColumn(
-                                spacing: SailStyleValues.padding16,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SailText.primary13('Settings'),
-                                  SailRow(
-                                    spacing: SailStyleValues.padding08,
-                                    children: [
-                                      Expanded(
-                                        child: NumericField(
-                                          label: 'Fee (BTC)',
-                                          controller: model.feeController,
-                                          hintText: '0.0001',
-                                        ),
-                                      ),
-                                      SailButton(
-                                        variant: ButtonVariant.icon,
-                                        icon: SailSVGAsset.arrowUp,
-                                        onPressed: () async {
-                                          model.adjustFee(0.0001);
-                                        },
-                                      ),
-                                      SailButton(
-                                        variant: ButtonVariant.icon,
-                                        icon: SailSVGAsset.arrowDown,
-                                        onPressed: () async {
-                                          model.adjustFee(-0.0001);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  SailCheckbox(
-                                    value: model.shouldEncrypt,
-                                    onChanged: model.onEncryptChanged,
-                                    label: 'Encrypt',
-                                  ),
-                                  const SailSpacing(SailStyleValues.padding16),
-                                  SailButton(
-                                    label: 'Store',
-                                    onPressed: model.canStore ? () => model.store(context) : null,
-                                    variant: model.canStore ? ButtonVariant.primary : ButtonVariant.secondary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Bottom section with restore button
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: context.sailTheme.colors.border,
-                          width: 1.0,
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SailButton(
-                              label: 'Open BitDrive',
-                              onPressed: model._bitdriveDir != null ? () => model.openBitdriveDir() : null,
-                              variant: ButtonVariant.secondary,
-                            ),
-                            Row(
-                              children: [
-                                SailButton(
-                                  label: 'Scan',
-                                  onPressed: model.isScanning ? null : () => model.scanFiles(),
-                                  variant: model.pendingDownloadsCount > 0 || model.isDownloading
-                                      ? ButtonVariant.secondary
-                                      : ButtonVariant.primary,
-                                  loading: model.isScanning,
-                                ),
-                                const SizedBox(width: 8),
-                                SailButton(
-                                  label: 'Download',
-                                  onPressed: (model.pendingDownloadsCount > 0 && !model.isDownloading)
-                                      ? () => model.downloadFiles()
-                                      : null,
-                                  variant: model.pendingDownloadsCount > 0 && !model.isDownloading
-                                      ? ButtonVariant.primary
-                                      : ButtonVariant.secondary,
-                                  loading: model.isDownloading,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        // Fixed height container for status messages
-                        Container(
-                          height: 32, // Fixed height to prevent layout shifts
-                          padding: const EdgeInsets.only(top: 8.0),
-                          alignment: Alignment.centerLeft,
-                          child: model.isScanning
-                              ? SailText.primary13(
-                                  'Scanning for BitDrive files...',
-                                  color: context.sailTheme.colors.text,
-                                )
-                              : model.pendingDownloadsCount > 0
-                              ? SailText.primary13(
-                                  '${model.pendingDownloadsCount} new files available for download',
-                                  color: context.sailTheme.colors.text,
-                                )
-                              : model.isDownloading
-                              ? SailText.primary13(
-                                  'Downloading files...',
-                                  color: context.sailTheme.colors.text,
-                                )
-                              : null, // No message, but space is still reserved
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+    return ViewModelBuilder<BitDriveViewModel>.reactive(
+      viewModelBuilder: () => BitDriveViewModel(),
+      builder: (context, model, child) {
+        return InlineTabBar(
+          tabs: [
+            SingleTabItem(
+              label: 'Store',
+              child: _StoreTab(model: model),
+            ),
+            SingleTabItem(
+              label: 'My Files',
+              child: _MyFilesTab(model: model),
+            ),
+          ],
+          endWidget: model.bitdriveDir != null
+              ? SailButton(
+                  label: 'Open Folder',
+                  variant: ButtonVariant.ghost,
+                  icon: SailSVGAsset.folderOpen,
+                  onPressed: () async => model.openBitdriveDir(),
+                )
+              : null,
         );
       },
     );
   }
+}
+
+class _StoreTab extends StatelessWidget {
+  final BitDriveViewModel model;
+
+  const _StoreTab({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SailText.primary15(
+            'What do you want to store on Bitcoin?',
+            bold: true,
+          ),
+          SailText.secondary12(
+            'Your content will be permanently stored on the Bitcoin blockchain. Maximum size: 1 MB.',
+          ),
+          const SailSpacing(SailStyleValues.padding08),
+          SailTextField(
+            controller: model.textController,
+            maxLines: 6,
+            hintText: 'Write anything here...',
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: context.sailTheme.colors.divider,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+                child: SailText.secondary12('OR'),
+              ),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: context.sailTheme.colors.divider,
+                ),
+              ),
+            ],
+          ),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailButton(
+                label: 'Choose File',
+                variant: ButtonVariant.secondary,
+                icon: SailSVGAsset.upload,
+                onPressed: () async => model.pickFile(context),
+              ),
+              if (model.selectedFileName != null) ...[
+                Expanded(
+                  child: SailText.primary13(model.selectedFileName!),
+                ),
+                SailButton(
+                  variant: ButtonVariant.ghost,
+                  icon: SailSVGAsset.iconClose,
+                  onPressed: () async => model.clearSelectedFile(),
+                ),
+              ] else
+                Expanded(
+                  child: SailText.secondary12('No file selected'),
+                ),
+            ],
+          ),
+          const SailSpacing(SailStyleValues.padding16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => model.toggleAdvancedSettings(),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: SailRow(
+                    spacing: SailStyleValues.padding04,
+                    children: [
+                      Icon(
+                        model.showAdvancedSettings ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                        size: 16,
+                        color: context.sailTheme.colors.textSecondary,
+                      ),
+                      SailText.secondary12('Advanced settings'),
+                    ],
+                  ),
+                ),
+              ),
+              SailButton(
+                label: 'Store on Bitcoin',
+                variant: model.canStore ? ButtonVariant.primary : ButtonVariant.secondary,
+                disabled: !model.canStore,
+                loading: model.isBusy,
+                loadingLabel: 'Storing...',
+                onPressed: () async => model.store(context),
+              ),
+            ],
+          ),
+          if (model.showAdvancedSettings)
+            SailCard(
+              padding: true,
+              secondary: true,
+              child: SailColumn(
+                spacing: SailStyleValues.padding12,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailCheckbox(
+                    value: model.shouldEncrypt,
+                    onChanged: model.onEncryptChanged,
+                    label: 'Encrypt content (uses your wallet key)',
+                  ),
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SizedBox(
+                        width: 150,
+                        child: NumericField(
+                          label: 'Fee (BTC)',
+                          controller: model.feeController,
+                          hintText: '0.0001',
+                        ),
+                      ),
+                      SailButton(
+                        variant: ButtonVariant.icon,
+                        icon: SailSVGAsset.arrowUp,
+                        onPressed: () async => model.adjustFee(0.0001),
+                      ),
+                      SailButton(
+                        variant: ButtonVariant.icon,
+                        icon: SailSVGAsset.arrowDown,
+                        onPressed: () async => model.adjustFee(-0.0001),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MyFilesTab extends StatelessWidget {
+  final BitDriveViewModel model;
+
+  const _MyFilesTab({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding16,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailRow(
+          spacing: SailStyleValues.padding16,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SailColumn(
+              spacing: SailStyleValues.padding04,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary15('Your files stored on Bitcoin', bold: true),
+                SailText.secondary12(
+                  '${model.downloadedFiles.length} files downloaded${model.pendingDownloadsCount > 0 ? ', ${model.pendingDownloadsCount} pending' : ''}',
+                ),
+              ],
+            ),
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailButton(
+                  label: 'Scan for new',
+                  variant: model.pendingDownloadsCount > 0 ? ButtonVariant.secondary : ButtonVariant.primary,
+                  loading: model.isScanning,
+                  loadingLabel: 'Scanning...',
+                  onPressed: () async => model.scanFiles(),
+                ),
+                SailButton(
+                  label: 'Download all',
+                  variant: model.pendingDownloadsCount > 0 ? ButtonVariant.primary : ButtonVariant.secondary,
+                  disabled: model.pendingDownloadsCount == 0,
+                  loading: model.isDownloading,
+                  loadingLabel: 'Downloading...',
+                  onPressed: () async => model.downloadFiles(),
+                ),
+              ],
+            ),
+          ],
+        ),
+        Expanded(
+          child: model.downloadedFiles.isEmpty
+              ? Center(
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SailSVG.fromAsset(
+                        SailSVGAsset.folder,
+                        color: context.sailTheme.colors.textTertiary,
+                        width: 48,
+                      ),
+                      SailText.secondary13('No files downloaded yet'),
+                      SailText.secondary12(
+                        'Click "Scan for new" to find files stored on Bitcoin',
+                        color: context.sailTheme.colors.textTertiary,
+                      ),
+                    ],
+                  ),
+                )
+              : SizedBox(
+                  height: 300,
+                  child: SailTable(
+                    getRowId: (index) => model.downloadedFiles[index].path,
+                    headerBuilder: (context) => [
+                      const SailTableHeaderCell(name: 'Date', alignment: Alignment.centerLeft),
+                      const SailTableHeaderCell(name: 'Name', alignment: Alignment.centerLeft),
+                      const SailTableHeaderCell(name: 'Size', alignment: Alignment.centerLeft),
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      final file = model.downloadedFiles[row];
+                      return [
+                        SailTableCell(
+                          value: DateFormat('MMM d, yyyy').format(file.date),
+                          alignment: Alignment.centerLeft,
+                        ),
+                        SailTableCell(
+                          value: file.name,
+                          alignment: Alignment.centerLeft,
+                        ),
+                        SailTableCell(
+                          value: _formatFileSize(file.size),
+                          alignment: Alignment.centerLeft,
+                        ),
+                      ];
+                    },
+                    rowCount: model.downloadedFiles.length,
+                    emptyPlaceholder: 'No files downloaded yet',
+                    drawGrid: true,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+class BitDriveFile {
+  final String name;
+  final String path;
+  final DateTime date;
+  final int size;
+
+  BitDriveFile({
+    required this.name,
+    required this.path,
+    required this.date,
+    required this.size,
+  });
 }
 
 class BitDriveViewModel extends BaseViewModel {
@@ -225,8 +325,11 @@ class BitDriveViewModel extends BaseViewModel {
   bool get shouldEncrypt => provider.shouldEncrypt;
   bool get canStore => textController.text.isNotEmpty || selectedFileContent != null;
   String? _bitdriveDir;
+  String? get bitdriveDir => _bitdriveDir;
 
-  // Add getters for the scan and download functionality
+  bool showAdvancedSettings = false;
+  List<BitDriveFile> downloadedFiles = [];
+
   bool get isScanning => provider.isScanning;
   bool get isDownloading => provider.isDownloading;
   int get pendingDownloadsCount => provider.pendingDownloadsCount;
@@ -234,7 +337,14 @@ class BitDriveViewModel extends BaseViewModel {
   BitDriveViewModel() {
     provider.addListener(_onProviderChanged);
     textController.addListener(() => onTextChanged(textController.text));
-    _initBitdriveDir();
+    _initBitdrive();
+  }
+
+  Future<void> _initBitdrive() async {
+    // Initialize the BitDrive provider when the user opens the BitDrive tab
+    // This triggers filesystem access only when needed (see issue #842)
+    await provider.init();
+    await _initBitdriveDir();
   }
 
   void _onProviderChanged() {
@@ -249,7 +359,11 @@ class BitDriveViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  // Implement scan and download methods
+  void toggleAdvancedSettings() {
+    showAdvancedSettings = !showAdvancedSettings;
+    notifyListeners();
+  }
+
   Future<void> scanFiles() async {
     notifyListeners();
     await provider.scanForFiles();
@@ -259,13 +373,48 @@ class BitDriveViewModel extends BaseViewModel {
   Future<void> downloadFiles() async {
     notifyListeners();
     await provider.downloadPendingFiles();
+    await _loadDownloadedFiles();
     notifyListeners();
   }
 
   Future<void> _initBitdriveDir() async {
     final appDir = await Environment.datadir();
     _bitdriveDir = path.join(appDir.path, 'bitdrive');
+    await _loadDownloadedFiles();
     notifyListeners();
+  }
+
+  Future<void> _loadDownloadedFiles() async {
+    if (_bitdriveDir == null) return;
+
+    try {
+      final dir = Directory(_bitdriveDir!);
+      if (!await dir.exists()) {
+        downloadedFiles = [];
+        return;
+      }
+
+      final files = <BitDriveFile>[];
+      await for (final entity in dir.list()) {
+        if (entity is File) {
+          final stat = await entity.stat();
+          files.add(
+            BitDriveFile(
+              name: path.basename(entity.path),
+              path: entity.path,
+              date: stat.modified,
+              size: stat.size,
+            ),
+          );
+        }
+      }
+
+      files.sort((a, b) => b.date.compareTo(a.date));
+      downloadedFiles = files;
+      notifyListeners();
+    } catch (e) {
+      log.e('Error loading downloaded files: $e');
+    }
   }
 
   Future<void> openBitdriveDir() async {
@@ -281,7 +430,6 @@ class BitDriveViewModel extends BaseViewModel {
       } else if (Platform.isLinux) {
         await Process.run('xdg-open', [_bitdriveDir!]);
       } else if (Platform.isWindows) {
-        // On Windows, we need to convert path to use backslashes and properly escape them
         final windowsPath = _bitdriveDir!.replaceAll('/', '\\');
         await Process.run('explorer', [windowsPath]);
       }
@@ -306,7 +454,6 @@ class BitDriveViewModel extends BaseViewModel {
 
   void onTextChanged(String value) {
     provider.setTextContent(value);
-    // Clear any selected file when text is entered
     if (value.isNotEmpty) {
       selectedFileName = null;
       selectedFileContent = null;
@@ -388,7 +535,7 @@ class BitDriveViewModel extends BaseViewModel {
     try {
       await provider.store();
       if (context.mounted) {
-        showSnackBar(context, 'Content stored successfully');
+        showSnackBar(context, 'Content stored on Bitcoin!');
         textController.clear();
         selectedFileName = null;
         selectedFileContent = null;
