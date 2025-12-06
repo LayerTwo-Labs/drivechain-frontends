@@ -28,93 +28,93 @@ class AmmTabPage extends StatelessWidget {
                     SailColumn(
                       spacing: SailStyleValues.padding08,
                       children: [
-                    // Asset to spend
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.primary13('You pay'),
-                        const SizedBox(height: 4),
-                        SailRow(
-                          spacing: SailStyleValues.padding08,
+                        // Asset to spend
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 2,
-                              child: SailDropdownButton<String>(
-                                value: model.assetSpend,
-                                items: model.assetOptions,
-                                onChanged: (value) => model.setAssetSpend(value),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: SailTextField(
-                                hintText: '0',
-                                controller: model.amountSpendController,
-                                suffix: model.assetSpend.isEmpty ? 'BTC' : null,
-                              ),
+                            SailText.primary13('You pay'),
+                            const SizedBox(height: 4),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: SailDropdownButton<String>(
+                                    value: model.assetSpend,
+                                    items: model.assetOptions,
+                                    onChanged: (value) => model.setAssetSpend(value),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: SailTextField(
+                                    hintText: '0',
+                                    controller: model.amountSpendController,
+                                    suffix: model.assetSpend.isEmpty ? 'BTC' : null,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
 
-                    // Swap direction button
-                    Center(
-                      child: IconButton(
-                        icon: SailSVG.icon(SailSVGAsset.iconArrow, width: 24),
-                        onPressed: model.swapAssets,
-                        tooltip: 'Swap direction',
-                      ),
-                    ),
+                        // Swap direction button
+                        Center(
+                          child: IconButton(
+                            icon: SailSVG.icon(SailSVGAsset.iconArrow, width: 24),
+                            onPressed: model.swapAssets,
+                            tooltip: 'Swap direction',
+                          ),
+                        ),
 
-                    // Asset to receive
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.primary13('You receive (estimated)'),
-                        const SizedBox(height: 4),
-                        SailRow(
-                          spacing: SailStyleValues.padding08,
+                        // Asset to receive
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 2,
-                              child: SailDropdownButton<String>(
-                                value: model.assetReceive,
-                                items: model.assetOptions,
-                                onChanged: (value) => model.setAssetReceive(value),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: SailTextField(
-                                hintText: '0',
-                                controller: model.amountReceiveController,
-                                readOnly: true,
-                                suffix: model.assetReceive.isEmpty ? 'BTC' : null,
-                              ),
+                            SailText.primary13('You receive (estimated)'),
+                            const SizedBox(height: 4),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: SailDropdownButton<String>(
+                                    value: model.assetReceive,
+                                    items: model.assetOptions,
+                                    onChanged: (value) => model.setAssetReceive(value),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: SailTextField(
+                                    hintText: '0',
+                                    controller: model.amountReceiveController,
+                                    readOnly: true,
+                                    suffix: model.assetReceive.isEmpty ? 'BTC' : null,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
 
-                    // Price info
-                    if (model.priceInfo != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: context.sailTheme.colors.backgroundSecondary,
-                          borderRadius: SailStyleValues.borderRadius,
-                        ),
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SailText.secondary13('Rate'),
-                            SailText.primary13(model.priceInfo!, monospace: true),
-                          ],
-                        ),
-                      ),
+                        // Price info
+                        if (model.priceInfo != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: context.sailTheme.colors.backgroundSecondary,
+                              borderRadius: SailStyleValues.borderRadius,
+                            ),
+                            child: SailRow(
+                              spacing: SailStyleValues.padding08,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                SailText.secondary13('Rate'),
+                                SailText.primary13(model.priceInfo!, monospace: true),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
 
@@ -142,9 +142,7 @@ class AmmTabPage extends StatelessWidget {
                               : null,
                         ),
                         child: TextButton(
-                          onPressed: model.canSwap && !model.swapLoading
-                              ? () => model.executeSwap(context)
-                              : null,
+                          onPressed: model.canSwap && !model.swapLoading ? () => model.executeSwap(context) : null,
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,
@@ -274,7 +272,8 @@ class AmmSwapViewModel extends BaseViewModel {
         final base = price['base'];
         final quote = price['quote'];
         if (base != null && quote != null) {
-          priceInfo = '1 ${_assetLabel(assetSpend)} = ${(quote / base).toStringAsFixed(6)} ${_assetLabel(assetReceive)}';
+          priceInfo =
+              '1 ${_assetLabel(assetSpend)} = ${(quote / base).toStringAsFixed(6)} ${_assetLabel(assetReceive)}';
 
           // Update estimated receive amount
           final spendAmount = int.tryParse(amountSpendController.text);
