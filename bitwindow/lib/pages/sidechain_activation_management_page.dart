@@ -188,6 +188,7 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
         ];
       },
       rowCount: blocks.length,
+      emptyPlaceholder: 'No active sidechains',
       sortColumnIndex: ['slot', 'active', 'name', 'chaintipTxid'].indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
@@ -345,6 +346,7 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
         ];
       },
       rowCount: widget.proposals.length,
+      emptyPlaceholder: 'No pending sidechain proposals',
       sortColumnIndex: ['voteCount', 'slot', 'age', 'fails', 'hash'].indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {

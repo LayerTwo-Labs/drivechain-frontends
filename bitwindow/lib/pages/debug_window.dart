@@ -375,6 +375,7 @@ class _PeersTabState extends State<PeersTab> {
           ];
         },
         rowCount: peers.length,
+        emptyPlaceholder: 'No peers connected',
         onDoubleTap: (index) {
           showDialog(
             context: context,

@@ -79,6 +79,7 @@ class ChainMerchantsDialog extends StatelessWidget {
             ];
           },
           rowCount: merchants.length,
+          emptyPlaceholder: 'No merchants available',
           backgroundColor: context.sailTheme.colors.backgroundSecondary,
           onDoubleTap: (rowId) async {
             final index = int.parse(rowId);

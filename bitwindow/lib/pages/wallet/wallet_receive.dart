@@ -240,6 +240,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                     ];
                   },
                   rowCount: entries.length,
+                  emptyPlaceholder: 'No receive addresses yet',
                   drawGrid: true,
                   sortColumnIndex: [
                     'last_used_at',

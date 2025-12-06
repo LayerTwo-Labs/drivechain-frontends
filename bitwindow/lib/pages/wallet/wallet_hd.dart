@@ -594,15 +594,6 @@ class AddressTable extends StatelessWidget {
         const SailTableHeaderCell(name: 'Private Key (WIF)                                                         '),
       ],
       rowBuilder: (context, row, selected) {
-        if (entries.isEmpty) {
-          return [
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-          ];
-        }
-
         final entry = entries[row];
         return [
           SailTableCell(
@@ -647,7 +638,8 @@ class AddressTable extends StatelessWidget {
           ),
         ];
       },
-      rowCount: entries.isEmpty ? 10 : entries.length,
+      rowCount: entries.isEmpty ? 0 : entries.length,
+      emptyPlaceholder: 'Enter a mnemonic and derivation path to derive addresses',
     );
   }
 }

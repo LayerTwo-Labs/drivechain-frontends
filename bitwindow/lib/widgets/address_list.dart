@@ -283,6 +283,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
           ];
         },
         rowCount: widget.viewModel.entries.length,
+        emptyPlaceholder: 'No addresses in address book',
         drawGrid: true,
         sortColumnIndex: ['label', 'address', 'actions'].indexOf(sortColumn),
         sortAscending: sortAscending,

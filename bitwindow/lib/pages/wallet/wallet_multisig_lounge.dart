@@ -439,19 +439,6 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
         const SailTableHeaderCell(name: 'TXID (If Broadcasted)'),
       ],
       rowBuilder: (context, row, selected) {
-        if (_sortedGroups.isEmpty) {
-          return [
-            const SailTableCell(value: 'No multisig groups yet'),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-          ];
-        }
-
         final group = _sortedGroups[row];
         return [
           SailTableCell(value: group.name),
@@ -464,7 +451,8 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
           _buildTxidCell(group),
         ];
       },
-      rowCount: _sortedGroups.isEmpty ? 1 : _sortedGroups.length,
+      rowCount: _sortedGroups.length,
+      emptyPlaceholder: 'No multisig groups yet',
       drawGrid: true,
       sortColumnIndex: [
         'name',
@@ -763,20 +751,6 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
         const SailTableHeaderCell(name: 'Action'),
       ],
       rowBuilder: (context, row, selected) {
-        if (_sortedTransactionRows.isEmpty) {
-          return [
-            const SailTableCell(value: 'No transactions yet'),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-            const SailTableCell(value: ''),
-          ];
-        }
-
         final txRow = _sortedTransactionRows[row];
         final tx = txRow.transaction;
         final group = widget.groups.firstWhere(
@@ -809,7 +783,8 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
           _buildActionCell(txRow, tx, group),
         ];
       },
-      rowCount: _sortedTransactionRows.isEmpty ? 1 : _sortedTransactionRows.length,
+      rowCount: _sortedTransactionRows.length,
+      emptyPlaceholder: 'No transactions yet',
       drawGrid: true,
       sortColumnIndex: [
         'group',
