@@ -26,7 +26,7 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
         title: 'Extra Coin News Actions',
         items: [
           ExtraActionItem(
-            label: 'Create Topic',
+            label: 'Manage Topics',
             icon: SailSVGAsset.newspaper,
             onSelect: () => displayCreateTopicDialog(context),
           ),
@@ -192,7 +192,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                                 title: 'Extra Coin News Actions',
                                 items: [
                                   ExtraActionItem(
-                                    label: 'Create Topic',
+                                    label: 'Manage Topics',
                                     icon: SailSVGAsset.newspaper,
                                     onSelect: () => displayCreateTopicDialog(context),
                                   ),
@@ -937,6 +937,7 @@ class CoinNewsTable extends StatelessWidget {
             ];
           },
           rowCount: entries.length,
+          emptyPlaceholder: 'No news articles yet',
           drawGrid: true,
           onSort: (columnIndex, ascending) {
             onSort(['date', 'topic', 'title', 'readtime'][columnIndex]);

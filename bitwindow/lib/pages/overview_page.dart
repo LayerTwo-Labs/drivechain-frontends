@@ -369,6 +369,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         ];
       },
       rowCount: widget.entries.length,
+      emptyPlaceholder: 'No transactions yet',
       drawGrid: true,
       sortColumnIndex: ['time', 'fee', 'txid', 'size', 'height'].indexOf(sortColumn),
       sortAscending: sortAscending,
@@ -459,6 +460,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
         ];
       },
       rowCount: widget.blocks.length,
+      emptyPlaceholder: 'No blocks yet',
       drawGrid: true,
       sortColumnIndex: ['time', 'height', 'hash'].indexOf(sortColumn),
       sortAscending: sortAscending,
@@ -490,9 +492,10 @@ Future<void> displayNewsOverviewDialog(BuildContext context, {required CoinNews 
 Future<void> displayCreateTopicDialog(BuildContext context) async {
   await widgetDialog(
     context: context,
-    title: 'Create Topic',
-    subtitle: 'Create a new topic, that you and others can subscribe to, and post news for.',
-    child: const CreateTopicView(),
+    title: 'Manage News Subscriptions',
+    subtitle: 'View, subscribe to, and create news topics',
+    maxWidth: 700,
+    child: const ManageNewsSubscriptionsView(),
   );
 }
 
@@ -503,6 +506,27 @@ Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
     subtitle: 'List all previous OP_RETURN messages found in the blockchain.',
     maxWidth: MediaQuery.of(context).size.width - 100,
     child: const GraffitiExplorerView(),
+  );
+}
+
+void _showNewsHelp(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('News Help'),
+      content: const Text(
+        'With this page you can pay a fee to broadcast news on any topic. '
+        'Clicking "Broadcast" will create a transaction with an OP_RETURN '
+        'output that encodes the text you have entered. Anyone subscribed to '
+        'the topic will see posts filtered by time and sorted by fee amount.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
   );
 }
 
@@ -552,10 +576,23 @@ class BroadcastNewsView extends StatelessWidget {
                 minLines: 10,
                 maxLines: null,
               ),
-              SailButton(
-                label: 'Broadcast',
-                onPressed: () => viewModel.broadcastNews(context),
-                disabled: viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 64,
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SailButton(
+                    label: 'Help',
+                    variant: ButtonVariant.ghost,
+                    icon: SailSVGAsset.iconQuestion,
+                    onPressed: () async => _showNewsHelp(context),
+                  ),
+                  SailButton(
+                    label: 'Broadcast',
+                    onPressed: () async => viewModel.broadcastNews(context),
+                    disabled:
+                        viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 64,
+                  ),
+                ],
               ),
             ],
           ),
@@ -687,92 +724,230 @@ class NewsOverviewView extends StatelessWidget {
   }
 }
 
-class CreateTopicView extends StatelessWidget {
-  const CreateTopicView({
-    super.key,
-  });
+class ManageNewsSubscriptionsView extends StatelessWidget {
+  const ManageNewsSubscriptionsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<CreateTopicViewModel>.reactive(
-      viewModelBuilder: () => CreateTopicViewModel(),
+    return ViewModelBuilder<ManageNewsSubscriptionsViewModel>.reactive(
+      viewModelBuilder: () => ManageNewsSubscriptionsViewModel(),
       builder: (context, viewModel, child) {
-        final pendingTopics = viewModel.topics.where((t) => !t.confirmed).toList();
-        return SailColumn(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: SailStyleValues.padding16,
-          mainAxisSize: MainAxisSize.min,
-          leadingSpacing: true,
-          children: [
-            SailTextField(
-              label: 'Identifier (exactly 8 hex characters)',
-              controller: viewModel.identifierController,
-              hintText: 'Enter a hex-identifier',
-              size: TextFieldSize.small,
-            ),
-            SailTextField(
-              label: 'Name (max 20 characters)',
-              controller: viewModel.nameController,
-              hintText: 'Enter a name (e.g. "US Weekly")',
-              size: TextFieldSize.small,
-            ),
-            SailButton(
-              label: 'Create',
-              onPressed: () => viewModel.createTopic(context),
-              disabled:
-                  viewModel.identifierController.text.isEmpty ||
-                  viewModel.nameController.text.isEmpty ||
-                  viewModel.identifierController.text.length != 8,
-            ),
-            if (pendingTopics.isNotEmpty) ...[
-              const SailSpacing(8),
-              SailText.secondary13('Pending Topics (awaiting confirmation)'),
-              ...pendingTopics.map(
-                (topic) => InkWell(
-                  onDoubleTap: () => showTransactionDetails(context, topic.txid),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: context.sailTheme.colors.backgroundSecondary,
-                      borderRadius: SailStyleValues.borderRadius,
-                    ),
-                    child: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailText.primary13(topic.name),
-                        SailText.secondary12('(${topic.topic})'),
-                        const Spacer(),
-                        SailText.secondary12(
-                          'double-click to view tx',
-                          italic: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+        return SizedBox(
+          height: 400,
+          child: InlineTabBar(
+            tabs: [
+              SingleTabItem(
+                label: 'Your Topics',
+                child: _YourTopicsTab(viewModel: viewModel),
+              ),
+              SingleTabItem(
+                label: 'Subscribe',
+                child: _SubscribeTab(viewModel: viewModel),
+              ),
+              SingleTabItem(
+                label: 'Create Topic',
+                child: _CreateTopicTab(viewModel: viewModel),
               ),
             ],
-          ],
+          ),
         );
       },
     );
   }
 }
 
-class CreateTopicViewModel extends BaseViewModel {
+class _YourTopicsTab extends StatelessWidget {
+  final ManageNewsSubscriptionsViewModel viewModel;
+
+  const _YourTopicsTab({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding16,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SailTable(
+            getRowId: (index) => viewModel.topics[index].topic,
+            headerBuilder: (context) => [
+              const SailTableHeaderCell(name: 'Name'),
+              const SailTableHeaderCell(name: 'Identifier'),
+              const SailTableHeaderCell(name: 'Status'),
+            ],
+            rowBuilder: (context, row, selected) {
+              final topic = viewModel.topics[row];
+              return [
+                SailTableCell(value: topic.name),
+                SailTableCell(value: topic.topic, monospace: true),
+                SailTableCell(
+                  value: topic.confirmed ? 'Confirmed' : 'Pending',
+                  textColor: topic.confirmed ? context.sailTheme.colors.success : context.sailTheme.colors.orangeLight,
+                ),
+              ];
+            },
+            rowCount: viewModel.topics.length,
+            emptyPlaceholder: 'No topics subscribed',
+            drawGrid: true,
+            onDoubleTap: (rowId) {
+              final topic = viewModel.topics.firstWhere((t) => t.topic == rowId);
+              if (topic.txid.isNotEmpty) {
+                showTransactionDetails(context, topic.txid);
+              }
+            },
+          ),
+        ),
+        SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailButton(
+              label: 'Export',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => viewModel.exportTopics(context),
+            ),
+            SailButton(
+              label: 'Import',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => viewModel.importTopics(context),
+            ),
+            const Spacer(),
+            SailButton(
+              label: 'Restore Defaults',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => viewModel.restoreDefaults(context),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SubscribeTab extends StatelessWidget {
+  final ManageNewsSubscriptionsViewModel viewModel;
+
+  const _SubscribeTab({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding16,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SailText.secondary13('Add news topic by URL:'),
+        SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            Expanded(
+              child: SailTextField(
+                controller: viewModel.urlController,
+                hintText: 'Enter URL e.g. 7{a1a1a1a1}US Weekly',
+              ),
+            ),
+            SailButton(
+              label: 'Paste',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => viewModel.pasteUrl(),
+            ),
+            SailButton(
+              label: 'Add',
+              onPressed: viewModel.urlController.text.isNotEmpty ? () async => viewModel.addFromUrl(context) : null,
+            ),
+          ],
+        ),
+        const SailSpacing(SailStyleValues.padding16),
+        SailText.secondary12(
+          'URL format: {days}{identifier}Name\n'
+          'Example: 7{a1a1a1a1}US Weekly means a topic named "US Weekly" with identifier a1a1a1a1 and 7 day retention',
+          color: context.sailTheme.colors.textTertiary,
+        ),
+      ],
+    );
+  }
+}
+
+class _CreateTopicTab extends StatelessWidget {
+  final ManageNewsSubscriptionsViewModel viewModel;
+
+  const _CreateTopicTab({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final pendingTopics = viewModel.topics.where((t) => !t.confirmed).toList();
+
+    return SingleChildScrollView(
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SailTextField(
+            label: 'Title',
+            controller: viewModel.nameController,
+            hintText: 'Enter title (e.g. "US Weekly")',
+          ),
+          SailTextField(
+            label: 'Header Bytes (8 hex chars to identify this news type)',
+            controller: viewModel.identifierController,
+            hintText: 'Enter header bytes e.g. A1A1A1A1',
+          ),
+          SailButton(
+            label: 'Create Topic',
+            onPressed: viewModel.canCreate ? () async => viewModel.createTopic(context) : null,
+          ),
+          if (pendingTopics.isNotEmpty) ...[
+            const SailSpacing(SailStyleValues.padding08),
+            SailText.secondary13('Pending Topics (awaiting confirmation)'),
+            ...pendingTopics.map(
+              (topic) => InkWell(
+                onDoubleTap: () => showTransactionDetails(context, topic.txid),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: context.sailTheme.colors.backgroundSecondary,
+                    borderRadius: SailStyleValues.borderRadius,
+                  ),
+                  child: SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SailText.primary13(topic.name),
+                      SailText.secondary12('(${topic.topic})'),
+                      const Spacer(),
+                      SailText.secondary12(
+                        'double-click to view tx',
+                        italic: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class ManageNewsSubscriptionsViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
-
-  late Topic topic;
 
   List<Topic> get topics => _newsProvider.topics;
 
   final TextEditingController identifierController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
+  final TextEditingController urlController = TextEditingController();
 
-  CreateTopicViewModel() {
+  bool get canCreate =>
+      identifierController.text.isNotEmpty && nameController.text.isNotEmpty && identifierController.text.length == 8;
+
+  ManageNewsSubscriptionsViewModel() {
+    _newsProvider.addListener(notifyListeners);
     identifierController.addListener(notifyListeners);
     nameController.addListener(notifyListeners);
+    urlController.addListener(notifyListeners);
   }
 
   Future<void> createTopic(BuildContext context) async {
@@ -780,16 +955,16 @@ class CreateTopicViewModel extends BaseViewModel {
       return;
     }
     if (identifierController.text.length != 8) {
-      showSnackBar(context, 'identifier must be exactly 8 characters');
+      showSnackBar(context, 'Identifier must be exactly 8 hex characters');
       return;
     }
     final hexRegex = RegExp(r'^[0-9A-Fa-f]+$');
     if (!hexRegex.hasMatch(identifierController.text)) {
-      showSnackBar(context, 'identifier must contain only valid hex characters (0-9, A-F)');
+      showSnackBar(context, 'Identifier must contain only valid hex characters (0-9, A-F)');
       return;
     }
     if (nameController.text.length > 20) {
-      showSnackBar(context, 'name must be 20 characters or less');
+      showSnackBar(context, 'Name must be 20 characters or less');
       return;
     }
 
@@ -797,19 +972,142 @@ class CreateTopicViewModel extends BaseViewModel {
       final response = await _api.misc.createTopic(identifierController.text, nameController.text);
       await _newsProvider.fetch();
       if (!context.mounted) return;
-      Navigator.of(context).pop();
-      showSnackBar(context, 'topic created! txid: ${response.txid.substring(0, 8)}...');
+      showSnackBar(context, 'Topic created! txid: ${response.txid.substring(0, 8)}...');
+      identifierController.clear();
+      nameController.clear();
     } catch (e) {
-      showSnackBar(context, 'could not create topic: $e');
+      showSnackBar(context, 'Could not create topic: $e');
+    }
+  }
+
+  Future<void> pasteUrl() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text != null) {
+      urlController.text = data!.text!;
+    }
+  }
+
+  Future<void> addFromUrl(BuildContext context) async {
+    final url = urlController.text.trim();
+    if (url.isEmpty) return;
+
+    // Parse URL format: {days}{identifier}Name
+    // Example: 7{a1a1a1a1}US Weekly
+    final regex = RegExp(r'^(\d+)\{([a-fA-F0-9]{8})\}(.+)$');
+    final match = regex.firstMatch(url);
+
+    if (match == null) {
+      showSnackBar(context, 'Invalid URL format. Expected: {days}{identifier}Name');
+      return;
+    }
+
+    final identifier = match.group(2)!;
+    final name = match.group(3)!;
+
+    try {
+      final response = await _api.misc.createTopic(identifier, name);
+      await _newsProvider.fetch();
+      if (!context.mounted) return;
+      showSnackBar(context, 'Subscribed to "$name"! txid: ${response.txid.substring(0, 8)}...');
+      urlController.clear();
+    } catch (e) {
+      showSnackBar(context, 'Could not subscribe: $e');
+    }
+  }
+
+  Future<void> exportTopics(BuildContext context) async {
+    final urls = topics.map((t) => '7{${t.topic}}${t.name}').join('\n');
+    await Clipboard.setData(ClipboardData(text: urls));
+    if (!context.mounted) return;
+    showSnackBar(context, 'Topics exported to clipboard');
+  }
+
+  Future<void> importTopics(BuildContext context) async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text == null || data!.text!.isEmpty) {
+      if (!context.mounted) return;
+      showSnackBar(context, 'Clipboard is empty');
+      return;
+    }
+
+    final lines = data.text!.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    var imported = 0;
+    var failed = 0;
+
+    for (final line in lines) {
+      final regex = RegExp(r'^(\d+)\{([a-fA-F0-9]{8})\}(.+)$');
+      final match = regex.firstMatch(line.trim());
+
+      if (match != null) {
+        final identifier = match.group(2)!;
+        final name = match.group(3)!;
+
+        // Check if already subscribed
+        if (topics.any((t) => t.topic == identifier)) {
+          continue;
+        }
+
+        try {
+          await _api.misc.createTopic(identifier, name);
+          imported++;
+        } catch (e) {
+          failed++;
+        }
+      } else {
+        failed++;
+      }
+    }
+
+    await _newsProvider.fetch();
+    if (!context.mounted) return;
+
+    if (imported > 0) {
+      showSnackBar(context, 'Imported $imported topic(s)${failed > 0 ? ', $failed failed' : ''}');
+    } else if (failed > 0) {
+      showSnackBar(context, 'Failed to import $failed topic(s)');
+    } else {
+      showSnackBar(context, 'No new topics to import');
+    }
+  }
+
+  Future<void> restoreDefaults(BuildContext context) async {
+    // Default topics from mainchain-deprecated
+    const defaults = [
+      ('a1a1a1a1', 'US Weekly'),
+      ('a2a2a2a2', 'Japan Weekly'),
+    ];
+
+    var restored = 0;
+    for (final (identifier, name) in defaults) {
+      if (!topics.any((t) => t.topic == identifier)) {
+        try {
+          await _api.misc.createTopic(identifier, name);
+          restored++;
+        } catch (e) {
+          // Ignore errors for defaults
+        }
+      }
+    }
+
+    await _newsProvider.fetch();
+    if (!context.mounted) return;
+
+    if (restored > 0) {
+      showSnackBar(context, 'Restored $restored default topic(s)');
+    } else {
+      showSnackBar(context, 'All default topics already exist');
     }
   }
 
   @override
   void dispose() {
+    _newsProvider.removeListener(notifyListeners);
     identifierController.removeListener(notifyListeners);
     identifierController.dispose();
     nameController.removeListener(notifyListeners);
     nameController.dispose();
+    urlController.removeListener(notifyListeners);
+    urlController.dispose();
     super.dispose();
   }
 }
@@ -902,6 +1200,9 @@ class GraffitiExplorerView extends StatelessWidget {
     return ViewModelBuilder<GraffitiExplorerViewModel>.reactive(
       viewModelBuilder: () => GraffitiExplorerViewModel(),
       builder: (context, viewModel, child) {
+        final hasFilters =
+            viewModel.fromDate != null || viewModel.toDate != null || viewModel.searchController.text.isNotEmpty;
+
         return SailCard(
           title: 'Graffiti Explorer',
           subtitle: 'Browse blockchain graffiti and OP_RETURN data',
@@ -909,9 +1210,57 @@ class GraffitiExplorerView extends StatelessWidget {
             label: 'New Graffiti',
             onPressed: () => newGraffitiDialog(context),
           ),
-          child: GraffitiTable(
-            entries: viewModel.entries,
-            onSort: viewModel.onSort,
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            children: [
+              SailRow(
+                spacing: SailStyleValues.padding16,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: SailTextField(
+                      hintText: 'Search by message or txid...',
+                      controller: viewModel.searchController,
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 8),
+                        child: SailSVG.fromAsset(
+                          SailSVGAsset.search,
+                          color: context.sailTheme.colors.textTertiary,
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(maxHeight: 20, maxWidth: 40),
+                    ),
+                  ),
+                  Expanded(
+                    child: _DatePickerField(
+                      label: 'From',
+                      value: viewModel.fromDate,
+                      onChanged: viewModel.setFromDate,
+                      lastDate: viewModel.toDate ?? DateTime.now(),
+                    ),
+                  ),
+                  Expanded(
+                    child: _DatePickerField(
+                      label: 'To',
+                      value: viewModel.toDate,
+                      onChanged: viewModel.setToDate,
+                      firstDate: viewModel.fromDate,
+                      lastDate: DateTime.now(),
+                    ),
+                  ),
+                  if (hasFilters)
+                    SailButton(
+                      label: 'Clear',
+                      variant: ButtonVariant.secondary,
+                      onPressed: () async => viewModel.clearFilters(),
+                    ),
+                ],
+              ),
+              GraffitiTable(
+                entries: viewModel.entries,
+                onSort: viewModel.onSort,
+              ),
+            ],
           ),
         );
       },
@@ -928,31 +1277,122 @@ class GraffitiExplorerView extends StatelessWidget {
   }
 }
 
+class _DatePickerField extends StatelessWidget {
+  final String label;
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChanged;
+  final DateTime? firstDate;
+  final DateTime? lastDate;
+
+  const _DatePickerField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.firstDate,
+    this.lastDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: firstDate ?? DateTime(2009),
+          lastDate: lastDate ?? DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.dark(
+                  primary: theme.colors.primary,
+                  onPrimary: theme.colors.text,
+                  surface: theme.colors.background,
+                  onSurface: theme.colors.text,
+                ),
+                dialogTheme: DialogThemeData(backgroundColor: theme.colors.background),
+              ),
+              child: child!,
+            );
+          },
+        );
+        onChanged(picked);
+      },
+      borderRadius: SailStyleValues.borderRadius,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadius,
+          border: Border.all(color: theme.colors.border),
+        ),
+        child: SailRow(
+          spacing: SailStyleValues.padding08,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SailText.secondary12(
+              value != null ? formatDate(value!) : label,
+              color: value != null ? theme.colors.text : theme.colors.textTertiary,
+            ),
+            SailSVG.fromAsset(
+              SailSVGAsset.calendar,
+              color: theme.colors.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class GraffitiExplorerViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
+  final TextEditingController searchController = TextEditingController();
 
   String _sortColumn = 'time';
-  bool _sortAscending = true;
-  List<OPReturn> get entries => _newsProvider.opReturns;
+  bool _sortAscending = false;
 
-  GraffitiExplorerViewModel() {
-    _newsProvider.fetch();
-    _newsProvider.addListener(notifyListeners);
-  }
+  // Date range filter
+  DateTime? _fromDate;
+  DateTime? _toDate;
 
-  void onSort(String column) {
-    if (_sortColumn == column) {
-      _sortAscending = !_sortAscending;
-    } else {
-      _sortColumn = column;
-      _sortAscending = true;
-    }
-    _sortEntries();
-    notifyListeners();
-  }
+  DateTime? get fromDate => _fromDate;
+  DateTime? get toDate => _toDate;
 
-  void _sortEntries() {
-    entries.sort((a, b) {
+  List<OPReturn> get allEntries => _newsProvider.opReturns;
+
+  List<OPReturn> get entries {
+    var filtered = allEntries.where((entry) {
+      // Apply search filter
+      if (searchController.text.isNotEmpty) {
+        final searchLower = searchController.text.toLowerCase();
+        if (!entry.message.toLowerCase().contains(searchLower) && !entry.txid.toLowerCase().contains(searchLower)) {
+          return false;
+        }
+      }
+
+      // Apply date range filter
+      final entryDate = entry.createTime.toDateTime();
+      if (_fromDate != null) {
+        final fromStart = DateTime(_fromDate!.year, _fromDate!.month, _fromDate!.day);
+        if (entryDate.isBefore(fromStart)) {
+          return false;
+        }
+      }
+      if (_toDate != null) {
+        final toEnd = DateTime(_toDate!.year, _toDate!.month, _toDate!.day, 23, 59, 59);
+        if (entryDate.isAfter(toEnd)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
+    // Apply sorting
+    filtered.sort((a, b) {
       dynamic aValue = '';
       dynamic bValue = '';
 
@@ -969,15 +1409,56 @@ class GraffitiExplorerViewModel extends BaseViewModel {
           aValue = a.height;
           bValue = b.height;
           break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
       }
 
       return _sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
+
+    return filtered;
+  }
+
+  GraffitiExplorerViewModel() {
+    _newsProvider.fetch();
+    _newsProvider.addListener(notifyListeners);
+    searchController.addListener(notifyListeners);
+  }
+
+  void setFromDate(DateTime? date) {
+    _fromDate = date;
+    notifyListeners();
+  }
+
+  void setToDate(DateTime? date) {
+    _toDate = date;
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    _fromDate = null;
+    _toDate = null;
+    searchController.clear();
+    notifyListeners();
+  }
+
+  void onSort(String column) {
+    if (_sortColumn == column) {
+      _sortAscending = !_sortAscending;
+    } else {
+      _sortColumn = column;
+      _sortAscending = column != 'time';
+    }
+    notifyListeners();
   }
 
   @override
   void dispose() {
     _newsProvider.removeListener(notifyListeners);
+    searchController.removeListener(notifyListeners);
+    searchController.dispose();
     super.dispose();
   }
 }
@@ -1018,6 +1499,7 @@ class GraffitiTable extends StatelessWidget {
           ];
         },
         rowCount: entries.length,
+        emptyPlaceholder: 'No graffiti found',
         onSort: (columnIndex, ascending) {
           onSort(['message', 'time', 'height'][columnIndex]);
         },
