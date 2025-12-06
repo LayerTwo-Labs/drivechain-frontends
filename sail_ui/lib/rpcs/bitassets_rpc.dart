@@ -24,6 +24,9 @@ abstract class BitAssetsRPC extends SidechainRPC {
   /// Connect to a peer
   Future<void> connectPeer(String address);
 
+  /// Forget/delete a peer from known_peers DB (connections are not terminated)
+  Future<void> forgetPeer(String address);
+
   /// List peers
   Future<List<BitAssetsPeerInfo>> listPeers();
 
@@ -70,6 +73,12 @@ abstract class BitAssetsRPC extends SidechainRPC {
   @override
   Future<List<SidechainUTXO>> listUTXOs();
 
+  /// List unconfirmed owned UTXOs
+  Future<List<SidechainUTXO>> myUnconfirmedUtxos();
+
+  /// Remove a transaction from the mempool
+  Future<void> removeFromMempool(String txid);
+
   /// Get OpenAPI schema
   Future<Map<String, dynamic>> openapiSchema();
 
@@ -79,6 +88,14 @@ abstract class BitAssetsRPC extends SidechainRPC {
 
   /// Transfer funds to the specified address
   Future<String> transfer({required String dest, required int value, required int fee, String? memo});
+
+  /// Transfer BitAsset tokens to the specified address
+  Future<String> transferBitAsset({
+    required String assetId,
+    required String dest,
+    required int amount,
+    required int feeSats,
+  });
 
   /// Get new verifying/signing key
   Future<String> getNewVerifyingKey();
@@ -324,6 +341,11 @@ class BitAssetsLive extends BitAssetsRPC {
   }
 
   @override
+  Future<void> forgetPeer(String address) async {
+    await _client().call('forget_peer', address);
+  }
+
+  @override
   Future<List<BitAssetsPeerInfo>> listPeers() async {
     final response = await _client().call('list_peers') as List<dynamic>;
     return response.map((item) => BitAssetsPeerInfo.fromJson(item as Map<String, dynamic>)).toList();
@@ -374,6 +396,17 @@ class BitAssetsLive extends BitAssetsRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> myUnconfirmedUtxos() async {
+    final response = await _client().call('my_unconfirmed_utxos') as List<dynamic>;
+    return response.map((e) => BitAssetsUTXO.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<void> removeFromMempool(String txid) async {
+    await _client().call('remove_from_mempool', txid);
+  }
+
+  @override
   Future<Map<String, dynamic>> openapiSchema() async {
     final response = await _client().call('openapi_schema');
     return response as Map<String, dynamic>;
@@ -388,6 +421,22 @@ class BitAssetsLive extends BitAssetsRPC {
   @override
   Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
     final response = await _client().call('transfer', {'dest': dest, 'value': value, 'fee': fee, 'memo': memo});
+    return response as String;
+  }
+
+  @override
+  Future<String> transferBitAsset({
+    required String assetId,
+    required String dest,
+    required int amount,
+    required int feeSats,
+  }) async {
+    final response = await _client().call('transfer_bitasset', {
+      'asset_id': assetId,
+      'dest': dest,
+      'amount': amount,
+      'fee_sats': feeSats,
+    });
     return response as String;
   }
 
@@ -607,7 +656,7 @@ final bitAssetsRPCMethods = [
   'amm_burn',
   'amm_mint',
   'amm_swap',
-  'balance',
+  'bitcoin_balance',
   'bitasset_data',
   'bitassets',
   'connect_peer',
@@ -618,6 +667,7 @@ final bitAssetsRPCMethods = [
   'dutch_auction_create',
   'dutch_auctions',
   'encrypt_msg',
+  'forget_peer',
   'format_deposit_address',
   'generate_mnemonic',
   'get_amm_pool_state',
@@ -638,10 +688,12 @@ final bitAssetsRPCMethods = [
   'list_peers',
   'list_utxos',
   'mine',
+  'my_unconfirmed_utxos',
   'my_utxos',
   'openapi_schema',
   'pending_withdrawal_bundle',
   'register_bitasset',
+  'remove_from_mempool',
   'reserve_bitasset',
   'set_seed_from_mnemonic',
   'sidechain_wealth_sats',
@@ -649,6 +701,7 @@ final bitAssetsRPCMethods = [
   'sign_arbitrary_msg_as_addr',
   'stop',
   'transfer',
+  'transfer_bitasset',
   'verify_signature',
   'withdraw',
 ];

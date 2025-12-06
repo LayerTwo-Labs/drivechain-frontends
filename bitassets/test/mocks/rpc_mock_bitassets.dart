@@ -43,6 +43,11 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
+  Future<void> forgetPeer(String address) {
+    return Future.value();
+  }
+
+  @override
   Future<String> createDeposit({required String address, required int feeSats, required int valueSats}) {
     return Future.value('mocked');
   }
@@ -250,6 +255,16 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> myUnconfirmedUtxos() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<void> removeFromMempool(String txid) {
+    return Future.value();
+  }
+
+  @override
   Future<Map<String, dynamic>> openapiSchema() {
     return Future.value({});
   }
@@ -306,6 +321,16 @@ class MockBitAssetsRPC extends BitAssetsRPC {
 
   @override
   Future<String> transfer({required String dest, required int value, required int fee, String? memo}) {
+    return Future.value('mocked');
+  }
+
+  @override
+  Future<String> transferBitAsset({
+    required String assetId,
+    required String dest,
+    required int amount,
+    required int feeSats,
+  }) {
     return Future.value('mocked');
   }
 
