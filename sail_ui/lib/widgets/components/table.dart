@@ -31,6 +31,7 @@ class SailTable extends StatefulWidget {
     this.onSort,
     required this.getRowId,
     this.rowBackgroundColor,
+    this.emptyPlaceholder,
     super.key,
   });
 
@@ -56,6 +57,10 @@ class SailTable extends StatefulWidget {
   final Function(int columnIndex, bool ascending)? onSort;
   final String Function(int index) getRowId;
   final Color? Function(int index)? rowBackgroundColor;
+
+  /// Widget to display when the table has no rows.
+  /// If null and rowCount is 0, the table will show an empty area.
+  final String? emptyPlaceholder;
 
   @override
   State<SailTable> createState() => _SailTableState();
@@ -381,6 +386,17 @@ class _SailTableState extends State<SailTable> {
   }
 
   Widget _buildRows(BuildContext context) {
+    // Show empty placeholder when there are no rows
+    if (widget.rowCount == 0 && widget.emptyPlaceholder != null) {
+      final theme = SailTheme.of(context);
+      return Center(
+        child: SailText.primary15(
+          widget.emptyPlaceholder!,
+          color: theme.colors.textTertiary,
+        ),
+      );
+    }
+
     if (widget.shrinkWrap) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.start,
