@@ -671,6 +671,7 @@ class _TransactionTableState extends State<TransactionTable> {
                       ];
                     },
                     rowCount: widget.entries.length,
+                    emptyPlaceholder: 'No transactions yet',
                     drawGrid: true,
                     sortColumnIndex: [
                       'height',
