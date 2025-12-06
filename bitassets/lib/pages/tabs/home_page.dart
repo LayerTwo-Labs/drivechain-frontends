@@ -32,6 +32,9 @@ enum Tabs {
   // bitassets dutch auction route
   DutchAuction,
 
+  // AMM swap route
+  Amm,
+
   // sidechain balance/transfer route
   Console,
 
@@ -147,6 +150,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 MessagingTabRoute(),
                 // bitassets dutch auction route
                 DutchAuctionTabRoute(),
+                // AMM swap route
+                AmmTabRoute(),
                 // sidechain console route
                 ConsoleTabRoute(),
                 // trailing common routes
@@ -193,6 +198,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             optionalKey: Tabs.DutchAuction.index,
                             onTap: () {
                               tabsRouter.setActiveIndex(Tabs.DutchAuction.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'AMM',
+                            optionalKey: Tabs.Amm.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Amm.index);
                             },
                           ),
                           TopNavRoute(
