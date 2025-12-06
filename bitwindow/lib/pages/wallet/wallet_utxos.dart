@@ -220,6 +220,7 @@ class _UTXOTableState extends State<UTXOTable> {
                     ];
                   },
                   rowCount: sortedEntries.length,
+                  emptyPlaceholder: 'No UTXOs in wallet',
                   drawGrid: true,
                   sortColumnIndex: [
                     'date',

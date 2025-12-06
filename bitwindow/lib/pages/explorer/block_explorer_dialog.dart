@@ -502,6 +502,7 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
           SailTableCell(value: widget.transactions[index]),
         ],
         rowCount: widget.transactions.length,
+        emptyPlaceholder: 'No transactions in block',
       ),
     );
   }

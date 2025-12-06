@@ -299,6 +299,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
           ];
         },
         rowCount: filledSlots.length, // Only show filled slots
+        emptyPlaceholder: 'No active sidechains',
         sortAscending: viewModel.sortAscending,
         sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
         onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
@@ -1163,6 +1164,7 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
           ];
         },
         rowCount: viewModel.sortedDeposits.length,
+        emptyPlaceholder: 'No deposits yet',
         drawGrid: true,
         sortAscending: viewModel.depositSortAscending,
         sortColumnIndex: ['txid', 'amount', 'fee', 'confirmations'].indexOf(viewModel.depositSortColumn),
@@ -1213,6 +1215,7 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
         ];
       },
       rowCount: viewModel.sortedWithdrawals.length,
+      emptyPlaceholder: 'No withdrawal bundles',
       drawGrid: true,
       sortAscending: true,
       sortColumnIndex: 2,

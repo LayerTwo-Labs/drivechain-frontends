@@ -274,19 +274,6 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                 ],
                 cellHeight: 36.0,
                 rowBuilder: (context, row, selected) {
-                  // If there are no UTXOs, return a single row with an empty cell message
-                  if (widget.utxos.isEmpty) {
-                    return [
-                      const SailTableCell(value: 'No UTXOs available'),
-                      const SailTableCell(value: ''),
-                      const SailTableCell(value: ''),
-                      const SailTableCell(value: ''),
-                      const SailTableCell(value: ''),
-                      const SailTableCell(value: ''),
-                      const SailTableCell(value: ''),
-                    ];
-                  }
-
                   final utxo = widget.utxos[row];
                   final hasDenialInfo = utxo.hasDenialInfo();
 
@@ -384,7 +371,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     ),
                   ];
                 },
-                rowCount: widget.utxos.isEmpty ? 1 : widget.utxos.length, // Show one row when empty
+                rowCount: widget.utxos.length,
+                emptyPlaceholder: 'No UTXOs available',
                 drawGrid: true,
                 sortColumnIndex: [
                   'id',
