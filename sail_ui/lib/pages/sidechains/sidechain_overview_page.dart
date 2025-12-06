@@ -418,6 +418,7 @@ class _TransactionTableState extends State<TransactionTable> {
                     ];
                   },
                   rowCount: entries.length,
+                  emptyPlaceholder: 'No transactions yet',
                   drawGrid: true,
                   sortColumnIndex: ['height', 'date', 'txid', 'amount'].indexOf(sortColumn),
                   sortAscending: sortAscending,
@@ -689,6 +690,7 @@ class _UTXOTableState extends State<UTXOTable> {
                   ];
                 },
                 rowCount: widget.entries.length,
+                emptyPlaceholder: 'No UTXOs in wallet',
                 drawGrid: true,
                 sortColumnIndex: ['type', 'output', 'address', 'value'].indexOf(sortColumn),
                 sortAscending: sortAscending,
