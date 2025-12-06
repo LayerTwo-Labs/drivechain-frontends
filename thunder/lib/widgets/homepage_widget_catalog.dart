@@ -314,6 +314,7 @@ class _UTXOTableState extends State<UTXOTable> {
                     ];
                   },
                   rowCount: widget.entries.length,
+                  emptyPlaceholder: 'No UTXOs in wallet',
                   drawGrid: true,
                   sortColumnIndex: ['type', 'output', 'address', 'value'].indexOf(sortColumn),
                   sortAscending: sortAscending,
