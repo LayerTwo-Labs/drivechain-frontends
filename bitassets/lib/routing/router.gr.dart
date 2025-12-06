@@ -11,6 +11,22 @@
 part of 'router.dart';
 
 /// generated route for
+/// [AmmTabPage]
+class AmmTabRoute extends PageRouteInfo<void> {
+  const AmmTabRoute({List<PageRouteInfo>? children})
+    : super(AmmTabRoute.name, initialChildren: children);
+
+  static const String name = 'AmmTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const AmmTabPage();
+    },
+  );
+}
+
+/// generated route for
 /// [BitAssetsConfigureHomepagePage]
 class BitAssetsConfigureHomepageRoute extends PageRouteInfo<void> {
   const BitAssetsConfigureHomepageRoute({List<PageRouteInfo>? children})

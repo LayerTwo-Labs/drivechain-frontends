@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitassets/pages/tabs/amm_page.dart';
 import 'package:bitassets/pages/tabs/bitassets_configure_homepage_page.dart';
 import 'package:bitassets/pages/tabs/bitassets_homepage.dart';
 import 'package:bitassets/pages/tabs/console_page.dart';
@@ -56,6 +57,9 @@ class AppRouter extends RootStackRouter {
         ),
         AutoRoute(
           page: DutchAuctionTabRoute.page,
+        ),
+        AutoRoute(
+          page: AmmTabRoute.page,
         ),
         AutoRoute(
           page: SettingsTabRoute.page,
