@@ -13,6 +13,37 @@ on:
       - ".github/workflows/**"
 
 jobs:
+  web-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+        working-directory: faucet
+      - run: bun run format:check
+        working-directory: faucet
+
+  web-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: biomejs/setup-biome@v2
+        with:
+          working-directory: faucet
+      - name: Run Biome
+        run: biome ci
+        working-directory: faucet
+
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+        working-directory: faucet
+      - run: bun run build
+        working-directory: faucet
+
   go-lint:
     name: go-lint
     runs-on: ubuntu-latest
@@ -52,14 +83,16 @@ jobs:
     runs-on: ubuntu-latest-large
     strategy:
       matrix:
-        service: [frontend, backend]
+        # not able to deduce how to configure the Next.js server
+        # at runtime. have to bake in the env vars at build time?
+        service: [frontend-signet, backend]
         include:
-          - service: frontend
-            dockerfile: faucet/Dockerfile
+          - service: frontend-signet
+            dockerfile: Dockerfile
             context: .
           - service: backend
-            dockerfile: ./faucet/server/Dockerfile
-            context: ./faucet/server
+            dockerfile: ./server/Dockerfile
+            context: ./server
 
     permissions:
       contents: read
@@ -94,9 +127,12 @@ jobs:
       - name: Build (and maybe push) Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: ./faucet/${{ matrix.context }}
+          file: ./faucet/${{ matrix.dockerfile }}
+          #prettier-ignore
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          #prettier-ignore
           tags: ${{ steps.meta.outputs.tags }}
+          #prettier-ignore
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/faucet-${{ matrix.service }}:latest
           cache-to: type=inline

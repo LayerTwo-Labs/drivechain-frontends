@@ -1,7 +1,12 @@
 {
   "editor.codeActionsOnSave": {
     "quickfix.insertSemicolon": "always",
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit",
     "source.fixAll": "always"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[dart]": {
     "editor.rulers": [120]
@@ -24,5 +29,5 @@
     "**/*tsconfig.json": true,
     ".cache": true,
     "retool.config.json": true
-  },
+  }
 }

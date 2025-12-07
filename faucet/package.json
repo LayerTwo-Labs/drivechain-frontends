@@ -1,0 +1,44 @@
+{
+  "dependencies": {
+    "@bufbuild/protoc-gen-es": "^2.10.1",
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-node": "^2.1.1",
+    "@connectrpc/connect-query": "^2.2.0",
+    "@connectrpc/connect-web": "^2.1.1",
+    "@connectrpc/protoc-gen-connect-query": "^2.2.0",
+    "@icons-pack/react-simple-icons": "^13.8.0",
+    "client-only": "^0.0.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.556.0",
+    "next": "16.0.7",
+    "prettier": "^3.7.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.8",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.7",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "name": "faucet-next",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "lint": "biome lint",
+    "start": "next start",
+    "tsc": "tsc"
+  },
+  "version": "0.1.0"
+}
