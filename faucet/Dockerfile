@@ -1,27 +1,39 @@
-FROM ubuntu:20.04 AS builder
-ENV DEBIAN_FRONTEND=noninteractive
+# Use Bun's official image
+FROM oven/bun:1 AS base
 
-# Install dependencies required for Flutter
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    unzip \
-    xz-utils \
-    libglu1-mesa
+WORKDIR /app
 
-# Install Flutter SDK (pinned to version 3.38.1)
-RUN git clone https://github.com/flutter/flutter.git /opt/flutter -b 3.38.1
-ENV PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:/opt/flutter/bin:${PATH}"
+# Install dependencies with bun
+FROM base AS deps
+COPY package.json bun.lock* ./
+RUN bun install --no-save --frozen-lockfile
 
-WORKDIR /builder
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-COPY sail_ui/ ./sail_ui
-COPY faucet/ ./faucet
+RUN bun run build
 
-WORKDIR /builder/faucet
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
 
-RUN flutter pub get --enforce-lockfile
-RUN flutter build web --dart-define=FAUCET_BASE_URL=/api --release
+ENV NODE_ENV=production \
+    HOSTNAME="0.0.0.0" \
+    PORT=3003 
 
-FROM nginx:alpine
-COPY --from=builder /builder/faucet/build/web /usr/share/nginx/html
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs nextjs
+
+COPY --from=builder /app/public ./public
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+CMD ["bun", "./server.js"]

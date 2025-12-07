@@ -1,37 +1,24 @@
-format:
-    find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format
-
 gen: gen-validator
-    buf generate --template ../buf.dart.gen.yaml ./server
+    buf generate --template buf.web.gen.yaml server
+    buf generate --template buf.web.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
     cd server && buf generate --template buf.go.gen.yaml .
 
 gen-validator:
     cd server && buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
 build-client:
-    flutter build web
+    bun run build
 
 build-docker:
-    docker build --platform linux/amd64 --file Dockerfile ..
+    docker build --platform linux/amd64 --file Dockerfile .
 
 run-client: 
-    # specify port 3000 for CORS to work properly against the remote server
-    # specify base URL for local development
-    flutter run -d chrome --web-port 3000 --dart-define=FAUCET_BASE_URL=http://localhost:8082
+    bun dev 
 
 run-client-prod: 
-    # specify port 3000 for CORS to work properly against the remote server
-    # specify base URL for local development
-    flutter run -d chrome --web-port 3000 --dart-define=FAUCET_BASE_URL=https://node.drivechain.info/api
-
-run-server: build-server
-    ./server/faucetd
-
-build-server:
-    cd server && go build -o faucetd
-
-lint: 
-    golangci-lint run ./server/...
+    env NEXT_PUBLIC_API_BASE_URL=https://node.drivechain.info/api \
+        API_BASE_URL=https://node.drivechain.info/api \
+        bun dev
 
 run:
     #!/usr/bin/env bash
@@ -43,7 +30,16 @@ run:
     sleep 3
     
     # Run client
-    flutter run -d chrome --web-port 3000 --dart-define=FAUCET_BASE_URL=http://localhost:8082
+    bun dev
     
     # Clean up server when client exits
     kill $SERVER_PID
+
+lint: 
+    golangci-lint run ./server/...
+
+run-server: build-server
+    ./server/faucetd
+
+build-server:
+    cd server && go build -o faucetd
