@@ -12,10 +12,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  file_picker: ^10.3.6
+  file_picker: ^10.3.7
   fl_chart: ^1.1.1
-  printing: ^5.13.4
-  pdf: ^3.11.1
+  printing: ^5.14.2
+  pdf: ^3.11.3
 
   dart_coin_rpc:
     git:
@@ -33,8 +33,8 @@ dependencies:
   sail_ui:
     path: ../sail_ui
   logger: ^2.6.2
-  google_fonts: ^6.3.2
-  auto_route: ^10.2.2
+  google_fonts: ^6.3.3
+  auto_route: ^11.0.0
   fixnum: ^1.1.1
   get_it: ^8.3.0
   meta: ^1.17.0
@@ -42,7 +42,7 @@ dependencies:
   dotted_border: ^3.1.0
   window_manager: ^0.5.1
   synchronized: ^3.4.0
-  skeletonizer: ^2.1.0+1
+  skeletonizer: ^2.1.1
   flutter_markdown: ^0.7.7+1
   path: ^1.9.1
   url_launcher: ^6.3.2
@@ -68,8 +68,8 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  auto_route_generator: ^10.2.6
-  build_runner: ^2.10.3
+  auto_route_generator: ^10.4.0
+  build_runner: ^2.10.4
   flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
