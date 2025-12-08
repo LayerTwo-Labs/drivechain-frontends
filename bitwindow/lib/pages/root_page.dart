@@ -54,6 +54,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
   bool _isWalletSwitching = false;
+  bool _isWalletEncrypted = false;
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -66,10 +67,21 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _bitwindowSettingsProvider.addListener(_onProviderChanged);
     _walletReader.addListener(_onProviderChanged);
     _initializeWindowManager();
+    _checkEncryptionStatus();
   }
 
   void _onProviderChanged() {
+    _checkEncryptionStatus();
     setState(() {});
+  }
+
+  Future<void> _checkEncryptionStatus() async {
+    final encrypted = await _walletReader.isWalletEncrypted();
+    if (mounted && encrypted != _isWalletEncrypted) {
+      setState(() {
+        _isWalletEncrypted = encrypted;
+      });
+    }
   }
 
   void rebuildNotifications() {
@@ -342,30 +354,33 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         windowProvider.open(SubWindowTypes.hdWallet);
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Encrypt Wallet',
-                      onSelected: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => const EncryptWalletDialog(),
-                        );
-                      },
-                    ),
-                    PlatformMenuItem(
-                      label: 'Change Password',
-                      onSelected: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => const ChangePasswordDialog(),
-                        );
-                      },
-                    ),
-                    PlatformMenuItem(
-                      label: 'Remove Encryption',
-                      onSelected: () {
-                        GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
-                      },
-                    ),
+                    if (!_isWalletEncrypted)
+                      PlatformMenuItem(
+                        label: 'Encrypt Wallet',
+                        onSelected: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const EncryptWalletDialog(),
+                          );
+                        },
+                      ),
+                    if (_isWalletEncrypted)
+                      PlatformMenuItem(
+                        label: 'Change Password',
+                        onSelected: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const ChangePasswordDialog(),
+                          );
+                        },
+                      ),
+                    if (_isWalletEncrypted)
+                      PlatformMenuItem(
+                        label: 'Remove Encryption',
+                        onSelected: () {
+                          GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
+                        },
+                      ),
                     PlatformMenuItem(
                       label: 'Backup Wallet',
                       onSelected: () {

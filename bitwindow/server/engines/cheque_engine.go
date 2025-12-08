@@ -101,9 +101,10 @@ func (e *ChequeEngine) deriveChequeKey(seedHex string, index uint32) (*hdkeychai
 }
 
 // DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
-func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
-	// Get seed from wallet engine
-	seedHex, err := e.walletEngine.GetEnforcerSeed()
+// for a specific wallet
+func (e *ChequeEngine) DeriveChequeAddress(walletId string, index uint32) (string, error) {
+	// Get seed from wallet engine for the specific wallet
+	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
 	if err != nil {
 		return "", err
 	}
@@ -130,9 +131,10 @@ func (e *ChequeEngine) DeriveChequeAddress(index uint32) (string, error) {
 }
 
 // DeriveChequePrivateKey derives the WIF private key at m/44'/0'/999'/{index}
-func (e *ChequeEngine) DeriveChequePrivateKey(index uint32) (string, error) {
-	// Get seed from wallet engine
-	seedHex, err := e.walletEngine.GetEnforcerSeed()
+// for a specific wallet
+func (e *ChequeEngine) DeriveChequePrivateKey(walletId string, index uint32) (string, error) {
+	// Get seed from wallet engine for the specific wallet
+	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
 	if err != nil {
 		return "", err
 	}
@@ -155,10 +157,10 @@ func (e *ChequeEngine) DeriveChequePrivateKey(index uint32) (string, error) {
 	return wif.String(), nil
 }
 
-// ScanForFunds scans the first count addresses for UTXOs
-func (e *ChequeEngine) ScanForFunds(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, count int) ([]ChequeRecovery, error) {
-	// Get seed from wallet engine
-	seedHex, err := e.walletEngine.GetEnforcerSeed()
+// ScanForFunds scans the first count addresses for UTXOs for a specific wallet
+func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, bitcoind corerpc.BitcoinServiceClient, count int) ([]ChequeRecovery, error) {
+	// Get seed from wallet engine for the specific wallet
+	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +244,7 @@ func (e *ChequeEngine) Start(ctx context.Context) {
 	go e.recoverChequesOnUnlock(ctx)
 }
 
-// importChequeDescriptor imports the cheque derivation path descriptor into Bitcoin Core
+// importChequeDescriptors imports the cheque derivation path descriptors for all wallets into Bitcoin Core
 func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 
@@ -256,26 +258,20 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		}
 	}
 
-	seedHex, err := e.walletEngine.GetEnforcerSeed()
-	if err != nil {
-		log.Warn().Err(err).Msg("cannot import cheque descriptor: enforcer wallet not found")
-		return
-	}
-
 	bitcoind, err := e.bitcoind.Get(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("cannot import cheque descriptor: bitcoind not available")
+		log.Warn().Err(err).Msg("cannot import cheque descriptors: bitcoind not available")
 		return
 	}
 
 	// Ensure cheque wallet exists in Bitcoin Core
-	wallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	coreWallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
 	if err != nil {
-		log.Warn().Err(err).Msg("cannot import cheque descriptor: failed to list wallets")
+		log.Warn().Err(err).Msg("cannot import cheque descriptors: failed to list wallets")
 		return
 	}
 
-	walletExists := lo.Contains(wallets.Msg.Wallets, ChequeWalletName)
+	walletExists := lo.Contains(coreWallets.Msg.Wallets, ChequeWalletName)
 	if !walletExists {
 		// Create watch-only cheque wallet
 		_, err = bitcoind.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
@@ -291,45 +287,65 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 					Filename: ChequeWalletName,
 				}))
 				if loadErr != nil {
-					log.Error().Err(loadErr).Msg("cannot import cheque descriptor: failed to load cheque wallet")
+					log.Error().Err(loadErr).Msg("cannot import cheque descriptors: failed to load cheque wallet")
 					return
 				}
 			} else {
-				log.Error().Err(err).Msg("cannot import cheque descriptor: failed to create cheque wallet")
+				log.Error().Err(err).Msg("cannot import cheque descriptors: failed to create cheque wallet")
 				return
 			}
 		}
 	}
 
+	// Get all wallets and import descriptor for each
+	wallets, err := e.walletEngine.GetAllWallets(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("cannot import cheque descriptors: failed to get wallets")
+		return
+	}
+
+	for _, wallet := range wallets {
+		if err := e.importDescriptorForWallet(ctx, bitcoind, wallet.ID); err != nil {
+			log.Warn().Err(err).Str("wallet_id", wallet.ID).Msg("failed to import cheque descriptor for wallet")
+		}
+	}
+
+	log.Info().Int("wallet_count", len(wallets)).Msg("cheque descriptors import complete")
+}
+
+// importDescriptorForWallet imports the cheque descriptor for a specific wallet
+func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, walletId string) error {
+	log := zerolog.Ctx(ctx)
+
+	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
+	if err != nil {
+		return fmt.Errorf("get wallet seed: %w", err)
+	}
+
 	seedBytes, err := hex.DecodeString(seedHex)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to decode seed for descriptor import")
-		return
+		return fmt.Errorf("decode seed: %w", err)
 	}
 
 	// Create master key and derive to account level m/44'/0'/999'
 	masterKey, err := hdkeychain.NewMaster(seedBytes, e.chainParams)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create master key for descriptor")
-		return
+		return fmt.Errorf("create master key: %w", err)
 	}
 
 	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 44)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to derive purpose")
-		return
+		return fmt.Errorf("derive purpose: %w", err)
 	}
 
 	coinType, err := purpose.Derive(hdkeychain.HardenedKeyStart + 0)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to derive coin type")
-		return
+		return fmt.Errorf("derive coin type: %w", err)
 	}
 
 	chequeAcct, err := coinType.Derive(hdkeychain.HardenedKeyStart + chequeAccount)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to derive cheque account")
-		return
+		return fmt.Errorf("derive cheque account: %w", err)
 	}
 
 	// Get the xpub for the account level
@@ -343,8 +359,7 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		Descriptor_: descriptorWithoutChecksum,
 	}))
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get descriptor info")
-		return
+		return fmt.Errorf("get descriptor info: %w", err)
 	}
 
 	// Use the descriptor with checksum from Bitcoin Core
@@ -365,26 +380,27 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		},
 	}))
 	if err != nil {
-		log.Error().Err(err).Msg("failed to import cheque descriptor")
-		return
+		return fmt.Errorf("import descriptor: %w", err)
 	}
 
 	// Check if import was successful
 	if len(resp.Msg.Responses) > 0 {
 		if resp.Msg.Responses[0].Success {
-			log.Info().Msg("cheque descriptor imported successfully")
+			log.Debug().Str("wallet_id", walletId).Msg("cheque descriptor imported successfully")
 		} else {
 			if len(resp.Msg.Responses[0].Warnings) > 0 {
-				log.Warn().Strs("warnings", resp.Msg.Responses[0].Warnings).Msg("cheque descriptor import had warnings")
+				log.Warn().Str("wallet_id", walletId).Strs("warnings", resp.Msg.Responses[0].Warnings).Msg("cheque descriptor import had warnings")
 			}
 			if resp.Msg.Responses[0].Error != nil {
-				log.Error().Str("error", resp.Msg.Responses[0].Error.Message).Msg("cheque descriptor import failed")
+				return fmt.Errorf("import failed: %s", resp.Msg.Responses[0].Error.Message)
 			}
 		}
 	}
+
+	return nil
 }
 
-// recoverChequesOnUnlock waits for wallet unlock and bitcoind, then recovers cheques once
+// recoverChequesOnUnlock waits for wallet unlock and bitcoind, then recovers cheques for all wallets
 func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 
@@ -415,7 +431,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 		}
 	}
 
-	log.Info().Msg("bitcoind connected, recovering cheques")
+	log.Info().Msg("bitcoind connected, recovering cheques for all wallets")
 
 	bitcoind, err := e.bitcoind.Get(ctx)
 	if err != nil {
@@ -423,16 +439,33 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 		return
 	}
 
-	recoveries, err := e.ScanForFunds(ctx, bitcoind, 20)
+	// Get all wallets and scan each one
+	wallets, err := e.walletEngine.GetAllWallets(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to scan for cheque funds")
+		log.Error().Err(err).Msg("failed to get wallets for cheque recovery")
 		return
 	}
 
-	if len(recoveries) == 0 {
-		log.Info().Msg("no funded cheques found during recovery scan")
-		return
+	totalRecoveries := 0
+	for _, wallet := range wallets {
+		recoveries, err := e.ScanForFunds(ctx, wallet.ID, bitcoind, 20)
+		if err != nil {
+			log.Warn().Err(err).Str("wallet_id", wallet.ID).Msg("failed to scan wallet for cheque funds")
+			continue
+		}
+
+		if len(recoveries) > 0 {
+			log.Info().
+				Str("wallet_id", wallet.ID).
+				Int("count", len(recoveries)).
+				Msg("found funded cheques during recovery scan")
+			totalRecoveries += len(recoveries)
+		}
 	}
 
-	log.Info().Int("count", len(recoveries)).Msg("found funded cheques during recovery scan")
+	if totalRecoveries == 0 {
+		log.Info().Msg("no funded cheques found during recovery scan across all wallets")
+	} else {
+		log.Info().Int("total_count", totalRecoveries).Msg("cheque recovery scan complete")
+	}
 }

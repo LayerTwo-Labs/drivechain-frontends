@@ -278,6 +278,34 @@ func (e *WalletEngine) GetEnforcerSeed() (string, error) {
 	return enforcerWallets[0].Master.SeedHex, nil
 }
 
+// GetWalletSeed returns the seed hex for a specific wallet by ID
+// Used by ChequeEngine for per-wallet cheque address derivation
+func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
+	wallets, err := e.loadAllWallets()
+	if err != nil {
+		return "", fmt.Errorf("load wallets: %w", err)
+	}
+
+	// Find wallet by ID
+	var targetWallet *WalletInfo
+	for _, w := range wallets {
+		if w.ID == walletId {
+			targetWallet = &w
+			break
+		}
+	}
+
+	if targetWallet == nil {
+		return "", fmt.Errorf("wallet not found: %s", walletId)
+	}
+
+	if targetWallet.Master.SeedHex == "" {
+		return "", fmt.Errorf("wallet %s has no seed", walletId)
+	}
+
+	return targetWallet.Master.SeedHex, nil
+}
+
 // GetActiveWallet returns the active wallet
 // If the wallet is encrypted, it uses the unlocked data from memory
 // If the wallet is unencrypted, it reads directly from wallet.json

@@ -77,13 +77,24 @@ class BitDriveProvider extends ChangeNotifier {
   BitDriveProvider() {
     blockchainProvider.addListener(_onSyncStatusChanged);
     enforcer.addListener(_onSyncStatusChanged);
+    _walletReader.addListener(_onWalletChanged);
   }
 
   @override
   void dispose() {
     blockchainProvider.removeListener(_onSyncStatusChanged);
     enforcer.removeListener(_onSyncStatusChanged);
+    _walletReader.removeListener(_onWalletChanged);
     super.dispose();
+  }
+
+  void _onWalletChanged() {
+    // Clear wallet-specific state when wallet changes
+    _pendingDownloads.clear();
+    _hasRestoredFiles = false;
+    _hasLoggedWaitingForSync = false;
+    _hasLoggedWaitingForEnforcer = false;
+    notifyListeners();
   }
 
   void _onSyncStatusChanged() async {

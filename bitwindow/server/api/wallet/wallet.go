@@ -1837,22 +1837,22 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	// Get next index
-	nextIndex, err := cheques.GetNextIndex(ctx, s.database)
+	// Get next index for this wallet
+	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletId)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get next cheque index")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get next index: %w", err))
 	}
 
-	// Derive address
-	address, err := s.chequeEngine.DeriveChequeAddress(nextIndex)
+	// Derive address for this wallet
+	address, err := s.chequeEngine.DeriveChequeAddress(walletId, nextIndex)
 	if err != nil {
 		log.Error().Err(err).Uint32("index", nextIndex).Msg("failed to derive cheque address")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive address: %w", err))
 	}
 
-	// Save to DB
-	id, err := cheques.Create(ctx, s.database, nextIndex, c.Msg.ExpectedAmountSats, address)
+	// Save to DB with wallet ID
+	id, err := cheques.Create(ctx, s.database, walletId, nextIndex, c.Msg.ExpectedAmountSats, address)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create cheque in database")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create cheque: %w", err))
@@ -1882,7 +1882,7 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
@@ -1911,7 +1911,7 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
@@ -1919,7 +1919,7 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
 	}
 
-	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(cheque.DerivationIndex)
+	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(walletId, cheque.DerivationIndex)
 	if err != nil {
 		log.Error().Err(err).Uint32("index", cheque.DerivationIndex).Msg("failed to derive private key")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to derive private key: %w", err))
@@ -1940,7 +1940,7 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	chequeList, err := cheques.List(ctx, s.database)
+	chequeList, err := cheques.List(ctx, s.database, walletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list cheques: %w", err))
 	}
@@ -1967,7 +1967,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
@@ -2020,7 +2020,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 		// Update DB if not already funded
 		if cheque.FundedTxid == nil {
-			if err := cheques.UpdateFunding(ctx, s.database, c.Msg.Id, txid, amountSats); err != nil {
+			if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txid, amountSats); err != nil {
 				log.Error().Err(err).Msg("failed to update cheque funding")
 				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
 			}
@@ -2033,7 +2033,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 				Msg("cheque funded")
 
 			// Re-fetch to get updated funded_at timestamp
-			cheque, err = cheques.Get(ctx, s.database, c.Msg.Id)
+			cheque, err = cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 			if err != nil {
 				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch cheque: %w", err))
 			}
@@ -2059,7 +2059,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 		// Mark as swept - we know it was swept but don't know the exact txid
 		// Finding the spending tx from a watch-only wallet requires full blockchain scan
-		if err := cheques.UpdateSwept(ctx, s.database, c.Msg.Id, "swept_externally"); err != nil {
+		if err := cheques.UpdateSwept(ctx, s.database, walletId, c.Msg.Id, "swept_externally"); err != nil {
 			log.Error().Err(err).Msg("failed to mark cheque as externally swept")
 		}
 	}
@@ -2160,9 +2160,9 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	}
 
 	// Try to find and mark the cheque as swept in database if it exists
-	cheque, err := cheques.GetByAddress(ctx, s.database, addressStr)
+	cheque, err := cheques.GetByAddress(ctx, s.database, walletId, addressStr)
 	if err == nil && cheque.SweptTxid == nil {
-		if err := cheques.UpdateSwept(ctx, s.database, cheque.ID, res.Msg.Txid); err != nil {
+		if err := cheques.UpdateSwept(ctx, s.database, walletId, cheque.ID, res.Msg.Txid); err != nil {
 			log.Warn().Err(err).Msg("failed to mark cheque as swept in database")
 		}
 	}
@@ -2193,7 +2193,7 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 	}
 
 	// Check if cheque exists
-	cheque, err := cheques.Get(ctx, s.database, c.Msg.Id)
+	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("cheque not found"))
@@ -2208,7 +2208,7 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 	}
 
 	// Delete the cheque
-	err = cheques.Delete(ctx, s.database, c.Msg.Id)
+	err = cheques.Delete(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete cheque: %w", err))
 	}
@@ -2250,7 +2250,7 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 
 	// Only include private key if cheque is funded and wallet is unlocked
 	if c.FundedTxid != nil && s.walletEngine.IsUnlocked() {
-		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.DerivationIndex)
+		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.WalletID, c.DerivationIndex)
 		if err == nil {
 			pbCheque.PrivateKeyWif = &privateKeyWIF
 		}
