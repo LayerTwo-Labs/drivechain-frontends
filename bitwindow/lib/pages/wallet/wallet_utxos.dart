@@ -126,16 +126,24 @@ class _UTXOTableState extends State<UTXOTable> {
     final hops = utxo.denialInfo.hopsCompleted;
     final totalHops = utxo.denialInfo.numHops;
 
+    // Check if completed first (all hops done)
+    if (hops >= totalHops && totalHops > 0) {
+      return 'Done ($hops)';
+    }
+    // Check if completed (no next execution time or next execution is epoch 0)
+    if (!utxo.denialInfo.hasNextExecutionTime() ||
+        utxo.denialInfo.nextExecutionTime.toDateTime().millisecondsSinceEpoch == 0) {
+      // Only show cancelled if not all hops completed
+      if (utxo.denialInfo.hasCancelTime()) {
+        return 'Cancelled ($hops)';
+      }
+      return 'Done ($hops)';
+    }
     if (utxo.denialInfo.hasCancelTime()) {
       return 'Cancelled ($hops)';
     }
     if (utxo.denialInfo.hasPausedAt()) {
       return 'Paused ($hops/$totalHops)';
-    }
-    // Check if completed (no next execution time or next execution is epoch 0)
-    if (!utxo.denialInfo.hasNextExecutionTime() ||
-        utxo.denialInfo.nextExecutionTime.toDateTime().millisecondsSinceEpoch == 0) {
-      return 'Done ($hops)';
     }
     return 'Active ($hops/$totalHops)';
   }
