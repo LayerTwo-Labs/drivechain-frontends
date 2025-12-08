@@ -214,7 +214,7 @@ class SidechainProposalViewModel extends BaseViewModel {
   final tarballHashController = TextEditingController();
   final commitHashController = TextEditingController();
 
-  DrivechainAPI get drivechain => GetIt.I.get<DrivechainAPI>();
+  DrivechainAPI get drivechain => GetIt.I.get<BitwindowRPC>().drivechain;
   SidechainProvider get sidechainProvider => GetIt.I.get<SidechainProvider>();
 
   String? slotError;
