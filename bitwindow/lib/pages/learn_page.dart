@@ -293,6 +293,7 @@ class ArticleCard extends StatelessWidget {
       title: article.title,
       subtitle: 'Read time: ${expectedReadTime(article.markdown)}',
       largeIcon: true,
+      background: article.background,
       onPressed: () => showArticleDetails(context, article, groupTitle),
     );
   }

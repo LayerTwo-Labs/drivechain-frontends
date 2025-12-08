@@ -122,8 +122,9 @@ class Article {
   final String title;
   final String markdown;
   final String filename;
+  final String? background;
 
-  Article({required this.title, required this.markdown, required this.filename});
+  Article({required this.title, required this.markdown, required this.filename, this.background});
 }
 
 class ArticleGroup {
