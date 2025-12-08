@@ -161,6 +161,14 @@ class AppRouter extends RootStackRouter {
       page: RemoveEncryptionRoute.page,
     ),
     AutoRoute(
+      path: '/sidechain-activation-management',
+      page: SidechainActivationManagementRoute.page,
+    ),
+    AutoRoute(
+      path: '/sidechain-proposal',
+      page: SidechainProposalRoute.page,
+    ),
+    AutoRoute(
       path: '/success',
       page: SuccessRoute.page,
     ),
