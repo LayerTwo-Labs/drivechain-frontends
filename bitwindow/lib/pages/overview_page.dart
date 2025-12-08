@@ -500,12 +500,15 @@ Future<void> displayCreateTopicDialog(BuildContext context) async {
 }
 
 Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
-  await widgetDialog(
+  await showDialog(
     context: context,
-    title: 'Graffiti Explorer',
-    subtitle: 'List all previous OP_RETURN messages found in the blockchain.',
-    maxWidth: MediaQuery.of(context).size.width - 100,
-    child: const GraffitiExplorerView(),
+    builder: (context) => const Dialog(
+      child: SizedBox(
+        width: 900,
+        height: 700,
+        child: GraffitiExplorerView(),
+      ),
+    ),
   );
 }
 
