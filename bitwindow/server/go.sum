@@ -9,8 +9,8 @@ github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA4
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/barebitcoin/btc-buf v0.0.0-20251202201854-efb1eb3c5e20 h1:rXgZJ1w4B+5hWOBj9rxwxcWEOn0Kh8RcoJgxfIhA18Q=
 github.com/barebitcoin/btc-buf v0.0.0-20251202201854-efb1eb3c5e20/go.mod h1:ooZOz1hpRPLBfas+P6op3U524rfhl3Eu+GeMi2JpAaE=
-github.com/brianvoe/gofakeit/v7 v7.11.0 h1:4fNuEED4iEMLkFvZmpMR7Npu87MbAg15zfmmUsGTYLI=
-github.com/brianvoe/gofakeit/v7 v7.11.0/go.mod h1:OllskdkFOHg1ECRPXRV7OKSLcabgRY0YuzstuBoEFFk=
+github.com/brianvoe/gofakeit/v7 v7.12.1 h1:df1tiI4SL1dR5Ix4D/r6a3a+nXBJ/OBGU5jEKRBmmqg=
+github.com/brianvoe/gofakeit/v7 v7.12.1/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
 github.com/btcsuite/btcd v0.20.1-beta/go.mod h1:wVuoA8VJLEcwgqHBwHmzLRazpKxTv13Px/pDuV7OomQ=
 github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c/go.mod h1:tjmYdS6MLJ5/s0Fj4DbLgSbDHbEqLJrtnHecBFkdz5M=
 github.com/btcsuite/btcd v0.23.5-0.20231215221805-96c9fd8078fd/go.mod h1:nm3Bko6zh6bWP60UxwoT5LzdGJsQJaPo6HjduXq9p6A=
