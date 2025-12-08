@@ -217,14 +217,38 @@ abstract class Binary {
     }
   }
 
-  Future<void> deleteWallet() async {
-    _log('Starting wallet backup for $name');
+  Future<void> deleteWallet({BitcoinNetwork? network}) async {
+    _log('Starting wallet backup for $name (network: ${network?.toReadableNet() ?? 'all'})');
 
     final dir = datadir();
 
+    // Helper to get network subdirectory string
+    String getNetworkDir(BitcoinNetwork net) {
+      return switch (net) {
+        BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'mainnet',
+        BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'forknet',
+        BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
+        BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
+        BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'testnet',
+        _ => 'signet',
+      };
+    }
+
     switch (type) {
       case BinaryType.enforcer:
-        await _renameWalletDir(dir, 'wallet');
+        // Enforcer wallet is at: bip300301_enforcer/wallet/<Network>
+        // If network specified, delete only that network's wallet
+        // Otherwise delete the whole wallet directory
+        if (network != null) {
+          final walletNetworkDir = path.join('wallet', getNetworkDir(network));
+          await _renameWalletDir(dir, walletNetworkDir);
+        } else {
+          await _renameWalletDir(dir, 'wallet');
+        }
+
+      case BinaryType.bitcoinCore:
+        // Don't touch Bitcoin Core wallets - they're managed separately
+        break;
 
       case BinaryType.bitnames:
         await _renameWalletDir(dir, 'wallet.mdb');
@@ -242,9 +266,8 @@ abstract class Binary {
         await _renameWalletDir(dir, 'wallet.json');
         await _renameWalletDir(dir, 'wallet_encryption.json');
 
-      case BinaryType.bitcoinCore:
       case BinaryType.grpcurl:
-        // No wallet for these types
+        // No wallet for this type
         break;
     }
   }
