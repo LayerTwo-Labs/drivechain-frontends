@@ -1,0 +1,76 @@
+---
+title: 'Is Liquid A "Real" Sidechain? Greg Maxwell Weighs In'
+background: orbits.png
+author: Paul Sztorc
+authorImage: paul-sztorc.png
+---
+
+## Background
+
+As you may know, I invented [some blockchain technology](http://www.BitcoinHivemind.com) in 2014 (then called "Truthcoin"). It was pretty cool, but it needed *sidechain technology* in order to work with BTC.
+
+I've been patiently waiting for this technology. If it existed anywhere, then –believe me– I would use it!
+
+The only reason I worked on Drivechain at all, was because this sidechains technology was never invented.
+
+## Thermite Boxes
+
+At some point, (I can't remember when, because it makes absolutely no difference to anything), Blockstream came up with *a product* that they could sell to exchanges.
+
+The core technology was a multisignature wallet, with the keys [supposedly] spread out among multiple "secure hardware modules". When pressed for more details, these "modules" turned out to be …boxes that would violently explode if they thought you were trying to tamper with them.
+
+This loopy, unhinged idea went so far as to win [a "Scammy"](https://soundcloud.com/bitcoinuncensored/the-2015-scammys-the-blockchains-preeminent-achievement-awards) (with sidechains as "vaporware"), putting it in the same shameful company as Ethereum, BitShares, Eris Industries, etc. In 2016, if anyone mentioned sidechains in a Telegram chat room, they would be Replyed at with explosion gifs.
+
+In 2017 this comedic bit even became the [finale to Season 1 of Bitcoin Car Talk](https://www.youtube.com/watch?v=oEESSiWuZiU).
+
+## The "First Production Sidechain"
+
+Blockstream [markets Liquid as](https://www.coindesk.com/liquid-goes-live-blockstreams-first-bitcoin-sidechain-has-finally-arrived) "the first production sidechain".
+
+But I think that something in that phrase has to be false. Either Liquid isn't a sidechain; or else (if sidechain is redefined) then Liquid isn't "the first" of that thing.
+
+### i. Not A "Sidechain"
+
+The two-way peg is the defining feature of sidechains. [For example](https://web.archive.org/web/20141211061019/http://www.blockstream.com/founders/): "Greg was one of the key architects of the two-way peg **which makes sidechains possible**."
+
+Since Liquid never invented a 2wp technique, I have never seen it as a real sidechain.
+
+The giveaway is that Liquid, whatever it is, is not a "sidechain-constructor". It doesn't let you [add new sidechains](https://twitter.com/Truthcoin/status/1105572522961952769) to BTC. "SegWit" and "P2SH" were not just types of txns – they are general techniques. A user can *construct* P2SH txns again and again, all day. But there is no way for me to use Liquid to add my own sidechain project (or else, believe me I would)! Roger Ver cannot use Liquid to create a BitcoinCash-clone; Rootstock cannot use Liquid to create an Ethereum-clone.
+
+Sidechain-constructors were what Blockstream originally promised (more on this later).
+
+### ii. Not "First"
+
+J. Stolfi's famously defined [his Sofa as a sidechain](http://www.ic.unicamp.br/~stolfi/EXPORT/projects/bitcoin/posts/2015-06-10-my-sofa-is-a-sidechain/main.html). Definitions can never be wrong, per se – they can only be inconsistent.
+
+Blockstream's marketing department defines Liquid as a sidechain. The Liquid 2wp relies on "multisig", a technology that ["has been used for thousands of years"](https://en.bitcoin.it/wiki/Multisignature) and which has been [formally a part of Bitcoin since 2012](https://bitcointalk.org/index.php?topic=82213.msg906833#msg906833).
+
+The other ingredients in Liquid are similarly old. Consider [Ethereum's BTC-relay](https://btc-relay.readthedocs.io/en/latest/frequently-asked-questions.html#how-does-btc-relay-work); PAXOS; [Haber-Stornetta](https://motherboard.vice.com/en_us/article/j5nzx4/what-was-the-first-blockchain); and [Open Transactions](http://opentransactions.org/wiki/index.php/Category:Voting_Pools).
+
+So I struggle to understand the claim "first production sidechain". On one hand, it suggests novelty and innovation. But the reality is that Liquid is not particularly novel (even if there is a lot of engineering behind it).
+
+## The Controversy
+
+My insistence that Liquid is not a real sidechain, frequently gets me into trouble with Samson Mow, Blockstream's chief strategy/marketing/social-media officer.
+
+So, am I just speaking "nonsense"? Or am I correct?
+
+## GMax Weighs In
+
+Fortunately, Greg Maxwell has decided to weigh in, and clarify the issue once and for all.
+
+At 14:58 of [this presentation on the subject](https://www.youtube.com/watch?v=9pyVvq-vrrM), he says: "…we describe this mechanism called a **federated peg**, that is a sortof **step-in alternative to the true two-way peg** mechanism, that works without any changes at all in the hosting network".
+
+The presentation makes it crystal-clear that federated peg is an *undesirable* alternative, that Blockstream is forced to resort to. The only reason it is used, is because of a lack of "native support" for "true two-way peg" technology.
+
+Since the FedPeg is an alternative to a "true" 2wp, then what is it? A non-true 2wp. Ie – a *false* 2wp. So, Liquid does not use a "true" 2wp and in that critical sense is not a "real" sidechain.
+
+Thank you Greg, for settling this important issue.
+
+Update Jan 2020: Matt Corallo [tweets about](https://twitter.com/TheBlueMatt/status/1217910311774302208?s=20) when NOT to use Liquid.
+
+He emphasizes that Liquid is ONLY a marginal improvement over exchange custody.
+
+See? So that's two Blockstream cofounders who say I'm right! Both are co-authors of [the sidechains whitepaper](https://www.blockstream.com/sidechains.pdf), as well. What more do you need!?
+
+Update Aug 2020: See [this 2014 post from Reid Hoffman](https://www.linkedin.com/pulse/20141117154558-1213-the-future-of-the-bitcoin-ecosystem-and-trustless-trust-why-i-invested-in-blockstream) (the pseudo-creator of Blockstream), which makes the scope and purpose of the "sidechain" totally unambiguous. It's even [re-published on the Blockstream site](https://blockstream.com/2015/01/13/en-reid-hoffman-on-the-future-of-the-bitcoin-ecosystem/).

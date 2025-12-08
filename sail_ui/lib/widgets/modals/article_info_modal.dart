@@ -61,6 +61,28 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                         spacing: 0,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Author (if present)
+                          if (article.author != null) ...[
+                            Row(
+                              children: [
+                                if (article.authorImage != null)
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    margin: const EdgeInsets.only(right: SailStyleValues.padding12),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      image: DecorationImage(
+                                        image: AssetImage(article.authorImage!),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                SailText.secondary13(article.author!),
+                              ],
+                            ),
+                            SailSpacing(SailStyleValues.padding16),
+                          ],
                           // Title
                           SailText.primary24(article.title, bold: true),
                           SailSpacing(SailStyleValues.padding20),
@@ -123,8 +145,17 @@ class Article {
   final String markdown;
   final String filename;
   final String? background;
+  final String? author;
+  final String? authorImage;
 
-  Article({required this.title, required this.markdown, required this.filename, this.background});
+  Article({
+    required this.title,
+    required this.markdown,
+    required this.filename,
+    this.background,
+    this.author,
+    this.authorImage,
+  });
 }
 
 class ArticleGroup {

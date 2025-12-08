@@ -303,6 +303,7 @@ class StoryCard extends StatefulWidget {
   final String title;
   final String subtitle;
   final bool largeIcon;
+  final String? background;
   final VoidCallback onPressed;
 
   const StoryCard({
@@ -311,6 +312,7 @@ class StoryCard extends StatefulWidget {
     required this.subtitle,
     required this.onPressed,
     this.largeIcon = false,
+    this.background,
   });
 
   @override
@@ -331,6 +333,7 @@ class _StoryCardState extends State<StoryCard> {
           title: widget.title,
           subtitle: widget.subtitle,
           largeIcon: widget.largeIcon,
+          background: widget.background,
         ),
       ),
     );
@@ -341,11 +344,13 @@ class _StoryCardContent extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool largeIcon;
+  final String? background;
 
   const _StoryCardContent({
     required this.title,
     required this.subtitle,
     required this.largeIcon,
+    this.background,
   });
 
   @override
@@ -356,11 +361,17 @@ class _StoryCardContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: SailSVG.png(
-              SailPNGAsset.articleBeginner,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            child: background != null
+                ? Image.asset(
+                    background!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                : SailSVG.png(
+                    SailPNGAsset.articleBeginner,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),

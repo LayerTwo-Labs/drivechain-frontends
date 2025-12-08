@@ -1,0 +1,84 @@
+---
+title: "Why Drivechain Is Harder to Understand Than Previous Soft Forks"
+background: convergence.png
+author: Paul Sztorc
+authorImage: paul-sztorc.png
+---
+
+Drivechain is unlike previous protocol upgrades in a few important ways.
+
+## 1. Novel Distinction Between "Rule-breaking" and "Theft"
+
+Drivechain draws a distinction between "enforcing the new protocol rules", and "theft". Previously, no such distinction was necessary, and in many cases no such distinction was even possible.
+
+For example, SegWit, as a soft fork, enforced certain *new rules*. If these rules *could* be broken, then SegWit outputs would become "anyone can spend" outputs (as the name implies, "anyone" could spend these outputs, including people other than the UTXO's rightful owner). So, conceptually, "breaking the SegWit rules" equaled "stealing money from SegWit users".
+
+Drivechain also enforces new rules via soft fork. These rules govern things like the appearance of the critical 32-withdrawal-bytes, and the march of these bytes toward a 13,150 ACK-score. Like SegWit, these rules are enforced by full nodes. So, if everyone ran an up-to-date, DC-enabled node, then the DC-rules could not be broken.
+
+But *unlike* SegWit, it is possible for a Drivechain txn to follow all the rules, yet still result in "theft". Namely: it could follow all of the mainchain rules, and all Drivechain rules, but it might *break* one of the sidechain's rules (of which the mainchain is ignorant, by design). Thus, mis-withdrawals are possible – they just take 3-6 months to go through (as do valid-withdrawals).
+
+## 2. Economics / The Open Loop
+
+Drivechain-withdrawals want to have their cake and eat it too. One one hand, they want all of the security and audit-ability of single rare slow transactions; on the other hand: they want all of the user-friendliness of multiple frequent fast txns.
+
+And both *are* accomplished at once. But *not* through any line of code, nor any technical innovation.
+
+Instead it is accomplished the same way Satoshi accomplished mining – by building a *business opportunity* into the cryptosystem. In practice, users who want to withdraw from a sidechain, will be able to use a shapeshift-like service to do so immediately. The proprietor of this service will specialize in customer service, in monitoring the sidechain node for problems, and in slowly accumulating funds and slowly walking these over to the mainchain. We are thus free to make the side-to-main peg take as long as we like, providing a huge boost to its security.
+
+I don't think critics of Drivechain really appreciate the sheer auditability-magnitude, of a txn that is identified in 32-bytes and which must hang in the air –observed by everyone– for at least 3 months. Or else, if they do, they don't see how anything that slow could possibly ever be useful. Or else, they do not see how we have it both ways at once…because this "conveyor" is not anywhere in the codebase.
+
+## 3. Novel "Accumulation" of Security
+
+Once, I remarked that DC-withdrawals are probably "more secure" than regular Bitcoin transactions.
+
+This comment stunned at least three people in the audience, who approached me afterwards to see if I was joking, or being arrogant. But instead I think it is just another misunderstanding of DC.
+
+A normal transaction (non-Drivechain) is checked a single time, in a single block. It passes into a script interpreter; the script is evaluated; the software checks for "TRUE". Each transaction is only checked once, ever. It is like a big assembly line, with one lane (where the txns are the products).
+
+In contrast, Drivechain withdrawals become valid (or, more precisely, escape being invalid) by "sticking around", for months at a time, slowly accumulating ACK-score. They loop back through the assembly line, at least 13,150 times (and at most 26,300 times), before finally getting kicked out one way or another. The actual "withdrawal txn" can only be included in a block, at the very *end* of this 3-6 month accumulation process.
+
+Moreover, the ACK-score system is heavily biased toward conservatism. If 51% hashrate processed withdrawals randomly, then it isn't as though attacker gets their way half the time, and honest users get their way half the time – instead, zero withdrawals go through at all (ie, they all fail 100% of the time).
+
+So, assume for the moment that every DC-withdrawal that *does* go through, is one that is non-theft. In that way, DC-withdrawals are as "secure" as regular txns.
+
+In that case, how would they be "more" secure?
+
+Well, regular txns need to worry about being reorged out of the chain, but withdrawal-txns almost certainly do not. Miners worked 3-6 months to include withdrawals in a block, and cannot include any other variation of them for another 3-6 months. So, in the event of a large reorg, the withdrawal-txn will probably end up in the active chain; but this is not necessarily true for any of the "normal" txns.
+
+## 4. New Mindset: Non-Core Software Might Be Good
+
+The engineering task of "how to sidechain", is basically the task of "how to most efficiently abandon the mainchain host software". Ie, how to abandon Bitcoin Core (without destroying Bitcoin Core, or harming the 21 million BTC).
+
+The problem is that Bitcoin-Culture has evolved [an extreme aversion to all non-BTC projects](https://www.reddit.com/r/btc/comments/9i8obh/everything_wrong_with_the_btc_community_in_one/).
+
+A tremendous amount of this aversion is justified[^n], and it was highly reinforced during the 2016-2017 Scaling War, in which the Core prevailed over its rivals.
+
+However, that aversion has now become overgeneralized. As of 2019, Bitcoiners now regard Core as infallible: opposition to Core is opposition to goodness, and all who use non-Core software are misguided or evil. So most Bitcoiners are baffled by Drivechain and can't understand what it would even be used for.
+
+## 5. Unfortunate Timing / "Miners Are Bad NPCs Cheer"
+
+Drivechain was published in Nov 2015, and I presented it at Scaling III (Oct 2016). After the first half of day one of that conference, miners walked out and immediately begin the contentious 'SegWit blockade'. In response, Bitcoin's cultural, political, and intellectual leaders moved quickly to discredit and marginalize the mining communities.
+
+For better or for worse, they succeeded. Any talk of cooperating with miners quickly became passé, and it instead became fashionable to view miners with hatred and fear, to regard them as enemies of Bitcoin, and to dismiss them as being –not merely tame (as had previously been said), but– pitiably inconsequential to anything
+
+Drivechain grants miners some agency, especially in the creation/deletion of new sidechains. This is often interpreted as 'giving power to miners'. But it does not "give" power from one group to another; it creates power ex nihilo. After all, there are currently zero sidechains, and no way to create any. Furthermore, the created powers disable older more dangerous powers (such as miner-sourced hard-fork-campaigns unnecessary). And since mining is brutally competitive, they are less powers, and more "burdensome responsibilities" – like switching an overachieving class from 'pass/fail' to 'letter grades' (groan!).
+
+In a different time, this nuance would be easier to understand. But instead we live in the time of "miners are bad NPCs cheer".
+
+## 6. Liquid and Contradicting Blockstream
+
+Blockstream markets their Liquid product as "the first production sidechain":
+
+But something in that phrase has to be false. Either [Liquid isn't a sidechain; or else (if sidechain is redefined) then Liquid isn't "the first" of that thing](http://www.drivechain.info/blog/liquid/).
+
+The problem, is that –in order to actually launch [my real project](http://www.bitcoinhivemind.com/)– I inadvertently need to create the Real First Bitcoin Prodution Sidechain. So, while I would much prefer to avoid contradicting Blockstream, in practice this is not possible. There's just no way to tell the truth about Drivechain without contradicting Blockstream.
+
+Blockstream is extremely popular, and has a lot of money to award in acquisitions, consulting revenues, conference sponsorships, and sinecure jobs. And I do not give out such awards. So, the people who agree with them, shout it very loudly, and the people who agree with me, keep quiet about it for political reasons.
+
+And as a result of all that, it just looks as though few people agree with the Drivechain project, or sees it as valuable. Ultimately, people invest less time understanding it. Which contributes to misunderstanding.
+
+---
+
+### Footnotes
+
+[^n]: Much of it is cognitive dissonance – it is the only way someone can process a world, where they work hard to make obscure and under-appreciated changes to Bitcoin, while meanwhile the ICO scam down the street gets $30 million dollars in a weekend.

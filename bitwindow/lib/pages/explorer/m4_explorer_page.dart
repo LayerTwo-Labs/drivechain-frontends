@@ -49,7 +49,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                       SailText.primary12('Active Sidechains'),
                       const SizedBox(height: SailStyleValues.padding08),
                       Expanded(
-                        child: Container(
+                        child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: theme.colors.background,
                             border: Border.all(color: theme.colors.divider),

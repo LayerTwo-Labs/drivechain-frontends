@@ -1,0 +1,117 @@
+---
+title: "The Economic Security Model"
+background: secure-vault.png
+author: Paul Sztorc
+authorImage: paul-sztorc.png
+---
+
+This is part of a series on [Tidwell's Questions](https://twitter.com/miketwenty1/status/1696943794321588383?s=20).
+
+## The Question
+
+Supposedly (acording [to Melvin](https://twitter.com/melvincarvalho/status/1693570731227951483))…
+
+```
+If we look at the real world example of Monero:
+
+1. Market cap = 3 billion
+2. Daily fees = 1 thousand
+
+A self-interested actor (or algorithm) would always take (1), over (2).
+
+The chain gets terminated, and users rugged.
+```
+
+So, why will fees be enough to deter theft? It doesn't seem to add up!
+
+## The Answer
+
+Actually, it adds up just fine. Fee revenues will be way, way more than total coins "locked" to a drivechain.
+
+Secondly, even if it didn't add up – that would just mean that Bitcoin L1 is doomed as well.
+
+### 1. If DC Breaks, Bitcoin Probably Breaks Also
+
+Drivechain uses a "fees only" model – L2 cannot print any new coins.
+
+Eventually, Bitcoin's L1 will share this fate. That's Bitcoin's long run security model. So, if it doesn't work, we had better learn now!
+
+### 2. Basic Assumptions Using Today's ETH Fee-Numbers
+
+Fortunately, it probably does work.
+
+Let's assume:
+
+- Total fee demand, across all sidechains, of $ 7,200,000 per day – this is ETH's fee-demand TODAY (see [cryptofees.info](https://cryptofees.info/)).
+
+What would that look like, in a drivechain world? It might be:
+
+- 10 drivechains total
+- Each drivechain has a 10 MB blocksize. 400 byte txns. 25,000 txns per block.
+- Users pay $0.20 per txn – half of today's BTC rate ($0.50)
+
+Sanity check: $7,200,000 = $0.20 * 25,000 * 10 * 144
+
+That would comes out to $5,000 worth of fees, per block, per drivechain.
+
+Either way, 7.2 million per day, comes to $216 million per month.
+
+### 3. How much BTC can be held by all drivechains?
+
+Basic NPV analysis can convert $216 M per month, into one fixed lump-sum today.
+
+At 8% annual interest rates (0.6434 % monthly), this is equal to:
+
+- $ 4.04 billion , if you truncate after 18 months
+- $33.57 billion , if you calculate via perpetuity
+
+At today's prices, this is roughly 1.27 million BTC total. Or about 127,000 BTC per each of the 10 drivechains.
+
+### 4. Interpretations
+
+Thus, mining hardware goes up in value, by $33 billion, if (and only if!) miners play ball with Bip300 withdrawals (which costs them nothing). If more than $33 billion is deposited, then users should worry! But if less is deposited, then greedy miners will make more money keeping the sidechain alive, than they would by killing it.
+
+Not bad! And we only absorbed the revenue of one Altcoin project. (We also assumed these revenues would never grow.) By comparison, the entire lightning network today, is just 4,700 BTC – aka over 250x smaller than the $33.57 billion drivechain security budget figure.
+
+## Possible Objections to this Reasoning
+
+Some say that ETH revenue's are ill-gotten. For the purposes of this exercise, it doesn't actually matter. The blockchain passes no judgement on that; nor do I.
+
+Some say, that ETH-users won't voluntarily switch to a BTC drivechain. I agree! But ETH built their revenues from nothing. If they can do it, then so can someone else. In the end, I believe that everyone will switch *involuntarily* …if you know what I mean.
+
+Some may say – those ETH numbers aren't real! It's ETH whales, spending millions of dollars per day, to give Ethereum the appearance of use! Maybe – but would they really keep that up for 8 consecutive years? Wouldn't they have dumped by now? Personally I think the demand is real. ETH was a shady project back in 2015, but in 2023 it no more premined than BTC is. Not to a newcomer, anyway. If the strategy of faking txn fees to pump is viable, then L2 pioneers might do something similar, to pump the price of BTC. Totally symmetric.
+
+Finally, some say that it will make Bitcoin look bad, merely to be associated with any Alt-stuff. (Do you want adoption or not?) These people are enemies of sidechains in general, and their objection has nothing to do with Melvin's Fee Question.
+
+## Conclusion
+
+This question was crucial, since if I am right, it disqualifies the whole "miners can steal" complaint. It converts that complaint into a question: can the drivechain developers build something *popular* enough to survive?
+
+We also touched upon the "drivechain kills sh\tcoins" idea. It has nothing to do with what sh\tcoin-issuers prefer! In fact, it kills sh\tcoins because this is their worst nightmare: something that only survives, if it has real *end users*. It cannot be pump-and-dumped, because of the 2wp. And it must be used in the real world – it must have "paying customers". If it does nothing, it will fall out of existence. Killing sh\tcoins, literally.
+
+---
+
+### Appendix (Added June 2025) – The Bitcoin Endgame
+
+Some readers asked about the "final steady-state".
+
+One example would be:
+
+- A total of 13 L2-drivechains (see [here](https://www.truthcoin.info/blog/all-world-txns/#appendix-1--blockspace-napkin-math)).
+- Each chain processes 500 billion txn per year – (ie, 6.5 trillion txns total, across all 13 chains).
+- Each chain charges $0.10 per transaction – (ie, $50 billion per year, total, per chain).
+- Exchange rate of: 10 million USD per coin – (it doesn't actually matter, but it may make the example a little clearer).
+- So, each chain "collects" about 5,000 coins per year, in fees. (They are transferred from user-addresses, to miner-addresses.)
+- The NPV calculation, at 8% in perpetuity is = 62,500 coins. (At 25%, it would be 20,000 coins; and, at 8% truncated after 18 months, it would be 7,300 coins.)
+- The 5,000 coins are collected by miners, AND they are also spent by miners (who must purchase electricity, ASICs, etc).
+- It is easy for 5,000 coins to go from L1 to L2, or vice-versa.
+
+So, each L2 might have 8,000 - 20,000 coins, of which 5,000 or so might "turn over" per year. (By "turn over", I mean they will be paid in txn fees, accumulate in miner's coinbase txns, then be paid back out [eventually] finding their way toward their original owners.)
+
+### Endgame Discussion
+
+Back in the 1990s (when cash was more popular), it was pretty normal to hold about $75 in your physical wallet, and spend more than half of it during a month (60% turnover). These days, people have a VISA limit (ie, credit – no cash down) – they spend throughout the month, then pay it off (ie, turnover of 100% or >100%). At 3 transactions per day, (90 per month), this is a 90:1 ratio of "L2" txns to "L1".
+
+A [sanity check with AI](https://www.perplexity.ai/search/what-percentage-of-the-worlds-AUG0A_fQTv.gGwB1Y3dIzQ#2) estimates roughly 70% of txns are less than $100, and perhaps 80% are less than $200. This would fit with a "7,000 coins" total on the L2.
+
+If the configuration above doesn't work out, then new "L3" drivechains (drivechains on top of a L2-drivechain) might have [1] yet-faster turnover, [2] lower fees, and [3] other security tradeoffs. Users might go their whole lives, without ever making it to L1 – just as consumers don't have accounts at the Bank of International Settlements or the FED.
