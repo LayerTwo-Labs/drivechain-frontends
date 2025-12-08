@@ -28,6 +28,7 @@ class SidechainProvider extends ChangeNotifier {
 
   SidechainProvider() {
     _syncProvider.addListener(_onSync);
+    _walletReader.addListener(_onWalletChanged);
     fetch();
   }
 
@@ -35,6 +36,14 @@ class SidechainProvider extends ChangeNotifier {
     if (_syncProvider.isSynced) {
       fetch();
     }
+  }
+
+  void _onWalletChanged() {
+    // Clear and refetch when wallet changes since deposits are per-wallet
+    sidechains = List.filled(256, null);
+    sidechainProposals = [];
+    notifyListeners();
+    fetch();
   }
 
   // call this function from anywhere to refetch sidechain info
@@ -88,6 +97,7 @@ class SidechainProvider extends ChangeNotifier {
   @override
   void dispose() {
     _syncProvider.removeListener(_onSync);
+    _walletReader.removeListener(_onWalletChanged);
     super.dispose();
   }
 }

@@ -10,6 +10,7 @@ import (
 // Cheque represents a Bitcoin cheque in the database
 type Cheque struct {
 	ID                 int64
+	WalletID           string
 	DerivationIndex    uint32
 	ExpectedAmountSats uint64
 	Address            string
@@ -22,15 +23,18 @@ type Cheque struct {
 }
 
 // Create creates a new cheque in the database
-func Create(ctx context.Context, db *sql.DB, index uint32, expectedAmount uint64, address string) (int64, error) {
+func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expectedAmount uint64, address string) (int64, error) {
+	if walletID == "" {
+		return 0, fmt.Errorf("wallet_id cannot be empty")
+	}
 	if address == "" {
 		return 0, fmt.Errorf("address cannot be empty")
 	}
 
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO cheques (derivation_index, expected_amount_sats, address)
-		VALUES (?, ?, ?)
-	`, index, expectedAmount, address)
+		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address)
+		VALUES (?, ?, ?, ?)
+	`, walletID, index, expectedAmount, address)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create cheque: %w", err)
 	}
@@ -56,6 +60,7 @@ func scanCheque(scanner interface {
 
 	err := scanner.Scan(
 		&cheque.ID,
+		&cheque.WalletID,
 		&cheque.DerivationIndex,
 		&cheque.ExpectedAmountSats,
 		&cheque.Address,
@@ -90,15 +95,15 @@ func scanCheque(scanner interface {
 	return &cheque, nil
 }
 
-// Get retrieves a cheque by ID
-func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
+// Get retrieves a cheque by ID for a specific wallet
+func Get(ctx context.Context, db *sql.DB, walletID string, id int64) (*Cheque, error) {
 	row := db.QueryRowContext(ctx, `
-		SELECT id, derivation_index, expected_amount_sats, address,
+		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
 		       funded_txid, actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
-		WHERE id = ?
-	`, id)
+		WHERE wallet_id = ? AND id = ?
+	`, walletID, id)
 
 	cheque, err := scanCheque(row)
 	if err != nil {
@@ -108,15 +113,15 @@ func Get(ctx context.Context, db *sql.DB, id int64) (*Cheque, error) {
 	return cheque, nil
 }
 
-// GetByAddress retrieves a cheque by address
-func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, error) {
+// GetByAddress retrieves a cheque by address for a specific wallet
+func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address string) (*Cheque, error) {
 	row := db.QueryRowContext(ctx, `
-		SELECT id, derivation_index, expected_amount_sats, address,
+		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
 		       funded_txid, actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
-		WHERE address = ?
-	`, address)
+		WHERE wallet_id = ? AND address = ?
+	`, walletID, address)
 
 	cheque, err := scanCheque(row)
 	if err != nil {
@@ -126,15 +131,16 @@ func GetByAddress(ctx context.Context, db *sql.DB, address string) (*Cheque, err
 	return cheque, nil
 }
 
-// List retrieves all cheques
-func List(ctx context.Context, db *sql.DB) ([]Cheque, error) {
+// List retrieves all cheques for a specific wallet
+func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, derivation_index, expected_amount_sats, address,
+		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
 		       funded_txid, actual_amount_sats, created_at, funded_at,
 		       swept_txid, swept_at
 		FROM cheques
+		WHERE wallet_id = ?
 		ORDER BY created_at DESC
-	`)
+	`, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("list cheques: %w", err)
 	}
@@ -154,64 +160,82 @@ func List(ctx context.Context, db *sql.DB) ([]Cheque, error) {
 }
 
 // UpdateFunding updates a cheque as funded
-func UpdateFunding(ctx context.Context, db *sql.DB, id int64, txid string, actualAmount uint64) error {
+func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, txid string, actualAmount uint64) error {
 	now := time.Now()
 
-	_, err := db.ExecContext(ctx, `
+	result, err := db.ExecContext(ctx, `
 		UPDATE cheques
 		SET funded_txid = ?, actual_amount_sats = ?, funded_at = ?
-		WHERE id = ?
-	`, txid, actualAmount, now, id)
+		WHERE wallet_id = ? AND id = ?
+	`, txid, actualAmount, now, walletID, id)
 
 	if err != nil {
 		return fmt.Errorf("failed to update funding: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
 	}
 
 	return nil
 }
 
 // UpdateSwept marks a cheque as swept
-func UpdateSwept(ctx context.Context, db *sql.DB, id int64, txid string) error {
+func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txid string) error {
 	now := time.Now()
 
-	_, err := db.ExecContext(ctx, `
+	result, err := db.ExecContext(ctx, `
 		UPDATE cheques
 		SET swept_txid = ?, swept_at = ?
-		WHERE id = ?
-	`, txid, now, id)
+		WHERE wallet_id = ? AND id = ?
+	`, txid, now, walletID, id)
 
 	if err != nil {
 		return fmt.Errorf("failed to update swept: %w", err)
 	}
 
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
 	return nil
 }
 
-// GetNextIndex returns the next available cheque index
-func GetNextIndex(ctx context.Context, db *sql.DB) (uint32, error) {
+// GetNextIndex returns the next available cheque index for a specific wallet
+func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, error) {
 	var maxIndex sql.NullInt64
 
 	err := db.QueryRowContext(ctx, `
-		SELECT MAX(derivation_index) FROM cheques
-	`).Scan(&maxIndex)
+		SELECT MAX(derivation_index) FROM cheques WHERE wallet_id = ?
+	`, walletID).Scan(&maxIndex)
 
 	if err != nil && err != sql.ErrNoRows {
 		return 0, fmt.Errorf("failed to get max index: %w", err)
 	}
 
 	if !maxIndex.Valid {
-		// No cheques yet, start at 0
+		// No cheques yet for this wallet, start at 0
 		return 0, nil
 	}
 
 	return uint32(maxIndex.Int64) + 1, nil
 }
 
-// Delete deletes a cheque by ID
-func Delete(ctx context.Context, db *sql.DB, id int64) error {
+// Delete deletes a cheque by ID for a specific wallet
+func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 	result, err := db.ExecContext(ctx, `
-		DELETE FROM cheques WHERE id = ?
-	`, id)
+		DELETE FROM cheques WHERE wallet_id = ? AND id = ?
+	`, walletID, id)
 
 	if err != nil {
 		return fmt.Errorf("failed to delete cheque: %w", err)
@@ -230,24 +254,24 @@ func Delete(ctx context.Context, db *sql.DB, id int64) error {
 }
 
 // CreateOrUpdateFromRecovery creates or updates a cheque from recovery scan
-func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, index uint32, address string, txid string, amount uint64) error {
+func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, txid string, amount uint64) error {
 	// Check if cheque already exists
-	existing, err := GetByAddress(ctx, db, address)
+	existing, err := GetByAddress(ctx, db, walletID, address)
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("failed to check existing cheque: %w", err)
 	}
 
 	if existing != nil {
 		// Update existing cheque
-		return UpdateFunding(ctx, db, existing.ID, txid, amount)
+		return UpdateFunding(ctx, db, walletID, existing.ID, txid, amount)
 	}
 
 	// Create new cheque as already funded
 	now := time.Now()
 	_, err = db.ExecContext(ctx, `
-		INSERT INTO cheques (derivation_index, expected_amount_sats, address, funded_txid, actual_amount_sats, funded_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, index, amount, address, txid, amount, now)
+		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address, funded_txid, actual_amount_sats, funded_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, walletID, index, amount, address, txid, amount, now)
 
 	if err != nil {
 		return fmt.Errorf("failed to create recovered cheque: %w", err)

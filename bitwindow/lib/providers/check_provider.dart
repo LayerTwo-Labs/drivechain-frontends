@@ -27,6 +27,7 @@ class CheckProvider extends ChangeNotifier {
 
   CheckProvider() {
     _syncProvider.addListener(_onNewBlock);
+    _walletReader.addListener(_onWalletChanged);
     _init();
   }
 
@@ -38,6 +39,16 @@ class CheckProvider extends ChangeNotifier {
     if (_syncProvider.isSynced) {
       fetch();
     }
+  }
+
+  void _onWalletChanged() {
+    clear();
+    fetch();
+  }
+
+  void clear() {
+    _checks = [];
+    notifyListeners();
   }
 
   Future<void> fetch() async {
@@ -178,6 +189,7 @@ class CheckProvider extends ChangeNotifier {
   @override
   void dispose() {
     _syncProvider.removeListener(_onNewBlock);
+    _walletReader.removeListener(_onWalletChanged);
     stopPolling();
     super.dispose();
   }
