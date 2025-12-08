@@ -237,7 +237,7 @@ class _DenialDialogState extends State<DenialDialog> {
     return SailDialog(
       title: isBatch ? 'Deny All UTXOs' : 'Start Automatic Denial',
       maxWidth: 700,
-      maxHeight: 600,
+      maxHeight: 850,
       actions: [
         SailButton(
           label: 'Cancel',
