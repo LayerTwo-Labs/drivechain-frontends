@@ -75,6 +75,7 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                                       image: DecorationImage(
                                         image: AssetImage(article.authorImage!),
                                         fit: BoxFit.cover,
+                                        alignment: Alignment.topCenter,
                                       ),
                                     ),
                                   ),
