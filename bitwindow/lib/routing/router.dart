@@ -14,10 +14,10 @@ import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
-import 'package:bitwindow/pages/wallet/cash_cheque_page.dart';
-import 'package:bitwindow/pages/wallet/cash_cheque_success_page.dart';
-import 'package:bitwindow/pages/wallet/cheque_detail_page.dart';
-import 'package:bitwindow/pages/wallet/create_cheque_page.dart';
+import 'package:bitwindow/pages/wallet/cash_check_page.dart';
+import 'package:bitwindow/pages/wallet/cash_check_success_page.dart';
+import 'package:bitwindow/pages/wallet/check_detail_page.dart';
+import 'package:bitwindow/pages/wallet/create_check_page.dart';
 import 'package:bitwindow/pages/wallet/create_timestamp_page.dart';
 import 'package:bitwindow/pages/wallet/timestamp_detail_page.dart';
 import 'package:bitwindow/pages/wallet/verify_timestamp_page.dart';
@@ -117,20 +117,20 @@ class AppRouter extends RootStackRouter {
       page: BitcoinConfEditorRoute.page,
     ),
     AutoRoute(
-      path: '/create-cheque',
-      page: CreateChequeRoute.page,
+      path: '/create-check',
+      page: CreateCheckRoute.page,
     ),
     AutoRoute(
-      path: '/cash-cheque',
-      page: CashChequeRoute.page,
+      path: '/cash-check',
+      page: CashCheckRoute.page,
     ),
     AutoRoute(
-      path: '/cash-cheque-success/:txid',
-      page: CashChequeSuccessRoute.page,
+      path: '/cash-check-success/:txid',
+      page: CashCheckSuccessRoute.page,
     ),
     AutoRoute(
-      path: '/cheque/:id',
-      page: ChequeDetailRoute.page,
+      path: '/check/:id',
+      page: CheckDetailRoute.page,
     ),
     AutoRoute(
       path: '/timestamp-file',

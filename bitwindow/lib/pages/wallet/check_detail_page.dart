@@ -1,5 +1,5 @@
 import 'package:auto_route/auto_route.dart' hide AutoRouterX;
-import 'package:bitwindow/providers/cheque_provider.dart';
+import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,39 +10,39 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:stacked/stacked.dart';
 
-class ChequeDetailViewModel extends BaseViewModel {
+class CheckDetailViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
-  final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
+  final CheckProvider _checkProvider = GetIt.I.get<CheckProvider>();
   final TransactionProvider _transactionProvider = GetIt.I.get<TransactionProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
-  final int chequeId;
+  final int checkId;
 
-  Cheque? _cheque;
+  Cheque? _check;
   bool _isLoading = false;
   @override
   String? modelError;
 
-  Cheque? get cheque => _cheque;
+  Cheque? get check => _check;
   bool get isLoading => _isLoading;
 
-  ChequeDetailViewModel(this.chequeId) {
-    _loadCheque();
-    _chequeProvider.addListener(_onChequeProviderChanged);
+  CheckDetailViewModel(this.checkId) {
+    _loadCheck();
+    _checkProvider.addListener(_onCheckProviderChanged);
   }
 
-  void _onChequeProviderChanged() {
-    _loadCheque();
+  void _onCheckProviderChanged() {
+    _loadCheck();
   }
 
-  Future<void> _loadCheque() async {
+  Future<void> _loadCheck() async {
     _isLoading = true;
     notifyListeners();
 
-    _cheque = await _chequeProvider.getCheque(chequeId);
-    if (_cheque == null) {
+    _check = await _checkProvider.getCheck(checkId);
+    if (_check == null) {
       modelError = 'Check not found';
-    } else if (!_cheque!.hasFundedTxid()) {
-      _chequeProvider.startPolling(chequeId);
+    } else if (!_check!.hasFundedTxid()) {
+      _checkProvider.startPolling(checkId);
     }
 
     _isLoading = false;
@@ -51,13 +51,13 @@ class ChequeDetailViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    _chequeProvider.removeListener(_onChequeProviderChanged);
+    _checkProvider.removeListener(_onCheckProviderChanged);
     super.dispose();
   }
 
   void copyAddress(BuildContext context) {
-    if (_cheque != null) {
-      Clipboard.setData(ClipboardData(text: _cheque!.address));
+    if (_check != null) {
+      Clipboard.setData(ClipboardData(text: _check!.address));
       showSnackBar(context, 'Address copied to clipboard');
     }
   }
@@ -68,7 +68,7 @@ class ChequeDetailViewModel extends BaseViewModel {
   }
 
   Future<void> fundWithWallet(BuildContext context) async {
-    if (_cheque == null) return;
+    if (_check == null) return;
 
     final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
 
@@ -76,11 +76,11 @@ class ChequeDetailViewModel extends BaseViewModel {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
-      final amountSats = _cheque!.expectedAmountSats.toInt();
+      final amountSats = _check!.expectedAmountSats.toInt();
 
       final txid = await bitwindowRPC.wallet.sendTransaction(
         walletId,
-        {_cheque!.address: amountSats},
+        {_check!.address: amountSats},
         feeSatPerVbyte: 10,
       );
 
@@ -97,13 +97,13 @@ class ChequeDetailViewModel extends BaseViewModel {
 
       showSnackBar(
         context,
-        'Failed to fund cheque: $e',
+        'Failed to fund check: $e',
       );
     }
   }
 
-  Future<void> sweepCheque(BuildContext context) async {
-    if (_cheque == null || !_cheque!.hasFundedTxid()) return;
+  Future<void> sweepCheck(BuildContext context) async {
+    if (_check == null || !_check!.hasFundedTxid()) return;
 
     final destinationAddress = _transactionProvider.address;
     if (destinationAddress.isEmpty) {
@@ -113,7 +113,7 @@ class ChequeDetailViewModel extends BaseViewModel {
       return;
     }
 
-    if (!_cheque!.hasPrivateKeyWif() || _cheque!.privateKeyWif.isEmpty) {
+    if (!_check!.hasPrivateKeyWif() || _check!.privateKeyWif.isEmpty) {
       if (context.mounted) {
         showSnackBar(context, 'Private key not available - wallet may be locked');
       }
@@ -121,8 +121,8 @@ class ChequeDetailViewModel extends BaseViewModel {
     }
 
     try {
-      final txid = await _chequeProvider.sweepCheque(
-        _cheque!.privateKeyWif,
+      final txid = await _checkProvider.sweepCheck(
+        _check!.privateKeyWif,
         destinationAddress,
         10,
       );
@@ -145,13 +145,13 @@ class ChequeDetailViewModel extends BaseViewModel {
           await _showUnlockDialog(context);
           if (!context.mounted) return;
           if (_walletReader.isWalletUnlocked) {
-            await sweepCheque(context);
+            await sweepCheck(context);
           }
         } else {
           showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSnackBar(context, 'Failed to sweep cheque: $e');
+        showSnackBar(context, 'Failed to sweep check: $e');
       }
     }
   }
@@ -172,7 +172,7 @@ class ChequeDetailViewModel extends BaseViewModel {
               spacing: SailStyleValues.padding12,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SailText.secondary13('Enter your wallet password to sweep cheques'),
+                SailText.secondary13('Enter your wallet password to sweep checks'),
                 SailTextField(
                   controller: passwordController,
                   hintText: 'Password',
@@ -215,21 +215,21 @@ class ChequeDetailViewModel extends BaseViewModel {
 }
 
 @RoutePage()
-class ChequeDetailPage extends StatelessWidget {
-  final int chequeId;
+class CheckDetailPage extends StatelessWidget {
+  final int checkId;
 
-  const ChequeDetailPage({
+  const CheckDetailPage({
     super.key,
-    @PathParam('id') required this.chequeId,
+    @PathParam('id') required this.checkId,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<ChequeDetailViewModel>.reactive(
-      viewModelBuilder: () => ChequeDetailViewModel(chequeId),
+    return ViewModelBuilder<CheckDetailViewModel>.reactive(
+      viewModelBuilder: () => CheckDetailViewModel(checkId),
       builder: (context, model, child) {
-        final amountBTC = model.cheque != null
-            ? (model.cheque!.expectedAmountSats.toInt() / 100000000).toStringAsFixed(8)
+        final amountBTC = model.check != null
+            ? (model.check!.expectedAmountSats.toInt() / 100000000).toStringAsFixed(8)
             : '0.00000000';
 
         return Scaffold(
@@ -245,7 +245,7 @@ class ChequeDetailPage extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (model.modelError != null || model.cheque == null) {
+              if (model.modelError != null || model.check == null) {
                 return Center(
                   child: SailColumn(
                     spacing: SailStyleValues.padding16,
@@ -261,7 +261,7 @@ class ChequeDetailPage extends StatelessWidget {
                 );
               }
 
-              final cheque = model.cheque!;
+              final check = model.check!;
 
               return SafeArea(
                 child: SingleChildScrollView(
@@ -288,7 +288,7 @@ class ChequeDetailPage extends StatelessWidget {
                                       height: 32,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: cheque.hasFundedTxid()
+                                        color: check.hasFundedTxid()
                                             ? context.sailTheme.colors.success.withValues(alpha: 0.2)
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.2),
                                       ),
@@ -298,7 +298,7 @@ class ChequeDetailPage extends StatelessWidget {
                                       height: 20,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: cheque.hasFundedTxid()
+                                        color: check.hasFundedTxid()
                                             ? context.sailTheme.colors.success.withValues(alpha: 0.5)
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.5),
                                       ),
@@ -308,7 +308,7 @@ class ChequeDetailPage extends StatelessWidget {
                                       height: 12,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: cheque.hasFundedTxid()
+                                        color: check.hasFundedTxid()
                                             ? context.sailTheme.colors.success
                                             : context.sailTheme.colors.orange,
                                       ),
@@ -318,11 +318,11 @@ class ChequeDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(width: SailStyleValues.padding12),
                               SailText.primary13(
-                                cheque.hasFundedTxid() ? 'Funded' : 'Awaiting funding',
+                                check.hasFundedTxid() ? 'Funded' : 'Awaiting funding',
                               ),
                             ],
                           ),
-                          if (!cheque.hasFundedTxid())
+                          if (!check.hasFundedTxid())
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding20),
                               decoration: BoxDecoration(
@@ -330,27 +330,27 @@ class ChequeDetailPage extends StatelessWidget {
                                 borderRadius: SailStyleValues.borderRadiusSmall,
                               ),
                               child: QrImageView(
-                                data: cheque.address,
+                                data: check.address,
                                 version: QrVersions.auto,
                                 size: 200,
                                 backgroundColor: context.sailTheme.colors.backgroundSecondary,
                               ),
                             ),
-                          if (!cheque.hasFundedTxid())
+                          if (!check.hasFundedTxid())
                             SailRow(
                               spacing: SailStyleValues.padding08,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Flexible(
                                   child: SailText.primary13(
-                                    cheque.address,
+                                    check.address,
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
-                                CopyButton(text: cheque.address),
+                                CopyButton(text: check.address),
                               ],
                             ),
-                          if (cheque.hasFundedTxid() && cheque.hasPrivateKeyWif() && cheque.privateKeyWif.isNotEmpty)
+                          if (check.hasFundedTxid() && check.hasPrivateKeyWif() && check.privateKeyWif.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding16),
                               decoration: BoxDecoration(
@@ -383,7 +383,7 @@ class ChequeDetailPage extends StatelessWidget {
                                     children: [
                                       Flexible(
                                         child: SelectableText(
-                                          cheque.privateKeyWif,
+                                          check.privateKeyWif,
                                           style: TextStyle(
                                             fontFamily: 'IBMPlexMono',
                                             fontSize: 12,
@@ -391,13 +391,13 @@ class ChequeDetailPage extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                      CopyButton(text: cheque.privateKeyWif),
+                                      CopyButton(text: check.privateKeyWif),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
-                          if (!cheque.hasFundedTxid())
+                          if (!check.hasFundedTxid())
                             SizedBox(
                               width: 400,
                               height: 64,
@@ -435,7 +435,7 @@ class ChequeDetailPage extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          if (cheque.hasFundedTxid())
+                          if (check.hasFundedTxid())
                             SizedBox(
                               width: 400,
                               height: 64,
@@ -459,14 +459,14 @@ class ChequeDetailPage extends StatelessWidget {
                                   ],
                                 ),
                                 child: TextButton(
-                                  onPressed: () => model.sweepCheque(context),
+                                  onPressed: () => model.sweepCheck(context),
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: SailText.primary15(
-                                    'Sweep Cheque to Wallet',
+                                    'Sweep Check to Wallet',
                                     color: Colors.white,
                                     bold: true,
                                   ),

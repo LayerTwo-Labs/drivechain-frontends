@@ -27,32 +27,32 @@ class BitcoinConfEditorRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [CashChequePage]
-class CashChequeRoute extends PageRouteInfo<void> {
-  const CashChequeRoute({List<PageRouteInfo>? children})
-    : super(CashChequeRoute.name, initialChildren: children);
+/// [CashCheckPage]
+class CashCheckRoute extends PageRouteInfo<void> {
+  const CashCheckRoute({List<PageRouteInfo>? children})
+    : super(CashCheckRoute.name, initialChildren: children);
 
-  static const String name = 'CashChequeRoute';
+  static const String name = 'CashCheckRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const CashChequePage();
+      return const CashCheckPage();
     },
   );
 }
 
 /// generated route for
-/// [CashChequeSuccessPage]
-class CashChequeSuccessRoute extends PageRouteInfo<CashChequeSuccessRouteArgs> {
-  CashChequeSuccessRoute({
+/// [CashCheckSuccessPage]
+class CashCheckSuccessRoute extends PageRouteInfo<CashCheckSuccessRouteArgs> {
+  CashCheckSuccessRoute({
     Key? key,
     required String txid,
     int? amountSats,
     List<PageRouteInfo>? children,
   }) : super(
-         CashChequeSuccessRoute.name,
-         args: CashChequeSuccessRouteArgs(
+         CashCheckSuccessRoute.name,
+         args: CashCheckSuccessRouteArgs(
            key: key,
            txid: txid,
            amountSats: amountSats,
@@ -62,20 +62,20 @@ class CashChequeSuccessRoute extends PageRouteInfo<CashChequeSuccessRouteArgs> {
          initialChildren: children,
        );
 
-  static const String name = 'CashChequeSuccessRoute';
+  static const String name = 'CashCheckSuccessRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final queryParams = data.queryParams;
-      final args = data.argsAs<CashChequeSuccessRouteArgs>(
-        orElse: () => CashChequeSuccessRouteArgs(
+      final args = data.argsAs<CashCheckSuccessRouteArgs>(
+        orElse: () => CashCheckSuccessRouteArgs(
           txid: pathParams.getString('txid'),
           amountSats: queryParams.optInt('amount'),
         ),
       );
-      return CashChequeSuccessPage(
+      return CashCheckSuccessPage(
         key: args.key,
         txid: args.txid,
         amountSats: args.amountSats,
@@ -84,8 +84,8 @@ class CashChequeSuccessRoute extends PageRouteInfo<CashChequeSuccessRouteArgs> {
   );
 }
 
-class CashChequeSuccessRouteArgs {
-  const CashChequeSuccessRouteArgs({
+class CashCheckSuccessRouteArgs {
+  const CashCheckSuccessRouteArgs({
     this.key,
     required this.txid,
     this.amountSats,
@@ -99,13 +99,13 @@ class CashChequeSuccessRouteArgs {
 
   @override
   String toString() {
-    return 'CashChequeSuccessRouteArgs{key: $key, txid: $txid, amountSats: $amountSats}';
+    return 'CashCheckSuccessRouteArgs{key: $key, txid: $txid, amountSats: $amountSats}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! CashChequeSuccessRouteArgs) return false;
+    if (other is! CashCheckSuccessRouteArgs) return false;
     return key == other.key &&
         txid == other.txid &&
         amountSats == other.amountSats;
@@ -116,54 +116,54 @@ class CashChequeSuccessRouteArgs {
 }
 
 /// generated route for
-/// [ChequeDetailPage]
-class ChequeDetailRoute extends PageRouteInfo<ChequeDetailRouteArgs> {
-  ChequeDetailRoute({
+/// [CheckDetailPage]
+class CheckDetailRoute extends PageRouteInfo<CheckDetailRouteArgs> {
+  CheckDetailRoute({
     Key? key,
-    required int chequeId,
+    required int checkId,
     List<PageRouteInfo>? children,
   }) : super(
-         ChequeDetailRoute.name,
-         args: ChequeDetailRouteArgs(key: key, chequeId: chequeId),
-         rawPathParams: {'id': chequeId},
+         CheckDetailRoute.name,
+         args: CheckDetailRouteArgs(key: key, checkId: checkId),
+         rawPathParams: {'id': checkId},
          initialChildren: children,
        );
 
-  static const String name = 'ChequeDetailRoute';
+  static const String name = 'CheckDetailRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
       final pathParams = data.inheritedPathParams;
-      final args = data.argsAs<ChequeDetailRouteArgs>(
-        orElse: () => ChequeDetailRouteArgs(chequeId: pathParams.getInt('id')),
+      final args = data.argsAs<CheckDetailRouteArgs>(
+        orElse: () => CheckDetailRouteArgs(checkId: pathParams.getInt('id')),
       );
-      return ChequeDetailPage(key: args.key, chequeId: args.chequeId);
+      return CheckDetailPage(key: args.key, checkId: args.checkId);
     },
   );
 }
 
-class ChequeDetailRouteArgs {
-  const ChequeDetailRouteArgs({this.key, required this.chequeId});
+class CheckDetailRouteArgs {
+  const CheckDetailRouteArgs({this.key, required this.checkId});
 
   final Key? key;
 
-  final int chequeId;
+  final int checkId;
 
   @override
   String toString() {
-    return 'ChequeDetailRouteArgs{key: $key, chequeId: $chequeId}';
+    return 'CheckDetailRouteArgs{key: $key, checkId: $checkId}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! ChequeDetailRouteArgs) return false;
-    return key == other.key && chequeId == other.chequeId;
+    if (other is! CheckDetailRouteArgs) return false;
+    return key == other.key && checkId == other.checkId;
   }
 
   @override
-  int get hashCode => key.hashCode ^ chequeId.hashCode;
+  int get hashCode => key.hashCode ^ checkId.hashCode;
 }
 
 /// generated route for
@@ -231,17 +231,17 @@ class CreateAnotherWalletRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [CreateChequePage]
-class CreateChequeRoute extends PageRouteInfo<void> {
-  const CreateChequeRoute({List<PageRouteInfo>? children})
-    : super(CreateChequeRoute.name, initialChildren: children);
+/// [CreateCheckPage]
+class CreateCheckRoute extends PageRouteInfo<void> {
+  const CreateCheckRoute({List<PageRouteInfo>? children})
+    : super(CreateCheckRoute.name, initialChildren: children);
 
-  static const String name = 'CreateChequeRoute';
+  static const String name = 'CreateCheckRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const CreateChequePage();
+      return const CreateCheckPage();
     },
   );
 }

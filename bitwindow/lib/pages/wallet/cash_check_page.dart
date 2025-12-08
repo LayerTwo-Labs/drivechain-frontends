@@ -1,27 +1,26 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/providers/cheque_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class CreateChequePage extends StatefulWidget {
-  const CreateChequePage({super.key});
+class CashCheckPage extends StatefulWidget {
+  const CashCheckPage({super.key});
 
   @override
-  State<CreateChequePage> createState() => _CreateChequePageState();
+  State<CashCheckPage> createState() => _CashCheckPageState();
 }
 
-class _CreateChequePageState extends State<CreateChequePage> {
-  final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
+class _CashCheckPageState extends State<CashCheckPage> {
+  final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
-  final TextEditingController _amountController = TextEditingController();
-  bool _isCreating = false;
+  final TextEditingController _wifController = TextEditingController();
+  bool _isCashing = false;
 
   @override
   void dispose() {
-    _amountController.dispose();
+    _wifController.dispose();
     super.dispose();
   }
 
@@ -32,7 +31,7 @@ class _CreateChequePageState extends State<CreateChequePage> {
       appBar: AppBar(
         backgroundColor: SailTheme.of(context).colors.background,
         foregroundColor: SailTheme.of(context).colors.text,
-        title: SailText.primary20('Create Cheque'),
+        title: SailText.primary20('Cash Check'),
       ),
       body: SafeArea(
         child: Center(
@@ -44,12 +43,16 @@ class _CreateChequePageState extends State<CreateChequePage> {
                 spacing: SailStyleValues.padding32,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SailText.primary24('How much should the check be for?'),
+                  SailText.primary24('Enter the private key (WIF)'),
+                  SailText.secondary13(
+                    'Paste the private key from the check you received. The funds will be swept to your wallet.',
+                    textAlign: TextAlign.center,
+                  ),
                   SailTextField(
-                    controller: _amountController,
-                    hintText: '0.00000000',
-                    suffix: 'BTC',
-                    textFieldType: TextFieldType.bitcoin,
+                    controller: _wifController,
+                    hintText: 'Private key (WIF format)',
+                    textFieldType: TextFieldType.text,
+                    maxLines: 3,
                   ),
                   SailRow(
                     spacing: SailStyleValues.padding08,
@@ -61,9 +64,9 @@ class _CreateChequePageState extends State<CreateChequePage> {
                         onPressed: () async => context.router.maybePop(),
                       ),
                       SailButton(
-                        label: 'Create',
-                        loading: _isCreating,
-                        onPressed: () async => _createCheque(),
+                        label: 'Cash Check',
+                        loading: _isCashing,
+                        onPressed: () async => _cashCheck(),
                       ),
                     ],
                   ),
@@ -76,29 +79,38 @@ class _CreateChequePageState extends State<CreateChequePage> {
     );
   }
 
-  Future<void> _createCheque() async {
-    final amountText = _amountController.text.trim();
-    if (amountText.isEmpty) {
-      showSnackBar(context, 'Please enter an amount');
+  Future<void> _cashCheck() async {
+    final wif = _wifController.text.trim();
+    if (wif.isEmpty) {
+      showSnackBar(context, 'Please enter a private key');
       return;
     }
-
-    final btcAmount = double.tryParse(amountText);
-    if (btcAmount == null || btcAmount <= 0) {
-      showSnackBar(context, 'Please enter a valid amount');
-      return;
-    }
-
-    final sats = (btcAmount * 100000000).toInt();
 
     setState(() {
-      _isCreating = true;
+      _isCashing = true;
     });
 
     try {
-      final cheque = await _chequeProvider.createCheque(sats);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
+      final destinationAddress = await _bitwindowRPC.wallet.getNewAddress(walletId);
+
+      final result = await _bitwindowRPC.wallet.sweepCheque(
+        walletId,
+        wif,
+        destinationAddress,
+        10,
+      );
+
       if (!mounted) return;
-      await context.router.replace(ChequeDetailRoute(chequeId: cheque.id.toInt()));
+
+      await context.router.replace(
+        CashCheckSuccessRoute(
+          txid: result.txid,
+          amountSats: result.amountSats,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -109,18 +121,18 @@ class _CreateChequePageState extends State<CreateChequePage> {
           await _showUnlockDialog();
           if (!mounted) return;
           if (_walletReader.isWalletUnlocked) {
-            await _createCheque();
+            await _cashCheck();
           }
         } else {
           showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSnackBar(context, e.toString());
+        showSnackBar(context, 'Failed to cash check: $e');
       }
     } finally {
       if (mounted) {
         setState(() {
-          _isCreating = false;
+          _isCashing = false;
         });
       }
     }
@@ -142,7 +154,7 @@ class _CreateChequePageState extends State<CreateChequePage> {
               spacing: SailStyleValues.padding12,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SailText.secondary13('Enter your wallet password to create checks'),
+                SailText.secondary13('Enter your wallet password to cash checks'),
                 SailTextField(
                   controller: passwordController,
                   hintText: 'Password',

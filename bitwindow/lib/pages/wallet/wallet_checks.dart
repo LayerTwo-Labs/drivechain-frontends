@@ -1,4 +1,4 @@
-import 'package:bitwindow/providers/cheque_provider.dart';
+import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -7,93 +7,93 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:stacked/stacked.dart';
 
-class ChequesTabViewModel extends BaseViewModel {
-  final ChequeProvider _chequeProvider = GetIt.I.get<ChequeProvider>();
+class ChecksTabViewModel extends BaseViewModel {
+  final CheckProvider _checkProvider = GetIt.I.get<CheckProvider>();
 
-  List<Cheque> get cheques => _chequeProvider.cheques;
-  bool get isLoading => _chequeProvider.isLoading;
+  List<Cheque> get checks => _checkProvider.checks;
+  bool get isLoading => _checkProvider.isLoading;
   @override
-  String? get modelError => _chequeProvider.modelError;
+  String? get modelError => _checkProvider.modelError;
 
-  ChequesTabViewModel() {
-    _chequeProvider.addListener(_onChequeProviderChanged);
+  ChecksTabViewModel() {
+    _checkProvider.addListener(_onCheckProviderChanged);
   }
 
-  void _onChequeProviderChanged() {
+  void _onCheckProviderChanged() {
     notifyListeners();
   }
 
   Future<void> refresh() async {
-    await _chequeProvider.fetch();
+    await _checkProvider.fetch();
   }
 
-  void createNewCheque(BuildContext context) {
-    GetIt.I.get<AppRouter>().push(const CreateChequeRoute());
+  void createNewCheck(BuildContext context) {
+    GetIt.I.get<AppRouter>().push(const CreateCheckRoute());
   }
 
-  void cashCheque(BuildContext context) {
-    GetIt.I.get<AppRouter>().push(const CashChequeRoute());
+  void cashCheck(BuildContext context) {
+    GetIt.I.get<AppRouter>().push(const CashCheckRoute());
   }
 
   @override
   void dispose() {
-    _chequeProvider.removeListener(_onChequeProviderChanged);
+    _checkProvider.removeListener(_onCheckProviderChanged);
     super.dispose();
   }
 }
 
-class ChequesTab extends StatelessWidget {
-  const ChequesTab({super.key});
+class ChecksTab extends StatelessWidget {
+  const ChecksTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<ChequesTabViewModel>.reactive(
-      viewModelBuilder: () => ChequesTabViewModel(),
+    return ViewModelBuilder<ChecksTabViewModel>.reactive(
+      viewModelBuilder: () => ChecksTabViewModel(),
       onViewModelReady: (model) => model.refresh(),
       builder: (context, model, child) {
         return SailCard(
-          title: model.cheques.isEmpty ? 'Send Bitcoin Without an Internet Connection' : 'Your Checks',
-          subtitle: model.cheques.isEmpty
+          title: model.checks.isEmpty ? 'Send Bitcoin Without an Internet Connection' : 'Your Checks',
+          subtitle: model.checks.isEmpty
               ? "Checks let you transfer Bitcoin to anyone. Create a check with a specific amount, and the recipient can cash it later when they're ready to claim the bitcoin."
               : null,
           error: model.modelError,
           bottomPadding: false,
-          widgetHeaderEnd: model.cheques.isNotEmpty
+          widgetHeaderEnd: model.checks.isNotEmpty
               ? SailRow(
                   spacing: SailStyleValues.padding08,
                   children: [
                     SailButton(
-                      label: 'Cash Cheque',
+                      label: 'Cash Check',
                       variant: ButtonVariant.secondary,
-                      onPressed: () async => model.cashCheque(context),
+                      onPressed: () async => model.cashCheck(context),
                     ),
                     SailButton(
-                      label: 'Create New Cheque',
-                      onPressed: () async => model.createNewCheque(context),
+                      label: 'Create New Check',
+                      onPressed: () async => model.createNewCheck(context),
                     ),
                   ],
                 )
               : null,
-          child: model.cheques.isEmpty
-              ? ChequesEmptyState(
-                  onCreateCheque: () => model.createNewCheque(context),
-                  onCashCheque: () => model.cashCheque(context),
+          child: model.checks.isEmpty
+              ? ChecksEmptyState(
+                  onCreateCheck: () => model.createNewCheck(context),
+                  onCashCheck: () => model.cashCheck(context),
                 )
-              : ChequesTable(cheques: model.cheques),
+              : ChecksTable(checks: model.checks),
         );
       },
     );
   }
 }
 
-class ChequesEmptyState extends StatelessWidget {
-  final VoidCallback onCreateCheque;
-  final VoidCallback onCashCheque;
+class ChecksEmptyState extends StatelessWidget {
+  final VoidCallback onCreateCheck;
+  final VoidCallback onCashCheck;
 
-  const ChequesEmptyState({
+  const ChecksEmptyState({
     super.key,
-    required this.onCreateCheque,
-    required this.onCashCheque,
+    required this.onCreateCheck,
+    required this.onCashCheck,
   });
 
   @override
@@ -128,11 +128,11 @@ class ChequesEmptyState extends StatelessWidget {
                 SailButton(
                   label: 'Cash a Check',
                   variant: ButtonVariant.secondary,
-                  onPressed: () async => onCashCheque(),
+                  onPressed: () async => onCashCheck(),
                 ),
                 SailButton(
                   label: 'Create Your First Check',
-                  onPressed: () async => onCreateCheque(),
+                  onPressed: () async => onCreateCheck(),
                 ),
                 Expanded(child: Container()),
               ],
@@ -144,12 +144,12 @@ class ChequesEmptyState extends StatelessWidget {
   }
 }
 
-class ChequesTable extends StatelessWidget {
-  final List<Cheque> cheques;
+class ChecksTable extends StatelessWidget {
+  final List<Cheque> checks;
 
-  const ChequesTable({
+  const ChecksTable({
     super.key,
-    required this.cheques,
+    required this.checks,
   });
 
   @override
@@ -158,7 +158,7 @@ class ChequesTable extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: SailTable(
         drawGrid: true,
-        getRowId: (index) => cheques[index].id.toString(),
+        getRowId: (index) => checks[index].id.toString(),
         headerBuilder: (context) => [
           SailTableHeaderCell(name: 'Created'),
           SailTableHeaderCell(name: 'Address'),
@@ -168,29 +168,29 @@ class ChequesTable extends StatelessWidget {
           SailTableHeaderCell(name: 'Actions'),
         ],
         rowBuilder: (context, row, selected) {
-          final cheque = cheques[row];
+          final check = checks[row];
           return [
-            SailTableCell(value: _formatDate(cheque.createdAt)),
+            SailTableCell(value: _formatDate(check.createdAt)),
             SailTableCell(
-              value: _truncateAddress(cheque.address),
-              copyValue: cheque.address,
+              value: _truncateAddress(check.address),
+              copyValue: check.address,
             ),
-            SailTableCell(value: _formatSats(cheque.expectedAmountSats.toInt())),
+            SailTableCell(value: _formatSats(check.expectedAmountSats.toInt())),
             SailTableCell(
-              value: cheque.hasSweptTxid() && cheque.sweptTxid.isNotEmpty
+              value: check.hasSweptTxid() && check.sweptTxid.isNotEmpty
                   ? 'Swept'
-                  : cheque.hasFundedTxid()
+                  : check.hasFundedTxid()
                   ? 'Funded'
                   : 'Unfunded',
-              textColor: cheque.hasSweptTxid() && cheque.sweptTxid.isNotEmpty
+              textColor: check.hasSweptTxid() && check.sweptTxid.isNotEmpty
                   ? context.sailTheme.colors.text.withValues(alpha: 0.5)
-                  : cheque.hasFundedTxid()
+                  : check.hasFundedTxid()
                   ? context.sailTheme.colors.success
                   : context.sailTheme.colors.orange,
             ),
             SailTableCell(
-              value: cheque.hasFundedTxid() && cheque.hasActualAmountSats()
-                  ? _formatSats(cheque.actualAmountSats.toInt())
+              value: check.hasFundedTxid() && check.hasActualAmountSats()
+                  ? _formatSats(check.actualAmountSats.toInt())
                   : '-',
             ),
             SailTableCell(
@@ -198,25 +198,25 @@ class ChequesTable extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (cheque.hasSweptTxid() && cheque.sweptTxid.isNotEmpty)
+                  if (check.hasSweptTxid() && check.sweptTxid.isNotEmpty)
                     SailButton(
                       label: 'Swept',
-                      onPressed: () async => _viewCheque(context, cheque),
+                      onPressed: () async => _viewCheck(context, check),
                       variant: ButtonVariant.secondary,
                       insideTable: true,
                       disabled: true,
                     )
                   else
                     SailButton(
-                      label: cheque.hasFundedTxid() ? 'View Details' : 'Fund Cheque',
-                      onPressed: () async => _viewCheque(context, cheque),
-                      variant: cheque.hasFundedTxid() ? ButtonVariant.secondary : ButtonVariant.primary,
+                      label: check.hasFundedTxid() ? 'View Details' : 'Fund Check',
+                      onPressed: () async => _viewCheck(context, check),
+                      variant: check.hasFundedTxid() ? ButtonVariant.secondary : ButtonVariant.primary,
                       insideTable: true,
                     ),
                   const SizedBox(width: SailStyleValues.padding08),
                   SailButton(
                     icon: SailSVGAsset.iconDelete,
-                    onPressed: () async => _deleteCheque(context, cheque),
+                    onPressed: () async => _deleteCheck(context, check),
                     variant: ButtonVariant.destructive,
                     insideTable: true,
                   ),
@@ -225,10 +225,10 @@ class ChequesTable extends StatelessWidget {
             ),
           ];
         },
-        rowCount: cheques.length,
+        rowCount: checks.length,
         onDoubleTap: (rowId) {
-          final cheque = cheques.firstWhere((c) => c.id.toString() == rowId);
-          _viewCheque(context, cheque);
+          final check = checks.firstWhere((c) => c.id.toString() == rowId);
+          _viewCheck(context, check);
         },
       ),
     );
@@ -256,13 +256,13 @@ class ChequesTable extends StatelessWidget {
     return '${btc.toStringAsFixed(8)} BTC';
   }
 
-  void _viewCheque(BuildContext context, Cheque cheque) {
-    GetIt.I.get<AppRouter>().push(ChequeDetailRoute(chequeId: cheque.id.toInt()));
+  void _viewCheck(BuildContext context, Cheque check) {
+    GetIt.I.get<AppRouter>().push(CheckDetailRoute(checkId: check.id.toInt()));
   }
 
-  Future<void> _deleteCheque(BuildContext context, Cheque cheque) async {
-    if (cheque.hasFundedTxid() && !cheque.hasSweptTxid()) {
-      showSnackBar(context, 'Cannot delete funded cheque. Sweep the funds first.');
+  Future<void> _deleteCheck(BuildContext context, Cheque check) async {
+    if (check.hasFundedTxid() && !check.hasSweptTxid()) {
+      showSnackBar(context, 'Cannot delete funded check. Sweep the funds first.');
       return;
     }
 
@@ -270,14 +270,14 @@ class ChequesTable extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: SailTheme.of(context).colors.background,
-        title: SailText.primary15('Delete Cheque'),
+        title: SailText.primary15('Delete Check'),
         content: SailColumn(
           spacing: SailStyleValues.padding12,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailText.secondary13('Are you sure you want to delete this check?'),
-            if (!cheque.hasFundedTxid() || cheque.hasSweptTxid())
+            if (!check.hasFundedTxid() || check.hasSweptTxid())
               Container(
                 padding: const EdgeInsets.all(SailStyleValues.padding12),
                 decoration: BoxDecoration(
@@ -317,15 +317,15 @@ class ChequesTable extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      final chequeProvider = GetIt.I.get<ChequeProvider>();
-      final success = await chequeProvider.deleteCheque(cheque.id.toInt());
+      final checkProvider = GetIt.I.get<CheckProvider>();
+      final success = await checkProvider.deleteCheck(check.id.toInt());
 
       if (!context.mounted) return;
 
       if (success) {
         showSnackBar(context, 'Check deleted successfully');
       } else {
-        showSnackBar(context, chequeProvider.modelError ?? 'Failed to delete cheque');
+        showSnackBar(context, checkProvider.modelError ?? 'Failed to delete check');
       }
     }
   }

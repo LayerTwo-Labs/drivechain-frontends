@@ -9,23 +9,23 @@ import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
-class ChequeProvider extends ChangeNotifier {
+class CheckProvider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
   SyncProvider get _syncProvider => GetIt.I.get<SyncProvider>();
 
-  List<Cheque> _cheques = [];
+  List<Cheque> _checks = [];
   bool _isLoading = false;
   String? modelError;
 
-  List<Cheque> get cheques => _cheques;
+  List<Cheque> get checks => _checks;
   bool get isLoading => _isLoading;
 
   Timer? _pollTimer;
-  int? _pollingChequeId;
+  int? _pollingCheckId;
 
-  ChequeProvider() {
+  CheckProvider() {
     _syncProvider.addListener(_onNewBlock);
     _init();
   }
@@ -51,10 +51,10 @@ class ChequeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _cheques = await _bitwindowRPC.wallet.listCheques(walletId);
+      _checks = await _bitwindowRPC.wallet.listCheques(walletId);
       modelError = null;
     } catch (e) {
-      log.e('Failed to fetch cheques: $e');
+      log.e('Failed to fetch checks: $e');
       modelError = e.toString();
     } finally {
       _isLoading = false;
@@ -62,51 +62,51 @@ class ChequeProvider extends ChangeNotifier {
     }
   }
 
-  Future<Cheque> createCheque(int expectedAmountSats) async {
+  Future<Cheque> createCheck(int expectedAmountSats) async {
     final walletId = _walletReader.activeWalletId;
     if (walletId == null) throw Exception('No active wallet');
     final resp = await _bitwindowRPC.wallet.createCheque(walletId, expectedAmountSats);
 
-    final cheque = Cheque(
+    final check = Cheque(
       id: resp.id,
       derivationIndex: resp.derivationIndex,
       address: resp.address,
       expectedAmountSats: Int64(expectedAmountSats),
     );
 
-    _cheques.insert(0, cheque);
+    _checks.insert(0, check);
     notifyListeners();
-    return cheque;
+    return check;
   }
 
-  Future<Cheque?> getCheque(int id) async {
+  Future<Cheque?> getCheck(int id) async {
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
       return await _bitwindowRPC.wallet.getCheque(walletId, id);
     } catch (e) {
-      log.e('Failed to get cheque: $e');
+      log.e('Failed to get check: $e');
       return null;
     }
   }
 
-  Future<bool> checkChequeFunding(int id) async {
+  Future<bool> checkCheckFunding(int id) async {
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
       final resp = await _bitwindowRPC.wallet.checkChequeFunding(walletId, id);
 
       if (resp.funded) {
-        final index = _cheques.indexWhere((c) => c.id == id);
+        final index = _checks.indexWhere((c) => c.id == id);
         if (index != -1) {
-          _cheques[index] = Cheque(
-            id: _cheques[index].id,
-            derivationIndex: _cheques[index].derivationIndex,
-            address: _cheques[index].address,
-            expectedAmountSats: _cheques[index].expectedAmountSats,
+          _checks[index] = Cheque(
+            id: _checks[index].id,
+            derivationIndex: _checks[index].derivationIndex,
+            address: _checks[index].address,
+            expectedAmountSats: _checks[index].expectedAmountSats,
             fundedTxid: resp.fundedTxid,
             actualAmountSats: resp.actualAmountSats,
-            createdAt: _cheques[index].createdAt,
+            createdAt: _checks[index].createdAt,
             fundedAt: resp.hasFundedAt() ? resp.fundedAt : null,
           );
           notifyListeners();
@@ -115,12 +115,12 @@ class ChequeProvider extends ChangeNotifier {
 
       return resp.funded;
     } catch (e) {
-      log.e('Failed to check cheque funding: $e');
+      log.e('Failed to check check funding: $e');
       return false;
     }
   }
 
-  Future<String> sweepCheque(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
+  Future<String> sweepCheck(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
     final walletId = _walletReader.activeWalletId;
     if (walletId == null) throw Exception('No active wallet');
     final result = await _bitwindowRPC.wallet.sweepCheque(
@@ -133,37 +133,37 @@ class ChequeProvider extends ChangeNotifier {
     return result.txid;
   }
 
-  Future<bool> deleteCheque(int id) async {
+  Future<bool> deleteCheck(int id) async {
     try {
-      if (_pollingChequeId == id) {
+      if (_pollingCheckId == id) {
         stopPolling();
       }
 
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
       await _bitwindowRPC.wallet.deleteCheque(walletId, id);
-      _cheques.removeWhere((c) => c.id == id);
+      _checks.removeWhere((c) => c.id == id);
       notifyListeners();
       return true;
     } catch (e) {
-      log.e('Failed to delete cheque: $e');
+      log.e('Failed to delete check: $e');
       modelError = e.toString();
       notifyListeners();
       return false;
     }
   }
 
-  void startPolling(int chequeId, {Duration interval = const Duration(seconds: 5)}) {
+  void startPolling(int checkId, {Duration interval = const Duration(seconds: 5)}) {
     stopPolling();
-    _pollingChequeId = chequeId;
+    _pollingCheckId = checkId;
     _pollTimer = Timer.periodic(interval, (_) async {
       try {
-        final funded = await checkChequeFunding(chequeId);
+        final funded = await checkCheckFunding(checkId);
         if (funded) {
           stopPolling();
         }
       } catch (e) {
-        log.w('Error checking cheque funding (cheque may have been deleted): $e');
+        log.w('Error checking check funding (check may have been deleted): $e');
         stopPolling();
       }
     });
@@ -172,7 +172,7 @@ class ChequeProvider extends ChangeNotifier {
   void stopPolling() {
     _pollTimer?.cancel();
     _pollTimer = null;
-    _pollingChequeId = null;
+    _pollingCheckId = null;
   }
 
   @override

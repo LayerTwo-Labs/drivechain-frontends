@@ -5,11 +5,11 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class CashChequeSuccessPage extends StatelessWidget {
+class CashCheckSuccessPage extends StatelessWidget {
   final String txid;
   final int? amountSats;
 
-  const CashChequeSuccessPage({
+  const CashCheckSuccessPage({
     super.key,
     @PathParam('txid') required this.txid,
     @QueryParam('amount') this.amountSats,
@@ -39,7 +39,7 @@ class CashChequeSuccessPage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   SailText.primary40(
-                    'Your Cheque was Cashed',
+                    'Your Check was Cashed',
                     bold: true,
                     textAlign: TextAlign.center,
                   ),
