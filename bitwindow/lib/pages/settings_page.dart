@@ -264,7 +264,10 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final showDataDir = _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || _selectedDataDir != null;
+    final showDataDir =
+        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+        _selectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
     return SailColumn(
