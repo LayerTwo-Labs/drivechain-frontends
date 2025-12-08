@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -31,24 +30,22 @@ class ContentProvider extends ChangeNotifier {
 
   Future<List<ArticleGroup>> loadArticleGroups() async {
     try {
-      final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      final Map<String, dynamic> manifest = json.decode(manifestContent);
+      // Use Flutter's AssetManifest API to dynamically discover article assets
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final allAssets = manifest.listAssets();
 
-      final articlePaths = manifest.keys.where(
-        (String key) => key.startsWith('assets/articles/') && key.endsWith('.mdx'),
-      );
+      // Filter to only .mdx article files
+      final articlePaths = allAssets
+          .where((assetPath) => assetPath.startsWith('assets/articles/') && assetPath.endsWith('.mdx'))
+          .toList();
 
-      if (articlePaths.isEmpty) {
-        return [];
-      }
-
-      // Group by directory
+      // Group by directory (e.g., beginner, intermediate, advanced)
       final Map<String, List<String>> groupedPaths = {};
-      for (final path in articlePaths) {
-        final pathParts = path.split('/');
+      for (final articlePath in articlePaths) {
+        final pathParts = articlePath.split('/');
         if (pathParts.length >= 3) {
           final dir = pathParts[2]; // assets/articles/beginner/file.mdx
-          groupedPaths.putIfAbsent(dir, () => []).add(path);
+          groupedPaths.putIfAbsent(dir, () => []).add(articlePath);
         }
       }
 
@@ -56,16 +53,16 @@ class ContentProvider extends ChangeNotifier {
       final groups = await Future.wait(
         groupedPaths.entries.map((entry) async {
           final articles = await Future.wait<Article>(
-            entry.value.map((path) async {
+            entry.value.map((articlePath) async {
               try {
-                final content = await rootBundle.loadString(path);
-                final article = parseArticle(content, path);
+                final content = await rootBundle.loadString(articlePath);
+                final article = parseArticle(content, articlePath);
                 if (article == null) {
-                  return Article(title: 'Error loading article', markdown: '', filename: path);
+                  return Article(title: 'Error loading article', markdown: '', filename: articlePath);
                 }
                 return article;
               } catch (e) {
-                return Article(title: 'Error loading article', markdown: '', filename: path);
+                return Article(title: 'Error loading article', markdown: '', filename: articlePath);
               }
             }),
           );
@@ -146,10 +143,16 @@ class ContentProvider extends ChangeNotifier {
       final titleMatch = titleRegex.firstMatch(frontMatter);
       final title = titleMatch?.group(1)?.trim().replaceAll("'", '') ?? 'Untitled';
 
+      // Extract background from front matter
+      final backgroundRegex = RegExp(r'background:(.+)$', multiLine: true);
+      final backgroundMatch = backgroundRegex.firstMatch(frontMatter);
+      final background = backgroundMatch?.group(1)?.trim().replaceAll("'", '');
+
       return Article(
         title: title,
         markdown: markdown.trim(),
         filename: filename,
+        background: background,
       );
     }
     return null;
