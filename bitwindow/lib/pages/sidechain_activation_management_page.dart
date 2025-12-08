@@ -70,7 +70,7 @@ class SidechainActivationManagementView extends StatelessWidget {
                         SailText.primary12('Escrow Status (Active Sidechains)'),
                         const SizedBox(height: SailStyleValues.padding08),
                         Expanded(
-                          child: Container(
+                          child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: context.sailTheme.colors.background,
                               border: Border.all(

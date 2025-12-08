@@ -88,7 +88,6 @@ flutter:
     - assets/bin/
     - assets/articles/
     - assets/articles/beginner/
-    - assets/articles/beginner/what-is-drivechain.mdx
     - assets/articles/images/
     - assets/bitwindow.png
 

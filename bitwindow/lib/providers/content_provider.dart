@@ -141,18 +141,32 @@ class ContentProvider extends ChangeNotifier {
       // Extract title from front matter
       final titleRegex = RegExp(r'title:(.+)$', multiLine: true);
       final titleMatch = titleRegex.firstMatch(frontMatter);
-      final title = titleMatch?.group(1)?.trim().replaceAll("'", '') ?? 'Untitled';
+      final title = titleMatch?.group(1)?.trim().replaceAll("'", '').replaceAll('"', '') ?? 'Untitled';
 
       // Extract background from front matter
       final backgroundRegex = RegExp(r'background:(.+)$', multiLine: true);
       final backgroundMatch = backgroundRegex.firstMatch(frontMatter);
-      final background = backgroundMatch?.group(1)?.trim().replaceAll("'", '');
+      final backgroundFile = backgroundMatch?.group(1)?.trim().replaceAll("'", '');
+      final background = backgroundFile != null ? 'assets/articles/images/$backgroundFile' : null;
+
+      // Extract author from front matter
+      final authorRegex = RegExp(r'author:(.+)$', multiLine: true);
+      final authorMatch = authorRegex.firstMatch(frontMatter);
+      final author = authorMatch?.group(1)?.trim().replaceAll("'", '').replaceAll('"', '');
+
+      // Extract authorImage from front matter
+      final authorImageRegex = RegExp(r'authorImage:(.+)$', multiLine: true);
+      final authorImageMatch = authorImageRegex.firstMatch(frontMatter);
+      final authorImageFile = authorImageMatch?.group(1)?.trim().replaceAll("'", '');
+      final authorImage = authorImageFile != null ? 'assets/articles/images/$authorImageFile' : null;
 
       return Article(
         title: title,
         markdown: markdown.trim(),
         filename: filename,
         background: background,
+        author: author,
+        authorImage: authorImage,
       );
     }
     return null;
