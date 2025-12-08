@@ -17,7 +17,7 @@ import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/network_provider.dart';
-import 'package:bitwindow/providers/cheque_provider.dart';
+import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
@@ -181,8 +181,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<HDWalletProvider>(HDWalletProvider(applicationDir));
   GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
   // Eager initialization so it can listen for wallet unlock events
-  final chequeProvider = ChequeProvider();
-  GetIt.I.registerSingleton<ChequeProvider>(chequeProvider);
+  final checkProvider = CheckProvider();
+  GetIt.I.registerSingleton<CheckProvider>(checkProvider);
   final timestampProvider = TimestampProvider();
   GetIt.I.registerSingleton<TimestampProvider>(timestampProvider);
   final bitwindowHomepageProvider = BitwindowHomepageProvider();

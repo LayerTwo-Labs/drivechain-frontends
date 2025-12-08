@@ -488,7 +488,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Write a Check',
                       onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(CreateChequeRoute());
+                        await GetIt.I.get<AppRouter>().push(CreateCheckRoute());
                       },
                     ),
                   ],
