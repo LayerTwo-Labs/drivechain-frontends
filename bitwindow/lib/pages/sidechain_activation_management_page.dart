@@ -14,9 +14,17 @@ class SidechainActivationManagementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
-      viewModelBuilder: () => SidechainActivationManagementViewModel(),
-      builder: (context, model, child) => const SidechainActivationManagementView(),
+    return Scaffold(
+      backgroundColor: SailTheme.of(context).colors.background,
+      appBar: AppBar(
+        backgroundColor: SailTheme.of(context).colors.background,
+        foregroundColor: SailTheme.of(context).colors.text,
+        title: SailText.primary20('Sidechain Activation'),
+      ),
+      body: ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
+        viewModelBuilder: () => SidechainActivationManagementViewModel(),
+        builder: (context, model, child) => const SidechainActivationManagementView(),
+      ),
     );
   }
 }
@@ -47,51 +55,69 @@ class SidechainActivationManagementView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
       viewModelBuilder: () => SidechainActivationManagementViewModel(),
-      builder: (context, model, child) => SailCard(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary12('Escrow Status (Active Sidechains)'),
-              const SizedBox(height: SailStyleValues.padding08),
-              Container(
-                decoration: BoxDecoration(
-                  color: context.sailTheme.colors.background,
-                  border: Border.all(
-                    color: context.sailTheme.colors.divider,
-                    width: 1.0,
+      builder: (context, model, child) => Padding(
+        padding: const EdgeInsets.all(SailStyleValues.padding16),
+        child: Column(
+          children: [
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary12('Escrow Status (Active Sidechains)'),
+                        const SizedBox(height: SailStyleValues.padding08),
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: context.sailTheme.colors.background,
+                              border: Border.all(
+                                color: context.sailTheme.colors.divider,
+                                width: 1.0,
+                              ),
+                              borderRadius: SailStyleValues.borderRadius,
+                            ),
+                            child: ActiveSidechainsTable(blocks: model.activeSidechains),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  borderRadius: SailStyleValues.borderRadius,
-                ),
-                height: 150,
-                child: ActiveSidechainsTable(blocks: model.activeSidechains),
-              ),
-              const SizedBox(height: SailStyleValues.padding16),
-              SailText.primary12('Pending Sidechain Proposals'),
-              const SizedBox(height: SailStyleValues.padding08),
-              Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: context.sailTheme.colors.background,
-                  border: Border.all(
-                    color: context.sailTheme.colors.divider,
-                    width: 1.0,
+                  const SizedBox(width: SailStyleValues.padding16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary12('Pending Sidechain Proposals'),
+                        const SizedBox(height: SailStyleValues.padding08),
+                        Expanded(
+                          child: Container(
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              color: context.sailTheme.colors.background,
+                              border: Border.all(
+                                color: context.sailTheme.colors.divider,
+                                width: 1.0,
+                              ),
+                              borderRadius: SailStyleValues.borderRadius,
+                            ),
+                            child: PendingSidechainProposalsTable(proposals: model.sidechainProposals),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  borderRadius: SailStyleValues.borderRadius,
-                ),
-                height: 150,
-                child: PendingSidechainProposalsTable(proposals: model.sidechainProposals),
+                ],
               ),
-              const SizedBox(height: SailStyleValues.padding16),
-              Center(
-                child: SailButton(
-                  label: 'Propose New Sidechain',
-                  onPressed: () async => await showSidechainProposalModal(context),
-                ),
-              ),
-              SailSpacing(SailStyleValues.padding08),
-            ],
-          ),
+            ),
+            const SizedBox(height: SailStyleValues.padding16),
+            SailButton(
+              label: 'Propose New Sidechain',
+              onPressed: () async => await showSidechainProposalModal(context),
+            ),
+          ],
         ),
       ),
     );
