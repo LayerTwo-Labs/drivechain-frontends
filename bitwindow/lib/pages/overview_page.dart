@@ -1210,57 +1210,68 @@ class GraffitiExplorerView extends StatelessWidget {
             label: 'New Graffiti',
             onPressed: () => newGraffitiDialog(context),
           ),
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            children: [
-              SailRow(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate available height for the table (total height minus filter row and spacing)
+              final tableHeight = constraints.maxHeight.isFinite ? constraints.maxHeight - 60 : 500.0;
+
+              return SailColumn(
                 spacing: SailStyleValues.padding16,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    flex: 2,
-                    child: SailTextField(
-                      hintText: 'Search by message or txid...',
-                      controller: viewModel.searchController,
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.only(left: 12, right: 8),
-                        child: SailSVG.fromAsset(
-                          SailSVGAsset.search,
-                          color: context.sailTheme.colors.textTertiary,
+                  SailRow(
+                    spacing: SailStyleValues.padding16,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: SailTextField(
+                          hintText: 'Search by message or txid...',
+                          controller: viewModel.searchController,
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.only(left: 12, right: 8),
+                            child: SailSVG.fromAsset(
+                              SailSVGAsset.search,
+                              color: context.sailTheme.colors.textTertiary,
+                            ),
+                          ),
+                          prefixIconConstraints: const BoxConstraints(maxHeight: 20, maxWidth: 40),
                         ),
                       ),
-                      prefixIconConstraints: const BoxConstraints(maxHeight: 20, maxWidth: 40),
+                      Expanded(
+                        child: _DatePickerField(
+                          label: 'From',
+                          value: viewModel.fromDate,
+                          onChanged: viewModel.setFromDate,
+                          lastDate: viewModel.toDate ?? DateTime.now(),
+                        ),
+                      ),
+                      Expanded(
+                        child: _DatePickerField(
+                          label: 'To',
+                          value: viewModel.toDate,
+                          onChanged: viewModel.setToDate,
+                          firstDate: viewModel.fromDate,
+                          lastDate: DateTime.now(),
+                        ),
+                      ),
+                      if (hasFilters)
+                        SailButton(
+                          label: 'Clear',
+                          variant: ButtonVariant.secondary,
+                          onPressed: () async => viewModel.clearFilters(),
+                        ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: tableHeight,
+                    child: GraffitiTable(
+                      entries: viewModel.entries,
+                      onSort: viewModel.onSort,
                     ),
                   ),
-                  Expanded(
-                    child: _DatePickerField(
-                      label: 'From',
-                      value: viewModel.fromDate,
-                      onChanged: viewModel.setFromDate,
-                      lastDate: viewModel.toDate ?? DateTime.now(),
-                    ),
-                  ),
-                  Expanded(
-                    child: _DatePickerField(
-                      label: 'To',
-                      value: viewModel.toDate,
-                      onChanged: viewModel.setToDate,
-                      firstDate: viewModel.fromDate,
-                      lastDate: DateTime.now(),
-                    ),
-                  ),
-                  if (hasFilters)
-                    SailButton(
-                      label: 'Clear',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async => viewModel.clearFilters(),
-                    ),
                 ],
-              ),
-              GraffitiTable(
-                entries: viewModel.entries,
-                onSort: viewModel.onSort,
-              ),
-            ],
+              );
+            },
           ),
         );
       },
