@@ -6,6 +6,7 @@ import 'package:bitwindow/dialogs/base58_decoder_dialog.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
+import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
 import 'package:bitwindow/dialogs/paper_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
@@ -142,14 +143,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                             text: 'Please contribute if you find Drivechain useful. Visit ',
                                           ),
                                           TextSpan(
-                                            text: 'http://drivechain.info',
+                                            text: 'https://drivechain.info',
                                             style: TextStyle(
                                               color: theme.colors.primary,
                                               decoration: TextDecoration.underline,
                                             ),
                                             recognizer: TapGestureRecognizer()
                                               ..onTap = () async {
-                                                await launchUrl(Uri.parse('http://drivechain.info'));
+                                                await launchUrl(Uri.parse('https://drivechain.info'));
                                               },
                                           ),
                                           const TextSpan(text: ' for further information about the software.\n'),
@@ -582,13 +583,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         tabsRouter?.setActiveIndex(2);
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'BitDrive',
-                      onSelected: () {
-                        final windowProvider = GetIt.I.get<WindowProvider>();
-                        windowProvider.open(SubWindowTypes.bitDrive);
-                      },
-                    ),
                   ],
                 ),
               ],
@@ -608,8 +602,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'Network Statistics',
-                      onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(NetworkStatisticsRoute());
+                      onSelected: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const NetworkStatisticsPage(),
+                        );
                       },
                     ),
                     PlatformMenuItem(
