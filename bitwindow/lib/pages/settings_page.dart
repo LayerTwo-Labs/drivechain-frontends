@@ -164,13 +164,13 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
       return;
     }
 
-    // If switching TO mainnet, check if we need to require a blocks directory
-    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
+    // If switching TO mainnet or forknet, check if we need to require a blocks directory
+    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
       // Check if we already have a custom datadir configured
       final hasDataDirConfigured = _selectedDataDir != null;
 
       if (!hasDataDirConfigured) {
-        // Ask for datadir for mainnet
+        // Ask for datadir for mainnet/forknet
         final selectedPath = await showDialog<String>(
           context: context,
           barrierDismissible: false,
@@ -181,10 +181,13 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           // Save the selected data directory
           await _confProvider.updateDataDir(selectedPath);
         } else {
-          // User cancelled, don't switch to mainnet
+          // User cancelled, don't switch network
           return;
         }
       }
+    } else {
+      // Switching to signet/regtest/testnet - clear custom datadir so default is used
+      await _confProvider.updateDataDir(null);
     }
 
     // Show progress dialog and perform restart
@@ -956,6 +959,89 @@ class BackupValidationResult {
   });
 }
 
+// Validate backup file (ZIP or JSON)
+Future<BackupValidationResult> validateBackup({
+  required File backupFile,
+  required Logger log,
+}) async {
+  final extension = path.extension(backupFile.path).toLowerCase();
+
+  if (extension == '.json') {
+    return validateBackupJson(jsonFile: backupFile, log: log);
+  } else if (extension == '.zip') {
+    return validateBackupZip(zipFile: backupFile, log: log);
+  } else {
+    return BackupValidationResult(
+      isValid: false,
+      errorMessage: 'Unsupported file type. Please select a .zip or .json file.',
+    );
+  }
+}
+
+// Validate backup JSON file (wallet.json directly)
+Future<BackupValidationResult> validateBackupJson({
+  required File jsonFile,
+  required Logger log,
+}) async {
+  Directory? tempDir;
+
+  try {
+    // Validate JSON structure
+    final walletJSON = jsonDecode(await jsonFile.readAsString()) as Map<String, dynamic>;
+
+    // Support both old format (master/l1 at root) and new format (wallets array)
+    final isOldFormat = walletJSON.containsKey('master') && walletJSON.containsKey('l1');
+    final isNewFormat = walletJSON.containsKey('wallets') && walletJSON['wallets'] is List;
+
+    if (!isOldFormat && !isNewFormat) {
+      return BackupValidationResult(
+        isValid: false,
+        errorMessage: 'wallet.json has invalid structure (missing master/l1 or wallets array)',
+      );
+    }
+
+    // For new format, validate at least one wallet exists with master and l1
+    if (isNewFormat) {
+      final wallets = walletJSON['wallets'] as List;
+      if (wallets.isEmpty) {
+        return BackupValidationResult(
+          isValid: false,
+          errorMessage: 'wallet.json contains no wallets',
+        );
+      }
+      final firstWallet = wallets.first as Map<String, dynamic>;
+      if (!firstWallet.containsKey('master') || !firstWallet.containsKey('l1')) {
+        return BackupValidationResult(
+          isValid: false,
+          errorMessage: 'wallet.json has invalid wallet structure (missing master or l1)',
+        );
+      }
+    }
+
+    // Create temp directory with the wallet.json
+    tempDir = await Directory.systemTemp.createTemp('bitwindow_restore_');
+    final tempWalletFile = File(path.join(tempDir.path, 'wallet.json'));
+    await jsonFile.copy(tempWalletFile.path);
+
+    log.i('JSON backup validation successful');
+    return BackupValidationResult(
+      isValid: true,
+      tempDir: tempDir,
+    );
+  } catch (e) {
+    // Clean up temp directory on error
+    if (tempDir != null) {
+      try {
+        await tempDir.delete(recursive: true);
+      } catch (_) {}
+    }
+    return BackupValidationResult(
+      isValid: false,
+      errorMessage: 'Failed to validate JSON backup: $e',
+    );
+  }
+}
+
 // Validate backup ZIP file
 Future<BackupValidationResult> validateBackupZip({
   required File zipFile,
@@ -1002,12 +1088,33 @@ Future<BackupValidationResult> validateBackupZip({
     try {
       final walletJSON = jsonDecode(await walletFile.readAsString()) as Map<String, dynamic>;
 
-      // Validate structure
-      if (!walletJSON.containsKey('master') || !walletJSON.containsKey('l1')) {
+      // Support both old format (master/l1 at root) and new format (wallets array)
+      final isOldFormat = walletJSON.containsKey('master') && walletJSON.containsKey('l1');
+      final isNewFormat = walletJSON.containsKey('wallets') && walletJSON['wallets'] is List;
+
+      if (!isOldFormat && !isNewFormat) {
         return BackupValidationResult(
           isValid: false,
-          errorMessage: 'wallet.json has invalid structure (missing master or l1)',
+          errorMessage: 'wallet.json has invalid structure (missing master/l1 or wallets array)',
         );
+      }
+
+      // For new format, validate at least one wallet exists with master and l1
+      if (isNewFormat) {
+        final wallets = walletJSON['wallets'] as List;
+        if (wallets.isEmpty) {
+          return BackupValidationResult(
+            isValid: false,
+            errorMessage: 'wallet.json contains no wallets',
+          );
+        }
+        final firstWallet = wallets.first as Map<String, dynamic>;
+        if (!firstWallet.containsKey('master') || !firstWallet.containsKey('l1')) {
+          return BackupValidationResult(
+            isValid: false,
+            errorMessage: 'wallet.json has invalid wallet structure (missing master or l1)',
+          );
+        }
       }
 
       log.i('Backup validation successful');
@@ -1149,7 +1256,7 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
 
       // 2. Validate backup
       _updateStatus('Validating backup file');
-      final validation = await validateBackupZip(zipFile: widget.backupFile, log: log);
+      final validation = await validateBackup(backupFile: widget.backupFile, log: log);
       if (!validation.isValid) {
         throw Exception(validation.errorMessage);
       }
@@ -1393,7 +1500,7 @@ class _RestoreWalletDialogState extends State<RestoreWalletDialog> {
       final result = await FilePicker.platform.pickFiles(
         dialogTitle: 'Select Wallet Backup',
         type: FileType.custom,
-        allowedExtensions: ['zip'],
+        allowedExtensions: ['zip', 'json'],
       );
 
       if (result != null && result.files.single.path != null) {
@@ -1585,7 +1692,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           label: 'Delete All Wallets',
           variant: ButtonVariant.destructive,
           onPressed: () async {
-            await showDialog(
+            final confirmed = await showDialog<bool>(
               context: context,
               builder: (context) => SailAlertCard(
                 title: 'Reset Wallet?',
@@ -1599,9 +1706,17 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
                 confirmButtonVariant: ButtonVariant.destructive,
                 onConfirm: () async {
                   await _resetWallets(context);
+                  if (context.mounted) {
+                    Navigator.of(context).pop(true);
+                  }
                 },
               ),
             );
+            if (confirmed == true && context.mounted) {
+              // Boot binaries and navigate to wallet creation
+              unawaited(bootBinaries(log));
+              await GetIt.I.get<AppRouter>().replaceAll([CreateWalletRoute()]);
+            }
           },
         ),
         SailButton(
@@ -2583,6 +2698,7 @@ Future<void> _resetWallets(
 Future<void> _resetEverything(BuildContext context) async {
   final log = GetIt.I.get<Logger>();
   final appDir = GetIt.I.get<BinaryProvider>().appDir;
+  final router = GetIt.I.get<AppRouter>();
 
   Navigator.of(context).pop(); // pop the current dialog
 
@@ -2636,4 +2752,10 @@ Future<void> _resetEverything(BuildContext context) async {
       },
     ),
   );
+
+  // Boot binaries after reset. This will await wallet creation
+  unawaited(bootBinaries(log));
+
+  // Navigate to wallet creation page (like fresh install)
+  await router.replaceAll([CreateWalletRoute()]);
 }

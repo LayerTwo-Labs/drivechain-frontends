@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:bitwindow/main.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
+import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
@@ -582,17 +582,6 @@ class WalletWriterProvider extends ChangeNotifier {
   }) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-    // Store connected and running binaries to reboot them after wallet wipe is complete
-    final connected = binaryProvider.binaries.where(binaryProvider.isConnected).toList();
-    final running = binaryProvider.runningBinaries;
-    final allBinaries = [...running, ...connected];
-    final runningBinaries = allBinaries.fold<List<Binary>>([], (unique, binary) {
-      if (!unique.any((b) => b.name == binary.name)) {
-        unique.add(binary);
-      }
-      return unique;
-    });
-
     onStatusUpdate?.call('Stopping binaries');
 
     final alwaysStop = [BitcoinCore(), Enforcer(), BitWindow()];
@@ -641,6 +630,25 @@ class WalletWriterProvider extends ChangeNotifier {
       _logger.e('could not move master wallet dir: $e');
     }
 
+    onStatusUpdate?.call('Clearing wallet state');
+
+    // Clear in-memory wallet state
+    _walletReader.clearState();
+    try {
+      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
+      await hdWalletProvider.reset();
+    } catch (e) {
+      _logger.e('could not reset HD wallet provider: $e');
+    }
+
+    // Clear balance and transaction providers, wallet is goners
+    try {
+      GetIt.I.get<TransactionProvider>().clear();
+      GetIt.I.get<BalanceProvider>().clear();
+    } catch (e) {
+      _logger.e('could not clear balance/transaction providers: $e');
+    }
+
     try {
       if (beforeBoot != null) {
         await beforeBoot();
@@ -652,17 +660,7 @@ class WalletWriterProvider extends ChangeNotifier {
     onStatusUpdate?.call('Reset complete');
     onStatusUpdate?.call('Reset complete');
 
-    try {
-      // reboot L1-binaries
-      await bootBinaries(_logger);
-    } catch (e) {
-      _logger.e('could not boot L1-binaries: $e');
-    }
-
-    // then restart all sidechains we stopped
-    for (final binary in runningBinaries) {
-      unawaited(binaryProvider.start(binary));
-    }
+    // Caller is responsible for booting binaries and navigating to wallet creation
   }
 
   /// Update wallet metadata (name and gradient)

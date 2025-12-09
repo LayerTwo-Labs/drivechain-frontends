@@ -65,6 +65,16 @@ class WalletReaderProvider extends ChangeNotifier {
     super.dispose();
   }
 
+  /// Clear all in-memory wallet state (used after reset/wipe)
+  void clearState() {
+    _logger.i('clearState: Clearing all wallet state');
+    wallets = [];
+    _encryptionKey = null;
+    unlockedPassword = null;
+    activeWalletId = null;
+    notifyListeners();
+  }
+
   /// Listen for backend reconnections to auto-unlock
   void _startBackendConnectionListener() {
     if (!GetIt.I.isRegistered<BitwindowRPC>()) return;
