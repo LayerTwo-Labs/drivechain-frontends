@@ -10,7 +10,6 @@ import 'package:path/path.dart' as path;
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/providers/binaries/bitcoin_core_pid_tracker.dart';
-import 'package:sail_ui/providers/binaries/download_manager.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -202,7 +201,10 @@ class BinaryProvider extends ChangeNotifier {
       initialBinaries: initialBinaries,
     );
 
-    final processManager = ProcessManager(appDir: appDir);
+    // Create PID file manager for tracking spawned processes across restarts
+    final pidDir = Directory(path.join(appDir.path, 'pids'));
+    final pidFileManager = PidFileManager(pidDir: pidDir);
+    final processManager = ProcessManager(appDir: appDir, pidFileManager: pidFileManager);
 
     final provider = BinaryProvider._create(
       appDir: appDir,
@@ -228,6 +230,22 @@ class BinaryProvider extends ChangeNotifier {
     } catch (e) {
       log.e('could not set up directory watcher: $e');
     }
+
+    // Check PID files and adopt any processes we started in a previous session
+    await Future.wait(
+      binaries.map((binary) async {
+        final pid = await _processManager.pidFileManager.readPidFile(binary);
+        if (pid != null && await _processManager.pidFileManager.validatePid(pid, binary)) {
+          log.i('Adopting ${binary.name} (PID $pid) from previous session');
+          _processManager.runningProcesses[binary.name] = SailProcess(
+            binary: binary,
+            pid: pid,
+            cleanup: () async {},
+            adopted: true,
+          );
+        }
+      }),
+    );
   }
 
   // Start a binary, and set starter seeds (if set)
@@ -476,6 +494,12 @@ class BinaryProvider extends ChangeNotifier {
 
   List<Binary> get runningBinaries => _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
+  /// Get the PID for a running binary, or null if not running
+  int? getPidForBinary(Binary binary) => _processManager.runningProcesses[binary.name]?.pid;
+
+  /// Check if a running binary was adopted from a previous session
+  bool isAdopted(Binary binary) => _processManager.runningProcesses[binary.name]?.adopted ?? false;
+
   // Returns true if the app currently has a succesful connection to the binary
   bool isConnected(Binary binary) {
     return switch (binary) {
@@ -520,7 +544,7 @@ class BinaryProvider extends ChangeNotifier {
     };
   }
 
-  // Return true if the binary is currently running
+  // Return true if the binary is currently running (tracked by us)
   bool isRunning(Binary binary) {
     return _processManager.isRunning(binary);
   }

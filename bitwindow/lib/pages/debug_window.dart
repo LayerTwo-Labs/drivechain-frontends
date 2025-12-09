@@ -31,6 +31,11 @@ class _DebugWindowState extends State<DebugWindow> {
             child: InformationTab(),
           ),
           TabItem(
+            label: 'Processes',
+            icon: SailSVGAsset.iconTools,
+            child: ProcessesTab(),
+          ),
+          TabItem(
             label: 'Console',
             icon: SailSVGAsset.iconTerminal,
             child: BitwindowConsoleTab(),
@@ -511,6 +516,54 @@ class DetailSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class ProcessesTab extends StatelessWidget {
+  const ProcessesTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final theme = context.sailTheme;
+
+    return ListenableBuilder(
+      listenable: binaryProvider,
+      builder: (context, _) {
+        final processes = binaryProvider.runningBinaries;
+
+        return SailCard(
+          title: 'Running Processes',
+          subtitle: 'Processes managed by this application',
+          child: SailTable(
+            backgroundColor: theme.colors.backgroundSecondary,
+            getRowId: (index) => processes[index].name,
+            headerBuilder: (context) => [
+              const SailTableHeaderCell(name: 'Name'),
+              const SailTableHeaderCell(name: 'PID'),
+              const SailTableHeaderCell(name: 'Type'),
+              const SailTableHeaderCell(name: 'Port'),
+              const SailTableHeaderCell(name: 'Adopted'),
+            ],
+            rowBuilder: (context, row, selected) {
+              final binary = processes[row];
+              final pid = binaryProvider.getPidForBinary(binary);
+              final adopted = binaryProvider.isAdopted(binary);
+
+              return [
+                SailTableCell(value: binary.name),
+                SailTableCell(value: pid?.toString() ?? '-'),
+                SailTableCell(value: binary.type.name),
+                SailTableCell(value: binary.port.toString()),
+                SailTableCell(value: adopted ? 'Yes' : 'No'),
+              ];
+            },
+            rowCount: processes.length,
+            emptyPlaceholder: 'No processes running',
+          ),
+        );
+      },
     );
   }
 }
