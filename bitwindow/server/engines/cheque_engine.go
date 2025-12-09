@@ -373,7 +373,7 @@ func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind c
 				Descriptor_: descriptor,
 				Active:      true,
 				RangeStart:  0,
-				RangeEnd:    1000,
+				RangeEnd:    2000,
 				Timestamp:   nil,
 				Internal:    false,
 			},
