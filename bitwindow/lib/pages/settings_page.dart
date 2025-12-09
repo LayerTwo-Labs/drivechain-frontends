@@ -769,6 +769,44 @@ Future<String> createWalletBackup({
   return destinationPath;
 }
 
+/// Restore wallet files from a validated backup
+Future<void> restoreWalletFiles({
+  required Directory tempDir,
+  required Logger log,
+  required WalletWriterProvider walletProvider,
+}) async {
+  final bitwindowAppDir = walletProvider.bitwindowAppDir;
+  final appDir = await Environment.datadir();
+
+  // Copy wallet.json
+  final tempWalletJson = File(path.join(tempDir.path, 'wallet.json'));
+  if (await tempWalletJson.exists()) {
+    final destWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
+    await tempWalletJson.copy(destWalletJson.path);
+    log.i('Restored: wallet.json');
+  }
+
+  // Copy multisig.json if present
+  final tempMultisig = File(path.join(tempDir.path, 'multisig', 'multisig.json'));
+  if (await tempMultisig.exists()) {
+    final destMultisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
+    await destMultisigDir.create(recursive: true);
+    await tempMultisig.copy(path.join(destMultisigDir.path, 'multisig.json'));
+    log.i('Restored: multisig.json');
+  }
+
+  // Copy transactions.json if present
+  final tempTransactions = File(path.join(tempDir.path, 'transactions.json'));
+  if (await tempTransactions.exists()) {
+    final destBitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
+    await destBitdriveDir.create(recursive: true);
+    await tempTransactions.copy(path.join(destBitdriveDir.path, 'transactions.json'));
+    log.i('Restored: transactions.json');
+  }
+
+  log.i('Wallet files restored successfully');
+}
+
 class BackupWalletDialog extends StatefulWidget {
   const BackupWalletDialog({super.key});
 
@@ -1300,37 +1338,14 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
       _updateStatus('Restoring wallet files');
       final tempDir = validation.tempDir!;
 
-      // Copy wallet.json
-      final tempWalletJson = File(path.join(tempDir.path, 'wallet.json'));
-      if (await tempWalletJson.exists()) {
-        final destWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-        await tempWalletJson.copy(destWalletJson.path);
-        log.i('Restored: wallet.json');
-      }
-
-      // Copy multisig.json if present
-      final tempMultisig = File(path.join(tempDir.path, 'multisig', 'multisig.json'));
-      if (await tempMultisig.exists()) {
-        final destMultisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
-        await destMultisigDir.create(recursive: true);
-        await tempMultisig.copy(path.join(destMultisigDir.path, 'multisig.json'));
-        log.i('Restored: multisig.json');
-      }
-
-      // Copy transactions.json if present
-      final tempTransactions = File(path.join(tempDir.path, 'transactions.json'));
-      if (await tempTransactions.exists()) {
-        final destBitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-        await destBitdriveDir.create(recursive: true);
-        await tempTransactions.copy(path.join(destBitdriveDir.path, 'transactions.json'));
-        log.i('Restored: transactions.json');
-      }
+      await restoreWalletFiles(
+        tempDir: tempDir,
+        log: log,
+        walletProvider: walletProvider,
+      );
 
       // Clean up temp
       await tempDir.delete(recursive: true);
-
-      // 7. Wallet is restored - starter files will be created on-demand by WalletReaderProvider
-      log.i('Wallet restored from backup');
 
       // 8. Verify restored wallet
       _updateStatus('Verifying restored wallet');

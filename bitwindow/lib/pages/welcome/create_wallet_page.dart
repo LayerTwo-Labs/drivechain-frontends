@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'dart:convert' show utf8;
+import 'dart:io';
 import 'dart:math';
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/success_page.dart';
 import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:crypto/crypto.dart' show sha256;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -44,6 +48,9 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
 
   bool hasExistingWallet = false;
   bool _isGenerating = false;
+
+  // File restore state
+  File? _selectedBackupFile;
 
   @override
   void initState() {
@@ -701,6 +708,8 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   }
 
   Widget _buildRestoreScreen() {
+    final theme = SailTheme.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -714,35 +723,104 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
               BootTitle(
                 title: 'Restore your wallet',
                 subtitle:
-                    'Restore your mainchain wallet and all sidechain wallets from a seed backup. This can also be used to create a wallet with a custom seed of yours.',
+                    'Restore your mainchain wallet and all sidechain wallets from a seed backup or backup file. This can also be used to create a wallet with a custom seed of yours.',
               ),
-              const Spacer(),
-              if (hasExistingWallet) ...[
-                SailTextField(
-                  controller: _walletNameController,
-                  hintText: 'Wallet name (required)',
-                  textFieldType: TextFieldType.text,
-                  size: TextFieldSize.regular,
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (hasExistingWallet) ...[
+                        SailTextField(
+                          controller: _walletNameController,
+                          hintText: 'Wallet name (required)',
+                          textFieldType: TextFieldType.text,
+                          size: TextFieldSize.regular,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      SailTextField(
+                        controller: _mnemonicController,
+                        hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
+                        maxLines: 3,
+                        textFieldType: TextFieldType.text,
+                        size: TextFieldSize.regular,
+                      ),
+                      const SizedBox(height: 16),
+                      SailTextField(
+                        controller: _passphraseController,
+                        hintText: 'Optional passphrase',
+                        textFieldType: TextFieldType.text,
+                        size: TextFieldSize.regular,
+                      ),
+                      const SizedBox(height: 24),
+                      // Divider with "or"
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: theme.colors.divider)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: SailText.secondary13('or'),
+                          ),
+                          Expanded(child: Divider(color: theme.colors.divider)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      // File upload section
+                      Container(
+                        padding: const EdgeInsets.all(SailStyleValues.padding16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: theme.colors.border),
+                          borderRadius: SailStyleValues.borderRadiusSmall,
+                        ),
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding12,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SailText.primary15('Restore from backup file'),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(SailStyleValues.padding12),
+                                    decoration: BoxDecoration(
+                                      color: theme.colors.backgroundSecondary,
+                                      borderRadius: SailStyleValues.borderRadiusSmall,
+                                    ),
+                                    child: SailText.secondary13(
+                                      _selectedBackupFile?.path ?? 'No file selected',
+                                    ),
+                                  ),
+                                ),
+                                SailButton(
+                                  label: _selectedBackupFile == null ? 'Choose File' : 'Change File',
+                                  variant: ButtonVariant.secondary,
+                                  onPressed: _selectBackupFile,
+                                ),
+                                if (_selectedBackupFile != null)
+                                  SailButton(
+                                    label: 'Clear',
+                                    variant: ButtonVariant.ghost,
+                                    onPressed: () async {
+                                      setState(() {
+                                        _selectedBackupFile = null;
+                                      });
+                                    },
+                                  ),
+                              ],
+                            ),
+                            SailText.secondary12(
+                              'Select a .zip or .json backup file',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
-              SailTextField(
-                controller: _mnemonicController,
-                hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
-                maxLines: 3,
-                textFieldType: TextFieldType.text,
-                size: TextFieldSize.regular,
               ),
-              const SizedBox(height: 16),
-              SailTextField(
-                controller: _passphraseController,
-                hintText: 'Optional passphrase',
-                textFieldType: TextFieldType.text,
-                size: TextFieldSize.regular,
-              ),
-              const SizedBox(height: 32),
-              const Spacer(),
-              const Spacer(),
+              const SizedBox(height: 24),
               // Navigation buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -750,12 +828,15 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                   SailButton(
                     label: '← Back',
                     variant: ButtonVariant.secondary,
-                    onPressed: () async => setState(() => _currentScreen = WelcomeScreen.initial),
+                    onPressed: () async => setState(() {
+                      _currentScreen = WelcomeScreen.initial;
+                      _selectedBackupFile = null;
+                    }),
                   ),
                   SailButton(
-                    label: 'Restore',
+                    label: _selectedBackupFile != null ? 'Restore from File' : 'Restore',
                     variant: ButtonVariant.primary,
-                    onPressed: _handleRestore,
+                    onPressed: _selectedBackupFile != null ? _handleRestoreFromFile : _handleRestore,
                     loadingLabel: 'Restoring your wallet',
                   ),
                 ],
@@ -827,6 +908,60 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   bool _isValidMnemonic(String mnemonic) {
     final words = mnemonic.trim().split(' ');
     return words.length == 12 || words.length == 24;
+  }
+
+  Future<void> _selectBackupFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        dialogTitle: 'Select Wallet Backup',
+        type: FileType.custom,
+        allowedExtensions: ['zip', 'json'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _selectedBackupFile = File(result.files.single.path!);
+        });
+      }
+    } catch (e) {
+      await _showErrorDialog('Failed to open file picker: $e');
+    }
+  }
+
+  Future<void> _handleRestoreFromFile() async {
+    if (_selectedBackupFile == null) {
+      await _showErrorDialog('Please select a backup file first');
+      return;
+    }
+
+    final log = GetIt.I.get<Logger>();
+
+    try {
+      // Validate the backup file
+      final validation = await validateBackup(backupFile: _selectedBackupFile!, log: log);
+      if (!validation.isValid) {
+        await _showErrorDialog(validation.errorMessage ?? 'Invalid backup file');
+        return;
+      }
+
+      // Restore wallet files using shared function
+      final tempDir = validation.tempDir!;
+      await restoreWalletFiles(
+        tempDir: tempDir,
+        log: log,
+        walletProvider: _walletProvider,
+      );
+
+      // Clean up temp directory
+      await tempDir.delete(recursive: true);
+
+      if (mounted) {
+        setState(() => _currentScreen = WelcomeScreen.success);
+      }
+    } catch (e) {
+      log.e('Restore from file failed: $e');
+      await _showErrorDialog('Failed to restore from file: $e');
+    }
   }
 
   Widget _buildSuccessScreen() {
