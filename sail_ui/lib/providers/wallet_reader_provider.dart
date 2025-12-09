@@ -112,6 +112,26 @@ class WalletReaderProvider extends ChangeNotifier {
   void _startWatchingWalletsDirectory() {
     final walletFile = getWalletFile();
     if (!walletFile.existsSync()) {
+      // File doesn't exist yet - watch the parent directory for creation
+      final parentDir = walletFile.parent;
+      if (!parentDir.existsSync()) {
+        return;
+      }
+      _walletDirWatcher?.cancel();
+      _walletDirWatcher = parentDir.watch(events: FileSystemEvent.create).listen((event) {
+        if (event.path.endsWith('wallet.json')) {
+          _logger.i('Wallet file created: ${event.path}');
+          // Now start watching the file itself for modifications
+          _startWatchingWalletsDirectory();
+          // Load the new wallet
+          Future.microtask(() async {
+            await _lock.synchronized(() async {
+              await _loadWalletIntoCache();
+              notifyListeners();
+            });
+          });
+        }
+      });
       return;
     }
 
