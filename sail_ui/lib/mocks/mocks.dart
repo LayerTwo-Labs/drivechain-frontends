@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
-import 'package:sail_ui/providers/binaries/download_manager.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
@@ -1271,5 +1270,9 @@ class MockDownloadManager extends DownloadManager {
 }
 
 class MockProcessManager extends ProcessManager {
-  MockProcessManager() : super(appDir: Directory('/tmp'));
+  MockProcessManager()
+    : super(
+        appDir: Directory('/tmp'),
+        pidFileManager: PidFileManager(pidDir: Directory('/tmp/pids')),
+      );
 }

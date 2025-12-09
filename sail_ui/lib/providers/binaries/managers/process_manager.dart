@@ -6,11 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/binaries/managers/pid_file_manager.dart';
 
 class ProcessManager extends ChangeNotifier {
   final Directory appDir;
+  final PidFileManager pidFileManager;
 
-  ProcessManager({required this.appDir});
+  ProcessManager({
+    required this.appDir,
+    required this.pidFileManager,
+  });
 
   Logger get log => GetIt.I.get<Logger>();
 
@@ -49,7 +54,7 @@ class ProcessManager extends ChangeNotifier {
     final process = await Process.start(
       file.path,
       args,
-      mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
+      mode: ProcessStartMode.normal,
       environment: environment,
     );
     runningProcesses[binary.name] = SailProcess(
@@ -140,6 +145,7 @@ class ProcessManager extends ChangeNotifier {
         try {
           log.i('process exit handler for code=$code binary=$binary pid=${process.pid} triggered');
           runningProcesses.remove(binary.name);
+          await pidFileManager.deletePidFile(binary);
 
           var level = Level.info;
           var message = '';
@@ -190,6 +196,9 @@ class ProcessManager extends ChangeNotifier {
 
     log.d('started "${file.path}" with pid ${process.pid}');
 
+    // Write PID file so we can find this process after hot restart/crash
+    await pidFileManager.writePidFile(binary, process.pid);
+
     notifyListeners();
     return process.pid;
   }
@@ -231,6 +240,8 @@ class ProcessManager extends ChangeNotifier {
       log.e('nice shutdown failed, force killing pid=${process.pid}: $error');
     } finally {
       runningProcesses.remove(process.binary.name);
+      await pidFileManager.deletePidFile(process.binary);
+
       notifyListeners();
     }
   }
@@ -390,9 +401,15 @@ bool isSpam(String data) {
 class SailProcess {
   final Binary binary;
   final int pid;
+  final bool adopted;
   Future<void> Function() cleanup;
 
-  SailProcess({required this.binary, required this.pid, required this.cleanup});
+  SailProcess({
+    required this.binary,
+    required this.pid,
+    required this.cleanup,
+    this.adopted = false,
+  });
 }
 
 class ExitTuple {
