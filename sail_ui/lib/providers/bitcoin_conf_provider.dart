@@ -191,56 +191,6 @@ class BitcoinConfProvider extends ChangeNotifier {
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
 
-  /// Restart all services when mainnet toggle changes
-  Future<void> restartServicesForMainnet() async {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-
-    final binaries = [
-      BitcoinCore(),
-      Enforcer(),
-      BitWindow(),
-    ];
-
-    log.i('Stopping core, enforcer, and bitwindow...');
-    final stopFutures = <Future>[];
-    for (final binary in binaries) {
-      stopFutures.add(binaryProvider.stop(binary));
-    }
-    await Future.wait(stopFutures);
-
-    // Clear sync state from old network
-    try {
-      final syncProvider = GetIt.I.get<SyncProvider>();
-      syncProvider.clearState();
-      log.i('Cleared sync provider state');
-    } catch (e) {
-      log.w('Could not clear sync provider state: $e');
-    }
-
-    // Delete enforcer and bitwindow data
-    log.i('Deleting enforcer and bitwindow data...');
-    final enforcer = Enforcer();
-    final bitwindow = BitWindow();
-    await Future.wait([
-      enforcer.wipeAppDir(),
-      bitwindow.wipeAppDir(),
-    ]);
-
-    // Update MainchainRPC configuration with new network settings
-    final newConf = readMainchainConf();
-    _updateMainchainRPCConfig(newConf);
-
-    // Restart all services
-    log.i('Restarting services...');
-    final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
-    await binaryProvider.startWithEnforcer(
-      bitwindowBinary,
-      bootExtraBinaryImmediately: true,
-    );
-
-    log.i('Service restart completed');
-  }
-
   /// Restart services with detailed progress updates for UI
   Future<void> restartServicesWithProgress(BitcoinNetwork newNetwork, void Function(String) updateStatus) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
