@@ -1005,7 +1005,7 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
-  late Timer _timer;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -1090,7 +1090,7 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     blockchainProvider.removeListener(_onChange);
     balanceProvider.removeListener(_onChange);
     super.dispose();
