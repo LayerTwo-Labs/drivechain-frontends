@@ -40,8 +40,10 @@ class BitcoinConfProvider extends ChangeNotifier {
     if (_currentConfig != null) {
       // Get effective setting (network section overrides global)
       // Use toCoreNetworkForBitcoinSettings() for Bitcoin Core settings like rpcport
-      final rpcPortSetting =
-          _currentConfig!.getEffectiveSetting('rpcport', _detectedNetwork.toCoreNetworkForBitcoinSettings());
+      final rpcPortSetting = _currentConfig!.getEffectiveSetting(
+        'rpcport',
+        _detectedNetwork.toCoreNetworkForBitcoinSettings(),
+      );
       if (rpcPortSetting != null) {
         final customPort = int.tryParse(rpcPortSetting);
         if (customPort != null) {

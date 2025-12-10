@@ -11,8 +11,15 @@ class SideNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final theme = SailTheme.of(context);
+
+    return Container(
       width: width,
+      padding: const EdgeInsets.all(SailStyleValues.padding08),
+      decoration: BoxDecoration(
+        color: theme.colors.background,
+        borderRadius: SailStyleValues.borderRadius,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

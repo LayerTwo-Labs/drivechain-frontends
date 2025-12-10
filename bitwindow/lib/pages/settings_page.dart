@@ -36,56 +36,60 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return QtPage(
-      child: SingleChildScrollView(
-        child: SailColumn(
-          spacing: SailStyleValues.padding10,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            SailText.primary24(
-              'Settings',
-              bold: true,
-            ),
-            SailText.secondary13('Manage your BitWindow settings.'),
-            const SailSpacing(SailStyleValues.padding10),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: theme.colors.divider,
-            ),
-            const SailSpacing(SailStyleValues.padding10),
+    return Container(
+      color: theme.colors.background,
+      padding: const EdgeInsets.all(SailStyleValues.padding12),
+      child: SelectionArea(
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding10,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              SailText.primary24(
+                'Settings',
+                bold: true,
+              ),
+              SailText.secondary13('Manage your BitWindow settings.'),
+              const SailSpacing(SailStyleValues.padding10),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: theme.colors.divider,
+              ),
+              const SailSpacing(SailStyleValues.padding10),
 
-            // Navigation and Content side by side
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left navigation
-                SideNav(
-                  items: const [
-                    SideNavItem(label: 'Network'),
-                    SideNavItem(label: 'Security'),
-                    SideNavItem(label: 'Appearance'),
-                    SideNavItem(label: 'Advanced'),
-                    SideNavItem(label: 'Reset'),
-                    SideNavItem(label: 'About'),
-                  ],
-                  selectedIndex: _selectedIndex,
-                  onItemSelected: (index) {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                ),
-                const SailSpacing(SailStyleValues.padding40),
-                // Right content area
-                Expanded(
-                  child: _buildContent(),
-                ),
-              ],
-            ),
-          ],
+              // Navigation and Content side by side
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left navigation
+                  SideNav(
+                    items: const [
+                      SideNavItem(label: 'Network'),
+                      SideNavItem(label: 'Security'),
+                      SideNavItem(label: 'Appearance'),
+                      SideNavItem(label: 'Advanced'),
+                      SideNavItem(label: 'Reset'),
+                      SideNavItem(label: 'About'),
+                    ],
+                    selectedIndex: _selectedIndex,
+                    onItemSelected: (index) {
+                      setState(() {
+                        _selectedIndex = index;
+                      });
+                    },
+                  ),
+                  const SailSpacing(SailStyleValues.padding40),
+                  // Right content area
+                  Expanded(
+                    child: _buildContent(),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

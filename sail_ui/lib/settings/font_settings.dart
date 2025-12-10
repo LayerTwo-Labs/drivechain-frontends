@@ -10,7 +10,7 @@ class FontSetting extends SettingValue<SailFontValues> {
   String get key => 'font';
 
   @override
-  SailFontValues defaultValue() => SailFontValues.ibmMono;
+  SailFontValues defaultValue() => SailFontValues.inter;
 
   @override
   String toJson() {
