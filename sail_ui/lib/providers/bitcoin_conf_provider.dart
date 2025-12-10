@@ -39,7 +39,9 @@ class BitcoinConfProvider extends ChangeNotifier {
   int get rpcPort {
     if (_currentConfig != null) {
       // Get effective setting (network section overrides global)
-      final rpcPortSetting = _currentConfig!.getEffectiveSetting('rpcport', _detectedNetwork.toCoreNetwork());
+      // Use toCoreNetworkForBitcoinSettings() for Bitcoin Core settings like rpcport
+      final rpcPortSetting =
+          _currentConfig!.getEffectiveSetting('rpcport', _detectedNetwork.toCoreNetworkForBitcoinSettings());
       if (rpcPortSetting != null) {
         final customPort = int.tryParse(rpcPortSetting);
         if (customPort != null) {
@@ -140,9 +142,23 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     if (crossingBoundary) {
       // Crossing L2L boundary - regenerate config from scratch
+      // But preserve datadir settings for each network
+      final savedDataDirs = <String, String?>{};
+      for (final section in _currentConfig!.networkSettings.keys) {
+        final datadir = _currentConfig!.getSetting('datadir', section: section);
+        if (datadir != null) {
+          savedDataDirs[section] = datadir;
+        }
+      }
+
       _detectedNetwork = network;
       final newConfigContent = getDefaultConfig();
       _currentConfig = BitcoinConfig.parse(newConfigContent);
+
+      // Restore saved datadir settings
+      for (final entry in savedDataDirs.entries) {
+        _currentConfig!.setSetting('datadir', entry.value!, section: entry.key);
+      }
     } else {
       // Staying within same category - just update chain setting
       _currentConfig!.globalSettings.remove('chain');
@@ -175,6 +191,9 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       _detectedNetwork = network;
     }
+
+    // Load datadir for the new network from its section
+    _detectDataDirFromConfig();
 
     // Save the config
     await _saveConfig();
@@ -239,7 +258,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     log.i('Service restart completed');
   }
 
-  /// Update datadir
+  /// Update datadir for the current network section
   Future<void> updateDataDir(String? dataDir) async {
     if (_hasPrivateBitcoinConf) {
       log.w('Cannot update datadir - controlled by your private bitcoin.conf');
@@ -248,10 +267,14 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     if (_currentConfig == null) return;
 
+    // Store datadir in the network-specific section so it persists across network switches
+    final section = _detectedNetwork.toCoreNetwork();
+
     if (dataDir == null || dataDir.isEmpty) {
-      _currentConfig!.removeSetting('datadir');
+      _currentConfig!.removeSetting('datadir', section: section);
+      _detectedDataDir = null;
     } else {
-      _currentConfig!.setSetting('datadir', dataDir);
+      _currentConfig!.setSetting('datadir', dataDir, section: section);
       _detectedDataDir = dataDir;
     }
 
@@ -355,7 +378,9 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   void _detectDataDirFromConfig() {
     if (_currentConfig == null) return;
-    _detectedDataDir ??= _currentConfig!.getSetting('datadir');
+    final section = _detectedNetwork.toCoreNetwork();
+    // Read datadir from network-specific section first, fallback to global
+    _detectedDataDir = _currentConfig!.getEffectiveSetting('datadir', section);
   }
 
   void _setupFileWatching() {

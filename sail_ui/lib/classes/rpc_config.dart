@@ -213,11 +213,32 @@ extension NetworkExtensions on BitcoinNetwork {
     }
   }
 
-  /// Get the Bitcoin Core config section name for this network
+  /// Get the config section name for this network
+  /// Note: Forknet returns 'forknet' (custom section) for app settings like datadir,
+  /// but Bitcoin Core settings should still use 'main' section via toCoreNetworkForBitcoinSettings()
   String toCoreNetwork() {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         return 'main';
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+        return 'forknet'; // Custom section for forknet-specific app settings
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+        return 'signet';
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+        return 'regtest';
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+        return 'test';
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      default:
+        return 'unknown';
+    }
+  }
+
+  /// Get the Bitcoin Core section name for Bitcoin Core settings (rpcport, etc.)
+  /// Both mainnet and forknet use 'main' for Bitcoin Core compatibility
+  String toCoreNetworkForBitcoinSettings() {
+    switch (this) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'main';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
