@@ -99,6 +99,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     return [
       '--bitcoincore.rpcuser=${mainchainConf.username}',
       '--bitcoincore.rpcpassword=${mainchainConf.password}',
+      '--bitcoincore.network=${mainchainConf.network.toReadableNet()}',
       if (bitwBinary.extraBootArgs.isNotEmpty) ...bitwBinary.extraBootArgs,
     ];
   }
