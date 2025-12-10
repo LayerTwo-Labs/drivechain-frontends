@@ -71,7 +71,7 @@ class InlineTabBarState extends State<InlineTabBar> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
               decoration: BoxDecoration(
-                color: context.sailTheme.colors.backgroundSecondary,
+                color: context.sailTheme.colors.background,
                 borderRadius: SailStyleValues.borderRadius,
               ),
               child: SingleChildScrollView(
@@ -205,7 +205,7 @@ class _TabItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04, horizontal: SailStyleValues.padding12),
         decoration: BoxDecoration(
-          color: isSelected ? context.sailTheme.colors.background : Colors.transparent,
+          color: isSelected ? context.sailTheme.colors.backgroundSecondary : Colors.transparent,
           borderRadius: SailStyleValues.borderRadius,
         ),
         child: Row(

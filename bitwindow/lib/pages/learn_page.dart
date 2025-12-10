@@ -166,7 +166,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding40),
       decoration: BoxDecoration(
-        color: theme.colors.backgroundSecondary,
+        color: theme.colors.background,
         borderRadius: SailStyleValues.borderRadiusLarge,
       ),
       child: Column(
@@ -202,7 +202,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                       width: MediaQuery.of(context).size.width >= 768 ? 400 : 280,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: theme.colors.background,
+                          color: theme.colors.backgroundSecondary,
                           borderRadius: SailStyleValues.borderRadiusLarge,
                         ),
                         child: ArticleCard(
@@ -227,8 +227,8 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                                 colors: [
-                                  theme.colors.backgroundSecondary,
-                                  theme.colors.backgroundSecondary.withValues(alpha: 0),
+                                  theme.colors.background,
+                                  theme.colors.background.withValues(alpha: 0),
                                 ],
                               ),
                             ),
@@ -258,8 +258,8 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                               begin: Alignment.centerRight,
                               end: Alignment.centerLeft,
                               colors: [
-                                theme.colors.backgroundSecondary,
-                                theme.colors.backgroundSecondary.withValues(alpha: 0),
+                                theme.colors.background,
+                                theme.colors.background.withValues(alpha: 0),
                               ],
                             ),
                           ),

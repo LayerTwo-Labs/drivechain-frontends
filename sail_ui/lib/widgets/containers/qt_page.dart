@@ -10,7 +10,7 @@ class QtPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SelectionArea(
       child: Container(
-        color: context.sailTheme.colors.background,
+        color: context.sailTheme.colors.backgroundSecondary,
         child: Padding(
           padding: const EdgeInsets.only(
             left: SailStyleValues.padding12,
