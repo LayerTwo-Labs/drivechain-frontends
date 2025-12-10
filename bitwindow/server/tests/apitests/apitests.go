@@ -3,8 +3,11 @@ package apitests
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -87,6 +90,10 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 
 	conf := newConfig(t, ctrl, options...)
 
+	// Create a temporary directory with a valid wallet.json for tests
+	walletDir := t.TempDir()
+	createTestWalletJSON(t, walletDir)
+
 	// Create connectors that return our mock clients
 	services := api.Services{
 		Database: database,
@@ -103,7 +110,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 			return conf.bitcoind, nil
 		},
 		ChainParams: &chaincfg.SigNetParams,
-		WalletDir:   t.TempDir(), // Use temporary directory for wallet.json in tests
+		WalletDir:   walletDir,
 	}
 
 	srv, err := api.New(context.Background(), services, config.Config{
@@ -115,6 +122,42 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	require.NoError(t, err)
 
 	return serve(t, srv)
+}
+
+// createTestWalletJSON creates a valid wallet.json file in the given directory
+// for use in tests. This wallet uses a fixed test seed and is configured as an
+// enforcer wallet type.
+func createTestWalletJSON(t *testing.T, walletDir string) {
+	t.Helper()
+
+	// Fixed test seed (64 bytes = 128 hex chars)
+	// This is a deterministic test seed - DO NOT use in production
+	testSeedHex := "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+
+	walletData := map[string]any{
+		"version":        1,
+		"activeWalletId": "test-wallet-id-1234",
+		"wallets": []map[string]any{
+			{
+				"id":          "test-wallet-id-1234",
+				"name":        "Test Wallet",
+				"wallet_type": "enforcer",
+				"master": map[string]any{
+					"seed_hex": testSeedHex,
+				},
+				"l1": map[string]any{
+					"mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+				},
+			},
+		},
+	}
+
+	data, err := json.MarshalIndent(walletData, "", "  ")
+	require.NoError(t, err)
+
+	walletPath := filepath.Join(walletDir, "wallet.json")
+	err = os.WriteFile(walletPath, data, 0600)
+	require.NoError(t, err)
 }
 
 func serve(t *testing.T, server *api.Server) (connect.HTTPClient, string) {

@@ -1,6 +1,9 @@
 package wallet
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
 	"testing"
 )
@@ -16,7 +19,10 @@ func TestEncryptionCompatibility(t *testing.T) {
 
 	// Test encryption
 	plaintext := `{"test":"data","master":{"seed_hex":"0123456789abcdef"}}`
-	encrypted := Encrypt(plaintext, key)
+	encrypted, err := encrypt(plaintext, key)
+	if err != nil {
+		t.Fatalf("Encryption failed: %v", err)
+	}
 
 	// Test decryption
 	decrypted, err := Decrypt(encrypted, key)
@@ -53,9 +59,31 @@ func TestDecryptDartEncrypted(t *testing.T) {
 	t.Logf("Decrypted: %s", decrypted)
 }
 
-// Helper function for encryption (not in original file)
-func Encrypt(plaintext string, key []byte) string {
-	// This would need the actual encryption implementation
-	// For now, just a placeholder
-	return "iv:encrypted"
+// encrypt encrypts data using AES-256-GCM with a 12-byte nonce
+// Format matches Decrypt: "iv:encrypted" (both base64 encoded)
+func encrypt(plaintext string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	// Generate random nonce (12 bytes for standard GCM)
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return "", err
+	}
+
+	// Encrypt the plaintext
+	ciphertext := gcm.Seal(nil, nonce, []byte(plaintext), nil)
+
+	// Return as "iv:encrypted" format with base64 encoding
+	ivBase64 := base64.StdEncoding.EncodeToString(nonce)
+	encryptedBase64 := base64.StdEncoding.EncodeToString(ciphertext)
+
+	return ivBase64 + ":" + encryptedBase64, nil
 }
