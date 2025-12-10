@@ -363,10 +363,27 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                                 ),
                               ],
                             )
-                          : SailButton(
-                              label: 'Deny',
-                              onPressed: () async => widget.onDeny(utxo.output, utxo.valueSats.toInt()),
-                              insideTable: true,
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SailButton(
+                                  label: 'Deny',
+                                  onPressed: () async => widget.onDeny(utxo.output, utxo.valueSats.toInt()),
+                                  insideTable: true,
+                                ),
+                                const SizedBox(width: 4),
+                                Opacity(
+                                  opacity: 0.0,
+                                  child: IgnorePointer(
+                                    child: SailButton(
+                                      label: 'Cancel',
+                                      onPressed: () async {},
+                                      insideTable: true,
+                                      variant: ButtonVariant.secondary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                     ),
                   ];

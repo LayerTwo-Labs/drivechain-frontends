@@ -1726,17 +1726,29 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
                     'Make sure to backup your seed phrase before proceeding. This action cannot be undone.',
                 confirmButtonVariant: ButtonVariant.destructive,
                 onConfirm: () async {
-                  await _resetWallets(context);
-                  if (context.mounted) {
-                    Navigator.of(context).pop(true);
-                  }
+                  Navigator.of(context).pop(true);
                 },
               ),
             );
             if (confirmed == true && context.mounted) {
-              // Boot binaries and navigate to wallet creation
-              unawaited(bootBinaries(log));
-              await GetIt.I.get<AppRouter>().replaceAll([CreateWalletRoute()]);
+              final router = GetIt.I.get<AppRouter>();
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (dialogContext) => ResetProgressDialog(
+                  resetFunction: (updateStatus) async {
+                    await _resetWallets(context, onStatusUpdate: updateStatus);
+                  },
+                  onComplete: () async {
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop(); // Close progress dialog
+                    }
+                    // Boot binaries and navigate to wallet creation (use saved router, not context)
+                    unawaited(bootBinaries(log));
+                    await router.replaceAll([CreateWalletRoute()]);
+                  },
+                ),
+              );
             }
           },
         ),
@@ -1744,7 +1756,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           label: 'Reset Everything',
           variant: ButtonVariant.destructive,
           onPressed: () async {
-            await showDialog(
+            final confirmed = await showDialog<bool>(
               context: context,
               builder: (context) => SailAlertCard(
                 title: 'Reset Everything?',
@@ -1752,10 +1764,13 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
                     'Are you sure you want to reset absolutely everything? Even wallets will be deleted. This action cannot be undone.',
                 confirmButtonVariant: ButtonVariant.destructive,
                 onConfirm: () async {
-                  await _resetEverything(context);
+                  Navigator.of(context).pop(true);
                 },
               ),
             );
+            if (confirmed == true && context.mounted) {
+              await _resetEverything(context);
+            }
           },
           skipLoading: true,
         ),
@@ -2313,8 +2328,13 @@ class ResetProgressStep {
 
 class ResetProgressDialog extends StatefulWidget {
   final Future<void> Function(void Function(String) updateStatus) resetFunction;
+  final Future<void> Function()? onComplete;
 
-  const ResetProgressDialog({super.key, required this.resetFunction});
+  const ResetProgressDialog({
+    super.key,
+    required this.resetFunction,
+    this.onComplete,
+  });
 
   @override
   State<ResetProgressDialog> createState() => _ResetProgressDialogState();
@@ -2382,6 +2402,11 @@ class _ResetProgressDialogState extends State<ResetProgressDialog> {
           _steps[_currentStepIndex].endTime = DateTime.now();
         }
       });
+
+      // Call onComplete callback if provided
+      if (widget.onComplete != null) {
+        await widget.onComplete!();
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -2721,13 +2746,11 @@ Future<void> _resetEverything(BuildContext context) async {
   final appDir = GetIt.I.get<BinaryProvider>().appDir;
   final router = GetIt.I.get<AppRouter>();
 
-  Navigator.of(context).pop(); // pop the current dialog
-
-  // Show the new one
+  // Show progress dialog
   await showDialog(
     context: context,
     barrierDismissible: false,
-    builder: (context) => ResetProgressDialog(
+    builder: (dialogContext) => ResetProgressDialog(
       resetFunction: (updateStatus) async {
         updateStatus('Wiping wallets');
 
@@ -2771,12 +2794,15 @@ Future<void> _resetEverything(BuildContext context) async {
           },
         );
       },
+      onComplete: () async {
+        if (dialogContext.mounted) {
+          Navigator.of(dialogContext).pop(); // Close progress dialog
+        }
+        // Boot binaries after reset. This will await wallet creation
+        unawaited(bootBinaries(log));
+        // Navigate to wallet creation page (like fresh install)
+        await router.replaceAll([CreateWalletRoute()]);
+      },
     ),
   );
-
-  // Boot binaries after reset. This will await wallet creation
-  unawaited(bootBinaries(log));
-
-  // Navigate to wallet creation page (like fresh install)
-  await router.replaceAll([CreateWalletRoute()]);
 }
