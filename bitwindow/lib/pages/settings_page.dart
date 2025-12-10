@@ -185,9 +185,6 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           return;
         }
       }
-    } else {
-      // Switching to signet/regtest/testnet - clear custom datadir so default is used
-      await _confProvider.updateDataDir(null);
     }
 
     // Show progress dialog and perform restart
@@ -203,6 +200,11 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           },
         ),
       );
+
+      // Update local state with the new network's datadir
+      setState(() {
+        _selectedDataDir = _confProvider.detectedDataDir;
+      });
     }
   }
 
