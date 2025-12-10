@@ -165,8 +165,8 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	// Auto-unlock unencrypted wallets
 	go func() {
-		walletPath := filepath.Join(conf.Datadir, "wallet.json")
-		encryptionMetadataPath := filepath.Join(conf.Datadir, "wallet_encryption.json")
+		walletPath := filepath.Join(walletDir, "wallet.json")
+		encryptionMetadataPath := filepath.Join(walletDir, "wallet_encryption.json")
 
 		// Check if wallet file exists
 		if _, err := os.Stat(walletPath); err != nil {

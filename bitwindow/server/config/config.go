@@ -24,11 +24,11 @@ const (
 type Config struct {
 	Version bool `long:"version" short:"v" description:"Print version information and exit"`
 
-	BitcoinCoreURL         string  `long:"bitcoincore.url" description:"URL for connecting to Bitcoin Core (default: determined by network)"`
+	BitcoinCoreURL         string  `long:"bitcoincore.url" description:"URL for connecting to Bitcoin Core - derived from network if not set"`
 	BitcoinCoreCookie      string  `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file"`
 	BitcoinCoreRpcUser     string  `long:"bitcoincore.rpcuser" default:"user"`
 	BitcoinCoreRpcPassword string  `long:"bitcoincore.rpcpassword" default:"password"`
-	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network" default:"signet" choice:"mainnet" choice:"forknet" choice:"regtest" choice:"signet" choice:"testnet"`
+	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network - derived from URL if not set" choice:"mainnet" choice:"forknet" choice:"regtest" choice:"signet" choice:"testnet"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
@@ -71,12 +71,25 @@ func Parse() (Config, error) {
 		conf.BitcoinCoreRpcPassword = password
 	}
 
-	// If URL is not set, try to derive it from the network
-	if conf.BitcoinCoreURL == "" {
+	// Handle network/URL derivation
+	switch {
+	case conf.BitcoinCoreNetwork != "" && conf.BitcoinCoreURL != "":
+		// Both set - use as provided
+	case conf.BitcoinCoreNetwork != "" && conf.BitcoinCoreURL == "":
+		// Network set, derive URL
 		conf.BitcoinCoreURL = deriveURLFromNetwork(conf.BitcoinCoreNetwork)
 		if conf.BitcoinCoreURL == "" {
-			return Config{}, fmt.Errorf("could not derive URL from network %q: please specify --bitcoincore.url flag", conf.BitcoinCoreNetwork)
+			return Config{}, fmt.Errorf("could not derive URL from network %q", conf.BitcoinCoreNetwork)
 		}
+	case conf.BitcoinCoreNetwork == "" && conf.BitcoinCoreURL != "":
+		// URL set, derive network
+		conf.BitcoinCoreNetwork = deriveNetworkFromURL(conf.BitcoinCoreURL)
+		if conf.BitcoinCoreNetwork == "" {
+			return Config{}, fmt.Errorf("could not derive network from URL %q: please specify --bitcoincore.network flag", conf.BitcoinCoreURL)
+		}
+	default:
+		// Neither set
+		return Config{}, errors.New("either --bitcoincore.network or --bitcoincore.url must be specified")
 	}
 
 	if conf.Datadir == "" {
@@ -115,6 +128,22 @@ func deriveURLFromNetwork(network Network) string {
 		return "http://localhost:38332"
 	case NetworkRegtest:
 		return "http://localhost:18443"
+	}
+	return ""
+}
+
+func deriveNetworkFromURL(url string) Network {
+	switch {
+	case strings.Contains(url, ":8332"):
+		return NetworkMainnet
+	case strings.Contains(url, ":18301"):
+		return NetworkForknet
+	case strings.Contains(url, ":18332"):
+		return NetworkTestnet
+	case strings.Contains(url, ":38332"):
+		return NetworkSignet
+	case strings.Contains(url, ":18443"):
+		return NetworkRegtest
 	}
 	return ""
 }
