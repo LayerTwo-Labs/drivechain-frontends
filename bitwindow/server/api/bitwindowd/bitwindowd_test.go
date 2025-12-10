@@ -3,6 +3,7 @@ package api_bitwindowd_test
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"testing"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -1141,4 +1143,481 @@ func TestService_GetFireplaceStats(t *testing.T) {
 	assert.EqualValues(t, 1, resp.Msg.CoinnewsCount_7D)
 	assert.EqualValues(t, 1, resp.Msg.BlockCount_24H)
 
+}
+
+func TestService_PauseDenial(t *testing.T) {
+	t.Parallel()
+
+	t.Run("pause existing denial", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		db := database.Test(t)
+
+		ctrl := gomock.NewController(t)
+		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockWallet.EXPECT().
+			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
+				Msg: &mainchainv1.ListUnspentOutputsResponse{
+					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
+						{
+							Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: "abc123"}},
+							Vout: 0, ValueSats: 1000000,
+						},
+					},
+				},
+			}, nil)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithWallet(mockWallet)))
+
+		// First create a denial
+		_, err := cli.CreateDenial(ctx, connect.NewRequest(&v1.CreateDenialRequest{
+			Txid: "abc123", Vout: 0, DelaySeconds: 60, NumHops: 1,
+		}))
+		require.NoError(t, err)
+
+		// Get the denial ID from the database
+		denials, err := deniability.List(ctx, db)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		denialID := denials[0].ID
+
+		// Pause it
+		_, err = cli.PauseDenial(ctx, connect.NewRequest(&v1.PauseDenialRequest{Id: denialID}))
+		require.NoError(t, err)
+
+		// Verify it's paused by checking the database
+		denials, err = deniability.List(ctx, db)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		assert.NotNil(t, denials[0].PausedAt)
+	})
+
+	t.Run("pause non-existent denial returns error", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+
+		_, err := cli.PauseDenial(context.Background(), connect.NewRequest(&v1.PauseDenialRequest{Id: 99999}))
+		require.Error(t, err)
+	})
+}
+
+func TestService_ResumeDenial(t *testing.T) {
+	t.Parallel()
+
+	t.Run("resume paused denial", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		db := database.Test(t)
+
+		ctrl := gomock.NewController(t)
+		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockWallet.EXPECT().
+			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
+				Msg: &mainchainv1.ListUnspentOutputsResponse{
+					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
+						{
+							Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: "abc123"}},
+							Vout: 0, ValueSats: 1000000,
+						},
+					},
+				},
+			}, nil)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithWallet(mockWallet)))
+
+		// Create a denial
+		_, err := cli.CreateDenial(ctx, connect.NewRequest(&v1.CreateDenialRequest{
+			Txid: "abc123", Vout: 0, DelaySeconds: 60, NumHops: 1,
+		}))
+		require.NoError(t, err)
+
+		// Get the denial ID from the database
+		denials, err := deniability.List(ctx, db)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		denialID := denials[0].ID
+
+		// Pause it
+		_, err = cli.PauseDenial(ctx, connect.NewRequest(&v1.PauseDenialRequest{Id: denialID}))
+		require.NoError(t, err)
+
+		// Resume it
+		_, err = cli.ResumeDenial(ctx, connect.NewRequest(&v1.ResumeDenialRequest{Id: denialID}))
+		require.NoError(t, err)
+
+		// Verify it's resumed by checking the database
+		denials, err = deniability.List(ctx, db)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		assert.Nil(t, denials[0].PausedAt)
+	})
+
+	t.Run("resume non-existent denial returns error", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+
+		_, err := cli.ResumeDenial(context.Background(), connect.NewRequest(&v1.ResumeDenialRequest{Id: 99999}))
+		require.Error(t, err)
+	})
+}
+
+func TestService_ListBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("list blocks with default pagination", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		// Mock ListWallets and CreateWallet for background ensureWatchWallet
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		// Mock GetBlockchainInfo
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 100},
+			}, nil)
+
+		// Mock GetBlockHash and GetBlock for each block (default page size is 50)
+		for i := 0; i < 50; i++ {
+			height := uint32(100 - i)
+			mockBitcoind.EXPECT().
+				GetBlockHash(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", height)},
+				}, nil)
+			mockBitcoind.EXPECT().
+				GetBlock(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{
+						Height:        height,
+						Hash:          fmt.Sprintf("hash%d", height),
+						Time:          timestamppb.Now(),
+						Confirmations: int32(100 - int(height) + 1),
+					},
+				}, nil)
+		}
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{}))
+		require.NoError(t, err)
+		assert.Len(t, resp.Msg.RecentBlocks, 50)
+		assert.True(t, resp.Msg.HasMore)
+
+		// Verify blocks are sorted by height descending
+		for i := 1; i < len(resp.Msg.RecentBlocks); i++ {
+			assert.Greater(t, resp.Msg.RecentBlocks[i-1].Height, resp.Msg.RecentBlocks[i].Height)
+		}
+	})
+
+	t.Run("list blocks with custom page size", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+			}, nil)
+
+		// Mock for 5 blocks
+		for i := 0; i < 5; i++ {
+			height := uint32(10 - i)
+			mockBitcoind.EXPECT().
+				GetBlockHash(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", height)},
+				}, nil)
+			mockBitcoind.EXPECT().
+				GetBlock(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{
+						Height: height,
+						Hash:   fmt.Sprintf("hash%d", height),
+						Time:   timestamppb.Now(),
+					},
+				}, nil)
+		}
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{
+			PageSize: 5,
+		}))
+		require.NoError(t, err)
+		assert.Len(t, resp.Msg.RecentBlocks, 5)
+	})
+}
+
+func TestService_ListRecentTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("list recent transactions from mempool and blocks", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		// Mock GetRawMempool with one tx
+		mockBitcoind.EXPECT().
+			GetRawMempool(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetRawMempoolResponse]{
+				Msg: &corepb.GetRawMempoolResponse{
+					Transactions: map[string]*corepb.MempoolEntry{
+						"mempool_tx1": {
+							VirtualSize: 200,
+							Time:        timestamppb.Now(),
+							Fees: &corepb.MempoolEntry_Fees{
+								Base: 0.00001000,
+							},
+						},
+					},
+				},
+			}, nil)
+
+		// Mock GetBlockchainInfo - return BestBlockHash
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{
+					Blocks:        1,
+					BestBlockHash: "blockhash1",
+				},
+			}, nil)
+
+		// Mock GetBlock - returns empty txids to avoid needing GetRawTransaction mocks
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockResponse]{
+				Msg: &corepb.GetBlockResponse{
+					Height:            1,
+					Hash:              "blockhash1",
+					Time:              timestamppb.Now(),
+					Txids:             []string{}, // Empty - no transactions to fetch
+					PreviousBlockHash: "",         // Genesis, stop loop
+				},
+			}, nil).Times(2) // First for GetBlock with BestBlockHash, second for the loop
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.ListRecentTransactions(context.Background(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
+			Count: 10,
+		}))
+		require.NoError(t, err)
+		// Should have 1 mempool tx
+		assert.Len(t, resp.Msg.Transactions, 1)
+		assert.Equal(t, "mempool_tx1", resp.Msg.Transactions[0].Txid)
+	})
+
+	t.Run("empty mempool and genesis block", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		// Empty mempool
+		mockBitcoind.EXPECT().
+			GetRawMempool(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetRawMempoolResponse]{
+				Msg: &corepb.GetRawMempoolResponse{
+					Transactions: map[string]*corepb.MempoolEntry{},
+				},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{
+					Blocks:        0,
+					BestBlockHash: "genesis",
+				},
+			}, nil)
+
+		// Genesis block - empty txids
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockResponse]{
+				Msg: &corepb.GetBlockResponse{
+					Height:            0,
+					Hash:              "genesis",
+					Time:              timestamppb.Now(),
+					Txids:             []string{}, // Empty
+					PreviousBlockHash: "",         // Genesis, no previous
+				},
+			}, nil).Times(2)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.ListRecentTransactions(context.Background(), connect.NewRequest(&v1.ListRecentTransactionsRequest{
+			Count: 10,
+		}))
+		require.NoError(t, err)
+		assert.Empty(t, resp.Msg.Transactions)
+	})
+}
+
+func TestService_GetNetworkStats(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns network statistics", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		// Mock GetBlockchainInfo
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{
+					Blocks: 1000,
+					Chain:  "signet",
+				},
+			}, nil)
+
+		// Mock GetBlockHash for calculating avg block time and difficulty
+		mockBitcoind.EXPECT().
+			GetBlockHash(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Msg: &corepb.GetBlockHashResponse{Hash: "latesthash"},
+			}, nil).AnyTimes()
+
+		// Mock GetBlock for difficulty and avg block time calculation
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockResponse]{
+				Msg: &corepb.GetBlockResponse{
+					Height:     1000,
+					Hash:       "latesthash",
+					Time:       timestamppb.Now(),
+					Difficulty: 12345.67,
+				},
+			}, nil).AnyTimes()
+
+		// Mock GetNetworkInfo
+		mockBitcoind.EXPECT().
+			GetNetworkInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetNetworkInfoResponse]{
+				Msg: &corepb.GetNetworkInfoResponse{
+					Version:    250000,
+					Subversion: "/Satoshi:25.0.0/",
+				},
+			}, nil)
+
+		// Mock GetNetTotals
+		mockBitcoind.EXPECT().
+			GetNetTotals(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetNetTotalsResponse]{
+				Msg: &corepb.GetNetTotalsResponse{
+					TotalBytesRecv: 1000000,
+					TotalBytesSent: 500000,
+				},
+			}, nil)
+
+		// Mock GetPeerInfo
+		mockBitcoind.EXPECT().
+			GetPeerInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetPeerInfoResponse]{
+				Msg: &corepb.GetPeerInfoResponse{
+					Peers: []*corepb.Peer{
+						{Inbound: true},
+						{Inbound: false},
+						{Inbound: false},
+					},
+				},
+			}, nil)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.GetNetworkStats(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		assert.Equal(t, int64(1000), resp.Msg.BlockHeight)
+		assert.Equal(t, int32(3), resp.Msg.PeerCount)
+		assert.Equal(t, int32(1), resp.Msg.ConnectionsIn)
+		assert.Equal(t, int32(2), resp.Msg.ConnectionsOut)
+		assert.Equal(t, uint64(1000000), resp.Msg.TotalBytesReceived)
+		assert.Equal(t, uint64(500000), resp.Msg.TotalBytesSent)
+		assert.Equal(t, int32(250000), resp.Msg.NetworkVersion)
+		assert.Equal(t, "/Satoshi:25.0.0/", resp.Msg.Subversion)
+		assert.Equal(t, 12345.67, resp.Msg.Difficulty)
+	})
 }
