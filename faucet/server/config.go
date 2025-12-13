@@ -20,7 +20,7 @@ type Config struct {
 	ThunderAddress   string `long:"thunder.url" description:"URL for connecting to Thunder" default:"http://localhost:6009"`
 	ZsideAddress     string `long:"zside.url" description:"URL for connecting to zSide" default:"http://localhost:6098"`
 
-	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
+	EnforcerURL string `long:"enforcer.url" description:"URL for connecting to the enforcer server" default:"http://localhost:50051"`
 
 	Listen string `long:"listen" description:"serve API on this address:port" default:"localhost:8082"`
 }

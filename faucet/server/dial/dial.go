@@ -26,9 +26,7 @@ func EnforcerValidator(ctx context.Context, url string) (
 	}
 
 	client := validatordrpc.NewValidatorServiceClient(
-		getSharedClient(ctx),
-		fmt.Sprintf("http://%s", url),
-		connect.WithGRPC(),
+		getSharedClient(ctx), url, connect.WithGRPC(),
 	)
 	_, err := client.GetSidechains(ctx, connect.NewRequest(&validatordpb.GetSidechainsRequest{}))
 	if err != nil {
