@@ -15,6 +15,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: `Drivechain Faucet (${instanceNetwork()})`,
   description: `A Drivechain faucet for obtaining free (and worthless!) coins on ${instanceNetwork()}`,
+  metadataBase: process.env.METADATA_BASE_URL ? new URL(process.env.METADATA_BASE_URL) : undefined,
 };
 
 export default function RootLayout({
