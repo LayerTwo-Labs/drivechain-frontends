@@ -90,10 +90,10 @@ func realMain(ctx context.Context) error {
 	var validatorConnectLogOnce sync.Once
 	validatorConnector := func(ctx context.Context) (validatordrpc.ValidatorServiceClient, error) {
 		validatorConnectLogOnce.Do(func() {
-			zerolog.Ctx(ctx).Info().Msgf("server: connecting to validator at %q", conf.EnforcerHost)
+			zerolog.Ctx(ctx).Info().Msgf("server: connecting to validator at %q", conf.EnforcerURL)
 		})
 
-		validator, err := dial.EnforcerValidator(ctx, conf.EnforcerHost)
+		validator, err := dial.EnforcerValidator(ctx, conf.EnforcerURL)
 		return validator, err
 	}
 
