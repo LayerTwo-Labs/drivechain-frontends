@@ -89,6 +89,11 @@ jobs:
         include:
           - service: frontend-signet
             dockerfile: Dockerfile
+            build-args: [network=signet]
+            context: .
+          - service: frontend-forknet
+            dockerfile: Dockerfile
+            build-args: [network=forknet]
             context: .
           - service: backend
             dockerfile: ./server/Dockerfile
@@ -133,6 +138,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           #prettier-ignore
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ matrix.args }}
           #prettier-ignore
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/faucet-${{ matrix.service }}:latest
           cache-to: type=inline
