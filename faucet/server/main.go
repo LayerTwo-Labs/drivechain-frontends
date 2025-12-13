@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/faucet/server/api/explorer"
@@ -86,7 +87,12 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("start core proxy: %w", err)
 	}
 
+	var validatorConnectLogOnce sync.Once
 	validatorConnector := func(ctx context.Context) (validatordrpc.ValidatorServiceClient, error) {
+		validatorConnectLogOnce.Do(func() {
+			zerolog.Ctx(ctx).Info().Msgf("server: connecting to validator at %q", conf.EnforcerHost)
+		})
+
 		validator, err := dial.EnforcerValidator(ctx, conf.EnforcerHost)
 		return validator, err
 	}

@@ -55,7 +55,10 @@ func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 	if err != nil {
 		s.setConnected(ctx, false)
 		var zero T
-		return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s does not accept connections", s.name))
+		return zero, connect.NewError(
+			connect.CodeUnavailable,
+			fmt.Errorf("%s does not accept connections: %w", s.name, err),
+		)
 	} else {
 		s.mu.Lock()
 		s.client = client
