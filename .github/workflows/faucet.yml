@@ -85,10 +85,18 @@ jobs:
       matrix:
         # not able to deduce how to configure the Next.js server
         # at runtime. have to bake in the env vars at build time?
-        service: [frontend-signet, backend]
+        service: [frontend-signet-server, frontend-forknet-server, backend]
+        # Wonky: due to the way we're doing image name
+        # constructions in our Docker Compose setup for the signet
+        # and forknet servers, we suffix the image names with -server.
         include:
-          - service: frontend-signet
+          - service: frontend-signet-server
             dockerfile: Dockerfile
+            build-args: NETWORK=signet
+            context: .
+          - service: frontend-forknet-server
+            dockerfile: Dockerfile
+            build-args: NETWORK=forknet
             context: .
           - service: backend
             dockerfile: ./server/Dockerfile
@@ -133,6 +141,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           #prettier-ignore
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ matrix.build-args }}
           #prettier-ignore
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/faucet-${{ matrix.service }}:latest
           cache-to: type=inline
