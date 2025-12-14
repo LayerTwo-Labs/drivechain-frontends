@@ -50,7 +50,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 		ctx, connect.NewRequest(&btcpb.GetBlockchainInfoRequest{}),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get blockchain info: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Debug().
@@ -61,7 +61,9 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 		Verbosity: btcpb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"get best mainchain block %q: %w", info.Msg.BestBlockHash, err,
+		)
 	}
 
 	zerolog.Ctx(ctx).
