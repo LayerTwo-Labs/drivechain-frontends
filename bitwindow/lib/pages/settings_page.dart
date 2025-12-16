@@ -1743,12 +1743,15 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
                     if (dialogContext.mounted) {
                       Navigator.of(dialogContext).pop(); // Close progress dialog
                     }
-                    // Boot binaries and navigate to wallet creation (use saved router, not context)
+                    // Boot binaries. It will await wallet creation, where we route after the user closes this dialog
                     unawaited(bootBinaries(log));
-                    await router.replaceAll([CreateWalletRoute()]);
                   },
                 ),
               );
+              // Wait for dialog to fully dispose before replacing entire route stack
+              await Future.delayed(const Duration(milliseconds: 100));
+              // Boot binaries and navigate to wallet creation
+              await router.replaceAll([CreateWalletRoute()]);
             }
           },
         ),
@@ -2798,11 +2801,14 @@ Future<void> _resetEverything(BuildContext context) async {
         if (dialogContext.mounted) {
           Navigator.of(dialogContext).pop(); // Close progress dialog
         }
-        // Boot binaries after reset. This will await wallet creation
-        unawaited(bootBinaries(log));
-        // Navigate to wallet creation page (like fresh install)
-        await router.replaceAll([CreateWalletRoute()]);
       },
     ),
   );
+
+  // Wait for dialog to fully dispose before replacing entire route stack
+  await Future.delayed(const Duration(milliseconds: 100));
+  // Boot binaries after reset. This will await wallet creation
+  unawaited(bootBinaries(log));
+  // Navigate to wallet creation page (like fresh install)
+  await router.replaceAll([CreateWalletRoute()]);
 }
