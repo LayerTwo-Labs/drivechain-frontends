@@ -1,0 +1,19 @@
+version: "2"
+run:
+  tests: true
+
+linters:
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        all:
+          deny:
+            - pkg: log
+              desc: "use zerolog!"
+    staticcheck:
+      checks:
+        # 'error strings should not end with punctuation or newlines'
+        # want to provide proper error messages to the user
+        - "-ST1005"
