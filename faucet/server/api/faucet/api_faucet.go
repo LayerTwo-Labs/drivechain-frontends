@@ -2,9 +2,11 @@ package api_faucet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -102,7 +104,15 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.Dispen
 	})
 	if err != nil {
 		s.undoDispensation(c.Msg.Destination, amount.ToBTC())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not dispense coins: %w", err))
+	}
+
+	switch {
+	case err != nil && strings.Contains(err.Error(), "Insufficient funds"):
+		msg := "The faucet is out of funds. Please try again later."
+		return nil, connect.NewError(connect.CodeResourceExhausted, errors.New(msg))
+
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("dispense coins: %w", err))
 	}
 
 	fmt.Printf("sent %.8f to %s in %s\n", amount.ToBTC(), c.Msg.Destination, txid.Msg.Txid)
