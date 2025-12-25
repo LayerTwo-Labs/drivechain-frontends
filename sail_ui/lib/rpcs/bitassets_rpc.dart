@@ -892,7 +892,7 @@ class BitAssetsUTXO extends SidechainUTXO {
     : super(
         address: output['address'] as String,
         valueSats: _extractValueSats(output['content']),
-        type: OutpointType.deposit, // TODO: determine actual type from data
+        type: OutpointType.deposit,
       );
 
   static int _extractValueSats(Map<String, dynamic> content) {

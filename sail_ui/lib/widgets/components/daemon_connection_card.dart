@@ -80,27 +80,18 @@ class DaemonConnectionCard extends StatelessWidget {
                     }
                   },
                 ),
-              Builder(
-                builder: (context) {
-                  final logPath = connection.binary.logPath();
-                  final logFileExists = File(logPath).existsSync();
-
-                  final button = SailButton(
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async =>
-                        navigateToLogs!(connection.binary.binary, logPath, connection.binary.type),
-                    disabled: !logFileExists,
-                    label: 'View logs',
-                  );
-
-                  if (!logFileExists) {
-                    return Tooltip(
-                      message: 'Log file does not exist',
-                      child: button,
-                    );
-                  }
-                  return button;
-                },
+              Tooltip(
+                message: File(connection.binary.logPath()).existsSync() ? 'View log file' : 'Log file does not exist',
+                child: SailButton(
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => navigateToLogs!(
+                    connection.binary.binary,
+                    connection.binary.logPath(),
+                    connection.binary.type,
+                  ),
+                  disabled: !File(connection.binary.logPath()).existsSync(),
+                  label: 'View logs',
+                ),
               ),
               SailButton(
                 variant: ButtonVariant.icon,
