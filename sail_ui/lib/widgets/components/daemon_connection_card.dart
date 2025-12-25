@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -78,11 +80,27 @@ class DaemonConnectionCard extends StatelessWidget {
                     }
                   },
                 ),
-              SailButton(
-                variant: ButtonVariant.ghost,
-                onPressed: () async =>
-                    navigateToLogs!(connection.binary.binary, connection.binary.logPath(), connection.binary.type),
-                label: 'View logs',
+              Builder(
+                builder: (context) {
+                  final logPath = connection.binary.logPath();
+                  final logFileExists = File(logPath).existsSync();
+
+                  final button = SailButton(
+                    variant: ButtonVariant.ghost,
+                    onPressed: () async =>
+                        navigateToLogs!(connection.binary.binary, logPath, connection.binary.type),
+                    disabled: !logFileExists,
+                    label: 'View logs',
+                  );
+
+                  if (!logFileExists) {
+                    return Tooltip(
+                      message: 'Log file does not exist',
+                      child: button,
+                    );
+                  }
+                  return button;
+                },
               ),
               SailButton(
                 variant: ButtonVariant.icon,
@@ -131,27 +149,18 @@ class DaemonConnectionCard extends StatelessWidget {
               !connection.connected)
             Padding(
               padding: const EdgeInsets.only(top: SailStyleValues.padding04),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 100),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SailText.secondary12(
-                      prettifyLogMessage(
-                        infoMessage ??
-                            connection.connectionError ??
-                            connection.startupError ??
-                            (connection.initializingBinary
-                                ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
-                                : !connection.connected
-                                ? 'Not connected'
-                                : ''),
-                      ),
-                      monospace: true,
-                    ),
-                  ),
+              child: SailText.secondary12(
+                prettifyLogMessage(
+                  infoMessage ??
+                      connection.connectionError ??
+                      connection.startupError ??
+                      (connection.initializingBinary
+                          ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
+                          : !connection.connected
+                          ? 'Not connected'
+                          : ''),
                 ),
+                monospace: true,
               ),
             ),
         ],

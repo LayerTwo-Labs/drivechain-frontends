@@ -24,8 +24,8 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 36,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 36),
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: SailTheme.of(context).colors.border)),
@@ -88,10 +88,10 @@ class BottomNav extends StatelessWidget {
                                   : const BoxDecoration(),
                               child: SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: model.connectionColor),
                             ),
-                            Flexible(
+                            Expanded(
                               child: model.connectionStatus == 'All binaries connected'
-                                  ? SailText.secondary12(model.connectionStatus, overflow: TextOverflow.ellipsis)
-                                  : SailText.primary12(model.connectionStatus, overflow: TextOverflow.ellipsis),
+                                  ? SailText.secondary12(model.connectionStatus)
+                                  : SailText.primary12(model.connectionStatus, overflow: TextOverflow.visible),
                             ),
                           ],
                         ),

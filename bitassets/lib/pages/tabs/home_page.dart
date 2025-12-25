@@ -125,10 +125,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                     ),
                     PlatformMenuItem(
                       label: 'View Logs',
-                      onSelected: () {
-                        final windowProvider = GetIt.I.get<WindowProvider>();
-                        windowProvider.open(SubWindowTypes.logs);
-                      },
+                      onSelected: GetIt.I.get<WindowProvider>().logFile.existsSync()
+                          ? () {
+                              final windowProvider = GetIt.I.get<WindowProvider>();
+                              windowProvider.open(SubWindowTypes.logs);
+                            }
+                          : null,
                     ),
                   ],
                 ),

@@ -724,10 +724,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   members: [
                     PlatformMenuItem(
                       label: 'View Logs',
-                      onSelected: () async {
-                        final windowProvider = GetIt.I.get<WindowProvider>();
-                        await windowProvider.open(SubWindowTypes.logs);
-                      },
+                      onSelected: GetIt.I.get<WindowProvider>().logFile.existsSync()
+                          ? () async {
+                              final windowProvider = GetIt.I.get<WindowProvider>();
+                              await windowProvider.open(SubWindowTypes.logs);
+                            }
+                          : null,
                     ),
                   ],
                 ),
