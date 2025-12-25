@@ -77,31 +77,6 @@ class WalletWriterProvider extends ChangeNotifier {
     });
   }
 
-  /// Backup wallet.json by renaming it with a timestamp
-  /// Used when deleting all wallets to preserve the current wallet
-  Future<void> moveWallet() async {
-    await _walletLock.synchronized(() async {
-      try {
-        final walletFile = _walletReader.getWalletFile();
-        if (!await walletFile.exists()) {
-          _logger.i('moveMasterWalletDir: No wallet.json to backup');
-          return;
-        }
-
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final backupPath = path.join(bitwindowAppDir.path, 'wallet.json.backup_$timestamp');
-
-        await walletFile.rename(backupPath);
-        _logger.i('moveMasterWalletDir: Backed up wallet.json to $backupPath');
-
-        // WalletReaderProvider manages its own cache
-      } catch (e, stack) {
-        _logger.e('moveMasterWalletDir: Error backing up wallet: $e\n$stack');
-        rethrow;
-      }
-    });
-  }
-
   Future<Map<String, dynamic>> generateWallet({
     required String name,
     String? customMnemonic,
@@ -620,14 +595,6 @@ class WalletWriterProvider extends ChangeNotifier {
       await _deleteCoreMultisigWallets(_logger);
     } catch (e) {
       _logger.e('could not delete multisig wallets: $e');
-    }
-
-    onStatusUpdate?.call('Moving master wallet directory');
-
-    try {
-      await moveWallet();
-    } catch (e) {
-      _logger.e('could not move master wallet dir: $e');
     }
 
     onStatusUpdate?.call('Clearing wallet state');
