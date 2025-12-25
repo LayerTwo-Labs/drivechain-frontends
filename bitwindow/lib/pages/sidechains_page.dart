@@ -58,7 +58,7 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = SailStyleValues.padding08;
-        final sidechainsWidth = max(480, constraints.maxWidth * 0.25);
+        final sidechainsWidth = max(480, constraints.maxWidth * 0.6);
         final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
 
         return SailRow(
@@ -219,6 +219,10 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             onSort: () => viewModel.sortSidechains('action'),
           ),
           SailTableHeaderCell(
+            name: 'Deposit',
+            onSort: () => viewModel.sortSidechains('deposit'),
+          ),
+          SailTableHeaderCell(
             name: 'Settings',
             onSort: () => viewModel.sortSidechains('update'),
           ),
@@ -242,6 +246,19 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
               key: buttonWidget?.key,
               value: '                    ',
               child: buttonWidget,
+            ),
+            SailTableCell(
+              value: '        ',
+              child: sidechain != null
+                  ? SailButton(
+                      label: 'Deposit',
+                      variant: ButtonVariant.primary,
+                      insideTable: true,
+                      onPressed: viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot)
+                          ? null
+                          : () => showDepositModal(context, slot, sidechain.info.title),
+                    )
+                  : null,
             ),
             if (binary != null)
               SailTableCell(
@@ -301,7 +318,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
         rowCount: filledSlots.length, // Only show filled slots
         emptyPlaceholder: 'No active sidechains',
         sortAscending: viewModel.sortAscending,
-        sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
+        sortColumnIndex: ['slot', 'name', 'balance', 'action', 'deposit', 'update'].indexOf(viewModel.sortColumn),
         onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
         selectedRowId: viewModel.selectedIndex?.toString(),
         // rowId is the SLOT NUMBER (e.g., "2", "4", "98") from getRowId
@@ -362,6 +379,10 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             onSort: () => viewModel.sortSidechains('action'),
           ),
           SailTableHeaderCell(
+            name: 'Deposit',
+            onSort: () => viewModel.sortSidechains('deposit'),
+          ),
+          SailTableHeaderCell(
             name: 'Settings',
             onSort: () => viewModel.sortSidechains('update'),
           ),
@@ -385,6 +406,19 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
               key: buttonWidget?.key,
               value: buttonWidget?.toString() ?? '',
               child: buttonWidget,
+            ),
+            SailTableCell(
+              value: '        ',
+              child: sidechain != null
+                  ? SailButton(
+                      label: 'Deposit',
+                      variant: ButtonVariant.outline,
+                      insideTable: true,
+                      onPressed: viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot)
+                          ? null
+                          : () => showDepositModal(context, slot, sidechain.info.title),
+                    )
+                  : null,
             ),
             if (binary != null)
               SailTableCell(
@@ -429,7 +463,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
         },
         rowCount: 256, // Show all slots
         sortAscending: viewModel.sortAscending,
-        sortColumnIndex: ['slot', 'name', 'balance', 'action', 'update'].indexOf(viewModel.sortColumn),
+        sortColumnIndex: ['slot', 'name', 'balance', 'action', 'deposit', 'update'].indexOf(viewModel.sortColumn),
         onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
         selectedRowId: viewModel.selectedIndex?.toString(),
         onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
@@ -538,6 +572,21 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     };
 
     return rpc;
+  }
+
+  bool isSidechainRunning(int slot) {
+    final sidechain = sidechainForSlot(slot);
+    if (sidechain == null) {
+      return false;
+    }
+
+    return switch (sidechain) {
+      var b when b is Thunder => _binaryProvider.thunderConnected,
+      var b when b is BitNames => _binaryProvider.bitnamesConnected,
+      var b when b is BitAssets => _binaryProvider.bitassetsConnected,
+      var b when b is ZSide => _binaryProvider.zsideConnected,
+      _ => false,
+    };
   }
 
   Widget? sidechainWidget(int slot) {
@@ -1219,6 +1268,238 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
       drawGrid: true,
       sortAscending: true,
       sortColumnIndex: 2,
+    );
+  }
+}
+
+Future<void> showDepositModal(BuildContext context, int slot, String sidechainName) {
+  return showDialog<void>(
+    barrierDismissible: true,
+    context: context,
+    builder: (BuildContext context) {
+      return Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width * 0.25,
+          vertical: MediaQuery.of(context).size.height * 0.2,
+        ),
+        child: Material(
+          clipBehavior: Clip.antiAlias,
+          borderRadius: SailStyleValues.borderRadius,
+          child: DepositModal(slot: slot, sidechainName: sidechainName),
+        ),
+      );
+    },
+  );
+}
+
+class DepositModal extends StatefulWidget {
+  final int slot;
+  final String sidechainName;
+
+  const DepositModal({
+    super.key,
+    required this.slot,
+    required this.sidechainName,
+  });
+
+  @override
+  State<DepositModal> createState() => _DepositModalState();
+}
+
+class _DepositModalState extends State<DepositModal> {
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController feeController = TextEditingController(text: '0.0001');
+  bool isLoading = false;
+  bool isFetchingAddress = true;
+  String? depositAddress;
+  String? fetchError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDepositAddress();
+  }
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    feeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchDepositAddress() async {
+    setState(() {
+      isFetchingAddress = true;
+      fetchError = null;
+    });
+
+    try {
+      final binaryProvider = GetIt.I<BinaryProvider>();
+
+      // Get the sidechain RPC based on slot
+      final sidechainRPC = _getSidechainRPC(binaryProvider, widget.slot);
+      if (sidechainRPC == null) {
+        throw Exception('Sidechain is not running. Start it first to deposit.');
+      }
+
+      // Fetch a new deposit address from the sidechain
+      final address = await sidechainRPC.getDepositAddress();
+      setState(() {
+        depositAddress = address;
+        isFetchingAddress = false;
+      });
+    } catch (e) {
+      setState(() {
+        fetchError = e.toString();
+        isFetchingAddress = false;
+      });
+    }
+  }
+
+  SidechainRPC? _getSidechainRPC(BinaryProvider binaryProvider, int slot) {
+    // Map slot to the appropriate RPC
+    // Thunder = slot 9, BitNames = slot 6, BitAssets = slot 7, ZSide = slot 5
+    final rpc = switch (slot) {
+      9 => binaryProvider.thunderRPC,
+      6 => binaryProvider.bitnamesRPC,
+      7 => binaryProvider.bitassetsRPC,
+      5 => binaryProvider.zsideRPC,
+      _ => null,
+    };
+
+    // Only return if connected
+    if (rpc != null && rpc.connected) {
+      return rpc;
+    }
+    return null;
+  }
+
+  Future<void> _deposit() async {
+    if (depositAddress == null) {
+      showSnackBar(context, 'No deposit address available');
+      return;
+    }
+    if (double.tryParse(amountController.text) == null) {
+      showSnackBar(context, 'Invalid amount, enter a number');
+      return;
+    }
+    if (double.tryParse(feeController.text) == null) {
+      showSnackBar(context, 'Invalid fee, enter a number');
+      return;
+    }
+
+    final api = GetIt.I<BitwindowRPC>();
+    final walletReader = GetIt.I<WalletReaderProvider>();
+    final transactionsProvider = GetIt.I<TransactionProvider>();
+    final balanceProvider = GetIt.I<BalanceProvider>();
+    final sidechainProvider = GetIt.I<SidechainProvider>();
+
+    try {
+      final walletId = walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
+      setState(() => isLoading = true);
+
+      await api.wallet.createSidechainDeposit(
+        walletId,
+        widget.slot,
+        depositAddress!,
+        double.parse(amountController.text),
+        double.parse(feeController.text),
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        showSnackBar(context, 'Deposit created successfully');
+      }
+
+      // Refresh data
+      await transactionsProvider.fetch();
+      await balanceProvider.fetch();
+      await sidechainProvider.fetch();
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'Could not create deposit:\n$e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      title: 'Deposit to ${widget.sidechainName}',
+      subtitle: 'Slot ${widget.slot}',
+      error: fetchError,
+      withCloseButton: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              Expanded(
+                child: SailTextField(
+                  label: 'Deposit Address',
+                  loading: LoadingDetails(
+                    enabled: isFetchingAddress,
+                    description: 'Fetching deposit address from ${widget.sidechainName}...',
+                  ),
+                  controller: TextEditingController(text: depositAddress ?? ''),
+                  hintText: 's${widget.slot}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
+                  readOnly: true,
+                  suffixWidget: depositAddress != null ? CopyButton(text: depositAddress!) : null,
+                ),
+              ),
+              Tooltip(
+                message: 'Generate new address',
+                child: SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.iconRestart,
+                  onPressed: isFetchingAddress ? null : _fetchDepositAddress,
+                ),
+              ),
+            ],
+          ),
+          const SailSpacing(SailStyleValues.padding16),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                flex: 2,
+                child: NumericField(
+                  label: 'Deposit Amount',
+                  controller: amountController,
+                  hintText: '0.00',
+                ),
+              ),
+              UnitDropdown(
+                value: Unit.BTC,
+                onChanged: (_) {},
+                enabled: false,
+              ),
+              Expanded(child: Container()),
+            ],
+          ),
+          const SailSpacing(SailStyleValues.padding08),
+          SailText.secondary13(
+            'The sidechain may also deduct a fee from your deposit.',
+            color: context.sailTheme.colors.textTertiary,
+          ),
+          const SailSpacing(SailStyleValues.padding20),
+          SailButton(
+            label: 'Deposit',
+            loading: isLoading,
+            disabled: depositAddress == null || amountController.text.isEmpty || feeController.text.isEmpty,
+            onPressed: _deposit,
+          ),
+        ],
+      ),
     );
   }
 }

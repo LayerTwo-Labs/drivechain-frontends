@@ -163,8 +163,13 @@ abstract class Binary {
 
     switch (type) {
       case BinaryType.bitcoinCore:
-        final signetDir = path.join(dir, 'signet');
-        await _deleteFilesInDir(signetDir, [
+        final network = GetIt.I<BitcoinConfProvider>().network;
+        // Mainnet and forknet use root dir, other networks use subdirectories
+        final targetDir =
+            (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
+            ? dir
+            : path.join(dir, network.toReadableNet());
+        await _deleteFilesInDir(targetDir, [
           'anchors.dat',
           'banlist.json',
           'bitcoind.pid',
@@ -182,22 +187,53 @@ abstract class Binary {
 
       case BinaryType.bitWindow:
         final network = GetIt.I<BitcoinConfProvider>().network;
-        await _deleteFilesInDir(dir, ['bitdrive', network.toReadableNet(), 'debug.log', 'mining.txt']);
+        final networkDir = path.join(dir, network.toReadableNet());
+        await _deleteFilesInDir(networkDir, [
+          'bitdrive',
+          'debug.log',
+          'mining.txt',
+          'server.log',
+        ]);
+        // from root dir
+        await _deleteFilesInDir(dir, [
+          'assets',
+          'downloads',
+          'pids',
+          'settings.json',
+          'timestamps',
+        ]);
 
       case BinaryType.bitnames:
+        // Backend dir
         await _deleteFilesInDir(dir, [
           'data.mdb',
           'logs',
           'wallet.mdb', // bitwindow has a backup!
         ]);
+        // Frontend dir
+        await _deleteFilesInDir(frontendDir(), [
+          'assets',
+          'downloads',
+          'debug.log',
+          'settings.json',
+        ]);
 
       case BinaryType.bitassets:
+        // Backend dir
         await _deleteFilesInDir(dir, [
-          'data.mdb', 'logs',
-          'wallet.mdb', // bitwindow has a backup!
+          'data.mdb',
+          'logs',
+        ]);
+        // Frontend dir
+        await _deleteFilesInDir(frontendDir(), [
+          'assets',
+          'downloads',
+          'debug.log',
+          'settings.json',
         ]);
 
       case BinaryType.thunder:
+        // Backend dir
         await _deleteFilesInDir(dir, [
           'data.mdb',
           'logs',
@@ -205,11 +241,28 @@ abstract class Binary {
           'thunder.conf',
           'thunder.zip',
           'thunder_app',
-          'wallet.mdb', // bitwindow has a backup!
+        ]);
+        // Frontend dir
+        await _deleteFilesInDir(frontendDir(), [
+          'assets',
+          'downloads',
+          'debug.log',
+          'settings.json',
         ]);
 
       case BinaryType.zSide:
-        await _deleteFilesInDir(dir, ['data.mdb', 'logs']);
+        // Backend dir
+        await _deleteFilesInDir(dir, [
+          'data.mdb',
+          'logs',
+        ]);
+        // Frontend dir
+        await _deleteFilesInDir(frontendDir(), [
+          'assets',
+          'downloads',
+          'debug.log',
+          'settings.json',
+        ]);
 
       case BinaryType.grpcurl:
         // No specific cleanup for this type yet
@@ -222,33 +275,20 @@ abstract class Binary {
 
     final dir = datadir();
 
-    // Helper to get network subdirectory string
-    String getNetworkDir(BitcoinNetwork net) {
-      return switch (net) {
-        BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'mainnet',
-        BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'forknet',
-        BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
-        BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-        BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'testnet',
-        _ => 'signet',
-      };
-    }
-
     switch (type) {
       case BinaryType.enforcer:
         // Enforcer wallet is at: bip300301_enforcer/wallet/<Network>
         // If network specified, delete only that network's wallet
         // Otherwise delete the whole wallet directory
         if (network != null) {
-          final walletNetworkDir = path.join('wallet', getNetworkDir(network));
+          final walletNetworkDir = path.join('wallet', network.toReadableNet());
           await _renameWalletDir(dir, walletNetworkDir);
         } else {
           await _renameWalletDir(dir, 'wallet');
         }
 
       case BinaryType.bitcoinCore:
-        // Don't touch Bitcoin Core wallets - they're managed separately
-        break;
+        await _backupBitcoinCoreWallets(dir, network);
 
       case BinaryType.bitnames:
         await _renameWalletDir(dir, 'wallet.mdb');
@@ -314,6 +354,58 @@ abstract class Binary {
     }
 
     return candidateName;
+  }
+
+  // Bitcoin Core wallets can be:
+  // 1. wallet.dat at root level
+  // 2. Named wallet directories (e.g. cheque_watch/, wallet_0D27987F/) containing wallet.dat
+  // 3. Same structure inside network subdirs (signet/, regtest/, testnet/)
+  Future<void> _backupBitcoinCoreWallets(String dir, BitcoinNetwork? network) async {
+    // NEVER touch mainnet wallets - they contain real funds
+    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
+      _log('Refusing to backup mainnet wallets - they contain real funds');
+      return;
+    }
+
+    // Only backup wallets from network subdirectories (signet/regtest/testnet)
+    // Mainnet and forknet use root dir which risks touching real funds
+    if (network == null || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+      _log('Bitcoin Core wallet backup requires a specific network (signet/regtest/testnet)');
+      return;
+    }
+
+    // Network directories to skip when searching
+    const networkDirs = {'signet', 'regtest', 'testnet', 'testnet3'};
+
+    // Search in the network-specific subdirectory
+    final searchDir = path.join(dir, network.toReadableNet());
+
+    final searchDirectory = Directory(searchDir);
+    if (!await searchDirectory.exists()) {
+      _log('Bitcoin Core directory does not exist: $searchDir');
+      return;
+    }
+
+    // Check for wallet.dat at root level of network dir
+    await _renameWalletDir(searchDir, 'wallet.dat');
+
+    // Check for wallet directories one level down (directories containing wallet.dat)
+    await for (final entity in searchDirectory.list()) {
+      if (entity is Directory) {
+        final dirName = path.basename(entity.path);
+
+        // Skip wallet_backups and network directories
+        if (dirName == 'wallet_backups' || networkDirs.contains(dirName)) {
+          continue;
+        }
+
+        // Check if this directory contains wallet.dat (making it a named wallet)
+        final walletDat = File(path.join(entity.path, 'wallet.dat'));
+        if (await walletDat.exists()) {
+          await _renameWalletDir(searchDir, dirName);
+        }
+      }
+    }
   }
 
   Future<void> wipeAsset(Directory assetsDir) async {
