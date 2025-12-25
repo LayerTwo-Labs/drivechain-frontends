@@ -24,8 +24,8 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 36),
+    return SizedBox(
+      height: 36,
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: SailTheme.of(context).colors.border)),
@@ -55,55 +55,72 @@ class BottomNav extends StatelessWidget {
               ...balanceEndWidgets,
             ],
             Expanded(child: Container()),
-            ViewModelBuilder.reactive(
-              viewModelBuilder: () => BottomNavViewModel(
-                additionalConnection: additionalConnection,
-                mainchainInfo: mainchainInfo,
-                navigateToLogs: navigateToLogs,
-              ),
-              fireOnViewModelReadyOnce: true,
-              builder: ((context, model, child) {
-                return SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    InkWell(
-                      onTap: () async =>
-                          displayConnectionStatusDialog(context, additionalConnection, onlyShowAdditional),
-                      child: Tooltip(
-                        message: 'Open daemon status dialog',
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            DecoratedBox(
-                              decoration: !model.initializingAny && model.connectionColor == SailColorScheme.red
-                                  ? BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: SailColorScheme.red.withValues(alpha: 0.5),
-                                          blurRadius: 8,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    )
-                                  : const BoxDecoration(),
-                              child: SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: model.connectionColor),
-                            ),
-                            Expanded(
-                              child: model.connectionStatus == 'All binaries connected'
-                                  ? SailText.secondary12(model.connectionStatus)
-                                  : SailText.primary12(model.connectionStatus, overflow: TextOverflow.visible),
-                            ),
-                          ],
+            Flexible(
+              child: ViewModelBuilder.reactive(
+                viewModelBuilder: () => BottomNavViewModel(
+                  additionalConnection: additionalConnection,
+                  mainchainInfo: mainchainInfo,
+                  navigateToLogs: navigateToLogs,
+                ),
+                fireOnViewModelReadyOnce: true,
+                builder: ((context, model, child) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () async =>
+                            displayConnectionStatusDialog(context, additionalConnection, onlyShowAdditional),
+                        child: Tooltip(
+                          message: 'Open daemon status dialog',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: SailStyleValues.padding08),
+                              DecoratedBox(
+                                decoration: !model.initializingAny && model.connectionColor == SailColorScheme.red
+                                    ? BoxDecoration(
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: SailColorScheme.red.withValues(alpha: 0.5),
+                                            blurRadius: 8,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      )
+                                    : const BoxDecoration(),
+                                child: SailSVG.fromAsset(
+                                  SailSVGAsset.iconConnectionStatus,
+                                  color: model.connectionColor,
+                                ),
+                              ),
+                              const SizedBox(width: SailStyleValues.padding08),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 200),
+                                child: model.connectionStatus == 'All binaries connected'
+                                    ? SailText.secondary12(
+                                        model.connectionStatus,
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      )
+                                    : SailText.primary12(
+                                        model.connectionStatus,
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    ChainLoaders(),
-                    const DividerDot(),
-                    ...endWidgets,
-                    const SailSpacing(SailStyleValues.padding08),
-                  ],
-                );
-              }),
+                      const SizedBox(width: SailStyleValues.padding08),
+                      ChainLoaders(),
+                      const DividerDot(),
+                      ...endWidgets,
+                      const SailSpacing(SailStyleValues.padding08),
+                    ],
+                  );
+                }),
+              ),
             ),
           ],
         ),

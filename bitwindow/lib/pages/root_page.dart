@@ -1091,10 +1091,16 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
   }
 
   @override
+  void notifyListeners() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     blockchainProvider.removeListener(_onChange);
     balanceProvider.removeListener(_onChange);
+    disposeChangeTracker();
     super.dispose();
   }
 }

@@ -24,6 +24,12 @@ mixin ChangeTrackingMixin on ChangeNotifier {
     _currentDelay = _initialDelay;
   }
 
+  /// Call this before super.dispose() when using with State to clean up the timer.
+  void disposeChangeTracker() {
+    _notificationTimer?.cancel();
+    _notificationTimer = null;
+  }
+
   bool track(String key, dynamic value) {
     final previousValue = _previousValues[key];
     final hasChanged = !_deepEquals(previousValue, value);

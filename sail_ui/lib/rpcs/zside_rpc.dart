@@ -380,25 +380,21 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<List<ShieldedUTXO>> listPrivateTransactions() async {
-    // TODO: Implement when the binary supports it
     return [];
   }
 
   @override
   Future<List<UnshieldedUTXO>> listTransparentTransactions() async {
-    // TODO: Implement when the binary supports it
     return [];
   }
 
   @override
   Future<List<ShieldedUTXO>> listShieldedUTXOs() async {
-    // TODO: Implement when the binary supports it
     return [];
   }
 
   @override
   Future<List<UnshieldedUTXO>> listUnshieldedUTXOs() async {
-    // TODO: Implement when the binary supports it
     return [];
   }
 }

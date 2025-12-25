@@ -201,6 +201,7 @@ class SailText {
     bool monospace = false,
     TextOverflow overflow = TextOverflow.ellipsis,
     TextDecoration? decoration,
+    int? maxLines,
   }) {
     return Builder(
       builder: (context) {
@@ -217,6 +218,7 @@ class SailText {
             decoration: decoration,
           ),
           textAlign: textAlign,
+          maxLines: maxLines,
         );
       },
     );
