@@ -363,21 +363,18 @@ abstract class Binary {
   Future<void> _backupBitcoinCoreWallets(String dir, BitcoinNetwork? network) async {
     // NEVER touch mainnet wallets - they contain real funds
     if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
-      _log('Refusing to backup mainnet wallets - they contain real funds');
+      _log('Refusing to backup mainnet wallets');
       return;
     }
 
     // Only backup wallets from network subdirectories (signet/regtest/testnet)
     // Mainnet and forknet use root dir which risks touching real funds
     if (network == null || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      _log('Bitcoin Core wallet backup requires a specific network (signet/regtest/testnet)');
+      _log('Bitcoin Core wallet backup requires a specific network');
       return;
     }
 
-    // Network directories to skip when searching
     const networkDirs = {'signet', 'regtest', 'testnet', 'testnet3'};
-
-    // Search in the network-specific subdirectory
     final searchDir = path.join(dir, network.toReadableNet());
 
     final searchDirectory = Directory(searchDir);
@@ -386,10 +383,9 @@ abstract class Binary {
       return;
     }
 
-    // Check for wallet.dat at root level of network dir
     await _renameWalletDir(searchDir, 'wallet.dat');
 
-    // Check for wallet directories one level down (directories containing wallet.dat)
+    // Named wallet directories (contain wallet.dat)
     await for (final entity in searchDirectory.list()) {
       if (entity is Directory) {
         final dirName = path.basename(entity.path);
