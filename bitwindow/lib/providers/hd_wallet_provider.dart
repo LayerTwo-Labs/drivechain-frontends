@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
-import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bs58/bs58.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:convert/convert.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';

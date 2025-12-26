@@ -1,32 +1,38 @@
 import 'dart:async';
 import 'dart:convert' show utf8;
-import 'dart:io';
 import 'dart:math';
+
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/pages/settings_page.dart';
-import 'package:bitwindow/pages/success_page.dart';
-import 'package:bitwindow/providers/wallet_writer_provider.dart';
-import 'package:bitwindow/routing/router.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:crypto/crypto.dart' show sha256;
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class CreateWalletPage extends StatefulWidget {
-  final WelcomeScreen initalScreen;
+class SailCreateWalletPage extends StatefulWidget {
+  final String appName;
+  final VoidCallback? onWalletCreated;
+  final VoidCallback? onBack;
+  final bool showFileRestore;
+  final Widget Function(BuildContext context)? additionalRestoreOptionsBuilder;
+  final Widget Function(BuildContext context, VoidCallback defaultContinue)? successActionsBuilder;
+  final WelcomeScreen initialScreen;
 
-  const CreateWalletPage({
+  const SailCreateWalletPage({
     super.key,
-    this.initalScreen = WelcomeScreen.initial,
+    this.appName = 'Drivechain',
+    this.onWalletCreated,
+    this.onBack,
+    this.showFileRestore = false,
+    this.additionalRestoreOptionsBuilder,
+    this.successActionsBuilder,
+    this.initialScreen = WelcomeScreen.initial,
   });
 
   @override
-  State<CreateWalletPage> createState() => _CreateWalletPageState();
+  State<SailCreateWalletPage> createState() => _SailCreateWalletPageState();
 }
 
 enum WelcomeScreen {
@@ -36,12 +42,12 @@ enum WelcomeScreen {
   success,
 }
 
-class _CreateWalletPageState extends State<CreateWalletPage> {
+class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   late WelcomeScreen _currentScreen;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final TextEditingController _walletNameController = TextEditingController();
-  final WalletWriterProvider _walletProvider = GetIt.I.get<WalletWriterProvider>();
+  WalletWriterProvider get _walletProvider => GetIt.I.get<WalletWriterProvider>();
   bool _isHexMode = false;
   bool _isValidInput = false;
   Map<String, dynamic> _currentWalletData = {};
@@ -49,14 +55,11 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   bool hasExistingWallet = false;
   bool _isGenerating = false;
 
-  // File restore state
-  File? _selectedBackupFile;
-
   @override
   void initState() {
     super.initState();
 
-    _currentScreen = widget.initalScreen;
+    _currentScreen = widget.initialScreen;
     _mnemonicController.addListener(_onMnemonicChanged);
     _passphraseController.addListener(setstate);
 
@@ -86,9 +89,15 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
     return Scaffold(
       backgroundColor: SailTheme.of(context).colors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: hasExistingWallet,
+        automaticallyImplyLeading: hasExistingWallet || widget.onBack != null,
         backgroundColor: SailTheme.of(context).colors.background,
         foregroundColor: SailTheme.of(context).colors.text,
+        leading: (hasExistingWallet || widget.onBack != null)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBack,
+              )
+            : null,
       ),
       body: SafeArea(
         child: Builder(
@@ -207,6 +216,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
       setState(() {
         _currentWalletData = Map<String, dynamic>.from(wallet);
         _isValidInput = true;
+        _currentScreen = WelcomeScreen.success;
       });
     } catch (e) {
       await _showErrorDialog('Error creating wallet: $e');
@@ -600,7 +610,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                 title: hasExistingWallet ? 'Create Another Wallet' : 'Set up your wallet',
                 subtitle: hasExistingWallet
                     ? "Let's create another wallet. This will add a new wallet to your collection without affecting your existing wallets."
-                    : "Welcome to Drivechain! Let's begin by setting up your wallet.",
+                    : "Welcome to ${widget.appName}! Let's begin by setting up your wallet.",
               ),
               if (hasExistingWallet) ...[
                 const SizedBox(height: 32),
@@ -708,8 +718,6 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
   }
 
   Widget _buildRestoreScreen() {
-    final theme = SailTheme.of(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -723,7 +731,7 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
               BootTitle(
                 title: 'Restore your wallet',
                 subtitle:
-                    'Restore your mainchain wallet and all sidechain wallets from a seed backup or backup file. This can also be used to create a wallet with a custom seed of yours.',
+                    'Restore your mainchain wallet and all sidechain wallets from a seed backup. This can also be used to create a wallet with a custom seed of yours.',
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -753,69 +761,11 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                         textFieldType: TextFieldType.text,
                         size: TextFieldSize.regular,
                       ),
-                      const SizedBox(height: 24),
-                      // Divider with "or"
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: theme.colors.divider)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: SailText.secondary13('or'),
-                          ),
-                          Expanded(child: Divider(color: theme.colors.divider)),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // File upload section
-                      Container(
-                        padding: const EdgeInsets.all(SailStyleValues.padding16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: theme.colors.border),
-                          borderRadius: SailStyleValues.borderRadiusSmall,
-                        ),
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding12,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary15('Restore from backup file'),
-                            SailRow(
-                              spacing: SailStyleValues.padding08,
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(SailStyleValues.padding12),
-                                    decoration: BoxDecoration(
-                                      color: theme.colors.backgroundSecondary,
-                                      borderRadius: SailStyleValues.borderRadiusSmall,
-                                    ),
-                                    child: SailText.secondary13(
-                                      _selectedBackupFile?.path ?? 'No file selected',
-                                    ),
-                                  ),
-                                ),
-                                SailButton(
-                                  label: _selectedBackupFile == null ? 'Choose File' : 'Change File',
-                                  variant: ButtonVariant.secondary,
-                                  onPressed: _selectBackupFile,
-                                ),
-                                if (_selectedBackupFile != null)
-                                  SailButton(
-                                    label: 'Clear',
-                                    variant: ButtonVariant.ghost,
-                                    onPressed: () async {
-                                      setState(() {
-                                        _selectedBackupFile = null;
-                                      });
-                                    },
-                                  ),
-                              ],
-                            ),
-                            SailText.secondary12(
-                              'Select a .zip or .json backup file',
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Additional restore options (e.g., file restore for BitWindow)
+                      if (widget.additionalRestoreOptionsBuilder != null) ...[
+                        const SizedBox(height: 24),
+                        widget.additionalRestoreOptionsBuilder!(context),
+                      ],
                     ],
                   ),
                 ),
@@ -830,13 +780,12 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
                     variant: ButtonVariant.secondary,
                     onPressed: () async => setState(() {
                       _currentScreen = WelcomeScreen.initial;
-                      _selectedBackupFile = null;
                     }),
                   ),
                   SailButton(
-                    label: _selectedBackupFile != null ? 'Restore from File' : 'Restore',
+                    label: 'Restore',
                     variant: ButtonVariant.primary,
-                    onPressed: _selectedBackupFile != null ? _handleRestoreFromFile : _handleRestore,
+                    onPressed: _handleRestore,
                     loadingLabel: 'Restoring your wallet',
                   ),
                 ],
@@ -910,119 +859,59 @@ class _CreateWalletPageState extends State<CreateWalletPage> {
     return words.length == 12 || words.length == 24;
   }
 
-  Future<void> _selectBackupFile() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        dialogTitle: 'Select Wallet Backup',
-        type: FileType.custom,
-        allowedExtensions: ['zip', 'json'],
-      );
-
-      if (result != null && result.files.single.path != null) {
-        setState(() {
-          _selectedBackupFile = File(result.files.single.path!);
-        });
-      }
-    } catch (e) {
-      await _showErrorDialog('Failed to open file picker: $e');
-    }
-  }
-
-  Future<void> _handleRestoreFromFile() async {
-    if (_selectedBackupFile == null) {
-      await _showErrorDialog('Please select a backup file first');
-      return;
-    }
-
-    final log = GetIt.I.get<Logger>();
-
-    try {
-      // Validate the backup file
-      final validation = await validateBackup(backupFile: _selectedBackupFile!, log: log);
-      if (!validation.isValid) {
-        await _showErrorDialog(validation.errorMessage ?? 'Invalid backup file');
-        return;
-      }
-
-      // Restore wallet files using shared function
-      final tempDir = validation.tempDir!;
-      await restoreWalletFiles(
-        tempDir: tempDir,
-        log: log,
-        walletProvider: _walletProvider,
-      );
-
-      // Clean up temp directory
-      await tempDir.delete(recursive: true);
-
-      if (mounted) {
-        setState(() => _currentScreen = WelcomeScreen.success);
-      }
-    } catch (e) {
-      log.e('Restore from file failed: $e');
-      await _showErrorDialog('Failed to restore from file: $e');
+  void _handleContinue() {
+    if (widget.onWalletCreated != null) {
+      widget.onWalletCreated!();
     }
   }
 
   Widget _buildSuccessScreen() {
     final theme = SailTheme.of(context);
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final runningSidechains = binaryProvider.runningBinaries.whereType<Sidechain>().toList();
-    final hasRunningSidechains = runningSidechains.isNotEmpty;
 
-    return SuccessScreen(
-      title: 'Wallet Created',
-      subtitle: hasRunningSidechains
-          ? 'Your wallet was created successfully.\r\n\r\nI can see you have some sidechains running. Do you want to restart them to apply the new wallet?'
-          : 'Your wallet was created successfully. You can now continue to the world of Drivechain.',
-      iconColor: hasRunningSidechains ? theme.colors.orange : theme.colors.success,
-      actions: hasRunningSidechains
-          ? Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              spacing: SailStyleValues.padding08,
-              children: [
-                SailButton(
-                  label: 'Continue without restart',
-                  variant: ButtonVariant.secondary,
-                  onPressed: () async {
-                    await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
-                  },
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: SizedBox(
+          width: 800,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              BootTitle(
+                title: 'Wallet Created',
+                subtitle: 'Your wallet was created successfully. You can now continue.',
+              ),
+              SailSVG.icon(
+                SailSVGAsset.iconSuccess,
+                width: 64,
+                height: 64,
+                color: theme.colors.success,
+              ),
+              const Spacer(),
+              if (widget.successActionsBuilder != null)
+                widget.successActionsBuilder!(context, _handleContinue)
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SailButton(
+                      label: 'Continue',
+                      variant: ButtonVariant.primary,
+                      onPressed: () async => _handleContinue(),
+                    ),
+                  ],
                 ),
-                SailButton(
-                  label: 'Restart and Continue',
-                  variant: ButtonVariant.primary,
-                  loadingLabel: 'Restarting ${runningSidechains.length} sidechains',
-                  onPressed: () async {
-                    await Future.wait(
-                      runningSidechains.map((sidechain) => binaryProvider.stop(sidechain)),
-                    );
-                    await Future.delayed(const Duration(seconds: 3));
-                    for (final sidechain in runningSidechains) {
-                      unawaited(binaryProvider.start(sidechain));
-                    }
-                    if (mounted) {
-                      await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
-                    }
-                  },
-                ),
-              ],
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SailButton(
-                  label: 'Continue',
-                  variant: ButtonVariant.primary,
-                  onPressed: () async {
-                    await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
-                  },
-                ),
-              ],
-            ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
+/// Title widget for wallet creation screens
 class BootTitle extends StatelessWidget {
   final String title;
   final String subtitle;

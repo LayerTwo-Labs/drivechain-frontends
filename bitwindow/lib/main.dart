@@ -28,7 +28,6 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/notification_stream_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';

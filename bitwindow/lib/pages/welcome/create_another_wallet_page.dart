@@ -1,9 +1,8 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
-import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -101,7 +100,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           // Navigate to existing restore flow
           if (mounted) {
             await GetIt.I.get<AppRouter>().push(
-              CreateWalletRoute(initalScreen: WelcomeScreen.restore),
+              SailCreateWalletRoute(initialScreen: WelcomeScreen.restore),
             );
           }
           return;
@@ -109,7 +108,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           // Navigate to existing advanced flow
           if (mounted) {
             await GetIt.I.get<AppRouter>().push(
-              CreateWalletRoute(initalScreen: WelcomeScreen.advanced),
+              SailCreateWalletRoute(initialScreen: WelcomeScreen.advanced),
             );
           }
           return;

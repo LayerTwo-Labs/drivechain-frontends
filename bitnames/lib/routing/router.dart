@@ -9,7 +9,7 @@ import 'package:bitnames/pages/tabs/settings_page.dart';
 import 'package:bitnames/pages/test_page.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
-import 'package:sail_ui/routing/password_guard.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 part 'router.gr.dart';
 
@@ -37,6 +37,7 @@ class AppRouter extends RootStackRouter {
       page: HomeRoute.page,
       initial: true,
       guards: [
+        WalletGuard(createWalletRoute: () => SailCreateWalletRoute()),
         PasswordGuard(),
       ],
       children: [
@@ -72,6 +73,9 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       page: UnlockWalletRoute.page,
+    ),
+    AutoRoute(
+      page: SailCreateWalletRoute.page,
     ),
 
     /// This route is used in tests so that we can pump a widget into a route

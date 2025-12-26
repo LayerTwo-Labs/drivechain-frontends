@@ -3,9 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:bitwindow/providers/bitdrive_provider.dart';
-import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:sail_ui/sail_ui.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -17,7 +14,7 @@ import 'package:pointycastle/digests/sha512.dart';
 import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
@@ -91,18 +88,28 @@ class WalletWriterProvider extends ChangeNotifier {
     // Restart enforcer to pick up the new wallet
     unawaited(restartEnforcer());
 
-    // Reset HD wallet provider to pick up new wallet data
-    try {
-      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-      await hdWalletProvider.reset();
-      await hdWalletProvider.init();
-      _logger.i('generateWallet: HD wallet provider reset and re-initialized');
-    } catch (e) {
-      _logger.e('generateWallet: Failed to reset HD wallet provider: $e');
-    }
+    // Reset HD wallet provider to pick up new wallet data (if registered - BitWindow only)
+    await _resetHDWalletProviderIfRegistered();
 
     _logger.i('generateWallet: Complete');
     return walletData;
+  }
+
+  /// Reset HD wallet provider if it's registered (BitWindow only)
+  Future<void> _resetHDWalletProviderIfRegistered() async {
+    // HDWalletProvider is only registered in BitWindow, not sidechains
+    // Use dynamic lookup to avoid import dependency
+    try {
+      if (GetIt.I.isRegistered(instanceName: 'HDWalletProvider')) {
+        final hdWalletProvider = GetIt.I.get(instanceName: 'HDWalletProvider');
+        await (hdWalletProvider as dynamic).reset();
+        await (hdWalletProvider as dynamic).init();
+        _logger.i('generateWallet: HD wallet provider reset and re-initialized');
+      }
+    } catch (e) {
+      // HDWalletProvider not available or reset failed - that's OK for sidechains
+      _logger.d('generateWallet: HD wallet provider not available or reset failed: $e');
+    }
   }
 
   Future<void> restartEnforcer() async {
@@ -265,15 +272,8 @@ class WalletWriterProvider extends ChangeNotifier {
     if (!doNotSave) {
       await saveMasterWallet(wallet, name: 'Enforcer Wallet');
 
-      // Reset HD wallet provider to pick up new wallet data
-      try {
-        final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-        await hdWalletProvider.reset();
-        await hdWalletProvider.init();
-        _logger.i('generateWalletFromEntropy: HD wallet provider reset and re-initialized');
-      } catch (e) {
-        _logger.e('generateWalletFromEntropy: Failed to reset HD wallet provider: $e');
-      }
+      // Reset HD wallet provider if registered (BitWindow only)
+      await _resetHDWalletProviderIfRegistered();
     }
 
     return wallet;
@@ -590,8 +590,12 @@ class WalletWriterProvider extends ChangeNotifier {
 
     onStatusUpdate?.call('Cleaning multisig wallets');
 
+    // Clean BitDrive data if provider is registered (BitWindow only)
     try {
-      await GetIt.I.get<BitDriveProvider>().wipeData(bitwindowAppDir);
+      if (GetIt.I.isRegistered(instanceName: 'BitDriveProvider')) {
+        final bitDriveProvider = GetIt.I.get(instanceName: 'BitDriveProvider');
+        await (bitDriveProvider as dynamic).wipeData(bitwindowAppDir);
+      }
       await _deleteCoreMultisigWallets(_logger);
     } catch (e) {
       _logger.e('could not delete multisig wallets: $e');
@@ -601,16 +605,16 @@ class WalletWriterProvider extends ChangeNotifier {
 
     // Clear in-memory wallet state
     _walletReader.clearState();
-    try {
-      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-      await hdWalletProvider.reset();
-    } catch (e) {
-      _logger.e('could not reset HD wallet provider: $e');
-    }
 
-    // Clear balance and transaction providers, wallet is goners
+    // Reset HD wallet provider if registered (BitWindow only)
+    await _resetHDWalletProviderIfRegistered();
+
+    // Clear balance and transaction providers if registered
     try {
-      GetIt.I.get<TransactionProvider>().clear();
+      if (GetIt.I.isRegistered(instanceName: 'TransactionProvider')) {
+        final txProvider = GetIt.I.get(instanceName: 'TransactionProvider');
+        (txProvider as dynamic).clear();
+      }
       GetIt.I.get<BalanceProvider>().clear();
     } catch (e) {
       _logger.e('could not clear balance/transaction providers: $e');
@@ -624,7 +628,6 @@ class WalletWriterProvider extends ChangeNotifier {
       _logger.e('could not run beforeBoot: $e');
     }
 
-    onStatusUpdate?.call('Reset complete');
     onStatusUpdate?.call('Reset complete');
 
     // Caller is responsible for booting binaries and navigating to wallet creation

@@ -17,7 +17,6 @@ import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
-import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
@@ -332,7 +331,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Restore My Wallet',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(
-                          CreateWalletRoute(initalScreen: WelcomeScreen.restore),
+                          SailCreateWalletRoute(initialScreen: WelcomeScreen.restore),
                         );
                       },
                     ),
