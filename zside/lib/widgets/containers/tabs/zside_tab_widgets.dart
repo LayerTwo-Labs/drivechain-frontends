@@ -32,7 +32,7 @@ class ShieldUTXOAction extends StatelessWidget {
               disabled: model.bitcoinAmountController.text.isEmpty,
               loading: model.isBusy,
               onPressed: () async {
-                model.executeShield(context, utxo);
+                await model.executeShield(context, utxo);
               },
             ),
             children: [
@@ -114,11 +114,11 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
 
   void shield(BuildContext context, UnshieldedUTXO utxo) async {
     setBusy(true);
-    executeShield(context, utxo);
+    await executeShield(context, utxo);
     setBusy(false);
   }
 
-  void executeShield(BuildContext context, UnshieldedUTXO utxo) async {
+  Future<void> executeShield(BuildContext context, UnshieldedUTXO utxo) async {
     if (amount == null) {
       log.e('shield amount was empty');
       return;
@@ -201,7 +201,7 @@ class DeshieldUTXOAction extends StatelessWidget {
               disabled: model.bitcoinAmountController.text.isEmpty,
               loading: model.isBusy,
               onPressed: () async {
-                model.executeDeshield(context, utxo);
+                await model.executeDeshield(context, utxo);
               },
             ),
             children: [
@@ -283,11 +283,11 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
 
   void deshield(BuildContext context, ShieldedUTXO utxo) async {
     setBusy(true);
-    executeDeshield(context, utxo);
+    await executeDeshield(context, utxo);
     setBusy(false);
   }
 
-  void executeDeshield(BuildContext context, ShieldedUTXO utxo) async {
+  Future<void> executeDeshield(BuildContext context, ShieldedUTXO utxo) async {
     if (amount == null) {
       log.e('deshield amount was empty');
       return;
@@ -370,7 +370,7 @@ class CastSingleUTXOAction extends StatelessWidget {
               loading: model.isBusy,
               disabled: model.includedInBills == null,
               onPressed: () async {
-                model.executeCast(context, utxo);
+                await model.executeCast(context, utxo);
               },
             ),
             children: [
@@ -384,7 +384,7 @@ class CastSingleUTXOAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Cast fee',
-                value: '${model.castFee}',
+                value: '${formatter.formatBTC(model.castFee)} ${model.ticker}',
               ),
               StaticActionField(
                 label: 'Castable amount',
@@ -435,18 +435,18 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
 
   void cast(BuildContext context, ShieldedUTXO utxo) async {
     setBusy(true);
-    executeCast(context, utxo);
+    await executeCast(context, utxo);
     setBusy(false);
   }
 
-  void executeCast(BuildContext context, ShieldedUTXO utxo) async {
+  Future<void> executeCast(BuildContext context, ShieldedUTXO utxo) async {
     if (includedInBills == null) {
       log.e('was not eligible for a bundle');
       await errorDialog(
         context: context,
         action: 'Cast single UTXO',
         title: 'This UTXO is not eligible for being included in a bundle, amount is probably too low.',
-        subtitle: error.toString(),
+        subtitle: '',
       );
       return;
     }
@@ -595,11 +595,11 @@ class MeltActionViewModel extends BaseViewModel {
 
   void melt(BuildContext context, {bool castAfterCompletion = false}) async {
     setBusy(true);
-    _initiateMelt(context, castAfterCompletion: castAfterCompletion);
+    await _initiateMelt(context, castAfterCompletion: castAfterCompletion);
     setBusy(false);
   }
 
-  void _initiateMelt(BuildContext context, {bool castAfterCompletion = false}) async {
+  Future<void> _initiateMelt(BuildContext context, {bool castAfterCompletion = false}) async {
     // Because the function is async, the view might disappear/unmount
     // by the time it's used. The linter doesn't like that, and wants
     // you to check whether the view is mounted before using it
@@ -701,7 +701,7 @@ class MeltSingleUTXOAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Cast fee',
-                value: '${model.shieldFee}',
+                value: '${formatter.formatBTC(model.shieldFee)} ${model.ticker}',
               ),
               StaticActionField(
                 label: 'Total amount',
@@ -876,11 +876,11 @@ class CastActionViewModel extends BaseViewModel {
 
   void cast(BuildContext context) async {
     setBusy(true);
-    _initiateCast(context);
+    await _initiateCast(context);
     setBusy(false);
   }
 
-  void _initiateCast(BuildContext context) async {
+  Future<void> _initiateCast(BuildContext context) async {
     // Because the function is async, the view might disappear/unmount
     // by the time it's used. The linter doesn't like that, and wants
     // you to check whether the view is mounted before using it

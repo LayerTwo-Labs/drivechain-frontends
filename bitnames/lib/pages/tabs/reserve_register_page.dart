@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -91,7 +93,8 @@ class BitnamesTabPage extends StatelessWidget {
                               ];
                             },
                             contextMenuItems: (rowId) {
-                              final entry = model.myEntries.firstWhere((e) => e.hash == rowId);
+                              final entry = model.myEntries.firstWhereOrNull((e) => e.hash == rowId);
+                              if (entry == null) return [];
                               return [
                                 SailMenuItem(
                                   onSelected: () async {
@@ -279,7 +282,8 @@ class BitnamesTabPage extends StatelessWidget {
                               ];
                             },
                             contextMenuItems: (rowId) {
-                              final entry = model.entries.firstWhere((e) => e.hash == rowId);
+                              final entry = model.entries.firstWhereOrNull((e) => e.hash == rowId);
+                              if (entry == null) return [];
                               return [
                                 SailMenuItem(
                                   onSelected: () async {
@@ -487,7 +491,7 @@ class BitnamesViewModel extends BaseViewModel {
         if (entry.plaintextName == null) {
           // we found a hash match, but it's not saved yet! Make sure to save it
           // to disk for easy access later
-          provider.saveHashNameMapping(searchText);
+          unawaited(provider.saveHashNameMapping(searchText));
         }
         return true;
       }
@@ -646,6 +650,7 @@ class BitnamesViewModel extends BaseViewModel {
     commitmentController.dispose();
     ipv4Controller.dispose();
     ipv6Controller.dispose();
+    paymailFeeController.dispose();
     provider.removeListener(notifyListeners);
     super.dispose();
   }

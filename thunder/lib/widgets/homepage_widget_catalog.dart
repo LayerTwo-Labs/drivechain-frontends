@@ -127,6 +127,7 @@ class ThunderWidgetCatalog {
                   ),
                   SailButton(
                     label: 'Send',
+                    disabled: !model.canSend,
                     onPressed: () async => await model.executeSendOnSidechain(context),
                     loading: model.isSending,
                   ),
@@ -339,21 +340,21 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (loading) {
       return [
         SidechainUTXO(
-          outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
+          outpoint: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
           type: OutpointType.regular,
         ),
         SidechainUTXO(
-          outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
-          address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
-          valueSats: 1500000000,
+          outpoint: 'b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3:1',
+          address: '5M2AwMwMsRVGKyFo2zfo6A774Oh',
+          valueSats: 2500000000,
           type: OutpointType.regular,
         ),
         SidechainUTXO(
-          outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
-          address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
-          valueSats: 1500000000,
+          outpoint: 'c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4:2',
+          address: '6N3BxNxNtSWHLzGp3agp7B885Pi',
+          valueSats: 500000000,
           type: OutpointType.regular,
         ),
       ];

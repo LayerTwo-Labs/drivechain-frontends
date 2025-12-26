@@ -87,7 +87,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 PlatformMenuItemGroup(
                   members: [
                     PlatformMenuItem(
-                      label: 'About $BitnamesRPC.rpc.chain.name',
+                      label: 'About ${_rpc.chain.name}',
                       onSelected: null,
                     ),
                   ],
@@ -95,7 +95,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 PlatformMenuItemGroup(
                   members: [
                     PlatformMenuItem(
-                      label: 'Quit $BitnamesRPC.rpc.chain.name',
+                      label: 'Quit ${_rpc.chain.name}',
                       shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
                       onSelected: () => didRequestAppExit(),
                     ),
@@ -120,9 +120,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'View Logs',
                       onSelected: GetIt.I.get<WindowProvider>().logFile.existsSync()
-                          ? () {
+                          ? () async {
                               final windowProvider = GetIt.I.get<WindowProvider>();
-                              windowProvider.open(SubWindowTypes.logs);
+                              await windowProvider.open(SubWindowTypes.logs);
                             }
                           : null,
                     ),

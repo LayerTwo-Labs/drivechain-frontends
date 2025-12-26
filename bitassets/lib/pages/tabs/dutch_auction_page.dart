@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -43,8 +44,10 @@ class DutchAuctionTabPage extends StatelessWidget {
                           SailButton(
                             label: 'Create New Auction',
                             onPressed: () async {
+                              final ctx = createAuctionKey.currentContext;
+                              if (ctx == null) return;
                               await Scrollable.ensureVisible(
-                                createAuctionKey.currentContext!,
+                                ctx,
                                 duration: const Duration(milliseconds: 400),
                                 curve: Curves.easeInOut,
                               );
@@ -83,7 +86,8 @@ class DutchAuctionTabPage extends StatelessWidget {
                               ];
                             },
                             contextMenuItems: (rowId) {
-                              final auction = model.filteredAuctions.firstWhere((a) => a.id == rowId);
+                              final auction = model.filteredAuctions.firstWhereOrNull((a) => a.id == rowId);
+                              if (auction == null) return [];
                               return [
                                 SailMenuItem(
                                   onSelected: () async {

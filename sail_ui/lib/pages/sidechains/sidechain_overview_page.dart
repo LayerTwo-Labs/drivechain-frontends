@@ -111,7 +111,8 @@ class SidechainOverviewTabPage extends StatelessWidget {
                             NumericField(label: 'Amount', controller: model.bitcoinAmountController, hintText: '0.00'),
                             SailButton(
                               label: 'Send',
-                              onPressed: () => model.executeSendOnSidechain(context),
+                              disabled: !model.canSend,
+                              onPressed: () async => await model.executeSendOnSidechain(context),
                               loading: model.isSending,
                             ),
                           ],
@@ -166,6 +167,16 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   String? get receiveAddress => _addressProvider.receiveAddress;
 
   bool get allConnected => _rpc.connected;
+
+  /// Whether the send form is valid and ready to submit
+  bool get canSend {
+    if (!balanceInitialized) return false;
+    if (sidechainFee == null) return false;
+    if (bitcoinAddressController.text.trim().isEmpty) return false;
+    if (sendAmount == null || sendAmount! <= 0) return false;
+    if (sendAmount! > balance) return false;
+    return true;
+  }
 
   OverviewTabViewModel() {
     initChangeTracker();
@@ -714,21 +725,21 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (loading) {
       return [
         SidechainUTXO(
-          outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
+          outpoint: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
           type: OutpointType.regular,
         ),
         SidechainUTXO(
-          outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
-          address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
-          valueSats: 1500000000,
+          outpoint: 'b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3:1',
+          address: '5M2AwMwMsRVGKyFo2zfo6A774Oh',
+          valueSats: 2500000000,
           type: OutpointType.regular,
         ),
         SidechainUTXO(
-          outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
-          address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
-          valueSats: 1500000000,
+          outpoint: 'c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4:2',
+          address: '6N3BxNxNtSWHLzGp3agp7B885Pi',
+          valueSats: 500000000,
           type: OutpointType.regular,
         ),
       ];

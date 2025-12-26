@@ -514,6 +514,18 @@ abstract class Binary {
 
     paths.addAll([path.join(binDir(appDir.path).path, subfolder, baseBinary)]);
 
+    // For L1 binaries, also check BitWindow's assets directory
+    // This allows sidechains to reuse already-downloaded binaries
+    final isCurrentlyBitwindow = appDir.path.toLowerCase().contains('bitwindow');
+    if (chainLayer == 1 && !isCurrentlyBitwindow) {
+      final bitwindowDir = path.join(appDir.parent.path, 'bitwindow');
+      final binaryPath = path.join(binDir(bitwindowDir).path, subfolder, baseBinary);
+      paths.add(binaryPath);
+      if (Platform.isWindows && !baseBinary.endsWith('.exe')) {
+        paths.add('$binaryPath.exe');
+      }
+    }
+
     // finally check .app bundle on macos
     if (Platform.isMacOS) {
       if (!baseBinary.endsWith('.app')) {
