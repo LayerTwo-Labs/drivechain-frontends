@@ -1,4 +1,3 @@
-import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';

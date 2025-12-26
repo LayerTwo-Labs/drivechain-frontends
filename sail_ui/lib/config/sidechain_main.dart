@@ -34,6 +34,11 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   await walletReader.init();
 
+  // Register WalletWriterProvider (same code as BitWindow) for chain-agnostic wallet creation
+  final walletWriter = WalletWriterProvider(bitwindowAppDir: bitwindowDir);
+  GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
+  await walletWriter.init();
+
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   GetIt.I.registerLazySingleton<FormatterProvider>(() => FormatterProvider(settingsProvider));

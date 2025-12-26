@@ -24,6 +24,9 @@ dependencies:
   intl: ^0.20.2
   crypto: ^3.0.7
   encrypt: ^5.0.3
+  pointycastle: ^3.9.1
+  bip39_mnemonic: ^4.0.1
+  dart_bip32_bip44: ^0.2.0
   logger: ^2.6.2
   stacked: ^3.5.0
   skeletonizer: ^2.1.1

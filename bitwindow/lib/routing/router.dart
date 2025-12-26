@@ -23,12 +23,9 @@ import 'package:bitwindow/pages/wallet/timestamp_detail_page.dart';
 import 'package:bitwindow/pages/wallet/verify_timestamp_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_another_wallet_page.dart';
-import 'package:bitwindow/pages/welcome/create_wallet_page.dart';
-import 'package:bitwindow/providers/wallet_writer_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/router.gr.dart';
-import 'package:sail_ui/routing/password_guard.dart';
 
 part 'router.gr.dart';
 
@@ -86,7 +83,10 @@ class AppRouter extends RootStackRouter {
           page: SettingsRoute.page,
         ),
       ],
-      guards: [WalletGuard(), PasswordGuard()],
+      guards: [
+        WalletGuard(createWalletRoute: () => SailCreateWalletRoute()),
+        PasswordGuard(),
+      ],
     ),
     AutoRoute(
       path: '/log',
@@ -102,7 +102,7 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       path: '/create-wallet',
-      page: CreateWalletRoute.page,
+      page: SailCreateWalletRoute.page,
     ),
     AutoRoute(
       path: '/create-another-wallet',
@@ -173,16 +173,4 @@ class AppRouter extends RootStackRouter {
       page: SuccessRoute.page,
     ),
   ];
-}
-
-class WalletGuard extends AutoRouteGuard {
-  @override
-  void onNavigation(NavigationResolver resolver, StackRouter router) async {
-    if (await GetIt.I.get<WalletWriterProvider>().hasExistingWallet()) {
-      resolver.next(true);
-    } else {
-      await router.push(CreateWalletRoute());
-      resolver.next(true);
-    }
-  }
 }

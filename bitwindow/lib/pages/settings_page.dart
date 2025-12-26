@@ -11,7 +11,7 @@ import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart' show bootBinaries;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:bitwindow/providers/wallet_writer_provider.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/services/linux_updater.dart';
 import 'package:file_picker/file_picker.dart';
@@ -1751,7 +1751,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               // Wait for dialog to fully dispose before replacing entire route stack
               await Future.delayed(const Duration(milliseconds: 100));
               // Boot binaries and navigate to wallet creation
-              await router.replaceAll([CreateWalletRoute()]);
+              await router.replaceAll([SailCreateWalletRoute()]);
             }
           },
         ),
@@ -2810,5 +2810,5 @@ Future<void> _resetEverything(BuildContext context) async {
   // Boot binaries after reset. This will await wallet creation
   unawaited(bootBinaries(log));
   // Navigate to wallet creation page (like fresh install)
-  await router.replaceAll([CreateWalletRoute()]);
+  await router.replaceAll([SailCreateWalletRoute()]);
 }
