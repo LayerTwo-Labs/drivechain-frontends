@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -92,7 +93,8 @@ class MyAssetsTab extends StatelessWidget {
                   ];
                 },
                 contextMenuItems: (rowId) {
-                  final entry = model.myEntries.firstWhere((e) => e.hash == rowId);
+                  final entry = model.myEntries.firstWhereOrNull((e) => e.hash == rowId);
+                  if (entry == null) return [];
                   return [
                     SailMenuItem(
                       onSelected: () async => await showBitAssetDetails(context, entry),
@@ -345,7 +347,8 @@ class AllAssetsTab extends StatelessWidget {
                   ];
                 },
                 contextMenuItems: (rowId) {
-                  final entry = model.entries.firstWhere((e) => e.hash == rowId);
+                  final entry = model.entries.firstWhereOrNull((e) => e.hash == rowId);
+                  if (entry == null) return [];
                   return [
                     SailMenuItem(
                       onSelected: () async => await showBitAssetDetails(context, entry),
@@ -818,6 +821,7 @@ class BitAssetsViewModel extends BaseViewModel {
     commitmentController.dispose();
     ipv4Controller.dispose();
     ipv6Controller.dispose();
+    paymailFeeController.dispose();
     provider.removeListener(notifyListeners);
     super.dispose();
   }
