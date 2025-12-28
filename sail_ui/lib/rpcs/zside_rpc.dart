@@ -78,6 +78,9 @@ abstract class ZSideRPC extends SidechainRPC {
   Future<List<ShieldedUTXO>> listShieldedUTXOs();
   Future<List<UnshieldedUTXO>> listUnshieldedUTXOs();
 
+  /// Get detailed balance breakdown by pool type (transparent vs shielded)
+  Future<ZSideBalanceBreakdown> getBalanceBreakdown();
+
   // how many UTXOs each cast will be split into when deshielding them
   double numUTXOsPerCast = 4;
 }
@@ -148,6 +151,18 @@ class ZSideLive extends ZSideRPC {
     final unconfirmed = satoshiToBTC(unconfirmedSats);
 
     return (confirmed, unconfirmed);
+  }
+
+  @override
+  Future<ZSideBalanceBreakdown> getBalanceBreakdown() async {
+    final response = await _client().call('balance') as Map<String, dynamic>;
+
+    return ZSideBalanceBreakdown(
+      availableShieldedSats: response['available_shielded_sats'] as int,
+      availableTransparentSats: response['available_transparent_sats'] as int,
+      totalShieldedSats: response['total_shielded_sats'] as int,
+      totalTransparentSats: response['total_transparent_sats'] as int,
+    );
   }
 
   @override
@@ -529,4 +544,52 @@ class UnshieldedUTXO {
     'confirmations': confirmations,
     'generated': generated,
   };
+}
+
+/// Balance breakdown by pool type (transparent vs shielded)
+class ZSideBalanceBreakdown {
+  final int availableShieldedSats;
+  final int availableTransparentSats;
+  final int totalShieldedSats;
+  final int totalTransparentSats;
+
+  ZSideBalanceBreakdown({
+    required this.availableShieldedSats,
+    required this.availableTransparentSats,
+    required this.totalShieldedSats,
+    required this.totalTransparentSats,
+  });
+
+  /// Total available balance (both pools) in satoshis
+  int get totalAvailableSats => availableShieldedSats + availableTransparentSats;
+
+  /// Total balance (both pools) in satoshis
+  int get totalSats => totalShieldedSats + totalTransparentSats;
+
+  /// Pending shielded balance in satoshis
+  int get pendingShieldedSats => totalShieldedSats - availableShieldedSats;
+
+  /// Pending transparent balance in satoshis
+  int get pendingTransparentSats => totalTransparentSats - availableTransparentSats;
+
+  /// Total pending balance in satoshis
+  int get totalPendingSats => pendingShieldedSats + pendingTransparentSats;
+
+  /// Available shielded balance in BTC
+  double get availableShielded => satoshiToBTC(availableShieldedSats);
+
+  /// Available transparent balance in BTC
+  double get availableTransparent => satoshiToBTC(availableTransparentSats);
+
+  /// Total shielded balance in BTC
+  double get totalShielded => satoshiToBTC(totalShieldedSats);
+
+  /// Total transparent balance in BTC
+  double get totalTransparent => satoshiToBTC(totalTransparentSats);
+
+  /// Pending shielded balance in BTC
+  double get pendingShielded => satoshiToBTC(pendingShieldedSats);
+
+  /// Pending transparent balance in BTC
+  double get pendingTransparent => satoshiToBTC(pendingTransparentSats);
 }
