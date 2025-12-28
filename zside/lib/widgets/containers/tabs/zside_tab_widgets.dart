@@ -1115,3 +1115,243 @@ Color? getCastColor(double amount) {
 
   return isCasted ? SailColorScheme.green : null;
 }
+
+/// Consolidates all transparent UTXOs to a single new transparent address
+class ConsolidateTransparentAction extends StatelessWidget {
+  const ConsolidateTransparentAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => ConsolidateTransparentViewModel(),
+      builder: ((context, model, child) {
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, child) => DashboardActionModal(
+            'Consolidate Transparent UTXOs',
+            endActionButton: SailButton(
+              label: 'Consolidate',
+              loading: model.isBusy,
+              disabled: model.utxoCount == 0 || model.sendAmount <= 0,
+              onPressed: () async => model.consolidate(context),
+            ),
+            children: [
+              StaticActionField(
+                label: 'UTXOs to merge',
+                value: '${model.utxoCount}',
+              ),
+              StaticActionField(
+                label: 'Total amount',
+                value: '${formatter.formatBTC(model.totalAmount)} ${model.ticker}',
+              ),
+              StaticActionField(
+                label: 'Fee',
+                value: '${formatter.formatBTC(model.fee)} ${model.ticker}',
+              ),
+              StaticActionField(
+                label: 'You will receive',
+                value: '${formatter.formatBTC(model.sendAmount)} ${model.ticker}',
+              ),
+              const StaticActionInfo(
+                text:
+                    'This sends all transparent coins to a new address in your wallet, merging them into a single UTXO.',
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class ConsolidateTransparentViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  AppRouter get _router => GetIt.I.get<AppRouter>();
+
+  String get ticker => _rpc.chain.ticker;
+  double get fee => zsideFee;
+  List<UnshieldedUTXO> get utxos => _zsideProvider.unshieldedUTXOs;
+  int get utxoCount => utxos.length;
+  double get totalAmount => utxos.fold(0.0, (sum, u) => sum + u.amount);
+  double get sendAmount => max(0, totalAmount - fee);
+
+  ConsolidateTransparentViewModel() {
+    _zsideProvider.addListener(notifyListeners);
+  }
+
+  Future<void> consolidate(BuildContext context) async {
+    if (sendAmount <= 0) return;
+    if (!context.mounted) return;
+
+    setBusy(true);
+
+    try {
+      // Get a new transparent address
+      final address = await _rpc.getNewTransparentAddress();
+
+      // Send all to the new address
+      final txid = await _rpc.sendTransparent(
+        address,
+        btcToSatoshi(sendAmount).toDouble(),
+        btcToSatoshi(fee).toDouble(),
+      );
+
+      log.i('Consolidated transparent UTXOs: $txid');
+
+      unawaited(_balanceProvider.fetch());
+      unawaited(_zsideProvider.fetch());
+
+      if (!context.mounted) return;
+
+      await successDialog(
+        context: context,
+        action: 'Consolidate',
+        title: 'Consolidated $utxoCount transparent UTXOs',
+        subtitle: 'TXID: $txid',
+      );
+
+      await _router.maybePop();
+    } catch (e) {
+      if (!context.mounted) return;
+      await errorDialog(
+        context: context,
+        action: 'Consolidate',
+        title: 'Could not consolidate',
+        subtitle: e.toString(),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _zsideProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+/// Consolidates all shielded UTXOs to a single new shielded address
+class ConsolidateShieldedAction extends StatelessWidget {
+  const ConsolidateShieldedAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => ConsolidateShieldedViewModel(),
+      builder: ((context, model, child) {
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, child) => DashboardActionModal(
+            'Consolidate Private UTXOs',
+            endActionButton: SailButton(
+              label: 'Consolidate',
+              loading: model.isBusy,
+              disabled: model.utxoCount == 0 || model.sendAmount <= 0,
+              onPressed: () async => model.consolidate(context),
+            ),
+            children: [
+              StaticActionField(
+                label: 'Notes to merge',
+                value: '${model.utxoCount}',
+              ),
+              StaticActionField(
+                label: 'Total amount',
+                value: '${formatter.formatBTC(model.totalAmount)} ${model.ticker}',
+              ),
+              StaticActionField(
+                label: 'Fee',
+                value: '${formatter.formatBTC(model.fee)} ${model.ticker}',
+              ),
+              StaticActionField(
+                label: 'You will receive',
+                value: '${formatter.formatBTC(model.sendAmount)} ${model.ticker}',
+              ),
+              const StaticActionInfo(
+                text:
+                    'This sends all private coins to a new shielded address in your wallet, merging them into a single note.',
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class ConsolidateShieldedViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  AppRouter get _router => GetIt.I.get<AppRouter>();
+
+  String get ticker => _rpc.chain.ticker;
+  double get fee => zsideFee;
+  List<ShieldedUTXO> get utxos => _zsideProvider.shieldedUTXOs;
+  int get utxoCount => utxos.length;
+  double get totalAmount => utxos.fold(0.0, (sum, u) => sum + u.amount);
+  double get sendAmount => max(0, totalAmount - fee);
+
+  ConsolidateShieldedViewModel() {
+    _zsideProvider.addListener(notifyListeners);
+  }
+
+  Future<void> consolidate(BuildContext context) async {
+    if (sendAmount <= 0) return;
+    if (!context.mounted) return;
+
+    setBusy(true);
+
+    try {
+      // Get a new shielded address
+      final address = await _rpc.getNewShieldedAddress();
+
+      // Send all to the new address
+      final txid = await _rpc.sendShielded(
+        address,
+        btcToSatoshi(sendAmount).toDouble(),
+        btcToSatoshi(fee).toDouble(),
+      );
+
+      log.i('Consolidated shielded UTXOs: $txid');
+
+      unawaited(_balanceProvider.fetch());
+      unawaited(_zsideProvider.fetch());
+
+      if (!context.mounted) return;
+
+      await successDialog(
+        context: context,
+        action: 'Consolidate',
+        title: 'Consolidated $utxoCount private notes',
+        subtitle: 'TXID: $txid',
+      );
+
+      await _router.maybePop();
+    } catch (e) {
+      if (!context.mounted) return;
+      await errorDialog(
+        context: context,
+        action: 'Consolidate',
+        title: 'Could not consolidate',
+        subtitle: e.toString(),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _zsideProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}

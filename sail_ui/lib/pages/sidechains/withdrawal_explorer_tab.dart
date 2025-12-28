@@ -53,9 +53,7 @@ class BundleExplorerTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(SailStyleValues.padding12),
                   decoration: BoxDecoration(
-                    color: viewModel.bundle != null
-                        ? const Color.fromRGBO(76, 175, 80, 0.1)
-                        : Colors.grey.shade100,
+                    color: viewModel.bundle != null ? const Color.fromRGBO(76, 175, 80, 0.1) : Colors.grey.shade100,
                     borderRadius: SailStyleValues.borderRadiusSmall,
                     border: Border.all(color: Colors.grey.shade300),
                   ),

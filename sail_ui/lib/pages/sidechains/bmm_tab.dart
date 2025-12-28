@@ -67,9 +67,7 @@ class BMMTab extends StatelessWidget {
                           ),
                           _CopyableField(
                             label: 'MC Transaction ID',
-                            value: viewModel.attempts.first.txid.isEmpty
-                                ? 'Pending...'
-                                : viewModel.attempts.first.txid,
+                            value: viewModel.attempts.first.txid.isEmpty ? 'Pending...' : viewModel.attempts.first.txid,
                           ),
                           _CopyableField(
                             label: 'MC Block Hash',
@@ -261,9 +259,8 @@ class BMMTab extends StatelessWidget {
               const SizedBox(height: 16),
               Expanded(
                 child: SailTable(
-                  getRowId: (index) => viewModel.attempts[index].txid.isEmpty
-                      ? 'attempt-$index'
-                      : viewModel.attempts[index].txid,
+                  getRowId: (index) =>
+                      viewModel.attempts[index].txid.isEmpty ? 'attempt-$index' : viewModel.attempts[index].txid,
                   headerBuilder: (context) => [
                     SailTableHeaderCell(name: 'MC txid'),
                     SailTableHeaderCell(name: 'MC Block'),
@@ -424,9 +421,7 @@ class BMMViewModel extends BaseViewModel {
 
   int get totalProfit {
     final bidSats = (bmmProvider.bidAmount * 100000000).round();
-    return attempts
-        .where((a) => a.raw.isNotEmpty && a.error == null)
-        .fold(0, (sum, a) => sum + (a.nfees - bidSats));
+    return attempts.where((a) => a.raw.isNotEmpty && a.error == null).fold(0, (sum, a) => sum + (a.nfees - bidSats));
   }
 
   void clearHistory() {
