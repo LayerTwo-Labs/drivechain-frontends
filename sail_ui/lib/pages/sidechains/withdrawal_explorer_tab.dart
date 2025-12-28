@@ -5,6 +5,17 @@ import 'dart:async';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+// From testchain-deprecated/src/policy/withdrawalbundle.h
+// MAX_WITHDRAWAL_BUNDLE_WEIGHT = (CORE_MAX_STANDARD_TX_WEIGHT / CORE_WITNESS_SCALE_FACTOR) / 2
+// = (400000 / 4) / 2 = 50000
+const int maxWithdrawalBundleWeight = 50000;
+
+// Base weight for a withdrawal bundle transaction (overhead + OP_RETURN outputs)
+const int baseWithdrawalBundleWeight = 288;
+
+// Weight per P2PKH output (~34 bytes × 4 = 136 weight units)
+const int weightPerWithdrawalOutput = 136;
+
 class WithdrawalExplorerTab extends StatelessWidget {
   const WithdrawalExplorerTab({super.key});
 
@@ -25,6 +36,124 @@ class WithdrawalExplorerTab extends StatelessWidget {
 class BundleExplorerTab extends StatelessWidget {
   const BundleExplorerTab({super.key});
 
+  void _showBundleHistoryDialog(BuildContext context, PendingBundleViewModel viewModel) {
+    showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: SailText.primary15('Bundle History'),
+          content: SizedBox(
+            width: 500,
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Current Bundle Info
+                SailText.primary13('Current Bundle', bold: true),
+                Container(
+                  padding: const EdgeInsets.all(SailStyleValues.padding12),
+                  decoration: BoxDecoration(
+                    color: viewModel.bundle != null
+                        ? const Color.fromRGBO(76, 175, 80, 0.1)
+                        : Colors.grey.shade100,
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: viewModel.bundle != null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _BundleInfoRow(label: 'Status', value: 'Pending'),
+                            _BundleInfoRow(
+                              label: 'Height Created',
+                              value: viewModel.bundle!.heightCreated.toString(),
+                            ),
+                            _BundleInfoRow(
+                              label: 'Withdrawals',
+                              value: viewModel.bundle!.withdrawalOutputs.length.toString(),
+                            ),
+                            _BundleInfoRow(
+                              label: 'Total Amount',
+                              value: '${viewModel.totalAmount} sats',
+                            ),
+                            _BundleInfoRow(
+                              label: 'Total Fees',
+                              value: '${viewModel.totalFees} sats',
+                            ),
+                          ],
+                        )
+                      : SailText.secondary13('No pending bundle'),
+                ),
+
+                const Divider(),
+
+                // Last Failed Bundle
+                SailText.primary13('Last Failed Bundle', bold: true),
+                Container(
+                  padding: const EdgeInsets.all(SailStyleValues.padding12),
+                  decoration: BoxDecoration(
+                    color: viewModel.lastFailedHeight != null
+                        ? const Color.fromRGBO(255, 40, 0, 0.1)
+                        : Colors.grey.shade100,
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: viewModel.lastFailedHeight != null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _BundleInfoRow(
+                              label: 'Failed at Height',
+                              value: viewModel.lastFailedHeight.toString(),
+                              valueColor: Colors.red,
+                            ),
+                            const SizedBox(height: 4),
+                            SailText.secondary12(
+                              'This bundle failed to be included in the mainchain and was rejected.',
+                              italic: true,
+                            ),
+                          ],
+                        )
+                      : SailText.secondary13('No failed bundles recorded'),
+                ),
+
+                const Divider(),
+
+                // Note about limitations
+                Container(
+                  padding: const EdgeInsets.all(SailStyleValues.padding08),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SailText.primary12(
+                          'Full bundle history requires backend support. Currently showing current bundle and last failed height only.',
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            SailButton(
+              label: 'Close',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
@@ -35,6 +164,67 @@ class BundleExplorerTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Bundle Status Header
+              Container(
+                padding: const EdgeInsets.all(SailStyleValues.padding12),
+                margin: const EdgeInsets.only(bottom: SailStyleValues.padding16),
+                decoration: BoxDecoration(
+                  color: viewModel.bundle != null
+                      ? const Color.fromRGBO(76, 175, 80, 0.1)
+                      : const Color.fromRGBO(255, 193, 7, 0.1),
+                  borderRadius: SailStyleValues.borderRadiusSmall,
+                  border: Border.all(
+                    color: viewModel.bundle != null
+                        ? const Color.fromRGBO(76, 175, 80, 0.3)
+                        : const Color.fromRGBO(255, 193, 7, 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                viewModel.bundle != null ? Icons.pending_actions : Icons.hourglass_empty,
+                                size: 20,
+                                color: viewModel.bundle != null ? Colors.green : Colors.orange,
+                              ),
+                              const SizedBox(width: 8),
+                              SailText.primary13(
+                                viewModel.bundle != null
+                                    ? 'Pending Bundle: ${viewModel.bundle!.withdrawalOutputs.length} withdrawals'
+                                    : 'No pending withdrawal bundle',
+                                bold: true,
+                              ),
+                            ],
+                          ),
+                          if (viewModel.lastFailedHeight != null) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.error_outline, size: 16, color: Colors.red),
+                                const SizedBox(width: 4),
+                                SailText.primary12(
+                                  'Last failed bundle at height: ${viewModel.lastFailedHeight}',
+                                  color: Colors.red,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    SailButton(
+                      label: 'Bundle History',
+                      variant: ButtonVariant.secondary,
+                      onPressed: () async => _showBundleHistoryDialog(context, viewModel),
+                    ),
+                  ],
+                ),
+              ),
               SailText.primary12('Select a withdrawal bundle to show details'),
               SizedBox(
                 height: 150,
@@ -180,41 +370,97 @@ class BundleExplorerTab extends StatelessWidget {
 class NextBundleTab extends StatelessWidget {
   const NextBundleTab({super.key});
 
+  /// Calculate cumulative weight for a withdrawal at the given index
+  /// Each withdrawal output adds ~136 weight units to the bundle
+  int getCumulativeWeight(int index) {
+    // Base weight for the bundle transaction (version, locktime, OP_RETURN outputs, etc.)
+    // Plus weight for each output up to and including this index
+    return baseWithdrawalBundleWeight + ((index + 1) * weightPerWithdrawalOutput);
+  }
+
+  /// Check if a withdrawal at the given index will exceed the bundle weight limit
+  bool exceedsWeightLimit(int index) {
+    return getCumulativeWeight(index) > maxWithdrawalBundleWeight;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => NextBundleViewModel(),
       builder: (context, viewModel, child) {
+        final outputs = viewModel.filteredOutputs;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            SailText.primary12(
-              'Candidate withdrawals sorted by mainchain fee. (Each consumes 136 mainchain vBytes.)',
-              italic: true,
+            Row(
+              children: [
+                Expanded(
+                  child: SailText.primary12(
+                    'Candidate withdrawals sorted by mainchain fee. (Each consumes ~$weightPerWithdrawalOutput weight units.)',
+                    italic: true,
+                  ),
+                ),
+                // Mine Only toggle
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SailToggle(
+                      label: 'Mine Only',
+                      value: viewModel.mineOnly,
+                      onChanged: viewModel.toggleMineOnly,
+                    ),
+                    if (viewModel.mineOnly && viewModel.myAddresses.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Tooltip(
+                          message: 'No addresses found in enforcer wallet',
+                          child: Icon(Icons.warning_amber, size: 16, color: Colors.orange),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Expanded(
               child: SailTable(
-                getRowId: (index) => viewModel.bundle!.withdrawalOutputs[index].mainAddress,
+                getRowId: (index) => outputs[index].mainAddress,
                 headerBuilder: (context) => [
                   SailTableHeaderCell(name: 'Amount (sats)'),
                   SailTableHeaderCell(name: 'Mainchain Fee (sats)'),
                   SailTableHeaderCell(name: 'Destination Address'),
-                  SailTableHeaderCell(name: 'Cumulative WithdrawalBundle weight'),
+                  SailTableHeaderCell(name: 'Cumulative Bundle Weight'),
                 ],
                 rowBuilder: (context, row, selected) {
-                  final withdrawal = viewModel.bundle!.withdrawalOutputs[row];
+                  final withdrawal = outputs[row];
+                  final cumulativeWeight = getCumulativeWeight(row);
+                  final weightDisplay = '$cumulativeWeight / $maxWithdrawalBundleWeight';
+
                   return [
                     SailTableCell(value: withdrawal.valueSats.toString(), monospace: true),
                     SailTableCell(value: withdrawal.mainFeeSats.toString(), monospace: true),
                     SailTableCell(value: withdrawal.mainAddress, copyValue: withdrawal.mainAddress, monospace: true),
+                    SailTableCell(
+                      value: weightDisplay,
+                      monospace: true,
+                      alignment: Alignment.centerRight,
+                    ),
                   ];
                 },
-                rowCount: viewModel.bundle?.withdrawalOutputs.length ?? 0,
+                rowCount: outputs.length,
                 drawGrid: true,
+                // RED highlighting for withdrawals that won't fit in the bundle
+                // From testchain-deprecated: QColor(255, 40, 0, 180) - semi-transparent red
+                rowBackgroundColor: (index) {
+                  if (exceedsWeightLimit(index)) {
+                    return const Color.fromRGBO(255, 40, 0, 0.7);
+                  }
+                  return null;
+                },
                 contextMenuItems: (rowId) {
-                  final withdrawal = viewModel.bundle!.withdrawalOutputs.firstWhere((w) => w.mainAddress == rowId);
+                  final withdrawal = outputs.firstWhere((w) => w.mainAddress == rowId);
                   return [
                     SailMenuItem(
                       onSelected: () {
@@ -265,6 +511,7 @@ class PendingBundleViewModel extends BaseViewModel {
   final SidechainRPC sidechainRPC = GetIt.I.get<SidechainRPC>();
 
   PendingWithdrawalBundle? bundle;
+  int? lastFailedHeight;
   Timer? _refreshTimer;
 
   int get totalAmount => bundle?.withdrawalOutputs.fold<int>(0, (sum, w) => sum + w.valueSats) ?? 0;
@@ -273,7 +520,89 @@ class PendingBundleViewModel extends BaseViewModel {
 
   PendingBundleViewModel() {
     fetchBundle();
+    fetchLastFailedHeight();
+    _refreshTimer = Timer.periodic(Duration(seconds: 1), (_) {
+      fetchBundle();
+      fetchLastFailedHeight();
+    });
+  }
+
+  Future<void> fetchBundle() async {
+    try {
+      final response = await sidechainRPC.getPendingWithdrawalBundle();
+      // Only notify if the bundle actually changed
+      if (bundle?.toJson() != response?.toJson()) {
+        bundle = response;
+        notifyListeners();
+      }
+    } catch (e) {
+      // Only notify if the bundle actually changed (from non-null to null)
+      if (bundle != null) {
+        bundle = null;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> fetchLastFailedHeight() async {
+    try {
+      final response = await sidechainRPC.getLatestFailedWithdrawalBundleHeight();
+      if (lastFailedHeight != response) {
+        lastFailedHeight = response;
+        notifyListeners();
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+}
+
+class NextBundleViewModel extends BaseViewModel {
+  final SidechainRPC sidechainRPC = GetIt.I.get<SidechainRPC>();
+  EnforcerRPC? get enforcerRPC => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null;
+
+  PendingWithdrawalBundle? bundle;
+  Timer? _refreshTimer;
+  bool mineOnly = false;
+  Set<String> myAddresses = {};
+
+  /// Get filtered withdrawal outputs based on mineOnly toggle
+  List<WithdrawalOutput> get filteredOutputs {
+    if (bundle == null) return [];
+    if (!mineOnly || myAddresses.isEmpty) return bundle!.withdrawalOutputs;
+    return bundle!.withdrawalOutputs.where((w) => myAddresses.contains(w.mainAddress)).toList();
+  }
+
+  int get totalAmount => filteredOutputs.fold<int>(0, (sum, w) => sum + w.valueSats);
+  int get totalFees => filteredOutputs.fold<int>(0, (sum, w) => sum + w.mainFeeSats);
+  int get totalSize => filteredOutputs.length * 34;
+
+  NextBundleViewModel() {
+    fetchBundle();
+    fetchMyAddresses();
     _refreshTimer = Timer.periodic(Duration(seconds: 1), (_) => fetchBundle());
+  }
+
+  void toggleMineOnly(bool value) {
+    mineOnly = value;
+    notifyListeners();
+  }
+
+  Future<void> fetchMyAddresses() async {
+    try {
+      if (enforcerRPC == null) return;
+      final addresses = await enforcerRPC!.getAddresses();
+      myAddresses = addresses.toSet();
+      notifyListeners();
+    } catch (e) {
+      // Ignore errors - addresses will be empty
+    }
   }
 
   Future<void> fetchBundle() async {
@@ -300,41 +629,28 @@ class PendingBundleViewModel extends BaseViewModel {
   }
 }
 
-class NextBundleViewModel extends BaseViewModel {
-  final SidechainRPC sidechainRPC = GetIt.I.get<SidechainRPC>();
+class _BundleInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
 
-  PendingWithdrawalBundle? bundle;
-  Timer? _refreshTimer;
-
-  int get totalAmount => bundle?.withdrawalOutputs.fold<int>(0, (sum, w) => sum + w.valueSats) ?? 0;
-  int get totalFees => bundle?.withdrawalOutputs.fold<int>(0, (sum, w) => sum + w.mainFeeSats) ?? 0;
-  int get totalSize => (bundle?.withdrawalOutputs.length ?? 0) * 34;
-
-  NextBundleViewModel() {
-    fetchBundle();
-    _refreshTimer = Timer.periodic(Duration(seconds: 1), (_) => fetchBundle());
-  }
-
-  Future<void> fetchBundle() async {
-    try {
-      final response = await sidechainRPC.getPendingWithdrawalBundle();
-      // Only notify if the bundle actually changed
-      if (bundle?.toJson() != response?.toJson()) {
-        bundle = response;
-        notifyListeners();
-      }
-    } catch (e) {
-      // Only notify if the bundle actually changed (from non-null to null)
-      if (bundle != null) {
-        bundle = null;
-        notifyListeners();
-      }
-    }
-  }
+  const _BundleInfoRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SailText.primary12(label),
+          SailText.primary12(value, bold: true, color: valueColor),
+        ],
+      ),
+    );
   }
 }
