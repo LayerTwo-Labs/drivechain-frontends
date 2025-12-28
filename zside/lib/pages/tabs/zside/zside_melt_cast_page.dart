@@ -239,6 +239,28 @@ class ZSideMeltCast extends StatelessWidget {
               ),
               const SailSpacing(SailStyleValues.padding32),
               DashboardGroup(
+                title: 'Consolidate',
+                children: [
+                  ActionTile(
+                    title: 'Consolidate Transparent',
+                    category: Category.sidechain,
+                    icon: SailSVGAsset.iconArrow,
+                    onTap: () async {
+                      model.consolidateTransparent(context);
+                    },
+                  ),
+                  ActionTile(
+                    title: 'Consolidate Private',
+                    category: Category.sidechain,
+                    icon: SailSVGAsset.iconArrow,
+                    onTap: () async {
+                      model.consolidateShielded(context);
+                    },
+                  ),
+                ],
+              ),
+              const SailSpacing(SailStyleValues.padding32),
+              DashboardGroup(
                 title: 'UTXOs',
                 widgetTrailing: SailText.secondary13(model.unshieldedUTXOs.length.toString()),
                 widgetEnd: SailToggle(
@@ -387,6 +409,24 @@ class ZSideMeltCastViewModel extends BaseViewModel {
 
   Future<void> viewBills() async {
     await router.push(const ZSideBillRoute());
+  }
+
+  void consolidateTransparent(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const ConsolidateTransparentAction();
+      },
+    );
+  }
+
+  void consolidateShielded(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const ConsolidateShieldedAction();
+      },
+    );
   }
 
   @override
