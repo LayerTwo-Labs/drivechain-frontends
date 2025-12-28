@@ -18,6 +18,16 @@ class MockZSideRPC extends ZSideRPC {
   }
 
   @override
+  Future<ZSideBalanceBreakdown> getBalanceBreakdown() async {
+    return ZSideBalanceBreakdown(
+      availableShieldedSats: 10000000,
+      availableTransparentSats: 2300000000,
+      totalShieldedSats: 10000000,
+      totalTransparentSats: 2300000000,
+    );
+  }
+
+  @override
   Future<List<CoreTransaction>> listTransactions() async {
     return List.empty();
   }
