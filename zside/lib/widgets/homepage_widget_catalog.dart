@@ -21,6 +21,7 @@ class ZSideWidgetCatalog {
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
           final formatter = GetIt.I<FormatterProvider>();
+          final theme = SailTheme.of(context);
 
           return ListenableBuilder(
             listenable: formatter,
@@ -35,17 +36,35 @@ class ZSideWidgetCatalog {
                       '${formatter.formatBTC(model.totalBalance)} ${model.ticker}',
                       bold: true,
                     ),
-                    const SizedBox(height: 4),
-                    BalanceRow(
-                      label: 'Available',
-                      amount: model.balance,
-                      ticker: model.ticker,
-                    ),
-                    BalanceRow(
-                      label: 'Pending',
-                      amount: model.pendingBalance,
-                      ticker: model.ticker,
-                    ),
+                    const SizedBox(height: 8),
+                    // Pool breakdown section
+                    if (model.balanceBreakdown != null) ...[
+                      PoolBalanceRow(
+                        label: 'Private (Shielded)',
+                        available: model.balanceBreakdown!.availableShielded,
+                        pending: model.balanceBreakdown!.pendingShielded,
+                        ticker: model.ticker,
+                        color: theme.colors.success,
+                      ),
+                      PoolBalanceRow(
+                        label: 'Transparent',
+                        available: model.balanceBreakdown!.availableTransparent,
+                        pending: model.balanceBreakdown!.pendingTransparent,
+                        ticker: model.ticker,
+                        color: theme.colors.info,
+                      ),
+                    ] else ...[
+                      BalanceRow(
+                        label: 'Available',
+                        amount: model.balance,
+                        ticker: model.ticker,
+                      ),
+                      BalanceRow(
+                        label: 'Pending',
+                        amount: model.pendingBalance,
+                        ticker: model.ticker,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -268,6 +287,7 @@ class OverviewTabViewModel extends BaseViewModel {
   String? sendError;
   String? receiveError;
   String? shieldedReceiveError;
+  ZSideBalanceBreakdown? balanceBreakdown;
 
   // Properties for sending
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
@@ -293,10 +313,11 @@ class OverviewTabViewModel extends BaseViewModel {
     _initControllers();
     _initFees();
     _transactionsProvider.addListener(ensureAddress);
-    _balanceProvider.addListener(ensureAddress);
+    _balanceProvider.addListener(_onBalanceChanged);
     _rpc.addListener(_onRpcConnectionChanged);
     generateTransparentAddress();
     generateShieldedAddress();
+    _fetchBalanceBreakdown();
   }
 
   void _onRpcConnectionChanged() {
@@ -308,6 +329,22 @@ class OverviewTabViewModel extends BaseViewModel {
       if (shieldedReceiveAddress == null && !isGeneratingShieldedAddress) {
         generateShieldedAddress();
       }
+      _fetchBalanceBreakdown();
+    }
+  }
+
+  void _onBalanceChanged() {
+    ensureAddress();
+    _fetchBalanceBreakdown();
+  }
+
+  Future<void> _fetchBalanceBreakdown() async {
+    if (!_rpc.connected) return;
+    try {
+      balanceBreakdown = await _rpc.getBalanceBreakdown();
+      notifyListeners();
+    } catch (e) {
+      log.e('Failed to fetch balance breakdown: $e');
     }
   }
 
@@ -509,7 +546,7 @@ class OverviewTabViewModel extends BaseViewModel {
     bitcoinAmountController.dispose();
     labelController.dispose();
     _transactionsProvider.removeListener(ensureAddress);
-    _balanceProvider.removeListener(ensureAddress);
+    _balanceProvider.removeListener(_onBalanceChanged);
     _rpc.removeListener(_onRpcConnectionChanged);
     super.dispose();
   }
@@ -825,6 +862,72 @@ class BalanceRow extends StatelessWidget {
           children: [
             SailText.secondary15(label),
             SailText.secondary15('${formatter.formatBTC(amount)} $ticker'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PoolBalanceRow extends StatelessWidget {
+  final String label;
+  final double available;
+  final double pending;
+  final String ticker;
+  final Color color;
+
+  const PoolBalanceRow({
+    super.key,
+    required this.label,
+    required this.available,
+    required this.pending,
+    required this.ticker,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+    final total = available + pending;
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, child) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    SailText.secondary13(label),
+                  ],
+                ),
+                SailText.secondary13(
+                  '${formatter.formatBTC(total)} $ticker',
+                  bold: true,
+                ),
+              ],
+            ),
+            if (pending > 0)
+              Padding(
+                padding: const EdgeInsets.only(left: 14, top: 2),
+                child: SailText.secondary12(
+                  '(${formatter.formatBTC(pending)} pending)',
+                  color: SailTheme.of(context).colors.textTertiary,
+                ),
+              ),
           ],
         ),
       ),
