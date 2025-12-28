@@ -5,7 +5,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/pages/sidechains/withdrawal_explorer_tab.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -271,32 +270,6 @@ class DepositTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // QR Code
-              if (model.depositAddress != null)
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: SailStyleValues.borderRadiusSmall,
-                  ),
-                  child: QrImageView(
-                    data: model.depositAddress!,
-                    version: QrVersions.auto,
-                    size: 120,
-                    backgroundColor: Colors.white,
-                  ),
-                )
-              else
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: SailStyleValues.borderRadiusSmall,
-                  ),
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-              const SizedBox(width: 8),
               Expanded(
                 child: SailColumn(
                   spacing: SailStyleValues.padding08,
