@@ -43,9 +43,6 @@ abstract class ThunderRPC extends SidechainRPC {
   /// Remove transaction from mempool
   Future<void> removeFromMempool(String txid);
 
-  /// Get latest failed withdrawal bundle height
-  Future<int?> getLatestFailedWithdrawalBundleHeight();
-
   /// Generate new mnemonic
   Future<String> generateMnemonic();
 

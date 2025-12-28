@@ -120,4 +120,9 @@ class MockSidechainRPC extends SidechainRPC {
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     return null;
   }
+
+  @override
+  Future<int?> getLatestFailedWithdrawalBundleHeight() {
+    return Future.value(0);
+  }
 }
