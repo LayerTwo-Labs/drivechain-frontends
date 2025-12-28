@@ -33,6 +33,9 @@ abstract class SidechainRPC extends RPCConnection {
 
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle();
 
+  /// Get the height of the latest failed withdrawal bundle
+  Future<int?> getLatestFailedWithdrawalBundleHeight();
+
   /// Initiate a withdrawal to the specified mainchain address
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats);
 

@@ -157,9 +157,6 @@ abstract class BitAssetsRPC extends SidechainRPC {
   /// Get the best sidechain block hash known by BitAssets
   Future<String?> getBestSidechainBlockHash();
 
-  /// Get the height of the latest failed withdrawal bundle
-  Future<int?> getLatestFailedWithdrawalBundleHeight();
-
   /// Get new encryption key
   Future<String> getNewEncryptionKey();
 

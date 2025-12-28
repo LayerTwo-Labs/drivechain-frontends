@@ -61,7 +61,6 @@ abstract class ZSideRPC extends SidechainRPC {
   Future<String?> getBestSidechainBlockHash();
   Future<String> getBMMInclusions(String blockHash);
   Future<void> removeFromMempool(String txid);
-  Future<int?> getLatestFailedWithdrawalBundleHeight();
   Future<String> generateMnemonic();
   Future<void> setSeedFromMnemonic(String mnemonic);
   Future<String> getNewShieldedAddress();

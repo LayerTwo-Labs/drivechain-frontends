@@ -51,9 +51,6 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// Get the best sidechain block hash known by Bitnames
   Future<String?> getBestSidechainBlockHash();
 
-  /// Get the height of the latest failed withdrawal bundle
-  Future<int?> getLatestFailedWithdrawalBundleHeight();
-
   /// Generate a mnemonic seed phrase
   Future<String> generateMnemonic();
 
