@@ -7,6 +7,8 @@ import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.client.dart';
+import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server
@@ -17,15 +19,21 @@ abstract class EnforcerRPC extends RPCConnection {
   });
 
   ValidatorServiceClient get validator;
+  WalletServiceClient get wallet;
 
   Future<dynamic> callRAW(String url, [String body = '{}']);
   Future<Map<String, dynamic>> getBlockTemplate();
   List<String> getMethods();
+
+  /// Get all mainchain addresses from the enforcer wallet
+  Future<List<String>> getAddresses();
 }
 
 class EnforcerLive extends EnforcerRPC {
   @override
   late ValidatorServiceClient validator;
+  @override
+  late WalletServiceClient wallet;
   late grpc.Transport _grpcTransport;
 
   EnforcerLive() : super(binaryType: BinaryType.enforcer, restartOnFailure: true) {
@@ -45,6 +53,7 @@ class EnforcerLive extends EnforcerRPC {
     );
 
     validator = ValidatorServiceClient(_grpcTransport);
+    wallet = WalletServiceClient(_grpcTransport);
   }
 
   @override
@@ -272,5 +281,19 @@ class EnforcerLive extends EnforcerRPC {
       'cusf.mainchain.v1.WalletService/SendTransaction',
       'cusf.mainchain.v1.WalletService/UnlockWallet',
     ];
+  }
+
+  @override
+  Future<List<String>> getAddresses() async {
+    return await _withRecreate(() async {
+      final response = await wallet.listUnspentOutputs(ListUnspentOutputsRequest());
+      final addresses = <String>{};
+      for (final output in response.outputs) {
+        if (output.hasAddress() && output.address.value.isNotEmpty) {
+          addresses.add(output.address.value);
+        }
+      }
+      return addresses.toList();
+    });
   }
 }
