@@ -9,32 +9,33 @@ class BMMTab extends StatelessWidget {
   const BMMTab({super.key});
 
   /// Get the status color based on attempt status
-  Color? _getStatusColor(BmmResult attempt) {
+  Color? _getStatusColor(BmmResult attempt, SailColor colors) {
     if (attempt.raw.isEmpty) {
       // Trying...
-      return const Color.fromRGBO(255, 193, 7, 0.3); // Yellow/amber background
+      return colors.orange.withValues(alpha: 0.3);
     } else if (attempt.error != null) {
       // Error/Failed
-      return const Color.fromRGBO(255, 40, 0, 0.3); // Red background
+      return colors.error.withValues(alpha: 0.3);
     } else {
       // Success
-      return const Color.fromRGBO(76, 175, 80, 0.3); // Green background
+      return colors.success.withValues(alpha: 0.3);
     }
   }
 
   /// Get the status text color based on attempt status
-  Color _getStatusTextColor(BmmResult attempt) {
+  Color _getStatusTextColor(BmmResult attempt, SailColor colors) {
     if (attempt.raw.isEmpty) {
-      return Colors.orange;
+      return colors.orange;
     } else if (attempt.error != null) {
-      return Colors.red;
+      return colors.error;
     } else {
-      return Colors.green;
+      return colors.success;
     }
   }
 
   /// Show Manual BMM Dialog for advanced control
   void _showManualBMMDialog(BuildContext context, BMMViewModel viewModel) {
+    final theme = SailTheme.of(context);
     showThemedDialog(
       context: context,
       builder: (BuildContext context) {
@@ -53,9 +54,9 @@ class BMMTab extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(SailStyleValues.padding12),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(viewModel.attempts.first),
+                        color: _getStatusColor(viewModel.attempts.first, theme.colors),
                         borderRadius: SailStyleValues.borderRadiusSmall,
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: theme.colors.border),
                       ),
                       child: SailColumn(
                         spacing: SailStyleValues.padding08,
@@ -102,7 +103,7 @@ class BMMTab extends StatelessWidget {
                             _CopyableField(
                               label: 'Error',
                               value: viewModel.attempts.first.error!,
-                              valueColor: Colors.red,
+                              valueColor: theme.colors.error,
                             ),
                         ],
                       ),
@@ -110,7 +111,7 @@ class BMMTab extends StatelessWidget {
                   ] else
                     SailText.secondary13('No BMM attempts yet. Click "Mine Now" to create one.'),
 
-                  const Divider(),
+                  Divider(color: theme.colors.divider),
 
                   // Manual Mining Controls
                   SailText.primary13('Manual Mining', bold: true),
@@ -135,7 +136,7 @@ class BMMTab extends StatelessWidget {
                     },
                   ),
 
-                  const Divider(),
+                  Divider(color: theme.colors.divider),
 
                   // Raw Data (for debugging)
                   if (viewModel.attempts.isNotEmpty && viewModel.attempts.first.raw.isNotEmpty) ...[
@@ -143,14 +144,15 @@ class BMMTab extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(SailStyleValues.padding08),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: theme.colors.backgroundSecondary,
                         borderRadius: SailStyleValues.borderRadiusSmall,
                       ),
                       child: SelectableText(
                         viewModel.attempts.first.raw,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 11,
+                          color: theme.colors.text,
                         ),
                       ),
                     ),
@@ -173,6 +175,7 @@ class BMMTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => BMMViewModel(),
       builder: (context, viewModel, child) {
@@ -230,22 +233,22 @@ class BMMTab extends StatelessWidget {
                   _StatChip(
                     label: 'Success',
                     value: viewModel.successCount.toString(),
-                    color: Colors.green,
+                    color: theme.colors.success,
                   ),
                   _StatChip(
                     label: 'Failed',
                     value: viewModel.failedCount.toString(),
-                    color: Colors.red,
+                    color: theme.colors.error,
                   ),
                   _StatChip(
                     label: 'Pending',
                     value: viewModel.pendingCount.toString(),
-                    color: Colors.orange,
+                    color: theme.colors.orange,
                   ),
                   _StatChip(
                     label: 'Total Profit',
                     value: '${viewModel.totalProfit} sats',
-                    color: viewModel.totalProfit >= 0 ? Colors.green : Colors.red,
+                    color: viewModel.totalProfit >= 0 ? theme.colors.success : theme.colors.error,
                   ),
                   const Spacer(),
                   if (viewModel.attempts.isNotEmpty)
@@ -282,7 +285,7 @@ class BMMTab extends StatelessWidget {
                     final bidSats = (viewModel.bmmProvider.bidAmount * 100000000).round();
                     final profit = attempt.nfees - bidSats;
                     final profitDisplay = attempt.raw.isEmpty ? '-' : profit.toString();
-                    final profitColor = profit >= 0 ? Colors.green : Colors.red;
+                    final profitColor = profit >= 0 ? theme.colors.success : theme.colors.error;
 
                     return [
                       SailTableCell(
@@ -306,7 +309,7 @@ class BMMTab extends StatelessWidget {
                       ),
                       SailTableCell(
                         value: attempt.status,
-                        textColor: _getStatusTextColor(attempt),
+                        textColor: _getStatusTextColor(attempt, theme.colors),
                       ),
                     ];
                   },
@@ -314,7 +317,7 @@ class BMMTab extends StatelessWidget {
                   // Highlight rows based on status
                   rowBackgroundColor: (index) {
                     final attempt = viewModel.attempts[index];
-                    return _getStatusColor(attempt);
+                    return _getStatusColor(attempt, theme.colors);
                   },
                   drawGrid: true,
                   contextMenuItems: (rowId) {
@@ -365,7 +368,7 @@ class BMMTab extends StatelessWidget {
                                     SailText.primary12('Transactions: ${attempt.ntxn}'),
                                     SailText.primary12('Fees: ${attempt.nfees}'),
                                     if (attempt.error != null)
-                                      SailText.primary12('Error: ${attempt.error}', color: Colors.red),
+                                      SailText.primary12('Error: ${attempt.error}', color: theme.colors.error),
                                   ],
                                 ),
                                 actions: [

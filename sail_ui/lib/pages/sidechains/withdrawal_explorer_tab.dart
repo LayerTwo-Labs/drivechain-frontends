@@ -37,6 +37,7 @@ class BundleExplorerTab extends StatelessWidget {
   const BundleExplorerTab({super.key});
 
   void _showBundleHistoryDialog(BuildContext context, PendingBundleViewModel viewModel) {
+    final theme = SailTheme.of(context);
     showThemedDialog(
       context: context,
       builder: (BuildContext context) {
@@ -53,9 +54,11 @@ class BundleExplorerTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(SailStyleValues.padding12),
                   decoration: BoxDecoration(
-                    color: viewModel.bundle != null ? const Color.fromRGBO(76, 175, 80, 0.1) : Colors.grey.shade100,
+                    color: viewModel.bundle != null
+                        ? theme.colors.success.withValues(alpha: 0.1)
+                        : theme.colors.backgroundSecondary,
                     borderRadius: SailStyleValues.borderRadiusSmall,
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: theme.colors.border),
                   ),
                   child: viewModel.bundle != null
                       ? Column(
@@ -83,7 +86,7 @@ class BundleExplorerTab extends StatelessWidget {
                       : SailText.secondary13('No pending bundle'),
                 ),
 
-                const Divider(),
+                Divider(color: theme.colors.divider),
 
                 // Last Failed Bundle
                 SailText.primary13('Last Failed Bundle', bold: true),
@@ -91,10 +94,10 @@ class BundleExplorerTab extends StatelessWidget {
                   padding: const EdgeInsets.all(SailStyleValues.padding12),
                   decoration: BoxDecoration(
                     color: viewModel.lastFailedHeight != null
-                        ? const Color.fromRGBO(255, 40, 0, 0.1)
-                        : Colors.grey.shade100,
+                        ? theme.colors.error.withValues(alpha: 0.1)
+                        : theme.colors.backgroundSecondary,
                     borderRadius: SailStyleValues.borderRadiusSmall,
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: theme.colors.border),
                   ),
                   child: viewModel.lastFailedHeight != null
                       ? Column(
@@ -103,7 +106,7 @@ class BundleExplorerTab extends StatelessWidget {
                             _BundleInfoRow(
                               label: 'Failed at Height',
                               value: viewModel.lastFailedHeight.toString(),
-                              valueColor: Colors.red,
+                              valueColor: theme.colors.error,
                             ),
                             const SizedBox(height: 4),
                             SailText.secondary12(
@@ -115,23 +118,23 @@ class BundleExplorerTab extends StatelessWidget {
                       : SailText.secondary13('No failed bundles recorded'),
                 ),
 
-                const Divider(),
+                Divider(color: theme.colors.divider),
 
                 // Note about limitations
                 Container(
                   padding: const EdgeInsets.all(SailStyleValues.padding08),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: theme.colors.info.withValues(alpha: 0.1),
                     borderRadius: SailStyleValues.borderRadiusSmall,
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                      Icon(Icons.info_outline, size: 16, color: theme.colors.info),
                       const SizedBox(width: 8),
                       Expanded(
                         child: SailText.primary12(
                           'Full bundle history requires backend support. Currently showing current bundle and last failed height only.',
-                          color: Colors.blue.shade700,
+                          color: theme.colors.info,
                         ),
                       ),
                     ],
@@ -154,6 +157,7 @@ class BundleExplorerTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => PendingBundleViewModel(),
       builder: (context, viewModel, child) {
@@ -168,13 +172,13 @@ class BundleExplorerTab extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: SailStyleValues.padding16),
                 decoration: BoxDecoration(
                   color: viewModel.bundle != null
-                      ? const Color.fromRGBO(76, 175, 80, 0.1)
-                      : const Color.fromRGBO(255, 193, 7, 0.1),
+                      ? theme.colors.success.withValues(alpha: 0.1)
+                      : theme.colors.orange.withValues(alpha: 0.1),
                   borderRadius: SailStyleValues.borderRadiusSmall,
                   border: Border.all(
                     color: viewModel.bundle != null
-                        ? const Color.fromRGBO(76, 175, 80, 0.3)
-                        : const Color.fromRGBO(255, 193, 7, 0.3),
+                        ? theme.colors.success.withValues(alpha: 0.3)
+                        : theme.colors.orange.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -188,7 +192,7 @@ class BundleExplorerTab extends StatelessWidget {
                               Icon(
                                 viewModel.bundle != null ? Icons.pending_actions : Icons.hourglass_empty,
                                 size: 20,
-                                color: viewModel.bundle != null ? Colors.green : Colors.orange,
+                                color: viewModel.bundle != null ? theme.colors.success : theme.colors.orange,
                               ),
                               const SizedBox(width: 8),
                               SailText.primary13(
@@ -203,11 +207,11 @@ class BundleExplorerTab extends StatelessWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Icon(Icons.error_outline, size: 16, color: Colors.red),
+                                Icon(Icons.error_outline, size: 16, color: theme.colors.error),
                                 const SizedBox(width: 4),
                                 SailText.primary12(
                                   'Last failed bundle at height: ${viewModel.lastFailedHeight}',
-                                  color: Colors.red,
+                                  color: theme.colors.error,
                                 ),
                               ],
                             ),
@@ -259,7 +263,7 @@ class BundleExplorerTab extends StatelessWidget {
                 ),
               ),
               SailCard(
-                title: 'Data for bundle <enter hash of bundle here>',
+                title: 'Bundle Details',
                 child: Column(
                   children: [
                     // Bundle summary stats
@@ -383,6 +387,7 @@ class NextBundleTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => NextBundleViewModel(),
       builder: (context, viewModel, child) {
@@ -414,7 +419,7 @@ class NextBundleTab extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 8),
                         child: Tooltip(
                           message: 'No addresses found in enforcer wallet',
-                          child: Icon(Icons.warning_amber, size: 16, color: Colors.orange),
+                          child: Icon(Icons.warning_amber, size: 16, color: theme.colors.orange),
                         ),
                       ),
                   ],
@@ -450,10 +455,9 @@ class NextBundleTab extends StatelessWidget {
                 rowCount: outputs.length,
                 drawGrid: true,
                 // RED highlighting for withdrawals that won't fit in the bundle
-                // From testchain-deprecated: QColor(255, 40, 0, 180) - semi-transparent red
                 rowBackgroundColor: (index) {
                   if (exceedsWeightLimit(index)) {
-                    return const Color.fromRGBO(255, 40, 0, 0.7);
+                    return theme.colors.error.withValues(alpha: 0.7);
                   }
                   return null;
                 },
