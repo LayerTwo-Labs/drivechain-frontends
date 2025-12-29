@@ -145,17 +145,17 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     final oldNetwork = _detectedNetwork;
 
-    // Check if we're switching between mainnet and forknet (both use [main] section)
+    // Check if we're switching between mainnet and forknet (both use main section)
     final isMainnetForknetSwitch = _isMainnetOrForknet(oldNetwork) && _isMainnetOrForknet(network);
 
     if (isMainnetForknetSwitch && oldNetwork != network) {
-      // Save current [main] section for the old network before switching
+      // Save current main section for the old network before switching
       await _saveNetworkConfig(oldNetwork);
 
-      // Load saved [main] section for the new network
+      // Load saved main section for the new network
       final savedConfig = await _loadNetworkConfig(network);
       if (savedConfig != null) {
-        // Replace [main] section with saved config
+        // Replace main section with saved config
         _currentConfig!.networkSettings['main'] = savedConfig;
         log.i('Loaded saved [main] section for $network');
       } else {
@@ -229,7 +229,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Check if network is mainnet or forknet (both use [main] section)
+  /// Check if network is mainnet or forknet (both use main section)
   bool _isMainnetOrForknet(BitcoinNetwork network) {
     return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
   }
@@ -368,7 +368,7 @@ class BitcoinConfProvider extends ChangeNotifier {
         case 'main':
         case 'mainnet':
           // Distinguish between real mainnet and forknet by checking for drivechain settings
-          // Forknet configs have drivechain=1 in the [main] section
+          // Forknet configs have drivechain=1 in the main section
           final drivechainSetting = _currentConfig!.getEffectiveSetting('drivechain', 'main');
           if (drivechainSetting == '1') {
             _detectedNetwork = BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
@@ -612,12 +612,12 @@ drivechain=1
     return getDefaultConfig();
   }
 
-  /// Parse config content, supporting legacy [forknet] section for migration
+  /// Parse config content, supporting legacy forknet section for migration
   BitcoinConfig _parseConfigWithMigration(String content) {
-    // First, parse normally (which now ignores [forknet] since it's not in networkSettings)
+    // First, parse normally (which now ignores forknet since it's not in networkSettings)
     final config = BitcoinConfig.parse(content);
 
-    // Manually parse [forknet] section if present for migration purposes
+    // Manually parse forknet section if present for migration purposes
     final forknetSettings = _parseLegacyForknetSection(content);
     if (forknetSettings.isNotEmpty) {
       // Store forknet settings temporarily - they'll be migrated in _migrateLegacyForknetSection
@@ -627,7 +627,7 @@ drivechain=1
     return config;
   }
 
-  /// Parse legacy [forknet] section from raw config content
+  /// Parse legacy forknet section from raw config content
   Map<String, String> _parseLegacyForknetSection(String content) {
     final settings = <String, String>{};
     final lines = content.split('\n');
@@ -657,9 +657,9 @@ drivechain=1
     return settings;
   }
 
-  /// Migrate legacy [forknet] section to JSON file and rewrite config without it
+  /// Migrate legacy forknet section to JSON file and rewrite config without it
   Future<void> _migrateLegacyForknetSection(String content) async {
-    // Check if content has [forknet] section
+    // Check if content has forknet section
     if (!content.contains('[forknet]')) return;
 
     log.i('Migrating legacy [forknet] section...');
@@ -678,7 +678,7 @@ drivechain=1
       log.e('Failed to save migrated forknet config: $e');
     }
 
-    // Rewrite config file without [forknet] section
+    // Rewrite config file without forknet section
     try {
       final confInfo = _getConfigFileInfo();
       final newContent = _removeForknetSection(content);
@@ -689,7 +689,7 @@ drivechain=1
     }
   }
 
-  /// Remove [forknet] section from config content
+  /// Remove forknet section from config content
   String _removeForknetSection(String content) {
     final lines = content.split('\n');
     final result = <String>[];
@@ -775,7 +775,7 @@ drivechain=1
     return path.join(datadir, 'bitwindow-$networkName.json');
   }
 
-  /// Save current [main] section to JSON for the specified network
+  /// Save current main section to JSON for the specified network
   Future<void> _saveNetworkConfig(BitcoinNetwork network) async {
     if (_currentConfig == null) return;
 
@@ -791,7 +791,7 @@ drivechain=1
     }
   }
 
-  /// Load saved [main] section from JSON for the specified network
+  /// Load saved main section from JSON for the specified network
   Future<Map<String, String>?> _loadNetworkConfig(BitcoinNetwork network) async {
     try {
       final jsonPath = _getSavedConfigPath(network);

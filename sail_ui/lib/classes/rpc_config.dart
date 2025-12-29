@@ -215,7 +215,7 @@ extension NetworkExtensions on BitcoinNetwork {
 
   /// Get the config section name for this network
   /// Note: Both mainnet and forknet use 'main' section since forknet runs on mainnet params
-  /// and [forknet] is not a valid Bitcoin Core section
+  /// and forknet is not a valid Bitcoin Core section
   String toCoreNetwork() {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
