@@ -71,7 +71,12 @@ class HelpButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailButton(variant: ButtonVariant.icon, onPressed: onPressed, icon: SailSVGAsset.iconQuestion);
+    return SailButton(
+      variant: ButtonVariant.icon,
+      onPressed: onPressed,
+      icon: SailSVGAsset.iconQuestion,
+      skipLoading: true,
+    );
   }
 }
 
@@ -98,7 +103,7 @@ class QuestionText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: SailStyleValues.padding08),
-      child: SailText.primary13(text),
+      child: SailText.primary13(text, overflow: null),
     );
   }
 }
