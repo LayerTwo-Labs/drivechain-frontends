@@ -54,6 +54,14 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   bool hasExistingWallet = false;
   bool _isGenerating = false;
+  bool _hasNavigatedInternally = false;
+
+  void _setScreen(WelcomeScreen screen) {
+    if (_currentScreen != screen) {
+      _hasNavigatedInternally = true;
+    }
+    setState(() => _currentScreen = screen);
+  }
 
   @override
   void initState() {
@@ -213,11 +221,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       }
 
       final wallet = await _walletProvider.generateWalletFromEntropy(entropy, passphrase: null);
-      setState(() {
-        _currentWalletData = Map<String, dynamic>.from(wallet);
-        _isValidInput = true;
-        _currentScreen = WelcomeScreen.success;
-      });
+      _currentWalletData = Map<String, dynamic>.from(wallet);
+      _isValidInput = true;
+      _setScreen(WelcomeScreen.success);
     } catch (e) {
       await _showErrorDialog('Error creating wallet: $e');
     }
@@ -576,7 +582,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                     SailButton(
                       label: '← Back',
                       variant: ButtonVariant.secondary,
-                      onPressed: () async => setState(() => _currentScreen = WelcomeScreen.initial),
+                      onPressed: () async {
+                        // If we started on this screen and haven't navigated internally, pop the route
+                        if (widget.initialScreen == _currentScreen && !_hasNavigatedInternally) {
+                          if (widget.onBack != null) {
+                            widget.onBack!();
+                          } else {
+                            await context.router.maybePop();
+                          }
+                        } else {
+                          _setScreen(WelcomeScreen.initial);
+                        }
+                      },
                     ),
                     SailButton(
                       label: 'Create Wallet',
@@ -695,7 +712,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   SailButton(
                     label: 'Restore from backup',
                     variant: ButtonVariant.ghost,
-                    onPressed: () async => setState(() => _currentScreen = WelcomeScreen.restore),
+                    onPressed: () async => _setScreen(WelcomeScreen.restore),
                   ),
                   const SizedBox(width: 24),
                   SailText.secondary15('·'),
@@ -703,7 +720,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   SailButton(
                     label: 'Paranoid mode',
                     variant: ButtonVariant.ghost,
-                    onPressed: () async => setState(() => _currentScreen = WelcomeScreen.advanced),
+                    onPressed: () async => _setScreen(WelcomeScreen.advanced),
                   ),
                 ],
               ),
@@ -778,9 +795,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   SailButton(
                     label: '← Back',
                     variant: ButtonVariant.secondary,
-                    onPressed: () async => setState(() {
-                      _currentScreen = WelcomeScreen.initial;
-                    }),
+                    onPressed: () async {
+                      // If we started on this screen and haven't navigated internally, pop the route
+                      if (widget.initialScreen == _currentScreen && !_hasNavigatedInternally) {
+                        if (widget.onBack != null) {
+                          widget.onBack!();
+                        } else {
+                          await context.router.maybePop();
+                        }
+                      } else {
+                        _setScreen(WelcomeScreen.initial);
+                      }
+                    },
                   ),
                   SailButton(
                     label: 'Restore',
@@ -812,7 +838,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
       await _walletProvider.generateWallet(name: finalWalletName);
       if (mounted) {
-        setState(() => _currentScreen = WelcomeScreen.success);
+        _setScreen(WelcomeScreen.success);
       }
     } catch (e) {
       if (mounted) {
@@ -847,7 +873,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
       );
       if (mounted) {
-        setState(() => _currentScreen = WelcomeScreen.success);
+        _setScreen(WelcomeScreen.success);
       }
     } catch (e) {
       await _showErrorDialog('Failed to generate wallet: $e');
