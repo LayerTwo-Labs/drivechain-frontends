@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.19.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/barebitcoin/btc-buf v0.0.0-20251202201854-efb1eb3c5e20
-	github.com/brianvoe/gofakeit/v7 v7.12.1
+	github.com/brianvoe/gofakeit/v7 v7.14.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
 	github.com/go-zeromq/zmq4 v0.17.0
