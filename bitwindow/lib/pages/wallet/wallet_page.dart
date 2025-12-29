@@ -216,8 +216,9 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
 
     try {
       final dio = Dio();
+      final network = GetIt.I.get<BitcoinConfProvider>().network.toReadableNet();
       final response = await dio.post(
-        'https://node.drivechain.info/api/faucet.v1.FaucetService/DispenseCoins',
+        'https://node.$network.drivechain.info/api/faucet.v1.FaucetService/DispenseCoins',
         data: {
           'destination': _transactionProvider.address,
           'amount': 2.1,
@@ -255,7 +256,10 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (_transactionProvider.address.isEmpty) {
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    // Only show on forknet and signet
+    if (_transactionProvider.address.isEmpty ||
+        (network != BitcoinNetwork.BITCOIN_NETWORK_FORKNET && network != BitcoinNetwork.BITCOIN_NETWORK_SIGNET)) {
       return const SizedBox.shrink();
     }
 
