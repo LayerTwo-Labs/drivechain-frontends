@@ -44,6 +44,10 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$8.CheckChequeFundingResponse> checkChequeFunding($pb.ServerContext ctx, $8.CheckChequeFundingRequest request);
   $async.Future<$8.SweepChequeResponse> sweepCheque($pb.ServerContext ctx, $8.SweepChequeRequest request);
   $async.Future<$1.Empty> deleteCheque($pb.ServerContext ctx, $8.DeleteChequeRequest request);
+  $async.Future<$1.Empty> setUTXOMetadata($pb.ServerContext ctx, $8.SetUTXOMetadataRequest request);
+  $async.Future<$8.GetUTXOMetadataResponse> getUTXOMetadata($pb.ServerContext ctx, $8.GetUTXOMetadataRequest request);
+  $async.Future<$1.Empty> setCoinSelectionStrategy($pb.ServerContext ctx, $8.SetCoinSelectionStrategyRequest request);
+  $async.Future<$8.GetCoinSelectionStrategyResponse> getCoinSelectionStrategy($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -69,6 +73,10 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CheckChequeFunding': return $8.CheckChequeFundingRequest();
       case 'SweepCheque': return $8.SweepChequeRequest();
       case 'DeleteCheque': return $8.DeleteChequeRequest();
+      case 'SetUTXOMetadata': return $8.SetUTXOMetadataRequest();
+      case 'GetUTXOMetadata': return $8.GetUTXOMetadataRequest();
+      case 'SetCoinSelectionStrategy': return $8.SetCoinSelectionStrategyRequest();
+      case 'GetCoinSelectionStrategy': return $1.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -97,6 +105,10 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CheckChequeFunding': return this.checkChequeFunding(ctx, request as $8.CheckChequeFundingRequest);
       case 'SweepCheque': return this.sweepCheque(ctx, request as $8.SweepChequeRequest);
       case 'DeleteCheque': return this.deleteCheque(ctx, request as $8.DeleteChequeRequest);
+      case 'SetUTXOMetadata': return this.setUTXOMetadata(ctx, request as $8.SetUTXOMetadataRequest);
+      case 'GetUTXOMetadata': return this.getUTXOMetadata(ctx, request as $8.GetUTXOMetadataRequest);
+      case 'SetCoinSelectionStrategy': return this.setCoinSelectionStrategy(ctx, request as $8.SetCoinSelectionStrategyRequest);
+      case 'GetCoinSelectionStrategy': return this.getCoinSelectionStrategy(ctx, request as $1.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

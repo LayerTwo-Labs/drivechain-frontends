@@ -17,6 +17,24 @@ import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $2;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
+@$core.Deprecated('Use coinSelectionStrategyDescriptor instead')
+const CoinSelectionStrategy$json = {
+  '1': 'CoinSelectionStrategy',
+  '2': [
+    {'1': 'COIN_SELECTION_STRATEGY_UNSPECIFIED', '2': 0},
+    {'1': 'COIN_SELECTION_STRATEGY_LARGEST_FIRST', '2': 1},
+    {'1': 'COIN_SELECTION_STRATEGY_SMALLEST_FIRST', '2': 2},
+    {'1': 'COIN_SELECTION_STRATEGY_RANDOM', '2': 3},
+  ],
+};
+
+/// Descriptor for `CoinSelectionStrategy`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List coinSelectionStrategyDescriptor = $convert.base64Decode(
+    'ChVDb2luU2VsZWN0aW9uU3RyYXRlZ3kSJwojQ09JTl9TRUxFQ1RJT05fU1RSQVRFR1lfVU5TUE'
+    'VDSUZJRUQQABIpCiVDT0lOX1NFTEVDVElPTl9TVFJBVEVHWV9MQVJHRVNUX0ZJUlNUEAESKgom'
+    'Q09JTl9TRUxFQ1RJT05fU1RSQVRFR1lfU01BTExFU1RfRklSU1QQAhIiCh5DT0lOX1NFTEVDVE'
+    'lPTl9TVFJBVEVHWV9SQU5ET00QAw==');
+
 @$core.Deprecated('Use getBalanceRequestDescriptor instead')
 const GetBalanceRequest$json = {
   '1': 'GetBalanceRequest',
@@ -711,6 +729,105 @@ final $typed_data.Uint8List createBitcoinCoreWalletResponseDescriptor = $convert
     'FsbGV0SWQSKAoQY29yZV93YWxsZXRfbmFtZRgCIAEoCVIOY29yZVdhbGxldE5hbWUSIwoNZmly'
     'c3RfYWRkcmVzcxgDIAEoCVIMZmlyc3RBZGRyZXNz');
 
+@$core.Deprecated('Use uTXOMetadataDescriptor instead')
+const UTXOMetadata$json = {
+  '1': 'UTXOMetadata',
+  '2': [
+    {'1': 'outpoint', '3': 1, '4': 1, '5': 9, '10': 'outpoint'},
+    {'1': 'is_frozen', '3': 2, '4': 1, '5': 8, '10': 'isFrozen'},
+    {'1': 'label', '3': 3, '4': 1, '5': 9, '10': 'label'},
+  ],
+};
+
+/// Descriptor for `UTXOMetadata`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List uTXOMetadataDescriptor = $convert.base64Decode(
+    'CgxVVFhPTWV0YWRhdGESGgoIb3V0cG9pbnQYASABKAlSCG91dHBvaW50EhsKCWlzX2Zyb3plbh'
+    'gCIAEoCFIIaXNGcm96ZW4SFAoFbGFiZWwYAyABKAlSBWxhYmVs');
+
+@$core.Deprecated('Use setUTXOMetadataRequestDescriptor instead')
+const SetUTXOMetadataRequest$json = {
+  '1': 'SetUTXOMetadataRequest',
+  '2': [
+    {'1': 'outpoint', '3': 1, '4': 1, '5': 9, '10': 'outpoint'},
+    {'1': 'is_frozen', '3': 2, '4': 1, '5': 8, '9': 0, '10': 'isFrozen', '17': true},
+    {'1': 'label', '3': 3, '4': 1, '5': 9, '9': 1, '10': 'label', '17': true},
+  ],
+  '8': [
+    {'1': '_is_frozen'},
+    {'1': '_label'},
+  ],
+};
+
+/// Descriptor for `SetUTXOMetadataRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setUTXOMetadataRequestDescriptor = $convert.base64Decode(
+    'ChZTZXRVVFhPTWV0YWRhdGFSZXF1ZXN0EhoKCG91dHBvaW50GAEgASgJUghvdXRwb2ludBIgCg'
+    'lpc19mcm96ZW4YAiABKAhIAFIIaXNGcm96ZW6IAQESGQoFbGFiZWwYAyABKAlIAVIFbGFiZWyI'
+    'AQFCDAoKX2lzX2Zyb3plbkIICgZfbGFiZWw=');
+
+@$core.Deprecated('Use getUTXOMetadataRequestDescriptor instead')
+const GetUTXOMetadataRequest$json = {
+  '1': 'GetUTXOMetadataRequest',
+  '2': [
+    {'1': 'outpoints', '3': 1, '4': 3, '5': 9, '10': 'outpoints'},
+  ],
+};
+
+/// Descriptor for `GetUTXOMetadataRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getUTXOMetadataRequestDescriptor = $convert.base64Decode(
+    'ChZHZXRVVFhPTWV0YWRhdGFSZXF1ZXN0EhwKCW91dHBvaW50cxgBIAMoCVIJb3V0cG9pbnRz');
+
+@$core.Deprecated('Use getUTXOMetadataResponseDescriptor instead')
+const GetUTXOMetadataResponse$json = {
+  '1': 'GetUTXOMetadataResponse',
+  '2': [
+    {'1': 'metadata', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.GetUTXOMetadataResponse.MetadataEntry', '10': 'metadata'},
+  ],
+  '3': [GetUTXOMetadataResponse_MetadataEntry$json],
+};
+
+@$core.Deprecated('Use getUTXOMetadataResponseDescriptor instead')
+const GetUTXOMetadataResponse_MetadataEntry$json = {
+  '1': 'MetadataEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 11, '6': '.wallet.v1.UTXOMetadata', '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+/// Descriptor for `GetUTXOMetadataResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getUTXOMetadataResponseDescriptor = $convert.base64Decode(
+    'ChdHZXRVVFhPTWV0YWRhdGFSZXNwb25zZRJMCghtZXRhZGF0YRgBIAMoCzIwLndhbGxldC52MS'
+    '5HZXRVVFhPTWV0YWRhdGFSZXNwb25zZS5NZXRhZGF0YUVudHJ5UghtZXRhZGF0YRpUCg1NZXRh'
+    'ZGF0YUVudHJ5EhAKA2tleRgBIAEoCVIDa2V5Ei0KBXZhbHVlGAIgASgLMhcud2FsbGV0LnYxLl'
+    'VUWE9NZXRhZGF0YVIFdmFsdWU6AjgB');
+
+@$core.Deprecated('Use setCoinSelectionStrategyRequestDescriptor instead')
+const SetCoinSelectionStrategyRequest$json = {
+  '1': 'SetCoinSelectionStrategyRequest',
+  '2': [
+    {'1': 'strategy', '3': 1, '4': 1, '5': 14, '6': '.wallet.v1.CoinSelectionStrategy', '10': 'strategy'},
+  ],
+};
+
+/// Descriptor for `SetCoinSelectionStrategyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setCoinSelectionStrategyRequestDescriptor = $convert.base64Decode(
+    'Ch9TZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3lSZXF1ZXN0EjwKCHN0cmF0ZWd5GAEgASgOMiAud2'
+    'FsbGV0LnYxLkNvaW5TZWxlY3Rpb25TdHJhdGVneVIIc3RyYXRlZ3k=');
+
+@$core.Deprecated('Use getCoinSelectionStrategyResponseDescriptor instead')
+const GetCoinSelectionStrategyResponse$json = {
+  '1': 'GetCoinSelectionStrategyResponse',
+  '2': [
+    {'1': 'strategy', '3': 1, '4': 1, '5': 14, '6': '.wallet.v1.CoinSelectionStrategy', '10': 'strategy'},
+  ],
+};
+
+/// Descriptor for `GetCoinSelectionStrategyResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCoinSelectionStrategyResponseDescriptor = $convert.base64Decode(
+    'CiBHZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3lSZXNwb25zZRI8CghzdHJhdGVneRgBIAEoDjIgLn'
+    'dhbGxldC52MS5Db2luU2VsZWN0aW9uU3RyYXRlZ3lSCHN0cmF0ZWd5');
+
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
   '2': [
@@ -736,6 +853,10 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'CheckChequeFunding', '2': '.wallet.v1.CheckChequeFundingRequest', '3': '.wallet.v1.CheckChequeFundingResponse'},
     {'1': 'SweepCheque', '2': '.wallet.v1.SweepChequeRequest', '3': '.wallet.v1.SweepChequeResponse'},
     {'1': 'DeleteCheque', '2': '.wallet.v1.DeleteChequeRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'SetUTXOMetadata', '2': '.wallet.v1.SetUTXOMetadataRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'GetUTXOMetadata', '2': '.wallet.v1.GetUTXOMetadataRequest', '3': '.wallet.v1.GetUTXOMetadataResponse'},
+    {'1': 'SetCoinSelectionStrategy', '2': '.wallet.v1.SetCoinSelectionStrategyRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'GetCoinSelectionStrategy', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetCoinSelectionStrategyResponse'},
   ],
 };
 
@@ -790,6 +911,13 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.SweepChequeRequest': SweepChequeRequest$json,
   '.wallet.v1.SweepChequeResponse': SweepChequeResponse$json,
   '.wallet.v1.DeleteChequeRequest': DeleteChequeRequest$json,
+  '.wallet.v1.SetUTXOMetadataRequest': SetUTXOMetadataRequest$json,
+  '.wallet.v1.GetUTXOMetadataRequest': GetUTXOMetadataRequest$json,
+  '.wallet.v1.GetUTXOMetadataResponse': GetUTXOMetadataResponse$json,
+  '.wallet.v1.GetUTXOMetadataResponse.MetadataEntry': GetUTXOMetadataResponse_MetadataEntry$json,
+  '.wallet.v1.UTXOMetadata': UTXOMetadata$json,
+  '.wallet.v1.SetCoinSelectionStrategyRequest': SetCoinSelectionStrategyRequest$json,
+  '.wallet.v1.GetCoinSelectionStrategyResponse': GetCoinSelectionStrategyResponse$json,
 };
 
 /// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -828,5 +956,11 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'F1ZUZ1bmRpbmdSZXNwb25zZRJMCgtTd2VlcENoZXF1ZRIdLndhbGxldC52MS5Td2VlcENoZXF1'
     'ZVJlcXVlc3QaHi53YWxsZXQudjEuU3dlZXBDaGVxdWVSZXNwb25zZRJGCgxEZWxldGVDaGVxdW'
     'USHi53YWxsZXQudjEuRGVsZXRlQ2hlcXVlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0'
-    'eQ==');
+    'eRJMCg9TZXRVVFhPTWV0YWRhdGESIS53YWxsZXQudjEuU2V0VVRYT01ldGFkYXRhUmVxdWVzdB'
+    'oWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJYCg9HZXRVVFhPTWV0YWRhdGESIS53YWxsZXQudjEu'
+    'R2V0VVRYT01ldGFkYXRhUmVxdWVzdBoiLndhbGxldC52MS5HZXRVVFhPTWV0YWRhdGFSZXNwb2'
+    '5zZRJeChhTZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3kSKi53YWxsZXQudjEuU2V0Q29pblNlbGVj'
+    'dGlvblN0cmF0ZWd5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJfChhHZXRDb2luU2'
+    'VsZWN0aW9uU3RyYXRlZ3kSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKy53YWxsZXQudjEuR2V0'
+    'Q29pblNlbGVjdGlvblN0cmF0ZWd5UmVzcG9uc2U=');
 

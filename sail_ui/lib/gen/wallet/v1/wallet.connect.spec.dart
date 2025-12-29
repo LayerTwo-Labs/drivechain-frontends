@@ -168,4 +168,34 @@ abstract final class WalletService {
     walletv1wallet.DeleteChequeRequest.new,
     googleprotobufempty.Empty.new,
   );
+
+  /// UTXO Coin Control
+  static const setUTXOMetadata = connect.Spec(
+    '/$name/SetUTXOMetadata',
+    connect.StreamType.unary,
+    walletv1wallet.SetUTXOMetadataRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const getUTXOMetadata = connect.Spec(
+    '/$name/GetUTXOMetadata',
+    connect.StreamType.unary,
+    walletv1wallet.GetUTXOMetadataRequest.new,
+    walletv1wallet.GetUTXOMetadataResponse.new,
+  );
+
+  /// Coin Selection Preferences
+  static const setCoinSelectionStrategy = connect.Spec(
+    '/$name/SetCoinSelectionStrategy',
+    connect.StreamType.unary,
+    walletv1wallet.SetCoinSelectionStrategyRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const getCoinSelectionStrategy = connect.Spec(
+    '/$name/GetCoinSelectionStrategy',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    walletv1wallet.GetCoinSelectionStrategyResponse.new,
+  );
 }

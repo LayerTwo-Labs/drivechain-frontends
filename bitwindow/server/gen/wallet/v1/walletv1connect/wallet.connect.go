@@ -98,6 +98,18 @@ const (
 	// WalletServiceDeleteChequeProcedure is the fully-qualified name of the WalletService's
 	// DeleteCheque RPC.
 	WalletServiceDeleteChequeProcedure = "/wallet.v1.WalletService/DeleteCheque"
+	// WalletServiceSetUTXOMetadataProcedure is the fully-qualified name of the WalletService's
+	// SetUTXOMetadata RPC.
+	WalletServiceSetUTXOMetadataProcedure = "/wallet.v1.WalletService/SetUTXOMetadata"
+	// WalletServiceGetUTXOMetadataProcedure is the fully-qualified name of the WalletService's
+	// GetUTXOMetadata RPC.
+	WalletServiceGetUTXOMetadataProcedure = "/wallet.v1.WalletService/GetUTXOMetadata"
+	// WalletServiceSetCoinSelectionStrategyProcedure is the fully-qualified name of the WalletService's
+	// SetCoinSelectionStrategy RPC.
+	WalletServiceSetCoinSelectionStrategyProcedure = "/wallet.v1.WalletService/SetCoinSelectionStrategy"
+	// WalletServiceGetCoinSelectionStrategyProcedure is the fully-qualified name of the WalletService's
+	// GetCoinSelectionStrategy RPC.
+	WalletServiceGetCoinSelectionStrategyProcedure = "/wallet.v1.WalletService/GetCoinSelectionStrategy"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -128,6 +140,12 @@ type WalletServiceClient interface {
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
+	// UTXO Coin Control
+	SetUTXOMetadata(context.Context, *connect.Request[v1.SetUTXOMetadataRequest]) (*connect.Response[emptypb.Empty], error)
+	GetUTXOMetadata(context.Context, *connect.Request[v1.GetUTXOMetadataRequest]) (*connect.Response[v1.GetUTXOMetadataResponse], error)
+	// Coin Selection Preferences
+	SetCoinSelectionStrategy(context.Context, *connect.Request[v1.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error)
+	GetCoinSelectionStrategy(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetCoinSelectionStrategyResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -273,33 +291,61 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("DeleteCheque")),
 			connect.WithClientOptions(opts...),
 		),
+		setUTXOMetadata: connect.NewClient[v1.SetUTXOMetadataRequest, emptypb.Empty](
+			httpClient,
+			baseURL+WalletServiceSetUTXOMetadataProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("SetUTXOMetadata")),
+			connect.WithClientOptions(opts...),
+		),
+		getUTXOMetadata: connect.NewClient[v1.GetUTXOMetadataRequest, v1.GetUTXOMetadataResponse](
+			httpClient,
+			baseURL+WalletServiceGetUTXOMetadataProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetUTXOMetadata")),
+			connect.WithClientOptions(opts...),
+		),
+		setCoinSelectionStrategy: connect.NewClient[v1.SetCoinSelectionStrategyRequest, emptypb.Empty](
+			httpClient,
+			baseURL+WalletServiceSetCoinSelectionStrategyProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("SetCoinSelectionStrategy")),
+			connect.WithClientOptions(opts...),
+		),
+		getCoinSelectionStrategy: connect.NewClient[emptypb.Empty, v1.GetCoinSelectionStrategyResponse](
+			httpClient,
+			baseURL+WalletServiceGetCoinSelectionStrategyProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetCoinSelectionStrategy")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // walletServiceClient implements WalletServiceClient.
 type walletServiceClient struct {
-	createBitcoinCoreWallet *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
-	sendTransaction         *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
-	getBalance              *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
-	getNewAddress           *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
-	listTransactions        *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
-	listUnspent             *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
-	listReceiveAddresses    *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
-	listSidechainDeposits   *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
-	createSidechainDeposit  *connect.Client[v1.CreateSidechainDepositRequest, v1.CreateSidechainDepositResponse]
-	signMessage             *connect.Client[v1.SignMessageRequest, v1.SignMessageResponse]
-	verifyMessage           *connect.Client[v1.VerifyMessageRequest, v1.VerifyMessageResponse]
-	getStats                *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	unlockWallet            *connect.Client[v1.UnlockWalletRequest, emptypb.Empty]
-	lockWallet              *connect.Client[emptypb.Empty, emptypb.Empty]
-	isWalletUnlocked        *connect.Client[emptypb.Empty, emptypb.Empty]
-	createCheque            *connect.Client[v1.CreateChequeRequest, v1.CreateChequeResponse]
-	getCheque               *connect.Client[v1.GetChequeRequest, v1.GetChequeResponse]
-	getChequePrivateKey     *connect.Client[v1.GetChequePrivateKeyRequest, v1.GetChequePrivateKeyResponse]
-	listCheques             *connect.Client[v1.ListChequesRequest, v1.ListChequesResponse]
-	checkChequeFunding      *connect.Client[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse]
-	sweepCheque             *connect.Client[v1.SweepChequeRequest, v1.SweepChequeResponse]
-	deleteCheque            *connect.Client[v1.DeleteChequeRequest, emptypb.Empty]
+	createBitcoinCoreWallet  *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
+	sendTransaction          *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	getBalance               *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
+	getNewAddress            *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
+	listTransactions         *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
+	listUnspent              *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
+	listReceiveAddresses     *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
+	listSidechainDeposits    *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
+	createSidechainDeposit   *connect.Client[v1.CreateSidechainDepositRequest, v1.CreateSidechainDepositResponse]
+	signMessage              *connect.Client[v1.SignMessageRequest, v1.SignMessageResponse]
+	verifyMessage            *connect.Client[v1.VerifyMessageRequest, v1.VerifyMessageResponse]
+	getStats                 *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
+	unlockWallet             *connect.Client[v1.UnlockWalletRequest, emptypb.Empty]
+	lockWallet               *connect.Client[emptypb.Empty, emptypb.Empty]
+	isWalletUnlocked         *connect.Client[emptypb.Empty, emptypb.Empty]
+	createCheque             *connect.Client[v1.CreateChequeRequest, v1.CreateChequeResponse]
+	getCheque                *connect.Client[v1.GetChequeRequest, v1.GetChequeResponse]
+	getChequePrivateKey      *connect.Client[v1.GetChequePrivateKeyRequest, v1.GetChequePrivateKeyResponse]
+	listCheques              *connect.Client[v1.ListChequesRequest, v1.ListChequesResponse]
+	checkChequeFunding       *connect.Client[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse]
+	sweepCheque              *connect.Client[v1.SweepChequeRequest, v1.SweepChequeResponse]
+	deleteCheque             *connect.Client[v1.DeleteChequeRequest, emptypb.Empty]
+	setUTXOMetadata          *connect.Client[v1.SetUTXOMetadataRequest, emptypb.Empty]
+	getUTXOMetadata          *connect.Client[v1.GetUTXOMetadataRequest, v1.GetUTXOMetadataResponse]
+	setCoinSelectionStrategy *connect.Client[v1.SetCoinSelectionStrategyRequest, emptypb.Empty]
+	getCoinSelectionStrategy *connect.Client[emptypb.Empty, v1.GetCoinSelectionStrategyResponse]
 }
 
 // CreateBitcoinCoreWallet calls wallet.v1.WalletService.CreateBitcoinCoreWallet.
@@ -412,6 +458,26 @@ func (c *walletServiceClient) DeleteCheque(ctx context.Context, req *connect.Req
 	return c.deleteCheque.CallUnary(ctx, req)
 }
 
+// SetUTXOMetadata calls wallet.v1.WalletService.SetUTXOMetadata.
+func (c *walletServiceClient) SetUTXOMetadata(ctx context.Context, req *connect.Request[v1.SetUTXOMetadataRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.setUTXOMetadata.CallUnary(ctx, req)
+}
+
+// GetUTXOMetadata calls wallet.v1.WalletService.GetUTXOMetadata.
+func (c *walletServiceClient) GetUTXOMetadata(ctx context.Context, req *connect.Request[v1.GetUTXOMetadataRequest]) (*connect.Response[v1.GetUTXOMetadataResponse], error) {
+	return c.getUTXOMetadata.CallUnary(ctx, req)
+}
+
+// SetCoinSelectionStrategy calls wallet.v1.WalletService.SetCoinSelectionStrategy.
+func (c *walletServiceClient) SetCoinSelectionStrategy(ctx context.Context, req *connect.Request[v1.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.setCoinSelectionStrategy.CallUnary(ctx, req)
+}
+
+// GetCoinSelectionStrategy calls wallet.v1.WalletService.GetCoinSelectionStrategy.
+func (c *walletServiceClient) GetCoinSelectionStrategy(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetCoinSelectionStrategyResponse], error) {
+	return c.getCoinSelectionStrategy.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
@@ -440,6 +506,12 @@ type WalletServiceHandler interface {
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
+	// UTXO Coin Control
+	SetUTXOMetadata(context.Context, *connect.Request[v1.SetUTXOMetadataRequest]) (*connect.Response[emptypb.Empty], error)
+	GetUTXOMetadata(context.Context, *connect.Request[v1.GetUTXOMetadataRequest]) (*connect.Response[v1.GetUTXOMetadataResponse], error)
+	// Coin Selection Preferences
+	SetCoinSelectionStrategy(context.Context, *connect.Request[v1.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error)
+	GetCoinSelectionStrategy(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetCoinSelectionStrategyResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -581,6 +653,30 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("DeleteCheque")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceSetUTXOMetadataHandler := connect.NewUnaryHandler(
+		WalletServiceSetUTXOMetadataProcedure,
+		svc.SetUTXOMetadata,
+		connect.WithSchema(walletServiceMethods.ByName("SetUTXOMetadata")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceGetUTXOMetadataHandler := connect.NewUnaryHandler(
+		WalletServiceGetUTXOMetadataProcedure,
+		svc.GetUTXOMetadata,
+		connect.WithSchema(walletServiceMethods.ByName("GetUTXOMetadata")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceSetCoinSelectionStrategyHandler := connect.NewUnaryHandler(
+		WalletServiceSetCoinSelectionStrategyProcedure,
+		svc.SetCoinSelectionStrategy,
+		connect.WithSchema(walletServiceMethods.ByName("SetCoinSelectionStrategy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceGetCoinSelectionStrategyHandler := connect.NewUnaryHandler(
+		WalletServiceGetCoinSelectionStrategyProcedure,
+		svc.GetCoinSelectionStrategy,
+		connect.WithSchema(walletServiceMethods.ByName("GetCoinSelectionStrategy")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceCreateBitcoinCoreWalletProcedure:
@@ -627,6 +723,14 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceSweepChequeHandler.ServeHTTP(w, r)
 		case WalletServiceDeleteChequeProcedure:
 			walletServiceDeleteChequeHandler.ServeHTTP(w, r)
+		case WalletServiceSetUTXOMetadataProcedure:
+			walletServiceSetUTXOMetadataHandler.ServeHTTP(w, r)
+		case WalletServiceGetUTXOMetadataProcedure:
+			walletServiceGetUTXOMetadataHandler.ServeHTTP(w, r)
+		case WalletServiceSetCoinSelectionStrategyProcedure:
+			walletServiceSetCoinSelectionStrategyHandler.ServeHTTP(w, r)
+		case WalletServiceGetCoinSelectionStrategyProcedure:
+			walletServiceGetCoinSelectionStrategyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -722,4 +826,20 @@ func (UnimplementedWalletServiceHandler) SweepCheque(context.Context, *connect.R
 
 func (UnimplementedWalletServiceHandler) DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.DeleteCheque is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) SetUTXOMetadata(context.Context, *connect.Request[v1.SetUTXOMetadataRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SetUTXOMetadata is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) GetUTXOMetadata(context.Context, *connect.Request[v1.GetUTXOMetadataRequest]) (*connect.Response[v1.GetUTXOMetadataResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetUTXOMetadata is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) SetCoinSelectionStrategy(context.Context, *connect.Request[v1.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SetCoinSelectionStrategy is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) GetCoinSelectionStrategy(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetCoinSelectionStrategyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetCoinSelectionStrategy is not implemented"))
 }

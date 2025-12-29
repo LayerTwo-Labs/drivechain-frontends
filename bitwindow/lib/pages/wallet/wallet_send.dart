@@ -6,12 +6,15 @@ import 'package:bitwindow/main.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
+import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pbserver.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as pb;
+import 'package:sail_ui/gen/wallet/v1/wallet.pbserver.dart' hide CoinSelectionStrategy;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -333,6 +336,7 @@ class SendPageViewModel extends BaseViewModel {
   BlockchainProvider get blockchainProvider => GetIt.I<BlockchainProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
   AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
+  CoinSelectionProvider get coinSelectionProvider => GetIt.I<CoinSelectionProvider>();
   BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
   SettingsProvider get settingsProvider => GetIt.I<SettingsProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
@@ -343,6 +347,8 @@ class SendPageViewModel extends BaseViewModel {
   AddressBookEntry? selectedEntry;
   TextEditingController selectedUTXOs = TextEditingController();
   late TextEditingController feeController;
+
+  /// All UTXOs from wallet (including frozen)
   List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted(
     (a, b) {
       final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
@@ -351,7 +357,16 @@ class SendPageViewModel extends BaseViewModel {
     },
   );
 
+  /// Available UTXOs (excluding frozen) for automatic selection
+  List<UnspentOutput> get availableUtxos => allUtxos.where((u) => !coinSelectionProvider.isFrozen(u.output)).toList();
+
+  /// Frozen outpoints
+  Set<String> get frozenOutpoints => coinSelectionProvider.frozenOutpoints;
+
   List<UnspentOutput> selectedUtxos = [];
+
+  /// Coin selection strategy (from provider)
+  CoinSelectionStrategy get coinSelectionStrategy => coinSelectionProvider.strategy;
 
   List<RecipientModel> recipients = [];
   int selectedRecipientIndex = 0;
@@ -403,11 +418,30 @@ class SendPageViewModel extends BaseViewModel {
     }
     addressBookProvider.addListener(notifyListeners);
     transactionsProvider.addListener(_clearStaleSelectedUTXOs);
+    coinSelectionProvider.addListener(notifyListeners);
+    coinSelectionProvider.addListener(notifyListeners);
     settingsProvider.addListener(_onUnitChanged);
     init();
     final initialRecipient = RecipientModel();
     initialRecipient.addListener(_onRecipientChanged);
     recipients = [initialRecipient];
+  }
+
+  Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy) async {
+    await bitwindowd.wallet.setCoinSelectionStrategy(_toProto(strategy));
+    await coinSelectionProvider.fetch();
+    notifyListeners();
+  }
+
+  pb.CoinSelectionStrategy _toProto(CoinSelectionStrategy strategy) {
+    switch (strategy) {
+      case CoinSelectionStrategy.largestFirst:
+        return pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST;
+      case CoinSelectionStrategy.smallestFirst:
+        return pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_SMALLEST_FIRST;
+      case CoinSelectionStrategy.random:
+        return pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_RANDOM;
+    }
   }
 
   Future<void> _clearStaleSelectedUTXOs() async {
@@ -433,6 +467,8 @@ class SendPageViewModel extends BaseViewModel {
       recipient.removeListener(_onRecipientChanged);
     }
     addressBookProvider.removeListener(notifyListeners);
+    coinSelectionProvider.removeListener(notifyListeners);
+    coinSelectionProvider.removeListener(notifyListeners);
     settingsProvider.removeListener(_onUnitChanged);
     super.dispose();
   }

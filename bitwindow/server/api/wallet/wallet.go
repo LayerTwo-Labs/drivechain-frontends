@@ -27,7 +27,9 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -2433,4 +2435,75 @@ func (s *Server) ensureWatchWallet(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// SetUTXOMetadata implements walletv1connect.WalletServiceHandler.
+func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetUTXOMetadataRequest]) (*connect.Response[emptypb.Empty], error) {
+	if c.Msg.Outpoint == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("outpoint is required"))
+	}
+
+	var isFrozen *bool
+	if c.Msg.IsFrozen != nil {
+		isFrozen = c.Msg.IsFrozen
+	}
+	var label *string
+	if c.Msg.Label != nil {
+		label = c.Msg.Label
+	}
+
+	if err := utxometadata.Set(ctx, s.database, c.Msg.Outpoint, isFrozen, label); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set UTXO metadata: %w", err))
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// GetUTXOMetadata implements walletv1connect.WalletServiceHandler.
+func (s *Server) GetUTXOMetadata(ctx context.Context, c *connect.Request[pb.GetUTXOMetadataRequest]) (*connect.Response[pb.GetUTXOMetadataResponse], error) {
+	metadata, err := utxometadata.Get(ctx, s.database, c.Msg.Outpoints)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get UTXO metadata: %w", err))
+	}
+
+	result := make(map[string]*pb.UTXOMetadata)
+	for outpoint, entry := range metadata {
+		result[outpoint] = &pb.UTXOMetadata{
+			Outpoint: entry.Outpoint,
+			IsFrozen: entry.IsFrozen,
+			Label:    entry.Label,
+		}
+	}
+
+	return connect.NewResponse(&pb.GetUTXOMetadataResponse{
+		Metadata: result,
+	}), nil
+}
+
+// SetCoinSelectionStrategy implements walletv1connect.WalletServiceHandler.
+func (s *Server) SetCoinSelectionStrategy(ctx context.Context, c *connect.Request[pb.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error) {
+	strategyStr := strconv.Itoa(int(c.Msg.Strategy))
+	if err := preferences.Set(ctx, s.database, preferences.KeyCoinSelectionStrategy, strategyStr); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set coin selection strategy: %w", err))
+	}
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// GetCoinSelectionStrategy implements walletv1connect.WalletServiceHandler.
+func (s *Server) GetCoinSelectionStrategy(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetCoinSelectionStrategyResponse], error) {
+	value, err := preferences.Get(ctx, s.database, preferences.KeyCoinSelectionStrategy)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get coin selection strategy: %w", err))
+	}
+
+	strategy := pb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST // default
+	if value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			strategy = pb.CoinSelectionStrategy(parsed)
+		}
+	}
+
+	return connect.NewResponse(&pb.GetCoinSelectionStrategyResponse{
+		Strategy: strategy,
+	}), nil
 }

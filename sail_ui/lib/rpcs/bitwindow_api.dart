@@ -622,6 +622,14 @@ abstract class WalletAPI {
     int feeSatPerVbyte,
   );
   Future<void> deleteCheque(String walletId, int id);
+
+  // UTXO coin control
+  Future<void> setUTXOMetadata(String outpoint, {bool? isFrozen, String? label});
+  Future<Map<String, UTXOMetadata>> getUTXOMetadata(List<String> outpoints);
+
+  // Coin selection preferences
+  Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy);
+  Future<CoinSelectionStrategy> getCoinSelectionStrategy();
 }
 
 class SweepChequeResult {
@@ -927,6 +935,58 @@ class _WalletAPILive implements WalletAPI {
           id: Int64(id),
         ),
       );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> setUTXOMetadata(String outpoint, {bool? isFrozen, String? label}) async {
+    try {
+      await _client.setUTXOMetadata(
+        SetUTXOMetadataRequest(
+          outpoint: outpoint,
+          isFrozen_2: isFrozen,
+          label: label,
+        ),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, UTXOMetadata>> getUTXOMetadata(List<String> outpoints) async {
+    try {
+      final response = await _client.getUTXOMetadata(
+        GetUTXOMetadataRequest(outpoints: outpoints),
+      );
+      return response.metadata;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy) async {
+    try {
+      await _client.setCoinSelectionStrategy(
+        SetCoinSelectionStrategyRequest(strategy: strategy),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CoinSelectionStrategy> getCoinSelectionStrategy() async {
+    try {
+      final response = await _client.getCoinSelectionStrategy(Empty());
+      return response.strategy;
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
