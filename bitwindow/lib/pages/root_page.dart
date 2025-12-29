@@ -737,7 +737,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
           ],
           child: AutoTabsRouter.tabBar(
             key: _routerKey,
-            animatePageTransition: false,
+            duration: const Duration(milliseconds: 0),
             routes: [
               OverviewRoute(),
               WalletRoute(),
