@@ -386,4 +386,74 @@ extension type WalletServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// UTXO Coin Control
+  Future<googleprotobufempty.Empty> setUTXOMetadata(
+    walletv1wallet.SetUTXOMetadataRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.setUTXOMetadata,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletv1wallet.GetUTXOMetadataResponse> getUTXOMetadata(
+    walletv1wallet.GetUTXOMetadataRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.getUTXOMetadata,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Coin Selection Preferences
+  Future<googleprotobufempty.Empty> setCoinSelectionStrategy(
+    walletv1wallet.SetCoinSelectionStrategyRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.setCoinSelectionStrategy,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletv1wallet.GetCoinSelectionStrategyResponse> getCoinSelectionStrategy(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.getCoinSelectionStrategy,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

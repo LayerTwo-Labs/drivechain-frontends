@@ -18,6 +18,9 @@ import 'package:protobuf/protobuf.dart' as $pb;
 import '../../bitwindowd/v1/bitwindowd.pb.dart' as $2;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
+import 'wallet.pbenum.dart';
+
+export 'wallet.pbenum.dart';
 
 class GetBalanceRequest extends $pb.GeneratedMessage {
   factory GetBalanceRequest({
@@ -3217,6 +3220,351 @@ class CreateBitcoinCoreWalletResponse extends $pb.GeneratedMessage {
   void clearFirstAddress() => clearField(3);
 }
 
+/// UTXO Coin Control metadata
+class UTXOMetadata extends $pb.GeneratedMessage {
+  factory UTXOMetadata({
+    $core.String? outpoint,
+    $core.bool? isFrozen_2,
+    $core.String? label,
+  }) {
+    final $result = create();
+    if (outpoint != null) {
+      $result.outpoint = outpoint;
+    }
+    if (isFrozen_2 != null) {
+      $result.isFrozen_2 = isFrozen_2;
+    }
+    if (label != null) {
+      $result.label = label;
+    }
+    return $result;
+  }
+  UTXOMetadata._() : super();
+  factory UTXOMetadata.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UTXOMetadata.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UTXOMetadata', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'outpoint')
+    ..aOB(2, _omitFieldNames ? '' : 'isFrozen')
+    ..aOS(3, _omitFieldNames ? '' : 'label')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UTXOMetadata clone() => UTXOMetadata()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UTXOMetadata copyWith(void Function(UTXOMetadata) updates) => super.copyWith((message) => updates(message as UTXOMetadata)) as UTXOMetadata;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UTXOMetadata create() => UTXOMetadata._();
+  UTXOMetadata createEmptyInstance() => create();
+  static $pb.PbList<UTXOMetadata> createRepeated() => $pb.PbList<UTXOMetadata>();
+  @$core.pragma('dart2js:noInline')
+  static UTXOMetadata getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UTXOMetadata>(create);
+  static UTXOMetadata? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get outpoint => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set outpoint($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOutpoint() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOutpoint() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get isFrozen_2 => $_getBF(1);
+  @$pb.TagNumber(2)
+  set isFrozen_2($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasIsFrozen_2() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearIsFrozen_2() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get label => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set label($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasLabel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLabel() => clearField(3);
+}
+
+class SetUTXOMetadataRequest extends $pb.GeneratedMessage {
+  factory SetUTXOMetadataRequest({
+    $core.String? outpoint,
+    $core.bool? isFrozen_2,
+    $core.String? label,
+  }) {
+    final $result = create();
+    if (outpoint != null) {
+      $result.outpoint = outpoint;
+    }
+    if (isFrozen_2 != null) {
+      $result.isFrozen_2 = isFrozen_2;
+    }
+    if (label != null) {
+      $result.label = label;
+    }
+    return $result;
+  }
+  SetUTXOMetadataRequest._() : super();
+  factory SetUTXOMetadataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetUTXOMetadataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetUTXOMetadataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'outpoint')
+    ..aOB(2, _omitFieldNames ? '' : 'isFrozen')
+    ..aOS(3, _omitFieldNames ? '' : 'label')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetUTXOMetadataRequest clone() => SetUTXOMetadataRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetUTXOMetadataRequest copyWith(void Function(SetUTXOMetadataRequest) updates) => super.copyWith((message) => updates(message as SetUTXOMetadataRequest)) as SetUTXOMetadataRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetUTXOMetadataRequest create() => SetUTXOMetadataRequest._();
+  SetUTXOMetadataRequest createEmptyInstance() => create();
+  static $pb.PbList<SetUTXOMetadataRequest> createRepeated() => $pb.PbList<SetUTXOMetadataRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetUTXOMetadataRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetUTXOMetadataRequest>(create);
+  static SetUTXOMetadataRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get outpoint => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set outpoint($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOutpoint() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOutpoint() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get isFrozen_2 => $_getBF(1);
+  @$pb.TagNumber(2)
+  set isFrozen_2($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasIsFrozen_2() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearIsFrozen_2() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get label => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set label($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasLabel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLabel() => clearField(3);
+}
+
+class GetUTXOMetadataRequest extends $pb.GeneratedMessage {
+  factory GetUTXOMetadataRequest({
+    $core.Iterable<$core.String>? outpoints,
+  }) {
+    final $result = create();
+    if (outpoints != null) {
+      $result.outpoints.addAll(outpoints);
+    }
+    return $result;
+  }
+  GetUTXOMetadataRequest._() : super();
+  factory GetUTXOMetadataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetUTXOMetadataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetUTXOMetadataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'outpoints')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetUTXOMetadataRequest clone() => GetUTXOMetadataRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetUTXOMetadataRequest copyWith(void Function(GetUTXOMetadataRequest) updates) => super.copyWith((message) => updates(message as GetUTXOMetadataRequest)) as GetUTXOMetadataRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetUTXOMetadataRequest create() => GetUTXOMetadataRequest._();
+  GetUTXOMetadataRequest createEmptyInstance() => create();
+  static $pb.PbList<GetUTXOMetadataRequest> createRepeated() => $pb.PbList<GetUTXOMetadataRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetUTXOMetadataRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetUTXOMetadataRequest>(create);
+  static GetUTXOMetadataRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.String> get outpoints => $_getList(0);
+}
+
+class GetUTXOMetadataResponse extends $pb.GeneratedMessage {
+  factory GetUTXOMetadataResponse({
+    $core.Map<$core.String, UTXOMetadata>? metadata,
+  }) {
+    final $result = create();
+    if (metadata != null) {
+      $result.metadata.addAll(metadata);
+    }
+    return $result;
+  }
+  GetUTXOMetadataResponse._() : super();
+  factory GetUTXOMetadataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetUTXOMetadataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetUTXOMetadataResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..m<$core.String, UTXOMetadata>(1, _omitFieldNames ? '' : 'metadata', entryClassName: 'GetUTXOMetadataResponse.MetadataEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OM, valueCreator: UTXOMetadata.create, valueDefaultOrMaker: UTXOMetadata.getDefault, packageName: const $pb.PackageName('wallet.v1'))
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetUTXOMetadataResponse clone() => GetUTXOMetadataResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetUTXOMetadataResponse copyWith(void Function(GetUTXOMetadataResponse) updates) => super.copyWith((message) => updates(message as GetUTXOMetadataResponse)) as GetUTXOMetadataResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetUTXOMetadataResponse create() => GetUTXOMetadataResponse._();
+  GetUTXOMetadataResponse createEmptyInstance() => create();
+  static $pb.PbList<GetUTXOMetadataResponse> createRepeated() => $pb.PbList<GetUTXOMetadataResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetUTXOMetadataResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetUTXOMetadataResponse>(create);
+  static GetUTXOMetadataResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.Map<$core.String, UTXOMetadata> get metadata => $_getMap(0);
+}
+
+class SetCoinSelectionStrategyRequest extends $pb.GeneratedMessage {
+  factory SetCoinSelectionStrategyRequest({
+    CoinSelectionStrategy? strategy,
+  }) {
+    final $result = create();
+    if (strategy != null) {
+      $result.strategy = strategy;
+    }
+    return $result;
+  }
+  SetCoinSelectionStrategyRequest._() : super();
+  factory SetCoinSelectionStrategyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetCoinSelectionStrategyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetCoinSelectionStrategyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..e<CoinSelectionStrategy>(1, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: CoinSelectionStrategy.COIN_SELECTION_STRATEGY_UNSPECIFIED, valueOf: CoinSelectionStrategy.valueOf, enumValues: CoinSelectionStrategy.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetCoinSelectionStrategyRequest clone() => SetCoinSelectionStrategyRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetCoinSelectionStrategyRequest copyWith(void Function(SetCoinSelectionStrategyRequest) updates) => super.copyWith((message) => updates(message as SetCoinSelectionStrategyRequest)) as SetCoinSelectionStrategyRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetCoinSelectionStrategyRequest create() => SetCoinSelectionStrategyRequest._();
+  SetCoinSelectionStrategyRequest createEmptyInstance() => create();
+  static $pb.PbList<SetCoinSelectionStrategyRequest> createRepeated() => $pb.PbList<SetCoinSelectionStrategyRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetCoinSelectionStrategyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetCoinSelectionStrategyRequest>(create);
+  static SetCoinSelectionStrategyRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  CoinSelectionStrategy get strategy => $_getN(0);
+  @$pb.TagNumber(1)
+  set strategy(CoinSelectionStrategy v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStrategy() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStrategy() => clearField(1);
+}
+
+class GetCoinSelectionStrategyResponse extends $pb.GeneratedMessage {
+  factory GetCoinSelectionStrategyResponse({
+    CoinSelectionStrategy? strategy,
+  }) {
+    final $result = create();
+    if (strategy != null) {
+      $result.strategy = strategy;
+    }
+    return $result;
+  }
+  GetCoinSelectionStrategyResponse._() : super();
+  factory GetCoinSelectionStrategyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetCoinSelectionStrategyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoinSelectionStrategyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..e<CoinSelectionStrategy>(1, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: CoinSelectionStrategy.COIN_SELECTION_STRATEGY_UNSPECIFIED, valueOf: CoinSelectionStrategy.valueOf, enumValues: CoinSelectionStrategy.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetCoinSelectionStrategyResponse clone() => GetCoinSelectionStrategyResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetCoinSelectionStrategyResponse copyWith(void Function(GetCoinSelectionStrategyResponse) updates) => super.copyWith((message) => updates(message as GetCoinSelectionStrategyResponse)) as GetCoinSelectionStrategyResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCoinSelectionStrategyResponse create() => GetCoinSelectionStrategyResponse._();
+  GetCoinSelectionStrategyResponse createEmptyInstance() => create();
+  static $pb.PbList<GetCoinSelectionStrategyResponse> createRepeated() => $pb.PbList<GetCoinSelectionStrategyResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetCoinSelectionStrategyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetCoinSelectionStrategyResponse>(create);
+  static GetCoinSelectionStrategyResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  CoinSelectionStrategy get strategy => $_getN(0);
+  @$pb.TagNumber(1)
+  set strategy(CoinSelectionStrategy v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStrategy() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStrategy() => clearField(1);
+}
+
 class WalletServiceApi {
   $pb.RpcClient _client;
   WalletServiceApi(this._client);
@@ -3286,6 +3634,18 @@ class WalletServiceApi {
   ;
   $async.Future<$1.Empty> deleteCheque($pb.ClientContext? ctx, DeleteChequeRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'WalletService', 'DeleteCheque', request, $1.Empty())
+  ;
+  $async.Future<$1.Empty> setUTXOMetadata($pb.ClientContext? ctx, SetUTXOMetadataRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'WalletService', 'SetUTXOMetadata', request, $1.Empty())
+  ;
+  $async.Future<GetUTXOMetadataResponse> getUTXOMetadata($pb.ClientContext? ctx, GetUTXOMetadataRequest request) =>
+    _client.invoke<GetUTXOMetadataResponse>(ctx, 'WalletService', 'GetUTXOMetadata', request, GetUTXOMetadataResponse())
+  ;
+  $async.Future<$1.Empty> setCoinSelectionStrategy($pb.ClientContext? ctx, SetCoinSelectionStrategyRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'WalletService', 'SetCoinSelectionStrategy', request, $1.Empty())
+  ;
+  $async.Future<GetCoinSelectionStrategyResponse> getCoinSelectionStrategy($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetCoinSelectionStrategyResponse>(ctx, 'WalletService', 'GetCoinSelectionStrategy', request, GetCoinSelectionStrategyResponse())
   ;
 }
 

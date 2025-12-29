@@ -295,6 +295,26 @@ class MockWalletAPI implements WalletAPI {
   Future<void> deleteCheque(String walletId, int id) async {
     return;
   }
+
+  @override
+  Future<CoinSelectionStrategy> getCoinSelectionStrategy() {
+    return Future.value(CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST);
+  }
+
+  @override
+  Future<Map<String, UTXOMetadata>> getUTXOMetadata(List<String> outpoints) {
+    return Future.value({});
+  }
+
+  @override
+  Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy) {
+    return Future.value();
+  }
+
+  @override
+  Future<void> setUTXOMetadata(String outpoint, {bool? isFrozen, String? label}) {
+    return Future.value();
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

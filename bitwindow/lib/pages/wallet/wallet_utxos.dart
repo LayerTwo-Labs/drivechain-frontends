@@ -1,5 +1,6 @@
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/providers/coin_selection_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -46,18 +47,34 @@ class _UTXOTableState extends State<UTXOTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
   List<UnspentOutput> sortedEntries = [];
+  bool hideFrozen = false;
+
+  CoinSelectionProvider get _coinSelection => GetIt.I<CoinSelectionProvider>();
+  BitwindowRPC get _rpc => GetIt.I<BitwindowRPC>();
 
   @override
   void initState() {
     super.initState();
     sortedEntries = List.from(widget.entries);
     sortEntries();
+    _coinSelection.addListener(_onMetadataChange);
+  }
+
+  @override
+  void dispose() {
+    _coinSelection.removeListener(_onMetadataChange);
+    super.dispose();
+  }
+
+  void _onMetadataChange() {
+    setState(() {
+      sortEntries();
+    });
   }
 
   @override
   void didUpdateWidget(UTXOTable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update sorted entries when the widget's entries change
     if (widget.entries != oldWidget.entries) {
       sortedEntries = List.from(widget.entries);
       sortEntries();
@@ -77,13 +94,23 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 
   void sortEntries() {
-    sortedEntries.sort((a, b) {
+    var entries = List<UnspentOutput>.from(widget.entries);
+
+    // Filter frozen if needed
+    if (hideFrozen) {
+      entries = entries.where((u) => !_coinSelection.isFrozen(u.output)).toList();
+    }
+
+    entries.sort((a, b) {
       dynamic aValue, bValue;
       switch (sortColumn) {
+        case 'frozen':
+          aValue = _coinSelection.isFrozen(a.output) ? 1 : 0;
+          bValue = _coinSelection.isFrozen(b.output) ? 1 : 0;
+          break;
         case 'date':
           aValue = a.receivedAt.toDateTime();
           bValue = b.receivedAt.toDateTime();
-          // If dates are equal, sort by output
           if (aValue.compareTo(bValue) == 0) {
             return a.output.compareTo(b.output);
           }
@@ -97,8 +124,8 @@ class _UTXOTableState extends State<UTXOTable> {
           bValue = b.address;
           break;
         case 'label':
-          aValue = a.label;
-          bValue = b.label;
+          aValue = _getLabel(a);
+          bValue = _getLabel(b);
           break;
         case 'value':
           aValue = a.valueSats;
@@ -111,29 +138,31 @@ class _UTXOTableState extends State<UTXOTable> {
       }
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
+
+    sortedEntries = entries;
   }
 
-  /// Get the number of completed denial hops for a UTXO
+  String _getLabel(UnspentOutput utxo) {
+    final metaLabel = _coinSelection.getLabel(utxo.output);
+    return metaLabel.isNotEmpty ? metaLabel : utxo.label;
+  }
+
   int getDenialHops(UnspentOutput utxo) {
     if (!utxo.hasDenialInfo()) return 0;
     return utxo.denialInfo.hopsCompleted;
   }
 
-  /// Get the denial status for display
   String getDenialStatus(UnspentOutput utxo) {
     if (!utxo.hasDenialInfo()) return '-';
 
     final hops = utxo.denialInfo.hopsCompleted;
     final totalHops = utxo.denialInfo.numHops;
 
-    // Check if completed first (all hops done)
     if (hops >= totalHops && totalHops > 0) {
       return 'Done ($hops)';
     }
-    // Check if completed (no next execution time or next execution is epoch 0)
     if (!utxo.denialInfo.hasNextExecutionTime() ||
         utxo.denialInfo.nextExecutionTime.toDateTime().millisecondsSinceEpoch == 0) {
-      // Only show cancelled if not all hops completed
       if (utxo.denialInfo.hasCancelTime()) {
         return 'Cancelled ($hops)';
       }
@@ -148,17 +177,16 @@ class _UTXOTableState extends State<UTXOTable> {
     return 'Active ($hops/$totalHops)';
   }
 
-  /// Get color based on denial hops: red (0), orange (1-2), green (3+)
   Color? getDenialColor(BuildContext context, UnspentOutput utxo) {
     final theme = SailTheme.of(context);
     final hops = getDenialHops(utxo);
 
     if (hops == 0) {
-      return theme.colors.error; // Red - no deniability
+      return theme.colors.error;
     } else if (hops <= 2) {
-      return theme.colors.orange; // Orange - some deniability
+      return theme.colors.orange;
     } else {
-      return theme.colors.success; // Green - good deniability (3+)
+      return theme.colors.success;
     }
   }
 
@@ -166,13 +194,58 @@ class _UTXOTableState extends State<UTXOTable> {
     return utxo.hasDenialInfo() && getDenialHops(utxo) > 0;
   }
 
+  Future<void> _showLabelDialog(BuildContext context, UnspentOutput utxo) async {
+    final controller = TextEditingController(text: _getLabel(utxo));
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit UTXO Label'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Label',
+            hintText: 'e.g., Cold storage, Exchange deposit',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      await _rpc.wallet.setUTXOMetadata(utxo.output, label: result);
+      await _coinSelection.fetch();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
+    final theme = SailTheme.of(context);
+    final frozenCount = widget.entries.where((u) => _coinSelection.isFrozen(u.output)).length;
 
     return SailCard(
       title: 'Your UTXOs',
       bottomPadding: false,
+      widgetHeaderEnd: SailCheckbox(
+        value: hideFrozen,
+        onChanged: (value) {
+          setState(() {
+            hideFrozen = value;
+            sortEntries();
+          });
+        },
+        label: 'Hide frozen ($frozenCount)',
+      ),
       child: Column(
         children: [
           Expanded(
@@ -180,14 +253,18 @@ class _UTXOTableState extends State<UTXOTable> {
               description: 'Waiting for enforcer to start and wallet to sync..',
               enabled: widget.model.loading,
               child: ListenableBuilder(
-                listenable: formatter,
+                listenable: Listenable.merge([formatter, _coinSelection]),
                 builder: (context, child) => SailTable(
                   rowBackgroundColor: (index) {
                     final utxo = sortedEntries[index];
+                    if (_coinSelection.isFrozen(utxo.output)) {
+                      return theme.colors.divider.withValues(alpha: 0.3);
+                    }
                     return isDenied(utxo) ? Colors.green.withValues(alpha: 0.1) : null;
                   },
-                  getRowId: (index) => sortedEntries[index].output.split(':').first,
+                  getRowId: (index) => sortedEntries[index].output,
                   headerBuilder: (context) => [
+                    SailTableHeaderCell(name: '', onSort: () => onSort('frozen')),
                     SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
                     SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
                     SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
@@ -198,8 +275,15 @@ class _UTXOTableState extends State<UTXOTable> {
                   rowBuilder: (context, row, selected) {
                     final utxo = sortedEntries[row];
                     final formattedAmount = formatter.formatSats(utxo.valueSats.toInt());
+                    final isFrozen = _coinSelection.isFrozen(utxo.output);
 
                     return [
+                      SailTableCell(
+                        value: '',
+                        child: isFrozen
+                            ? Icon(Icons.ac_unit, size: 14, color: theme.colors.info)
+                            : const SizedBox(width: 14),
+                      ),
                       SailTableCell(
                         value: formatDate(utxo.receivedAt.toDateTime().toLocal()),
                       ),
@@ -213,7 +297,7 @@ class _UTXOTableState extends State<UTXOTable> {
                         monospace: true,
                       ),
                       SailTableCell(
-                        value: utxo.label,
+                        value: _getLabel(utxo),
                         monospace: true,
                       ),
                       SailTableCell(
@@ -228,9 +312,10 @@ class _UTXOTableState extends State<UTXOTable> {
                     ];
                   },
                   rowCount: sortedEntries.length,
-                  emptyPlaceholder: 'No UTXOs in wallet',
+                  emptyPlaceholder: hideFrozen ? 'No unfrozen UTXOs' : 'No UTXOs in wallet',
                   drawGrid: true,
                   sortColumnIndex: [
+                    'frozen',
                     'date',
                     'output',
                     'address',
@@ -240,18 +325,34 @@ class _UTXOTableState extends State<UTXOTable> {
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['date', 'output', 'address', 'label', 'deniability', 'value'][columnIndex]);
+                    onSort(['frozen', 'date', 'output', 'address', 'label', 'deniability', 'value'][columnIndex]);
                   },
-                  onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+                  onDoubleTap: (rowId) => showTransactionDetails(context, rowId.split(':').first),
                   contextMenuItems: (rowId) {
+                    final utxo = sortedEntries.firstWhere((u) => u.output == rowId);
+                    final isFrozen = _coinSelection.isFrozen(rowId);
+
                     return [
                       SailMenuItem(
                         onSelected: () async {
-                          await showTransactionDetails(context, rowId);
+                          await _rpc.wallet.setUTXOMetadata(rowId, isFrozen: !isFrozen);
+                          await _coinSelection.fetch();
+                        },
+                        child: SailText.primary12(isFrozen ? 'Unfreeze UTXO' : 'Freeze UTXO'),
+                      ),
+                      SailMenuItem(
+                        onSelected: () async {
+                          await _showLabelDialog(context, utxo);
+                        },
+                        child: SailText.primary12('Edit Label'),
+                      ),
+                      SailMenuItem(
+                        onSelected: () async {
+                          await showTransactionDetails(context, rowId.split(':').first);
                         },
                         child: SailText.primary12('Show Details'),
                       ),
-                      MempoolMenuItem(txid: rowId),
+                      MempoolMenuItem(txid: rowId.split(':').first),
                     ];
                   },
                 ),
@@ -272,17 +373,17 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (loading) {
       return [
         UnspentOutput(
-          output: 'dummy_output',
+          output: 'dummy_output:0',
           address: 'dummy_address',
           label: 'dummy_label',
         ),
         UnspentOutput(
-          output: 'dummy_output',
+          output: 'dummy_output:1',
           address: 'dummy_address',
           label: 'dummy_label',
         ),
         UnspentOutput(
-          output: 'dummy_output',
+          output: 'dummy_output:2',
           address: 'dummy_address',
           label: 'dummy_label',
         ),

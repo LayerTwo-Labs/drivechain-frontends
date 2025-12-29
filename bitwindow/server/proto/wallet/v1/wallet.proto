@@ -38,6 +38,14 @@ service WalletService {
   rpc CheckChequeFunding(CheckChequeFundingRequest) returns (CheckChequeFundingResponse);
   rpc SweepCheque(SweepChequeRequest) returns (SweepChequeResponse);
   rpc DeleteCheque(DeleteChequeRequest) returns (google.protobuf.Empty);
+
+  // UTXO Coin Control
+  rpc SetUTXOMetadata(SetUTXOMetadataRequest) returns (google.protobuf.Empty);
+  rpc GetUTXOMetadata(GetUTXOMetadataRequest) returns (GetUTXOMetadataResponse);
+
+  // Coin Selection Preferences
+  rpc SetCoinSelectionStrategy(SetCoinSelectionStrategyRequest) returns (google.protobuf.Empty);
+  rpc GetCoinSelectionStrategy(google.protobuf.Empty) returns (GetCoinSelectionStrategyResponse);
 }
 
 message GetBalanceRequest {
@@ -318,4 +326,41 @@ message CreateBitcoinCoreWalletResponse {
   string core_wallet_name = 2;
   // First receiving address for verification
   string first_address = 3;
+}
+
+// UTXO Coin Control metadata
+message UTXOMetadata {
+  string outpoint = 1;
+  bool is_frozen = 2;
+  string label = 3;
+}
+
+message SetUTXOMetadataRequest {
+  string outpoint = 1;
+  optional bool is_frozen = 2;
+  optional string label = 3;
+}
+
+message GetUTXOMetadataRequest {
+  repeated string outpoints = 1; // empty = get all
+}
+
+message GetUTXOMetadataResponse {
+  map<string, UTXOMetadata> metadata = 1;
+}
+
+// Coin Selection Strategy
+enum CoinSelectionStrategy {
+  COIN_SELECTION_STRATEGY_UNSPECIFIED = 0;
+  COIN_SELECTION_STRATEGY_LARGEST_FIRST = 1;
+  COIN_SELECTION_STRATEGY_SMALLEST_FIRST = 2;
+  COIN_SELECTION_STRATEGY_RANDOM = 3;
+}
+
+message SetCoinSelectionStrategyRequest {
+  CoinSelectionStrategy strategy = 1;
+}
+
+message GetCoinSelectionStrategyResponse {
+  CoinSelectionStrategy strategy = 1;
 }
