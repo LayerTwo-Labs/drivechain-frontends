@@ -1,10 +1,9 @@
 class BitcoinConfig {
   Map<String, String> globalSettings = {};
-  // Network sections for Bitcoin Core + custom 'forknet' section for our app settings
-  // Bitcoin Core ignores unknown sections, so 'forknet' is safe to add
+  // Network sections - only valid Bitcoin Core sections
+  // Note: forknet uses 'main' section since it runs on mainnet params
   Map<String, Map<String, String>> networkSettings = {
     'main': {},
-    'forknet': {}, // Custom section for forknet-specific settings (ignored by Bitcoin Core)
     'test': {},
     'signet': {},
     'regtest': {},
@@ -74,10 +73,9 @@ class BitcoinConfig {
       buffer.writeln();
     }
 
-    // Write network-specific settings
+    // Write network-specific settings (only valid Bitcoin Core sections)
     final sectionNames = {
       'main': '[main]',
-      'forknet': '[forknet]',
       'test': '[test]',
       'signet': '[signet]',
       'regtest': '[regtest]',

@@ -862,6 +862,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   void _handleContinue() {
     if (widget.onWalletCreated != null) {
       widget.onWalletCreated!();
+    } else {
+      // Pop back to let WalletGuard continue navigation
+      context.router.maybePop();
     }
   }
 
