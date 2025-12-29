@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -109,8 +110,13 @@ class BitcoinConfProvider extends ChangeNotifier {
         }
       }
 
-      // Parse config to detect settings
-      _currentConfig = BitcoinConfig.parse(content);
+      // Parse config to detect settings (with legacy [forknet] section support for migration)
+      _currentConfig = _parseConfigWithMigration(content);
+
+      // Migrate legacy [forknet] section if present
+      if (!_hasPrivateBitcoinConf) {
+        await _migrateLegacyForknetSection(content);
+      }
 
       // Extract network and datadir from the config
       _detectNetworkFromConfig();
@@ -137,61 +143,79 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     if (_currentConfig == null) return;
 
-    // Check if we're crossing L2L/non-L2L boundary
-    final oldIsL2L = _isL2LNetwork(_detectedNetwork);
-    final newIsL2L = _isL2LNetwork(network);
-    final crossingBoundary = oldIsL2L != newIsL2L;
+    final oldNetwork = _detectedNetwork;
 
-    if (crossingBoundary) {
-      // Crossing L2L boundary - regenerate config from scratch
-      // But preserve datadir settings for each network
-      final savedDataDirs = <String, String?>{};
-      for (final section in _currentConfig!.networkSettings.keys) {
-        final datadir = _currentConfig!.getSetting('datadir', section: section);
-        if (datadir != null) {
-          savedDataDirs[section] = datadir;
-        }
+    // Check if we're switching between mainnet and forknet (both use [main] section)
+    final isMainnetForknetSwitch = _isMainnetOrForknet(oldNetwork) && _isMainnetOrForknet(network);
+
+    if (isMainnetForknetSwitch && oldNetwork != network) {
+      // Save current [main] section for the old network before switching
+      await _saveNetworkConfig(oldNetwork);
+
+      // Load saved [main] section for the new network
+      final savedConfig = await _loadNetworkConfig(network);
+      if (savedConfig != null) {
+        // Replace [main] section with saved config
+        _currentConfig!.networkSettings['main'] = savedConfig;
+        log.i('Loaded saved [main] section for $network');
+      } else {
+        // No saved config - generate defaults for the target network
+        _detectedNetwork = network;
+        final newConfigContent = getDefaultConfig();
+        final defaultConfig = BitcoinConfig.parse(newConfigContent);
+        _currentConfig!.networkSettings['main'] = defaultConfig.networkSettings['main'] ?? {};
+        log.i('Using default [main] section for $network');
+      }
+
+      // Update drivechain setting based on network
+      if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+        _currentConfig!.networkSettings['main']!['drivechain'] = '1';
+      } else {
+        _currentConfig!.networkSettings['main']!.remove('drivechain');
       }
 
       _detectedNetwork = network;
-      final newConfigContent = getDefaultConfig();
-      _currentConfig = BitcoinConfig.parse(newConfigContent);
-
-      // Restore saved datadir settings
-      for (final entry in savedDataDirs.entries) {
-        _currentConfig!.setSetting('datadir', entry.value!, section: entry.key);
-      }
     } else {
-      // Staying within same category - just update chain setting
-      _currentConfig!.globalSettings.remove('chain');
-      _currentConfig!.globalSettings.remove('testnet');
-      _currentConfig!.globalSettings.remove('testnet4');
-      _currentConfig!.globalSettings.remove('signet');
-      _currentConfig!.globalSettings.remove('regtest');
+      // Check if we're crossing L2L/non-L2L boundary
+      final oldIsL2L = _isL2LNetwork(oldNetwork);
+      final newIsL2L = _isL2LNetwork(network);
+      final crossingBoundary = oldIsL2L != newIsL2L;
 
-      switch (network) {
-        case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-          _currentConfig!.setSetting('chain', 'main');
-          break;
-        case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-          _currentConfig!.setSetting('chain', 'main');
-          break;
-        case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
-          _currentConfig!.setSetting('chain', 'test');
-          break;
-        case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
-          _currentConfig!.setSetting('chain', 'signet');
-          break;
-        case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-          _currentConfig!.setSetting('chain', 'regtest');
-          break;
-        case BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
-        case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED:
-          _currentConfig!.setSetting('chain', 'signet');
-          break;
+      if (crossingBoundary) {
+        // Crossing L2L boundary - regenerate config from scratch
+        _detectedNetwork = network;
+        final newConfigContent = getDefaultConfig();
+        _currentConfig = BitcoinConfig.parse(newConfigContent);
+      } else {
+        // Staying within same category - just update chain setting
+        _currentConfig!.globalSettings.remove('chain');
+        _currentConfig!.globalSettings.remove('testnet');
+        _currentConfig!.globalSettings.remove('testnet4');
+        _currentConfig!.globalSettings.remove('signet');
+        _currentConfig!.globalSettings.remove('regtest');
+
+        switch (network) {
+          case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+          case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+            _currentConfig!.setSetting('chain', 'main');
+            break;
+          case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+            _currentConfig!.setSetting('chain', 'test');
+            break;
+          case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+            _currentConfig!.setSetting('chain', 'signet');
+            break;
+          case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+            _currentConfig!.setSetting('chain', 'regtest');
+            break;
+          case BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+          case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED:
+            _currentConfig!.setSetting('chain', 'signet');
+            break;
+        }
+
+        _detectedNetwork = network;
       }
-
-      _detectedNetwork = network;
     }
 
     // Load datadir for the new network from its section
@@ -203,6 +227,11 @@ class BitcoinConfProvider extends ChangeNotifier {
     _updateMainchainRPCConfig(_createConnectionSettings());
 
     notifyListeners();
+  }
+
+  /// Check if network is mainnet or forknet (both use [main] section)
+  bool _isMainnetOrForknet(BitcoinNetwork network) {
+    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
   }
 
   /// Check if network supports Layer2 Labs (drivechain) features
@@ -583,6 +612,112 @@ drivechain=1
     return getDefaultConfig();
   }
 
+  /// Parse config content, supporting legacy [forknet] section for migration
+  BitcoinConfig _parseConfigWithMigration(String content) {
+    // First, parse normally (which now ignores [forknet] since it's not in networkSettings)
+    final config = BitcoinConfig.parse(content);
+
+    // Manually parse [forknet] section if present for migration purposes
+    final forknetSettings = _parseLegacyForknetSection(content);
+    if (forknetSettings.isNotEmpty) {
+      // Store forknet settings temporarily - they'll be migrated in _migrateLegacyForknetSection
+      log.i('Found legacy [forknet] section with ${forknetSettings.length} settings');
+    }
+
+    return config;
+  }
+
+  /// Parse legacy [forknet] section from raw config content
+  Map<String, String> _parseLegacyForknetSection(String content) {
+    final settings = <String, String>{};
+    final lines = content.split('\n');
+    bool inForknetSection = false;
+
+    for (final line in lines) {
+      final trimmed = line.trim();
+
+      if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
+
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        final section = trimmed.substring(1, trimmed.length - 1);
+        inForknetSection = section == 'forknet';
+        continue;
+      }
+
+      if (inForknetSection) {
+        final parts = trimmed.split('=');
+        if (parts.length >= 2) {
+          final key = parts[0].trim();
+          final value = parts.sublist(1).join('=').trim();
+          settings[key] = value;
+        }
+      }
+    }
+
+    return settings;
+  }
+
+  /// Migrate legacy [forknet] section to JSON file and rewrite config without it
+  Future<void> _migrateLegacyForknetSection(String content) async {
+    // Check if content has [forknet] section
+    if (!content.contains('[forknet]')) return;
+
+    log.i('Migrating legacy [forknet] section...');
+
+    // Parse the forknet settings
+    final forknetSettings = _parseLegacyForknetSection(content);
+    if (forknetSettings.isEmpty) return;
+
+    // Save forknet settings to JSON
+    try {
+      final jsonPath = _getSavedConfigPath(BitcoinNetwork.BITCOIN_NETWORK_FORKNET);
+      final jsonContent = jsonEncode({'main': forknetSettings});
+      await File(jsonPath).writeAsString(jsonContent);
+      log.i('Migrated ${forknetSettings.length} forknet settings to $jsonPath');
+    } catch (e) {
+      log.e('Failed to save migrated forknet config: $e');
+    }
+
+    // Rewrite config file without [forknet] section
+    try {
+      final confInfo = _getConfigFileInfo();
+      final newContent = _removeForknetSection(content);
+      await File(confInfo.path).writeAsString(newContent);
+      log.i('Removed [forknet] section from config file');
+    } catch (e) {
+      log.e('Failed to rewrite config without [forknet]: $e');
+    }
+  }
+
+  /// Remove [forknet] section from config content
+  String _removeForknetSection(String content) {
+    final lines = content.split('\n');
+    final result = <String>[];
+    bool inForknetSection = false;
+
+    for (final line in lines) {
+      final trimmed = line.trim();
+
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        final section = trimmed.substring(1, trimmed.length - 1);
+        inForknetSection = section == 'forknet';
+        if (inForknetSection) {
+          // Skip the [forknet] header and any comment before it
+          if (result.isNotEmpty && result.last.trim().startsWith('#') && result.last.contains('forknet')) {
+            result.removeLast();
+          }
+          continue;
+        }
+      }
+
+      if (!inForknetSection) {
+        result.add(line);
+      }
+    }
+
+    return result.join('\n');
+  }
+
   /// Update MainchainRPC configuration when config changes
   void _updateMainchainRPCConfig(CoreConnectionSettings newConf) {
     try {
@@ -631,5 +766,53 @@ drivechain=1
       configValues: _currentConfig?.globalSettings ?? {},
       configFromFile: _currentConfig?.globalSettings.keys.toSet() ?? {},
     );
+  }
+
+  /// Get the path for the saved network config JSON file
+  String _getSavedConfigPath(BitcoinNetwork network) {
+    final datadir = BitcoinCore().datadir();
+    final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
+    return path.join(datadir, 'bitwindow-$networkName.json');
+  }
+
+  /// Save current [main] section to JSON for the specified network
+  Future<void> _saveNetworkConfig(BitcoinNetwork network) async {
+    if (_currentConfig == null) return;
+
+    try {
+      final jsonPath = _getSavedConfigPath(network);
+      final mainSettings = _currentConfig!.networkSettings['main'] ?? {};
+
+      final jsonContent = jsonEncode({'main': mainSettings});
+      await File(jsonPath).writeAsString(jsonContent);
+      log.i('Saved $network config to $jsonPath');
+    } catch (e) {
+      log.e('Failed to save network config: $e');
+    }
+  }
+
+  /// Load saved [main] section from JSON for the specified network
+  Future<Map<String, String>?> _loadNetworkConfig(BitcoinNetwork network) async {
+    try {
+      final jsonPath = _getSavedConfigPath(network);
+      final file = File(jsonPath);
+
+      if (!await file.exists()) {
+        log.i('No saved config for $network at $jsonPath');
+        return null;
+      }
+
+      final content = await file.readAsString();
+      final json = jsonDecode(content) as Map<String, dynamic>;
+      final mainSection = json['main'] as Map<String, dynamic>?;
+
+      if (mainSection == null) return null;
+
+      // Convert to Map<String, String>
+      return mainSection.map((key, value) => MapEntry(key, value.toString()));
+    } catch (e) {
+      log.e('Failed to load network config: $e');
+      return null;
+    }
   }
 }

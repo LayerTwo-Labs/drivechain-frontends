@@ -156,9 +156,12 @@ class ProcessManager extends ChangeNotifier {
             if (finalErr != null) {
               log.i('finalerr present, using last message from stderr: $finalErr');
               message = finalErr;
-            } else {
+            } else if (outLogs.isNotEmpty) {
               log.i('no errlogs present, using last message from stdout: ${outLogs.last}');
               message = outLogs.last;
+            } else {
+              log.i('no errlogs or stdout logs present');
+              message = 'Process exited with code $code';
             }
           }
 
