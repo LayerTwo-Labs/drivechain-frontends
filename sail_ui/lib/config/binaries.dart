@@ -559,12 +559,10 @@ abstract class Binary {
     // Check cache first
     final cached = _GitHubCache.get(url);
     if (cached != null) {
-      log.d('Using cached GitHub release date for $name');
       return cached;
     }
 
     try {
-      log.d('Fetching GitHub release date for $name');
       final response = await http.get(
         Uri.parse(url),
         headers: {
