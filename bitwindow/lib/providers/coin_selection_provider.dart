@@ -19,9 +19,9 @@ class CoinSelectionProvider extends ChangeNotifier {
   // Getters
   Map<String, pb.UTXOMetadata> get metadata => _metadata;
   CoinSelectionStrategy get strategy => _strategy;
-  bool isFrozen(String outpoint) => _metadata[outpoint]?.isFrozen ?? false;
+  bool isFrozen(String outpoint) => _metadata[outpoint]?.isFrozen_2 ?? false;
   String getLabel(String outpoint) => _metadata[outpoint]?.label ?? '';
-  Set<String> get frozenOutpoints => _metadata.entries.where((e) => e.value.isFrozen).map((e) => e.key).toSet();
+  Set<String> get frozenOutpoints => _metadata.entries.where((e) => e.value.isFrozen_2).map((e) => e.key).toSet();
 
   CoinSelectionProvider() {
     _rpc.addListener(fetch);
