@@ -20,25 +20,31 @@ class BitDriveTab extends StatelessWidget {
     return ViewModelBuilder<BitDriveViewModel>.reactive(
       viewModelBuilder: () => BitDriveViewModel(),
       builder: (context, model, child) {
-        return InlineTabBar(
-          tabs: [
-            SingleTabItem(
-              label: 'Store',
-              child: _StoreTab(model: model),
-            ),
-            SingleTabItem(
-              label: 'My Files',
-              child: _MyFilesTab(model: model),
-            ),
-          ],
-          endWidget: model.bitdriveDir != null
+        return SailCard(
+          title: 'Store Data on Bitcoin Forever',
+          subtitle:
+              'BitDrive lets you permanently store files and text on the Bitcoin blockchain. Your data becomes part of Bitcoin history.',
+          bottomPadding: false,
+          widgetHeaderEnd: model.bitdriveDir != null
               ? SailButton(
                   label: 'Open Folder',
-                  variant: ButtonVariant.ghost,
+                  variant: ButtonVariant.secondary,
                   icon: SailSVGAsset.folderOpen,
                   onPressed: () async => model.openBitdriveDir(),
                 )
               : null,
+          child: InlineTabBar(
+            tabs: [
+              SingleTabItem(
+                label: 'Store',
+                child: _StoreTab(model: model),
+              ),
+              SingleTabItem(
+                label: 'My Files',
+                child: _MyFilesTab(model: model),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -53,139 +59,154 @@ class _StoreTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: SailColumn(
-        spacing: SailStyleValues.padding16,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SailText.primary15(
-            'What do you want to store on Bitcoin?',
-            bold: true,
-          ),
-          SailText.secondary12(
-            'Your content will be permanently stored on the Bitcoin blockchain. Maximum size: 1 MB.',
-          ),
-          const SailSpacing(SailStyleValues.padding08),
-          SailTextField(
-            controller: model.textController,
-            maxLines: 6,
-            hintText: 'Write anything here...',
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 1,
-                  color: context.sailTheme.colors.divider,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-                child: SailText.secondary12('OR'),
-              ),
-              Expanded(
-                child: Container(
-                  height: 1,
-                  color: context.sailTheme.colors.divider,
-                ),
-              ),
-            ],
-          ),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SailButton(
-                label: 'Choose File',
-                variant: ButtonVariant.secondary,
-                icon: SailSVGAsset.upload,
-                onPressed: () async => model.pickFile(context),
-              ),
-              if (model.selectedFileName != null) ...[
-                Expanded(
-                  child: SailText.primary13(model.selectedFileName!),
-                ),
-                SailButton(
-                  variant: ButtonVariant.ghost,
-                  icon: SailSVGAsset.iconClose,
-                  onPressed: () async => model.clearSelectedFile(),
-                ),
-              ] else
-                Expanded(
-                  child: SailText.secondary12('No file selected'),
-                ),
-            ],
-          ),
-          const SailSpacing(SailStyleValues.padding16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () => model.toggleAdvancedSettings(),
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: SailRow(
-                    spacing: SailStyleValues.padding04,
-                    children: [
-                      Icon(
-                        model.showAdvancedSettings ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                        size: 16,
-                        color: context.sailTheme.colors.textSecondary,
-                      ),
-                      SailText.secondary12('Advanced settings'),
-                    ],
-                  ),
-                ),
-              ),
-              SailButton(
-                label: 'Store on Bitcoin',
-                variant: model.canStore ? ButtonVariant.primary : ButtonVariant.secondary,
-                disabled: !model.canStore,
-                loading: model.isBusy,
-                loadingLabel: 'Storing...',
-                onPressed: () async => model.store(context),
-              ),
-            ],
-          ),
-          if (model.showAdvancedSettings)
-            SailCard(
-              padding: true,
-              secondary: true,
-              child: SailColumn(
-                spacing: SailStyleValues.padding12,
+      child: Padding(
+        padding: const EdgeInsets.all(SailStyleValues.padding20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left side: Introduction
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SailCheckbox(
-                    value: model.shouldEncrypt,
-                    onChanged: model.onEncryptChanged,
-                    label: 'Encrypt content (uses your wallet key)',
+                  SailText.primary15('How It Works'),
+                  const SailSpacing(SailStyleValues.padding08),
+                  SailText.secondary13(
+                    '1. Enter text or choose a file (max 1 MB)\n'
+                    '2. Optionally encrypt with your wallet key\n'
+                    '3. Click "Store on Bitcoin" to save forever\n'
+                    '4. Data is embedded in Bitcoin transactions',
                   ),
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SizedBox(
-                        width: 150,
-                        child: NumericField(
-                          label: 'Fee (BTC)',
-                          controller: model.feeController,
-                          hintText: '0.0001',
-                        ),
-                      ),
-                      SailButton(
-                        variant: ButtonVariant.icon,
-                        icon: SailSVGAsset.arrowUp,
-                        onPressed: () async => model.adjustFee(0.0001),
-                      ),
-                      SailButton(
-                        variant: ButtonVariant.icon,
-                        icon: SailSVGAsset.arrowDown,
-                        onPressed: () async => model.adjustFee(-0.0001),
-                      ),
-                    ],
+                  const SailSpacing(SailStyleValues.padding20),
+                  SailText.primary15('Why Use BitDrive?'),
+                  const SailSpacing(SailStyleValues.padding08),
+                  SailText.secondary13(
+                    '• Permanent storage - data lives as long as Bitcoin\n'
+                    '• Censorship resistant - no one can delete it\n'
+                    '• Encryption option for private data\n'
+                    '• Prove you knew something at a specific time',
                   ),
                 ],
               ),
             ),
-        ],
+            const SizedBox(width: SailStyleValues.padding32),
+            // Right side: Store form
+            Expanded(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailText.primary15('What do you want to store?', bold: true),
+                  SailTextField(
+                    controller: model.textController,
+                    maxLines: 4,
+                    hintText: 'Write anything here...',
+                  ),
+                  Row(
+                    children: [
+                      Expanded(child: Container(height: 1, color: context.sailTheme.colors.divider)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+                        child: SailText.secondary12('OR'),
+                      ),
+                      Expanded(child: Container(height: 1, color: context.sailTheme.colors.divider)),
+                    ],
+                  ),
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SailButton(
+                        label: 'Choose File',
+                        variant: ButtonVariant.secondary,
+                        icon: SailSVGAsset.upload,
+                        onPressed: () async => model.pickFile(context),
+                      ),
+                      if (model.selectedFileName != null) ...[
+                        Expanded(child: SailText.primary13(model.selectedFileName!)),
+                        SailButton(
+                          variant: ButtonVariant.ghost,
+                          icon: SailSVGAsset.iconClose,
+                          onPressed: () async => model.clearSelectedFile(),
+                        ),
+                      ] else
+                        Expanded(child: SailText.secondary12('No file selected')),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => model.toggleAdvancedSettings(),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: SailRow(
+                            spacing: SailStyleValues.padding04,
+                            children: [
+                              Icon(
+                                model.showAdvancedSettings ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                                size: 16,
+                                color: context.sailTheme.colors.textSecondary,
+                              ),
+                              SailText.secondary12('Advanced settings'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SailButton(
+                        label: 'Store on Bitcoin',
+                        variant: model.canStore ? ButtonVariant.primary : ButtonVariant.secondary,
+                        disabled: !model.canStore,
+                        loading: model.isBusy,
+                        loadingLabel: 'Storing...',
+                        onPressed: () async => model.store(context),
+                      ),
+                    ],
+                  ),
+                  if (model.showAdvancedSettings)
+                    SailCard(
+                      padding: true,
+                      secondary: true,
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding12,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailCheckbox(
+                            value: model.shouldEncrypt,
+                            onChanged: model.onEncryptChanged,
+                            label: 'Encrypt content (uses your wallet key)',
+                          ),
+                          SailRow(
+                            spacing: SailStyleValues.padding08,
+                            children: [
+                              SizedBox(
+                                width: 150,
+                                child: NumericField(
+                                  label: 'Fee (BTC)',
+                                  controller: model.feeController,
+                                  hintText: '0.0001',
+                                ),
+                              ),
+                              SailButton(
+                                variant: ButtonVariant.icon,
+                                icon: SailSVGAsset.arrowUp,
+                                onPressed: () async => model.adjustFee(0.0001),
+                              ),
+                              SailButton(
+                                variant: ButtonVariant.icon,
+                                icon: SailSVGAsset.arrowDown,
+                                onPressed: () async => model.adjustFee(-0.0001),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
