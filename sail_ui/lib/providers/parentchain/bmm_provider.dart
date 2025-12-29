@@ -90,7 +90,6 @@ class BMMProvider extends ChangeNotifier {
 
       currentAttempt = attempts.isNotEmpty ? attempts.first : null;
       error = null;
-      status = BMMStatus.running;
       notifyListeners();
     } catch (e) {
       final index = attempts.indexOf(attempt);
@@ -101,7 +100,8 @@ class BMMProvider extends ChangeNotifier {
 
       currentAttempt = attempts.isNotEmpty ? attempts.first : null;
       error = e.toString();
-      status = BMMStatus.error;
+      // Don't change status here - individual attempt failures shouldn't stop mining
+      // The user must explicitly click Stop to stop mining
       notifyListeners();
     } finally {
       _isAttempting = false;
