@@ -315,6 +315,16 @@ class MockWalletAPI implements WalletAPI {
   Future<void> setUTXOMetadata(String outpoint, {bool? isFrozen, String? label}) {
     return Future.value();
   }
+
+  @override
+  Future<GetTransactionDetailsResponse> getTransactionDetails(String txid) {
+    return Future.value(GetTransactionDetailsResponse());
+  }
+
+  @override
+  Future<GetUTXODistributionResponse> getUTXODistribution(String walletId, {int maxBuckets = 10}) {
+    return Future.value(GetUTXODistributionResponse());
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

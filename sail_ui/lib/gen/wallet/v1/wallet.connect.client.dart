@@ -456,4 +456,40 @@ extension type WalletServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Transaction Details (enriched with input values/addresses)
+  Future<walletv1wallet.GetTransactionDetailsResponse> getTransactionDetails(
+    walletv1wallet.GetTransactionDetailsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.getTransactionDetails,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// UTXO Distribution (for chart visualization)
+  Future<walletv1wallet.GetUTXODistributionResponse> getUTXODistribution(
+    walletv1wallet.GetUTXODistributionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.getUTXODistribution,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

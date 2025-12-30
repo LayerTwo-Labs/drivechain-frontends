@@ -110,6 +110,12 @@ const (
 	// WalletServiceGetCoinSelectionStrategyProcedure is the fully-qualified name of the WalletService's
 	// GetCoinSelectionStrategy RPC.
 	WalletServiceGetCoinSelectionStrategyProcedure = "/wallet.v1.WalletService/GetCoinSelectionStrategy"
+	// WalletServiceGetTransactionDetailsProcedure is the fully-qualified name of the WalletService's
+	// GetTransactionDetails RPC.
+	WalletServiceGetTransactionDetailsProcedure = "/wallet.v1.WalletService/GetTransactionDetails"
+	// WalletServiceGetUTXODistributionProcedure is the fully-qualified name of the WalletService's
+	// GetUTXODistribution RPC.
+	WalletServiceGetUTXODistributionProcedure = "/wallet.v1.WalletService/GetUTXODistribution"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -146,6 +152,10 @@ type WalletServiceClient interface {
 	// Coin Selection Preferences
 	SetCoinSelectionStrategy(context.Context, *connect.Request[v1.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error)
 	GetCoinSelectionStrategy(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetCoinSelectionStrategyResponse], error)
+	// Transaction Details (enriched with input values/addresses)
+	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
+	// UTXO Distribution (for chart visualization)
+	GetUTXODistribution(context.Context, *connect.Request[v1.GetUTXODistributionRequest]) (*connect.Response[v1.GetUTXODistributionResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -315,6 +325,18 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("GetCoinSelectionStrategy")),
 			connect.WithClientOptions(opts...),
 		),
+		getTransactionDetails: connect.NewClient[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse](
+			httpClient,
+			baseURL+WalletServiceGetTransactionDetailsProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetTransactionDetails")),
+			connect.WithClientOptions(opts...),
+		),
+		getUTXODistribution: connect.NewClient[v1.GetUTXODistributionRequest, v1.GetUTXODistributionResponse](
+			httpClient,
+			baseURL+WalletServiceGetUTXODistributionProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetUTXODistribution")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -346,6 +368,8 @@ type walletServiceClient struct {
 	getUTXOMetadata          *connect.Client[v1.GetUTXOMetadataRequest, v1.GetUTXOMetadataResponse]
 	setCoinSelectionStrategy *connect.Client[v1.SetCoinSelectionStrategyRequest, emptypb.Empty]
 	getCoinSelectionStrategy *connect.Client[emptypb.Empty, v1.GetCoinSelectionStrategyResponse]
+	getTransactionDetails    *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
+	getUTXODistribution      *connect.Client[v1.GetUTXODistributionRequest, v1.GetUTXODistributionResponse]
 }
 
 // CreateBitcoinCoreWallet calls wallet.v1.WalletService.CreateBitcoinCoreWallet.
@@ -478,6 +502,16 @@ func (c *walletServiceClient) GetCoinSelectionStrategy(ctx context.Context, req 
 	return c.getCoinSelectionStrategy.CallUnary(ctx, req)
 }
 
+// GetTransactionDetails calls wallet.v1.WalletService.GetTransactionDetails.
+func (c *walletServiceClient) GetTransactionDetails(ctx context.Context, req *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error) {
+	return c.getTransactionDetails.CallUnary(ctx, req)
+}
+
+// GetUTXODistribution calls wallet.v1.WalletService.GetUTXODistribution.
+func (c *walletServiceClient) GetUTXODistribution(ctx context.Context, req *connect.Request[v1.GetUTXODistributionRequest]) (*connect.Response[v1.GetUTXODistributionResponse], error) {
+	return c.getUTXODistribution.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
@@ -512,6 +546,10 @@ type WalletServiceHandler interface {
 	// Coin Selection Preferences
 	SetCoinSelectionStrategy(context.Context, *connect.Request[v1.SetCoinSelectionStrategyRequest]) (*connect.Response[emptypb.Empty], error)
 	GetCoinSelectionStrategy(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetCoinSelectionStrategyResponse], error)
+	// Transaction Details (enriched with input values/addresses)
+	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
+	// UTXO Distribution (for chart visualization)
+	GetUTXODistribution(context.Context, *connect.Request[v1.GetUTXODistributionRequest]) (*connect.Response[v1.GetUTXODistributionResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -677,6 +715,18 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("GetCoinSelectionStrategy")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceGetTransactionDetailsHandler := connect.NewUnaryHandler(
+		WalletServiceGetTransactionDetailsProcedure,
+		svc.GetTransactionDetails,
+		connect.WithSchema(walletServiceMethods.ByName("GetTransactionDetails")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceGetUTXODistributionHandler := connect.NewUnaryHandler(
+		WalletServiceGetUTXODistributionProcedure,
+		svc.GetUTXODistribution,
+		connect.WithSchema(walletServiceMethods.ByName("GetUTXODistribution")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceCreateBitcoinCoreWalletProcedure:
@@ -731,6 +781,10 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceSetCoinSelectionStrategyHandler.ServeHTTP(w, r)
 		case WalletServiceGetCoinSelectionStrategyProcedure:
 			walletServiceGetCoinSelectionStrategyHandler.ServeHTTP(w, r)
+		case WalletServiceGetTransactionDetailsProcedure:
+			walletServiceGetTransactionDetailsHandler.ServeHTTP(w, r)
+		case WalletServiceGetUTXODistributionProcedure:
+			walletServiceGetUTXODistributionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -842,4 +896,12 @@ func (UnimplementedWalletServiceHandler) SetCoinSelectionStrategy(context.Contex
 
 func (UnimplementedWalletServiceHandler) GetCoinSelectionStrategy(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetCoinSelectionStrategyResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetCoinSelectionStrategy is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetTransactionDetails is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) GetUTXODistribution(context.Context, *connect.Request[v1.GetUTXODistributionRequest]) (*connect.Response[v1.GetUTXODistributionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetUTXODistribution is not implemented"))
 }

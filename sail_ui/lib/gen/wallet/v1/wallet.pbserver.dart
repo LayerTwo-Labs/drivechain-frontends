@@ -48,6 +48,8 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$8.GetUTXOMetadataResponse> getUTXOMetadata($pb.ServerContext ctx, $8.GetUTXOMetadataRequest request);
   $async.Future<$1.Empty> setCoinSelectionStrategy($pb.ServerContext ctx, $8.SetCoinSelectionStrategyRequest request);
   $async.Future<$8.GetCoinSelectionStrategyResponse> getCoinSelectionStrategy($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$8.GetTransactionDetailsResponse> getTransactionDetails($pb.ServerContext ctx, $8.GetTransactionDetailsRequest request);
+  $async.Future<$8.GetUTXODistributionResponse> getUTXODistribution($pb.ServerContext ctx, $8.GetUTXODistributionRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -77,6 +79,8 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'GetUTXOMetadata': return $8.GetUTXOMetadataRequest();
       case 'SetCoinSelectionStrategy': return $8.SetCoinSelectionStrategyRequest();
       case 'GetCoinSelectionStrategy': return $1.Empty();
+      case 'GetTransactionDetails': return $8.GetTransactionDetailsRequest();
+      case 'GetUTXODistribution': return $8.GetUTXODistributionRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -109,6 +113,8 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'GetUTXOMetadata': return this.getUTXOMetadata(ctx, request as $8.GetUTXOMetadataRequest);
       case 'SetCoinSelectionStrategy': return this.setCoinSelectionStrategy(ctx, request as $8.SetCoinSelectionStrategyRequest);
       case 'GetCoinSelectionStrategy': return this.getCoinSelectionStrategy(ctx, request as $1.Empty);
+      case 'GetTransactionDetails': return this.getTransactionDetails(ctx, request as $8.GetTransactionDetailsRequest);
+      case 'GetUTXODistribution': return this.getUTXODistribution(ctx, request as $8.GetUTXODistributionRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

@@ -828,6 +828,145 @@ final $typed_data.Uint8List getCoinSelectionStrategyResponseDescriptor = $conver
     'CiBHZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3lSZXNwb25zZRI8CghzdHJhdGVneRgBIAEoDjIgLn'
     'dhbGxldC52MS5Db2luU2VsZWN0aW9uU3RyYXRlZ3lSCHN0cmF0ZWd5');
 
+@$core.Deprecated('Use getTransactionDetailsRequestDescriptor instead')
+const GetTransactionDetailsRequest$json = {
+  '1': 'GetTransactionDetailsRequest',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `GetTransactionDetailsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTransactionDetailsRequestDescriptor = $convert.base64Decode(
+    'ChxHZXRUcmFuc2FjdGlvbkRldGFpbHNSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQ=');
+
+@$core.Deprecated('Use getTransactionDetailsResponseDescriptor instead')
+const GetTransactionDetailsResponse$json = {
+  '1': 'GetTransactionDetailsResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'blockhash', '3': 2, '4': 1, '5': 9, '10': 'blockhash'},
+    {'1': 'confirmations', '3': 3, '4': 1, '5': 5, '10': 'confirmations'},
+    {'1': 'block_time', '3': 4, '4': 1, '5': 3, '10': 'blockTime'},
+    {'1': 'version', '3': 5, '4': 1, '5': 5, '10': 'version'},
+    {'1': 'locktime', '3': 6, '4': 1, '5': 5, '10': 'locktime'},
+    {'1': 'size_bytes', '3': 7, '4': 1, '5': 5, '10': 'sizeBytes'},
+    {'1': 'vsize_vbytes', '3': 8, '4': 1, '5': 5, '10': 'vsizeVbytes'},
+    {'1': 'weight_wu', '3': 9, '4': 1, '5': 5, '10': 'weightWu'},
+    {'1': 'fee_sats', '3': 10, '4': 1, '5': 3, '10': 'feeSats'},
+    {'1': 'fee_rate_sat_vb', '3': 11, '4': 1, '5': 1, '10': 'feeRateSatVb'},
+    {'1': 'inputs', '3': 12, '4': 3, '5': 11, '6': '.wallet.v1.TransactionInput', '10': 'inputs'},
+    {'1': 'total_input_sats', '3': 13, '4': 1, '5': 3, '10': 'totalInputSats'},
+    {'1': 'outputs', '3': 14, '4': 3, '5': 11, '6': '.wallet.v1.TransactionOutput', '10': 'outputs'},
+    {'1': 'total_output_sats', '3': 15, '4': 1, '5': 3, '10': 'totalOutputSats'},
+    {'1': 'hex', '3': 16, '4': 1, '5': 9, '10': 'hex'},
+  ],
+};
+
+/// Descriptor for `GetTransactionDetailsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTransactionDetailsResponseDescriptor = $convert.base64Decode(
+    'Ch1HZXRUcmFuc2FjdGlvbkRldGFpbHNSZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlkEhwKCW'
+    'Jsb2NraGFzaBgCIAEoCVIJYmxvY2toYXNoEiQKDWNvbmZpcm1hdGlvbnMYAyABKAVSDWNvbmZp'
+    'cm1hdGlvbnMSHQoKYmxvY2tfdGltZRgEIAEoA1IJYmxvY2tUaW1lEhgKB3ZlcnNpb24YBSABKA'
+    'VSB3ZlcnNpb24SGgoIbG9ja3RpbWUYBiABKAVSCGxvY2t0aW1lEh0KCnNpemVfYnl0ZXMYByAB'
+    'KAVSCXNpemVCeXRlcxIhCgx2c2l6ZV92Ynl0ZXMYCCABKAVSC3ZzaXplVmJ5dGVzEhsKCXdlaW'
+    'dodF93dRgJIAEoBVIId2VpZ2h0V3USGQoIZmVlX3NhdHMYCiABKANSB2ZlZVNhdHMSJQoPZmVl'
+    'X3JhdGVfc2F0X3ZiGAsgASgBUgxmZWVSYXRlU2F0VmISMwoGaW5wdXRzGAwgAygLMhsud2FsbG'
+    'V0LnYxLlRyYW5zYWN0aW9uSW5wdXRSBmlucHV0cxIoChB0b3RhbF9pbnB1dF9zYXRzGA0gASgD'
+    'Ug50b3RhbElucHV0U2F0cxI2CgdvdXRwdXRzGA4gAygLMhwud2FsbGV0LnYxLlRyYW5zYWN0aW'
+    '9uT3V0cHV0UgdvdXRwdXRzEioKEXRvdGFsX291dHB1dF9zYXRzGA8gASgDUg90b3RhbE91dHB1'
+    'dFNhdHMSEAoDaGV4GBAgASgJUgNoZXg=');
+
+@$core.Deprecated('Use transactionInputDescriptor instead')
+const TransactionInput$json = {
+  '1': 'TransactionInput',
+  '2': [
+    {'1': 'index', '3': 1, '4': 1, '5': 5, '10': 'index'},
+    {'1': 'prev_txid', '3': 2, '4': 1, '5': 9, '10': 'prevTxid'},
+    {'1': 'prev_vout', '3': 3, '4': 1, '5': 5, '10': 'prevVout'},
+    {'1': 'address', '3': 4, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'value_sats', '3': 5, '4': 1, '5': 3, '10': 'valueSats'},
+    {'1': 'script_sig_asm', '3': 6, '4': 1, '5': 9, '10': 'scriptSigAsm'},
+    {'1': 'script_sig_hex', '3': 7, '4': 1, '5': 9, '10': 'scriptSigHex'},
+    {'1': 'witness', '3': 8, '4': 3, '5': 9, '10': 'witness'},
+    {'1': 'sequence', '3': 9, '4': 1, '5': 3, '10': 'sequence'},
+    {'1': 'is_coinbase', '3': 10, '4': 1, '5': 8, '10': 'isCoinbase'},
+  ],
+};
+
+/// Descriptor for `TransactionInput`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transactionInputDescriptor = $convert.base64Decode(
+    'ChBUcmFuc2FjdGlvbklucHV0EhQKBWluZGV4GAEgASgFUgVpbmRleBIbCglwcmV2X3R4aWQYAi'
+    'ABKAlSCHByZXZUeGlkEhsKCXByZXZfdm91dBgDIAEoBVIIcHJldlZvdXQSGAoHYWRkcmVzcxgE'
+    'IAEoCVIHYWRkcmVzcxIdCgp2YWx1ZV9zYXRzGAUgASgDUgl2YWx1ZVNhdHMSJAoOc2NyaXB0X3'
+    'NpZ19hc20YBiABKAlSDHNjcmlwdFNpZ0FzbRIkCg5zY3JpcHRfc2lnX2hleBgHIAEoCVIMc2Ny'
+    'aXB0U2lnSGV4EhgKB3dpdG5lc3MYCCADKAlSB3dpdG5lc3MSGgoIc2VxdWVuY2UYCSABKANSCH'
+    'NlcXVlbmNlEh8KC2lzX2NvaW5iYXNlGAogASgIUgppc0NvaW5iYXNl');
+
+@$core.Deprecated('Use transactionOutputDescriptor instead')
+const TransactionOutput$json = {
+  '1': 'TransactionOutput',
+  '2': [
+    {'1': 'index', '3': 1, '4': 1, '5': 5, '10': 'index'},
+    {'1': 'value_sats', '3': 2, '4': 1, '5': 3, '10': 'valueSats'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'script_type', '3': 4, '4': 1, '5': 9, '10': 'scriptType'},
+    {'1': 'script_pubkey_asm', '3': 5, '4': 1, '5': 9, '10': 'scriptPubkeyAsm'},
+    {'1': 'script_pubkey_hex', '3': 6, '4': 1, '5': 9, '10': 'scriptPubkeyHex'},
+  ],
+};
+
+/// Descriptor for `TransactionOutput`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transactionOutputDescriptor = $convert.base64Decode(
+    'ChFUcmFuc2FjdGlvbk91dHB1dBIUCgVpbmRleBgBIAEoBVIFaW5kZXgSHQoKdmFsdWVfc2F0cx'
+    'gCIAEoA1IJdmFsdWVTYXRzEhgKB2FkZHJlc3MYAyABKAlSB2FkZHJlc3MSHwoLc2NyaXB0X3R5'
+    'cGUYBCABKAlSCnNjcmlwdFR5cGUSKgoRc2NyaXB0X3B1YmtleV9hc20YBSABKAlSD3NjcmlwdF'
+    'B1YmtleUFzbRIqChFzY3JpcHRfcHVia2V5X2hleBgGIAEoCVIPc2NyaXB0UHVia2V5SGV4');
+
+@$core.Deprecated('Use getUTXODistributionRequestDescriptor instead')
+const GetUTXODistributionRequest$json = {
+  '1': 'GetUTXODistributionRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'max_buckets', '3': 2, '4': 1, '5': 5, '10': 'maxBuckets'},
+  ],
+};
+
+/// Descriptor for `GetUTXODistributionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getUTXODistributionRequestDescriptor = $convert.base64Decode(
+    'ChpHZXRVVFhPRGlzdHJpYnV0aW9uUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldE'
+    'lkEh8KC21heF9idWNrZXRzGAIgASgFUgptYXhCdWNrZXRz');
+
+@$core.Deprecated('Use getUTXODistributionResponseDescriptor instead')
+const GetUTXODistributionResponse$json = {
+  '1': 'GetUTXODistributionResponse',
+  '2': [
+    {'1': 'buckets', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.UTXOBucket', '10': 'buckets'},
+  ],
+};
+
+/// Descriptor for `GetUTXODistributionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getUTXODistributionResponseDescriptor = $convert.base64Decode(
+    'ChtHZXRVVFhPRGlzdHJpYnV0aW9uUmVzcG9uc2USLwoHYnVja2V0cxgBIAMoCzIVLndhbGxldC'
+    '52MS5VVFhPQnVja2V0UgdidWNrZXRz');
+
+@$core.Deprecated('Use uTXOBucketDescriptor instead')
+const UTXOBucket$json = {
+  '1': 'UTXOBucket',
+  '2': [
+    {'1': 'label', '3': 1, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'value_sats', '3': 2, '4': 1, '5': 3, '10': 'valueSats'},
+    {'1': 'count', '3': 3, '4': 1, '5': 5, '10': 'count'},
+    {'1': 'outpoints', '3': 4, '4': 3, '5': 9, '10': 'outpoints'},
+  ],
+};
+
+/// Descriptor for `UTXOBucket`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List uTXOBucketDescriptor = $convert.base64Decode(
+    'CgpVVFhPQnVja2V0EhQKBWxhYmVsGAEgASgJUgVsYWJlbBIdCgp2YWx1ZV9zYXRzGAIgASgDUg'
+    'l2YWx1ZVNhdHMSFAoFY291bnQYAyABKAVSBWNvdW50EhwKCW91dHBvaW50cxgEIAMoCVIJb3V0'
+    'cG9pbnRz');
+
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
   '2': [
@@ -857,6 +996,8 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'GetUTXOMetadata', '2': '.wallet.v1.GetUTXOMetadataRequest', '3': '.wallet.v1.GetUTXOMetadataResponse'},
     {'1': 'SetCoinSelectionStrategy', '2': '.wallet.v1.SetCoinSelectionStrategyRequest', '3': '.google.protobuf.Empty'},
     {'1': 'GetCoinSelectionStrategy', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetCoinSelectionStrategyResponse'},
+    {'1': 'GetTransactionDetails', '2': '.wallet.v1.GetTransactionDetailsRequest', '3': '.wallet.v1.GetTransactionDetailsResponse'},
+    {'1': 'GetUTXODistribution', '2': '.wallet.v1.GetUTXODistributionRequest', '3': '.wallet.v1.GetUTXODistributionResponse'},
   ],
 };
 
@@ -918,6 +1059,13 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.UTXOMetadata': UTXOMetadata$json,
   '.wallet.v1.SetCoinSelectionStrategyRequest': SetCoinSelectionStrategyRequest$json,
   '.wallet.v1.GetCoinSelectionStrategyResponse': GetCoinSelectionStrategyResponse$json,
+  '.wallet.v1.GetTransactionDetailsRequest': GetTransactionDetailsRequest$json,
+  '.wallet.v1.GetTransactionDetailsResponse': GetTransactionDetailsResponse$json,
+  '.wallet.v1.TransactionInput': TransactionInput$json,
+  '.wallet.v1.TransactionOutput': TransactionOutput$json,
+  '.wallet.v1.GetUTXODistributionRequest': GetUTXODistributionRequest$json,
+  '.wallet.v1.GetUTXODistributionResponse': GetUTXODistributionResponse$json,
+  '.wallet.v1.UTXOBucket': UTXOBucket$json,
 };
 
 /// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -962,5 +1110,9 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     '5zZRJeChhTZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3kSKi53YWxsZXQudjEuU2V0Q29pblNlbGVj'
     'dGlvblN0cmF0ZWd5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJfChhHZXRDb2luU2'
     'VsZWN0aW9uU3RyYXRlZ3kSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKy53YWxsZXQudjEuR2V0'
-    'Q29pblNlbGVjdGlvblN0cmF0ZWd5UmVzcG9uc2U=');
+    'Q29pblNlbGVjdGlvblN0cmF0ZWd5UmVzcG9uc2USagoVR2V0VHJhbnNhY3Rpb25EZXRhaWxzEi'
+    'cud2FsbGV0LnYxLkdldFRyYW5zYWN0aW9uRGV0YWlsc1JlcXVlc3QaKC53YWxsZXQudjEuR2V0'
+    'VHJhbnNhY3Rpb25EZXRhaWxzUmVzcG9uc2USZAoTR2V0VVRYT0Rpc3RyaWJ1dGlvbhIlLndhbG'
+    'xldC52MS5HZXRVVFhPRGlzdHJpYnV0aW9uUmVxdWVzdBomLndhbGxldC52MS5HZXRVVFhPRGlz'
+    'dHJpYnV0aW9uUmVzcG9uc2U=');
 
