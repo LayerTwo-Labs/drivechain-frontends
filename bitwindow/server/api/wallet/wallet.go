@@ -2745,12 +2745,18 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 // formatSatsForChart formats satoshis for chart display
 func formatSatsForChart(sats uint64) string {
 	btc := float64(sats) / 100_000_000
-	if btc >= 1 {
+	switch {
+
+	case btc >= 1:
 		return fmt.Sprintf("%.2f BTC", btc)
-	} else if btc >= 0.001 {
+
+	case btc >= 0.001:
 		return fmt.Sprintf("%.4f BTC", btc)
-	} else if btc >= 0.00001 {
+
+	case btc >= 0.00001:
 		return fmt.Sprintf("%.6f BTC", btc)
+
+	default:
+		return fmt.Sprintf("%d sats", sats)
 	}
-	return fmt.Sprintf("%d sats", sats)
 }
