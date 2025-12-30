@@ -2,20 +2,24 @@
 
 ## Overview
 
-Bitwindow's Multisig Tool enables secure Bitcoin multisignature wallet management with an intuitive interface. This guide walks you through each modal and workflow step-by-step.
+Bitwindow's Multisig Tool enables secure Bitcoin multisignature wallet
+management with an intuitive interface. This guide walks you through each modal
+and workflow step-by-step.
 
-*You must have a funded L1 wallet to create a multisig group*   https://node.drivechain.info/#/faucet
+_You must have a funded L1 wallet to create a multisig group_
+https://node.signet.drivechain.info/#/faucet
 
 ---
 
 ## Getting Started
 
 ### Accessing the Multisig Tool
+
 1. Launch Bitwindow
 2. Navigate to **Wallet** → **Multisig Lounge**
 
-
 The interface shows:
+
 - **Multisig Groups** table: Your created/imported groups
 - **Multisig Transactions** table: Transaction history and pending signatures
 - **Group Tools** panel: Create, import, and manage groups
@@ -29,30 +33,33 @@ The interface shows:
 
 Click **"Create New Group"** to open the group creation modal.
 
-
 Fill in:
+
 - **Group Name**: Descriptive name (e.g., "Family Savings")
 - **Required Signatures (m)**: Signatures needed to spend
 - **Total Keys (n)**: Total number of participants
-- **Do not broadcast**: Whether to save the group locally only (not broadcast to network) 
+- **Do not broadcast**: Whether to save the group locally only (not broadcast to
+  network)
 
 ### Step 2: Adding Public Keys
 
 After setting parameters, you'll add public keys for all participants.
 
-
 **Adding Your Wallet Key:**
+
 - Click **"Generate Wallet xPub"**
-- Your key is automatically generated and marked as "MyKey" but the name is encouraged to be changed
+- Your key is automatically generated and marked as "MyKey" but the name is
+  encouraged to be changed
 
 **Importing External Keys:**
-- Click **"Import Key"** 
+
+- Click **"Import Key"**
 - Choose import method:
   - **Manual Entry**: Paste xpub and derivation path
   - **JSON/CONF File**: Import from exported key file
 
-
 Each key displays:
+
 - Owner name
 - xpub preview
 - Derivation path
@@ -60,9 +67,11 @@ Each key displays:
 
 ### Step 3: Finalizing Group Creation
 
-Once you have all required keys (progress shows X/N), click **"Save Multisig Group"**.
+Once you have all required keys (progress shows X/N), click **"Save Multisig
+Group"**.
 
 The system will:
+
 - Generate Bitcoin descriptors
 - Create watch-only wallet
 - Save group configuration
@@ -74,11 +83,12 @@ The system will:
 
 ### Get Key Modal
 
-To share your public key with other participants, click **"Get Key"** in Group Tools.
-
+To share your public key with other participants, click **"Get Key"** in Group
+Tools.
 
 The modal shows:
-- Next available key index 
+
+- Next available key index
 - Generated key information including:
   - Key Name (editable)
   - Extended Public Key (xpub)
@@ -95,21 +105,21 @@ The modal shows:
 
 ### Fund Group Modal
 
-Select your multisig group and click **"Fund Group"** to get a receiving address.
-
+Select your multisig group and click **"Fund Group"** to get a receiving
+address.
 
 The modal displays:
+
 - Group selection (if multiple groups available)
 - Group information (name, signature requirements)
 - Fresh receiving address for deposits
 
 **Funding Process:**
+
 1. Copy the address
 2. Send Bitcoin from your regular wallet or exchange
 3. Wait for confirmation (1-6 confirmations recommended)
 4. Balance updates automatically in the groups table
-
-
 
 ---
 
@@ -119,16 +129,18 @@ The modal displays:
 
 Click **"Create Transaction"** to open the transaction creation modal.
 
-
 Configure transaction details:
+
 - **Group Selection**: Choose funded group (if multiple available)
 - **Destination Address**: Recipient Bitcoin address
 - **Amount**: BTC amount to send (or click "MAX" for maximum)
 - **Fee**: Automatically calculated and deducted from amount
 
-Click **"Create Transaction"** to generate the initial PSBT. The transaction will appear in the transactions table with "Needs Signatures" status.
+Click **"Create Transaction"** to generate the initial PSBT. The transaction
+will appear in the transactions table with "Needs Signatures" status.
 
-If you have wallet keys in the group, you can immediately click **"Sign with My Keys"** to sign the transaction.
+If you have wallet keys in the group, you can immediately click **"Sign with My
+Keys"** to sign the transaction.
 
 ---
 
@@ -136,22 +148,27 @@ If you have wallet keys in the group, you can immediately click **"Sign with My 
 
 ### Sign Preview Modal
 
-For transactions with your wallet keys, click **"Sign"** to open the signing preview modal.
-
+For transactions with your wallet keys, click **"Sign"** to open the signing
+preview modal.
 
 The modal shows:
+
 - **Transaction Details**: Amount, destination, fee, transaction ID
 - **Signing Information**: Current signatures count and available wallet keys
-- **Key Status**: Visual status for each key (Signed, Ready to sign, Awaiting external signature)
+- **Key Status**: Visual status for each key (Signed, Ready to sign, Awaiting
+  external signature)
 
-Review the transaction details carefully, then click **"Sign Transaction"** to sign with your wallet keys. The transaction status updates based on signature count.
+Review the transaction details carefully, then click **"Sign Transaction"** to
+sign with your wallet keys. The transaction status updates based on signature
+count.
 
 ### Transaction Details Modal
 
-Click **"View"** on any transaction to see detailed information and manage PSBTs.
-
+Click **"View"** on any transaction to see detailed information and manage
+PSBTs.
 
 The modal includes:
+
 - Complete transaction information
 - Signature progress tracking
 - **Export PSBTs** section with:
@@ -168,14 +185,15 @@ The modal includes:
 
 For external signers, use **"Import PSBT"** to upload signed PSBTs.
 
-
 The modal allows:
+
 - Group selection for the PSBT
-- File selection for signed PSBT .json files  
+- File selection for signed PSBT .json files
 - Automatic signature validation and key detection
 - Transaction status updates
 
 **External Signing Process:**
+
 1. Export PSBT from Transaction Details
 2. Sign with hardware wallet or external software
 3. Import the signed PSBT back into Bitwindow
@@ -188,8 +206,8 @@ The modal allows:
 
 Click **"Combine & Broadcast"** to finalize and send transactions.
 
-
 The modal shows:
+
 - Available transactions ready for processing
 - Transaction selection
 - Group and signature information
@@ -197,6 +215,7 @@ The modal shows:
 - Action button (Combine/Broadcast based on status)
 
 **Broadcasting Requirements:**
+
 - Transaction has M or more valid signatures
 - Status shows "Ready for Broadcast"
 - PSBT passes final validation
@@ -209,17 +228,18 @@ The modal shows:
 
 Use **"Import from TXID"** to restore or join existing multisig groups.
 
-
 The modal provides:
+
 - TXID input field with paste button
 - **"Import"** button to fetch and process data
 - Automatic key detection and wallet key validation
 - Progress indicators during import process
 
 **Import Process:**
+
 1. Enter transaction ID containing multisig data
 2. Click **"Import"**
-3. System validates OP_RETURN data and detects your wallet keys  
+3. System validates OP_RETURN data and detects your wallet keys
 4. Automatic wallet key validation and group setup
 5. Group is imported and synced automatically
 
@@ -238,18 +258,21 @@ Transactions progress through these states:
 - **Completed**: Fully processed transaction
 - **Voided**: Transaction cancelled or failed
 
-The system automatically updates transaction status as signatures are collected and PSBTs are processed.
+The system automatically updates transaction status as signatures are collected
+and PSBTs are processed.
 
 ---
 
 ## Security Best Practices
 
 ### Key Management
+
 - Never share private keys - only share xpubs and derivation paths
 - Verify public keys through multiple channels
 - Backup group configurations and seed phrases
 
 ### Transaction Security
+
 - Verify amounts and addresses before signing
 - Check fee rates are reasonable
 - Wait for adequate confirmations (6+ for large amounts)
