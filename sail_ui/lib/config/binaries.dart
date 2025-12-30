@@ -572,13 +572,11 @@ abstract class Binary {
       );
 
       if (response.statusCode == 403) {
-        log.d('GitHub API rate limit exceeded for $name, skipping version check');
         _GitHubCache.set(url, null); // Cache the failure too
         return null;
       }
 
       if (response.statusCode != 200) {
-        log.d('GitHub API returned ${response.statusCode} for $name, skipping version check');
         _GitHubCache.set(url, null);
         return null;
       }
