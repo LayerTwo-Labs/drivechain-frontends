@@ -2507,3 +2507,250 @@ func (s *Server) GetCoinSelectionStrategy(ctx context.Context, c *connect.Reques
 		Strategy: strategy,
 	}), nil
 }
+
+// GetTransactionDetails implements walletv1connect.WalletServiceHandler.
+// Returns enriched transaction details with resolved input values/addresses.
+func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[pb.GetTransactionDetailsRequest]) (*connect.Response[pb.GetTransactionDetailsResponse], error) {
+	txid := c.Msg.Txid
+	if txid == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid required"))
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get bitcoind client: %w", err))
+	}
+
+	// Fetch the raw transaction with prevout info
+	rawTx, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid:      txid,
+		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found: %w", err))
+	}
+
+	// Build enriched inputs by fetching referenced transactions
+	var inputs []*pb.TransactionInput
+	var totalInputSats int64
+
+	for i, vin := range rawTx.Msg.Inputs {
+		isCoinbase := vin.Coinbase != ""
+
+		var scriptSigAsm, scriptSigHex string
+		if vin.ScriptSig != nil {
+			scriptSigAsm = vin.ScriptSig.Asm
+			scriptSigHex = vin.ScriptSig.Hex
+		}
+
+		input := &pb.TransactionInput{
+			Index:        int32(i),
+			PrevTxid:     vin.Txid,
+			PrevVout:     int32(vin.Vout),
+			ScriptSigAsm: scriptSigAsm,
+			ScriptSigHex: scriptSigHex,
+			Witness:      vin.Witness,
+			Sequence:     int64(vin.Sequence),
+			IsCoinbase:   isCoinbase,
+		}
+
+		// For non-coinbase inputs, fetch the referenced transaction to get value/address
+		if !isCoinbase && vin.Txid != "" {
+			prevTx, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+				Txid:      vin.Txid,
+				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+			}))
+			if err == nil && int(vin.Vout) < len(prevTx.Msg.Outputs) {
+				prevOut := prevTx.Msg.Outputs[vin.Vout]
+				input.ValueSats = int64(prevOut.Amount * 100_000_000)
+				if prevOut.ScriptPubKey != nil {
+					input.Address = prevOut.ScriptPubKey.Address
+				}
+				totalInputSats += input.ValueSats
+			}
+		}
+
+		inputs = append(inputs, input)
+	}
+
+	// Build outputs
+	var outputs []*pb.TransactionOutput
+	var totalOutputSats int64
+
+	for i, vout := range rawTx.Msg.Outputs {
+		valueSats := int64(vout.Amount * 100_000_000)
+		totalOutputSats += valueSats
+
+		var address, scriptType, scriptAsm, scriptHex string
+		if vout.ScriptPubKey != nil {
+			address = vout.ScriptPubKey.Address
+			scriptType = vout.ScriptPubKey.Type
+			scriptAsm = vout.ScriptPubKey.Asm
+			scriptHex = vout.ScriptPubKey.Hex
+		}
+
+		outputs = append(outputs, &pb.TransactionOutput{
+			Index:           int32(i),
+			ValueSats:       valueSats,
+			Address:         address,
+			ScriptType:      scriptType,
+			ScriptPubkeyAsm: scriptAsm,
+			ScriptPubkeyHex: scriptHex,
+		})
+	}
+
+	// Compute fee (inputs - outputs)
+	feeSats := totalInputSats - totalOutputSats
+	if feeSats < 0 {
+		feeSats = 0 // Coinbase transactions have no inputs
+	}
+
+	var feeRate float64
+	if rawTx.Msg.Vsize > 0 {
+		feeRate = float64(feeSats) / float64(rawTx.Msg.Vsize)
+	}
+
+	// Get block time as unix timestamp
+	var blockTime int64
+	if rawTx.Msg.BlockTime != nil {
+		blockTime = rawTx.Msg.BlockTime.AsTime().Unix()
+	}
+
+	// Get hex from the Tx field
+	var hexStr string
+	if rawTx.Msg.Tx != nil {
+		hexStr = rawTx.Msg.Tx.Hex
+	}
+
+	return connect.NewResponse(&pb.GetTransactionDetailsResponse{
+		Txid:            rawTx.Msg.Txid,
+		Blockhash:       rawTx.Msg.Blockhash,
+		Confirmations:   int32(rawTx.Msg.Confirmations),
+		BlockTime:       blockTime,
+		Version:         int32(rawTx.Msg.Version),
+		Locktime:        int32(rawTx.Msg.Locktime),
+		SizeBytes:       rawTx.Msg.Size,
+		VsizeVbytes:     rawTx.Msg.Vsize,
+		WeightWu:        rawTx.Msg.Weight,
+		FeeSats:         feeSats,
+		FeeRateSatVb:    feeRate,
+		Inputs:          inputs,
+		TotalInputSats:  totalInputSats,
+		Outputs:         outputs,
+		TotalOutputSats: totalOutputSats,
+		Hex:             hexStr,
+	}), nil
+}
+
+// GetUTXODistribution implements walletv1connect.WalletServiceHandler.
+// Returns UTXO distribution data for chart visualization.
+func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.GetUTXODistributionRequest]) (*connect.Response[pb.GetUTXODistributionResponse], error) {
+	walletId := c.Msg.WalletId
+
+	maxBuckets := int(c.Msg.MaxBuckets)
+	if maxBuckets <= 0 {
+		maxBuckets = 10
+	}
+
+	// Reuse the existing ListUnspent logic to get UTXOs
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get wallet type: %w", err))
+	}
+
+	// Simple label getter since we don't need labels for distribution
+	getLabel := func(addr string) string { return "" }
+
+	var utxos []*pb.UnspentOutput
+	if walletType == engines.WalletTypeEnforcer {
+		utxos, err = s.listUnspentEnforcer(ctx, getLabel)
+	} else {
+		utxos, err = s.listUnspentBitcoinCore(ctx, walletId, getLabel)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
+	}
+
+	if len(utxos) == 0 {
+		return connect.NewResponse(&pb.GetUTXODistributionResponse{
+			Buckets: []*pb.UTXOBucket{},
+		}), nil
+	}
+
+	// Sort UTXOs by value descending
+	sort.Slice(utxos, func(i, j int) bool {
+		return utxos[i].ValueSats > utxos[j].ValueSats
+	})
+
+	// Build buckets: top N individual UTXOs, rest aggregated into "Other"
+	var buckets []*pb.UTXOBucket
+
+	// First pass: count how many times each value appears in top N
+	valueCounts := make(map[uint64]int)
+	for i, utxo := range utxos {
+		if i >= maxBuckets {
+			break
+		}
+		valueCounts[utxo.ValueSats]++
+	}
+
+	// Second pass: build buckets, adding txid to duplicates
+	for i, utxo := range utxos {
+		if i < maxBuckets {
+			label := formatSatsForChart(utxo.ValueSats)
+
+			// If this value appears more than once, add short txid to differentiate
+			if valueCounts[utxo.ValueSats] > 1 {
+				// Extract short txid from output (format: txid:vout)
+				parts := strings.Split(utxo.Output, ":")
+				if len(parts) > 0 && len(parts[0]) >= 8 {
+					label = fmt.Sprintf("%s (%s..)", label, parts[0][:8])
+				}
+			}
+
+			// Individual bucket for top UTXOs
+			buckets = append(buckets, &pb.UTXOBucket{
+				Label:     label,
+				ValueSats: int64(utxo.ValueSats),
+				Count:     1,
+				Outpoints: []string{utxo.Output},
+			})
+		} else {
+			// Aggregate rest into "Other" bucket
+			if len(buckets) == maxBuckets {
+				buckets = append(buckets, &pb.UTXOBucket{
+					Label:     "Other",
+					ValueSats: 0,
+					Count:     0,
+					Outpoints: []string{},
+				})
+			}
+			other := buckets[maxBuckets]
+			other.ValueSats += int64(utxo.ValueSats)
+			other.Count++
+			other.Outpoints = append(other.Outpoints, utxo.Output)
+		}
+	}
+
+	// Update "Other" label with count
+	if len(buckets) > maxBuckets {
+		buckets[maxBuckets].Label = fmt.Sprintf("Other (%d)", buckets[maxBuckets].Count)
+	}
+
+	return connect.NewResponse(&pb.GetUTXODistributionResponse{
+		Buckets: buckets,
+	}), nil
+}
+
+// formatSatsForChart formats satoshis for chart display
+func formatSatsForChart(sats uint64) string {
+	btc := float64(sats) / 100_000_000
+	if btc >= 1 {
+		return fmt.Sprintf("%.2f BTC", btc)
+	} else if btc >= 0.001 {
+		return fmt.Sprintf("%.4f BTC", btc)
+	} else if btc >= 0.00001 {
+		return fmt.Sprintf("%.6f BTC", btc)
+	}
+	return fmt.Sprintf("%d sats", sats)
+}

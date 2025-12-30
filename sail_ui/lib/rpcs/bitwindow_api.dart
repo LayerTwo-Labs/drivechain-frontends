@@ -630,6 +630,12 @@ abstract class WalletAPI {
   // Coin selection preferences
   Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy);
   Future<CoinSelectionStrategy> getCoinSelectionStrategy();
+
+  // Transaction details (enriched with input values/addresses)
+  Future<GetTransactionDetailsResponse> getTransactionDetails(String txid);
+
+  // UTXO distribution for chart visualization
+  Future<GetUTXODistributionResponse> getUTXODistribution(String walletId, {int maxBuckets = 10});
 }
 
 class SweepChequeResult {
@@ -987,6 +993,35 @@ class _WalletAPILive implements WalletAPI {
     try {
       final response = await _client.getCoinSelectionStrategy(Empty());
       return response.strategy;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<GetTransactionDetailsResponse> getTransactionDetails(String txid) async {
+    try {
+      final response = await _client.getTransactionDetails(
+        GetTransactionDetailsRequest(txid: txid),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<GetUTXODistributionResponse> getUTXODistribution(String walletId, {int maxBuckets = 10}) async {
+    try {
+      final response = await _client.getUTXODistribution(
+        GetUTXODistributionRequest(
+          walletId: walletId,
+          maxBuckets: maxBuckets,
+        ),
+      );
+      return response;
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);

@@ -198,4 +198,20 @@ abstract final class WalletService {
     googleprotobufempty.Empty.new,
     walletv1wallet.GetCoinSelectionStrategyResponse.new,
   );
+
+  /// Transaction Details (enriched with input values/addresses)
+  static const getTransactionDetails = connect.Spec(
+    '/$name/GetTransactionDetails',
+    connect.StreamType.unary,
+    walletv1wallet.GetTransactionDetailsRequest.new,
+    walletv1wallet.GetTransactionDetailsResponse.new,
+  );
+
+  /// UTXO Distribution (for chart visualization)
+  static const getUTXODistribution = connect.Spec(
+    '/$name/GetUTXODistribution',
+    connect.StreamType.unary,
+    walletv1wallet.GetUTXODistributionRequest.new,
+    walletv1wallet.GetUTXODistributionResponse.new,
+  );
 }

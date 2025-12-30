@@ -46,6 +46,12 @@ service WalletService {
   // Coin Selection Preferences
   rpc SetCoinSelectionStrategy(SetCoinSelectionStrategyRequest) returns (google.protobuf.Empty);
   rpc GetCoinSelectionStrategy(google.protobuf.Empty) returns (GetCoinSelectionStrategyResponse);
+
+  // Transaction Details (enriched with input values/addresses)
+  rpc GetTransactionDetails(GetTransactionDetailsRequest) returns (GetTransactionDetailsResponse);
+
+  // UTXO Distribution (for chart visualization)
+  rpc GetUTXODistribution(GetUTXODistributionRequest) returns (GetUTXODistributionResponse);
 }
 
 message GetBalanceRequest {
@@ -363,4 +369,82 @@ message SetCoinSelectionStrategyRequest {
 
 message GetCoinSelectionStrategyResponse {
   CoinSelectionStrategy strategy = 1;
+}
+
+// Transaction Details - enriched transaction data with resolved inputs
+message GetTransactionDetailsRequest {
+  string txid = 1;
+}
+
+message GetTransactionDetailsResponse {
+  // Header info
+  string txid = 1;
+  string blockhash = 2;
+  int32 confirmations = 3;
+  int64 block_time = 4;
+  int32 version = 5;
+  int32 locktime = 6;
+
+  // Size info
+  int32 size_bytes = 7;
+  int32 vsize_vbytes = 8;
+  int32 weight_wu = 9;
+
+  // Fee info (computed: sum(inputs) - sum(outputs))
+  int64 fee_sats = 10;
+  double fee_rate_sat_vb = 11;
+
+  // Enriched inputs (backend resolves address/value from referenced tx)
+  repeated TransactionInput inputs = 12;
+  int64 total_input_sats = 13;
+
+  // Outputs
+  repeated TransactionOutput outputs = 14;
+  int64 total_output_sats = 15;
+
+  // Raw hex for display
+  string hex = 16;
+}
+
+message TransactionInput {
+  int32 index = 1;
+  string prev_txid = 2;
+  int32 prev_vout = 3;
+
+  // These require backend to fetch the referenced transaction
+  string address = 4;
+  int64 value_sats = 5;
+
+  // Script data
+  string script_sig_asm = 6;
+  string script_sig_hex = 7;
+  repeated string witness = 8;
+  int64 sequence = 9;
+  bool is_coinbase = 10;
+}
+
+message TransactionOutput {
+  int32 index = 1;
+  int64 value_sats = 2;
+  string address = 3;
+  string script_type = 4;
+  string script_pubkey_asm = 5;
+  string script_pubkey_hex = 6;
+}
+
+// UTXO Distribution - for chart visualization
+message GetUTXODistributionRequest {
+  string wallet_id = 1;
+  int32 max_buckets = 2;  // Default 10
+}
+
+message GetUTXODistributionResponse {
+  repeated UTXOBucket buckets = 1;
+}
+
+message UTXOBucket {
+  string label = 1;             // Formatted amount "0.005 BTC" or "Other (5)"
+  int64 value_sats = 2;         // Total value in bucket
+  int32 count = 3;              // Number of UTXOs (1 for individual, N for "Other")
+  repeated string outpoints = 4; // For click-to-highlight in table
 }
