@@ -481,11 +481,13 @@ class _TableRowState extends State<_TableRow> {
   bool isHovered = false;
 
   void _showContextMenu(BuildContext context, Offset position, String value, String rowId) {
+    final maxWidth = widget.contextMenuItems?.call(rowId).fold(0, (m, item) => max(m, item.width.toInt())) ?? 200;
+
     showSailMenu(
       context: context,
       preferredAnchorPoint: position,
       menu: SailMenu(
-        width: 200,
+        width: maxWidth.toDouble(),
         items: [
           SailMenuItem(
             onSelected: () {
