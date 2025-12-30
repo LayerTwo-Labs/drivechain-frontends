@@ -1,9 +1,11 @@
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
+import 'package:bitwindow/pages/explorer/widgets/transaction_flow_diagram.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -520,21 +522,24 @@ class TransactionDetailsDialog extends StatefulWidget {
   State<TransactionDetailsDialog> createState() => _TransactionDetailsDialogState();
 }
 
-class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
+class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> with SingleTickerProviderStateMixin {
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
 
-  GetRawTransactionResponse? transaction;
+  late TabController _tabController;
+  GetTransactionDetailsResponse? _details;
   String? error;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
     _loadTransaction();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -547,18 +552,18 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
     });
 
     try {
-      final tx = await bitwindow.bitcoind.getRawTransaction(widget.txid);
+      final details = await bitwindow.wallet.getTransactionDetails(widget.txid);
 
       if (!mounted) return;
       setState(() {
-        transaction = tx;
+        _details = details;
         error = null;
         _isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        transaction = null;
+        _details = null;
         error = 'Failed to load transaction: ${e.toString()}';
         _isLoading = false;
       });
@@ -567,10 +572,12 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
+        constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
         child: SailCard(
           title: 'Transaction Details',
           subtitle: widget.txid,
@@ -582,7 +589,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                     child: CircularProgressIndicator(),
                   ),
                 )
-              : transaction == null
+              : _details == null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(SailStyleValues.padding16),
@@ -591,6 +598,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                       children: [
                         SailText.primary13('Failed to load transaction details'),
                         if (error != null) SailText.secondary13(error!),
+                        const SailSpacing(SailStyleValues.padding08),
                         SailButton(
                           onPressed: _loadTransaction,
                           label: 'Retry',
@@ -600,102 +608,232 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                     ),
                   ),
                 )
-              : SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDetailRow(context, '# Inputs', '${transaction!.inputs.length}'),
-                      _buildDetailRow(context, '# Outputs', '${transaction!.outputs.length}'),
-                      _buildDetailRow(context, 'Size', '${transaction!.size} bytes'),
-                      _buildDetailRow(context, 'Virtual Size', '${transaction!.vsize} vbytes'),
-                      _buildDetailRow(context, 'Weight', '${transaction!.weight} wu'),
-                      _buildDetailRow(context, 'Block Hash', transaction!.blockhash),
-                      _buildDetailRow(context, 'Confirmations', '${transaction!.confirmations}'),
-                      _buildDetailRow(context, 'Lock Time', '${transaction!.locktime}'),
-                      if (transaction!.inputs.any((input) => input.coinbase.isNotEmpty))
-                        SailText.primary13('This is a coinbase transaction.'),
-                      const SailSpacing(SailStyleValues.padding16),
-                      SailText.primary13('Decoded from transaction outputs:'),
-                      const SailSpacing(SailStyleValues.padding08),
-                      _buildDecodedOutputsTable(context),
-                      const SailSpacing(SailStyleValues.padding16),
-                      BorderedSection(
-                        title: 'Transaction To String:',
-                        child: SailText.secondary13(
-                          transaction!.toString(),
-                        ),
+              : Column(
+                  children: [
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: theme.colors.text,
+                      unselectedLabelColor: theme.colors.textTertiary,
+                      indicatorColor: theme.colors.info,
+                      tabs: [
+                        const Tab(text: 'Overview'),
+                        Tab(text: 'Inputs (${_details!.inputs.length})'),
+                        Tab(text: 'Outputs (${_details!.outputs.length})'),
+                        const Tab(text: 'Hex'),
+                      ],
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _OverviewTab(details: _details!),
+                          _InputsTab(inputs: _details!.inputs),
+                          _OutputsTab(outputs: _details!.outputs),
+                          _HexTab(hex: _details!.hex),
+                        ],
                       ),
-                      const SailSpacing(SailStyleValues.padding16),
-                      BorderedSection(
-                        title: 'Raw Transaction Hex',
-                        child: SailText.secondary13(
-                          transaction!.tx.hex,
-                          monospace: true,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildDetailRow(BuildContext context, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+class _OverviewTab extends StatelessWidget {
+  final GetTransactionDetailsResponse details;
+
+  const _OverviewTab({required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(SailStyleValues.padding16),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 160,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.inactiveNavText,
-            ),
-          ),
-          Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-              color: context.sailTheme.colors.inactiveNavText,
-            ),
-          ),
+          // Transaction Flow Diagram
+          TransactionFlowDiagram(details: details),
+
+          const SailSpacing(SailStyleValues.padding16),
+
+          // Header Info
+          SailText.primary13('Transaction Info'),
+          const SailSpacing(SailStyleValues.padding08),
+          DetailRow(label: 'TXID', value: details.txid),
+          DetailRow(label: 'Block Hash', value: details.blockhash.isEmpty ? 'Unconfirmed' : details.blockhash),
+          DetailRow(label: 'Confirmations', value: '${details.confirmations}'),
+          DetailRow(label: 'Version', value: '${details.version}'),
+          DetailRow(label: 'Lock Time', value: '${details.locktime}'),
+
+          const SailSpacing(SailStyleValues.padding16),
+
+          // Size Info
+          SailText.primary13('Size'),
+          const SailSpacing(SailStyleValues.padding08),
+          DetailRow(label: 'Size', value: '${details.sizeBytes} bytes'),
+          DetailRow(label: 'Virtual Size', value: '${details.vsizeVbytes} vbytes'),
+          DetailRow(label: 'Weight', value: '${details.weightWu} WU'),
+
+          const SailSpacing(SailStyleValues.padding16),
+
+          // Fee Info
+          SailText.primary13('Fee'),
+          const SailSpacing(SailStyleValues.padding08),
+          DetailRow(label: 'Fee', value: formatter.formatSats(details.feeSats.toInt())),
+          DetailRow(label: 'Fee Rate', value: '${details.feeRateSatVb.toStringAsFixed(2)} sat/vB'),
+
+          const SailSpacing(SailStyleValues.padding16),
+
+          // Totals
+          SailText.primary13('Totals'),
+          const SailSpacing(SailStyleValues.padding08),
+          DetailRow(label: 'Total Input', value: formatter.formatSats(details.totalInputSats.toInt())),
+          DetailRow(label: 'Total Output', value: formatter.formatSats(details.totalOutputSats.toInt())),
         ],
       ),
     );
   }
+}
 
-  Widget _buildDecodedOutputsTable(BuildContext context) {
-    return SizedBox(
-      height: 200, // Fixed height for the table
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: context.sailTheme.colors.divider,
-            width: 1,
+class _InputsTab extends StatelessWidget {
+  final List<TransactionInput> inputs;
+
+  const _InputsTab({required this.inputs});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return SailTable(
+      getRowId: (i) => '${inputs[i].prevTxid}:${inputs[i].prevVout}',
+      headerBuilder: (_) => [
+        SailTableHeaderCell(name: '#'),
+        SailTableHeaderCell(name: 'Amount'),
+        SailTableHeaderCell(name: 'Address'),
+        SailTableHeaderCell(name: 'Previous Output'),
+        SailTableHeaderCell(name: 'Sequence'),
+      ],
+      rowBuilder: (_, i, _) {
+        final input = inputs[i];
+        final prevOutput = input.isCoinbase ? 'Coinbase' : '${input.prevTxid.substring(0, 8)}...:${input.prevVout}';
+
+        return [
+          SailTableCell(value: '${input.index}'),
+          SailTableCell(
+            value: input.isCoinbase ? 'N/A' : formatter.formatSats(input.valueSats.toInt()),
+            monospace: true,
           ),
-          borderRadius: SailStyleValues.borderRadius,
-        ),
-        child: SailTable(
-          backgroundColor: context.sailTheme.colors.background,
-          altBackgroundColor: context.sailTheme.colors.backgroundSecondary,
-          getRowId: (index) => '${transaction!.outputs[index].vout}',
-          headerBuilder: (context) => [
-            SailTableHeaderCell(name: 'Type'),
-            SailTableHeaderCell(name: 'Details'),
-          ],
-          rowBuilder: (context, index, selected) {
-            final output = transaction!.outputs[index];
-            return [
-              SailTableCell(value: output.scriptPubKey.type),
-              SailTableCell(value: output.scriptSig.asm),
-            ];
-          },
-          rowCount: transaction!.outputs.length,
-        ),
+          SailTableCell(
+            value: input.isCoinbase ? 'Coinbase' : (input.address.isEmpty ? 'Unknown' : input.address),
+            monospace: true,
+            copyValue: input.address,
+          ),
+          SailTableCell(
+            value: prevOutput,
+            monospace: true,
+            copyValue: input.isCoinbase ? null : '${input.prevTxid}:${input.prevVout}',
+          ),
+          SailTableCell(value: '${input.sequence}', monospace: true),
+        ];
+      },
+      rowCount: inputs.length,
+      emptyPlaceholder: 'No inputs',
+    );
+  }
+}
+
+class _OutputsTab extends StatelessWidget {
+  final List<TransactionOutput> outputs;
+
+  const _OutputsTab({required this.outputs});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = GetIt.I<FormatterProvider>();
+
+    return SailTable(
+      getRowId: (i) => '${outputs[i].index}',
+      headerBuilder: (_) => [
+        SailTableHeaderCell(name: '#'),
+        SailTableHeaderCell(name: 'Amount'),
+        SailTableHeaderCell(name: 'Address'),
+        SailTableHeaderCell(name: 'Type'),
+      ],
+      rowBuilder: (_, i, _) {
+        final output = outputs[i];
+        return [
+          SailTableCell(value: '${output.index}'),
+          SailTableCell(
+            value: formatter.formatSats(output.valueSats.toInt()),
+            monospace: true,
+          ),
+          SailTableCell(
+            value: output.address.isEmpty
+                ? (output.scriptType == 'nulldata' ? 'OP_RETURN' : 'Unknown')
+                : output.address,
+            monospace: true,
+            copyValue: output.address.isNotEmpty ? output.address : null,
+          ),
+          SailTableCell(value: output.scriptType),
+        ];
+      },
+      rowCount: outputs.length,
+      emptyPlaceholder: 'No outputs',
+    );
+  }
+}
+
+class _HexTab extends StatelessWidget {
+  final String hex;
+
+  const _HexTab({required this.hex});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(SailStyleValues.padding16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SailText.primary13('Raw Transaction Hex'),
+              SailButton(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: hex));
+                  if (context.mounted) {
+                    showSnackBar(context, 'Copied to clipboard');
+                  }
+                },
+                label: 'Copy',
+                small: true,
+              ),
+            ],
+          ),
+          const SailSpacing(SailStyleValues.padding08),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(SailStyleValues.padding12),
+            decoration: BoxDecoration(
+              color: context.sailTheme.colors.backgroundSecondary,
+              borderRadius: SailStyleValues.borderRadius,
+              border: Border.all(color: context.sailTheme.colors.divider),
+            ),
+            child: SelectableText(
+              hex.isEmpty ? 'No hex data available' : hex,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                color: context.sailTheme.colors.text,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
