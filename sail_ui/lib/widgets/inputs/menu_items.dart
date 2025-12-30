@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _menuItemHeight = 33.0;
+const _menuItemWidth = 200.0;
 const _menuDividerHeight = 10.0;
 const _menuPadding = EdgeInsets.all(4);
 const _menuPaddingWindows = EdgeInsets.symmetric(vertical: 4);
@@ -18,11 +20,13 @@ class SailMenu extends StatelessWidget {
   final double? width;
 
   double get height => items.fold(_menuPadding.vertical * 2, (prev, e) => prev + e.height);
+  double get maxItemWidth => items.fold(0.0, (m, e) => max(m, e.width));
 
   @override
   Widget build(BuildContext context) {
-    final minWidth = width ?? 0;
-    final maxWidth = width ?? double.infinity;
+    final effectiveWidth = width ?? maxItemWidth;
+    final minWidth = effectiveWidth;
+    final maxWidth = effectiveWidth;
 
     return Container(
       constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
@@ -52,6 +56,7 @@ abstract class SailMenuEntity extends Widget {
   const SailMenuEntity({super.key});
 
   double get height;
+  double get width;
 }
 
 class SailMenuItem extends StatefulWidget implements SailMenuEntity {
@@ -64,11 +69,14 @@ class SailMenuItem extends StatefulWidget implements SailMenuEntity {
     this.onSelected,
     this.closeOnSelect = true,
     this.height = _menuItemHeight,
+    this.width = _menuItemWidth,
     super.key,
   });
 
   @override
   final double height;
+  @override
+  final double width;
 
   @override
   State<SailMenuItem> createState() => _SailMenuItemState();
@@ -161,11 +169,14 @@ class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
 
   @override
   double get height => _menuDividerHeight;
+  @override
+  double get width => _menuItemWidth;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: _menuDividerHeight,
+      width: width,
       padding: padding ? EdgeInsets.symmetric(horizontal: context.isWindows ? 8 : 16) : null,
       child: Align(
         alignment: Alignment.centerLeft,
@@ -182,6 +193,9 @@ class MempoolMenuItem extends StatelessWidget implements SailMenuEntity {
 
   @override
   double get height => _menuItemHeight;
+
+  @override
+  double get width => _menuItemWidth + 100; // Add 100 to account for the long text
 
   @override
   Widget build(BuildContext context) {
