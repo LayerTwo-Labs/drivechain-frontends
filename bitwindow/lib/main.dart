@@ -407,6 +407,7 @@ class _BitwindowAppContent extends StatelessWidget {
       theme: ThemeData(
         visualDensity: VisualDensity.compact,
         fontFamily: font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter',
+        scaffoldBackgroundColor: theme.colors.background,
       ),
       builder: (context, child) {
         return _ErrorBoundary(
