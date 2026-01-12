@@ -38,7 +38,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
               ),
               const SizedBox(width: SailStyleValues.padding08),
               SailButton(
-                variant: ButtonVariant.ghost,
+                variant: ButtonVariant.outline,
                 label: 'Clear All',
                 onPressed: viewModel.clearAll,
               ),
@@ -276,7 +276,7 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
         hintText: 'Fee (in ${viewModel.currentUnit.symbol})',
         textFieldType: viewModel.currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
         suffixWidget: SailRow(
-          spacing: 0,
+          spacing: SailStyleValues.padding08,
           children: [
             SailText.primary13(viewModel.currentUnit.symbol),
             SailDropdownButton<int>(
