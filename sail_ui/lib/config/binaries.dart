@@ -193,7 +193,9 @@ abstract class Binary {
           'debug.log',
           'mining.txt',
           'server.log',
+          'bitwindow.db',
         ]);
+
         // from root dir
         await _deleteFilesInDir(dir, [
           'assets',
