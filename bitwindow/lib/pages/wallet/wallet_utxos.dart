@@ -109,6 +109,34 @@ class _UTXOsTabState extends State<UTXOsTab> {
                       padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
                       child: SailCard(
                         title: 'UTXO Distribution',
+                        widgetHeaderEnd: SailButton(
+                          variant: ButtonVariant.icon,
+                          icon: SailSVGAsset.iconQuestion,
+                          onPressed: () async {
+                            await widgetDialog(
+                              context: context,
+                              title: 'About UTXO Distribution',
+                              child: SailColumn(
+                                spacing: SailStyleValues.padding12,
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailText.primary13(
+                                    'UTXOs (Unspent Transaction Outputs) are the individual "coins" in your wallet. '
+                                    'This chart shows how your balance is distributed across different UTXO sizes.',
+                                  ),
+                                  SailText.primary13(
+                                    'Why it matters: Many small UTXOs can lead to higher transaction fees. '
+                                    'Consider consolidating small UTXOs when fees are low.',
+                                  ),
+                                  SailText.primary13(
+                                    'Right-click on any bar to see options for the UTXOs in that bucket.',
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                         child: UTXODistributionChart(
                           walletId: walletId,
                           onBucketContextMenu: (bucket, position) {

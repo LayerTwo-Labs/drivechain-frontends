@@ -2649,7 +2649,7 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 
 	maxBuckets := int(c.Msg.MaxBuckets)
 	if maxBuckets <= 0 {
-		maxBuckets = 10
+		maxBuckets = 6
 	}
 
 	// Reuse the existing ListUnspent logic to get UTXOs
@@ -2677,64 +2677,51 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 		}), nil
 	}
 
-	// Sort UTXOs by value descending
-	sort.Slice(utxos, func(i, j int) bool {
-		return utxos[i].ValueSats > utxos[j].ValueSats
-	})
+	// Find min and max UTXO values
+	minVal := utxos[0].ValueSats
+	maxVal := utxos[0].ValueSats
+	for _, utxo := range utxos {
+		if utxo.ValueSats < minVal {
+			minVal = utxo.ValueSats
+		}
+		if utxo.ValueSats > maxVal {
+			maxVal = utxo.ValueSats
+		}
+	}
 
-	// Build buckets: top N individual UTXOs, rest aggregated into "Other"
+	// Generate dynamic bucket ranges based on the wallet's actual UTXO distribution
+	ranges := generateDynamicBuckets(minVal, maxVal, maxBuckets)
+
+	// Initialize buckets for each range
+	bucketData := make([]struct {
+		valueSats int64
+		count     int32
+		outpoints []string
+	}, len(ranges))
+
+	// Categorize each UTXO into the appropriate bucket
+	for _, utxo := range utxos {
+		for i, r := range ranges {
+			if utxo.ValueSats >= r.minSats && utxo.ValueSats <= r.maxSats {
+				bucketData[i].valueSats += int64(utxo.ValueSats)
+				bucketData[i].count++
+				bucketData[i].outpoints = append(bucketData[i].outpoints, utxo.Output)
+				break
+			}
+		}
+	}
+
+	// Build response buckets, only including non-empty ones
 	var buckets []*pb.UTXOBucket
-
-	// First pass: count how many times each value appears in top N
-	valueCounts := make(map[uint64]int)
-	for i, utxo := range utxos {
-		if i >= maxBuckets {
-			break
-		}
-		valueCounts[utxo.ValueSats]++
-	}
-
-	// Second pass: build buckets, adding txid to duplicates
-	for i, utxo := range utxos {
-		if i < maxBuckets {
-			label := formatSatsForChart(utxo.ValueSats)
-
-			// If this value appears more than once, add short txid to differentiate
-			if valueCounts[utxo.ValueSats] > 1 {
-				// Extract short txid from output (format: txid:vout)
-				parts := strings.Split(utxo.Output, ":")
-				if len(parts) > 0 && len(parts[0]) >= 8 {
-					label = fmt.Sprintf("%s (%s..)", label, parts[0][:8])
-				}
-			}
-
-			// Individual bucket for top UTXOs
+	for i, r := range ranges {
+		if bucketData[i].count > 0 {
 			buckets = append(buckets, &pb.UTXOBucket{
-				Label:     label,
-				ValueSats: int64(utxo.ValueSats),
-				Count:     1,
-				Outpoints: []string{utxo.Output},
+				Label:     r.label,
+				ValueSats: bucketData[i].valueSats,
+				Count:     bucketData[i].count,
+				Outpoints: bucketData[i].outpoints,
 			})
-		} else {
-			// Aggregate rest into "Other" bucket
-			if len(buckets) == maxBuckets {
-				buckets = append(buckets, &pb.UTXOBucket{
-					Label:     "Other",
-					ValueSats: 0,
-					Count:     0,
-					Outpoints: []string{},
-				})
-			}
-			other := buckets[maxBuckets]
-			other.ValueSats += int64(utxo.ValueSats)
-			other.Count++
-			other.Outpoints = append(other.Outpoints, utxo.Output)
 		}
-	}
-
-	// Update "Other" label with count
-	if len(buckets) > maxBuckets {
-		buckets[maxBuckets].Label = fmt.Sprintf("Other (%d)", buckets[maxBuckets].Count)
 	}
 
 	return connect.NewResponse(&pb.GetUTXODistributionResponse{
@@ -2742,21 +2729,100 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 	}), nil
 }
 
-// formatSatsForChart formats satoshis for chart display
-func formatSatsForChart(sats uint64) string {
-	btc := float64(sats) / 100_000_000
-	switch {
-
-	case btc >= 1:
-		return fmt.Sprintf("%.2f BTC", btc)
-
-	case btc >= 0.001:
-		return fmt.Sprintf("%.4f BTC", btc)
-
-	case btc >= 0.00001:
-		return fmt.Sprintf("%.6f BTC", btc)
-
-	default:
-		return fmt.Sprintf("%d sats", sats)
-	}
+// bucketRange defines a value range for UTXO distribution
+type bucketRange struct {
+	minSats uint64
+	maxSats uint64
+	label   string
 }
+
+// generateDynamicBuckets creates bucket ranges that adapt to the wallet's actual UTXO values
+func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange {
+	// Use predefined "nice" boundaries based on Bitcoin denominations
+	// These are logarithmically spaced for good distribution
+	niceBoundaries := []uint64{
+		546,          // dust limit
+		1_000,        // 0.00001 BTC
+		5_000,        // 0.00005 BTC
+		10_000,       // 0.0001 BTC
+		50_000,       // 0.0005 BTC
+		100_000,      // 0.001 BTC
+		500_000,      // 0.005 BTC
+		1_000_000,    // 0.01 BTC
+		5_000_000,    // 0.05 BTC
+		10_000_000,   // 0.1 BTC
+		50_000_000,   // 0.5 BTC
+		100_000_000,  // 1 BTC
+		500_000_000,  // 5 BTC
+		1_000_000_000, // 10 BTC
+		5_000_000_000, // 50 BTC
+		10_000_000_000, // 100 BTC
+	}
+
+	// Find which boundaries are relevant for this wallet's range
+	var relevantBoundaries []uint64
+	for _, b := range niceBoundaries {
+		if b > minVal && b < maxVal {
+			relevantBoundaries = append(relevantBoundaries, b)
+		}
+	}
+
+	// If we have too many boundaries, select evenly spaced ones
+	if len(relevantBoundaries) > numBuckets-1 {
+		step := float64(len(relevantBoundaries)) / float64(numBuckets-1)
+		var selected []uint64
+		for i := 0; i < numBuckets-1; i++ {
+			idx := int(float64(i) * step)
+			if idx < len(relevantBoundaries) {
+				selected = append(selected, relevantBoundaries[idx])
+			}
+		}
+		relevantBoundaries = selected
+	}
+
+	// Build the bucket ranges
+	var ranges []bucketRange
+	prevBoundary := minVal
+
+	for _, boundary := range relevantBoundaries {
+		ranges = append(ranges, bucketRange{
+			minSats: prevBoundary,
+			maxSats: boundary - 1,
+			label:   formatBucketRange(prevBoundary, boundary-1),
+		})
+		prevBoundary = boundary
+	}
+
+	// Add final bucket for remaining values
+	ranges = append(ranges, bucketRange{
+		minSats: prevBoundary,
+		maxSats: maxVal,
+		label:   formatBucketRange(prevBoundary, maxVal),
+	})
+
+	return ranges
+}
+
+// formatBucketRange creates a human-readable label for a bucket range
+func formatBucketRange(minSats, maxSats uint64) string {
+	minBTC := float64(minSats) / 100_000_000
+	maxBTC := float64(maxSats) / 100_000_000
+
+	formatVal := func(btc float64) string {
+		switch {
+		case btc >= 1:
+			return fmt.Sprintf("%.1f", btc)
+		case btc >= 0.01:
+			return fmt.Sprintf("%.2f", btc)
+		case btc >= 0.001:
+			return fmt.Sprintf("%.3f", btc)
+		case btc >= 0.0001:
+			return fmt.Sprintf("%.4f", btc)
+		default:
+			return fmt.Sprintf("%.5f", btc)
+		}
+	}
+
+	return fmt.Sprintf("%s - %s BTC", formatVal(minBTC), formatVal(maxBTC))
+}
+

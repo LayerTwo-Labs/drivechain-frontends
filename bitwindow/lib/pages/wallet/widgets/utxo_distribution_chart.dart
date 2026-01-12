@@ -218,8 +218,6 @@ class _UTXODistributionChartState extends State<UTXODistributionChart> {
       const Color(0xFF795548),
     ];
 
-    final formatter = GetIt.I<FormatterProvider>();
-
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -264,11 +262,11 @@ class _UTXODistributionChartState extends State<UTXODistributionChart> {
                     ),
                   ),
                   SailText.secondary12(
-                    '${percentage.toStringAsFixed(1)}%',
+                    '${bucket.count} ${bucket.count == 1 ? 'UTXO' : 'UTXOs'}',
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   SailText.primary12(
-                    formatter.formatSats(bucket.valueSats.toInt()),
+                    '${percentage.toStringAsFixed(0)}%',
                     monospace: true,
                   ),
                 ],
