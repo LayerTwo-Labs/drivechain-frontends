@@ -19,6 +19,7 @@ class SailCreateWalletPage extends StatefulWidget {
   final Widget Function(BuildContext context)? additionalRestoreOptionsBuilder;
   final Widget Function(BuildContext context, VoidCallback defaultContinue)? successActionsBuilder;
   final WelcomeScreen initialScreen;
+  final PageRouteInfo homeRoute;
 
   const SailCreateWalletPage({
     super.key,
@@ -29,6 +30,7 @@ class SailCreateWalletPage extends StatefulWidget {
     this.additionalRestoreOptionsBuilder,
     this.successActionsBuilder,
     this.initialScreen = WelcomeScreen.initial,
+    required this.homeRoute,
   });
 
   @override
@@ -888,9 +890,12 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   void _handleContinue() {
     if (widget.onWalletCreated != null) {
       widget.onWalletCreated!();
-    } else {
+    } else if (context.router.canPop()) {
       // Pop back to let WalletGuard continue navigation
-      context.router.maybePop();
+      context.router.pop();
+    } else {
+      // No route to pop to (replaceAll was used), navigate to home
+      context.router.replaceAll([widget.homeRoute]);
     }
   }
 
