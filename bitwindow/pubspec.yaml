@@ -33,7 +33,7 @@ dependencies:
   sail_ui:
     path: ../sail_ui
   logger: ^2.6.2
-  google_fonts: ^6.3.3
+  google_fonts: ^7.0.0
   auto_route: ^11.1.0
   fixnum: ^1.1.1
   get_it: ^8.3.0
