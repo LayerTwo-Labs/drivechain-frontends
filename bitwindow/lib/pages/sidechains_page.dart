@@ -250,13 +250,21 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             SailTableCell(
               value: '        ',
               child: sidechain != null
-                  ? SailButton(
-                      label: 'Deposit',
-                      variant: ButtonVariant.primary,
-                      insideTable: true,
-                      onPressed: viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot)
-                          ? null
-                          : () => showDepositModal(context, slot, sidechain.info.title),
+                  ? Tooltip(
+                      message: !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
+                          ? 'Switch to your enforcer wallet and start the sidechain before depositing'
+                          : viewModel.isUsingBitcoinCoreWallet
+                          ? 'Switch to your enforcer wallet to deposit'
+                          : !viewModel.isSidechainRunning(slot)
+                          ? 'Start the sidechain before depositing'
+                          : null,
+                      child: SailButton(
+                        label: 'Deposit',
+                        variant: ButtonVariant.primary,
+                        insideTable: true,
+                        disabled: viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot),
+                        onPressed: () => showDepositModal(context, slot, sidechain.info.title),
+                      ),
                     )
                   : null,
             ),
@@ -410,13 +418,21 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             SailTableCell(
               value: '        ',
               child: sidechain != null
-                  ? SailButton(
-                      label: 'Deposit',
-                      variant: ButtonVariant.outline,
-                      insideTable: true,
-                      onPressed: viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot)
-                          ? null
-                          : () => showDepositModal(context, slot, sidechain.info.title),
+                  ? Tooltip(
+                      message: !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
+                          ? 'Switch to your enforcer wallet and start the sidechain before depositing'
+                          : viewModel.isUsingBitcoinCoreWallet
+                          ? 'Switch to your enforcer wallet to deposit'
+                          : !viewModel.isSidechainRunning(slot)
+                          ? 'Start the sidechain before depositing'
+                          : null,
+                      child: SailButton(
+                        label: 'Deposit',
+                        variant: ButtonVariant.primary,
+                        insideTable: true,
+                        disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
+                        onPressed: () => showDepositModal(context, slot, sidechain.info.title),
+                      ),
                     )
                   : null,
             ),
