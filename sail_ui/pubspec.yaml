@@ -46,6 +46,7 @@ dependencies:
   xterm: ^4.0.0
   flutter_pty: ^0.4.2
 
+  file_picker: ^10.3.7
   http: ^1.6.0
   uuid: ^4.5.2
 dev_dependencies:

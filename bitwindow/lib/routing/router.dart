@@ -172,5 +172,13 @@ class AppRouter extends RootStackRouter {
       path: '/success',
       page: SuccessRoute.page,
     ),
+    AutoRoute(
+      path: '/backup-wallet',
+      page: BackupWalletRoute.page,
+    ),
+    AutoRoute(
+      path: '/restore-wallet',
+      page: RestoreWalletRoute.page,
+    ),
   ];
 }

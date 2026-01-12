@@ -181,3 +181,4 @@ export 'widgets/wallet_blob_avatar.dart';
 export 'widgets/wallet_dropdown.dart';
 export 'widgets/select_background_dialog.dart';
 export 'widgets/wallet_management_dialog.dart';
+export 'widgets/wallet_backup_restore.dart';

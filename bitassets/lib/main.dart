@@ -211,6 +211,15 @@ Future<File> getLogFile(Directory datadir) async {
   return logFile;
 }
 
+void bootBinaries(Logger log) async {
+  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
+  final bitassets = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.bitassets);
+
+  await binaryProvider.startWithEnforcer(
+    bitassets,
+  );
+}
+
 // BitAssets window types
 class SubWindowTypes {
   static const String consoleId = 'console';

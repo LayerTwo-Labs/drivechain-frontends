@@ -178,12 +178,12 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.primary24(
-                'Create a Bitcoin Core Wallet',
+                'Create a New Wallet',
                 bold: true,
               ),
               const SizedBox(height: 8),
               SailText.secondary13(
-                'This wallet will not be able to interact with sidechains, only for mainchain sending',
+                'This wallet will not be able to interact with sidechains, only for mainchain transactions',
               ),
               const SizedBox(height: 48),
               Wrap(
@@ -376,12 +376,12 @@ class _XpubStepState extends State<_XpubStep> {
               ),
               const SizedBox(height: 8),
               SailText.secondary13(
-                'Provide the extended public key or descriptor for watch-only tracking',
+                'Supports xpub, wpkh, wsh, and multi-sig descriptors',
               ),
               const SizedBox(height: 48),
               SailTextField(
                 controller: widget.xpubController,
-                hintText: 'xpub... or wpkh(xpub...)',
+                hintText: 'xpub, wpkh(...), wsh(multi(...)), etc.',
                 textFieldType: TextFieldType.text,
                 maxLines: 3,
               ),

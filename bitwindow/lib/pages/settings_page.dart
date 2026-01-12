@@ -721,6 +721,57 @@ Future<String> createWalletBackup({
   final appDir = await Environment.datadir();
   final bitwindowAppDir = walletProvider.bitwindowAppDir;
 
+  // 0. Add README
+  final readme = '''BitWindow Wallet Backup
+=======================
+
+CONTENTS
+--------
+This backup contains:
+
+1. wallet.json - Your master wallet data including:
+   - Master seed (BIP39 mnemonic)
+   - All derived wallet keys
+   - Sidechain wallet seeds (derived from master)
+
+2. multisig/multisig.json - Multisig group configurations
+
+3. transactions.json - Transaction history and notes
+
+SIDECHAIN WALLETS
+----------------------------
+All sidechain wallets (Thunder, BitNames, BitAssets, ZSide, etc.) are
+DERIVED from the master seed in wallet.json. This means:
+
+- Restoring this backup restores ALL your sidechain wallets automatically
+- You do NOT need separate backups for each sidechain
+- Each sidechain uses a deterministic derivation path from the master seed
+
+HOW TO RESTORE
+--------------
+1. Open BitWindow
+2. Go to Settings > Your Wallet > Restore Wallet
+3. Select this backup file
+4. Your master wallet and all sidechain wallets will be restored
+
+----------------
+- Keep this backup file secure
+- Anyone with access to this file can access ALL your funds
+- Never share this file with anyone
+
+If your wallet was encrypted with a password, the wallet.json in this
+backup is also encrypted. You will need your password to restore.
+''';
+  final readmeBytes = utf8.encode(readme);
+  archive.addFile(
+    ArchiveFile(
+      'README.txt',
+      readmeBytes.length,
+      readmeBytes,
+    ),
+  );
+  log.i('Added to backup: README.txt');
+
   // 1. Backup wallet.json
   final walletJsonFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
   if (await walletJsonFile.exists()) {
@@ -1359,6 +1410,9 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
       // Clean up temp
       await tempDir.delete(recursive: true);
 
+      // 7. Recreate sidechain starter files (placeholder for future functionality)
+      _updateStatus('Recreating sidechain starter files');
+
       // 8. Verify restored wallet
       _updateStatus('Verifying restored wallet');
       final restoredWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
@@ -1403,7 +1457,7 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
               : _error != null
               ? 'Restore failed: $_error'
               : 'Please wait while your wallet is restored...',
-          withCloseButton: _isCompleted || _error != null,
+          withCloseButton: true,
           child: SingleChildScrollView(
             child: SailColumn(
               spacing: SailStyleValues.padding08,
