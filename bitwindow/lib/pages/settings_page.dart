@@ -169,6 +169,7 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     }
 
     // If switching TO mainnet or forknet, check if we need to require a blocks directory
+    String? pendingDataDir;
     if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
       // Check if we already have a custom datadir configured
       final hasDataDirConfigured = _selectedDataDir != null;
@@ -182,8 +183,8 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
         );
 
         if (selectedPath != null) {
-          // Save the selected data directory
-          await _confProvider.updateDataDir(selectedPath);
+          // Store the path to apply AFTER network switch completes
+          pendingDataDir = selectedPath;
         } else {
           // User cancelled, don't switch network
           return;
@@ -204,6 +205,11 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           },
         ),
       );
+
+      // Apply the pending datadir AFTER network switch (so it goes to the right config)
+      if (pendingDataDir != null) {
+        await _confProvider.updateDataDir(pendingDataDir);
+      }
 
       // Update local state with the new network's datadir
       setState(() {
@@ -1751,7 +1757,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
               // Wait for dialog to fully dispose before replacing entire route stack
               await Future.delayed(const Duration(milliseconds: 100));
               // Boot binaries and navigate to wallet creation
-              await router.replaceAll([SailCreateWalletRoute()]);
+              await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
             }
           },
         ),
@@ -2810,5 +2816,5 @@ Future<void> _resetEverything(BuildContext context) async {
   // Boot binaries after reset. This will await wallet creation
   unawaited(bootBinaries(log));
   // Navigate to wallet creation page (like fresh install)
-  await router.replaceAll([SailCreateWalletRoute()]);
+  await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
 }

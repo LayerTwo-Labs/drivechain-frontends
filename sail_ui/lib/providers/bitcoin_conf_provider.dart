@@ -289,8 +289,8 @@ class BitcoinConfProvider extends ChangeNotifier {
     log.i('Service restart completed');
   }
 
-  /// Update datadir for the current network section
-  Future<void> updateDataDir(String? dataDir) async {
+  /// Update datadir for the specified network section (or current network if not specified)
+  Future<void> updateDataDir(String? dataDir, {BitcoinNetwork? forNetwork}) async {
     if (_hasPrivateBitcoinConf) {
       log.w('Cannot update datadir - controlled by your private bitcoin.conf');
       return;
@@ -298,8 +298,9 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     if (_currentConfig == null) return;
 
-    // Store datadir in the network-specific section so it persists across network switches
-    final section = _detectedNetwork.toCoreNetwork();
+    // Use specified network or fall back to current detected network
+    final targetNetwork = forNetwork ?? _detectedNetwork;
+    final section = targetNetwork.toCoreNetwork();
 
     if (dataDir == null || dataDir.isEmpty) {
       _currentConfig!.removeSetting('datadir', section: section);
