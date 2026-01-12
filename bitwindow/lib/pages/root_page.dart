@@ -331,7 +331,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Restore My Wallet',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(
-                          SailCreateWalletRoute(initialScreen: WelcomeScreen.restore),
+                          SailCreateWalletRoute(homeRoute: const RootRoute(), initialScreen: WelcomeScreen.restore),
                         );
                       },
                     ),

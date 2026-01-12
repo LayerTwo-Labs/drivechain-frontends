@@ -84,7 +84,7 @@ class AppRouter extends RootStackRouter {
         ),
       ],
       guards: [
-        WalletGuard(createWalletRoute: () => SailCreateWalletRoute()),
+        WalletGuard(createWalletRoute: () => SailCreateWalletRoute(homeRoute: const RootRoute())),
         PasswordGuard(),
       ],
     ),

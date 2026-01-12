@@ -100,7 +100,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           // Navigate to existing restore flow
           if (mounted) {
             await GetIt.I.get<AppRouter>().push(
-              SailCreateWalletRoute(initialScreen: WelcomeScreen.restore),
+              SailCreateWalletRoute(homeRoute: const RootRoute(), initialScreen: WelcomeScreen.restore),
             );
           }
           return;
@@ -108,7 +108,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           // Navigate to existing advanced flow
           if (mounted) {
             await GetIt.I.get<AppRouter>().push(
-              SailCreateWalletRoute(initialScreen: WelcomeScreen.advanced),
+              SailCreateWalletRoute(homeRoute: const RootRoute(), initialScreen: WelcomeScreen.advanced),
             );
           }
           return;

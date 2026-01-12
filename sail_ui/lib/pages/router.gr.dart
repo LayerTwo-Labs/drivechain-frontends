@@ -124,6 +124,7 @@ class SailCreateWalletRoute
     _i8.Widget Function(_i8.BuildContext, _i8.VoidCallback)?
     successActionsBuilder,
     _i3.WelcomeScreen initialScreen = _i3.WelcomeScreen.initial,
+    required _i7.PageRouteInfo<Object?> homeRoute,
     List<_i7.PageRouteInfo>? children,
   }) : super(
          SailCreateWalletRoute.name,
@@ -136,6 +137,7 @@ class SailCreateWalletRoute
            additionalRestoreOptionsBuilder: additionalRestoreOptionsBuilder,
            successActionsBuilder: successActionsBuilder,
            initialScreen: initialScreen,
+           homeRoute: homeRoute,
          ),
          initialChildren: children,
        );
@@ -145,9 +147,7 @@ class SailCreateWalletRoute
   static _i7.PageInfo page = _i7.PageInfo(
     name,
     builder: (data) {
-      final args = data.argsAs<SailCreateWalletRouteArgs>(
-        orElse: () => const SailCreateWalletRouteArgs(),
-      );
+      final args = data.argsAs<SailCreateWalletRouteArgs>();
       return _i3.SailCreateWalletPage(
         key: args.key,
         appName: args.appName,
@@ -157,6 +157,7 @@ class SailCreateWalletRoute
         additionalRestoreOptionsBuilder: args.additionalRestoreOptionsBuilder,
         successActionsBuilder: args.successActionsBuilder,
         initialScreen: args.initialScreen,
+        homeRoute: args.homeRoute,
       );
     },
   );
@@ -172,6 +173,7 @@ class SailCreateWalletRouteArgs {
     this.additionalRestoreOptionsBuilder,
     this.successActionsBuilder,
     this.initialScreen = _i3.WelcomeScreen.initial,
+    required this.homeRoute,
   });
 
   final _i8.Key? key;
@@ -191,9 +193,11 @@ class SailCreateWalletRouteArgs {
 
   final _i3.WelcomeScreen initialScreen;
 
+  final _i7.PageRouteInfo<Object?> homeRoute;
+
   @override
   String toString() {
-    return 'SailCreateWalletRouteArgs{key: $key, appName: $appName, onWalletCreated: $onWalletCreated, onBack: $onBack, showFileRestore: $showFileRestore, additionalRestoreOptionsBuilder: $additionalRestoreOptionsBuilder, successActionsBuilder: $successActionsBuilder, initialScreen: $initialScreen}';
+    return 'SailCreateWalletRouteArgs{key: $key, appName: $appName, onWalletCreated: $onWalletCreated, onBack: $onBack, showFileRestore: $showFileRestore, additionalRestoreOptionsBuilder: $additionalRestoreOptionsBuilder, successActionsBuilder: $successActionsBuilder, initialScreen: $initialScreen, homeRoute: $homeRoute}';
   }
 
   @override
@@ -205,7 +209,8 @@ class SailCreateWalletRouteArgs {
         onWalletCreated == other.onWalletCreated &&
         onBack == other.onBack &&
         showFileRestore == other.showFileRestore &&
-        initialScreen == other.initialScreen;
+        initialScreen == other.initialScreen &&
+        homeRoute == other.homeRoute;
   }
 
   @override
@@ -215,7 +220,8 @@ class SailCreateWalletRouteArgs {
       onWalletCreated.hashCode ^
       onBack.hashCode ^
       showFileRestore.hashCode ^
-      initialScreen.hashCode;
+      initialScreen.hashCode ^
+      homeRoute.hashCode;
 }
 
 /// generated route for
