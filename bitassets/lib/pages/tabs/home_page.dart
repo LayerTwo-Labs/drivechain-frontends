@@ -110,6 +110,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
               ],
             ),
 
+            // Your Wallet menu
+            PlatformMenu(
+              label: 'Your Wallet',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Restore My Wallet',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          SailCreateWalletRoute(
+                            homeRoute: const HomeRoute(),
+                            initialScreen: WelcomeScreen.restore,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Backup Wallet',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          BackupWalletRoute(appName: 'bitassets'),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Restore Wallet',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          RestoreWalletRoute(
+                            bootBinaries: (log) async => bootBinaries(log),
+                            binariesToStop: [BitcoinCore(), Enforcer(), BitAssets()],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
             // This Node menu
             PlatformMenu(
               label: 'This Node',

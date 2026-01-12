@@ -87,6 +87,12 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       page: SailCreateWalletRoute.page,
     ),
+    AutoRoute(
+      page: BackupWalletRoute.page,
+    ),
+    AutoRoute(
+      page: RestoreWalletRoute.page,
+    ),
 
     /// This route is used in tests so that we can pump a widget into a route
     /// and use the real router for our test

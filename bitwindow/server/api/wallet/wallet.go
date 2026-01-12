@@ -2738,30 +2738,30 @@ type bucketRange struct {
 
 // generateDynamicBuckets creates bucket ranges that adapt to the wallet's actual UTXO values
 func generateDynamicBuckets(minVal, maxVal uint64, numBuckets int) []bucketRange {
-	// Use predefined "nice" boundaries based on Bitcoin denominations
+	// Use predefined boundaries based on Bitcoin denominations
 	// These are logarithmically spaced for good distribution
-	niceBoundaries := []uint64{
-		546,          // dust limit
-		1_000,        // 0.00001 BTC
-		5_000,        // 0.00005 BTC
-		10_000,       // 0.0001 BTC
-		50_000,       // 0.0005 BTC
-		100_000,      // 0.001 BTC
-		500_000,      // 0.005 BTC
-		1_000_000,    // 0.01 BTC
-		5_000_000,    // 0.05 BTC
-		10_000_000,   // 0.1 BTC
-		50_000_000,   // 0.5 BTC
-		100_000_000,  // 1 BTC
-		500_000_000,  // 5 BTC
-		1_000_000_000, // 10 BTC
-		5_000_000_000, // 50 BTC
+	boundaries := []uint64{
+		546,            // dust limit
+		1_000,          // 0.00001 BTC
+		5_000,          // 0.00005 BTC
+		10_000,         // 0.0001 BTC
+		50_000,         // 0.0005 BTC
+		100_000,        // 0.001 BTC
+		500_000,        // 0.005 BTC
+		1_000_000,      // 0.01 BTC
+		5_000_000,      // 0.05 BTC
+		10_000_000,     // 0.1 BTC
+		50_000_000,     // 0.5 BTC
+		100_000_000,    // 1 BTC
+		500_000_000,    // 5 BTC
+		1_000_000_000,  // 10 BTC
+		5_000_000_000,  // 50 BTC
 		10_000_000_000, // 100 BTC
 	}
 
 	// Find which boundaries are relevant for this wallet's range
 	var relevantBoundaries []uint64
-	for _, b := range niceBoundaries {
+	for _, b := range boundaries {
 		if b > minVal && b < maxVal {
 			relevantBoundaries = append(relevantBoundaries, b)
 		}
@@ -2825,4 +2825,3 @@ func formatBucketRange(minSats, maxSats uint64) string {
 
 	return fmt.Sprintf("%s - %s BTC", formatVal(minBTC), formatVal(maxBTC))
 }
-
