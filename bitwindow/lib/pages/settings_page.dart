@@ -10,6 +10,11 @@ import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart' show bootBinaries;
+import 'package:bitwindow/pages/settings/settings_about.dart';
+import 'package:bitwindow/pages/settings/settings_advanced.dart';
+import 'package:bitwindow/pages/settings/settings_appearance.dart';
+import 'package:bitwindow/pages/settings/settings_network.dart';
+import 'package:bitwindow/pages/settings/settings_reset.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:bitwindow/routing/router.dart';
@@ -25,18 +30,33 @@ import 'package:path/path.dart' as path;
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
+  static final GlobalKey<SettingsPageState> settingsKey = GlobalKey<SettingsPageState>();
+
+  static void setSection(int index) {
+    settingsKey.currentState?.setSelectedIndex(index);
+  }
+
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  State<SettingsPage> createState() => SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class SettingsPageState extends State<SettingsPage> {
   int _selectedIndex = 0;
+
+  void setSelectedIndex(int index) {
+    if (index >= 0 && index < 6) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return Container(
+      key: SettingsPage.settingsKey,
       color: theme.colors.background,
       padding: const EdgeInsets.all(SailStyleValues.padding12),
       child: SelectionArea(
@@ -98,19 +118,19 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildContent() {
     switch (_selectedIndex) {
       case 0:
-        return _NetworkSettingsContent();
+        return const SettingsNetwork();
       case 1:
         return _SecuritySettingsContent();
       case 2:
-        return _AppearanceSettingsContent();
+        return const SettingsAppearance();
       case 3:
-        return _AdvancedSettingsContent();
+        return const SettingsAdvanced();
       case 4:
-        return _ResetSettingsContent();
+        return const SettingsReset();
       case 5:
-        return _AboutSettingsContent();
+        return const SettingsAbout();
       default:
-        return _NetworkSettingsContent();
+        return const SettingsNetwork();
     }
   }
 }
@@ -171,11 +191,13 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     // If switching TO mainnet or forknet, check if we need to require a blocks directory
     String? pendingDataDir;
     if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      // Check if we already have a custom datadir configured
-      final hasDataDirConfigured = _selectedDataDir != null;
+      // Check if target network already has a saved datadir configured
+      final savedDataDir = await _confProvider.getSavedDataDirForNetwork(network);
+      final hasDataDirConfigured = savedDataDir != null && savedDataDir.isNotEmpty;
 
       if (!hasDataDirConfigured) {
         // Ask for datadir for mainnet/forknet
+        if (!mounted) return;
         final selectedPath = await showDialog<String>(
           context: context,
           barrierDismissible: false,
@@ -183,13 +205,17 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
         );
 
         if (selectedPath != null) {
-          // Store the path to apply AFTER network switch completes
           pendingDataDir = selectedPath;
         } else {
           // User cancelled, don't switch network
           return;
         }
       }
+    }
+
+    // Save the datadir BEFORE restarting services so Bitcoin Core picks it up
+    if (pendingDataDir != null) {
+      await _confProvider.updateDataDir(pendingDataDir, forNetwork: network);
     }
 
     // Show progress dialog and perform restart
@@ -205,11 +231,6 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           },
         ),
       );
-
-      // Apply the pending datadir AFTER network switch (so it goes to the right config)
-      if (pendingDataDir != null) {
-        await _confProvider.updateDataDir(pendingDataDir);
-      }
 
       // Update local state with the new network's datadir
       setState(() {

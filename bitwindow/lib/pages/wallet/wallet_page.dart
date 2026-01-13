@@ -94,6 +94,10 @@ class WalletPage extends StatelessWidget {
     _sendViewModel?.handleBitcoinURI(uri);
   }
 
+  static void setSubtab(int index) {
+    tabKey.currentState?.setIndex(index, null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return QtPage(

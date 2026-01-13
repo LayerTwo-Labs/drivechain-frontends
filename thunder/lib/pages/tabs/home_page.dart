@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart' as auto_router;
@@ -10,8 +11,13 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:thunder/dialogs/command_palette_dialog.dart';
 import 'package:thunder/main.dart';
+import 'package:thunder/pages/tabs/settings_page.dart';
 import 'package:thunder/routing/router.dart';
+import 'package:thunder/services/code_search_service.dart';
+import 'package:thunder/utils/menu_commands.dart';
+import 'package:thunder/utils/navigation_registry.dart';
 import 'package:window_manager/window_manager.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down
@@ -44,6 +50,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
+  DateTime? _lastShiftPress;
+  final CodeSearchService _codeSearchService = CodeSearchService();
 
   @override
   void initState() {
@@ -51,6 +59,229 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     WidgetsBinding.instance.addObserver(this);
     _notificationProvider.addListener(rebuildNotifications);
     _initializeWindowManager();
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+    _codeSearchService.loadFiles();
+  }
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    // Double-shift detection
+    if (event is KeyDownEvent &&
+        (event.logicalKey == LogicalKeyboardKey.shiftLeft || event.logicalKey == LogicalKeyboardKey.shiftRight)) {
+      final now = DateTime.now();
+      if (_lastShiftPress != null && now.difference(_lastShiftPress!).inMilliseconds < 400) {
+        _lastShiftPress = null;
+        _openCommandPalette();
+        return true;
+      } else {
+        _lastShiftPress = now;
+      }
+    }
+
+    // Cmd+K / Ctrl+K
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyK) {
+      final isMetaPressed = HardwareKeyboard.instance.isMetaPressed;
+      final isControlPressed = HardwareKeyboard.instance.isControlPressed;
+
+      if (Platform.isMacOS ? isMetaPressed : isControlPressed) {
+        _openCommandPalette();
+        return true;
+      }
+    }
+
+    // Cmd+Shift+P / Ctrl+Shift+P
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyP) {
+      final isMetaPressed = HardwareKeyboard.instance.isMetaPressed;
+      final isControlPressed = HardwareKeyboard.instance.isControlPressed;
+      final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
+
+      if (isShiftPressed && (Platform.isMacOS ? isMetaPressed : isControlPressed)) {
+        _openCommandPalette();
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  void _openCommandPalette() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CommandPaletteDialog(
+        commands: _getMenuCommands(dialogContext),
+        codeSearchService: _codeSearchService,
+        onCodeResultSelected: (filePath, matchedLine) => _navigateToFileContext(filePath, matchedLine),
+      ),
+    );
+  }
+
+  void _navigateToFileContext(String filePath, String matchedLine) {
+    final fileName = filePath.split('/').last;
+    final target = navigationRegistry[fileName];
+
+    if (target == null) return;
+
+    AutoRouterX(context).tabsRouter.setActiveIndex(target.tabIndex);
+
+    if (target.sectionIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SettingsTabPage.setSection(target.sectionIndex!);
+      });
+    }
+  }
+
+  List<CommandItem> _getMenuCommands(BuildContext dialogContext) {
+    final router = GetIt.I.get<AppRouter>();
+    final windowProvider = GetIt.I.get<WindowProvider>();
+
+    return [
+      // Your Wallet menu
+      CommandItem(
+        label: 'Restore My Wallet',
+        category: 'Your Wallet',
+        onSelected: () async {
+          await router.push(
+            SailCreateWalletRoute(
+              homeRoute: const HomeRoute(),
+              initialScreen: WelcomeScreen.restore,
+            ),
+          );
+        },
+      ),
+      CommandItem(
+        label: 'Backup Wallet',
+        category: 'Your Wallet',
+        onSelected: () async {
+          await router.push(BackupWalletRoute(appName: 'thunder'));
+        },
+      ),
+      CommandItem(
+        label: 'Restore Wallet',
+        category: 'Your Wallet',
+        onSelected: () async {
+          await router.push(
+            RestoreWalletRoute(
+              bootBinaries: (log) async => bootBinaries(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
+            ),
+          );
+        },
+      ),
+
+      // Navigation
+      CommandItem(
+        label: 'Parent Chain',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Overview',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.ThunderHomepage.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Console',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Console.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Settings',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Configure Homepage',
+        category: 'Navigation',
+        onSelected: () async {
+          await router.push(ThunderConfigureHomepageRoute());
+        },
+      ),
+
+      // This Node menu
+      CommandItem(
+        label: 'Open Console Window',
+        category: 'This Node',
+        onSelected: () async {
+          await windowProvider.open(SubWindowTypes.console);
+        },
+      ),
+      CommandItem(
+        label: 'View Logs',
+        category: 'This Node',
+        onSelected: () async {
+          await windowProvider.open(SubWindowTypes.logs);
+        },
+      ),
+
+      // Settings sections
+      CommandItem(
+        label: 'General Settings',
+        category: 'Settings',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Theme Settings',
+        category: 'Settings',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Font Settings',
+        category: 'Settings',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Bitcoin Unit Settings',
+        category: 'Settings',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Reset Thunder Data',
+        category: 'Settings',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'App Info / About',
+        category: 'Settings',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+
+      // App menu
+      CommandItem(
+        label: 'Quit Thunder',
+        category: thunderRPC.chain.name,
+        shortcut: '⌘Q',
+        onSelected: () => didRequestAppExit(),
+      ),
+    ];
   }
 
   Future<void> _initializeWindowManager() async {
@@ -161,6 +392,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                           await windowProvider.open(SubWindowTypes.logs);
                         }
                       : null,
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Help menu
+        PlatformMenu(
+          label: 'Help',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Search Commands...',
+                  shortcut: SingleActivator(
+                    LogicalKeyboardKey.keyK,
+                    meta: Platform.isMacOS,
+                    control: !Platform.isMacOS,
+                  ),
+                  onSelected: () => _openCommandPalette(),
                 ),
               ],
             ),
@@ -312,6 +563,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

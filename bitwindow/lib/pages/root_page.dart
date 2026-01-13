@@ -3,6 +3,12 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/dialogs/base58_decoder_dialog.dart';
+import 'package:bitwindow/dialogs/command_palette_dialog.dart';
+import 'package:bitwindow/pages/settings_page.dart';
+import 'package:bitwindow/pages/wallet/wallet_page.dart';
+import 'package:bitwindow/services/code_search_service.dart';
+import 'package:bitwindow/utils/menu_commands.dart';
+import 'package:bitwindow/utils/navigation_registry.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
@@ -15,7 +21,6 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
-import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
@@ -53,6 +58,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   bool _shutdownInProgress = false;
   bool _isWalletSwitching = false;
   bool _isWalletEncrypted = false;
+  DateTime? _lastShiftPress;
+  final CodeSearchService _codeSearchService = CodeSearchService();
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -66,6 +73,37 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _walletReader.addListener(_onProviderChanged);
     _initializeWindowManager();
     _checkEncryptionStatus();
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+    _codeSearchService.loadFiles();
+  }
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    // Double-shift detection
+    if (event is KeyDownEvent &&
+        (event.logicalKey == LogicalKeyboardKey.shiftLeft || event.logicalKey == LogicalKeyboardKey.shiftRight)) {
+      final now = DateTime.now();
+      if (_lastShiftPress != null && now.difference(_lastShiftPress!).inMilliseconds < 400) {
+        _lastShiftPress = null;
+        _openCommandPalette();
+        return true;
+      } else {
+        _lastShiftPress = now;
+      }
+    }
+
+    // Cmd+Shift+P / Ctrl+Shift+P
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyP) {
+      final isMetaPressed = HardwareKeyboard.instance.isMetaPressed;
+      final isControlPressed = HardwareKeyboard.instance.isControlPressed;
+      final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
+
+      if (isShiftPressed && (Platform.isMacOS ? isMetaPressed : isControlPressed)) {
+        _openCommandPalette();
+        return true;
+      }
+    }
+
+    return false;
   }
 
   void _onProviderChanged() {
@@ -93,6 +131,216 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   Future<void> _initializeWindowManager() async {
     windowManager.addListener(this);
     await windowManager.setPreventClose(true);
+  }
+
+  List<CommandItem> _getMenuCommands() {
+    return [
+      // Your Wallet
+      CommandItem(
+        label: 'Create New Wallet',
+        category: 'Your Wallet',
+        onSelected: () => GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute()),
+      ),
+      CommandItem(
+        label: 'Restore My Wallet',
+        category: 'Your Wallet',
+        onSelected: () => GetIt.I.get<AppRouter>().push(
+          SailCreateWalletRoute(homeRoute: const RootRoute(), initialScreen: WelcomeScreen.restore),
+        ),
+      ),
+      CommandItem(
+        label: 'Address Book',
+        category: 'Your Wallet',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.addressbook),
+      ),
+      CommandItem(
+        label: 'HD Wallet Explorer',
+        category: 'Your Wallet',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.hdWallet),
+      ),
+      CommandItem(
+        label: 'Backup Wallet',
+        category: 'Your Wallet',
+        onSelected: () => GetIt.I.get<AppRouter>().push(BackupWalletRoute(appName: 'bitwindow')),
+      ),
+      CommandItem(
+        label: 'Restore Wallet',
+        category: 'Your Wallet',
+        onSelected: () => GetIt.I.get<AppRouter>().push(
+          RestoreWalletRoute(
+            bootBinaries: (log) async => bootBinaries(log),
+            binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+          ),
+        ),
+      ),
+
+      // Banking
+      CommandItem(
+        label: 'Send Money',
+        category: 'Banking',
+        onSelected: () {
+          final tabsRouter = _routerKey.currentState?.controller;
+          tabsRouter?.setActiveIndex(1);
+          if (WalletPage.tabKey.currentState != null) {
+            WalletPage.tabKey.currentState!.setIndex(1, null);
+          }
+        },
+      ),
+      CommandItem(
+        label: 'Request Money',
+        category: 'Banking',
+        onSelected: () {
+          final tabsRouter = _routerKey.currentState?.controller;
+          tabsRouter?.setActiveIndex(1);
+          if (WalletPage.tabKey.currentState != null) {
+            WalletPage.tabKey.currentState!.setIndex(2, null);
+          }
+        },
+      ),
+      CommandItem(
+        label: 'See Wallet Transactions',
+        category: 'Banking',
+        onSelected: () {
+          final tabsRouter = _routerKey.currentState?.controller;
+          tabsRouter?.setActiveIndex(1);
+          if (WalletPage.tabKey.currentState != null) {
+            WalletPage.tabKey.currentState!.setIndex(0, null);
+          }
+        },
+      ),
+      CommandItem(
+        label: 'Deniability',
+        category: 'Banking',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.deniability),
+      ),
+      CommandItem(
+        label: 'Multisig Lounge',
+        category: 'Banking',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.multisigLounge),
+      ),
+      CommandItem(
+        label: 'Write a Check',
+        category: 'Banking',
+        onSelected: () => GetIt.I.get<AppRouter>().push(CreateCheckRoute()),
+      ),
+
+      // Use Bitcoin
+      CommandItem(
+        label: 'CPU Miner',
+        category: 'Use Bitcoin',
+        onSelected: () => GetIt.I.get<AppRouter>().push(CpuMiningRoute()),
+      ),
+      CommandItem(
+        label: 'M4 Explorer',
+        category: 'Use Bitcoin',
+        onSelected: () => GetIt.I.get<AppRouter>().push(M4ExplorerRoute()),
+      ),
+      CommandItem(
+        label: 'Timestamp File(s)',
+        category: 'Use Bitcoin',
+        onSelected: () => GetIt.I.get<AppRouter>().push(const CreateTimestampRoute()),
+      ),
+      CommandItem(
+        label: 'BitDrive',
+        category: 'Use Bitcoin',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.bitDrive),
+      ),
+      CommandItem(
+        label: 'Sign / Verify Message',
+        category: 'Use Bitcoin',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.messageSigner),
+      ),
+      CommandItem(
+        label: 'Sidechains',
+        category: 'Use Bitcoin',
+        onSelected: () {
+          final tabsRouter = _routerKey.currentState?.controller;
+          tabsRouter?.setActiveIndex(2);
+        },
+      ),
+
+      // Crypto Tools
+      CommandItem(
+        label: 'Block Explorer',
+        category: 'Crypto Tools',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.blockExplorer),
+      ),
+      CommandItem(
+        label: 'Hash Calculator',
+        category: 'Crypto Tools',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.hashCalculator),
+      ),
+      CommandItem(
+        label: 'CPU Mining',
+        category: 'Crypto Tools',
+        onSelected: () => GetIt.I.get<AppRouter>().push(CpuMiningRoute()),
+      ),
+
+      // This Node
+      CommandItem(
+        label: 'Debug Window',
+        category: 'This Node',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.debug),
+      ),
+      CommandItem(
+        label: 'Options',
+        category: 'This Node',
+        onSelected: () {
+          final tabsRouter = _routerKey.currentState?.controller;
+          tabsRouter?.setActiveIndex(5);
+        },
+      ),
+      CommandItem(
+        label: 'View Logs',
+        category: 'This Node',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.logs),
+      ),
+
+      // Help
+      CommandItem(
+        label: 'Documentation',
+        category: 'Help',
+        onSelected: () => launchUrl(Uri.parse('https://drivechain.info')),
+      ),
+      CommandItem(
+        label: 'Report Issue',
+        category: 'Help',
+        onSelected: () => launchUrl(Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends/issues')),
+      ),
+    ];
+  }
+
+  void _openCommandPalette() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CommandPaletteDialog(
+        commands: _getMenuCommands(),
+        codeSearchService: _codeSearchService,
+        onCodeResultSelected: (filePath, matchedLine) => _navigateToFileContext(filePath, matchedLine),
+      ),
+    );
+  }
+
+  void _navigateToFileContext(String filePath, String matchedLine) {
+    final tabsRouter = _routerKey.currentState?.controller;
+    final fileName = filePath.split('/').last;
+    final target = navigationRegistry[fileName];
+
+    if (target == null) return;
+
+    tabsRouter?.setActiveIndex(target.tabIndex);
+
+    if (target.sectionIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SettingsPage.setSection(target.sectionIndex!);
+      });
+    }
+
+    if (target.subtabIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        WalletPage.setSubtab(target.subtabIndex!);
+      });
+    }
   }
 
   @override
@@ -145,7 +393,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                         ),
                                         children: [
                                           const TextSpan(text: 'Drivechain version v0.47.00.0-unk (64-bit)\n\n'),
-                                          const TextSpan(text: 'Copyright (C) 2009-2024 The Drivechain developers\n'),
+                                          const TextSpan(
+                                            text: 'Copyright (C) 2009-2024 The Drivechain developers\n',
+                                          ),
                                           const TextSpan(
                                             text: 'Copyright (C) 2009-2024 The Bitcoin Core developers\n\n',
                                           ),
@@ -176,7 +426,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                             recognizer: TapGestureRecognizer()
                                               ..onTap = () async {
                                                 await launchUrl(
-                                                  Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends'),
+                                                  Uri.parse(
+                                                    'https://github.com/LayerTwo-Labs/drivechain-frontends',
+                                                  ),
                                                 );
                                               },
                                           ),
@@ -192,7 +444,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                             recognizer: TapGestureRecognizer()
                                               ..onTap = () async {
                                                 await launchUrl(
-                                                  Uri.parse('https://github.com/LayerTwo-Labs/bip300301_enforcer'),
+                                                  Uri.parse(
+                                                    'https://github.com/LayerTwo-Labs/bip300301_enforcer',
+                                                  ),
                                                 );
                                               },
                                           ),
@@ -330,7 +584,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Restore My Wallet',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(
-                          SailCreateWalletRoute(homeRoute: const RootRoute(), initialScreen: WelcomeScreen.restore),
+                          SailCreateWalletRoute(
+                            homeRoute: const RootRoute(),
+                            initialScreen: WelcomeScreen.restore,
+                          ),
                         );
                       },
                     ),
@@ -734,6 +991,44 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 ),
               ],
             ),
+
+            // Help menu with search command
+            PlatformMenu(
+              label: 'Help',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Search Commands...',
+                      shortcut: SingleActivator(
+                        LogicalKeyboardKey.keyK,
+                        meta: Platform.isMacOS,
+                        control: !Platform.isMacOS,
+                      ),
+                      onSelected: () => _openCommandPalette(),
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Documentation',
+                      onSelected: () async {
+                        await launchUrl(Uri.parse('https://drivechain.info'));
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Report Issue',
+                      onSelected: () async {
+                        await launchUrl(
+                          Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends/issues'),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ],
           child: AutoTabsRouter.tabBar(
             key: _routerKey,
@@ -948,6 +1243,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _homepageProvider.removeListener(_onProviderChanged);
     _bitwindowSettingsProvider.removeListener(_onProviderChanged);
     _walletReader.removeListener(_onProviderChanged);

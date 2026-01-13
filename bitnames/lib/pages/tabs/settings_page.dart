@@ -1,36 +1,47 @@
-import 'dart:async';
-
 import 'package:auto_route/auto_route.dart';
-import 'package:bitnames/gen/version.dart';
+import 'package:bitnames/pages/settings/settings_general.dart';
+import 'package:bitnames/pages/settings/settings_info.dart';
+import 'package:bitnames/pages/settings/settings_reset.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
-import 'package:sail_ui/config/sidechain_main.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class SettingsTabPage extends StatefulWidget {
   const SettingsTabPage({super.key});
 
+  static final GlobalKey<SettingsTabPageState> settingsKey = GlobalKey<SettingsTabPageState>();
+
+  static void setSection(int index) {
+    settingsKey.currentState?.setSelectedIndex(index);
+  }
+
   @override
-  State<SettingsTabPage> createState() => _SettingsTabPageState();
+  State<SettingsTabPage> createState() => SettingsTabPageState();
 }
 
-class _SettingsTabPageState extends State<SettingsTabPage> {
+class SettingsTabPageState extends State<SettingsTabPage> {
   int _selectedIndex = 0;
+
+  void setSelectedIndex(int index) {
+    if (index >= 0 && index < 3) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return QtPage(
+      key: SettingsTabPage.settingsKey,
       child: SingleChildScrollView(
         child: SailColumn(
           spacing: SailStyleValues.padding10,
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             SailText.primary24(
               'Settings',
               bold: true,
@@ -43,12 +54,9 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
               color: theme.colors.divider,
             ),
             const SailSpacing(SailStyleValues.padding10),
-
-            // Navigation and Content side by side
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left navigation
                 SideNav(
                   items: const [
                     SideNavItem(label: 'General'),
@@ -63,7 +71,6 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
                   },
                 ),
                 const SailSpacing(SailStyleValues.padding40),
-                // Right content area
                 Expanded(
                   child: _buildContent(),
                 ),
@@ -78,264 +85,13 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
   Widget _buildContent() {
     switch (_selectedIndex) {
       case 0:
-        return _GeneralSettingsContent();
+        return const SettingsGeneral();
       case 1:
-        return _ResetSettingsContent();
+        return const SettingsReset();
       case 2:
-        return _InfoSettingsContent();
+        return const SettingsInfo();
       default:
-        return _GeneralSettingsContent();
+        return const SettingsGeneral();
     }
-  }
-}
-
-class _GeneralSettingsContent extends StatefulWidget {
-  @override
-  State<_GeneralSettingsContent> createState() => _GeneralSettingsContentState();
-}
-
-class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
-  final _settingsProvider = GetIt.I.get<SettingsProvider>();
-
-  @override
-  void initState() {
-    super.initState();
-    // Listen to settings changes
-    _settingsProvider.addListener(_onSettingsChanged);
-  }
-
-  @override
-  void dispose() {
-    _settingsProvider.removeListener(_onSettingsChanged);
-    super.dispose();
-  }
-
-  void _onSettingsChanged() {
-    setState(() {
-      // Rebuild when settings change
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding20,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Profile section header
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('General'),
-            SailText.secondary13('Enable or disable various settings'),
-          ],
-        ),
-
-        // Theme Toggle
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Theme'),
-            const SailSpacing(SailStyleValues.padding08),
-            ToggleThemeButton(),
-          ],
-        ),
-
-        // Font Dropdown
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Font'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<SailFontValues>(
-              value: _settingsProvider.font,
-              items: [
-                SailDropdownItem<SailFontValues>(
-                  value: SailFontValues.inter,
-                  label: 'Inter',
-                ),
-                SailDropdownItem<SailFontValues>(
-                  value: SailFontValues.ibmMono,
-                  label: 'IBM Plex Mono',
-                ),
-              ],
-              onChanged: (SailFontValues? newValue) async {
-                if (newValue != null) {
-                  await _settingsProvider.updateFont(newValue);
-                  // Trigger immediate font reload in SailApp
-                  if (context.mounted) {
-                    final app = SailApp.of(context);
-                    await app.loadFont(newValue);
-                  }
-                }
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'Changes the application font immediately.',
-            ),
-          ],
-        ),
-
-        // Bitcoin Unit Dropdown
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Bitcoin Unit'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<BitcoinUnit>(
-              value: _settingsProvider.bitcoinUnit,
-              items: const [
-                SailDropdownItem<BitcoinUnit>(
-                  value: BitcoinUnit.btc,
-                  label: 'BTC',
-                ),
-                SailDropdownItem<BitcoinUnit>(
-                  value: BitcoinUnit.sats,
-                  label: 'Satoshis',
-                ),
-              ],
-              onChanged: (BitcoinUnit? newValue) async {
-                if (newValue != null) {
-                  await _settingsProvider.updateBitcoinUnit(newValue);
-                }
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12('Choose how Bitcoin amounts are displayed'),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _ResetSettingsContent extends StatefulWidget {
-  @override
-  State<_ResetSettingsContent> createState() => _ResetSettingsContentState();
-}
-
-class _ResetSettingsContentState extends State<_ResetSettingsContent> {
-  Future<void> _onResetAllChains() async {
-    await showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Reset All Blockchain Data?',
-        subtitle:
-            'Are you sure you want to reset all blockchain data for bitnames? Wallets are not touched. This action cannot be undone.',
-        confirmButtonVariant: ButtonVariant.destructive,
-        onConfirm: () async {
-          final binaryProvider = GetIt.I.get<BinaryProvider>();
-
-          final binary = BitNames();
-
-          // Only stop binaries that are started by bitwindow
-          await binaryProvider.stop(binary);
-
-          // wait for 3 seconds to ensure stuff's dead
-          await Future.delayed(const Duration(seconds: 3));
-
-          // wipe all chain data
-          await binary.wipeAppDir();
-
-          // finally, boot the binaries
-          bootBinaries(GetIt.I.get<Logger>(), binaryProvider.binaries.firstWhere((b) => b is BitNames));
-
-          final rpc = GetIt.I.get<BitnamesRPC>();
-          while (!rpc.connected) {
-            await Future.delayed(const Duration(seconds: 1));
-          }
-
-          // pop the dialog
-          if (context.mounted) Navigator.of(context).pop();
-        },
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding20,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('Reset'),
-            SailText.secondary13('Reset blockchain data'),
-          ],
-        ),
-        SailButton(
-          label: 'Reset Bitnames Data',
-          variant: ButtonVariant.destructive,
-          onPressed: _onResetAllChains,
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoSettingsContent extends StatefulWidget {
-  @override
-  State<_InfoSettingsContent> createState() => _InfoSettingsContentState();
-}
-
-class _InfoSettingsContentState extends State<_InfoSettingsContent> {
-  @override
-  Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding20,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('Info'),
-            SailText.secondary13('Application version and build information'),
-          ],
-        ),
-
-        // Version Information
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Version'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(AppVersion.versionString),
-          ],
-        ),
-
-        // Build Date
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Build Date'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(AppVersion.buildDate),
-          ],
-        ),
-
-        // Commit Hash
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Commit'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(AppVersion.commitFull),
-          ],
-        ),
-
-        // App Name
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Application'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(AppVersion.appName),
-          ],
-        ),
-      ],
-    );
   }
 }
