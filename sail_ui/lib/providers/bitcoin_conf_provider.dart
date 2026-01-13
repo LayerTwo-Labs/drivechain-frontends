@@ -145,21 +145,21 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     final oldNetwork = _detectedNetwork;
 
-    // Check if we're switching between mainnet and forknet (both use main section)
-    final isMainnetForknetSwitch = _isMainnetOrForknet(oldNetwork) && _isMainnetOrForknet(network);
-
-    if (isMainnetForknetSwitch && oldNetwork != network) {
-      // Save current main section for the old network before switching
+    // Save current mainnet/forknet config to JSON when LEAVING mainnet/forknet
+    if (_isMainnetOrForknet(oldNetwork) && oldNetwork != network) {
       await _saveNetworkConfig(oldNetwork);
+      log.i('Saved [main] section for $oldNetwork before switching');
+    }
 
-      // Load saved main section for the new network
+    // Load saved config when ENTERING mainnet/forknet
+    if (_isMainnetOrForknet(network)) {
       final savedConfig = await _loadNetworkConfig(network);
       if (savedConfig != null) {
         // Replace main section with saved config
         _currentConfig!.networkSettings['main'] = savedConfig;
         log.i('Loaded saved [main] section for $network');
-      } else {
-        // No saved config - generate defaults for the target network
+      } else if (!_isMainnetOrForknet(oldNetwork)) {
+        // No saved config and coming from non-mainnet/forknet - generate defaults
         _detectedNetwork = network;
         final newConfigContent = getDefaultConfig();
         final defaultConfig = BitcoinConfig.parse(newConfigContent);
@@ -176,6 +176,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       _detectedNetwork = network;
     } else {
+      // Switching to a non-mainnet/forknet network
       // Check if we're crossing L2L/non-L2L boundary
       final oldIsL2L = _isL2LNetwork(oldNetwork);
       final newIsL2L = _isL2LNetwork(network);
@@ -304,14 +305,27 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     if (dataDir == null || dataDir.isEmpty) {
       _currentConfig!.removeSetting('datadir', section: section);
-      _detectedDataDir = null;
+      // Only update _detectedDataDir if we're modifying the current network
+      if (targetNetwork == _detectedNetwork) {
+        _detectedDataDir = null;
+      }
     } else {
       _currentConfig!.setSetting('datadir', dataDir, section: section);
-      _detectedDataDir = dataDir;
+      // Only update _detectedDataDir if we're modifying the current network
+      if (targetNetwork == _detectedNetwork) {
+        _detectedDataDir = dataDir;
+      }
     }
 
-    // Save the config
+    // Save the config file
     await _saveConfig();
+
+    // For mainnet/forknet, also save to the network-specific JSON file
+    // so the datadir persists when switching between networks
+    if (_isMainnetOrForknet(targetNetwork)) {
+      await _saveNetworkConfig(targetNetwork);
+      log.i('Saved datadir to JSON for $targetNetwork');
+    }
   }
 
   // Private helper methods
@@ -815,5 +829,22 @@ drivechain=1
       log.e('Failed to load network config: $e');
       return null;
     }
+  }
+
+  /// Check if a network has a saved datadir configured (used before switching networks)
+  /// This checks the saved JSON config for mainnet/forknet networks
+  Future<String?> getSavedDataDirForNetwork(BitcoinNetwork network) async {
+    // Only mainnet and forknet have separate saved configs (they share [main] section)
+    if (network != BitcoinNetwork.BITCOIN_NETWORK_MAINNET && network != BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+      return null;
+    }
+
+    // Check the saved JSON for this specific network
+    final savedConfig = await _loadNetworkConfig(network);
+    if (savedConfig != null && savedConfig.containsKey('datadir')) {
+      return savedConfig['datadir'];
+    }
+
+    return null;
   }
 }

@@ -67,6 +67,8 @@ flutter:
 
   assets:
     - assets/bin/
+    # Source files for code search
+    - lib/
 
   fonts:
     - family: Inter

@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:auto_route/auto_route.dart';
+import 'package:bitnames/dialogs/command_palette_dialog.dart';
 import 'package:bitnames/main.dart';
+import 'package:bitnames/pages/tabs/settings_page.dart';
 import 'package:bitnames/routing/router.dart';
+import 'package:bitnames/services/code_search_service.dart';
+import 'package:bitnames/utils/menu_commands.dart';
+import 'package:bitnames/utils/navigation_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -48,6 +54,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   BitnamesRPC get _rpc => GetIt.I.get<BitnamesRPC>();
   bool _shutdownInProgress = false;
+  DateTime? _lastShiftPress;
+  final CodeSearchService _codeSearchService = CodeSearchService();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
 
@@ -57,6 +65,195 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     WidgetsBinding.instance.addObserver(this);
     _notificationProvider.addListener(rebuildNotifications);
     _initializeWindowManager();
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+    _codeSearchService.loadFiles();
+  }
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    // Double-shift detection
+    if (event is KeyDownEvent &&
+        (event.logicalKey == LogicalKeyboardKey.shiftLeft || event.logicalKey == LogicalKeyboardKey.shiftRight)) {
+      final now = DateTime.now();
+      if (_lastShiftPress != null && now.difference(_lastShiftPress!).inMilliseconds < 400) {
+        _lastShiftPress = null;
+        _openCommandPalette();
+        return true;
+      } else {
+        _lastShiftPress = now;
+      }
+    }
+
+    // Cmd+K / Ctrl+K
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyK) {
+      final isMetaPressed = HardwareKeyboard.instance.isMetaPressed;
+      final isControlPressed = HardwareKeyboard.instance.isControlPressed;
+
+      if (Platform.isMacOS ? isMetaPressed : isControlPressed) {
+        _openCommandPalette();
+        return true;
+      }
+    }
+
+    // Cmd+Shift+P / Ctrl+Shift+P
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyP) {
+      final isMetaPressed = HardwareKeyboard.instance.isMetaPressed;
+      final isControlPressed = HardwareKeyboard.instance.isControlPressed;
+      final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
+
+      if (isShiftPressed && (Platform.isMacOS ? isMetaPressed : isControlPressed)) {
+        _openCommandPalette();
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  void _openCommandPalette() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CommandPaletteDialog(
+        commands: _getMenuCommands(dialogContext),
+        codeSearchService: _codeSearchService,
+        onCodeResultSelected: (filePath, matchedLine) => _navigateToFileContext(filePath, matchedLine),
+      ),
+    );
+  }
+
+  void _navigateToFileContext(String filePath, String matchedLine) {
+    final fileName = filePath.split('/').last;
+    final target = navigationRegistry[fileName];
+
+    if (target == null) return;
+
+    AutoRouterX(context).tabsRouter.setActiveIndex(target.tabIndex);
+
+    if (target.sectionIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SettingsTabPage.setSection(target.sectionIndex!);
+      });
+    }
+  }
+
+  List<CommandItem> _getMenuCommands(BuildContext dialogContext) {
+    final router = GetIt.I.get<AppRouter>();
+    final windowProvider = GetIt.I.get<WindowProvider>();
+
+    return [
+      // Your Wallet menu
+      CommandItem(
+        label: 'Restore My Wallet',
+        category: 'Your Wallet',
+        onSelected: () async {
+          await router.push(
+            SailCreateWalletRoute(
+              homeRoute: const HomeRoute(),
+              initialScreen: WelcomeScreen.restore,
+            ),
+          );
+        },
+      ),
+      CommandItem(
+        label: 'Backup Wallet',
+        category: 'Your Wallet',
+        onSelected: () async {
+          await router.push(BackupWalletRoute(appName: 'bitnames'));
+        },
+      ),
+      CommandItem(
+        label: 'Restore Wallet',
+        category: 'Your Wallet',
+        onSelected: () async {
+          await router.push(
+            RestoreWalletRoute(
+              bootBinaries: (log) async => bootBinaries(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), BitNames()],
+            ),
+          );
+        },
+      ),
+
+      // Navigation
+      CommandItem(
+        label: 'Parent Chain',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Home',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.BitnamesHomepage.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'BitNames',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Bitnames.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Messaging',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Messaging.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Console',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Console.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Settings',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Configure Homepage',
+        category: 'Navigation',
+        onSelected: () async {
+          await router.push(BitnamesConfigureHomepageRoute());
+        },
+      ),
+
+      // This Node menu
+      CommandItem(
+        label: 'Open Console Window',
+        category: 'This Node',
+        onSelected: () async {
+          await windowProvider.open(SubWindowTypes.console);
+        },
+      ),
+      CommandItem(
+        label: 'View Logs',
+        category: 'This Node',
+        onSelected: () async {
+          await windowProvider.open(SubWindowTypes.logs);
+        },
+      ),
+
+      // App menu
+      CommandItem(
+        label: 'Quit BitNames',
+        category: _rpc.chain.name,
+        shortcut: '⌘Q',
+        onSelected: () => didRequestAppExit(),
+      ),
+    ];
   }
 
   Future<void> _initializeWindowManager() async {
@@ -170,6 +367,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                               await windowProvider.open(SubWindowTypes.logs);
                             }
                           : null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Help menu
+            PlatformMenu(
+              label: 'Help',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Search Commands...',
+                      shortcut: SingleActivator(
+                        LogicalKeyboardKey.keyK,
+                        meta: Platform.isMacOS,
+                        control: !Platform.isMacOS,
+                      ),
+                      onSelected: () => _openCommandPalette(),
                     ),
                   ],
                 ),
@@ -356,6 +573,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
