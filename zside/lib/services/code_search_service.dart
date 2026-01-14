@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/services.dart';
 
 class CodeSearchResult {
@@ -21,20 +19,20 @@ class CodeSearchService {
   List<String> _dartFiles = [];
 
   Future<void> loadFiles() async {
-    // Load asset manifest to discover all dart files
-    final manifestJson = await rootBundle.loadString('AssetManifest.json');
-    final manifest = json.decode(manifestJson) as Map<String, dynamic>;
+    try {
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      _dartFiles = manifest.listAssets().where((path) => path.endsWith('.dart')).toList();
 
-    _dartFiles = manifest.keys.where((path) => path.endsWith('.dart')).toList();
-
-    // Load all dart file contents
-    for (final path in _dartFiles) {
-      try {
-        final content = await rootBundle.loadString(path);
-        _fileContents[path] = content;
-      } catch (e) {
-        // Skip files that can't be loaded
+      for (final path in _dartFiles) {
+        try {
+          final content = await rootBundle.loadString(path);
+          _fileContents[path] = content;
+        } catch (e) {
+          // Skip files that can't be loaded
+        }
       }
+    } catch (e) {
+      // Asset manifest not available - code search disabled
     }
   }
 
