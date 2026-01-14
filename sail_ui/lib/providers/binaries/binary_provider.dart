@@ -256,7 +256,10 @@ class BinaryProvider extends ChangeNotifier {
       binary = binary as Sidechain;
       log.i('booting sidechain ${binary.name}');
 
+      // Ensure wallet is loaded and sidechain mnemonic exists (generates if missing)
       final walletReader = GetIt.I.get<WalletReaderProvider>();
+      final walletWriter = GetIt.I.get<WalletWriterProvider>();
+      await walletWriter.getSidechainStarter(binary.slot);
       final mnemonicPath = (await walletReader.writeSidechainStarter(binary.slot)).path;
       log.i('mnemonic path: $mnemonicPath');
 
