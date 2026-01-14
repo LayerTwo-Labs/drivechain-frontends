@@ -13,7 +13,8 @@ class TabIndices {
   static const int sidechains = 2;
   static const int learn = 3;
   static const int console = 4;
-  static const int settings = 5;
+  static const int chat = 5;
+  static const int settings = 6;
 }
 
 // Wallet subtab indices (matches InlineTabBar order in wallet_page.dart)
@@ -39,6 +40,7 @@ final Map<String, NavigationTarget> navigationRegistry = {
   // Main tabs
   'overview_page.dart': NavigationTarget(tabIndex: TabIndices.overview),
   'sidechains_page.dart': NavigationTarget(tabIndex: TabIndices.sidechains),
+  'chat_page.dart': NavigationTarget(tabIndex: TabIndices.chat),
   'learn_page.dart': NavigationTarget(tabIndex: TabIndices.learn),
   'console_page.dart': NavigationTarget(tabIndex: TabIndices.console),
   'bitwindow_console_tab.dart': NavigationTarget(tabIndex: TabIndices.console),

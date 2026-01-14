@@ -116,6 +116,22 @@ class CashCheckSuccessRouteArgs {
 }
 
 /// generated route for
+/// [ChatPage]
+class ChatRoute extends PageRouteInfo<void> {
+  const ChatRoute({List<PageRouteInfo>? children})
+    : super(ChatRoute.name, initialChildren: children);
+
+  static const String name = 'ChatRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ChatPage();
+    },
+  );
+}
+
+/// generated route for
 /// [CheckDetailPage]
 class CheckDetailRoute extends PageRouteInfo<CheckDetailRouteArgs> {
   CheckDetailRoute({
