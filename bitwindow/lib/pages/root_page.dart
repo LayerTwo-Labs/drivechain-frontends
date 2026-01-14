@@ -49,6 +49,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   final HomepageProvider _homepageProvider = GetIt.I.get<HomepageProvider>();
   final BitwindowSettingsProvider _bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
   final BitcoinConfProvider _confProvider = GetIt.I.get<BitcoinConfProvider>();
+  final BitnamesRPC _bitnamesRPC = GetIt.I.get<BitnamesRPC>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
   final _clientSettings = GetIt.I<ClientSettings>();
 
@@ -71,6 +72,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _homepageProvider.addListener(_onProviderChanged);
     _bitwindowSettingsProvider.addListener(_onProviderChanged);
     _walletReader.addListener(_onProviderChanged);
+    _bitnamesRPC.addListener(_onProviderChanged);
     _initializeWindowManager();
     _checkEncryptionStatus();
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
@@ -1039,6 +1041,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               SidechainsRoute(),
               LearnRoute(),
               ConsoleRoute(),
+              ChatRoute(),
               SettingsRoute(),
             ],
             builder: (context, child, controller) {
@@ -1166,6 +1169,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           label: 'Console',
                         ),
                         TopNavRoute(
+                          label: 'Chat',
+                        ),
+                        TopNavRoute(
                           icon: SailSVGAsset.settings,
                         ),
                       ],
@@ -1247,6 +1253,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _homepageProvider.removeListener(_onProviderChanged);
     _bitwindowSettingsProvider.removeListener(_onProviderChanged);
     _walletReader.removeListener(_onProviderChanged);
+    _bitnamesRPC.removeListener(_onProviderChanged);
     GetIt.I.get<BinaryProvider>().onShutdown(
       shutdownOptions: ShutdownOptions(
         router: GetIt.I.get<AppRouter>(),

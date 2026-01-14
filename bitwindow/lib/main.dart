@@ -15,6 +15,7 @@ import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
+import 'package:bitwindow/providers/chat_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/providers/check_provider.dart';
@@ -164,7 +165,17 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
 
-  GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [bitwindow]));
+  GetIt.I.registerLazySingleton<BalanceProvider>(
+    () => BalanceProvider(
+      connections: [
+        bitwindow,
+        GetIt.I.get<BitnamesRPC>(),
+        GetIt.I.get<BitAssetsRPC>(),
+        GetIt.I.get<ThunderRPC>(),
+        GetIt.I.get<ZSideRPC>(),
+      ],
+    ),
+  );
   GetIt.I.registerLazySingleton<SyncProvider>(
     () => SyncProvider(
       additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name),
@@ -192,6 +203,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
+  GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
 
   return (applicationDir, logFile, log);
 }

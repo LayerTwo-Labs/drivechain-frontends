@@ -1532,9 +1532,7 @@ class _DepositModalState extends State<DepositModal> {
               SailButton(
                 label: 'Deposit',
                 loading: isLoading,
-                disabled: depositAddress == null ||
-                    amountController.text.isEmpty ||
-                    feeController.text.isEmpty,
+                disabled: depositAddress == null || amountController.text.isEmpty || feeController.text.isEmpty,
                 onPressed: _deposit,
               ),
             ],
