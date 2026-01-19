@@ -66,7 +66,7 @@ class BitcoinConfig {
 
     // Write global settings
     if (globalSettings.isNotEmpty) {
-      buffer.writeln('# [core]');
+      buffer.writeln('# [common settings]');
       for (final entry in globalSettings.entries) {
         buffer.writeln('${entry.key}=${entry.value}');
       }

@@ -61,7 +61,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
     String? pendingDataDir;
     if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      final savedDataDir = await _confProvider.getSavedDataDirForNetwork(network);
+      final savedDataDir = _confProvider.getDataDirForNetwork(network);
       final hasDataDirConfigured = savedDataDir != null && savedDataDir.isNotEmpty;
 
       if (!hasDataDirConfigured) {

@@ -89,6 +89,7 @@ class AppRouter extends RootStackRouter {
         ),
       ],
       guards: [
+        DataDirGuard(),
         WalletGuard(createWalletRoute: () => SailCreateWalletRoute(homeRoute: const RootRoute())),
         PasswordGuard(),
       ],
@@ -184,6 +185,10 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/restore-wallet',
       page: RestoreWalletRoute.page,
+    ),
+    AutoRoute(
+      path: '/datadir-setup',
+      page: DataDirSetupRoute.page,
     ),
   ];
 }

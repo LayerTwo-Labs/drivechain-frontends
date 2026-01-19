@@ -969,7 +969,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Options',
                       onSelected: () {
                         final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(5);
+                        tabsRouter?.setActiveIndex(6);
                       },
                     ),
                     PlatformMenuItem(
@@ -1363,6 +1363,9 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
             binaryType: binaryType,
           ),
         );
+      },
+      onOpenConfConfigurator: () {
+        GetIt.I.get<AppRouter>().push(const BitcoinConfEditorRoute());
       },
       mainchainInfo: true,
       balanceEndWidgets: const [

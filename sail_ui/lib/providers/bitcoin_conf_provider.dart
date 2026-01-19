@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -110,8 +109,8 @@ class BitcoinConfProvider extends ChangeNotifier {
         }
       }
 
-      // Parse config to detect settings (with legacy [forknet] section support for migration)
-      _currentConfig = _parseConfigWithMigration(content);
+      // Parse config to detect settings
+      _currentConfig = BitcoinConfig.parse(content);
 
       // Migrate legacy [forknet] section if present
       if (!_hasPrivateBitcoinConf) {
@@ -121,6 +120,9 @@ class BitcoinConfProvider extends ChangeNotifier {
       // Extract network and datadir from the config
       _detectNetworkFromConfig();
       _detectDataDirFromConfig();
+
+      // Save [main] section to network-specific file (bitwindow-bitcoin.conf is source of truth)
+      await _syncMainSectionFile();
 
       // Set up file watching
       _setupFileWatching();
@@ -145,27 +147,20 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     final oldNetwork = _detectedNetwork;
 
-    // Save current mainnet/forknet config to JSON when LEAVING mainnet/forknet
+    // Save current [main] section if leaving mainnet/forknet
     if (_isMainnetOrForknet(oldNetwork) && oldNetwork != network) {
-      await _saveNetworkConfig(oldNetwork);
-      log.i('Saved [main] section for $oldNetwork before switching');
+      await _saveMainSectionForNetwork(oldNetwork);
     }
 
-    // Load saved config when ENTERING mainnet/forknet
+    // Load [main] section if entering mainnet/forknet
+    if (_isMainnetOrForknet(network) && oldNetwork != network) {
+      await _loadMainSectionForNetwork(network);
+    }
+
+    // Handle mainnet/forknet (both use [main] section)
     if (_isMainnetOrForknet(network)) {
-      final savedConfig = await _loadNetworkConfig(network);
-      if (savedConfig != null) {
-        // Replace main section with saved config
-        _currentConfig!.networkSettings['main'] = savedConfig;
-        log.i('Loaded saved [main] section for $network');
-      } else if (!_isMainnetOrForknet(oldNetwork)) {
-        // No saved config and coming from non-mainnet/forknet - generate defaults
-        _detectedNetwork = network;
-        final newConfigContent = getDefaultConfig();
-        final defaultConfig = BitcoinConfig.parse(newConfigContent);
-        _currentConfig!.networkSettings['main'] = defaultConfig.networkSettings['main'] ?? {};
-        log.i('Using default [main] section for $network');
-      }
+      // Ensure [main] section exists
+      _currentConfig!.networkSettings['main'] ??= {};
 
       // Update drivechain setting based on network
       if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
@@ -174,49 +169,33 @@ class BitcoinConfProvider extends ChangeNotifier {
         _currentConfig!.networkSettings['main']!.remove('drivechain');
       }
 
+      // Set chain=main for mainnet/forknet
+      _currentConfig!.setSetting('chain', 'main');
+
       _detectedNetwork = network;
     } else {
-      // Switching to a non-mainnet/forknet network
-      // Check if we're crossing L2L/non-L2L boundary
-      final oldIsL2L = _isL2LNetwork(oldNetwork);
-      final newIsL2L = _isL2LNetwork(network);
-      final crossingBoundary = oldIsL2L != newIsL2L;
+      // Switching to signet/testnet/regtest - just update chain setting
+      _currentConfig!.removeSetting('testnet');
+      _currentConfig!.removeSetting('testnet4');
+      _currentConfig!.removeSetting('signet');
+      _currentConfig!.removeSetting('regtest');
 
-      if (crossingBoundary) {
-        // Crossing L2L boundary - regenerate config from scratch
-        _detectedNetwork = network;
-        final newConfigContent = getDefaultConfig();
-        _currentConfig = BitcoinConfig.parse(newConfigContent);
-      } else {
-        // Staying within same category - just update chain setting
-        _currentConfig!.globalSettings.remove('chain');
-        _currentConfig!.globalSettings.remove('testnet');
-        _currentConfig!.globalSettings.remove('testnet4');
-        _currentConfig!.globalSettings.remove('signet');
-        _currentConfig!.globalSettings.remove('regtest');
-
-        switch (network) {
-          case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-          case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-            _currentConfig!.setSetting('chain', 'main');
-            break;
-          case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
-            _currentConfig!.setSetting('chain', 'test');
-            break;
-          case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
-            _currentConfig!.setSetting('chain', 'signet');
-            break;
-          case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-            _currentConfig!.setSetting('chain', 'regtest');
-            break;
-          case BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
-          case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED:
-            _currentConfig!.setSetting('chain', 'signet');
-            break;
-        }
-
-        _detectedNetwork = network;
+      switch (network) {
+        case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+          _currentConfig!.setSetting('chain', 'test');
+          break;
+        case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+          _currentConfig!.setSetting('chain', 'signet');
+          break;
+        case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+          _currentConfig!.setSetting('chain', 'regtest');
+          break;
+        default:
+          _currentConfig!.setSetting('chain', 'signet');
+          break;
       }
+
+      _detectedNetwork = network;
     }
 
     // Load datadir for the new network from its section
@@ -233,13 +212,6 @@ class BitcoinConfProvider extends ChangeNotifier {
   /// Check if network is mainnet or forknet (both use main section)
   bool _isMainnetOrForknet(BitcoinNetwork network) {
     return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
-  }
-
-  /// Check if network supports Layer2 Labs (drivechain) features
-  bool _isL2LNetwork(BitcoinNetwork network) {
-    return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
 
   /// Restart services with detailed progress updates for UI
@@ -319,13 +291,6 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     // Save the config file
     await _saveConfig();
-
-    // For mainnet/forknet, also save to the network-specific JSON file
-    // so the datadir persists when switching between networks
-    if (_isMainnetOrForknet(targetNetwork)) {
-      await _saveNetworkConfig(targetNetwork);
-      log.i('Saved datadir to JSON for $targetNetwork');
-    }
   }
 
   // Private helper methods
@@ -489,6 +454,9 @@ class BitcoinConfProvider extends ChangeNotifier {
           _detectNetworkFromConfig();
           _detectDataDirFromConfig();
 
+          // Save [main] section to network-specific file (bitwindow-bitcoin.conf is source of truth)
+          await _syncMainSectionFile();
+
           // Update MainchainRPC configuration when config changes
           _updateMainchainRPCConfig(_createConnectionSettings());
 
@@ -627,73 +595,12 @@ drivechain=1
     return getDefaultConfig();
   }
 
-  /// Parse config content, supporting legacy forknet section for migration
-  BitcoinConfig _parseConfigWithMigration(String content) {
-    // First, parse normally (which now ignores forknet since it's not in networkSettings)
-    final config = BitcoinConfig.parse(content);
-
-    // Manually parse forknet section if present for migration purposes
-    final forknetSettings = _parseLegacyForknetSection(content);
-    if (forknetSettings.isNotEmpty) {
-      // Store forknet settings temporarily - they'll be migrated in _migrateLegacyForknetSection
-      log.i('Found legacy [forknet] section with ${forknetSettings.length} settings');
-    }
-
-    return config;
-  }
-
-  /// Parse legacy forknet section from raw config content
-  Map<String, String> _parseLegacyForknetSection(String content) {
-    final settings = <String, String>{};
-    final lines = content.split('\n');
-    bool inForknetSection = false;
-
-    for (final line in lines) {
-      final trimmed = line.trim();
-
-      if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
-
-      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        final section = trimmed.substring(1, trimmed.length - 1);
-        inForknetSection = section == 'forknet';
-        continue;
-      }
-
-      if (inForknetSection) {
-        final parts = trimmed.split('=');
-        if (parts.length >= 2) {
-          final key = parts[0].trim();
-          final value = parts.sublist(1).join('=').trim();
-          settings[key] = value;
-        }
-      }
-    }
-
-    return settings;
-  }
-
-  /// Migrate legacy forknet section to JSON file and rewrite config without it
+  /// Migrate legacy forknet section by removing it from the config
   Future<void> _migrateLegacyForknetSection(String content) async {
-    // Check if content has forknet section
     if (!content.contains('[forknet]')) return;
 
-    log.i('Migrating legacy [forknet] section...');
+    log.i('Removing legacy [forknet] section from config...');
 
-    // Parse the forknet settings
-    final forknetSettings = _parseLegacyForknetSection(content);
-    if (forknetSettings.isEmpty) return;
-
-    // Save forknet settings to JSON
-    try {
-      final jsonPath = _getSavedConfigPath(BitcoinNetwork.BITCOIN_NETWORK_FORKNET);
-      final jsonContent = jsonEncode({'main': forknetSettings});
-      await File(jsonPath).writeAsString(jsonContent);
-      log.i('Migrated ${forknetSettings.length} forknet settings to $jsonPath');
-    } catch (e) {
-      log.e('Failed to save migrated forknet config: $e');
-    }
-
-    // Rewrite config file without forknet section
     try {
       final confInfo = _getConfigFileInfo();
       final newContent = _removeForknetSection(content);
@@ -783,68 +690,133 @@ drivechain=1
     );
   }
 
-  /// Get the path for the saved network config JSON file
-  String _getSavedConfigPath(BitcoinNetwork network) {
-    final datadir = BitcoinCore().datadir();
-    final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
-    return path.join(datadir, 'bitwindow-$networkName.json');
+  /// Get default [main] section settings for a network
+  Map<String, String> _getDefaultMainSection(BitcoinNetwork network) {
+    if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+      return {
+        'port': '8300',
+        'rpcport': '18301',
+        'rpcbind': '0.0.0.0',
+        'rpcallowip': '0.0.0.0/0',
+        'zmqpubhashblock': 'tcp://0.0.0.0:29001',
+        'zmqpubhashtx': 'tcp://0.0.0.0:29002',
+        'zmqpubrawblock': 'tcp://0.0.0.0:29003',
+        'zmqpubrawtx': 'tcp://0.0.0.0:29004',
+        'assumevalid': '0000000000000000000000000000000000000000000000000000000000000000',
+        'minimumchainwork': '0x00',
+        'listenonion': '0',
+        'drivechain': '1',
+      };
+    } else if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
+      // Real mainnet - minimal settings
+      return {};
+    }
+    return {};
   }
 
-  /// Save current main section to JSON for the specified network
-  Future<void> _saveNetworkConfig(BitcoinNetwork network) async {
+  /// Sync [main] section to the network-specific file for current network
+  Future<void> _syncMainSectionFile() async {
+    if (_hasPrivateBitcoinConf) return;
+    if (!_isMainnetOrForknet(_detectedNetwork)) return;
+    await _saveMainSectionForNetwork(_detectedNetwork);
+  }
+
+  /// Get the path for the saved [main] section file for mainnet/forknet
+  String _getMainSectionPath(BitcoinNetwork network) {
+    final datadir = BitcoinCore().datadir();
+    final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
+    return path.join(datadir, 'bitwindow-$networkName.conf');
+  }
+
+  /// Save current [main] section to file for the specified network (mainnet or forknet)
+  Future<void> _saveMainSectionForNetwork(BitcoinNetwork network) async {
     if (_currentConfig == null) return;
+    if (!_isMainnetOrForknet(network)) return;
 
     try {
-      final jsonPath = _getSavedConfigPath(network);
+      final confPath = _getMainSectionPath(network);
       final mainSettings = _currentConfig!.networkSettings['main'] ?? {};
 
-      final jsonContent = jsonEncode({'main': mainSettings});
-      await File(jsonPath).writeAsString(jsonContent);
-      log.i('Saved $network config to $jsonPath');
+      // Write as key=value pairs
+      final buffer = StringBuffer();
+      buffer.writeln('# Saved [main] section for $network');
+      for (final entry in mainSettings.entries) {
+        buffer.writeln('${entry.key}=${entry.value}');
+      }
+
+      await File(confPath).writeAsString(buffer.toString());
+      log.i('Saved [main] section for $network to $confPath');
     } catch (e) {
-      log.e('Failed to save network config: $e');
+      log.e('Failed to save [main] section for $network: $e');
     }
   }
 
-  /// Load saved main section from JSON for the specified network
-  Future<Map<String, String>?> _loadNetworkConfig(BitcoinNetwork network) async {
+  /// Load [main] section from file for the specified network (mainnet or forknet)
+  Future<void> _loadMainSectionForNetwork(BitcoinNetwork network) async {
+    if (_currentConfig == null) return;
+    if (!_isMainnetOrForknet(network)) return;
+
     try {
-      final jsonPath = _getSavedConfigPath(network);
-      final file = File(jsonPath);
+      final confPath = _getMainSectionPath(network);
+      final file = File(confPath);
 
       if (!await file.exists()) {
-        log.i('No saved config for $network at $jsonPath');
-        return null;
+        log.i('No saved [main] section for $network, using defaults');
+        // Apply default settings for this network (file watcher will save it)
+        _currentConfig!.networkSettings['main'] = _getDefaultMainSection(network);
+        return;
       }
 
       final content = await file.readAsString();
-      final json = jsonDecode(content) as Map<String, dynamic>;
-      final mainSection = json['main'] as Map<String, dynamic>?;
+      final settings = <String, String>{};
 
-      if (mainSection == null) return null;
+      // Parse key=value pairs from saved file
+      for (final line in content.split('\n')) {
+        final trimmed = line.trim();
+        if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
 
-      // Convert to Map<String, String>
-      return mainSection.map((key, value) => MapEntry(key, value.toString()));
+        final equals = trimmed.indexOf('=');
+        if (equals > 0) {
+          final key = trimmed.substring(0, equals).trim();
+          final value = trimmed.substring(equals + 1).trim();
+          settings[key] = value;
+        }
+      }
+
+      _currentConfig!.networkSettings['main'] = settings;
+      log.i('Loaded [main] section for $network from $confPath');
     } catch (e) {
-      log.e('Failed to load network config: $e');
-      return null;
+      log.e('Failed to load [main] section for $network: $e');
     }
   }
 
-  /// Check if a network has a saved datadir configured (used before switching networks)
-  /// This checks the saved JSON config for mainnet/forknet networks
-  Future<String?> getSavedDataDirForNetwork(BitcoinNetwork network) async {
-    // Only mainnet and forknet have separate saved configs (they share [main] section)
-    if (network != BitcoinNetwork.BITCOIN_NETWORK_MAINNET && network != BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      return null;
+  /// Check if a network has a datadir configured (checks saved file for mainnet/forknet, config for others)
+  String? getDataDirForNetwork(BitcoinNetwork network) {
+    if (_currentConfig == null) return null;
+
+    // For mainnet/forknet, check their saved config files since they share [main] section
+    if (_isMainnetOrForknet(network)) {
+      try {
+        final confPath = _getMainSectionPath(network);
+        final file = File(confPath);
+        if (file.existsSync()) {
+          final content = file.readAsStringSync();
+          for (final line in content.split('\n')) {
+            final trimmed = line.trim();
+            if (trimmed.startsWith('datadir=')) {
+              return trimmed.substring('datadir='.length).trim();
+            }
+          }
+        }
+      } catch (e) {
+        log.e('Failed to read datadir for $network: $e');
+      }
+      // Fall back to current [main] section if no saved file
+      return _currentConfig!.networkSettings['main']?['datadir'];
     }
 
-    // Check the saved JSON for this specific network
-    final savedConfig = await _loadNetworkConfig(network);
-    if (savedConfig != null && savedConfig.containsKey('datadir')) {
-      return savedConfig['datadir'];
-    }
-
-    return null;
+    // For other networks, read from their config section
+    final section = network.toCoreNetwork();
+    return _currentConfig!.getEffectiveSetting('datadir', section);
   }
 }

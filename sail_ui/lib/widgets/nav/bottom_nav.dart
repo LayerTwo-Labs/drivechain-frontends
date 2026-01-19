@@ -11,6 +11,7 @@ class BottomNav extends StatelessWidget {
   final bool mainchainInfo;
   final Function(String, String, BinaryType) navigateToLogs;
   final bool onlyShowAdditional;
+  final VoidCallback? onOpenConfConfigurator;
 
   const BottomNav({
     super.key,
@@ -20,6 +21,7 @@ class BottomNav extends StatelessWidget {
     required this.mainchainInfo,
     required this.navigateToLogs,
     this.onlyShowAdditional = false,
+    this.onOpenConfConfigurator,
   });
 
   @override
@@ -165,6 +167,7 @@ class BottomNav extends StatelessWidget {
                           binaryProvider.stop(binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name)),
                       infoMessage: _getDownloadMessage(model.syncProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
+                      onOpenConfConfigurator: onOpenConfConfigurator,
                     ),
                   if (!model.enforcer.connected ||
                       !(model.syncProvider.enforcerSyncInfo?.isSynced ?? false) ||

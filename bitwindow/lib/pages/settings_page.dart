@@ -191,8 +191,8 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
     // If switching TO mainnet or forknet, check if we need to require a blocks directory
     String? pendingDataDir;
     if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      // Check if target network already has a saved datadir configured
-      final savedDataDir = await _confProvider.getSavedDataDirForNetwork(network);
+      // Check if target network already has a datadir configured
+      final savedDataDir = _confProvider.getDataDirForNetwork(network);
       final hasDataDirConfigured = savedDataDir != null && savedDataDir.isNotEmpty;
 
       if (!hasDataDirConfigured) {
@@ -218,6 +218,11 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
       await _confProvider.updateDataDir(pendingDataDir, forNetwork: network);
     }
 
+    // Update local state with the new network's datadir
+    setState(() {
+      _selectedDataDir = _confProvider.detectedDataDir;
+    });
+
     // Show progress dialog and perform restart
     if (mounted) {
       await showDialog(
@@ -231,11 +236,6 @@ class _NetworkSettingsContentState extends State<_NetworkSettingsContent> {
           },
         ),
       );
-
-      // Update local state with the new network's datadir
-      setState(() {
-        _selectedDataDir = _confProvider.detectedDataDir;
-      });
     }
   }
 

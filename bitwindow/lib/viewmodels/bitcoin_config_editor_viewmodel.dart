@@ -20,6 +20,25 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
   ViewMode viewMode = ViewMode.settings;
   String? errorMessage;
   bool isLoading = false;
+  bool _isDisposed = false;
+
+  BitcoinConfigEditorViewModel() {
+    confProvider.addListener(_onConfProviderChanged);
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    confProvider.removeListener(_onConfProviderChanged);
+    super.dispose();
+  }
+
+  void _onConfProviderChanged() {
+    if (_isDisposed) return;
+    _rawConfigText = null;
+    currentPreset = ConfigPreset.custom;
+    loadConfig();
+  }
 
   String get workingConfigText => _rawConfigText ?? workingConfig?.serialize() ?? '';
   String get originalConfigText => originalConfig?.serialize() ?? '';

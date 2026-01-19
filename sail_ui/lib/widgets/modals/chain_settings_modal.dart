@@ -8,8 +8,9 @@ import 'package:stacked/stacked.dart';
 
 class ChainSettingsModal extends StatefulWidget {
   final RPCConnection connection;
+  final VoidCallback? onOpenConfConfigurator;
 
-  const ChainSettingsModal({super.key, required this.connection});
+  const ChainSettingsModal({super.key, required this.connection, this.onOpenConfConfigurator});
 
   @override
   State<ChainSettingsModal> createState() => _ChainSettingsModalState();
@@ -188,6 +189,14 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     spacing: SailStyleValues.padding08,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (widget.onOpenConfConfigurator != null)
+                        SailButton(
+                          label: 'Open Conf Configurator',
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            widget.onOpenConfConfigurator!();
+                          },
+                        ),
                       SailButton(label: 'Close', onPressed: () async => Navigator.pop(context)),
                     ],
                   ),
