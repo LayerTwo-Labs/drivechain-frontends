@@ -1,6 +1,7 @@
 export 'bitcoin.dart';
 export 'classes/node_connection_settings.dart';
 export 'models/bitcoin_config.dart';
+export 'models/enforcer_config.dart';
 export 'models/homepage_configuration.dart';
 export 'models/wallet_data.dart';
 export 'models/wallet_gradient.dart';
@@ -76,6 +77,7 @@ export 'routing/datadir_guard.dart';
 export 'routing/wallet_guard.dart';
 export 'pages/datadir_setup_page.dart';
 export 'providers/bitcoin_conf_provider.dart';
+export 'providers/enforcer_conf_provider.dart';
 export 'providers/balance_provider.dart';
 export 'providers/formatter_provider.dart';
 export 'providers/settings_provider.dart';

@@ -279,6 +279,22 @@ class CreateTimestampRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [EnforcerConfEditorPage]
+class EnforcerConfEditorRoute extends PageRouteInfo<void> {
+  const EnforcerConfEditorRoute({List<PageRouteInfo>? children})
+    : super(EnforcerConfEditorRoute.name, initialChildren: children);
+
+  static const String name = 'EnforcerConfEditorRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const EnforcerConfEditorPage();
+    },
+  );
+}
+
+/// generated route for
 /// [LearnPage]
 class LearnRoute extends PageRouteInfo<void> {
   const LearnRoute({List<PageRouteInfo>? children})

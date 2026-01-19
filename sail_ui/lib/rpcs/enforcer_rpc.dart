@@ -58,50 +58,72 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<List<String>> binaryArgs() async {
-    var host = 'localhost';
-    if (host == 'localhost' && !Platform.isWindows) {
-      host = '0.0.0.0';
-    }
-
     final downloadsDir = await getDownloadsDirectory();
     if (downloadsDir == null) {
       throw Exception('Could not determine downloads directory');
     }
 
+    // Handle wallet seed file
     binary.extraBootArgs = binary.extraBootArgs.where((arg) => !arg.startsWith('--wallet-seed-file')).toList();
-
     final walletReader = GetIt.I.get<WalletReaderProvider>();
     final mnemonicFile = await walletReader.writeEnforcerL1Starter();
     binary.addBootArg('--wallet-seed-file=${mnemonicFile.path}');
 
-    // now set the esplora-url
-    switch (GetIt.I.get<BitcoinConfProvider>().network) {
+    final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
+    final network = bitcoinConfProvider.network;
+
+    // Get all CLI args from EnforcerConfProvider (includes node-rpc-* synced from Bitcoin conf)
+    List<String> configArgs;
+    if (GetIt.I.isRegistered<EnforcerConfProvider>()) {
+      final enforcerConfProvider = GetIt.I.get<EnforcerConfProvider>();
+      configArgs = enforcerConfProvider.getCliArgs(network);
+    } else {
+      // Fallback if provider not registered yet
+      configArgs = _getDefaultCliArgs(network);
+    }
+
+    // Add any extra boot args that aren't already in configArgs
+    final extraArgs = binary.extraBootArgs.where((arg) {
+      final argKey = arg.split('=').first;
+      return !configArgs.any((a) => a.startsWith(argKey));
+    }).toList();
+
+    return [...configArgs, ...extraArgs];
+  }
+
+  /// Fallback CLI args when EnforcerConfProvider is not available
+  List<String> _getDefaultCliArgs(BitcoinNetwork network) {
+    final args = <String>[];
+
+    // Add node-rpc-* from mainchainConf
+    final mainchainConf = readMainchainConf();
+    final host = Platform.isWindows ? 'localhost' : '0.0.0.0';
+    args.add('--node-rpc-user=${mainchainConf.username}');
+    args.add('--node-rpc-pass=${mainchainConf.password}');
+    args.add('--node-rpc-addr=$host:${mainchainConf.port}');
+
+    // Set esplora URL based on network
+    switch (network) {
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-        binary.addBootArg('--wallet-esplora-url=http://localhost:3002');
+        args.add('--wallet-esplora-url=http://localhost:3002');
 
       case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         throw Exception('testnet not supported for enforcer');
 
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-        binary.addBootArg('--wallet-esplora-url=https://mempool.space/api');
-
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        binary.addBootArg('--wallet-esplora-url=https://mempool.space/api');
+        args.add('--wallet-esplora-url=https://mempool.space/api');
 
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
       default:
-      // default is signet, for which we dont need anything extra
+      // Signet uses the enforcer's built-in default
     }
 
-    final mainchainConf = readMainchainConf();
-    return [
-      '--node-rpc-pass=${mainchainConf.password}',
-      '--node-rpc-user=${mainchainConf.username}',
-      '--node-rpc-addr=$host:${mainchainConf.port}',
-      '--enable-wallet',
-      '--enable-mempool', // Required for getblocktemplate support
-      if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
-    ];
+    // Default flags
+    args.add('--enable-wallet');
+    args.add('--enable-mempool');
+
+    return args;
   }
 
   @override
