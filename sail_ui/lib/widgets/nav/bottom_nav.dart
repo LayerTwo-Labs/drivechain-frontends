@@ -12,6 +12,7 @@ class BottomNav extends StatelessWidget {
   final Function(String, String, BinaryType) navigateToLogs;
   final bool onlyShowAdditional;
   final VoidCallback? onOpenConfConfigurator;
+  final VoidCallback? onOpenEnforcerConfConfigurator;
 
   const BottomNav({
     super.key,
@@ -22,6 +23,7 @@ class BottomNav extends StatelessWidget {
     required this.navigateToLogs,
     this.onlyShowAdditional = false,
     this.onOpenConfConfigurator,
+    this.onOpenEnforcerConfConfigurator,
   });
 
   @override
@@ -187,6 +189,7 @@ class BottomNav extends StatelessWidget {
                       stopDaemon: () =>
                           binaryProvider.stop(binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name)),
                       navigateToLogs: model.navigateToLogs,
+                      onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
                     ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,

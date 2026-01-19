@@ -130,6 +130,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final bitcoinConfProvider = await BitcoinConfProvider.create();
   GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
 
+  // Initialize EnforcerConfProvider to load enforcer config
+  final enforcerConfProvider = await EnforcerConfProvider.create();
+  GetIt.I.registerLazySingleton<EnforcerConfProvider>(() => enforcerConfProvider);
+
   GetIt.I.registerLazySingleton<ContentProvider>(() => ContentProvider());
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());

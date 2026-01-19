@@ -1367,6 +1367,9 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
       onOpenConfConfigurator: () {
         GetIt.I.get<AppRouter>().push(const BitcoinConfEditorRoute());
       },
+      onOpenEnforcerConfConfigurator: () {
+        GetIt.I.get<AppRouter>().push(const EnforcerConfEditorRoute());
+      },
       mainchainInfo: true,
       balanceEndWidgets: const [
         GetCoinsButton(),

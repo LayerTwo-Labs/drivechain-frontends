@@ -47,6 +47,10 @@ Future<void> initSidechainDependencies({
   final bitcoinConfProvider = await BitcoinConfProvider.create();
   GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
 
+  // Initialize EnforcerConfProvider (must be after BitcoinConfProvider)
+  final enforcerConfProvider = await EnforcerConfProvider.create();
+  GetIt.I.registerLazySingleton<EnforcerConfProvider>(() => enforcerConfProvider);
+
   // first of all, write all binaries to the assets/bin directory
   await copyBinariesFromAssets(log, applicationDir);
 
