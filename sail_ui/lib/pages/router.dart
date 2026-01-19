@@ -15,6 +15,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: SailCreateWalletRoute.page),
     AutoRoute(page: BackupWalletRoute.page),
     AutoRoute(page: RestoreWalletRoute.page),
+    AutoRoute(page: DataDirSetupRoute.page),
   ];
 
   @override

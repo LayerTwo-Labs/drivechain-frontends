@@ -578,6 +578,21 @@ class BinaryProvider extends ChangeNotifier {
     final bitcoinCore = binaries.whereType<BitcoinCore>().first;
     final enforcer = binaries.whereType<Enforcer>().first;
 
+    // Wait for datadir to be configured before starting Core (mainnet/forknet only)
+    final confProvider = GetIt.I.get<BitcoinConfProvider>();
+    final network = confProvider.network;
+    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+      while (true) {
+        final dataDir = confProvider.getDataDirForNetwork(network);
+        if (dataDir != null && dataDir.isNotEmpty) {
+          log.i('[T+${getElapsed()}ms] STARTUP: Datadir configured for ${network.name}: $dataDir');
+          break;
+        }
+        log.i('[T+${getElapsed()}ms] STARTUP: Waiting for datadir to be configured for ${network.name}');
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+
     if (bootExtraBinaryImmediately) {
       log.i('[T+${getElapsed()}ms] STARTUP: Starting ${binaryToBoot.name}');
       unawaited(start(binaryToBoot));

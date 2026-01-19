@@ -59,6 +59,22 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
     });
   }
 
+  // Options that must go in network sections (e.g., [main], [signet])
+  static const _networkSpecificKeys = {'datadir', 'port', 'rpcport', 'rpcbind', 'bind'};
+
+  /// Get the section for an option based on whether it's network-specific
+  String? _getSectionForOption(BitcoinConfigOption option) {
+    if (_networkSpecificKeys.contains(option.key)) {
+      return widget.viewModel.confProvider.network.toCoreNetwork();
+    }
+    return null;
+  }
+
+  /// Update a setting, automatically using the correct section
+  void _updateSetting(BitcoinConfigOption option, dynamic value) {
+    widget.viewModel.updateSetting(option.key, value, section: _getSectionForOption(option));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -258,7 +274,10 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
   }
 
   Widget _buildOptionWidget(BitcoinConfigOption option) {
-    final currentValue = widget.viewModel.workingConfig!.getSetting(option.key);
+    final section = _getSectionForOption(option);
+    final currentValue = section != null
+        ? widget.viewModel.workingConfig!.getEffectiveSetting(option.key, section)
+        : widget.viewModel.workingConfig!.getSetting(option.key);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -308,7 +327,7 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
         );
       }).toList(),
       onChanged: (value) {
-        widget.viewModel.updateSetting(option.key, value);
+        _updateSetting(option, value);
       },
     );
   }
@@ -320,7 +339,7 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
       label: option.key,
       value: boolValue,
       onChanged: (value) {
-        widget.viewModel.updateSetting(option.key, value ? '1' : '0');
+        _updateSetting(option, value ? '1' : '0');
       },
     );
   }
@@ -331,9 +350,9 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        widget.viewModel.updateSetting(option.key, null);
+        _updateSetting(option, null);
       } else {
-        widget.viewModel.updateSetting(option.key, value);
+        _updateSetting(option, value);
       }
     });
 
@@ -352,9 +371,9 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        widget.viewModel.updateSetting(option.key, null);
+        _updateSetting(option, null);
       } else {
-        widget.viewModel.updateSetting(option.key, value);
+        _updateSetting(option, value);
       }
     });
 
@@ -373,9 +392,9 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        widget.viewModel.updateSetting(option.key, null);
+        _updateSetting(option, null);
       } else {
-        widget.viewModel.updateSetting(option.key, value);
+        _updateSetting(option, value);
       }
     });
 
@@ -394,9 +413,9 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
     controller.addListener(() {
       final value = controller.text;
       if (value.trim().isEmpty) {
-        widget.viewModel.updateSetting(option.key, null);
+        _updateSetting(option, null);
       } else {
-        widget.viewModel.updateSetting(option.key, value);
+        _updateSetting(option, value);
       }
     });
 
@@ -463,7 +482,7 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
         }
 
         controller.text = result;
-        widget.viewModel.updateSetting(option.key, result);
+        _updateSetting(option, result);
       }
     } catch (e) {
       if (mounted) {

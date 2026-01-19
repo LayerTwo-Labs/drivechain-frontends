@@ -14,6 +14,7 @@ class DaemonConnectionCard extends StatelessWidget {
   final Future<void> Function() restartDaemon;
   final Future<void> Function() stopDaemon;
   final Future<void> Function()? deleteFunction;
+  final VoidCallback? onOpenConfConfigurator;
 
   final String? infoMessage;
 
@@ -26,6 +27,7 @@ class DaemonConnectionCard extends StatelessWidget {
     required this.stopDaemon,
     this.deleteFunction,
     this.navigateToLogs,
+    this.onOpenConfConfigurator,
   });
 
   @override
@@ -100,6 +102,7 @@ class DaemonConnectionCard extends StatelessWidget {
                     context: context,
                     builder: (context) => ChainSettingsModal(
                       connection: connection,
+                      onOpenConfConfigurator: onOpenConfConfigurator,
                     ),
                   );
                 },
