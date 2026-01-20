@@ -262,8 +262,12 @@ class _EnforcerConfiguratorPanelContentState extends State<_EnforcerConfigurator
     switch (option.inputType) {
       case EnforcerConfigInputType.boolean:
         return _buildBooleanInput(option, currentValue);
+      case EnforcerConfigInputType.select:
+        return _buildSelectInput(option, currentValue);
       case EnforcerConfigInputType.text:
       case EnforcerConfigInputType.url:
+      case EnforcerConfigInputType.number:
+      case EnforcerConfigInputType.path:
         return _buildTextInput(option, currentValue);
     }
   }
@@ -276,6 +280,28 @@ class _EnforcerConfiguratorPanelContentState extends State<_EnforcerConfigurator
       value: boolValue,
       onChanged: (value) {
         widget.viewModel.updateSetting(option.key, value ? 'true' : 'false');
+      },
+    );
+  }
+
+  Widget _buildSelectInput(EnforcerConfigOption option, String? currentValue) {
+    final options = option.selectOptions ?? [];
+    final effectiveValue = currentValue ?? option.defaultValue?.toString();
+
+    return SailDropdownButton<String>(
+      value: effectiveValue,
+      items: options
+          .map(
+            (opt) => SailDropdownItem<String>(
+              value: opt,
+              label: opt,
+            ),
+          )
+          .toList(),
+      onChanged: (value) {
+        if (value != null) {
+          widget.viewModel.updateSetting(option.key, value);
+        }
       },
     );
   }
@@ -297,7 +323,9 @@ class _EnforcerConfiguratorPanelContentState extends State<_EnforcerConfigurator
       // Show network-specific default URL hint
       final confProvider = GetIt.I.get<BitcoinConfProvider>();
       final enforcerConfProvider = GetIt.I.get<EnforcerConfProvider>();
-      final defaultUrl = enforcerConfProvider.getEsploraUrlForNetwork(confProvider.network);
+      final defaultUrl = enforcerConfProvider.getEsploraUrlForNetwork(
+        confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+      );
       hintText = defaultUrl != null ? 'Default: $defaultUrl' : 'Enter ${option.description.toLowerCase()}';
     } else {
       hintText = option.defaultValue != null

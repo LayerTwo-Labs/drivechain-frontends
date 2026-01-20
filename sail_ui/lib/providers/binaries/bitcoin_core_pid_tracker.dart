@@ -69,7 +69,7 @@ class BitcoinCorePidTracker {
     try {
       // Get current network from BitcoinConfProvider
       final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
-      final network = bitcoinConfProvider.network;
+      final network = bitcoinConfProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
 
       // Build the path to bitcoin.pid based on the network
       final datadir = BitcoinCore().datadir();

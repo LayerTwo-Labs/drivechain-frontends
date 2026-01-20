@@ -1198,12 +1198,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                               ),
                             ],
                             onChanged: (BitcoinNetwork? network) async {
-                              if (network == null || !_confProvider.canEditNetwork) return;
-
-                              await _confProvider.restartServicesWithProgress(
-                                network,
-                                (status) => setState(() {}),
-                              );
+                              if (network == null || _confProvider.hasPrivateBitcoinConf) return;
+                              await _confProvider.swapNetwork(context, network);
                             },
                           ),
                           SailButton(

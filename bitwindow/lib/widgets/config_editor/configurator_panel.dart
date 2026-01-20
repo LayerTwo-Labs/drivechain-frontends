@@ -65,7 +65,7 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
   /// Get the section for an option based on whether it's network-specific
   String? _getSectionForOption(BitcoinConfigOption option) {
     if (_networkSpecificKeys.contains(option.key)) {
-      return widget.viewModel.confProvider.network.toCoreNetwork();
+      return (widget.viewModel.confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET).toCoreNetwork();
     }
     return null;
   }

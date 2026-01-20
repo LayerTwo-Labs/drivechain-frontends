@@ -79,6 +79,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
     log: log,
+    router: router,
   );
 
   // Register homepage provider

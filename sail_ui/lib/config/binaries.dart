@@ -163,7 +163,7 @@ abstract class Binary {
 
     switch (type) {
       case BinaryType.bitcoinCore:
-        final network = GetIt.I<BitcoinConfProvider>().network;
+        final network = GetIt.I<BitcoinConfProvider>().network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
         // Mainnet and forknet use root dir, other networks use subdirectories
         final targetDir =
             (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
@@ -186,7 +186,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['validator']);
 
       case BinaryType.bitWindow:
-        final network = GetIt.I<BitcoinConfProvider>().network;
+        final network = GetIt.I<BitcoinConfProvider>().network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
         final networkDir = path.join(dir, network.toReadableNet());
         await _deleteFilesInDir(networkDir, [
           'bitdrive',
@@ -1085,11 +1085,11 @@ extension BinaryPaths on Binary {
   }
 
   String logPath() {
-    final networkDir = GetIt.I.get<BitcoinConfProvider>().network;
+    final network = GetIt.I.get<BitcoinConfProvider>().network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
 
     return switch (type) {
       BinaryType.bitcoinCore => _getBitcoinLogPath(),
-      BinaryType.bitWindow => filePath([datadir(), networkDir.toReadableNet(), 'server.log']),
+      BinaryType.bitWindow => filePath([datadir(), network.toReadableNet(), 'server.log']),
       BinaryType.thunder ||
       BinaryType.bitnames ||
       BinaryType.bitassets ||

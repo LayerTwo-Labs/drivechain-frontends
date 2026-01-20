@@ -147,6 +147,7 @@ export 'widgets/containers/sail_border.dart';
 export 'widgets/containers/sail_card.dart';
 export 'widgets/containers/sail_column.dart';
 export 'widgets/containers/sail_dialogs.dart';
+export 'widgets/dialogs/network_swap_progress_dialog.dart';
 export 'widgets/containers/sail_page.dart';
 export 'widgets/containers/tab_bar.dart';
 export 'widgets/core/sail_app_bar.dart';

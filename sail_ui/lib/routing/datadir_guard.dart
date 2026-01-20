@@ -18,7 +18,7 @@ class DataDirGuard extends AutoRouteGuard {
     }
 
     // Check if datadir is configured
-    final dataDir = confProvider.getDataDirForNetwork(network);
+    final dataDir = confProvider.detectedDataDir;
     if (dataDir != null && dataDir.isNotEmpty) {
       resolver.next(true);
       return;
@@ -27,8 +27,8 @@ class DataDirGuard extends AutoRouteGuard {
     // Datadir not configured - show setup page
     await router.push(DataDirSetupRoute());
 
-    // Check if datadir was configured
-    final newDataDir = confProvider.getDataDirForNetwork(network);
+    // Check if datadir was configured (user may have set it in setup page)
+    final newDataDir = confProvider.detectedDataDir;
     if (newDataDir != null && newDataDir.isNotEmpty) {
       resolver.next(true);
     } else {

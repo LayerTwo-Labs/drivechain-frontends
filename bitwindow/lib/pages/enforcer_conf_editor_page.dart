@@ -101,6 +101,9 @@ class EnforcerConfEditorPage extends StatelessWidget {
 
             const SailSpacing(SailStyleValues.padding12),
 
+            // Warning when node-rpc settings are out of sync with Bitcoin conf
+            _buildNodeRpcSyncWarning(context, viewModel),
+
             Divider(
               height: 1,
               thickness: 1,
@@ -202,6 +205,51 @@ class EnforcerConfEditorPage extends StatelessWidget {
     );
   }
 
+  Widget _buildNodeRpcSyncWarning(BuildContext context, EnforcerConfigEditorViewModel viewModel) {
+    final theme = SailTheme.of(context);
+    final enforcerConfProvider = GetIt.I.get<EnforcerConfProvider>();
+
+    if (!enforcerConfProvider.nodeRpcDiffers) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: theme.colors.orange.withValues(alpha: 0.1),
+        borderRadius: SailStyleValues.borderRadius,
+      ),
+      child: Row(
+        children: [
+          SailSVG.fromAsset(
+            SailSVGAsset.iconWarning,
+            color: theme.colors.orange,
+            width: 16,
+            height: 16,
+          ),
+          const SailSpacing(SailStyleValues.padding08),
+          Expanded(
+            child: SailText.secondary12(
+              'Node RPC settings are out of sync with Bitcoin Core config.',
+              color: theme.colors.orange,
+            ),
+          ),
+          const SailSpacing(SailStyleValues.padding12),
+          SailButton(
+            label: 'Sync from Bitcoin Core',
+            variant: ButtonVariant.secondary,
+            onPressed: () async {
+              await enforcerConfProvider.syncNodeRpcFromBitcoinConf();
+              await viewModel.loadConfig();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCliPreview(BuildContext context, EnforcerConfigEditorViewModel viewModel) {
     final theme = SailTheme.of(context);
     final confProvider = GetIt.I.get<BitcoinConfProvider>();
@@ -209,7 +257,7 @@ class EnforcerConfEditorPage extends StatelessWidget {
 
     // Get CLI args from provider (includes node-rpc-* synced from Bitcoin conf)
     // Note: This shows the saved config args, not the working config preview
-    final cliArgs = enforcerConfProvider.getCliArgs(confProvider.network);
+    final cliArgs = enforcerConfProvider.getCliArgs(confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
 
     // Mask the password for display
     final displayArgs = cliArgs.map((arg) {
