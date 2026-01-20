@@ -127,7 +127,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<FormatterProvider>(() => FormatterProvider(settingsProvider));
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
-  final bitcoinConfProvider = await BitcoinConfProvider.create();
+  final bitcoinConfProvider = await BitcoinConfProvider.create(GetIt.I.get<AppRouter>());
   GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
 
   // Initialize EnforcerConfProvider to load enforcer config
@@ -393,7 +393,7 @@ class _BitwindowAppState extends State<BitwindowApp> {
   @override
   Widget build(BuildContext context) {
     final router = GetIt.I.get<AppRouter>();
-    final accentColor = getNetworkAccentColor(_bitcoinConfProvider.network);
+    final accentColor = getNetworkAccentColor(_bitcoinConfProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
 
     return SailApp(
       log: widget.log,

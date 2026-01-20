@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bitwindow/pages/settings_page.dart' show NetworkSwapProgressDialog;
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +17,6 @@ class SettingsNetwork extends StatefulWidget {
 class _SettingsNetworkState extends State<SettingsNetwork> {
   final _settingsProvider = GetIt.I.get<SettingsProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
-  String? _selectedDataDir;
   bool _isSelectingDataDir = false;
 
   @override
@@ -26,7 +24,6 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     super.initState();
     _settingsProvider.addListener(setstate);
     _confProvider.addListener(setstate);
-    _selectedDataDir = _confProvider.detectedDataDir;
   }
 
   @override
@@ -43,14 +40,12 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _handleNetworkChange(BitcoinNetwork? network) async {
     if (network == null) return;
 
-    final fromNetwork = _confProvider.network;
-
     if (_confProvider.hasPrivateBitcoinConf) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Network is controlled by your bitcoin.conf file. To change network in bitwindow, delete your own bitcoin.conf file.',
+              'Network is controlled by your bitcoin.conf file. To change network in bitwindow, delete your own bitcoin.conf file and restart.',
             ),
             backgroundColor: SailTheme.of(context).colors.info,
           ),
@@ -59,48 +54,8 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       return;
     }
 
-    String? pendingDataDir;
-    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      final savedDataDir = _confProvider.getDataDirForNetwork(network);
-      final hasDataDirConfigured = savedDataDir != null && savedDataDir.isNotEmpty;
-
-      if (!hasDataDirConfigured) {
-        if (!mounted) return;
-        final selectedPath = await showDialog<String>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const DataDirSelectionDialog(),
-        );
-
-        if (selectedPath != null) {
-          pendingDataDir = selectedPath;
-        } else {
-          return;
-        }
-      }
-    }
-
-    if (pendingDataDir != null) {
-      await _confProvider.updateDataDir(pendingDataDir, forNetwork: network);
-    }
-
-    if (mounted) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => NetworkSwapProgressDialog(
-          fromNetwork: fromNetwork,
-          toNetwork: network,
-          swapFunction: (updateStatus) async {
-            await _confProvider.restartServicesWithProgress(network, updateStatus);
-          },
-        ),
-      );
-
-      setState(() {
-        _selectedDataDir = _confProvider.detectedDataDir;
-      });
-    }
+    // swapNetwork() handles everything: datadir check, dialogs, service restart
+    await _confProvider.swapNetwork(context, network);
   }
 
   Future<void> _selectDataDirectory() async {
@@ -119,9 +74,6 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
         try {
           await testFile.writeAsString('test');
           await testFile.delete();
-          setState(() {
-            _selectedDataDir = result;
-          });
           await _confProvider.updateDataDir(result);
         } catch (e) {
           if (mounted) {
@@ -154,9 +106,6 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
   Future<void> _clearDataDir() async {
     await _confProvider.updateDataDir(null);
-    setState(() {
-      _selectedDataDir = null;
-    });
   }
 
   @override
@@ -165,7 +114,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     final showDataDir =
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        _selectedDataDir != null;
+        _confProvider.detectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
     return SailColumn(
@@ -186,7 +135,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<BitcoinNetwork>(
               value: _confProvider.network,
-              enabled: _confProvider.canEditNetwork,
+              enabled: !_confProvider.hasPrivateBitcoinConf,
               items: [
                 SailDropdownItem<BitcoinNetwork>(
                   value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
@@ -206,16 +155,16 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                 ),
               ],
               onChanged: (BitcoinNetwork? network) async {
-                if (network != null && _confProvider.canEditNetwork) {
+                if (network != null && !_confProvider.hasPrivateBitcoinConf) {
                   await _handleNetworkChange(network);
                 }
               },
             ),
             const SailSpacing(4),
             SailText.secondary12(
-              _confProvider.canEditNetwork
+              !_confProvider.hasPrivateBitcoinConf
                   ? 'Select the Bitcoin network to connect to'
-                  : 'Network is controlled by your bitcoin.conf file (${_confProvider.currentConfigFile})',
+                  : 'Network is controlled by your bitcoin.conf file',
             ),
           ],
         ),
@@ -256,7 +205,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                         color: canEditDataDir ? null : theme.colors.backgroundSecondary,
                       ),
                       child: SailText.secondary13(
-                        _confProvider.detectedDataDir ?? _selectedDataDir ?? 'Default directory',
+                        _confProvider.detectedDataDir ?? 'Default directory',
                       ),
                     ),
                   ),
@@ -267,7 +216,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                       loading: _isSelectingDataDir,
                       onPressed: () async => await _selectDataDirectory(),
                     ),
-                    if (_selectedDataDir != null)
+                    if (_confProvider.detectedDataDir != null)
                       SailButton(
                         label: 'Clear',
                         small: true,

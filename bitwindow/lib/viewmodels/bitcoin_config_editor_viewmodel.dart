@@ -144,7 +144,10 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
         workingConfig!.setSetting('chain', currentChain);
       } else {
         // If no chain was set, use current network from provider
-        workingConfig!.setSetting('chain', confProvider.network.toCoreNetwork());
+        workingConfig!.setSetting(
+          'chain',
+          (confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET).toCoreNetwork(),
+        );
       }
 
       // Add network-specific settings for certain presets

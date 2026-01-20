@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -17,6 +18,7 @@ Future<void> initSidechainDependencies({
   required SidechainRPC Function(Binary) createSidechainConnection,
   required Directory applicationDir,
   required Logger log,
+  required RootStackRouter router,
 }) async {
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
@@ -44,7 +46,7 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerLazySingleton<FormatterProvider>(() => FormatterProvider(settingsProvider));
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
-  final bitcoinConfProvider = await BitcoinConfProvider.create();
+  final bitcoinConfProvider = await BitcoinConfProvider.create(router);
   GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
 
   // Initialize EnforcerConfProvider (must be after BitcoinConfProvider)

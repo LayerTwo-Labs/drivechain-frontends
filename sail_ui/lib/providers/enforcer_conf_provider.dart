@@ -14,22 +14,14 @@ import 'package:sail_ui/sail_ui.dart';
 class EnforcerConfProvider extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
 
-  // File watching and management
   StreamSubscription<FileSystemEvent>? _fileWatcher;
   Timer? _fileWatchDebouncer;
 
-  // Config state
-  EnforcerConfig? _currentConfig;
-  String? _currentConfigPath;
+  EnforcerConfig? currentConfig;
+  String? configPath;
 
-  // Getters
-  EnforcerConfig? get currentConfig => _currentConfig;
-  String? get currentConfigPath => _currentConfigPath;
-
-  // Private constructor
   EnforcerConfProvider._create();
 
-  // Async factory
   static Future<EnforcerConfProvider> create() async {
     final instance = EnforcerConfProvider._create();
     await instance.loadConfig();
@@ -40,47 +32,90 @@ class EnforcerConfProvider extends ChangeNotifier {
   void _listenToBitcoinConf() {
     if (GetIt.I.isRegistered<BitcoinConfProvider>()) {
       GetIt.I.get<BitcoinConfProvider>().addListener(_onBitcoinConfChanged);
-      _syncNodeRpcSettings();
     }
   }
 
   void _onBitcoinConfChanged() {
-    _syncNodeRpcSettings();
-    notifyListeners();
+    // Sync node-rpc settings when Bitcoin config changes (e.g., network switch)
+    // syncNodeRpcFromBitcoinConf() is async and handles saving internally
+    syncNodeRpcFromBitcoinConf();
   }
 
-  /// Sync node-rpc-* settings from BitcoinConfProvider into _currentConfig
-  void _syncNodeRpcSettings() {
-    if (_currentConfig == null) return;
+  Future<void> _saveConfig() async {
+    if (currentConfig == null) return;
+    try {
+      final confPath = _getConfigPath();
+      final file = File(confPath);
+      await file.writeAsString(currentConfig!.serialize());
+      log.i('Saved enforcer config to $confPath');
+    } catch (e) {
+      log.e('Failed to save enforcer config: $e');
+    }
+  }
+
+  /// Check if local node-rpc settings differ from BitcoinConfProvider
+  bool get nodeRpcDiffers {
+    if (currentConfig == null) return false;
+
+    final expected = getExpectedNodeRpcSettings();
+    final localUser = currentConfig!.getSetting('node-rpc-user') ?? '';
+    final localPass = currentConfig!.getSetting('node-rpc-pass') ?? '';
+    final localAddr = currentConfig!.getSetting('node-rpc-addr') ?? '';
+
+    return localUser != expected['node-rpc-user'] ||
+        localPass != expected['node-rpc-pass'] ||
+        localAddr != expected['node-rpc-addr'];
+  }
+
+  /// Get expected node-rpc settings from BitcoinConfProvider
+  Map<String, String> getExpectedNodeRpcSettings() {
+    final host = Platform.isWindows ? 'localhost' : '0.0.0.0';
 
     if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
-      _currentConfig!.setSetting('node-rpc-user', 'user');
-      _currentConfig!.setSetting('node-rpc-pass', 'password');
-      _currentConfig!.setSetting('node-rpc-addr', 'localhost:38332');
-      return;
+      // No BitcoinConfProvider - use defaults (signet port as fallback)
+      return {
+        'node-rpc-user': 'user',
+        'node-rpc-pass': 'password',
+        'node-rpc-addr': '$host:38332',
+      };
     }
 
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
+    // rpcPort getter handles network-specific defaults even if config is null
+    final port = bitcoinConfProvider.rpcPort;
+
     if (bitcoinConfProvider.currentConfig == null) {
-      _currentConfig!.setSetting('node-rpc-user', 'user');
-      _currentConfig!.setSetting('node-rpc-pass', 'password');
-      _currentConfig!.setSetting('node-rpc-addr', 'localhost:38332');
-      return;
+      return {
+        'node-rpc-user': 'user',
+        'node-rpc-pass': 'password',
+        'node-rpc-addr': '$host:$port',
+      };
     }
 
     final config = bitcoinConfProvider.currentConfig!;
-    final networkSection = bitcoinConfProvider.network.toCoreNetwork();
+    final networkSection = (bitcoinConfProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET).toCoreNetwork();
 
     final username = config.getEffectiveSetting('rpcuser', networkSection) ?? 'user';
     final password = config.getEffectiveSetting('rpcpassword', networkSection) ?? 'password';
-    final port = bitcoinConfProvider.rpcPort;
 
-    // Use 0.0.0.0 on non-Windows for localhost binding
-    final host = Platform.isWindows ? 'localhost' : '0.0.0.0';
+    return {
+      'node-rpc-user': username,
+      'node-rpc-pass': password,
+      'node-rpc-addr': '$host:$port',
+    };
+  }
 
-    _currentConfig!.setSetting('node-rpc-user', username);
-    _currentConfig!.setSetting('node-rpc-pass', password);
-    _currentConfig!.setSetting('node-rpc-addr', '$host:$port');
+  /// Manually sync node-rpc settings from BitcoinConfProvider and save to file
+  Future<void> syncNodeRpcFromBitcoinConf() async {
+    if (currentConfig == null) return;
+
+    final expected = getExpectedNodeRpcSettings();
+    currentConfig!.setSetting('node-rpc-user', expected['node-rpc-user']!);
+    currentConfig!.setSetting('node-rpc-pass', expected['node-rpc-pass']!);
+    currentConfig!.setSetting('node-rpc-addr', expected['node-rpc-addr']!);
+
+    notifyListeners();
+    await _saveConfig();
   }
 
   @override
@@ -99,19 +134,18 @@ class EnforcerConfProvider extends ChangeNotifier {
     return path.join(datadir, 'bitwindow-enforcer.conf');
   }
 
+  /// Load config from file, or create default if not exists
   Future<void> loadConfig() async {
     try {
-      _currentConfigPath = _getConfigPath();
-      final file = File(_currentConfigPath!);
+      configPath = _getConfigPath();
+      final file = File(configPath!);
 
       String content = '';
       if (await file.exists()) {
         content = await file.readAsString();
       } else {
-        // Use the default config if no file exists
         content = getDefaultConfig();
 
-        // Write default config to disk
         try {
           await file.parent.create(recursive: true);
           await file.writeAsString(content);
@@ -121,12 +155,8 @@ class EnforcerConfProvider extends ChangeNotifier {
         }
       }
 
-      // Parse config
-      _currentConfig = EnforcerConfig.parse(content);
-
-      // Set up file watching
+      currentConfig = EnforcerConfig.parse(content);
       _setupFileWatching();
-
       notifyListeners();
     } catch (e) {
       log.e('Failed to load enforcer config: $e');
@@ -135,6 +165,8 @@ class EnforcerConfProvider extends ChangeNotifier {
 
   /// Get the default configuration content
   String getDefaultConfig() {
+    final nodeRpc = getExpectedNodeRpcSettings();
+
     return '''# Enforcer Configuration - Generated by BitWindow
 # These settings are converted to CLI arguments when the Enforcer starts.
 
@@ -144,6 +176,11 @@ enable-wallet=true
 # Enable mempool support - required for getblocktemplate (default: true)
 enable-mempool=true
 
+# Node RPC settings (synced from Bitcoin Core config)
+node-rpc-user=${nodeRpc['node-rpc-user']}
+node-rpc-pass=${nodeRpc['node-rpc-pass']}
+node-rpc-addr=${nodeRpc['node-rpc-addr']}
+
 # Network-specific esplora URL (auto-detected if not set)
 # Uncomment and set to override the default for your network
 # wallet-esplora-url=https://mempool.space/api
@@ -152,17 +189,17 @@ enable-mempool=true
 
   /// Get the current configuration content as string
   String getCurrentConfigContent() {
-    if (_currentConfig == null) {
+    if (currentConfig == null) {
       return getDefaultConfig();
     }
-    return _currentConfig!.serialize();
+    return currentConfig!.serialize();
   }
 
   /// Write configuration content to the file
   Future<void> writeConfig(String content) async {
     try {
       final config = EnforcerConfig.parse(content);
-      _currentConfig = config;
+      currentConfig = config;
 
       final confPath = _getConfigPath();
       final file = File(confPath);
@@ -184,7 +221,6 @@ enable-mempool=true
         return 'http://localhost:3002';
 
       case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
-        // Testnet not supported for enforcer
         return null;
 
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
@@ -193,7 +229,6 @@ enable-mempool=true
 
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
       default:
-        // Signet uses the enforcer's built-in default
         return null;
     }
   }
@@ -202,26 +237,22 @@ enable-mempool=true
   List<String> getCliArgs(BitcoinNetwork network) {
     final args = <String>[];
 
-    if (_currentConfig == null) return args;
+    if (currentConfig == null) return args;
 
-    for (final entry in _currentConfig!.settings.entries) {
+    for (final entry in currentConfig!.settings.entries) {
       final key = entry.key;
       final value = entry.value;
 
       if (value == 'true') {
-        // Boolean flag set to true
         args.add('--$key');
       } else if (value == 'false') {
-        // Boolean flag set to false - don't add
         continue;
       } else if (value.isNotEmpty) {
-        // Key=value setting
         args.add('--$key=$value');
       }
     }
 
-    // Add network-specific esplora URL default if not in config
-    if (!_currentConfig!.hasSetting('wallet-esplora-url')) {
+    if (!currentConfig!.hasSetting('wallet-esplora-url')) {
       final esploraUrl = getEsploraUrlForNetwork(network);
       if (esploraUrl != null && esploraUrl.isNotEmpty) {
         args.add('--wallet-esplora-url=$esploraUrl');
@@ -232,7 +263,6 @@ enable-mempool=true
   }
 
   void _setupFileWatching() {
-    // Cancel existing watcher
     _fileWatcher?.cancel();
 
     try {
@@ -243,7 +273,6 @@ enable-mempool=true
         confDir.createSync(recursive: true);
       }
 
-      // Watch the directory for config file changes
       _fileWatcher = confDir
           .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
           .where((event) => event.path.endsWith('bitwindow-enforcer.conf'))
@@ -276,10 +305,8 @@ enable-mempool=true
         final content = await file.readAsString();
         final newConfig = EnforcerConfig.parse(content);
 
-        // Update config if content actually changed
-        if (newConfig != _currentConfig) {
-          _currentConfig = newConfig;
-          _syncNodeRpcSettings();
+        if (newConfig != currentConfig) {
+          currentConfig = newConfig;
           notifyListeners();
         }
       }

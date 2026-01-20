@@ -98,6 +98,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
     log: log,
+    router: router,
   );
 
   GetIt.I.registerLazySingleton<ZSideProvider>(

@@ -106,13 +106,15 @@ CoreConnectionSettings readMainchainConf() {
   final log = GetIt.I.get<Logger>();
   final confProvider = GetIt.I.get<BitcoinConfProvider>();
 
+  final network = confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+
   if (confProvider.currentConfig == null) {
     log.w('No config loaded, using defaults');
-    return CoreConnectionSettings.empty(confProvider.network);
+    return CoreConnectionSettings.empty(network);
   }
 
   final config = confProvider.currentConfig!;
-  final networkSection = confProvider.network.toCoreNetwork();
+  final networkSection = network.toCoreNetwork();
 
   // Read all connection settings from BitcoinConfProvider (single source of truth)
   final username = config.getEffectiveSetting('rpcuser', networkSection) ?? 'user';
@@ -123,7 +125,8 @@ CoreConnectionSettings readMainchainConf() {
       'localhost';
   final port = confProvider.rpcPort; // Uses the getter that already handles sections
 
-  log.i('Using ${confProvider.currentConfigFile} for mainchain configuration: $username@$host:$port');
+  final configFile = confProvider.hasPrivateBitcoinConf ? 'bitcoin.conf' : 'bitwindow-bitcoin.conf';
+  log.i('Using $configFile for mainchain configuration: $username@$host:$port');
 
   // Merge global + network-specific config values
   final configValues = Map<String, String>.from(config.globalSettings);
@@ -132,12 +135,12 @@ CoreConnectionSettings readMainchainConf() {
   }
 
   return CoreConnectionSettings(
-    confProvider.currentConfigFile,
+    configFile,
     host,
     port,
     username,
     password,
-    confProvider.network,
+    network,
     configValues,
   );
 }

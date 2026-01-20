@@ -203,9 +203,41 @@ class _SettingsResetState extends State<SettingsReset> {
                 await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(appDir.path))));
 
                 await copyBinariesFromAssets(log, appDir);
-                log.i('Successfully wiped all blockchain data');
+                log.i('Successfully wiped all asset data');
               } catch (e) {
-                log.e('could not reset blockchain data: $e');
+                log.e('could not reset asset data: $e');
+              }
+
+              updateStatus('Wiping config files');
+
+              try {
+                final bitcoinDatadir = BitcoinCore().datadir();
+                final bitwindowDatadir = BitWindow().datadir();
+
+                // Delete enforcer config
+                final enforcerConfPath = File('$bitwindowDatadir/bitwindow-enforcer.conf');
+                if (await enforcerConfPath.exists()) {
+                  await enforcerConfPath.delete();
+                  log.i('Deleted enforcer config: ${enforcerConfPath.path}');
+                }
+
+                // Delete generated bitcoin config (not user's private bitcoin.conf)
+                final bitcoinConfPath = File('$bitcoinDatadir/bitwindow-bitcoin.conf');
+                if (await bitcoinConfPath.exists()) {
+                  await bitcoinConfPath.delete();
+                  log.i('Deleted bitcoin config: ${bitcoinConfPath.path}');
+                }
+
+                // Delete network-specific [main] section configs
+                for (final networkName in ['mainnet', 'forknet']) {
+                  final networkConfPath = File('$bitcoinDatadir/bitwindow-$networkName.conf');
+                  if (await networkConfPath.exists()) {
+                    await networkConfPath.delete();
+                    log.i('Deleted network config: ${networkConfPath.path}');
+                  }
+                }
+              } catch (e) {
+                log.e('could not delete config files: $e');
               }
             },
           );

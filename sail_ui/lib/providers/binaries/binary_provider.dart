@@ -565,7 +565,12 @@ class BinaryProvider extends ChangeNotifier {
     };
   }
 
-  Future<void> startWithEnforcer(Binary binaryToBoot, {bool bootExtraBinaryImmediately = false}) async {
+  Future<void> startWithEnforcer(
+    Binary binaryToBoot, {
+    bool bootExtraBinaryImmediately = false,
+    bool bootCoreWithoutAwait = false,
+    bool bootEnforcerWithoutAwait = false,
+  }) async {
     final log = GetIt.I.get<Logger>();
     final startTime = DateTime.now();
     int getElapsed() => DateTime.now().difference(startTime).inMilliseconds;
@@ -581,9 +586,10 @@ class BinaryProvider extends ChangeNotifier {
     // Wait for datadir to be configured before starting Core (mainnet/forknet only)
     final confProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = confProvider.network;
-    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+    if (network != null &&
+        (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)) {
       while (true) {
-        final dataDir = confProvider.getDataDirForNetwork(network);
+        final dataDir = confProvider.detectedDataDir;
         if (dataDir != null && dataDir.isNotEmpty) {
           log.i('[T+${getElapsed()}ms] STARTUP: Datadir configured for ${network.name}: $dataDir');
           break;
@@ -598,7 +604,11 @@ class BinaryProvider extends ChangeNotifier {
       unawaited(start(binaryToBoot));
     }
 
-    await start(bitcoinCore);
+    if (bootCoreWithoutAwait) {
+      unawaited(start(bitcoinCore));
+    } else {
+      await start(bitcoinCore);
+    }
     log.i('[T+${getElapsed()}ms] STARTUP: Started bitcoin core...');
 
     // Wait for wallet to be unlocked before starting enforcer
@@ -611,7 +621,11 @@ class BinaryProvider extends ChangeNotifier {
     }
     log.i('[T+${getElapsed()}ms] STARTUP: Wallet is unlocked, proceeding with enforcer start');
 
-    await start(enforcer);
+    if (bootEnforcerWithoutAwait) {
+      unawaited(start(enforcer));
+    } else {
+      await start(enforcer);
+    }
     log.i('[T+${getElapsed()}ms] STARTUP: Started enforcer');
 
     if (!bootExtraBinaryImmediately) {
