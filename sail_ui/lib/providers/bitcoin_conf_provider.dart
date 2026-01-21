@@ -128,6 +128,8 @@ class BitcoinConfProvider extends ChangeNotifier {
       if (networkChanged) {
         // If switching to mainnet/forknet, load its saved [main] section from disk
         await _loadMainSectionForNetwork(network);
+        // Update detectedDataDir from the newly loaded config
+        _loadStateFromConfig();
         // Write the new loaded [main] section to file
         await _writeConfigFile();
         // network changed, so we must restart all services
@@ -137,6 +139,11 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       // Copy config to downstream location for user and Bitcoin Core to find
       await _copyConfigDownstream();
+
+      // For mainnet/forknet, ensure datadir is configured
+      if (_isMainnetOrForknet(network) && (detectedDataDir == null || detectedDataDir!.isEmpty)) {
+        await router.push(DataDirSetupRoute());
+      }
     } catch (e) {
       log.e('Failed to load config: $e');
     } finally {
@@ -216,21 +223,9 @@ class BitcoinConfProvider extends ChangeNotifier {
       return;
     }
 
-    final oldNetwork = network;
-    if (oldNetwork == newNetwork) return;
+    if (network == newNetwork) return;
 
     await updateNetwork(newNetwork);
-
-    // For mainnet/forknet, ensure datadir is configured
-    if (_isMainnetOrForknet(newNetwork) && (detectedDataDir == null || detectedDataDir!.isEmpty)) {
-      await router.push(DataDirSetupRoute());
-      // Re-check if datadir was actually set (user might have cancelled)
-      if (detectedDataDir == null || detectedDataDir!.isEmpty) {
-        log.w('Datadir setup cancelled, aborting network swap');
-        await updateNetwork(oldNetwork);
-        return;
-      }
-    }
   }
 
   /// Restart services when network changes (called from loadConfig)
