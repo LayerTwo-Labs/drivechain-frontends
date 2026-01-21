@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:flutter/services.dart';
 import 'package:flutter_pty/flutter_pty.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -71,7 +72,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     String aliasCommands;
 
     // Only create bitcoin-cli alias if we're not using the default bitcoin.conf
-    final needsBitcoinAlias = confFile != 'bitcoin.conf';
+    final needsBitcoinAlias = path.basename(confFile) != 'bitcoin.conf';
 
     if (shell.contains('fish')) {
       // Fish shell uses functions instead of aliases for complex commands

@@ -1072,16 +1072,20 @@ extension BinaryPaths on Binary {
   }
 
   String _getBitcoinConfFile() {
-    final datadir = BitcoinCore().datadir();
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir
+    final datadir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
+        ? path.join(BitcoinCore().appdir(), 'Bitcoin')
+        : BitcoinCore().datadir();
 
     // Always check for bitcoin.conf first - user config takes priority
-    final bitcoinConfPath = File(path.join(datadir, 'bitcoin.conf'));
-    if (bitcoinConfPath.existsSync()) {
-      return 'bitcoin.conf';
+    final bitcoinConfPath = path.join(datadir, 'bitcoin.conf');
+    if (File(bitcoinConfPath).existsSync()) {
+      return bitcoinConfPath;
     }
 
-    // Fall back to our generated config
-    return 'bitwindow-bitcoin.conf';
+    // Fall back to our generated config (full absolute path)
+    return path.join(datadir, 'bitwindow-bitcoin.conf');
   }
 
   String logPath() {

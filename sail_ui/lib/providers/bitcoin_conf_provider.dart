@@ -276,7 +276,10 @@ class BitcoinConfProvider extends ChangeNotifier {
     if (dataDir == null || dataDir.isEmpty) {
       currentConfig!.removeSetting('datadir', section: section);
     } else {
-      currentConfig!.setSetting('datadir', dataDir, section: section);
+      // Strip any erroneous backslash escaping (e.g., "\ " -> " ")
+      // Bitcoin Core config files don't use shell-style escaping
+      final cleanDataDir = dataDir.replaceAll(r'\ ', ' ');
+      currentConfig!.setSetting('datadir', cleanDataDir, section: section);
     }
 
     await _saveConfig();
