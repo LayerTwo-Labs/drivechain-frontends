@@ -137,7 +137,9 @@ abstract class RPCConnection extends ChangeNotifier {
       }
 
       // Notify if we were connected or have a new error
-      if (connected || (connectionError != newError && startupError != newError)) {
+      // Compare startupError against extracted version since that's what we store
+      final extractedStartupErr = extractStartupError(newError);
+      if (connected || (connectionError != newError && startupError != (extractedStartupErr ?? newError))) {
         // we were previously connected, and should notify listeners
         // or we have a new error on our hands that must be shown
         initializingBinary = false;

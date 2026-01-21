@@ -41,8 +41,12 @@ class NetworkProvider extends ChangeNotifier {
       error = null;
       notifyListeners();
     } catch (e) {
-      log.e('fetch network stats: $e');
-      error = e.toString();
+      final errStr = e.toString();
+      // Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
+      if (!_isBitcoinCoreStartupError(errStr)) {
+        log.e('fetch network stats: $e');
+      }
+      error = errStr;
     } finally {
       _isFetching = false;
     }
@@ -94,6 +98,19 @@ class NetworkProvider extends ChangeNotifier {
   double get currentTxRate {
     if (bandwidthHistory.isEmpty) return 0;
     return bandwidthHistory.last.txBytesPerSec;
+  }
+
+  /// Check if error is a Bitcoin Core startup message (e.g., "-28: Loading block index")
+  bool _isBitcoinCoreStartupError(String error) {
+    const startupPatterns = [
+      '-28:',
+      'Loading block index',
+      'Verifying blocks',
+      'Loading wallet',
+      'Rescanning',
+      'Loading P2P addresses',
+    ];
+    return startupPatterns.any((pattern) => error.contains(pattern));
   }
 
   @override

@@ -58,7 +58,6 @@ class BlockchainProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      log.e('Error fetching blockchain data: $e');
       error = e.toString();
     } finally {
       _isFetching = false;
