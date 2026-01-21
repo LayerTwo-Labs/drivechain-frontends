@@ -180,7 +180,7 @@ class BottomNav extends StatelessWidget {
                       infoMessage:
                           _getDownloadMessage(model.syncProvider.enforcerSyncInfo) ??
                           (model.mainchain.initializingBinary
-                              ? 'Waiting for mainchain to finish init'
+                              ? 'Waiting for mainchain to finish initializing'
                               : model.mainchain.inHeaderSync
                               ? 'Waiting for L1 to sync headers...'
                               : null),

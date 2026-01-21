@@ -70,7 +70,7 @@ class EnforcerLive extends EnforcerRPC {
     binary.addBootArg('--wallet-seed-file=${mnemonicFile.path}');
 
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
-    final network = bitcoinConfProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+    final network = bitcoinConfProvider.network;
 
     // Get all CLI args from EnforcerConfProvider (includes node-rpc-* synced from Bitcoin conf)
     List<String> configArgs;
@@ -162,7 +162,7 @@ class EnforcerLive extends EnforcerRPC {
       final res = await validator.getChainTip(GetChainTipRequest());
 
       return BlockchainInfo(
-        chain: (GetIt.I.get<BitcoinConfProvider>().network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET).toReadableNet(),
+        chain: (GetIt.I.get<BitcoinConfProvider>().network).toReadableNet(),
         blocks: res.blockHeaderInfo.height,
         headers: res.blockHeaderInfo.height,
         bestBlockHash: res.blockHeaderInfo.blockHash.hex.toString(),
