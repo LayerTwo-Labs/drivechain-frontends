@@ -89,7 +89,7 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 		zerolog.Ctx(ctx).Info().Msg("mainchain was booted by GUI, shutting down bitcoind..")
 		_, err := s.bitcoind.Get(ctx)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, err
 		}
 		// Note: Stop RPC not available in btc-buf yet
 		// bitcoind will be stopped via SIGTERM by the process manager
@@ -392,13 +392,12 @@ func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *connect.Reques
 func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetSyncInfoResponse], error) {
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	tip, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get blockchain info")
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	processedTip, err := blocks.GetProcessedTip(ctx, s.db)

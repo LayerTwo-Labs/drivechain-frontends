@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -169,7 +170,12 @@ func (e *NotificationEngine) watchWalletTransactions(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if err := e.checkWalletTransactions(ctx); err != nil {
-				log.Warn().Err(err).Msg("check wallet transactions")
+				// Connection errors during startup are expected, log at debug level
+				if connect.CodeOf(err) == connect.CodeUnavailable || strings.Contains(err.Error(), "connection refused") {
+					log.Debug().Msg("check wallet transactions: waiting for connection")
+				} else {
+					log.Warn().Err(err).Msg("check wallet transactions")
+				}
 			}
 		}
 	}
