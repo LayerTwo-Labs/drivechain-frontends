@@ -324,7 +324,7 @@ class _EnforcerConfiguratorPanelContentState extends State<_EnforcerConfigurator
       final confProvider = GetIt.I.get<BitcoinConfProvider>();
       final enforcerConfProvider = GetIt.I.get<EnforcerConfProvider>();
       final defaultUrl = enforcerConfProvider.getEsploraUrlForNetwork(
-        confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+        confProvider.network,
       );
       hintText = defaultUrl != null ? 'Default: $defaultUrl' : 'Enter ${option.description.toLowerCase()}';
     } else {

@@ -106,7 +106,7 @@ CoreConnectionSettings readMainchainConf() {
   final log = GetIt.I.get<Logger>();
   final confProvider = GetIt.I.get<BitcoinConfProvider>();
 
-  final network = confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+  final network = confProvider.network;
 
   if (confProvider.currentConfig == null) {
     log.w('No config loaded, using defaults');

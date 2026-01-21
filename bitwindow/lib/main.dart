@@ -393,7 +393,7 @@ class _BitwindowAppState extends State<BitwindowApp> {
   @override
   Widget build(BuildContext context) {
     final router = GetIt.I.get<AppRouter>();
-    final accentColor = getNetworkAccentColor(_bitcoinConfProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
+    final accentColor = getNetworkAccentColor(_bitcoinConfProvider.network);
 
     return SailApp(
       log: widget.log,

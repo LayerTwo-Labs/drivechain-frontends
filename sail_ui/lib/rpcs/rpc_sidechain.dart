@@ -5,7 +5,6 @@ import 'package:sail_ui/classes/rpc_config.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbenum.dart';
 import 'package:sail_ui/providers/bitcoin_conf_provider.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -58,8 +57,7 @@ abstract class SidechainRPC extends RPCConnection {
 
     try {
       final dio = Dio();
-      final network = (GetIt.I.get<BitcoinConfProvider>().network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET)
-          .toReadableNet();
+      final network = (GetIt.I.get<BitcoinConfProvider>().network).toReadableNet();
       final response = await dio.post(
         'https://node.$network.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips',
         data: {},
