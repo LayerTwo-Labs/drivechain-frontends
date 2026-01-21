@@ -241,14 +241,18 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 			var err error
 			zmqEngine, err = getZmqEngine(ctx, conf)
 			if err != nil {
-				log.Error().Err(err).Msg("unable to acquire and start ZMQ engine")
+				// Connection errors during startup are expected
+				if connect.CodeOf(err) == connect.CodeUnavailable || strings.Contains(err.Error(), "connection refused") {
+					log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
+				} else {
+					log.Error().Err(err).Msg("unable to acquire and start ZMQ engine")
+				}
 
 				select {
 				case <-ctx.Done():
 					return
 
 				case <-time.After(time.Second * 5):
-					log.Debug().Msgf("waited a bit for the ZMQ engine, trying again")
 				}
 
 				continue
@@ -321,6 +325,10 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 		Hook(zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
 			// Filter out noisy btc-buf infrastructure connection logs
 			if strings.Contains(msg, "Established connection to RPC server") {
+				e.Discard()
+			}
+			// Filter out Bitcoin Core startup messages that appear during connection attempts
+			if isNoisyStartupMessage(msg) {
 				e.Discard()
 			}
 		}))
@@ -401,6 +409,37 @@ func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error)
 	}
 
 	return engines.NewZMQ(pubRawTxAddress.Address)
+}
+
+// isNoisyStartupMessage returns true for Bitcoin Core startup messages that
+// should be filtered from logs during initialization.
+func isNoisyStartupMessage(msg string) bool {
+	noisyPatterns := []string{
+		"Loading block index",
+		"Opening LevelDB",
+		"Verifying blocks",
+		"Replaying blocks",
+		"Rescanning",
+		"Loading wallet",
+		"Loading P2P addresses",
+		"Loading banlist",
+		"Starting network threads",
+		"Flushing wallet",
+		"Imported mempool transactions",
+		"Done loading",
+		"Loading mempool",
+		"Shutdown: In progress",
+		"Shutdown requested",
+		"does not accept connections",
+	}
+
+	for _, pattern := range noisyPatterns {
+		if strings.Contains(msg, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func getChainParams(network config.Network) *chaincfg.Params {
