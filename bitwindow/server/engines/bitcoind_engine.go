@@ -101,7 +101,10 @@ func (p *Parser) Run(ctx context.Context) error {
 				Msgf("bitcoind_engine/parser: processing block tick")
 
 			if err := p.handleBlockTick(ctx); err != nil {
-				zerolog.Ctx(ctx).Err(err).Msgf("unable to handle block tick")
+				// Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
+				if !isBitcoinCoreStartupError(err.Error()) {
+					zerolog.Ctx(ctx).Err(err).Msgf("unable to handle block tick")
+				}
 				continue
 			}
 
@@ -129,7 +132,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		return nil
 
 	case connect.CodeOf(err) == connect.CodeUnavailable:
-		zerolog.Ctx(ctx).Warn().Err(err).
+		zerolog.Ctx(ctx).Debug().
 			Msgf("bitcoind_engine/parser: bitcoin core is not available, waiting for connection..")
 		return nil
 
@@ -452,6 +455,24 @@ func (p *Parser) handleTimestamp(
 		Msg("discovered timestamp on blockchain")
 
 	return nil
+}
+
+// isBitcoinCoreStartupError checks if the error is a Bitcoin Core startup message
+func isBitcoinCoreStartupError(errMsg string) bool {
+	startupPatterns := []string{
+		"-28:",
+		"Loading block index",
+		"Verifying blocks",
+		"Loading wallet",
+		"Rescanning",
+		"Loading P2P addresses",
+	}
+	for _, pattern := range startupPatterns {
+		if strings.Contains(errMsg, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Parser) currentHeight(ctx context.Context) (uint32, chainhash.Hash, error) {

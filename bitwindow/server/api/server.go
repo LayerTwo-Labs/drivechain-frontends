@@ -376,13 +376,15 @@ func logInterceptor() connect.UnaryInterceptorFunc {
 				}
 			}
 
-			// Internal and unknown errors are bad! In theory, these are bugs. We
-			// should always make sure to return something meaningful.
-			isBadErr := code == connect.CodeInternal || code == connect.CodeUnknown
+			procedure := req.Spec().Procedure
+			level := getLogLevel(procedure, code, handlerErr)
 
-			message := fmt.Sprintf("%s: %s", req.Spec().Procedure, describeCode(code))
+			// Skip logging entirely for disabled procedures
+			if level == zerolog.Disabled {
+				return resp, handlerErr
+			}
 
-			level := lo.Ternary(isBadErr, zerolog.ErrorLevel, zerolog.DebugLevel)
+			message := fmt.Sprintf("%s: %s", procedure, describeCode(code))
 
 			log.WithLevel(level).
 				Dur("duration", time.Since(start)).
@@ -393,6 +395,84 @@ func logInterceptor() connect.UnaryInterceptorFunc {
 			return resp, handlerErr
 		}
 	}
+}
+
+// getLogLevel determines the appropriate log level for a procedure.
+// This filters out noisy endpoints during normal operation.
+func getLogLevel(procedure string, code connect.Code, err error) zerolog.Level {
+	// Health checks are very noisy - disable logging entirely
+	if strings.Contains(procedure, "HealthService") {
+		return zerolog.Disabled
+	}
+
+	// GetSyncInfo is called very frequently during startup/IBD
+	if strings.Contains(procedure, "GetSyncInfo") {
+		return zerolog.Disabled
+	}
+
+	// Internal and unknown errors are bad! In theory, these are bugs. We
+	// should always make sure to return something meaningful.
+	// Exception: Bitcoin Core startup errors on expected endpoints are filtered.
+	if code == connect.CodeInternal || code == connect.CodeUnknown {
+		// Filter startup errors only on endpoints that interact with Bitcoin Core
+		if err != nil && isBitcoinCoreStartupError(err.Error()) {
+			if strings.Contains(procedure, "BitwindowdService") ||
+				strings.Contains(procedure, "BitcoinService") ||
+				strings.Contains(procedure, "WalletService") {
+				return zerolog.Disabled
+			}
+		}
+		return zerolog.ErrorLevel
+	}
+
+	// Bitcoin Core startup messages through proxy - these happen during IBD
+	// and are very noisy (loading block index, verifying blocks, etc.)
+	if strings.Contains(procedure, "BitcoinService") {
+		// During unavailable state (startup), don't log at all
+		if code == connect.CodeUnavailable {
+			return zerolog.Disabled
+		}
+		return zerolog.DebugLevel
+	}
+
+	// Wallet sync calls during startup
+	if strings.Contains(procedure, "WalletService") && code == connect.CodeUnavailable {
+		return zerolog.Disabled
+	}
+
+	// ValidatorService (enforcer) during startup
+	if strings.Contains(procedure, "ValidatorService") && code == connect.CodeUnavailable {
+		return zerolog.Disabled
+	}
+
+	// Default to debug level for successful operations
+	return zerolog.DebugLevel
+}
+
+// isBitcoinCoreStartupError returns true for Bitcoin Core RPC errors
+// that indicate the node is still starting up or not yet connected.
+func isBitcoinCoreStartupError(errMsg string) bool {
+	startupPatterns := []string{
+		"Loading block index",
+		"Loading wallet",
+		"Loading P2P addresses",
+		"Loading banlist",
+		"Verifying blocks",
+		"Replaying blocks",
+		"Rescanning",
+		"-28:", // Bitcoin Core "loading" error code
+		"unable to connect to Bitcoin Core",
+		"does not accept connections",
+		"connection refused",
+	}
+
+	for _, pattern := range startupPatterns {
+		if strings.Contains(errMsg, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func describeCode(code connect.Code) string {

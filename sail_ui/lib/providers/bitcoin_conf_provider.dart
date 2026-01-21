@@ -16,13 +16,15 @@ class BitcoinConfProvider extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
 
   // File watching and management
-  StreamSubscription<FileSystemEvent>? _fileWatcher;
+  StreamSubscription<FileSystemEvent>? _bitWindowWatcher;
+  StreamSubscription<FileSystemEvent>? _drivechainWatcher;
+  StreamSubscription<FileSystemEvent>? _bitcoinWatcher;
   Timer? _fileWatchDebouncer;
 
   // Config file state
   bool hasPrivateBitcoinConf = false;
   String? configPath;
-  BitcoinNetwork? network;
+  BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
   String? detectedDataDir;
   BitcoinConfig? currentConfig;
 
@@ -31,12 +33,12 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   /// Get the actual RPC port being used (respects user's rpcport setting from config + network section)
   int get rpcPort {
-    if (currentConfig != null && network != null) {
+    if (currentConfig != null) {
       // Get effective setting (network section overrides global)
       // Use toCoreNetworkForBitcoinSettings() for Bitcoin Core settings like rpcport
       final rpcPortSetting = currentConfig!.getEffectiveSetting(
         'rpcport',
-        network!.toCoreNetworkForBitcoinSettings(),
+        network.toCoreNetworkForBitcoinSettings(),
       );
       if (rpcPortSetting != null) {
         final customPort = int.tryParse(rpcPortSetting);
@@ -71,107 +73,102 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _fileWatcher?.cancel();
+    _bitWindowWatcher?.cancel();
+    _drivechainWatcher?.cancel();
+    _bitcoinWatcher?.cancel();
     _fileWatchDebouncer?.cancel();
     super.dispose();
   }
 
   Future<void> loadConfig({bool isFirst = false}) async {
+    final oldNetwork = network;
+
     try {
-      // On first load, set a default network so config file path detection and
-      // default config generation work correctly
-      if (isFirst && network == null) {
-        network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
-      }
-
-      // Determine which config file to use
-      final confInfo = _getConfigFileInfo();
-      hasPrivateBitcoinConf = confInfo.hasPrivateConf;
-      configPath = confInfo.path;
-
-      // Load the active config file
-      final file = File(confInfo.path);
       String content = '';
-      if (await file.exists()) {
-        content = await file.readAsString();
+      final bitwindowFile = File(_getBitWindowConfigPath());
+      if (await bitwindowFile.exists()) {
+        content = await bitwindowFile.readAsString();
       } else {
         // Use the default config if no file exists
         content = _defaultConf();
 
-        // Write default config to disk if we're using bitwindow-bitcoin.conf (not user bitcoin.conf)
-        if (!hasPrivateBitcoinConf) {
-          try {
-            // Ensure the directory exists
-            await file.parent.create(recursive: true);
-            await file.writeAsString(content);
-            log.i('Created default config file: ${file.path}');
-          } catch (e) {
-            log.e('Failed to write default config file: $e');
-          }
+        // Write default config to BitWindow directory
+        try {
+          await bitwindowFile.parent.create(recursive: true);
+          await bitwindowFile.writeAsString(content);
+          log.i('Created default config file: ${bitwindowFile.path}');
+        } catch (e) {
+          log.e('Failed to write default config file: $e');
         }
       }
 
-      // Parse config to detect settings
+      // Parse config to determine network
       currentConfig = BitcoinConfig.parse(content);
+      _loadStateFromConfig(); // Sets network
 
-      // Detect if network changed (user might have edited file manually)
-      // On first load, oldNetwork is just our default, not a real previous state
-      final oldNetwork = network;
-      final newNetwork = _getNetwork();
-      final networkChanged = !isFirst && oldNetwork != null && oldNetwork != newNetwork;
+      // PHASE 2: Now that we know network, check for private bitcoin.conf
+      final confInfo = _getConfigFileInfo();
+      hasPrivateBitcoinConf = confInfo.hasPrivateConf;
+      configPath = confInfo.path;
 
-      // If network changed (not first load), do a proper swap (save old [main], load new [main])
-      if (networkChanged) {
-        if (_isMainnetOrForknet(oldNetwork)) {
-          await _saveMainSectionForNetwork(oldNetwork);
+      // If user has bitcoin.conf for this network, re-load from THAT file
+      if (hasPrivateBitcoinConf) {
+        final privateFile = File(confInfo.path);
+        if (await privateFile.exists()) {
+          content = await privateFile.readAsString();
+          currentConfig = BitcoinConfig.parse(content);
+          _loadStateFromConfig(); // Re-derive state from user's config
+          return;
         }
-        if (_isMainnetOrForknet(newNetwork)) {
-          await _loadMainSectionForNetwork(newNetwork);
-        }
-      } else if (_isMainnetOrForknet(newNetwork)) {
-        // Same network or first load, just load the [main] section
-        await _loadMainSectionForNetwork(newNetwork);
       }
 
-      // Derive state from config
-      _loadStateFromConfig();
+      // Detect if network changed
+      final networkChanged = !isFirst && oldNetwork != network;
 
-      notifyListeners();
+      if (networkChanged) {
+        // If switching to mainnet/forknet, load its saved [main] section from disk
+        await _loadMainSectionForNetwork(network);
+        // Write the new loaded [main] section to file
+        await _writeConfigFile();
+        // network changed, so we must restart all services
+        // they await a datadir if needed, so its safe to start em
+        unawaited(_restartServicesForNetworkChange());
+      }
+
+      // Copy config to downstream location for user and Bitcoin Core to find
+      await _copyConfigDownstream();
     } catch (e) {
       log.e('Failed to load config: $e');
+    } finally {
+      notifyListeners();
     }
   }
 
-  /// Update network setting - only allowed when using bitwindow-bitcoin.conf
-  /// Just writes the new network to file - loadConfig() handles the rest via file watcher
+  /// Writes the new network to the config file
   Future<void> updateNetwork(BitcoinNetwork newNetwork) async {
     if (hasPrivateBitcoinConf) {
-      log.w('Cannot update network - controlled by user bitcoin.conf');
+      log.w('Cannot update network - controlled by your bitcoin.conf');
       return;
     }
 
     if (currentConfig == null) return;
 
-    // Just update the chain setting and drivechain flag
-    if (_isMainnetOrForknet(newNetwork)) {
-      currentConfig!.setSetting('chain', 'main');
-      currentConfig!.networkSettings['main'] ??= {};
-      if (newNetwork == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-        currentConfig!.networkSettings['main']!['drivechain'] = '1';
-      } else {
-        currentConfig!.networkSettings['main']!.remove('drivechain');
-      }
-    } else {
-      final chainValue = switch (newNetwork) {
-        BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'test',
-        BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
-        BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-        _ => 'signet',
-      };
-      currentConfig!.setSetting('chain', chainValue);
+    final chainValue = switch (newNetwork) {
+      BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'main',
+      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'main',
+      BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'test',
+      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
+      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
+      _ => 'signet',
+    };
+    currentConfig!.setSetting('chain', chainValue);
+
+    if (newNetwork == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+      currentConfig!.setSetting('drivechain', '1', section: 'main');
+    } else if (newNetwork == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
+      currentConfig!.removeSetting('drivechain', section: 'main');
     }
 
-    // Write to file - file watcher will call loadConfig() which handles the swap
     await _saveConfig();
   }
 
@@ -213,7 +210,6 @@ class BitcoinConfProvider extends ChangeNotifier {
     return BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
   }
 
-  /// Swap to a new network with full UI feedback
   Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork) async {
     if (hasPrivateBitcoinConf) {
       log.w('Cannot swap network - controlled by user bitcoin.conf');
@@ -223,22 +219,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     final oldNetwork = network;
     if (oldNetwork == newNetwork) return;
 
-    // Save old [main] section if leaving mainnet/forknet
-    if (oldNetwork != null && _isMainnetOrForknet(oldNetwork)) {
-      await _saveMainSectionForNetwork(oldNetwork);
-    }
-
-    // Update the config file with new network
     await updateNetwork(newNetwork);
-
-    // Load new [main] section if entering mainnet/forknet
-    if (_isMainnetOrForknet(newNetwork)) {
-      await _loadMainSectionForNetwork(newNetwork);
-    }
-
-    // Update state from config
-    _loadStateFromConfig();
-    notifyListeners();
 
     // For mainnet/forknet, ensure datadir is configured
     if (_isMainnetOrForknet(newNetwork) && (detectedDataDir == null || detectedDataDir!.isEmpty)) {
@@ -246,45 +227,21 @@ class BitcoinConfProvider extends ChangeNotifier {
       // Re-check if datadir was actually set (user might have cancelled)
       if (detectedDataDir == null || detectedDataDir!.isEmpty) {
         log.w('Datadir setup cancelled, aborting network swap');
-        // Revert to old network
-        network = oldNetwork;
-        if (oldNetwork != null) {
-          await updateNetwork(oldNetwork);
-        }
-        notifyListeners();
+        await updateNetwork(oldNetwork);
         return;
       }
     }
-
-    // Show progress dialog and restart services
-    if (context.mounted) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => NetworkSwapProgressDialog(
-          fromNetwork: oldNetwork ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-          toNetwork: newNetwork,
-          swapFunction: (updateStatus) => _restartServicesWithStatus(newNetwork, updateStatus),
-        ),
-      );
-    }
   }
 
-  /// Restart services with status updates for progress dialog
-  Future<void> _restartServicesWithStatus(BitcoinNetwork newNetwork, void Function(String) updateStatus) async {
+  /// Restart services when network changes (called from loadConfig)
+  Future<void> _restartServicesForNetworkChange() async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
 
     // Stop all services
-    updateStatus('Stopping Bitcoin Core');
+    log.i('Network changed, stopping services');
     await binaryProvider.stop(BitcoinCore());
-
-    updateStatus('Stopping Enforcer');
     await binaryProvider.stop(Enforcer());
-
-    updateStatus('Stopping BitWindow');
     await binaryProvider.stop(BitWindow());
-
-    updateStatus('Waiting for processes to exit');
 
     // Clear sync state from old network
     try {
@@ -294,8 +251,8 @@ class BitcoinConfProvider extends ChangeNotifier {
       log.w('Could not clear sync provider state: $e');
     }
 
-    // Restart all services
-    updateStatus('Starting Core, Enforcer and BitWindow');
+    // Restart all services (datadir guard will block if needed)
+    log.i('Starting services for network: $network');
     final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
     await binaryProvider.startWithEnforcer(
       bitwindowBinary,
@@ -304,13 +261,8 @@ class BitcoinConfProvider extends ChangeNotifier {
       bootEnforcerWithoutAwait: true,
     );
 
-    // await (somewhat) services to start
-    await Future.delayed(const Duration(seconds: 2));
-
     _updateMainchainRPCConfig(_createConnectionSettings());
-
-    updateStatus('Network swap complete');
-    log.i('Services restarted for network: $newNetwork');
+    log.i('Services restarted for network: $network');
   }
 
   /// Update datadir for the specified network section (or current network if not specified)
@@ -324,28 +276,32 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     // Use specified network or fall back to current detected network
     final targetNetwork = forNetwork ?? network;
-    if (targetNetwork == null) return;
     final section = targetNetwork.toCoreNetwork();
 
     if (dataDir == null || dataDir.isEmpty) {
       currentConfig!.removeSetting('datadir', section: section);
-      // Only update detectedDataDir if we're modifying the current network
-      if (targetNetwork == network) {
-        detectedDataDir = null;
-      }
     } else {
       currentConfig!.setSetting('datadir', dataDir, section: section);
-      // Only update detectedDataDir if we're modifying the current network
-      if (targetNetwork == network) {
-        detectedDataDir = dataDir;
-      }
     }
 
-    // Save the config file
     await _saveConfig();
   }
 
-  // Private helper methods
+  /// Write config to file without triggering loadConfig
+  Future<void> _writeConfigFile() async {
+    if (currentConfig == null) return;
+    if (hasPrivateBitcoinConf) return;
+
+    try {
+      final confFile = _getConfigFileInfo();
+      final file = File(confFile.path);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(currentConfig!.serialize());
+      log.d('Wrote config file: ${confFile.path}');
+    } catch (e) {
+      log.e('Failed to write config file: $e');
+    }
+  }
 
   Future<void> _saveConfig() async {
     if (currentConfig == null) return;
@@ -355,15 +311,19 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
 
     try {
-      final confFile = _getConfigFileInfo();
-      final file = File(confFile.path);
+      await _writeConfigFile();
 
-      // Write new config
-      await file.writeAsString(currentConfig!.serialize());
-      log.i('Saved config to $confFile');
-      notifyListeners();
+      // Only save main section backup if NOT a network switch
+      final newNetwork = _getNetwork();
+      if (network == newNetwork) {
+        await _saveMainSectionForNetwork(network);
+      }
+
+      await loadConfig();
     } catch (e) {
       log.e('Failed to save config: $e');
+    } finally {
+      notifyListeners();
     }
   }
 
@@ -373,13 +333,14 @@ class BitcoinConfProvider extends ChangeNotifier {
     // - FORKNET/SIGNET/TESTNET/REGTEST: ~/Library/Application Support/Drivechain
     final datadir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? _getMainnetDatadir() : BitcoinCore().datadir();
 
-    if (BitcoinCore().confFile() == 'bitcoin.conf') {
-      return (hasPrivateConf: true, path: path.join(datadir, 'bitcoin.conf'));
+    // Check if user has a private bitcoin.conf for the current network (Bitcoin/ or Drivechain/)
+    final bitcoinConf = File(path.join(datadir, 'bitcoin.conf'));
+    if (bitcoinConf.existsSync()) {
+      return (hasPrivateConf: true, path: bitcoinConf.path);
     }
 
-    // Fall back to our generated config
-    final bitwindowConfPath = path.join(datadir, 'bitwindow-bitcoin.conf');
-    return (hasPrivateConf: false, path: bitwindowConfPath);
+    // Use BitWindow directory as the source of truth for generated config
+    return (hasPrivateConf: false, path: _getBitWindowConfigPath());
   }
 
   /// Get the standard Bitcoin Core datadir for real mainnet
@@ -388,51 +349,168 @@ class BitcoinConfProvider extends ChangeNotifier {
     return path.join(appDir, 'Bitcoin');
   }
 
+  /// Get the path to the config file in BitWindow directory (source of truth)
+  String _getBitWindowConfigPath() {
+    return path.join(BitWindow().datadir(), 'bitwindow-bitcoin.conf');
+  }
+
+  /// Get the path where config should be copied for Bitcoin Core to find
+  String _getDownstreamConfigPath() {
+    final datadir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? _getMainnetDatadir() : BitcoinCore().datadir();
+    return path.join(datadir, 'bitwindow-bitcoin.conf');
+  }
+
+  /// Copy config from BitWindow directory to downstream location (Drivechain or Bitcoin dir)
+  Future<void> _copyConfigDownstream() async {
+    try {
+      final sourcePath = _getBitWindowConfigPath();
+      final destPath = _getDownstreamConfigPath();
+
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        log.w('Cannot copy downstream - source file does not exist: $sourcePath');
+        return;
+      }
+
+      final destFile = File(destPath);
+      await destFile.parent.create(recursive: true);
+      await sourceFile.copy(destPath);
+
+      log.d('Copied config downstream: $sourcePath -> $destPath');
+    } catch (e) {
+      log.e('Failed to copy config downstream: $e');
+    }
+  }
+
+  /// Sync config from upstream location (Drivechain or Bitcoin dir) to BitWindow directory
+  Future<void> _syncConfigUpstream(String upstreamPath) async {
+    if (hasPrivateBitcoinConf) return;
+
+    try {
+      final destPath = _getBitWindowConfigPath();
+
+      final sourceFile = File(upstreamPath);
+      if (!await sourceFile.exists()) {
+        log.w('Cannot sync upstream - source file does not exist: $upstreamPath');
+        return;
+      }
+
+      final destFile = File(destPath);
+      await destFile.parent.create(recursive: true);
+      await sourceFile.copy(destPath);
+
+      log.d('Synced config upstream: $upstreamPath -> $destPath');
+    } catch (e) {
+      log.e('Failed to sync config upstream: $e');
+    }
+  }
+
   /// Load network and datadir state from currentConfig
   void _loadStateFromConfig() {
     if (currentConfig == null) return;
 
     network = _getNetwork();
-    detectedDataDir = currentConfig!.getEffectiveSetting('datadir', network!.toCoreNetwork());
+    detectedDataDir = currentConfig!.getEffectiveSetting('datadir', network.toCoreNetwork());
   }
 
   void _setupFileWatching() {
-    // Cancel existing watcher
-    _fileWatcher?.cancel();
+    _setupBitWindowWatcher();
+    _setupUpstreamWatcher();
+  }
+
+  /// Primary watcher: watches BitWindow directory (source of truth)
+  void _setupBitWindowWatcher() {
+    _bitWindowWatcher?.cancel();
 
     try {
-      final datadir = BitcoinCore().datadir();
-      final datadirObj = Directory(datadir);
+      final bitWindowDir = Directory(BitWindow().datadir());
+      if (!bitWindowDir.existsSync()) {
+        bitWindowDir.createSync(recursive: true);
+      }
 
-      // Watch the entire datadir for config file changes
-      _fileWatcher = datadirObj
+      _bitWindowWatcher = bitWindowDir
           .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
-          .where((event) => event.path.endsWith('.conf'))
-          .listen(_handleFileSystemEvent);
+          .where((event) => event.path.endsWith('bitwindow-bitcoin.conf'))
+          .listen(_handleBitWindowConfigChange);
 
-      log.d('File watching enabled for $datadir');
+      log.d('BitWindow config watcher enabled for ${bitWindowDir.path}');
     } catch (e) {
-      log.e('Failed to setup file watching: $e');
+      log.e('Failed to setup BitWindow watcher: $e');
     }
   }
 
-  void _handleFileSystemEvent(FileSystemEvent event) {
-    final fileName = path.basename(event.path);
-    if (fileName == 'bitcoin.conf' || fileName == 'bitwindow-bitcoin.conf') {
-      log.d('Config file changed: ${event.path}');
+  /// Upstream watcher: watches both Drivechain and Bitcoin directories
+  void _setupUpstreamWatcher() {
+    _drivechainWatcher?.cancel();
+    _bitcoinWatcher?.cancel();
 
-      // Debounce file changes to avoid rapid reloads
-      _fileWatchDebouncer?.cancel();
-      _fileWatchDebouncer = Timer(const Duration(milliseconds: 50), () {
-        loadConfig();
-      });
+    try {
+      // Watch Drivechain directory (for signet/forknet/etc)
+      final drivechainDir = Directory(BitcoinCore().datadir());
+      if (drivechainDir.existsSync()) {
+        _drivechainWatcher = drivechainDir
+            .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
+            .where((event) => event.path.endsWith('bitwindow-bitcoin.conf'))
+            .listen(_handleUpstreamConfigChange);
+        log.d('Drivechain config watcher enabled for ${drivechainDir.path}');
+      }
+
+      // Watch Bitcoin directory (for mainnet)
+      final bitcoinDir = Directory(_getMainnetDatadir());
+      if (bitcoinDir.existsSync()) {
+        _bitcoinWatcher = bitcoinDir
+            .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
+            .where((event) => event.path.endsWith('bitwindow-bitcoin.conf'))
+            .listen(_handleUpstreamConfigChange);
+        log.d('Bitcoin config watcher enabled for ${bitcoinDir.path}');
+      }
+    } catch (e) {
+      log.e('Failed to setup upstream watchers: $e');
     }
+  }
+
+  /// Handle changes to the BitWindow config file (primary source of truth)
+  void _handleBitWindowConfigChange(FileSystemEvent event) {
+    log.d('BitWindow config changed: ${event.path}');
+
+    _fileWatchDebouncer?.cancel();
+    _fileWatchDebouncer = Timer(const Duration(milliseconds: 50), () async {
+      // Loop prevention: compare new config to current config
+      try {
+        final file = File(event.path);
+        if (!await file.exists()) return;
+
+        final content = await file.readAsString();
+        final newConfig = BitcoinConfig.parse(content);
+
+        if (currentConfig != null && newConfig == currentConfig) {
+          log.d('Config unchanged, skipping reload');
+          return;
+        }
+
+        await loadConfig();
+        await _copyConfigDownstream();
+      } catch (e) {
+        log.e('Error handling BitWindow config change: $e');
+      }
+    });
+  }
+
+  /// Handle changes to upstream config files (Drivechain or Bitcoin dir)
+  void _handleUpstreamConfigChange(FileSystemEvent event) {
+    log.d('Upstream config changed: ${event.path}');
+
+    _fileWatchDebouncer?.cancel();
+    _fileWatchDebouncer = Timer(const Duration(milliseconds: 50), () async {
+      // Sync upstream file to BitWindow dir - this will trigger the primary watcher
+      await _syncConfigUpstream(event.path);
+    });
   }
 
   /// Get the default configuration content
   String getDefaultConfig() {
     // network is always set by loadConfig() before this is called
-    final effectiveNetwork = network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+    final effectiveNetwork = network;
     final currentNetwork = effectiveNetwork.toCoreNetwork();
 
     // Real mainnet gets minimal standard Bitcoin Core config
@@ -533,19 +611,11 @@ $mainSection
     }
 
     try {
-      final config = BitcoinConfig.parse(content);
-      currentConfig = config;
-
       final confFile = _getConfigFileInfo();
       final file = File(confFile.path);
+      await file.parent.create(recursive: true);
       await file.writeAsString(content);
-
-      log.i('Saved config to $confFile');
-
-      // Update detected network and datadir
-      _loadStateFromConfig();
-
-      notifyListeners();
+      log.i('Saved config to ${confFile.path}');
     } catch (e) {
       log.e('Failed to write config: $e');
       rethrow;
@@ -600,7 +670,7 @@ $mainSection
       port: rpcPort, // Use the getter which already handles network-specific logic
       username: username,
       password: password,
-      network: network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+      network: network,
       configValues: currentConfig?.globalSettings ?? {},
       configFromFile: currentConfig?.globalSettings.keys.toSet() ?? {},
     );
@@ -631,8 +701,9 @@ $mainSection
   }
 
   /// Get the path for the saved main-section file for mainnet/forknet
+  /// Stored in BitWindow directory alongside the main config
   String _getMainSectionPath(BitcoinNetwork network) {
-    final datadir = BitcoinCore().datadir();
+    final datadir = BitWindow().datadir();
     final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
     return path.join(datadir, 'bitwindow-$networkName.conf');
   }
@@ -644,6 +715,11 @@ $mainSection
 
     try {
       final confPath = _getMainSectionPath(network);
+      final file = File(confPath);
+
+      // Ensure parent directory exists
+      await file.parent.create(recursive: true);
+
       final mainSettings = currentConfig!.networkSettings['main'] ?? {};
 
       // Write as key=value pairs
@@ -653,8 +729,17 @@ $mainSection
         buffer.writeln('${entry.key}=${entry.value}');
       }
 
-      await File(confPath).writeAsString(buffer.toString());
-      log.i('Saved [main] section for $network to $confPath');
+      final contentToWrite = buffer.toString();
+      await file.writeAsString(contentToWrite);
+
+      // Verify the write
+      final writtenContent = await file.readAsString();
+      if (writtenContent != contentToWrite) {
+        log.e('Main section verification failed for $confPath');
+        return;
+      }
+
+      log.i('Saved and verified [main] section for $network to $confPath');
     } catch (e) {
       log.e('Failed to save [main] section for $network: $e');
     }

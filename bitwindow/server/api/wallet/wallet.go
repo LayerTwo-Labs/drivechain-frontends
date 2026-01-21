@@ -117,7 +117,7 @@ func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request
 	// Get first address for verification
 	bitcoindClient, err := s.bitcoind.Get(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get bitcoind client: %w", err))
+		return nil, err
 	}
 
 	addrResp, err := bitcoindClient.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
@@ -2518,7 +2518,7 @@ func (s *Server) GetTransactionDetails(ctx context.Context, c *connect.Request[p
 
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get bitcoind client: %w", err))
+		return nil, err
 	}
 
 	// Fetch the raw transaction with prevout info

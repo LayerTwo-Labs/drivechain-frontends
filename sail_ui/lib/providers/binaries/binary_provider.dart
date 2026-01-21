@@ -586,8 +586,7 @@ class BinaryProvider extends ChangeNotifier {
     // Wait for datadir to be configured before starting Core (mainnet/forknet only)
     final confProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = confProvider.network;
-    if (network != null &&
-        (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)) {
+    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
       while (true) {
         final dataDir = confProvider.detectedDataDir;
         if (dataDir != null && dataDir.isNotEmpty) {

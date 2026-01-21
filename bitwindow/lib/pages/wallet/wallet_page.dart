@@ -220,8 +220,7 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
 
     try {
       final dio = Dio();
-      final network = (GetIt.I.get<BitcoinConfProvider>().network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET)
-          .toReadableNet();
+      final network = (GetIt.I.get<BitcoinConfProvider>().network).toReadableNet();
       final response = await dio.post(
         'https://node.$network.drivechain.info/api/faucet.v1.FaucetService/DispenseCoins',
         data: {

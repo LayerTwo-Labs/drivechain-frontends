@@ -108,26 +108,15 @@ class DaemonConnectionCard extends StatelessWidget {
                 },
                 icon: SailSVGAsset.tabSettings,
               ),
-              Tooltip(
-                message: 'Restart ${connection.binary.name}',
-                child: SailButton(
-                  variant: ButtonVariant.icon,
-                  onPressed: restartDaemon,
-                  loading: connection.initializingBinary || (syncInfo?.downloadInfo.isDownloading ?? false),
-                  icon: SailSVGAsset.iconRestart,
-                ),
+              _RestartStopButton(
+                binaryName: connection.binary.name,
+                isInitializing: connection.initializingBinary || (syncInfo?.downloadInfo.isDownloading ?? false),
+                isConnected: connection.connected,
+                isStopping: connection.stoppingBinary,
+                onRestart: restartDaemon,
+                onStop: stopDaemon,
+                errorColor: theme.colors.error,
               ),
-              if (connection.connected)
-                Tooltip(
-                  message: 'Stop ${connection.binary.name}',
-                  child: SailButton(
-                    variant: ButtonVariant.icon,
-                    onPressed: stopDaemon,
-                    loading: connection.stoppingBinary,
-                    icon: SailSVGAsset.square,
-                    textColor: theme.colors.error,
-                  ),
-                ),
               if (deleteFunction != null)
                 SailButton(variant: ButtonVariant.icon, onPressed: deleteFunction, icon: SailSVGAsset.iconDelete),
             ],
@@ -140,19 +129,19 @@ class DaemonConnectionCard extends StatelessWidget {
           if (infoMessage != null ||
               connection.connectionError != null ||
               connection.startupError != null ||
+              connection.initializingBinary ||
               !connection.connected)
             Padding(
               padding: const EdgeInsets.only(top: SailStyleValues.padding04),
               child: SailText.secondary12(
                 prettifyLogMessage(
                   infoMessage ??
-                      connection.connectionError ??
-                      connection.startupError ??
+                      // During initialization, show startup logs instead of connection errors
                       (connection.initializingBinary
                           ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
-                          : !connection.connected
-                          ? 'Not connected'
-                          : ''),
+                          : connection.connectionError) ??
+                      connection.startupError ??
+                      (!connection.connected ? 'Not connected' : ''),
                 ),
                 monospace: true,
               ),
@@ -224,4 +213,83 @@ class BlockStatus extends StatelessWidget {
 String formatProgress(double progress, bool withDecimal) {
   // otherwise return with appropriate decimal places
   return progress.toStringAsFixed(withDecimal ? 1 : 0);
+}
+
+class _RestartStopButton extends StatefulWidget {
+  final String binaryName;
+  final bool isInitializing;
+  final bool isConnected;
+  final bool isStopping;
+  final Future<void> Function() onRestart;
+  final Future<void> Function() onStop;
+  final Color errorColor;
+
+  const _RestartStopButton({
+    required this.binaryName,
+    required this.isInitializing,
+    required this.isConnected,
+    required this.isStopping,
+    required this.onRestart,
+    required this.onStop,
+    required this.errorColor,
+  });
+
+  @override
+  State<_RestartStopButton> createState() => _RestartStopButtonState();
+}
+
+class _RestartStopButtonState extends State<_RestartStopButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // When initializing and hovering, show stop button instead of spinner
+    final showStopOnHover = widget.isInitializing && _isHovering;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showStopOnHover)
+            // Show stop button when hovering during initialization
+            Tooltip(
+              message: 'Stop ${widget.binaryName}',
+              child: SailButton(
+                variant: ButtonVariant.icon,
+                onPressed: widget.onStop,
+                loading: widget.isStopping,
+                icon: SailSVGAsset.square,
+                textColor: widget.errorColor,
+              ),
+            )
+          else ...[
+            // Normal restart button
+            Tooltip(
+              message: 'Restart ${widget.binaryName}',
+              child: SailButton(
+                variant: ButtonVariant.icon,
+                onPressed: widget.onRestart,
+                loading: widget.isInitializing,
+                icon: SailSVGAsset.iconRestart,
+              ),
+            ),
+            // Show stop button when connected (and not initializing)
+            if (widget.isConnected && !widget.isInitializing)
+              Tooltip(
+                message: 'Stop ${widget.binaryName}',
+                child: SailButton(
+                  variant: ButtonVariant.icon,
+                  onPressed: widget.onStop,
+                  loading: widget.isStopping,
+                  icon: SailSVGAsset.square,
+                  textColor: widget.errorColor,
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
 }

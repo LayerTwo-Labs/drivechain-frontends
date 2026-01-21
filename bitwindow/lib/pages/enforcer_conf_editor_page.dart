@@ -257,7 +257,7 @@ class EnforcerConfEditorPage extends StatelessWidget {
 
     // Get CLI args from provider (includes node-rpc-* synced from Bitcoin conf)
     // Note: This shows the saved config args, not the working config preview
-    final cliArgs = enforcerConfProvider.getCliArgs(confProvider.network ?? BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
+    final cliArgs = enforcerConfProvider.getCliArgs(confProvider.network);
 
     // Mask the password for display
     final displayArgs = cliArgs.map((arg) {
