@@ -460,7 +460,7 @@ func isBitcoinCoreStartupError(errMsg string) bool {
 		"Verifying blocks",
 		"Replaying blocks",
 		"Rescanning",
-		"-28:",                           // Bitcoin Core "loading" error code
+		"-28:", // Bitcoin Core "loading" error code
 		"unable to connect to Bitcoin Core",
 		"does not accept connections",
 		"connection refused",
