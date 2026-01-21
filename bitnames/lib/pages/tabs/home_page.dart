@@ -485,6 +485,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                                 ),
                               );
                             },
+                            onOpenConfConfigurator: () {
+                              GetIt.I.get<AppRouter>().push(BitcoinConfEditorRoute());
+                            },
+                            onOpenEnforcerConfConfigurator: () {
+                              GetIt.I.get<AppRouter>().push(EnforcerConfEditorRoute());
+                            },
                             endWidgets: [],
                           ),
                         ],

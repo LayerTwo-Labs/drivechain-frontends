@@ -1,8 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/viewmodels/bitcoin_config_editor_viewmodel.dart';
-import 'package:bitwindow/widgets/config_editor/actual_config_panel.dart';
-import 'package:bitwindow/widgets/config_editor/configurator_panel.dart';
-import 'package:bitwindow/widgets/config_editor/working_config_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';

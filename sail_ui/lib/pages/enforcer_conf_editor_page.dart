@@ -1,8 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/viewmodels/enforcer_config_editor_viewmodel.dart';
-import 'package:bitwindow/widgets/enforcer_config_editor/actual_config_panel.dart';
-import 'package:bitwindow/widgets/enforcer_config_editor/configurator_panel.dart';
-import 'package:bitwindow/widgets/enforcer_config_editor/working_config_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';

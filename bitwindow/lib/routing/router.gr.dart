@@ -11,22 +11,6 @@
 part of 'router.dart';
 
 /// generated route for
-/// [BitcoinConfEditorPage]
-class BitcoinConfEditorRoute extends PageRouteInfo<void> {
-  const BitcoinConfEditorRoute({List<PageRouteInfo>? children})
-    : super(BitcoinConfEditorRoute.name, initialChildren: children);
-
-  static const String name = 'BitcoinConfEditorRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const BitcoinConfEditorPage();
-    },
-  );
-}
-
-/// generated route for
 /// [CashCheckPage]
 class CashCheckRoute extends PageRouteInfo<void> {
   const CashCheckRoute({List<PageRouteInfo>? children})
@@ -274,22 +258,6 @@ class CreateTimestampRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const CreateTimestampPage();
-    },
-  );
-}
-
-/// generated route for
-/// [EnforcerConfEditorPage]
-class EnforcerConfEditorRoute extends PageRouteInfo<void> {
-  const EnforcerConfEditorRoute({List<PageRouteInfo>? children})
-    : super(EnforcerConfEditorRoute.name, initialChildren: children);
-
-  static const String name = 'EnforcerConfEditorRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const EnforcerConfEditorPage();
     },
   );
 }
