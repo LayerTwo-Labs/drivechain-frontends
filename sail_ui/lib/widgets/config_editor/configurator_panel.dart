@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:bitwindow/models/bitcoin_config_options.dart';
-import 'package:bitwindow/viewmodels/bitcoin_config_editor_viewmodel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;

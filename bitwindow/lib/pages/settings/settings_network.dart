@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SettingsNetwork extends StatefulWidget {
@@ -178,7 +179,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
               onPressed: () async {
                 await Future.delayed(const Duration(milliseconds: 100));
                 final router = GetIt.I.get<AppRouter>();
-                await router.push(const BitcoinConfEditorRoute());
+                await router.push(BitcoinConfEditorRoute());
               },
             ),
             const SailSpacing(4),

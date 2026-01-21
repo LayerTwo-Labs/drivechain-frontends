@@ -83,6 +83,12 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       page: RestoreWalletRoute.page,
     ),
+    AutoRoute(
+      page: BitcoinConfEditorRoute.page,
+    ),
+    AutoRoute(
+      page: EnforcerConfEditorRoute.page,
+    ),
 
     /// This route is used in tests so that we can pump a widget into a route
     /// and use the real router for our test
