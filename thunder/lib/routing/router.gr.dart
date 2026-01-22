@@ -106,6 +106,22 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [ThunderConfEditorPage]
+class ThunderConfEditorRoute extends PageRouteInfo<void> {
+  const ThunderConfEditorRoute({List<PageRouteInfo>? children})
+    : super(ThunderConfEditorRoute.name, initialChildren: children);
+
+  static const String name = 'ThunderConfEditorRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ThunderConfEditorPage();
+    },
+  );
+}
+
+/// generated route for
 /// [ThunderConfigureHomepagePage]
 class ThunderConfigureHomepageRoute extends PageRouteInfo<void> {
   const ThunderConfigureHomepageRoute({List<PageRouteInfo>? children})
