@@ -1105,9 +1105,15 @@ extension BinaryPaths on Binary {
 
   String _getBitcoinLogPath() {
     final confProvider = GetIt.I.get<BitcoinConfProvider>();
+    final network = confProvider.network;
+
+    // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir
+    final baseDir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
+        ? path.join(appdir(), 'Bitcoin')
+        : datadir();
 
     // Get network-specific subdirectory
-    final networkDir = switch (confProvider.network) {
+    final networkDir = switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_MAINNET => '', // mainnet uses root datadir
       BitcoinNetwork.BITCOIN_NETWORK_FORKNET => '', // forknet uses root datadir
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
@@ -1116,7 +1122,7 @@ extension BinaryPaths on Binary {
       _ => 'signet', // default to signet for unknown networks
     };
 
-    return filePath([datadir(), networkDir, 'debug.log']);
+    return filePath([baseDir, networkDir, 'debug.log']);
   }
 
   String _findLatestEnforcerLog() {
