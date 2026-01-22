@@ -11,6 +11,7 @@ import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/console/integrated_console_view.dart';
 import 'package:thunder/config/runtime_args.dart';
+import 'package:thunder/providers/thunder_conf_provider.dart';
 import 'package:thunder/providers/thunder_homepage_provider.dart';
 import 'package:thunder/routing/router.dart';
 import 'package:thunder/rpc/models/active_sidechains.dart';
@@ -81,6 +82,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     log: log,
     router: router,
   );
+
+  // Initialize ThunderConfProvider (must be after BitcoinConfProvider)
+  final thunderConfProvider = await ThunderConfProvider.create();
+  GetIt.I.registerLazySingleton<ThunderConfProvider>(() => thunderConfProvider);
 
   // Register homepage provider
   final thunderHomepageProvider = ThunderHomepageProvider();
