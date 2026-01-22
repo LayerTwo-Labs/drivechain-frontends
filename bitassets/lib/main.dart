@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitassets/config/runtime_args.dart';
+import 'package:bitassets/providers/bitassets_conf_provider.dart';
 import 'package:bitassets/providers/bitassets_homepage_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/routing/router.dart';
@@ -82,6 +83,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     log: log,
     router: router,
   );
+
+  // Initialize BitassetsConfProvider (must be after BitcoinConfProvider)
+  final bitassetsConfProvider = await BitassetsConfProvider.create();
+  GetIt.I.registerLazySingleton<BitassetsConfProvider>(() => bitassetsConfProvider);
 
   GetIt.I.registerLazySingleton<BitAssetsProvider>(
     () => BitAssetsProvider(),

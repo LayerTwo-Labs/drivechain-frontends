@@ -75,6 +75,22 @@ class BitAssetsTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [BitassetsConfEditorPage]
+class BitassetsConfEditorRoute extends PageRouteInfo<void> {
+  const BitassetsConfEditorRoute({List<PageRouteInfo>? children})
+    : super(BitassetsConfEditorRoute.name, initialChildren: children);
+
+  static const String name = 'BitassetsConfEditorRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitassetsConfEditorPage();
+    },
+  );
+}
+
+/// generated route for
 /// [ConsoleTabPage]
 class ConsoleTabRoute extends PageRouteInfo<void> {
   const ConsoleTabRoute({List<PageRouteInfo>? children})
