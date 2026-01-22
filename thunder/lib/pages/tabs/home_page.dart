@@ -497,6 +497,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         onOpenEnforcerConfConfigurator: () {
                           GetIt.I.get<AppRouter>().push(EnforcerConfEditorRoute());
                         },
+                        onOpenAdditionalConfConfigurator: () {
+                          GetIt.I.get<AppRouter>().push(ThunderConfEditorRoute());
+                        },
                         endWidgets: [],
                         onlyShowAdditional: true,
                       ),

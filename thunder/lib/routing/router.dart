@@ -8,6 +8,7 @@ import 'package:thunder/pages/tabs/settings_page.dart';
 import 'package:thunder/pages/tabs/thunder_configure_homepage_page.dart';
 import 'package:thunder/pages/tabs/thunder_homepage.dart';
 import 'package:thunder/pages/test_page.dart';
+import 'package:thunder/pages/thunder_conf_editor_page.dart';
 
 part 'router.gr.dart';
 
@@ -82,6 +83,9 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       page: EnforcerConfEditorRoute.page,
+    ),
+    AutoRoute(
+      page: ThunderConfEditorRoute.page,
     ),
 
     /// This route is used in tests so that we can pump a widget into a route
