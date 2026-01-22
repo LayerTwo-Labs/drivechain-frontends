@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:bitnames/config/runtime_args.dart';
 import 'package:bitnames/providers/bitnames_homepage_provider.dart';
+import 'package:bitnames/providers/bitnames_conf_provider.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:bitnames/routing/router.dart';
 import 'package:bitnames/rpc/models/active_sidechains.dart';
@@ -119,6 +120,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     log: log,
     router: router,
   );
+
+  // Initialize BitnamesConfProvider (must be after BitcoinConfProvider)
+  final bitnamesConfProvider = await BitnamesConfProvider.create();
+  GetIt.I.registerLazySingleton<BitnamesConfProvider>(() => bitnamesConfProvider);
 
   GetIt.I.registerLazySingleton<BitnamesProvider>(
     () => BitnamesProvider(),
