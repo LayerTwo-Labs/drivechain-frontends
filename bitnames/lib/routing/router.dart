@@ -7,6 +7,7 @@ import 'package:bitnames/pages/tabs/messaging_page.dart';
 import 'package:bitnames/pages/tabs/reserve_register_page.dart';
 import 'package:bitnames/pages/tabs/settings_page.dart';
 import 'package:bitnames/pages/test_page.dart';
+import 'package:bitnames/pages/bitnames_conf_editor_page.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -88,6 +89,9 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       page: EnforcerConfEditorRoute.page,
+    ),
+    AutoRoute(
+      page: BitnamesConfEditorRoute.page,
     ),
 
     /// This route is used in tests so that we can pump a widget into a route
