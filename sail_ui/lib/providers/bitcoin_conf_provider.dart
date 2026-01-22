@@ -25,6 +25,8 @@ class BitcoinConfProvider extends ChangeNotifier {
   bool hasPrivateBitcoinConf = false;
   String? configPath;
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+
+  /// Absolute path from bitcoin.conf's `datadir` setting (if configured)
   String? detectedDataDir;
   BitcoinConfig? currentConfig;
 
@@ -84,70 +86,86 @@ class BitcoinConfProvider extends ChangeNotifier {
     final oldNetwork = network;
 
     try {
-      String content = '';
-      final bitwindowFile = File(_getBitWindowConfigPath());
-      if (await bitwindowFile.exists()) {
-        content = await bitwindowFile.readAsString();
-      } else {
-        // Use the default config if no file exists
-        content = _defaultConf();
+      _parseAndApplyConfig(await _loadOrCreateConfigContent());
 
-        // Write default config to BitWindow directory
-        try {
-          await bitwindowFile.parent.create(recursive: true);
-          await bitwindowFile.writeAsString(content);
-          log.i('Created default config file: ${bitwindowFile.path}');
-        } catch (e) {
-          log.e('Failed to write default config file: $e');
-        }
+      if (await _tryLoadPrivateConfig()) {
+        return; // Private config loaded, we're done, just use that
       }
 
-      // Parse config to determine network
-      currentConfig = BitcoinConfig.parse(content);
-      _loadStateFromConfig(); // Sets network
+      await _handleNetworkChangeIfNeeded(oldNetwork, isFirst);
 
-      // PHASE 2: Now that we know network, check for private bitcoin.conf
-      final confInfo = _getConfigFileInfo();
-      hasPrivateBitcoinConf = confInfo.hasPrivateConf;
-      configPath = confInfo.path;
-
-      // If user has bitcoin.conf for this network, re-load from THAT file
-      if (hasPrivateBitcoinConf) {
-        final privateFile = File(confInfo.path);
-        if (await privateFile.exists()) {
-          content = await privateFile.readAsString();
-          currentConfig = BitcoinConfig.parse(content);
-          _loadStateFromConfig(); // Re-derive state from user's config
-          return;
-        }
-      }
-
-      // Detect if network changed
-      final networkChanged = !isFirst && oldNetwork != network;
-
-      if (networkChanged) {
-        // If switching to mainnet/forknet, load its saved [main] section from disk
-        await _loadMainSectionForNetwork(network);
-        // Update detectedDataDir from the newly loaded config
-        _loadStateFromConfig();
-        // Write the new loaded [main] section to file
-        await _writeConfigFile();
-        // network changed, so we must restart all services
-        // they await a datadir if needed, so its safe to start em
-        unawaited(_restartServicesForNetworkChange());
-      }
-
-      // Copy config to downstream location for user and Bitcoin Core to find
       await _copyConfigDownstream();
 
-      // For mainnet/forknet, ensure datadir is configured
-      if (_isMainnetOrForknet(network) && (detectedDataDir == null || detectedDataDir!.isEmpty)) {
-        await router.push(DataDirSetupRoute());
-      }
+      await _promptForDatadirIfNeeded();
     } catch (e) {
       log.e('Failed to load config: $e');
     } finally {
       notifyListeners();
+    }
+  }
+
+  /// Load config content from BitWindow config file, or create default if missing
+  Future<String> _loadOrCreateConfigContent() async {
+    final bitwindowFile = File(_getBitWindowConfigPath());
+
+    if (await bitwindowFile.exists()) {
+      return await bitwindowFile.readAsString();
+    }
+
+    // Create default config
+    final content = _defaultConf();
+    try {
+      await bitwindowFile.parent.create(recursive: true);
+      await bitwindowFile.writeAsString(content);
+      log.i('Created default config file: ${bitwindowFile.path}');
+    } catch (e) {
+      log.e('Failed to write default config file: $e');
+    }
+    return content;
+  }
+
+  /// Parse config content and update state (network, datadir)
+  void _parseAndApplyConfig(String content) {
+    currentConfig = BitcoinConfig.parse(content);
+    _loadStateFromConfig();
+  }
+
+  /// Check for user's private bitcoin.conf and load if exists
+  /// Returns true if private config was loaded
+  Future<bool> _tryLoadPrivateConfig() async {
+    final confInfo = _getConfigFileInfo();
+    hasPrivateBitcoinConf = confInfo.hasPrivateConf;
+    configPath = confInfo.path;
+
+    if (!hasPrivateBitcoinConf) return false;
+
+    final privateFile = File(confInfo.path);
+    if (!await privateFile.exists()) return false;
+
+    final content = await privateFile.readAsString();
+    _parseAndApplyConfig(content);
+    return true;
+  }
+
+  /// Handle network change: load saved settings, write config, restart services
+  Future<void> _handleNetworkChangeIfNeeded(BitcoinNetwork oldNetwork, bool isFirst) async {
+    final networkChanged = !isFirst && oldNetwork != network;
+    if (!networkChanged) return;
+
+    // Load saved [main] section for the new network
+    await _loadMainSectionForNetwork(network);
+    _loadStateFromConfig();
+    await _writeConfigFile();
+
+    // Restart all services for the new network
+    unawaited(_restartServicesForNetworkChange());
+  }
+
+  /// Prompt user to configure datadir if on mainnet/forknet and not set
+  Future<void> _promptForDatadirIfNeeded() async {
+    final needsDatadir = _isMainnetOrForknet(network) && (detectedDataDir == null || detectedDataDir!.isEmpty);
+    if (needsDatadir) {
+      await router.push(DataDirSetupRoute());
     }
   }
 
@@ -246,6 +264,9 @@ class BitcoinConfProvider extends ChangeNotifier {
       log.w('Could not clear sync provider state: $e');
     }
 
+    // Update RPC config BEFORE starting so it connects to the right port
+    _updateMainchainRPCConfig(_createConnectionSettings());
+
     // Restart all services (datadir guard will block if needed)
     log.i('Starting services for network: $network');
     final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
@@ -256,7 +277,6 @@ class BitcoinConfProvider extends ChangeNotifier {
       bootEnforcerWithoutAwait: true,
     );
 
-    _updateMainchainRPCConfig(_createConnectionSettings());
     log.i('Services restarted for network: $network');
   }
 
@@ -714,8 +734,6 @@ $mainSection
     try {
       final confPath = _getMainSectionPath(network);
       final file = File(confPath);
-
-      // Ensure parent directory exists
       await file.parent.create(recursive: true);
 
       final mainSettings = currentConfig!.networkSettings['main'] ?? {};

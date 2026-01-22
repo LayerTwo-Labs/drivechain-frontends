@@ -466,6 +466,8 @@ class BinaryProvider extends ChangeNotifier {
       // Still alive after timeout, force kill it
       log.w('${binary.name} PID $pidToWaitFor still alive after ${timeout.inSeconds}s, force killing');
       await _processManager.killPid(pidToWaitFor);
+      // wait for 2 seconds to just... give it some time
+      await Future.delayed(const Duration(seconds: 3));
       return;
     }
 
@@ -475,8 +477,19 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    // Final Step: Use process manager's kill method
-    log.w('No PID found for ${binary.name}, killing with process manager');
+    // Step 5: No PID but process still running - wait for exit handler
+    log.i('No PID found for ${binary.name}, waiting up to 5s for exit');
+    final startTime = DateTime.now();
+    while (DateTime.now().difference(startTime) < const Duration(seconds: 5)) {
+      if (exited(binary) != null) {
+        log.i('${binary.name} shutdown confirmed');
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    // Final Step: Still not exited, force kill via process manager
+    log.w('${binary.name} did not exit within 5s, force killing');
     await _processManager.kill(binary);
   }
 
@@ -570,10 +583,22 @@ class BinaryProvider extends ChangeNotifier {
     bool bootExtraBinaryImmediately = false,
     bool bootCoreWithoutAwait = false,
     bool bootEnforcerWithoutAwait = false,
+    bool restartOnInitialFailure = false,
   }) async {
     final log = GetIt.I.get<Logger>();
     final startTime = DateTime.now();
     int getElapsed() => DateTime.now().difference(startTime).inMilliseconds;
+
+    // Set restart policy on all RPCs before starting
+    if (restartOnInitialFailure) {
+      mainchainRPC?.restartOnInitialFailure = true;
+      enforcerRPC?.restartOnInitialFailure = true;
+      bitwindowRPC?.restartOnInitialFailure = true;
+      thunderRPC?.restartOnInitialFailure = true;
+      bitnamesRPC?.restartOnInitialFailure = true;
+      bitassetsRPC?.restartOnInitialFailure = true;
+      zsideRPC?.restartOnInitialFailure = true;
+    }
 
     log.i('[T+0ms] STARTUP: Booting L1 binaries + ${binaryToBoot.name}');
 

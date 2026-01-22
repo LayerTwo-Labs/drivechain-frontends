@@ -1587,11 +1587,6 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
 
     // finally, boot the binaries
     unawaited(bootBinaries(GetIt.I.get<Logger>()));
-
-    final mainchainRPC = GetIt.I.get<MainchainRPC>();
-    while (!mainchainRPC.connected) {
-      await Future.delayed(const Duration(seconds: 1));
-    }
   }
 }
 

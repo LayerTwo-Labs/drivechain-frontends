@@ -1092,7 +1092,7 @@ extension BinaryPaths on Binary {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
 
     return switch (type) {
-      BinaryType.bitcoinCore => _getBitcoinLogPath(),
+      BinaryType.bitcoinCore => _getBitcoinLogPath(network),
       BinaryType.bitWindow => filePath([datadir(), network.toReadableNet(), 'server.log']),
       BinaryType.thunder ||
       BinaryType.bitnames ||
@@ -1103,14 +1103,15 @@ extension BinaryPaths on Binary {
     };
   }
 
-  String _getBitcoinLogPath() {
-    final confProvider = GetIt.I.get<BitcoinConfProvider>();
-    final network = confProvider.network;
+  String _getBitcoinLogPath(BitcoinNetwork network) {
+    // Absolute path from bitcoin.conf's datadir setting (if configured)
+    final customDataDir = GetIt.I.get<BitcoinConfProvider>().detectedDataDir;
 
-    // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir
-    final baseDir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
-        ? path.join(appdir(), 'Bitcoin')
-        : datadir();
+    // If a custom datadir is set in bitcoin.conf, use it (debug.log goes there)
+    // Otherwise fall back to defaults: Bitcoin datadir for mainnet, Drivechain datadir for others
+    final baseDir = (customDataDir != null && customDataDir.isNotEmpty)
+        ? customDataDir
+        : (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? path.join(appdir(), 'Bitcoin') : datadir());
 
     // Get network-specific subdirectory
     final networkDir = switch (network) {

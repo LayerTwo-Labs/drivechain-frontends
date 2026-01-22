@@ -59,6 +59,7 @@ abstract class RPCConnection extends ChangeNotifier {
   set initializingBinary(bool value) => _initializingBinary = value;
 
   bool stoppingBinary = false;
+  bool restartOnInitialFailure = false;
   bool _testing = false;
   bool _shouldNotify = false;
 
@@ -219,7 +220,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
     restartTimer?.cancel();
     restartTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
-      if (restartOnFailure && _completedStartup) {
+      if (restartOnFailure && (_completedStartup || restartOnInitialFailure)) {
         if (initializingBinary) {
           // we're still going from the last loop, don't retry multiple times in parallell!
           return;
