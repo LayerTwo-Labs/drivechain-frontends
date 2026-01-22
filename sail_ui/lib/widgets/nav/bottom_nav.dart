@@ -13,6 +13,7 @@ class BottomNav extends StatelessWidget {
   final bool onlyShowAdditional;
   final VoidCallback? onOpenConfConfigurator;
   final VoidCallback? onOpenEnforcerConfConfigurator;
+  final VoidCallback? onOpenAdditionalConfConfigurator;
 
   const BottomNav({
     super.key,
@@ -24,6 +25,7 @@ class BottomNav extends StatelessWidget {
     this.onlyShowAdditional = false,
     this.onOpenConfConfigurator,
     this.onOpenEnforcerConfConfigurator,
+    this.onOpenAdditionalConfConfigurator,
   });
 
   @override
@@ -202,6 +204,7 @@ class BottomNav extends StatelessWidget {
                       binaryProvider.binaries.firstWhere((b) => b.name == additionalConnection.rpc.binary.name),
                     ),
                     navigateToLogs: model.navigateToLogs,
+                    onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
                   ),
                 ],
               ),

@@ -11,6 +11,22 @@
 part of 'router.dart';
 
 /// generated route for
+/// [BitnamesConfEditorPage]
+class BitnamesConfEditorRoute extends PageRouteInfo<void> {
+  const BitnamesConfEditorRoute({List<PageRouteInfo>? children})
+    : super(BitnamesConfEditorRoute.name, initialChildren: children);
+
+  static const String name = 'BitnamesConfEditorRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitnamesConfEditorPage();
+    },
+  );
+}
+
+/// generated route for
 /// [BitnamesConfigureHomepagePage]
 class BitnamesConfigureHomepageRoute extends PageRouteInfo<void> {
   const BitnamesConfigureHomepageRoute({List<PageRouteInfo>? children})
