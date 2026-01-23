@@ -429,6 +429,11 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     network = _getNetwork();
     detectedDataDir = currentConfig!.getEffectiveSetting('datadir', network.toCoreNetwork());
+
+    // Ensure datadir exists - Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't
+    if (detectedDataDir != null && detectedDataDir!.isNotEmpty) {
+      Directory(detectedDataDir!).createSync(recursive: true);
+    }
   }
 
   void _setupFileWatching() {

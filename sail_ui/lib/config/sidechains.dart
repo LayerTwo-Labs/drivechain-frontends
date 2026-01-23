@@ -131,23 +131,29 @@ class ZSide extends Sidechain {
                  binary: 'thunder-orchard',
                  baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
                  files: {
-                   OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
-                   OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
-                   OS.windows: '', // thunder-orchard not available for windows
+                   ...allNetworks({
+                     OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
+                     OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
+                     OS.windows: '', // thunder-orchard not available for windows
+                   }),
                  },
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'zside',
                  files: {
-                   OS.linux: 'test-zside-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'test-zside-x86_64-apple-darwin.zip',
-                   OS.windows: '', // zside not available for windows
+                   ...allNetworks({
+                     OS.linux: 'test-zside-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'test-zside-x86_64-apple-darwin.zip',
+                     OS.windows: '', // zside not available for windows
+                   }),
                  },
                  extractSubfolder: {
-                   OS.linux: 'zside',
-                   OS.macos: '',
-                   OS.windows: '',
+                   ...allNetworks({
+                     OS.linux: 'zside',
+                     OS.macos: '',
+                     OS.windows: '',
+                   }),
                  },
                ),
                remoteTimestamp: null,
@@ -224,23 +230,29 @@ class Thunder extends Sidechain {
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'thunder',
                  files: {
-                   OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
-                   OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
+                   ...allNetworks({
+                     OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
+                     OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
+                   }),
                  },
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'thunder',
                  files: {
-                   OS.linux: 'test-thunder-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'test-thunder-x86_64-apple-darwin.zip',
-                   OS.windows: 'test-thunder-x86_64-windows.exe', // thunder not available for windows
+                   ...allNetworks({
+                     OS.linux: 'test-thunder-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'test-thunder-x86_64-apple-darwin.zip',
+                     OS.windows: 'test-thunder-x86_64-windows.exe', // thunder not available for windows
+                   }),
                  },
                  extractSubfolder: {
-                   OS.linux: 'thunder',
-                   OS.macos: '',
-                   OS.windows: '',
+                   ...allNetworks({
+                     OS.linux: 'thunder',
+                     OS.macos: '',
+                     OS.windows: '',
+                   }),
                  },
                ),
                remoteTimestamp: null,
@@ -317,23 +329,29 @@ class BitNames extends Sidechain {
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'bitnames',
                  files: {
-                   OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
-                   OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
+                   ...allNetworks({
+                     OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
+                     OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
+                   }),
                  },
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'bitnames',
                  files: {
-                   OS.linux: 'test-bitnames-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'test-bitnames-x86_64-apple-darwin.zip',
-                   OS.windows: 'test-bitnames-x86_64-windows.exe',
+                   ...allNetworks({
+                     OS.linux: 'test-bitnames-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'test-bitnames-x86_64-apple-darwin.zip',
+                     OS.windows: 'test-bitnames-x86_64-windows.exe',
+                   }),
                  },
                  extractSubfolder: {
-                   OS.linux: 'bitnames',
-                   OS.macos: '',
-                   OS.windows: '',
+                   ...allNetworks({
+                     OS.linux: 'bitnames',
+                     OS.macos: '',
+                     OS.windows: '',
+                   }),
                  },
                ),
                remoteTimestamp: null,
@@ -414,23 +432,29 @@ class BitAssets extends Sidechain {
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'bitassets',
                  files: {
-                   OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
-                   OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
+                   ...allNetworks({
+                     OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
+                     OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
+                   }),
                  },
                ),
                alternativeDownloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'bitassets',
                  files: {
-                   OS.linux: 'test-bitassets-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'test-bitassets-x86_64-apple-darwin.zip',
-                   OS.windows: 'test-bitassets-x86_64-windows.exe',
+                   ...allNetworks({
+                     OS.linux: 'test-bitassets-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'test-bitassets-x86_64-apple-darwin.zip',
+                     OS.windows: 'test-bitassets-x86_64-windows.exe',
+                   }),
                  },
                  extractSubfolder: {
-                   OS.linux: 'bitassets',
-                   OS.macos: '',
-                   OS.windows: '',
+                   ...allNetworks({
+                     OS.linux: 'bitassets',
+                     OS.macos: '',
+                     OS.windows: '',
+                   }),
                  },
                ),
                remoteTimestamp: null,

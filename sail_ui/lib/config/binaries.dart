@@ -504,7 +504,8 @@ abstract class Binary {
 
   List<String> _getPossibleBinaryPaths(String baseBinary, Directory appDir) {
     final paths = <String>[];
-    final subfolder = metadata.downloadConfig.extractSubfolder?[OS.current] ?? '';
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    final subfolder = metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
 
     if (kDebugMode) {
       paths.addAll([path.join(binDir(Directory.current.path).path, subfolder, baseBinary)]);
@@ -604,7 +605,7 @@ abstract class Binary {
   Future<DateTime?> _checkDirectReleaseDate() async {
     try {
       final os = getOS();
-      final fileName = metadata.downloadConfig.files[os];
+      final fileName = metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![os];
       if (fileName == null || fileName.isEmpty || metadata.downloadConfig.baseUrl.isEmpty) {
         return null;
       }
@@ -738,9 +739,23 @@ class BitcoinCore extends Binary {
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'bitcoind',
                  files: {
-                   OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
-                   OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
+                   ...allNetworks({
+                     OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
+                     OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
+                   }),
+                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
+                     OS.linux: 'L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip',
+                     OS.windows: 'L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip',
+                   },
+                 },
+                 extractSubfolder: {
+                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
+                     OS.linux: 'forknet',
+                     OS.macos: 'forknet',
+                     OS.windows: 'forknet',
+                   },
                  },
                ),
                remoteTimestamp: null,
@@ -833,9 +848,11 @@ class BitWindow extends Binary {
                  baseUrl: '',
                  files: {
                    // should not be downloaded from any platform
-                   OS.linux: '',
-                   OS.macos: '',
-                   OS.windows: '',
+                   ...allNetworks({
+                     OS.linux: '',
+                     OS.macos: '',
+                     OS.windows: '',
+                   }),
                  },
                ),
                remoteTimestamp: null,
@@ -912,9 +929,11 @@ class Enforcer extends Binary {
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'bip300301-enforcer',
                  files: {
-                   OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
-                   OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
+                   ...allNetworks({
+                     OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
+                     OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
+                   }),
                  },
                ),
                remoteTimestamp: null,
@@ -1018,9 +1037,11 @@ class GRPCurl extends Binary {
                  baseUrl: 'https://api.github.com/repos/fullstorydev/grpcurl/releases/latest',
                  binary: 'grpcurl',
                  files: {
-                   OS.linux: r'grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz',
-                   OS.macos: r'grpcurl_\d+\.\d+\.\d+_osx_x86_64\.tar\.gz',
-                   OS.windows: r'grpcurl_\d+\.\d+\.\d+_windows_x86_64\.zip',
+                   ...allNetworks({
+                     OS.linux: r'grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz',
+                     OS.macos: r'grpcurl_\d+\.\d+\.\d+_osx_x86_64\.tar\.gz',
+                     OS.windows: r'grpcurl_\d+\.\d+\.\d+_windows_x86_64\.zip',
+                   }),
                  },
                ),
                remoteTimestamp: null,
@@ -1503,8 +1524,8 @@ class DirectoryConfig {
 class DownloadConfig {
   final String baseUrl;
   final String binary;
-  final Map<OS, String> files;
-  final Map<OS, String>? extractSubfolder;
+  final Map<BitcoinNetwork, Map<OS, String>> files;
+  final Map<BitcoinNetwork, Map<OS, String>>? extractSubfolder;
 
   const DownloadConfig({
     required this.baseUrl,
@@ -1593,10 +1614,16 @@ class MetadataConfig {
     binaryPath?.path,
   );
 
-  bool _mapEquals(Map<OS, String> a, Map<OS, String> b) {
+  bool _mapEquals(Map<BitcoinNetwork, Map<OS, String>> a, Map<BitcoinNetwork, Map<OS, String>> b) {
     if (a.length != b.length) return false;
-    for (final key in a.keys) {
-      if (!b.containsKey(key) || a[key] != b[key]) return false;
+    for (final network in a.keys) {
+      if (!b.containsKey(network)) return false;
+      final aOsMap = a[network]!;
+      final bOsMap = b[network]!;
+      if (aOsMap.length != bOsMap.length) return false;
+      for (final os in aOsMap.keys) {
+        if (!bOsMap.containsKey(os) || aOsMap[os] != bOsMap[os]) return false;
+      }
     }
     return true;
   }
@@ -1684,4 +1711,10 @@ class ProcessLogEntry {
     required this.timestamp,
     required this.message,
   });
+}
+
+Map<BitcoinNetwork, Map<OS, String>> allNetworks(Map<OS, String> osFiles) {
+  return {
+    for (final network in BitcoinNetwork.values) network: osFiles,
+  };
 }

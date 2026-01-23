@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
@@ -171,12 +172,14 @@ class DownloadManager extends ChangeNotifier {
 
     // 1. Setup directories
     final downloadsDir = Directory(path.join(appDir.path, 'downloads'));
-    final extractDir = binDir(appDir.path);
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    final subfolder = binary.metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
+    final extractDir = Directory(path.join(binDir(appDir.path).path, subfolder));
     await downloadsDir.create(recursive: true);
     await extractDir.create(recursive: true);
 
     // Check if platform is supported
-    final fileName = binary.metadata.downloadConfig.files[OS.current];
+    final fileName = binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![OS.current];
     if (fileName == null || fileName.isEmpty) {
       log.w('No download file found for ${binary.name} on ${OS.current}');
       return;
@@ -270,7 +273,7 @@ class DownloadManager extends ChangeNotifier {
     }
 
     // Use the regex pattern from binary configuration
-    final regexPattern = binary.metadata.downloadConfig.files[OS.current]!;
+    final regexPattern = binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![OS.current]!;
     final platformRegex = RegExp(regexPattern, caseSensitive: false);
 
     final assets = json.decode(response.body)['assets'] as List;
@@ -304,7 +307,7 @@ class DownloadManager extends ChangeNotifier {
 
   Future<String> _downloadReleasesBinary(Binary binary, Directory downloadsDir) async {
     // 2. Download the binary
-    final zipName = binary.metadata.downloadConfig.files[OS.current]!;
+    final zipName = binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![OS.current]!;
     final zipPath = path.join(downloadsDir.path, zipName);
     final downloadUrl = Uri.parse(binary.metadata.downloadConfig.baseUrl).resolve(zipName).toString();
     await _downloadFile(downloadUrl, zipPath, binary.type);
