@@ -86,7 +86,8 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
         final theme = SailTheme.of(context);
 
         final baseDir = viewModel.binary.directories.binary[viewModel.os];
-        final downloadFile = viewModel.binary.metadata.downloadConfig.files[viewModel.os];
+        final downloadFile =
+            viewModel.binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![viewModel.os];
 
         return Dialog(
           backgroundColor: Colors.transparent,

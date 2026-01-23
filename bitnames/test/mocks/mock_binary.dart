@@ -28,9 +28,11 @@ class MockBinary extends Binary {
             baseUrl: '',
             binary: 'mock',
             files: {
-              OS.linux: 'mock',
-              OS.macos: 'mock',
-              OS.windows: 'mock',
+              ...allNetworks({
+                OS.linux: 'mock',
+                OS.macos: 'mock',
+                OS.windows: 'mock',
+              }),
             },
           ),
           remoteTimestamp: null,
