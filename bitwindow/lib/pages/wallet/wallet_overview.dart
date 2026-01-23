@@ -57,18 +57,20 @@ class OverviewTab extends StatelessWidget {
                             icon: SailSVGAsset.coins,
                           ),
                         ),
-                        Expanded(
-                          child: WalletStats(
-                            title: 'Sidechain Deposit Volume',
-                            value: formatter
-                                .formatSats(model.stats?.sidechainDepositVolume.toInt() ?? 0)
-                                .replaceAll(' ${formatter.currentUnit.symbol}', ''),
-                            subtitle:
-                                '${formatter.formatSats(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0)} last 30 days',
-                            bitcoinAmount: true,
-                            icon: SailSVGAsset.wallet,
+                        // Only show sidechain deposit volume on networks that support sidechains
+                        if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
+                          Expanded(
+                            child: WalletStats(
+                              title: 'Sidechain Deposit Volume',
+                              value: formatter
+                                  .formatSats(model.stats?.sidechainDepositVolume.toInt() ?? 0)
+                                  .replaceAll(' ${formatter.currentUnit.symbol}', ''),
+                              subtitle:
+                                  '${formatter.formatSats(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0)} last 30 days',
+                              bitcoinAmount: true,
+                              icon: SailSVGAsset.wallet,
+                            ),
                           ),
-                        ),
                         Expanded(
                           child: WalletStats(
                             title: 'Transaction Count',

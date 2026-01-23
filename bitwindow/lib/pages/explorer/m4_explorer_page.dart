@@ -23,6 +23,14 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final confProvider = GetIt.I.get<BitcoinConfProvider>();
+    if (!confProvider.networkSupportsSidechains) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AutoRouter.of(context).pop();
+      });
+      return const SizedBox.shrink();
+    }
+
     final theme = SailTheme.of(context);
 
     return Scaffold(

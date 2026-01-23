@@ -73,11 +73,18 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _bitwindowSettingsProvider.addListener(_onProviderChanged);
     _walletReader.addListener(_onProviderChanged);
     _bitnamesRPC.addListener(_onProviderChanged);
+    _confProvider.addListener(_onNetworkChange);
     _initializeWindowManager();
     _checkEncryptionStatus();
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
     _codeSearchService.loadFiles();
   }
+
+  void _onNetworkChange() {
+    if (mounted) setState(() {});
+  }
+
+  int _getSettingsTabIndex() => _confProvider.networkSupportsSidechains ? 6 : 5;
 
   bool _handleGlobalKeyEvent(KeyEvent event) {
     // Double-shift detection
@@ -232,11 +239,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () => GetIt.I.get<AppRouter>().push(CpuMiningRoute()),
       ),
-      CommandItem(
-        label: 'M4 Explorer',
-        category: 'Use Bitcoin',
-        onSelected: () => GetIt.I.get<AppRouter>().push(M4ExplorerRoute()),
-      ),
+      if (_confProvider.networkSupportsSidechains)
+        CommandItem(
+          label: 'M4 Explorer',
+          category: 'Use Bitcoin',
+          onSelected: () => GetIt.I.get<AppRouter>().push(M4ExplorerRoute()),
+        ),
       CommandItem(
         label: 'Timestamp File(s)',
         category: 'Use Bitcoin',
@@ -252,14 +260,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.messageSigner),
       ),
-      CommandItem(
-        label: 'Sidechains',
-        category: 'Use Bitcoin',
-        onSelected: () {
-          final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(2);
-        },
-      ),
+      if (_confProvider.networkSupportsSidechains)
+        CommandItem(
+          label: 'Sidechains',
+          category: 'Use Bitcoin',
+          onSelected: () {
+            final tabsRouter = _routerKey.currentState?.controller;
+            tabsRouter?.setActiveIndex(2);
+          },
+        ),
 
       // Crypto Tools
       CommandItem(
@@ -289,7 +298,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'This Node',
         onSelected: () {
           final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(5);
+          tabsRouter?.setActiveIndex(_getSettingsTabIndex());
         },
       ),
       CommandItem(
@@ -849,13 +858,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         );
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Sidechains',
-                      onSelected: () {
-                        final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(2);
-                      },
-                    ),
+                    if (_confProvider.networkSupportsSidechains)
+                      PlatformMenuItem(
+                        label: 'Sidechains',
+                        onSelected: () {
+                          final tabsRouter = _routerKey.currentState?.controller;
+                          tabsRouter?.setActiveIndex(2);
+                        },
+                      ),
                   ],
                 ),
               ],
@@ -882,18 +892,20 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         );
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Sidechain Activation',
-                      onSelected: () {
-                        GetIt.I.get<AppRouter>().push(SidechainActivationManagementRoute());
-                      },
-                    ),
-                    PlatformMenuItem(
-                      label: 'Sidechain Withdrawal Admin',
-                      onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
-                      },
-                    ),
+                    if (_confProvider.networkSupportsSidechains)
+                      PlatformMenuItem(
+                        label: 'Sidechain Activation',
+                        onSelected: () {
+                          GetIt.I.get<AppRouter>().push(SidechainActivationManagementRoute());
+                        },
+                      ),
+                    if (_confProvider.networkSupportsSidechains)
+                      PlatformMenuItem(
+                        label: 'Sidechain Withdrawal Admin',
+                        onSelected: () async {
+                          await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
+                        },
+                      ),
                   ],
                 ),
               ],
@@ -969,7 +981,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Options',
                       onSelected: () {
                         final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(6);
+                        tabsRouter?.setActiveIndex(_getSettingsTabIndex());
                       },
                     ),
                     PlatformMenuItem(
@@ -1032,197 +1044,201 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               ],
             ),
           ],
-          child: AutoTabsRouter.tabBar(
-            key: _routerKey,
-            duration: const Duration(milliseconds: 0),
-            routes: [
-              OverviewRoute(),
-              WalletRoute(),
-              SidechainsRoute(),
-              LearnRoute(),
-              ConsoleRoute(),
-              ChatRoute(),
-              SettingsRoute(),
-            ],
-            builder: (context, child, controller) {
-              final theme = SailTheme.of(context);
+          child: KeyedSubtree(
+            key: ValueKey('router_${_confProvider.networkSupportsSidechains}'),
+            child: AutoTabsRouter.tabBar(
+              key: _routerKey,
+              duration: const Duration(milliseconds: 0),
+              routes: [
+                OverviewRoute(),
+                WalletRoute(),
+                if (_confProvider.networkSupportsSidechains) SidechainsRoute(),
+                LearnRoute(),
+                ConsoleRoute(),
+                ChatRoute(),
+                SettingsRoute(),
+              ],
+              builder: (context, child, controller) {
+                final theme = SailTheme.of(context);
 
-              return SelectionArea(
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    textSelectionTheme: TextSelectionThemeData(
-                      selectionColor: theme.colors.primary.withValues(alpha: 0.2),
+                return SelectionArea(
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      textSelectionTheme: TextSelectionThemeData(
+                        selectionColor: theme.colors.primary.withValues(alpha: 0.2),
+                      ),
                     ),
-                  ),
-                  child: Scaffold(
-                    backgroundColor: theme.colors.background,
-                    appBar: TopNav(
-                      leadingWidget: _isWalletSwitching
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: LoadingIndicator.insideButton(theme.colors.primary),
-                                ),
-                                const SizedBox(width: 12),
-                                SailText.primary13('Switching wallet...', bold: true),
-                              ],
-                            )
-                          : WalletDropdown(
-                              currentWallet: _walletReader.availableWallets
-                                  .where((w) => w.id == _walletReader.activeWalletId)
-                                  .firstOrNull,
-                              availableWallets: _walletReader.availableWallets,
-                              onWalletSelected: (walletId) async {
-                                if (_isWalletSwitching) return;
+                    child: Scaffold(
+                      backgroundColor: theme.colors.background,
+                      appBar: TopNav(
+                        leadingWidget: _isWalletSwitching
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: LoadingIndicator.insideButton(theme.colors.primary),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  SailText.primary13('Switching wallet...', bold: true),
+                                ],
+                              )
+                            : WalletDropdown(
+                                currentWallet: _walletReader.availableWallets
+                                    .where((w) => w.id == _walletReader.activeWalletId)
+                                    .firstOrNull,
+                                availableWallets: _walletReader.availableWallets,
+                                onWalletSelected: (walletId) async {
+                                  if (_isWalletSwitching) return;
 
-                                final log = GetIt.I.get<Logger>();
-                                log.i('Switching to wallet: $walletId');
+                                  final log = GetIt.I.get<Logger>();
+                                  log.i('Switching to wallet: $walletId');
 
-                                // Show loading immediately and schedule the actual switch
-                                setState(() => _isWalletSwitching = true);
+                                  // Show loading immediately and schedule the actual switch
+                                  setState(() => _isWalletSwitching = true);
 
-                                // Run the switch in a microtask to allow UI to update first
-                                await Future.microtask(() async {
-                                  try {
-                                    // Clear previous wallet data FIRST
-                                    GetIt.I.get<TransactionProvider>().clear();
-                                    GetIt.I.get<BalanceProvider>().clear();
+                                  // Run the switch in a microtask to allow UI to update first
+                                  await Future.microtask(() async {
+                                    try {
+                                      // Clear previous wallet data FIRST
+                                      GetIt.I.get<TransactionProvider>().clear();
+                                      GetIt.I.get<BalanceProvider>().clear();
 
-                                    // Step 1: Switch the active wallet (updates UI immediately)
-                                    log.i('Step 1: Switching active wallet');
-                                    await _walletReader
-                                        .switchWallet(walletId)
-                                        .timeout(
-                                          const Duration(seconds: 5),
-                                          onTimeout: () => throw TimeoutException('switchWallet timed out'),
-                                        );
-                                    log.i('Step 1: Complete');
+                                      // Step 1: Switch the active wallet (updates UI immediately)
+                                      log.i('Step 1: Switching active wallet');
+                                      await _walletReader
+                                          .switchWallet(walletId)
+                                          .timeout(
+                                            const Duration(seconds: 5),
+                                            onTimeout: () => throw TimeoutException('switchWallet timed out'),
+                                          );
+                                      log.i('Step 1: Complete');
 
-                                    // Reset providers in background
-                                    unawaited(() async {
-                                      try {
-                                        log.i('Step 2: Refreshing balance provider');
-                                        final balanceProvider = GetIt.I.get<BalanceProvider>();
-                                        await balanceProvider.fetch();
-                                        log.i('Step 2: Complete');
-                                      } catch (e) {
-                                        log.w('Step 2: Failed to refresh balance: $e');
+                                      // Reset providers in background
+                                      unawaited(() async {
+                                        try {
+                                          log.i('Step 2: Refreshing balance provider');
+                                          final balanceProvider = GetIt.I.get<BalanceProvider>();
+                                          await balanceProvider.fetch();
+                                          log.i('Step 2: Complete');
+                                        } catch (e) {
+                                          log.w('Step 2: Failed to refresh balance: $e');
+                                        }
+
+                                        try {
+                                          log.i('Step 3: Refreshing transaction provider');
+                                          final transactionProvider = GetIt.I.get<TransactionProvider>();
+                                          await transactionProvider.fetch();
+                                          log.i('Step 3: Complete');
+                                        } catch (e) {
+                                          log.w('Step 3: Failed to refresh transactions: $e');
+                                        }
+                                      }());
+
+                                      log.i('Wallet switch complete (background tasks continuing)');
+                                    } catch (e, stack) {
+                                      log.e('Failed to switch wallet: $e\n$stack');
+                                    } finally {
+                                      // Hide loading after core operations complete
+                                      if (mounted) {
+                                        setState(() => _isWalletSwitching = false);
                                       }
-
-                                      try {
-                                        log.i('Step 3: Refreshing transaction provider');
-                                        final transactionProvider = GetIt.I.get<TransactionProvider>();
-                                        await transactionProvider.fetch();
-                                        log.i('Step 3: Complete');
-                                      } catch (e) {
-                                        log.w('Step 3: Failed to refresh transactions: $e');
-                                      }
-                                    }());
-
-                                    log.i('Wallet switch complete (background tasks continuing)');
-                                  } catch (e, stack) {
-                                    log.e('Failed to switch wallet: $e\n$stack');
-                                  } finally {
-                                    // Hide loading after core operations complete
-                                    if (mounted) {
-                                      setState(() => _isWalletSwitching = false);
                                     }
+                                  });
+                                },
+                                onCreateWallet: () async {
+                                  await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
+                                },
+                                onBackgroundChanged: (walletId, newBackgroundSvg) async {
+                                  final wallet = _walletReader.availableWallets
+                                      .where((w) => w.id == walletId)
+                                      .firstOrNull;
+                                  if (wallet != null) {
+                                    final updatedGradient = wallet.gradient.copyWith(
+                                      backgroundSvg: newBackgroundSvg,
+                                    );
+                                    await _walletReader.updateWalletMetadata(
+                                      walletId,
+                                      wallet.name,
+                                      updatedGradient,
+                                    );
                                   }
-                                });
-                              },
-                              onCreateWallet: () async {
-                                await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
-                              },
-                              onBackgroundChanged: (walletId, newBackgroundSvg) async {
-                                final wallet = _walletReader.availableWallets
-                                    .where((w) => w.id == walletId)
-                                    .firstOrNull;
-                                if (wallet != null) {
-                                  final updatedGradient = wallet.gradient.copyWith(
-                                    backgroundSvg: newBackgroundSvg,
-                                  );
-                                  await _walletReader.updateWalletMetadata(
-                                    walletId,
-                                    wallet.name,
-                                    updatedGradient,
-                                  );
-                                }
+                                },
+                              ),
+                        routes: [
+                          TopNavRoute(
+                            label: 'Overview',
+                          ),
+                          TopNavRoute(
+                            label: 'Wallet',
+                          ),
+                          if (_confProvider.networkSupportsSidechains)
+                            TopNavRoute(
+                              label: 'Sidechains',
+                            ),
+                          TopNavRoute(
+                            label: 'Learn',
+                          ),
+                          TopNavRoute(
+                            label: 'Console',
+                          ),
+                          TopNavRoute(
+                            label: 'Chat',
+                          ),
+                          TopNavRoute(
+                            icon: SailSVGAsset.settings,
+                          ),
+                        ],
+                        endWidget: SailRow(
+                          children: [
+                            SailDropdownButton<BitcoinNetwork>(
+                              value: _confProvider.network,
+                              items: [
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
+                                  label: 'Mainnet',
+                                ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+                                  label: 'Forknet',
+                                ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+                                  label: 'Signet',
+                                ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
+                                  label: 'Testnet',
+                                ),
+                              ],
+                              onChanged: (BitcoinNetwork? network) async {
+                                if (network == null || _confProvider.hasPrivateBitcoinConf) return;
+                                await _confProvider.swapNetwork(context, network);
                               },
                             ),
-                      routes: [
-                        TopNavRoute(
-                          label: 'Overview',
+                            SailButton(
+                              onPressed: () async {
+                                await launchUrl(Uri.parse('https://t.me/DcInsiders'));
+                              },
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.telegram,
+                              small: true,
+                            ),
+                          ],
                         ),
-                        TopNavRoute(
-                          label: 'Wallet',
-                        ),
-                        TopNavRoute(
-                          label: 'Sidechains',
-                        ),
-                        TopNavRoute(
-                          label: 'Learn',
-                        ),
-                        TopNavRoute(
-                          label: 'Console',
-                        ),
-                        TopNavRoute(
-                          label: 'Chat',
-                        ),
-                        TopNavRoute(
-                          icon: SailSVGAsset.settings,
-                        ),
-                      ],
-                      endWidget: SailRow(
+                      ),
+                      body: Column(
                         children: [
-                          SailDropdownButton<BitcoinNetwork>(
-                            value: _confProvider.network,
-                            items: [
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
-                                label: 'Mainnet',
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                                label: 'Forknet',
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                                label: 'Signet',
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
-                                label: 'Testnet',
-                              ),
-                            ],
-                            onChanged: (BitcoinNetwork? network) async {
-                              if (network == null || _confProvider.hasPrivateBitcoinConf) return;
-                              await _confProvider.swapNetwork(context, network);
-                            },
-                          ),
-                          SailButton(
-                            onPressed: () async {
-                              await launchUrl(Uri.parse('https://t.me/DcInsiders'));
-                            },
-                            variant: ButtonVariant.icon,
-                            icon: SailSVGAsset.telegram,
-                            small: true,
-                          ),
+                          Expanded(child: child),
+                          const StatusBar(),
                         ],
                       ),
                     ),
-                    body: Column(
-                      children: [
-                        Expanded(child: child),
-                        const StatusBar(),
-                      ],
-                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
         Positioned(
@@ -1250,6 +1266,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _bitwindowSettingsProvider.removeListener(_onProviderChanged);
     _walletReader.removeListener(_onProviderChanged);
     _bitnamesRPC.removeListener(_onProviderChanged);
+    _confProvider.removeListener(_onNetworkChange);
     GetIt.I.get<BinaryProvider>().onShutdown(
       shutdownOptions: ShutdownOptions(
         router: GetIt.I.get<AppRouter>(),

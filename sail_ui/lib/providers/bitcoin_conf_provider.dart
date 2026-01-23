@@ -30,6 +30,13 @@ class BitcoinConfProvider extends ChangeNotifier {
   String? detectedDataDir;
   BitcoinConfig? currentConfig;
 
+  /// Returns true if the current network supports sidechains (drivechain)
+  bool get networkSupportsSidechains {
+    return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
+  }
+
   /// Router for navigation (required for network swap dialogs)
   late final RootStackRouter router;
 

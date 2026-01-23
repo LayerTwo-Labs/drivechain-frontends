@@ -1,4 +1,4 @@
-import 'package:auto_route/annotations.dart';
+import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -11,6 +11,14 @@ class SidechainProposalPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final confProvider = GetIt.I.get<BitcoinConfProvider>();
+    if (!confProvider.networkSupportsSidechains) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AutoRouter.of(context).pop();
+      });
+      return const SizedBox.shrink();
+    }
+
     return const QtPage(
       child: SidechainProposalView(),
     );
