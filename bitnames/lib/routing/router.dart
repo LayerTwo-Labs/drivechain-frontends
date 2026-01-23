@@ -1,14 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/pages/tabs/bitnames_configure_homepage_page.dart';
 import 'package:bitnames/pages/tabs/bitnames_homepage.dart';
-import 'package:bitnames/pages/tabs/console_page.dart';
 import 'package:bitnames/pages/tabs/home_page.dart';
 import 'package:bitnames/pages/tabs/messaging_page.dart';
 import 'package:bitnames/pages/tabs/reserve_register_page.dart';
 import 'package:bitnames/pages/tabs/settings_page.dart';
-import 'package:bitnames/pages/test_page.dart';
 import 'package:bitnames/pages/bitnames_conf_editor_page.dart';
-import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 

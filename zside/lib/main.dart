@@ -17,7 +17,6 @@ import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_homepage_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
-import 'package:zside/rpc/models/active_sidechains.dart';
 
 void main(List<String> args) async {
   try {

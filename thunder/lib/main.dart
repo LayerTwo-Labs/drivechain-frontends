@@ -14,7 +14,6 @@ import 'package:thunder/config/runtime_args.dart';
 import 'package:thunder/providers/thunder_conf_provider.dart';
 import 'package:thunder/providers/thunder_homepage_provider.dart';
 import 'package:thunder/routing/router.dart';
-import 'package:thunder/rpc/models/active_sidechains.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main(List<String> args) async {

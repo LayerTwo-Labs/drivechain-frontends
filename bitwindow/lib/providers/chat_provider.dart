@@ -400,16 +400,67 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> _processPaymail(Map<String, dynamic> paymail) async {
-    // Process incoming paymail messages
-    // Structure depends on actual API response - this is a placeholder
-    // that will need to be updated based on actual paymail format
-    if (paymail.isEmpty) return;
+    if (paymail.isEmpty || _selectedIdentity == null) return;
 
-    // TODO: Parse paymail response and decrypt messages
-    // For each message in paymail:
-    // 1. Decrypt using our encryption key
-    // 2. Add to messages list
-    // 3. Auto-add sender to contacts if not already present
+    final myEncryptionPubkey = _selectedIdentity!.details.encryptionPubkey;
+    if (myEncryptionPubkey == null) return;
+
+    for (final entry in paymail.entries) {
+      final outpointKey = entry.key;
+      final data = entry.value as Map<String, dynamic>;
+
+      // Skip if we already have this message
+      if (_messages.any((m) => m.id == outpointKey)) continue;
+
+      final senderAddress = data['address'] as String;
+      final content = data['content'] as Map<String, dynamic>;
+      final memoBytes = data['memo'] as List<dynamic>;
+
+      // Skip if no memo (no message content)
+      if (memoBytes.isEmpty) continue;
+
+      // Extract value from content (BitcoinSats format)
+      int? valueSats;
+      if (content.containsKey('BitcoinSats')) {
+        valueSats = content['BitcoinSats'] as int?;
+      }
+
+      // Convert memo bytes to hex string (ciphertext)
+      final ciphertext = memoBytes.map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join();
+
+      try {
+        // Decrypt the message using our encryption key
+        final plaintext = await bitnamesRPC.decryptMsg(
+          ciphertext: ciphertext,
+          encryptionPubkey: myEncryptionPubkey,
+        );
+
+        // Create ChatMessage
+        final message = ChatMessage(
+          id: outpointKey,
+          content: plaintext,
+          senderPubkey: senderAddress,
+          recipientPubkey: myEncryptionPubkey,
+          timestamp: DateTime.now(),
+          isOutgoing: false,
+          txid: outpointKey,
+          valueSats: valueSats,
+        );
+        _messages.add(message);
+
+        // Update contact's last message if we have them as a contact
+        final contactIndex = _contacts.indexWhere((c) => c.address == senderAddress);
+        if (contactIndex >= 0) {
+          _contacts[contactIndex] = _contacts[contactIndex].copyWith(
+            lastMessage: plaintext,
+            lastMessageTime: DateTime.now(),
+          );
+          await _saveContacts();
+        }
+      } catch (e) {
+        // Failed to decrypt - may not be intended for us or invalid
+      }
+    }
 
     notifyListeners();
   }

@@ -1,137 +1,50 @@
-import 'dart:async';
-import 'dart:io' show Directory, File, FileSystemEvent;
-
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
-import 'package:bitassets/models/bitassets_config.dart';
-
 /// Provider for BitAssets configuration settings.
-/// BitAssets doesn't read from a conf file directly - it only accepts CLI arguments.
-/// We store settings in a file and convert them to CLI args at launch time.
-class BitassetsConfProvider extends ChangeNotifier {
-  final Logger log = GetIt.I.get<Logger>();
-
-  StreamSubscription<FileSystemEvent>? _fileWatcher;
-  Timer? _fileWatchDebouncer;
-
-  BitassetsConfig? currentConfig;
-  String? configPath;
-
+class BitassetsConfProvider extends GenericSidechainConfProvider {
   BitassetsConfProvider._create();
 
   static Future<BitassetsConfProvider> create() async {
     final instance = BitassetsConfProvider._create();
-    await instance.loadConfig();
-    instance._setupFileWatching();
-    instance._listenToBitcoinConf();
-    await instance.syncNetworkFromBitcoinConf();
+    await instance.initialize();
     return instance;
   }
 
-  void _listenToBitcoinConf() {
-    GetIt.I.get<BitcoinConfProvider>().addListener(_onBitcoinConfChanged);
-  }
+  @override
+  String get appName => 'BitAssets';
 
-  void _onBitcoinConfChanged() {
-    syncNetworkFromBitcoinConf();
-  }
+  @override
+  String get configFileName => 'bitassets.conf';
 
-  Future<void> _saveConfig() async {
-    if (currentConfig == null) return;
-    try {
-      final confPath = _getConfigPath();
-      final file = File(confPath);
-      await file.parent.create(recursive: true);
-      await file.writeAsString(currentConfig!.serialize());
-      log.i('Saved BitAssets config to $confPath');
-    } catch (e) {
-      log.e('Failed to save BitAssets config: $e');
-    }
-  }
+  @override
+  String getDataDir() => BitAssets().datadir();
 
-  /// Sync network setting from BitcoinConfProvider
-  Future<void> syncNetworkFromBitcoinConf() async {
-    if (currentConfig == null) return;
-
-    final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
-    final network = bitcoinConfProvider.network;
-
-    // BitAssets only supports signet and regtest
-    final bitassetsNetwork = switch (network) {
-      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
-      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-      _ => 'signet', // fallback for unsupported networks
-    };
-
-    final currentNetwork = currentConfig!.getSetting('network');
-    if (currentNetwork != bitassetsNetwork) {
-      currentConfig!.setSetting('network', bitassetsNetwork);
-
-      // Update network-specific ports
-      final ports = _getNetworkPorts(bitassetsNetwork);
-      currentConfig!.setSetting('rpc-host', ports['rpc-host']!);
-      currentConfig!.setSetting('rpc-port', ports['rpc-port']!);
-      currentConfig!.setSetting('net-addr', ports['net-addr']!);
-      currentConfig!.setSetting('zmq-addr', ports['zmq-addr']!);
-      currentConfig!.setSetting('mainchain-grpc-port', ports['mainchain-grpc-port']!);
-
-      notifyListeners();
-      await _saveConfig();
+  @override
+  Map<String, String> getNetworkPorts(String network) {
+    switch (network) {
+      case 'regtest':
+        return {
+          'rpc-host': '127.0.0.1',
+          'rpc-port': '16004',
+          'net-addr': '0.0.0.0:14004',
+          'zmq-addr': '127.0.0.1:38004',
+          'mainchain-grpc-port': '50051',
+        };
+      case 'signet':
+      default:
+        return {
+          'rpc-host': '127.0.0.1',
+          'rpc-port': '6004',
+          'net-addr': '0.0.0.0:4004',
+          'zmq-addr': '127.0.0.1:28004',
+          'mainchain-grpc-port': '50051',
+        };
     }
   }
 
   @override
-  void dispose() {
-    _fileWatcher?.cancel();
-    _fileWatchDebouncer?.cancel();
-    try {
-      GetIt.I.get<BitcoinConfProvider>().removeListener(_onBitcoinConfChanged);
-    } catch (_) {}
-    super.dispose();
-  }
-
-  /// Get the path to the BitAssets config file
-  String _getConfigPath() {
-    final datadir = BitAssets().datadir();
-    return path.join(datadir, 'bitassets.conf');
-  }
-
-  /// Load config from file, or create default if not exists
-  Future<void> loadConfig() async {
-    try {
-      configPath = _getConfigPath();
-      final file = File(configPath!);
-
-      String content = '';
-      if (await file.exists()) {
-        content = await file.readAsString();
-      } else {
-        content = getDefaultConfig();
-
-        try {
-          await file.parent.create(recursive: true);
-          await file.writeAsString(content);
-          log.i('Created default BitAssets config file: ${file.path}');
-        } catch (e) {
-          log.e('Failed to write default BitAssets config file: $e');
-        }
-      }
-
-      currentConfig = BitassetsConfig.parse(content);
-    } catch (e) {
-      log.e('Failed to load BitAssets config: $e');
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  /// Get the default configuration content
   String getDefaultConfig() {
-    // Get current network from BitcoinConfProvider if available
     String network = 'signet';
     try {
       final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
@@ -142,8 +55,7 @@ class BitassetsConfProvider extends ChangeNotifier {
       };
     } catch (_) {}
 
-    // Network-specific ports
-    final ports = _getNetworkPorts(network);
+    final ports = getNetworkPorts(network);
 
     return '''# BitAssets Configuration - Generated by BitAssets App
 # These settings are converted to CLI arguments when BitAssets starts.
@@ -171,129 +83,5 @@ zmq-addr=${ports['zmq-addr']}
 mainchain-grpc-host=127.0.0.1
 mainchain-grpc-port=${ports['mainchain-grpc-port']}
 ''';
-  }
-
-  /// Get network-specific ports for BitAssets
-  Map<String, String> _getNetworkPorts(String network) {
-    switch (network) {
-      case 'regtest':
-        return {
-          'rpc-host': '127.0.0.1',
-          'rpc-port': '16004',
-          'net-addr': '0.0.0.0:14004',
-          'zmq-addr': '127.0.0.1:38004',
-          'mainchain-grpc-port': '50051',
-        };
-      case 'signet':
-      default:
-        return {
-          'rpc-host': '127.0.0.1',
-          'rpc-port': '6004',
-          'net-addr': '0.0.0.0:4004',
-          'zmq-addr': '127.0.0.1:28004',
-          'mainchain-grpc-port': '50051',
-        };
-    }
-  }
-
-  /// Get the current configuration content as string
-  String getCurrentConfigContent() {
-    if (currentConfig == null) {
-      return getDefaultConfig();
-    }
-    return currentConfig!.serialize();
-  }
-
-  /// Write configuration content to the file
-  Future<void> writeConfig(String content) async {
-    try {
-      final config = BitassetsConfig.parse(content);
-      currentConfig = config;
-
-      final confPath = _getConfigPath();
-      final file = File(confPath);
-      await file.parent.create(recursive: true);
-      await file.writeAsString(content);
-
-      log.i('Saved BitAssets config to $confPath');
-      notifyListeners();
-    } catch (e) {
-      log.e('Failed to write BitAssets config: $e');
-      rethrow;
-    }
-  }
-
-  /// Convert current config to CLI args for BitAssets
-  List<String> getCliArgs() {
-    final args = <String>[];
-
-    if (currentConfig == null) return args;
-
-    for (final entry in currentConfig!.settings.entries) {
-      final key = entry.key;
-      final value = entry.value;
-
-      if (value == 'true') {
-        args.add('--$key');
-      } else if (value == 'false') {
-        continue;
-      } else if (value.isNotEmpty) {
-        args.add('--$key=$value');
-      }
-    }
-
-    return args;
-  }
-
-  void _setupFileWatching() {
-    _fileWatcher?.cancel();
-
-    try {
-      final confPath = _getConfigPath();
-      final confDir = Directory(path.dirname(confPath));
-
-      if (!confDir.existsSync()) {
-        confDir.createSync(recursive: true);
-      }
-
-      _fileWatcher = confDir
-          .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
-          .where((event) => event.path.endsWith('bitassets.conf'))
-          .listen(_handleFileSystemEvent);
-
-      log.d('BitAssets config file watching enabled for ${confDir.path}');
-    } catch (e) {
-      log.e('Failed to setup BitAssets config file watching: $e');
-    }
-  }
-
-  void _handleFileSystemEvent(FileSystemEvent event) {
-    log.d('BitAssets config file changed: ${event.path}');
-
-    _fileWatchDebouncer?.cancel();
-    _fileWatchDebouncer = Timer(const Duration(milliseconds: 500), () {
-      _reloadConfigFromFileSystem();
-    });
-  }
-
-  void _reloadConfigFromFileSystem() async {
-    try {
-      log.i('Reloading BitAssets config due to file system change');
-
-      final confPath = _getConfigPath();
-      final file = File(confPath);
-
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        final newConfig = BitassetsConfig.parse(content);
-
-        if (newConfig != currentConfig) {
-          currentConfig = newConfig;
-          notifyListeners();
-        }
-      }
-    } catch (e) {
-      log.e('Failed to reload BitAssets config from file system: $e');
-    }
   }
 }

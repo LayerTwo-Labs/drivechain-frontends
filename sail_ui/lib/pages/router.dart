@@ -18,6 +18,8 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: DataDirSetupRoute.page),
     AutoRoute(page: BitcoinConfEditorRoute.page),
     AutoRoute(page: EnforcerConfEditorRoute.page),
+    AutoRoute(page: SailTestRoute.page),
+    AutoRoute(page: ConsoleTabRoute.page),
   ];
 
   @override

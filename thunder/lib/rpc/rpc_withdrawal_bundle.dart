@@ -1,6 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:sail_ui/bitcoin.dart';
-import 'package:thunder/rpc/models/bundle_info.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 enum BundleStatus { pending, failed, success }
 
