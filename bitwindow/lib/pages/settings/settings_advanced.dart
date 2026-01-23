@@ -41,24 +41,26 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
             SailText.secondary13('Developer options and experimental features'),
           ],
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Test Sidechains'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailToggle(
-              label: 'Use Test Sidechains',
-              value: _settingsProvider.useTestSidechains,
-              onChanged: (value) async {
-                await _settingsProvider.updateUseTestSidechains(value);
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'Download and run alternative frontends for sidechains',
-            ),
-          ],
-        ),
+        // Only show Test Sidechains option on networks that support sidechains
+        if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary15('Test Sidechains'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailToggle(
+                label: 'Use Test Sidechains',
+                value: _settingsProvider.useTestSidechains,
+                onChanged: (value) async {
+                  await _settingsProvider.updateUseTestSidechains(value);
+                },
+              ),
+              const SailSpacing(4),
+              SailText.secondary12(
+                'Download and run alternative frontends for sidechains',
+              ),
+            ],
+          ),
         SailSpacing(SailStyleValues.padding64),
       ],
     );

@@ -31,6 +31,13 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
   Widget build(BuildContext context, FastWithdrawalTabViewModel viewModel) {
     final theme = SailTheme.of(context);
 
+    if (!GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains) {
+      return SailCard(
+        error: 'Fast withdrawals are not available on mainnet (no sidechains)',
+        child: SizedBox(),
+      );
+    }
+
     if (viewModel.isUsingBitcoinCoreWallet) {
       return SailCard(
         error: 'Switch to your enforcer wallet to interact with sidechains',

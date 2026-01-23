@@ -193,24 +193,38 @@ class HomepageWidgetCatalog {
     ),
   };
 
+  static const _sidechainWidgetIds = {'fast_withdrawal', 'sidechains_compact'};
+
+  static bool get _supportsSidechains => GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains;
+
   static HomepageWidgetInfo? getWidget(String id) {
+    if (_sidechainWidgetIds.contains(id) && !_supportsSidechains) {
+      return null;
+    }
     return _widgets[id];
   }
 
   static List<HomepageWidgetInfo> getAllWidgets() {
-    return _widgets.values.toList();
+    return _widgets.values.where((w) => !_sidechainWidgetIds.contains(w.id) || _supportsSidechains).toList();
   }
 
   static List<HomepageWidgetInfo> getFullWidthWidgets() {
-    return _widgets.values.where((w) => w.size == WidgetSize.full).toList();
+    return _widgets.values
+        .where((w) => w.size == WidgetSize.full && (!_sidechainWidgetIds.contains(w.id) || _supportsSidechains))
+        .toList();
   }
 
   static List<HomepageWidgetInfo> getHalfWidthWidgets() {
-    return _widgets.values.where((w) => w.size == WidgetSize.half).toList();
+    return _widgets.values
+        .where((w) => w.size == WidgetSize.half && (!_sidechainWidgetIds.contains(w.id) || _supportsSidechains))
+        .toList();
   }
 
   static Map<String, HomepageWidgetInfo> getCatalogMap() {
-    return Map.from(_widgets);
+    if (_supportsSidechains) {
+      return Map.from(_widgets);
+    }
+    return Map.fromEntries(_widgets.entries.where((e) => !_sidechainWidgetIds.contains(e.key)));
   }
 
   static Widget buildWidget(String id, {Map<String, dynamic> settings = const {}}) {

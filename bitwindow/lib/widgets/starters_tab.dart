@@ -298,8 +298,9 @@ class StartersTab extends StatelessWidget {
                                   starter['mnemonic'] != null,
                                 );
                               }),
-                              // Layer 2 divider
-                              if (starters.any((s) => s['chain_layer'] == 2)) ...[
+                              // Layer 2 divider (only show if sidechains supported)
+                              if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains &&
+                                  starters.any((s) => s['chain_layer'] == 2)) ...[
                                 TableRow(
                                   decoration: BoxDecoration(
                                     color: SailTheme.of(context).colors.formField,
@@ -317,19 +318,20 @@ class StartersTab extends StatelessWidget {
                                   ],
                                 ),
                               ],
-                              // Sidechain starter rows
-                              ...starters.where((s) => s['chain_layer'] == 2).map((starter) {
-                                final isRevealed = viewModel.isStarterRevealed(starter['name']);
+                              // Sidechain starter rows (only show if sidechains supported)
+                              if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
+                                ...starters.where((s) => s['chain_layer'] == 2).map((starter) {
+                                  final isRevealed = viewModel.isStarterRevealed(starter['name']);
 
-                                return mnemonicRow(
-                                  context,
-                                  viewModel,
-                                  starter['name'],
-                                  starter['mnemonic'],
-                                  isRevealed,
-                                  starter['mnemonic'] != null,
-                                );
-                              }),
+                                  return mnemonicRow(
+                                    context,
+                                    viewModel,
+                                    starter['name'],
+                                    starter['mnemonic'],
+                                    isRevealed,
+                                    starter['mnemonic'] != null,
+                                  );
+                                }),
                             ],
                           ),
                         ),

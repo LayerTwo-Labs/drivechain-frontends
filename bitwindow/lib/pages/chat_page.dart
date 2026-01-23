@@ -129,7 +129,7 @@ class ChatPage extends StatelessWidget {
                       skipLoading: true,
                     ),
                   )
-                else
+                else if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
                   Tooltip(
                     message: 'You need BitNames sidechain balance to register a BitName',
                     child: SailButton(
