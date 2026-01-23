@@ -1,13 +1,10 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:thunder/pages/tabs/console_page.dart';
 import 'package:thunder/pages/tabs/home_page.dart';
 import 'package:thunder/pages/tabs/settings_page.dart';
 import 'package:thunder/pages/tabs/thunder_configure_homepage_page.dart';
 import 'package:thunder/pages/tabs/thunder_homepage.dart';
-import 'package:thunder/pages/test_page.dart';
 import 'package:thunder/pages/thunder_conf_editor_page.dart';
 
 part 'router.gr.dart';

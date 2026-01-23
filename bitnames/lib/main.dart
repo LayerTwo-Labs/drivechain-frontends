@@ -7,7 +7,6 @@ import 'package:bitnames/providers/bitnames_homepage_provider.dart';
 import 'package:bitnames/providers/bitnames_conf_provider.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:bitnames/routing/router.dart';
-import 'package:bitnames/rpc/models/active_sidechains.dart';
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';

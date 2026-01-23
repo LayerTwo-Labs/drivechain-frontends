@@ -1,8 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:zside/pages/tabs/console_page.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
 import 'package:zside/pages/tabs/zside/zside_bill_page.dart';
@@ -11,7 +9,6 @@ import 'package:zside/pages/tabs/zside/zside_shield_deshield_page.dart';
 import 'package:zside/pages/tabs/zside/zside_transfer_page.dart';
 import 'package:zside/pages/tabs/zside_configure_homepage_page.dart';
 import 'package:zside/pages/tabs/zside_homepage.dart';
-import 'package:zside/pages/test_page.dart';
 
 part 'router.gr.dart';
 

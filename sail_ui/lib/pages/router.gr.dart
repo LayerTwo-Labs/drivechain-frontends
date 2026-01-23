@@ -9,31 +9,33 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i14;
+import 'dart:async' as _i16;
 
-import 'package:auto_route/auto_route.dart' as _i11;
-import 'package:collection/collection.dart' as _i16;
-import 'package:flutter/material.dart' as _i12;
-import 'package:logger/logger.dart' as _i15;
+import 'package:auto_route/auto_route.dart' as _i13;
+import 'package:collection/collection.dart' as _i18;
+import 'package:flutter/material.dart' as _i14;
+import 'package:logger/logger.dart' as _i17;
 import 'package:sail_ui/pages/bitcoin_conf_editor_page.dart' as _i2;
-import 'package:sail_ui/pages/create_wallet_page.dart' as _i7;
-import 'package:sail_ui/pages/datadir_setup_page.dart' as _i3;
-import 'package:sail_ui/pages/enforcer_conf_editor_page.dart' as _i4;
-import 'package:sail_ui/pages/log_page.dart' as _i5;
-import 'package:sail_ui/pages/shutdown_page.dart' as _i8;
-import 'package:sail_ui/pages/sidechains/parent_chain_page.dart' as _i6;
-import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart' as _i9;
-import 'package:sail_ui/pages/unlock_wallet_page.dart' as _i10;
-import 'package:sail_ui/sail_ui.dart' as _i13;
+import 'package:sail_ui/pages/console_tab_page.dart' as _i3;
+import 'package:sail_ui/pages/create_wallet_page.dart' as _i8;
+import 'package:sail_ui/pages/datadir_setup_page.dart' as _i4;
+import 'package:sail_ui/pages/enforcer_conf_editor_page.dart' as _i5;
+import 'package:sail_ui/pages/log_page.dart' as _i6;
+import 'package:sail_ui/pages/sail_test_page.dart' as _i9;
+import 'package:sail_ui/pages/shutdown_page.dart' as _i10;
+import 'package:sail_ui/pages/sidechains/parent_chain_page.dart' as _i7;
+import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart' as _i11;
+import 'package:sail_ui/pages/unlock_wallet_page.dart' as _i12;
+import 'package:sail_ui/sail_ui.dart' as _i15;
 import 'package:sail_ui/widgets/wallet_backup_restore.dart' as _i1;
 
 /// generated route for
 /// [_i1.BackupWalletPage]
-class BackupWalletRoute extends _i11.PageRouteInfo<BackupWalletRouteArgs> {
+class BackupWalletRoute extends _i13.PageRouteInfo<BackupWalletRouteArgs> {
   BackupWalletRoute({
-    _i12.Key? key,
+    _i14.Key? key,
     String appName = 'wallet',
-    List<_i11.PageRouteInfo>? children,
+    List<_i13.PageRouteInfo>? children,
   }) : super(
          BackupWalletRoute.name,
          args: BackupWalletRouteArgs(key: key, appName: appName),
@@ -43,7 +45,7 @@ class BackupWalletRoute extends _i11.PageRouteInfo<BackupWalletRouteArgs> {
 
   static const String name = 'BackupWalletRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
       final pathParams = data.inheritedPathParams;
@@ -60,7 +62,7 @@ class BackupWalletRoute extends _i11.PageRouteInfo<BackupWalletRouteArgs> {
 class BackupWalletRouteArgs {
   const BackupWalletRouteArgs({this.key, this.appName = 'wallet'});
 
-  final _i12.Key? key;
+  final _i14.Key? key;
 
   final String appName;
 
@@ -82,13 +84,13 @@ class BackupWalletRouteArgs {
 
 /// generated route for
 /// [_i2.BitcoinConfEditorPage]
-class BitcoinConfEditorRoute extends _i11.PageRouteInfo<void> {
-  const BitcoinConfEditorRoute({List<_i11.PageRouteInfo>? children})
+class BitcoinConfEditorRoute extends _i13.PageRouteInfo<void> {
+  const BitcoinConfEditorRoute({List<_i13.PageRouteInfo>? children})
     : super(BitcoinConfEditorRoute.name, initialChildren: children);
 
   static const String name = 'BitcoinConfEditorRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
       return const _i2.BitcoinConfEditorPage();
@@ -97,46 +99,62 @@ class BitcoinConfEditorRoute extends _i11.PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [_i3.DataDirSetupPage]
-class DataDirSetupRoute extends _i11.PageRouteInfo<void> {
-  const DataDirSetupRoute({List<_i11.PageRouteInfo>? children})
+/// [_i3.ConsoleTabPage]
+class ConsoleTabRoute extends _i13.PageRouteInfo<void> {
+  const ConsoleTabRoute({List<_i13.PageRouteInfo>? children})
+    : super(ConsoleTabRoute.name, initialChildren: children);
+
+  static const String name = 'ConsoleTabRoute';
+
+  static _i13.PageInfo page = _i13.PageInfo(
+    name,
+    builder: (data) {
+      return const _i3.ConsoleTabPage();
+    },
+  );
+}
+
+/// generated route for
+/// [_i4.DataDirSetupPage]
+class DataDirSetupRoute extends _i13.PageRouteInfo<void> {
+  const DataDirSetupRoute({List<_i13.PageRouteInfo>? children})
     : super(DataDirSetupRoute.name, initialChildren: children);
 
   static const String name = 'DataDirSetupRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
-      return const _i3.DataDirSetupPage();
+      return const _i4.DataDirSetupPage();
     },
   );
 }
 
 /// generated route for
-/// [_i4.EnforcerConfEditorPage]
-class EnforcerConfEditorRoute extends _i11.PageRouteInfo<void> {
-  const EnforcerConfEditorRoute({List<_i11.PageRouteInfo>? children})
+/// [_i5.EnforcerConfEditorPage]
+class EnforcerConfEditorRoute extends _i13.PageRouteInfo<void> {
+  const EnforcerConfEditorRoute({List<_i13.PageRouteInfo>? children})
     : super(EnforcerConfEditorRoute.name, initialChildren: children);
 
   static const String name = 'EnforcerConfEditorRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
-      return const _i4.EnforcerConfEditorPage();
+      return const _i5.EnforcerConfEditorPage();
     },
   );
 }
 
 /// generated route for
-/// [_i5.LogPage]
-class LogRoute extends _i11.PageRouteInfo<LogRouteArgs> {
+/// [_i6.LogPage]
+class LogRoute extends _i13.PageRouteInfo<LogRouteArgs> {
   LogRoute({
-    _i12.Key? key,
+    _i14.Key? key,
     required String logPath,
     required String title,
-    _i13.BinaryType? binaryType,
-    List<_i11.PageRouteInfo>? children,
+    _i15.BinaryType? binaryType,
+    List<_i13.PageRouteInfo>? children,
   }) : super(
          LogRoute.name,
          args: LogRouteArgs(
@@ -150,11 +168,11 @@ class LogRoute extends _i11.PageRouteInfo<LogRouteArgs> {
 
   static const String name = 'LogRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<LogRouteArgs>();
-      return _i5.LogPage(
+      return _i6.LogPage(
         key: args.key,
         logPath: args.logPath,
         title: args.title,
@@ -172,13 +190,13 @@ class LogRouteArgs {
     this.binaryType,
   });
 
-  final _i12.Key? key;
+  final _i14.Key? key;
 
   final String logPath;
 
   final String title;
 
-  final _i13.BinaryType? binaryType;
+  final _i15.BinaryType? binaryType;
 
   @override
   String toString() {
@@ -201,29 +219,29 @@ class LogRouteArgs {
 }
 
 /// generated route for
-/// [_i6.ParentChainPage]
-class ParentChainRoute extends _i11.PageRouteInfo<void> {
-  const ParentChainRoute({List<_i11.PageRouteInfo>? children})
+/// [_i7.ParentChainPage]
+class ParentChainRoute extends _i13.PageRouteInfo<void> {
+  const ParentChainRoute({List<_i13.PageRouteInfo>? children})
     : super(ParentChainRoute.name, initialChildren: children);
 
   static const String name = 'ParentChainRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
-      return const _i6.ParentChainPage();
+      return const _i7.ParentChainPage();
     },
   );
 }
 
 /// generated route for
 /// [_i1.RestoreWalletPage]
-class RestoreWalletRoute extends _i11.PageRouteInfo<RestoreWalletRouteArgs> {
+class RestoreWalletRoute extends _i13.PageRouteInfo<RestoreWalletRouteArgs> {
   RestoreWalletRoute({
-    _i12.Key? key,
-    required _i14.Future<void> Function(_i15.Logger) bootBinaries,
-    required List<_i13.Binary> binariesToStop,
-    List<_i11.PageRouteInfo>? children,
+    _i14.Key? key,
+    required _i16.Future<void> Function(_i17.Logger) bootBinaries,
+    required List<_i15.Binary> binariesToStop,
+    List<_i13.PageRouteInfo>? children,
   }) : super(
          RestoreWalletRoute.name,
          args: RestoreWalletRouteArgs(
@@ -236,7 +254,7 @@ class RestoreWalletRoute extends _i11.PageRouteInfo<RestoreWalletRouteArgs> {
 
   static const String name = 'RestoreWalletRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<RestoreWalletRouteArgs>();
@@ -256,11 +274,11 @@ class RestoreWalletRouteArgs {
     required this.binariesToStop,
   });
 
-  final _i12.Key? key;
+  final _i14.Key? key;
 
-  final _i14.Future<void> Function(_i15.Logger) bootBinaries;
+  final _i16.Future<void> Function(_i17.Logger) bootBinaries;
 
-  final List<_i13.Binary> binariesToStop;
+  final List<_i15.Binary> binariesToStop;
 
   @override
   String toString() {
@@ -272,7 +290,7 @@ class RestoreWalletRouteArgs {
     if (identical(this, other)) return true;
     if (other is! RestoreWalletRouteArgs) return false;
     return key == other.key &&
-        const _i16.ListEquality<_i13.Binary>().equals(
+        const _i18.ListEquality<_i15.Binary>().equals(
           binariesToStop,
           other.binariesToStop,
         );
@@ -281,25 +299,25 @@ class RestoreWalletRouteArgs {
   @override
   int get hashCode =>
       key.hashCode ^
-      const _i16.ListEquality<_i13.Binary>().hash(binariesToStop);
+      const _i18.ListEquality<_i15.Binary>().hash(binariesToStop);
 }
 
 /// generated route for
-/// [_i7.SailCreateWalletPage]
+/// [_i8.SailCreateWalletPage]
 class SailCreateWalletRoute
-    extends _i11.PageRouteInfo<SailCreateWalletRouteArgs> {
+    extends _i13.PageRouteInfo<SailCreateWalletRouteArgs> {
   SailCreateWalletRoute({
-    _i12.Key? key,
+    _i14.Key? key,
     String appName = 'Drivechain',
-    _i12.VoidCallback? onWalletCreated,
-    _i12.VoidCallback? onBack,
+    _i14.VoidCallback? onWalletCreated,
+    _i14.VoidCallback? onBack,
     bool showFileRestore = false,
-    _i12.Widget Function(_i12.BuildContext)? additionalRestoreOptionsBuilder,
-    _i12.Widget Function(_i12.BuildContext, _i12.VoidCallback)?
+    _i14.Widget Function(_i14.BuildContext)? additionalRestoreOptionsBuilder,
+    _i14.Widget Function(_i14.BuildContext, _i14.VoidCallback)?
     successActionsBuilder,
-    _i7.WelcomeScreen initialScreen = _i7.WelcomeScreen.initial,
-    required _i11.PageRouteInfo<Object?> homeRoute,
-    List<_i11.PageRouteInfo>? children,
+    _i8.WelcomeScreen initialScreen = _i8.WelcomeScreen.initial,
+    required _i13.PageRouteInfo<Object?> homeRoute,
+    List<_i13.PageRouteInfo>? children,
   }) : super(
          SailCreateWalletRoute.name,
          args: SailCreateWalletRouteArgs(
@@ -318,11 +336,11 @@ class SailCreateWalletRoute
 
   static const String name = 'SailCreateWalletRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<SailCreateWalletRouteArgs>();
-      return _i7.SailCreateWalletPage(
+      return _i8.SailCreateWalletPage(
         key: args.key,
         appName: args.appName,
         onWalletCreated: args.onWalletCreated,
@@ -346,29 +364,29 @@ class SailCreateWalletRouteArgs {
     this.showFileRestore = false,
     this.additionalRestoreOptionsBuilder,
     this.successActionsBuilder,
-    this.initialScreen = _i7.WelcomeScreen.initial,
+    this.initialScreen = _i8.WelcomeScreen.initial,
     required this.homeRoute,
   });
 
-  final _i12.Key? key;
+  final _i14.Key? key;
 
   final String appName;
 
-  final _i12.VoidCallback? onWalletCreated;
+  final _i14.VoidCallback? onWalletCreated;
 
-  final _i12.VoidCallback? onBack;
+  final _i14.VoidCallback? onBack;
 
   final bool showFileRestore;
 
-  final _i12.Widget Function(_i12.BuildContext)?
+  final _i14.Widget Function(_i14.BuildContext)?
   additionalRestoreOptionsBuilder;
 
-  final _i12.Widget Function(_i12.BuildContext, _i12.VoidCallback)?
+  final _i14.Widget Function(_i14.BuildContext, _i14.VoidCallback)?
   successActionsBuilder;
 
-  final _i7.WelcomeScreen initialScreen;
+  final _i8.WelcomeScreen initialScreen;
 
-  final _i11.PageRouteInfo<Object?> homeRoute;
+  final _i13.PageRouteInfo<Object?> homeRoute;
 
   @override
   String toString() {
@@ -400,15 +418,62 @@ class SailCreateWalletRouteArgs {
 }
 
 /// generated route for
-/// [_i8.ShutDownPage]
-class ShutDownRoute extends _i11.PageRouteInfo<ShutDownRouteArgs> {
+/// [_i9.SailTestPage]
+class SailTestRoute extends _i13.PageRouteInfo<SailTestRouteArgs> {
+  SailTestRoute({
+    _i14.Key? key,
+    required _i14.Widget child,
+    List<_i13.PageRouteInfo>? children,
+  }) : super(
+         SailTestRoute.name,
+         args: SailTestRouteArgs(key: key, child: child),
+         initialChildren: children,
+       );
+
+  static const String name = 'SailTestRoute';
+
+  static _i13.PageInfo page = _i13.PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<SailTestRouteArgs>();
+      return _i9.SailTestPage(key: args.key, child: args.child);
+    },
+  );
+}
+
+class SailTestRouteArgs {
+  const SailTestRouteArgs({this.key, required this.child});
+
+  final _i14.Key? key;
+
+  final _i14.Widget child;
+
+  @override
+  String toString() {
+    return 'SailTestRouteArgs{key: $key, child: $child}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SailTestRouteArgs) return false;
+    return key == other.key && child == other.child;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ child.hashCode;
+}
+
+/// generated route for
+/// [_i10.ShutDownPage]
+class ShutDownRoute extends _i13.PageRouteInfo<ShutDownRouteArgs> {
   ShutDownRoute({
-    _i12.Key? key,
-    required List<_i13.Binary> binaries,
-    required _i14.Stream<_i13.ShutdownProgress> shutdownStream,
-    required _i12.VoidCallback onComplete,
-    _i12.VoidCallback? onForceKillRequested,
-    List<_i11.PageRouteInfo>? children,
+    _i14.Key? key,
+    required List<_i15.Binary> binaries,
+    required _i16.Stream<_i15.ShutdownProgress> shutdownStream,
+    required _i14.VoidCallback onComplete,
+    _i14.VoidCallback? onForceKillRequested,
+    List<_i13.PageRouteInfo>? children,
   }) : super(
          ShutDownRoute.name,
          args: ShutDownRouteArgs(
@@ -423,11 +488,11 @@ class ShutDownRoute extends _i11.PageRouteInfo<ShutDownRouteArgs> {
 
   static const String name = 'ShutDownRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
       final args = data.argsAs<ShutDownRouteArgs>();
-      return _i8.ShutDownPage(
+      return _i10.ShutDownPage(
         key: args.key,
         binaries: args.binaries,
         shutdownStream: args.shutdownStream,
@@ -447,15 +512,15 @@ class ShutDownRouteArgs {
     this.onForceKillRequested,
   });
 
-  final _i12.Key? key;
+  final _i14.Key? key;
 
-  final List<_i13.Binary> binaries;
+  final List<_i15.Binary> binaries;
 
-  final _i14.Stream<_i13.ShutdownProgress> shutdownStream;
+  final _i16.Stream<_i15.ShutdownProgress> shutdownStream;
 
-  final _i12.VoidCallback onComplete;
+  final _i14.VoidCallback onComplete;
 
-  final _i12.VoidCallback? onForceKillRequested;
+  final _i14.VoidCallback? onForceKillRequested;
 
   @override
   String toString() {
@@ -467,7 +532,7 @@ class ShutDownRouteArgs {
     if (identical(this, other)) return true;
     if (other is! ShutDownRouteArgs) return false;
     return key == other.key &&
-        const _i16.ListEquality<_i13.Binary>().equals(
+        const _i18.ListEquality<_i15.Binary>().equals(
           binaries,
           other.binaries,
         ) &&
@@ -479,40 +544,40 @@ class ShutDownRouteArgs {
   @override
   int get hashCode =>
       key.hashCode ^
-      const _i16.ListEquality<_i13.Binary>().hash(binaries) ^
+      const _i18.ListEquality<_i15.Binary>().hash(binaries) ^
       shutdownStream.hashCode ^
       onComplete.hashCode ^
       onForceKillRequested.hashCode;
 }
 
 /// generated route for
-/// [_i9.SidechainOverviewTabPage]
-class SidechainOverviewTabRoute extends _i11.PageRouteInfo<void> {
-  const SidechainOverviewTabRoute({List<_i11.PageRouteInfo>? children})
+/// [_i11.SidechainOverviewTabPage]
+class SidechainOverviewTabRoute extends _i13.PageRouteInfo<void> {
+  const SidechainOverviewTabRoute({List<_i13.PageRouteInfo>? children})
     : super(SidechainOverviewTabRoute.name, initialChildren: children);
 
   static const String name = 'SidechainOverviewTabRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
-      return const _i9.SidechainOverviewTabPage();
+      return const _i11.SidechainOverviewTabPage();
     },
   );
 }
 
 /// generated route for
-/// [_i10.UnlockWalletPage]
-class UnlockWalletRoute extends _i11.PageRouteInfo<void> {
-  const UnlockWalletRoute({List<_i11.PageRouteInfo>? children})
+/// [_i12.UnlockWalletPage]
+class UnlockWalletRoute extends _i13.PageRouteInfo<void> {
+  const UnlockWalletRoute({List<_i13.PageRouteInfo>? children})
     : super(UnlockWalletRoute.name, initialChildren: children);
 
   static const String name = 'UnlockWalletRoute';
 
-  static _i11.PageInfo page = _i11.PageInfo(
+  static _i13.PageInfo page = _i13.PageInfo(
     name,
     builder: (data) {
-      return const _i10.UnlockWalletPage();
+      return const _i12.UnlockWalletPage();
     },
   );
 }

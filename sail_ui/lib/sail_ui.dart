@@ -1,6 +1,9 @@
 export 'bitcoin.dart';
 export 'classes/node_connection_settings.dart';
+export 'models/active_sidechain.dart';
 export 'models/bitcoin_config.dart';
+export 'models/bundle_info.dart';
+export 'models/generic_app_config.dart';
 export 'models/enforcer_config.dart';
 export 'models/homepage_configuration.dart';
 export 'models/wallet_data.dart';
@@ -84,6 +87,7 @@ export 'providers/bitcoin_conf_provider.dart';
 export 'providers/enforcer_conf_provider.dart';
 export 'providers/balance_provider.dart';
 export 'providers/formatter_provider.dart';
+export 'providers/generic_sidechain_conf_provider.dart';
 export 'providers/settings_provider.dart';
 export 'providers/wallet_reader_provider.dart';
 export 'providers/wallet_writer_provider.dart';

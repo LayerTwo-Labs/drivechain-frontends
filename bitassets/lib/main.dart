@@ -7,7 +7,6 @@ import 'package:bitassets/providers/bitassets_conf_provider.dart';
 import 'package:bitassets/providers/bitassets_homepage_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/routing/router.dart';
-import 'package:bitassets/rpc/models/active_sidechains.dart';
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';

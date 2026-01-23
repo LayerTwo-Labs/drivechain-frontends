@@ -91,22 +91,6 @@ class BitassetsConfEditorRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ConsoleTabPage]
-class ConsoleTabRoute extends PageRouteInfo<void> {
-  const ConsoleTabRoute({List<PageRouteInfo>? children})
-    : super(ConsoleTabRoute.name, initialChildren: children);
-
-  static const String name = 'ConsoleTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const ConsoleTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [DutchAuctionTabPage]
 class DutchAuctionTabRoute extends PageRouteInfo<void> {
   const DutchAuctionTabRoute({List<PageRouteInfo>? children})
@@ -152,53 +136,6 @@ class MessagingTabRoute extends PageRouteInfo<void> {
       return const MessagingTabPage();
     },
   );
-}
-
-/// generated route for
-/// [SailTestPage]
-class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
-  SailTestRoute({
-    Key? key,
-    required Widget child,
-    List<PageRouteInfo>? children,
-  }) : super(
-         SailTestRoute.name,
-         args: SailTestRouteArgs(key: key, child: child),
-         initialChildren: children,
-       );
-
-  static const String name = 'SailTestRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      final args = data.argsAs<SailTestRouteArgs>();
-      return SailTestPage(key: args.key, child: args.child);
-    },
-  );
-}
-
-class SailTestRouteArgs {
-  const SailTestRouteArgs({this.key, required this.child});
-
-  final Key? key;
-
-  final Widget child;
-
-  @override
-  String toString() {
-    return 'SailTestRouteArgs{key: $key, child: $child}';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! SailTestRouteArgs) return false;
-    return key == other.key && child == other.child;
-  }
-
-  @override
-  int get hashCode => key.hashCode ^ child.hashCode;
 }
 
 /// generated route for

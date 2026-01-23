@@ -20,7 +20,7 @@ class ActiveSidechain {
     return ActiveSidechain(
       slot: json['nSidechain'],
       title: json['title'],
-      description: json['description'] ?? '', // Assuming empty string for null values
+      description: json['description'] ?? '',
       // first one is for createsidechainproposal, second is for listactivesidechains...
       nversion: json['version'] ?? json['nversion'],
       hashid1: json['hashID1'] ?? json['hashid1'],

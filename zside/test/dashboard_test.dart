@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/mocks/mocks.dart';
+import 'package:sail_ui/pages/sail_test_page.dart';
 import 'package:sail_ui/pages/sidechains/parent_chain_page.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/sidechain/address_provider.dart';
@@ -16,7 +17,6 @@ import 'package:sail_ui/providers/sidechain/sidechain_transactions_provider.dart
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/zside_rpc.dart';
-import 'package:zside/pages/test_page.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/transactions_provider.dart';
 

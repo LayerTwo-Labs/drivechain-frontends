@@ -2,15 +2,12 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/pages/tabs/amm_page.dart';
 import 'package:bitassets/pages/tabs/bitassets_configure_homepage_page.dart';
 import 'package:bitassets/pages/tabs/bitassets_homepage.dart';
-import 'package:bitassets/pages/tabs/console_page.dart';
 import 'package:bitassets/pages/tabs/dutch_auction_page.dart';
 import 'package:bitassets/pages/tabs/home_page.dart';
 import 'package:bitassets/pages/tabs/messaging_page.dart';
 import 'package:bitassets/pages/tabs/reserve_register_page.dart';
 import 'package:bitassets/pages/tabs/settings_page.dart';
-import 'package:bitassets/pages/test_page.dart';
 import 'package:bitassets/pages/bitassets_conf_editor_page.dart';
-import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
