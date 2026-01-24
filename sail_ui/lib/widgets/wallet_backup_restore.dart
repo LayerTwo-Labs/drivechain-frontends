@@ -553,10 +553,10 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
                             children: [
                               SailText.primary13('What will be backed up:', bold: true),
                               const SizedBox(height: 12),
-                              _buildBulletPoint('Master wallet and all derived keys'),
-                              _buildBulletPoint('All sidechain wallet seeds'),
-                              _buildBulletPoint('Multisig group configurations'),
-                              _buildBulletPoint('Transaction history and notes'),
+                              const BulletPoint('Master wallet and all derived keys'),
+                              const BulletPoint('All sidechain wallet seeds'),
+                              const BulletPoint('Multisig group configurations'),
+                              const BulletPoint('Transaction history and notes'),
                             ],
                           ),
                         ),
@@ -690,18 +690,6 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
     );
   }
 
-  Widget _buildBulletPoint(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailText.secondary13('\u2022  '),
-          Expanded(child: SailText.secondary13(text)),
-        ],
-      ),
-    );
-  }
 }
 
 /// Restore progress step
@@ -968,8 +956,8 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                             children: [
                               SailText.primary13('Supported formats:', bold: true),
                               const SizedBox(height: 12),
-                              _buildBulletPoint('.zip - Full backup (wallet, multisig, transactions)'),
-                              _buildBulletPoint('.json - Just wallet.json (master seed only)'),
+                              const BulletPoint('.zip - Full backup (wallet, multisig, transactions)'),
+                              const BulletPoint('.json - Just wallet.json (master seed only)'),
                             ],
                           ),
                         ),
@@ -1188,16 +1176,4 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     );
   }
 
-  Widget _buildBulletPoint(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailText.secondary13('\u2022  '),
-          Expanded(child: SailText.secondary13(text)),
-        ],
-      ),
-    );
-  }
 }

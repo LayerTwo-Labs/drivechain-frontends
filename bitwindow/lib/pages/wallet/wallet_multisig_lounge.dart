@@ -1263,30 +1263,30 @@ class MultisigLoungeViewModel extends BaseViewModel {
                     ),
                   ],
                 ),
-                _buildDetailRow('Group:', group.name),
-                _buildDetailRow(
-                  'Amount:',
-                  '${transaction.amount.toStringAsFixed(8)} BTC',
+                DetailRow(label: 'Group:', value: group.name),
+                DetailRow(
+                  label: 'Amount:',
+                  value: '${transaction.amount.toStringAsFixed(8)} BTC',
                 ),
-                _buildDetailRow(
-                  'Fee:',
-                  '${transaction.fee.toStringAsFixed(8)} BTC',
+                DetailRow(
+                  label: 'Fee:',
+                  value: '${transaction.fee.toStringAsFixed(8)} BTC',
                 ),
-                _buildDetailRow('Destination:', transaction.destination),
-                _buildDetailRow(
-                  'Created:',
-                  _formatDateTime(transaction.created),
+                DetailRow(label: 'Destination:', value: transaction.destination),
+                DetailRow(
+                  label: 'Created:',
+                  value: _formatDateTime(transaction.created),
                 ),
-                if (transaction.txid != null) _buildDetailRow('Transaction ID:', transaction.txid!),
+                if (transaction.txid != null) DetailRow(label: 'Transaction ID:', value: transaction.txid!),
                 if (transaction.confirmations > 0)
-                  _buildDetailRow(
-                    'Confirmations:',
-                    transaction.confirmations.toString(),
+                  DetailRow(
+                    label: 'Confirmations:',
+                    value: transaction.confirmations.toString(),
                   ),
                 if (transaction.broadcastTime != null)
-                  _buildDetailRow(
-                    'Broadcasted:',
-                    _formatDateTime(transaction.broadcastTime!),
+                  DetailRow(
+                    label: 'Broadcasted:',
+                    value: _formatDateTime(transaction.broadcastTime!),
                   ),
                 const SizedBox(height: 32),
                 SailText.primary15('Signing Status:'),
@@ -1460,23 +1460,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return SailRow(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.primary13(label),
-        const SizedBox(width: 16),
-        Flexible(
-          child: SailText.secondary13(
-            value,
-            textAlign: TextAlign.end,
-          ),
-        ),
-      ],
     );
   }
 

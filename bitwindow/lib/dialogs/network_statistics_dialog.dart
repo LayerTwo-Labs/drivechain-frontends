@@ -90,43 +90,48 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSection(
-                      'Blockchain',
-                      [
-                        _buildStatRow('Block Height', stats!.blockHeight.toString()),
-                        _buildStatRow('Average Block Time', '${stats!.avgBlockTime.toStringAsFixed(1)}s'),
-                        _buildStatRow('Difficulty', stats!.difficulty > 0 ? stats!.difficulty.toString() : 'N/A'),
-                        _buildStatRow(
-                          'Network Hashrate',
-                          stats!.networkHashrate > 0 ? _formatHashrate(stats!.networkHashrate) : 'N/A',
+                    StatSection(
+                      title: 'Blockchain',
+                      children: [
+                        StatRow(label: 'Block Height', value: stats!.blockHeight.toString()),
+                        StatRow(label: 'Average Block Time', value: '${stats!.avgBlockTime.toStringAsFixed(1)}s'),
+                        StatRow(
+                          label: 'Difficulty',
+                          value: stats!.difficulty > 0 ? stats!.difficulty.toString() : 'N/A',
+                        ),
+                        StatRow(
+                          label: 'Network Hashrate',
+                          value: stats!.networkHashrate > 0 ? _formatHashrate(stats!.networkHashrate) : 'N/A',
                         ),
                       ],
                     ),
                     const SizedBox(height: 32),
-                    _buildSection(
-                      'Network',
-                      [
-                        _buildStatRow('Total Peers', stats!.peerCount.toString()),
-                        _buildStatRow('Inbound Connections', stats!.connectionsIn.toString()),
-                        _buildStatRow('Outbound Connections', stats!.connectionsOut.toString()),
-                        _buildStatRow(
-                          'Network Version',
-                          stats!.networkVersion > 0 ? stats!.networkVersion.toString() : 'N/A',
+                    StatSection(
+                      title: 'Network',
+                      children: [
+                        StatRow(label: 'Total Peers', value: stats!.peerCount.toString()),
+                        StatRow(label: 'Inbound Connections', value: stats!.connectionsIn.toString()),
+                        StatRow(label: 'Outbound Connections', value: stats!.connectionsOut.toString()),
+                        StatRow(
+                          label: 'Network Version',
+                          value: stats!.networkVersion > 0 ? stats!.networkVersion.toString() : 'N/A',
                         ),
-                        if (stats!.subversion.isNotEmpty) _buildStatRow('Subversion', stats!.subversion),
+                        if (stats!.subversion.isNotEmpty) StatRow(label: 'Subversion', value: stats!.subversion),
                       ],
                     ),
                     const SizedBox(height: 32),
-                    _buildSection(
-                      'Data Transfer',
-                      [
-                        _buildStatRow(
-                          'Total Received',
-                          stats!.totalBytesReceived > 0 ? _formatBytes(stats!.totalBytesReceived.toInt()) : 'N/A',
+                    StatSection(
+                      title: 'Data Transfer',
+                      children: [
+                        StatRow(
+                          label: 'Total Received',
+                          value: stats!.totalBytesReceived > 0
+                              ? _formatBytes(stats!.totalBytesReceived.toInt())
+                              : 'N/A',
                         ),
-                        _buildStatRow(
-                          'Total Sent',
-                          stats!.totalBytesSent > 0 ? _formatBytes(stats!.totalBytesSent.toInt()) : 'N/A',
+                        StatRow(
+                          label: 'Total Sent',
+                          value: stats!.totalBytesSent > 0 ? _formatBytes(stats!.totalBytesSent.toInt()) : 'N/A',
                         ),
                       ],
                     ),
@@ -136,38 +141,42 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                     ],
                     if (stats!.hasBitcoindBandwidth() || stats!.hasEnforcerBandwidth()) ...[
                       const SizedBox(height: 32),
-                      _buildSection(
-                        'Process Bandwidth',
-                        [
+                      StatSection(
+                        title: 'Process Bandwidth',
+                        children: [
                           if (stats!.hasBitcoindBandwidth()) ...[
-                            _buildStatRow('bitcoind PID', stats!.bitcoindBandwidth.pid.toString()),
-                            _buildStatRow(
-                              'bitcoind RX',
-                              '${_formatBytes(stats!.bitcoindBandwidth.totalRxBytes.toInt())} (${_formatBandwidth(stats!.bitcoindBandwidth.rxBytesPerSec)})',
+                            StatRow(label: 'bitcoind PID', value: stats!.bitcoindBandwidth.pid.toString()),
+                            StatRow(
+                              label: 'bitcoind RX',
+                              value:
+                                  '${_formatBytes(stats!.bitcoindBandwidth.totalRxBytes.toInt())} (${_formatBandwidth(stats!.bitcoindBandwidth.rxBytesPerSec)})',
                             ),
-                            _buildStatRow(
-                              'bitcoind TX',
-                              '${_formatBytes(stats!.bitcoindBandwidth.totalTxBytes.toInt())} (${_formatBandwidth(stats!.bitcoindBandwidth.txBytesPerSec)})',
+                            StatRow(
+                              label: 'bitcoind TX',
+                              value:
+                                  '${_formatBytes(stats!.bitcoindBandwidth.totalTxBytes.toInt())} (${_formatBandwidth(stats!.bitcoindBandwidth.txBytesPerSec)})',
                             ),
-                            _buildStatRow(
-                              'bitcoind Connections',
-                              stats!.bitcoindBandwidth.connectionCount.toString(),
+                            StatRow(
+                              label: 'bitcoind Connections',
+                              value: stats!.bitcoindBandwidth.connectionCount.toString(),
                             ),
                           ],
                           if (stats!.hasEnforcerBandwidth()) ...[
                             const SizedBox(height: 16),
-                            _buildStatRow('enforcer PID', stats!.enforcerBandwidth.pid.toString()),
-                            _buildStatRow(
-                              'enforcer RX',
-                              '${_formatBytes(stats!.enforcerBandwidth.totalRxBytes.toInt())} (${_formatBandwidth(stats!.enforcerBandwidth.rxBytesPerSec)})',
+                            StatRow(label: 'enforcer PID', value: stats!.enforcerBandwidth.pid.toString()),
+                            StatRow(
+                              label: 'enforcer RX',
+                              value:
+                                  '${_formatBytes(stats!.enforcerBandwidth.totalRxBytes.toInt())} (${_formatBandwidth(stats!.enforcerBandwidth.rxBytesPerSec)})',
                             ),
-                            _buildStatRow(
-                              'enforcer TX',
-                              '${_formatBytes(stats!.enforcerBandwidth.totalTxBytes.toInt())} (${_formatBandwidth(stats!.enforcerBandwidth.txBytesPerSec)})',
+                            StatRow(
+                              label: 'enforcer TX',
+                              value:
+                                  '${_formatBytes(stats!.enforcerBandwidth.totalTxBytes.toInt())} (${_formatBandwidth(stats!.enforcerBandwidth.txBytesPerSec)})',
                             ),
-                            _buildStatRow(
-                              'enforcer Connections',
-                              stats!.enforcerBandwidth.connectionCount.toString(),
+                            StatRow(
+                              label: 'enforcer Connections',
+                              value: stats!.enforcerBandwidth.connectionCount.toString(),
                             ),
                           ],
                         ],
@@ -184,30 +193,6 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
               ),
             )
           : const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.primary20(title),
-        const SizedBox(height: 16),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _buildStatRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SailText.secondary13(label),
-          SailText.primary15(value),
-        ],
-      ),
     );
   }
 
