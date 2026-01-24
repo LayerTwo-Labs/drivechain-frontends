@@ -137,34 +137,12 @@ class BlockExplorerDialog extends StatelessWidget {
               ),
             ),
             // Block details
-            _buildValue(context, 'Hash', block.hash),
-            _buildValue(context, 'Prev Hash', block.previousBlockHash),
-            _buildValue(context, 'Merkle Root', block.merkleRoot),
-            _buildValue(context, 'Bits', '0x${block.bits}'),
+            BlockValue(label: 'Hash', value: block.hash),
+            BlockValue(label: 'Prev Hash', value: block.previousBlockHash),
+            BlockValue(label: 'Merkle Root', value: block.merkleRoot),
+            BlockValue(label: 'Bits', value: '0x${block.bits}'),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildValue(BuildContext context, String label, String value) {
-    return Container(
-      height: 60,
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SailText.primary13(
-            label,
-            monospace: true,
-            color: context.sailTheme.colors.textTertiary,
-          ),
-          SailText.secondary13(
-            value,
-            monospace: true,
-          ),
-        ],
       ),
     );
   }
