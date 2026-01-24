@@ -353,13 +353,8 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   ({bool hasPrivateConf, String path}) _getConfigFileInfo() {
-    // Use network-specific datadir:
-    // - MAINNET: ~/Library/Application Support/Bitcoin (standard Bitcoin Core)
-    // - FORKNET/SIGNET/TESTNET/REGTEST: ~/Library/Application Support/Drivechain
-    final datadir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? _getMainnetDatadir() : BitcoinCore().datadir();
-
-    // Check if user has a private bitcoin.conf for the current network (Bitcoin/ or Drivechain/)
-    final bitcoinConf = File(path.join(datadir, 'bitcoin.conf'));
+    // Check if user has a private bitcoin.conf in the root datadir
+    final bitcoinConf = File(path.join(BitcoinCore().rootDirNetwork(network), 'bitcoin.conf'));
     if (bitcoinConf.existsSync()) {
       return (hasPrivateConf: true, path: bitcoinConf.path);
     }
@@ -368,21 +363,14 @@ class BitcoinConfProvider extends ChangeNotifier {
     return (hasPrivateConf: false, path: _getBitWindowConfigPath());
   }
 
-  /// Get the standard Bitcoin Core datadir for real mainnet
-  String _getMainnetDatadir() {
-    final appDir = BitcoinCore().appdir();
-    return path.join(appDir, 'Bitcoin');
-  }
-
   /// Get the path to the config file in BitWindow directory (source of truth)
   String _getBitWindowConfigPath() {
-    return path.join(BitWindow().datadir(), 'bitwindow-bitcoin.conf');
+    return path.join(BitWindow().rootDir(), 'bitwindow-bitcoin.conf');
   }
 
   /// Get the path where config should be copied for Bitcoin Core to find
   String _getDownstreamConfigPath() {
-    final datadir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? _getMainnetDatadir() : BitcoinCore().datadir();
-    return path.join(datadir, 'bitwindow-bitcoin.conf');
+    return path.join(BitcoinCore().rootDirNetwork(network), 'bitwindow-bitcoin.conf');
   }
 
   /// Copy config from BitWindow directory to downstream location (Drivechain or Bitcoin dir)
@@ -453,7 +441,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     _bitWindowWatcher?.cancel();
 
     try {
-      final bitWindowDir = Directory(BitWindow().datadir());
+      final bitWindowDir = Directory(BitWindow().rootDir());
       if (!bitWindowDir.existsSync()) {
         bitWindowDir.createSync(recursive: true);
       }
@@ -476,7 +464,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     try {
       // Watch Drivechain directory (for signet/forknet/etc)
-      final drivechainDir = Directory(BitcoinCore().datadir());
+      final drivechainDir = Directory(BitcoinCore().rootDirNetwork(network));
       if (drivechainDir.existsSync()) {
         _drivechainWatcher = drivechainDir
             .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
@@ -486,7 +474,9 @@ class BitcoinConfProvider extends ChangeNotifier {
       }
 
       // Watch Bitcoin directory (for mainnet)
-      final bitcoinDir = Directory(_getMainnetDatadir());
+      final mainnetSubdir = BitcoinCore().directories.binary[BitcoinNetwork.BITCOIN_NETWORK_MAINNET]?[OS.current];
+      if (mainnetSubdir == null) return;
+      final bitcoinDir = Directory(filePath([BitcoinCore().appdir(), mainnetSubdir]));
       if (bitcoinDir.existsSync()) {
         _bitcoinWatcher = bitcoinDir
             .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
@@ -545,7 +535,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     // Real mainnet gets minimal standard Bitcoin Core config
     if (effectiveNetwork == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
-      final mainnetDatadir = _getMainnetDatadir();
+      final mainnetDatadir = BitcoinCore().rootDirNetwork(BitcoinNetwork.BITCOIN_NETWORK_MAINNET);
       return '''# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
@@ -733,7 +723,7 @@ $mainSection
   /// Get the path for the saved main-section file for mainnet/forknet
   /// Stored in BitWindow directory alongside the main config
   String _getMainSectionPath(BitcoinNetwork network) {
-    final datadir = BitWindow().datadir();
+    final datadir = BitWindow().datadirNetwork();
     final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
     return path.join(datadir, 'bitwindow-$networkName.conf');
   }

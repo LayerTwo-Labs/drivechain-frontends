@@ -360,18 +360,54 @@ class RootRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [SettingsPage]
-class SettingsRoute extends PageRouteInfo<void> {
-  const SettingsRoute({List<PageRouteInfo>? children})
-    : super(SettingsRoute.name, initialChildren: children);
+class SettingsRoute extends PageRouteInfo<SettingsRouteArgs> {
+  SettingsRoute({
+    Key? key,
+    int initialSection = 0,
+    List<PageRouteInfo>? children,
+  }) : super(
+         SettingsRoute.name,
+         args: SettingsRouteArgs(key: key, initialSection: initialSection),
+         rawPathParams: {'section': initialSection},
+         initialChildren: children,
+       );
 
   static const String name = 'SettingsRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const SettingsPage();
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<SettingsRouteArgs>(
+        orElse: () =>
+            SettingsRouteArgs(initialSection: pathParams.getInt('section', 0)),
+      );
+      return SettingsPage(key: args.key, initialSection: args.initialSection);
     },
   );
+}
+
+class SettingsRouteArgs {
+  const SettingsRouteArgs({this.key, this.initialSection = 0});
+
+  final Key? key;
+
+  final int initialSection;
+
+  @override
+  String toString() {
+    return 'SettingsRouteArgs{key: $key, initialSection: $initialSection}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SettingsRouteArgs) return false;
+    return key == other.key && initialSection == other.initialSection;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ initialSection.hashCode;
 }
 
 /// generated route for

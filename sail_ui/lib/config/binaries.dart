@@ -156,20 +156,14 @@ abstract class Binary {
     DownloadInfo? downloadInfo,
   });
 
-  Future<void> wipeAppDir() async {
-    _log('Starting data wipe for $name');
+  Future<void> deleteBlockchainData() async {
+    _log('Deleting blockchain data for $name');
 
-    final dir = datadir();
+    final networkDir = datadirNetwork();
 
     switch (type) {
       case BinaryType.bitcoinCore:
-        final network = GetIt.I<BitcoinConfProvider>().network;
-        // Mainnet and forknet use root dir, other networks use subdirectories
-        final targetDir =
-            (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
-            ? dir
-            : path.join(dir, network.toReadableNet());
-        await _deleteFilesInDir(targetDir, [
+        await _deleteFilesInDir(networkDir, [
           'anchors.dat',
           'banlist.json',
           'bitcoind.pid',
@@ -179,134 +173,134 @@ abstract class Binary {
           'indexes',
           'mempool.dat',
           'peers.dat',
-          'settings.json',
         ]);
 
       case BinaryType.enforcer:
-        await _deleteFilesInDir(dir, ['validator']);
+        final rootdir = rootDir();
+        final network = GetIt.I.get<BitcoinConfProvider>().network;
+        // enforcer paths are like validator/signet/, validator/bitcoin
+        await _deleteFilesInDir(rootdir, [
+          'validator',
+          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
+        ]);
 
       case BinaryType.bitWindow:
-        final network = GetIt.I<BitcoinConfProvider>().network;
-        final networkDir = path.join(dir, network.toReadableNet());
         await _deleteFilesInDir(networkDir, [
           'bitdrive',
-          'debug.log',
-          'mining.txt',
-          'server.log',
           'bitwindow.db',
         ]);
 
-        // from root dir
-        await _deleteFilesInDir(dir, [
-          'assets',
-          'downloads',
-          'pids',
-          'settings.json',
-          'timestamps',
-        ]);
-
+      // TODO: Check if this is correct, probably is like the enforcer
       case BinaryType.bitnames:
-        // Backend dir
-        await _deleteFilesInDir(dir, [
-          'data.mdb',
-          'logs',
-          'wallet.mdb', // bitwindow has a backup!
-        ]);
-        // Frontend dir
-        await _deleteFilesInDir(frontendDir(), [
-          'assets',
-          'downloads',
-          'debug.log',
-          'settings.json',
-        ]);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
 
       case BinaryType.bitassets:
-        // Backend dir
-        await _deleteFilesInDir(dir, [
-          'data.mdb',
-          'logs',
-        ]);
-        // Frontend dir
-        await _deleteFilesInDir(frontendDir(), [
-          'assets',
-          'downloads',
-          'debug.log',
-          'settings.json',
-        ]);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
 
       case BinaryType.thunder:
-        // Backend dir
-        await _deleteFilesInDir(dir, [
-          'data.mdb',
-          'logs',
-          'start.sh',
-          'thunder.conf',
-          'thunder.zip',
-          'thunder_app',
-        ]);
-        // Frontend dir
-        await _deleteFilesInDir(frontendDir(), [
-          'assets',
-          'downloads',
-          'debug.log',
-          'settings.json',
-        ]);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
 
       case BinaryType.zSide:
-        // Backend dir
-        await _deleteFilesInDir(dir, [
-          'data.mdb',
-          'logs',
-        ]);
-        // Frontend dir
-        await _deleteFilesInDir(frontendDir(), [
-          'assets',
-          'downloads',
-          'debug.log',
-          'settings.json',
-        ]);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
 
       case BinaryType.grpcurl:
-        // No specific cleanup for this type yet
         break;
     }
   }
 
-  Future<void> deleteWallet({BitcoinNetwork? network}) async {
-    _log('Starting wallet backup for $name (network: ${network?.toReadableNet() ?? 'all'})');
+  Future<void> deleteSettings() async {
+    _log('Deleting settings for $name');
 
-    final dir = datadir();
+    switch (type) {
+      case BinaryType.bitcoinCore:
+        // from network-aware datadir
+        final dir = datadirNetwork();
+        await _deleteFilesInDir(dir, [
+          'settings.json',
+        ]);
+
+        final rootdir = rootDir();
+        await _deleteFilesInDir(rootdir, [
+          'bitwindow-bitcoin.conf',
+        ]);
+
+      case BinaryType.enforcer:
+      // nothing to do, there are no settings!
+
+      case BinaryType.bitWindow:
+        await _deleteFilesInDir(datadirNetwork(), [
+          'server.log',
+        ]);
+        // from rootdir
+        final dir = BitWindow().rootDir();
+        await _deleteFilesInDir(dir, [
+          'assets',
+          'bitwindow-bitcoin.conf',
+          'bitwindow-mainnet.conf',
+          'bitwindow-forknet.conf',
+          'debug.log',
+          'downloads',
+          'pids',
+          'settings.json',
+        ]);
+
+      case BinaryType.bitnames:
+        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+
+      case BinaryType.bitassets:
+        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+
+      case BinaryType.thunder:
+        await _deleteFilesInDir(rootDir(), ['start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']);
+        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+
+      case BinaryType.zSide:
+        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+
+      case BinaryType.grpcurl:
+        break;
+    }
+  }
+
+  /// @deprecated Use deleteBlockchainData() instead
+  Future<void> wipeAppDir() => deleteBlockchainData();
+
+  Future<void> deleteWallet(BitcoinNetwork network) async {
+    _log('Starting wallet backup for $name (network: ${network.toReadableNet()})');
+
+    final networkDir = datadirNetwork();
 
     switch (type) {
       case BinaryType.enforcer:
         // Enforcer wallet is at: bip300301_enforcer/wallet/<Network>
-        // If network specified, delete only that network's wallet
-        // Otherwise delete the whole wallet directory
-        if (network != null) {
-          final walletNetworkDir = path.join('wallet', network.toReadableNet());
-          await _renameWalletDir(dir, walletNetworkDir);
-        } else {
-          await _renameWalletDir(dir, 'wallet');
-        }
+        // If network specified, move only that network's wallet
+        // Otherwise move the whole wallet directory
+        final rootdir = rootDir();
+        final walletNetworkDir = path.join(
+          rootdir,
+          'wallet',
+          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
+        );
+        await _renameWalletDir(rootdir, walletNetworkDir);
 
       case BinaryType.bitcoinCore:
-        await _backupBitcoinCoreWallets(dir, network);
+        await _backupBitcoinCoreWallets(networkDir, network);
 
       case BinaryType.bitnames:
-        await _renameWalletDir(dir, 'wallet.mdb');
+        await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.bitassets:
-        await _renameWalletDir(dir, 'wallet.mdb');
+        await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.thunder:
-        await _renameWalletDir(dir, 'wallet.mdb');
+        await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.zSide:
-        await _renameWalletDir(dir, 'wallet.mdb');
+        await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.bitWindow:
-        await _renameWalletDir(dir, 'wallet.json');
-        await _renameWalletDir(dir, 'wallet_encryption.json');
+        await _renameWalletDir(networkDir, 'wallet.json');
+        await _renameWalletDir(networkDir, 'wallet_encryption.json');
 
       case BinaryType.grpcurl:
         // No wallet for this type
@@ -406,8 +400,8 @@ abstract class Binary {
     }
   }
 
-  Future<void> wipeAsset(Directory assetsDir) async {
-    _log('Starting asset wipe for $name in ${assetsDir.path}');
+  Future<void> deleteBinaries(Directory assetsDir) async {
+    _log('Deleting binaries for $name in ${assetsDir.path}');
 
     final dir = assetsDir.path;
 
@@ -457,7 +451,6 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['thunder-orchard']);
 
       case BinaryType.grpcurl:
-        // No extra files for this type
         break;
     }
   }
@@ -722,9 +715,16 @@ class BitcoinCore extends Binary {
              directories ??
              DirectoryConfig(
                binary: {
-                 OS.linux: '.drivechain',
-                 OS.macos: 'Drivechain',
-                 OS.windows: 'Drivechain',
+                 ...allNetworks({
+                   OS.linux: '.drivechain',
+                   OS.macos: 'Drivechain',
+                   OS.windows: 'Drivechain',
+                 }),
+                 BitcoinNetwork.BITCOIN_NETWORK_MAINNET: {
+                   OS.linux: '.bitcoin',
+                   OS.macos: 'Bitcoin',
+                   OS.windows: 'Bitcoin',
+                 },
                },
                flutterFrontend: {
                  OS.linux: '', // N/A
@@ -829,11 +829,11 @@ class BitWindow extends Binary {
          directories:
              directories ??
              DirectoryConfig(
-               binary: {
+               binary: allNetworks({
                  OS.linux: 'bitwindow',
                  OS.macos: 'bitwindow',
                  OS.windows: 'bitwindow',
-               },
+               }),
                flutterFrontend: {
                  OS.linux: 'bitwindow',
                  OS.macos: 'bitwindow',
@@ -846,14 +846,12 @@ class BitWindow extends Binary {
                downloadConfig: DownloadConfig(
                  binary: 'bitwindowd',
                  baseUrl: '',
-                 files: {
-                   // should not be downloaded from any platform
-                   ...allNetworks({
-                     OS.linux: '',
-                     OS.macos: '',
-                     OS.windows: '',
-                   }),
-                 },
+                 // should not be downloaded from any platform
+                 files: allNetworks({
+                   OS.linux: '',
+                   OS.macos: '',
+                   OS.windows: '',
+                 }),
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -911,11 +909,11 @@ class Enforcer extends Binary {
          directories:
              directories ??
              DirectoryConfig(
-               binary: {
+               binary: allNetworks({
                  OS.linux: 'bip300301_enforcer',
                  OS.macos: 'bip300301_enforcer',
                  OS.windows: 'bip300301_enforcer',
-               },
+               }),
                flutterFrontend: {
                  OS.linux: '', // N/A
                  OS.macos: '', // N/A
@@ -928,13 +926,11 @@ class Enforcer extends Binary {
                downloadConfig: DownloadConfig(
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'bip300301-enforcer',
-                 files: {
-                   ...allNetworks({
-                     OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
-                     OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
-                     OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
-                   }),
-                 },
+                 files: allNetworks({
+                   OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
+                 }),
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -1019,11 +1015,11 @@ class GRPCurl extends Binary {
          directories:
              directories ??
              DirectoryConfig(
-               binary: {
+               binary: allNetworks({
                  OS.linux: 'grpcurl',
                  OS.macos: 'grpcurl',
                  OS.windows: 'grpcurl',
-               },
+               }),
                flutterFrontend: {
                  OS.linux: 'grpcurl', // filled in so it just follows same code-path
                  OS.macos: 'grpcurl', // filled in so it just follows same code-path
@@ -1036,13 +1032,11 @@ class GRPCurl extends Binary {
                downloadConfig: DownloadConfig(
                  baseUrl: 'https://api.github.com/repos/fullstorydev/grpcurl/releases/latest',
                  binary: 'grpcurl',
-                 files: {
-                   ...allNetworks({
-                     OS.linux: r'grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz',
-                     OS.macos: r'grpcurl_\d+\.\d+\.\d+_osx_x86_64\.tar\.gz',
-                     OS.windows: r'grpcurl_\d+\.\d+\.\d+_windows_x86_64\.zip',
-                   }),
-                 },
+                 files: allNetworks({
+                   OS.linux: r'grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz',
+                   OS.macos: r'grpcurl_\d+\.\d+\.\d+_osx_x86_64\.tar\.gz',
+                   OS.windows: r'grpcurl_\d+\.\d+\.\d+_windows_x86_64\.zip',
+                 }),
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
@@ -1097,7 +1091,7 @@ extension BinaryPaths on Binary {
     // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir
     final datadir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
         ? path.join(BitcoinCore().appdir(), 'Bitcoin')
-        : BitcoinCore().datadir();
+        : BitcoinCore().datadirNetwork();
 
     // Always check for bitcoin.conf first - user config takes priority
     final bitcoinConfPath = path.join(datadir, 'bitcoin.conf');
@@ -1114,7 +1108,7 @@ extension BinaryPaths on Binary {
 
     return switch (type) {
       BinaryType.bitcoinCore => _getBitcoinLogPath(network),
-      BinaryType.bitWindow => filePath([datadir(), network.toReadableNet(), 'server.log']),
+      BinaryType.bitWindow => filePath([datadirNetwork(), network.toReadableNet(), 'server.log']),
       BinaryType.thunder ||
       BinaryType.bitnames ||
       BinaryType.bitassets ||
@@ -1132,7 +1126,7 @@ extension BinaryPaths on Binary {
     // Otherwise fall back to defaults: Bitcoin datadir for mainnet, Drivechain datadir for others
     final baseDir = (customDataDir != null && customDataDir.isNotEmpty)
         ? customDataDir
-        : (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? path.join(appdir(), 'Bitcoin') : datadir());
+        : (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? path.join(appdir(), 'Bitcoin') : datadirNetwork());
 
     // Get network-specific subdirectory
     final networkDir = switch (network) {
@@ -1148,10 +1142,10 @@ extension BinaryPaths on Binary {
   }
 
   String _findLatestEnforcerLog() {
-    final logsDir = Directory(filePath([datadir(), 'logs']));
+    final logsDir = Directory(filePath([datadirNetwork(), 'logs']));
 
     if (!logsDir.existsSync()) {
-      return filePath([datadir(), 'bip300301_enforcer.log']); // Fallback to original
+      return filePath([datadirNetwork(), 'bip300301_enforcer.log']); // Fallback to original
     }
 
     // Find all enforcer log files matching the pattern: bip300301_enforcer.log.YYYY-MM-DD.N
@@ -1162,7 +1156,7 @@ extension BinaryPaths on Binary {
     }).toList();
 
     if (logFiles.isEmpty) {
-      return filePath([datadir(), 'bip300301_enforcer.log']); // Fallback to original
+      return filePath([datadirNetwork(), 'bip300301_enforcer.log']); // Fallback to original
     }
 
     // Sort by date and sequence number (latest first)
@@ -1193,9 +1187,9 @@ extension BinaryPaths on Binary {
   }
 
   String _findLatestDirVersionedLog() {
-    final logsDir = Directory(filePath([datadir(), 'logs']));
+    final logsDir = Directory(filePath([datadirNetwork(), 'logs']));
     if (!logsDir.existsSync()) {
-      return filePath([datadir(), 'logs', 'unknown.log']);
+      return filePath([datadirNetwork(), 'logs', 'unknown.log']);
     }
 
     // Get all version directories
@@ -1206,7 +1200,7 @@ extension BinaryPaths on Binary {
         .toList();
 
     if (versionDirs.isEmpty) {
-      return filePath([datadir(), 'logs', 'unknown.log']); // Fallback if no version directories found
+      return filePath([datadirNetwork(), 'logs', 'unknown.log']); // Fallback if no version directories found
     }
 
     // Sort version directories by version number
@@ -1235,7 +1229,7 @@ extension BinaryPaths on Binary {
     final logFiles = latestVersionDir.listSync().whereType<File>().where((file) => file.path.endsWith('.log')).toList();
 
     if (logFiles.isEmpty) {
-      return filePath([datadir(), 'logs', 'unknown.log']); // Fallback if no log files found
+      return filePath([datadirNetwork(), 'logs', 'unknown.log']); // Fallback if no log files found
     }
 
     // Sort log files by date in filename (YYYY-MM-DD.log format)
@@ -1270,14 +1264,64 @@ extension BinaryPaths on Binary {
     }
   }
 
-  String datadir() {
-    final subdir = directories.binary[OS.current];
+  /// Returns the root datadir for a specific network
+  String rootDirNetwork(BitcoinNetwork network) {
+    final subdir = directories.binary[network]?[OS.current];
     if (subdir == null || subdir.isEmpty) {
-      throw 'unsupported operating system, subdir is empty: ${Platform.operatingSystem}';
+      throw 'unsupported operating system or network, subdir is empty: ${Platform.operatingSystem}';
+    }
+    return filePath([appdir(), subdir]);
+  }
+
+  /// Returns the root datadir using any network (for binaries where dir is same for all networks)
+  /// Use during initialization before BitcoinConfProvider is available
+  /// Throws if directories differ per network (use rootDir(network) instead)
+  String rootDir() {
+    final values = directories.binary.values.map((m) => m[OS.current]).toSet();
+    if (values.length > 1) {
+      throw 'rootDirDefault() called on $name but directories differ per network: $values. Use rootDir(network) instead.';
     }
 
-    final appDir = appdir();
-    return filePath([appDir, subdir]);
+    return rootDirNetwork(directories.binary.keys.first);
+  }
+
+  /// Returns the network-aware datadir
+  String datadirNetwork() {
+    final network = GetIt.I<BitcoinConfProvider>().network;
+
+    switch (type) {
+      case BinaryType.bitcoinCore:
+        final provider = GetIt.I<BitcoinConfProvider>();
+        final baseDir = (provider.detectedDataDir?.isNotEmpty == true)
+            ? provider.detectedDataDir!
+            : rootDirNetwork(network);
+        if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+          return baseDir;
+        }
+        return path.join(baseDir, network.toReadableNet());
+
+      case BinaryType.enforcer:
+        final provider = GetIt.I<EnforcerConfProvider>();
+        final customDir = provider.currentConfig?.getSetting('datadir');
+        return customDir ?? rootDir();
+
+      case BinaryType.thunder:
+      case BinaryType.bitnames:
+      case BinaryType.bitassets:
+      case BinaryType.zSide:
+        if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+          final provider = GetIt.I<GenericSidechainConfProvider>();
+          final customDir = provider.currentConfig?.getSetting('datadir');
+          customDir ?? rootDir();
+        }
+        return rootDir();
+
+      case BinaryType.bitWindow:
+        return path.join(rootDir(), network.toReadableNet());
+
+      case BinaryType.grpcurl:
+        return rootDir();
+    }
   }
 
   String frontendDir() {
@@ -1497,7 +1541,7 @@ extension BinaryDownload on Binary {
 
 /// Configuration for component directories
 class DirectoryConfig {
-  final Map<OS, String> binary;
+  final Map<BitcoinNetwork, Map<OS, String>> binary;
   final Map<OS, String> flutterFrontend;
 
   const DirectoryConfig({
@@ -1512,7 +1556,7 @@ class DirectoryConfig {
   @override
   int get hashCode => binary.hashCode;
 
-  bool _mapEquals(Map<OS, String> a, Map<OS, String> b) {
+  bool _mapEquals(Map<BitcoinNetwork, Map<OS, String>> a, Map<BitcoinNetwork, Map<OS, String>> b) {
     if (a.length != b.length) return false;
     for (final key in a.keys) {
       if (!b.containsKey(key) || a[key] != b[key]) return false;

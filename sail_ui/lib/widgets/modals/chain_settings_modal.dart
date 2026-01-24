@@ -85,7 +85,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       builder: (context, viewModel, child) {
         final theme = SailTheme.of(context);
 
-        final baseDir = viewModel.binary.directories.binary[viewModel.os];
+        final baseDir = viewModel.binary.directories.binary[GetIt.I.get<BitcoinConfProvider>().network]?[viewModel.os];
         final downloadFile =
             viewModel.binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![viewModel.os];
 
@@ -123,7 +123,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
                           await binaryProvider.stop(widget.connection.binary, skipDownstream: true);
 
-                          await widget.connection.binary.wipeAsset(binDir(appDir.path));
+                          await widget.connection.binary.deleteBinaries(binDir(appDir.path));
                           await widget.connection.binary.wipeAppDir();
                           await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
 
@@ -161,7 +161,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                   if (baseDir != null) StaticField(label: 'Installation Directory', value: baseDir, copyable: true),
                   StaticField(
                     label: 'Binary Data Directory',
-                    value: viewModel.binary.datadir(),
+                    value: viewModel.binary.datadirNetwork(),
                     copyable: true,
                   ),
                   StaticField(
@@ -276,7 +276,7 @@ class ChainSettingsViewModel extends BaseViewModel {
   }
 
   Future<void> handleDelete() async {
-    await _binary.wipeAsset(binDir(appDir.path));
+    await _binary.deleteBinaries(binDir(appDir.path));
     await _binary.wipeAppDir();
   }
 

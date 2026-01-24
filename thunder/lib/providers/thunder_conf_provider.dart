@@ -18,7 +18,7 @@ class ThunderConfProvider extends GenericSidechainConfProvider {
   String get configFileName => 'thunder.conf';
 
   @override
-  String getDataDir() => Thunder().datadir();
+  String getDataDir() => Thunder().datadirNetwork();
 
   @override
   List<String> get skippedCliKeys => ['network'];

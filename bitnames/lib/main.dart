@@ -123,6 +123,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // Initialize BitnamesConfProvider (must be after BitcoinConfProvider)
   final bitnamesConfProvider = await BitnamesConfProvider.create();
   GetIt.I.registerLazySingleton<BitnamesConfProvider>(() => bitnamesConfProvider);
+  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitnamesConfProvider);
 
   GetIt.I.registerLazySingleton<BitnamesProvider>(
     () => BitnamesProvider(),

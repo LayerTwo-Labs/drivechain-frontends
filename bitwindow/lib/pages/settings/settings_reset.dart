@@ -21,226 +21,140 @@ class _SettingsResetState extends State<SettingsReset> {
   Logger get log => GetIt.I.get<Logger>();
   Directory get appDir => GetIt.I.get<BinaryProvider>().appDir;
 
+  bool _deleteNodeSoftware = false;
+  bool _deleteBlockchainData = false;
+  bool _deleteWalletFiles = false;
+  bool _deleteSettings = false;
+  bool _alsoResetSidechains = false;
+  bool _obliterateEverything = false;
+
+  bool get _hasSelection =>
+      _deleteNodeSoftware || _deleteBlockchainData || _deleteWalletFiles || _deleteSettings || _obliterateEverything;
+
+  void _updateObliterate() {
+    _obliterateEverything =
+        _deleteNodeSoftware && _deleteBlockchainData && _deleteWalletFiles && _deleteSettings && _alsoResetSidechains;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SailColumn(
-      spacing: SailStyleValues.padding20,
+      spacing: SailStyleValues.padding16,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary20('Reset'),
-        SailText.secondary13('Start fresh by resetting various data'),
-        SailButton(
-          label: 'Reset Blockchain Data',
-          variant: ButtonVariant.destructive,
-          onPressed: () async {
-            await _resetBlockchainData(context);
-          },
+        SailText.secondary13('Select what you want to reset and click the button below'),
+        const SailSpacing(SailStyleValues.padding08),
+        ResetOptionTile(
+          value: _deleteNodeSoftware,
+          onChanged: (v) => setState(() {
+            _deleteNodeSoftware = v;
+            _updateObliterate();
+          }),
+          title: 'Delete Node Software and Data',
+          subtitle: 'Deletes all binaries for re-downloading, including logs',
+          isDestructive: false,
         ),
-        SailButton(
-          label: 'Delete All Wallets',
-          variant: ButtonVariant.destructive,
-          onPressed: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => SailAlertCard(
-                title: 'Reset Wallet?',
-                subtitle:
-                    'Are you sure you want to reset all wallet data? This will:\n\n'
-                    '• Permanently delete all wallet files from BitWindow\n'
-                    '• Permanently delete all wallet files from the Enforcer\n'
-                    '• Stop all running processes\n'
-                    '• Return you to the wallet creation screen\n\n'
-                    'Make sure to backup your seed phrase before proceeding. This action cannot be undone.',
-                confirmButtonVariant: ButtonVariant.destructive,
-                onConfirm: () async {
-                  Navigator.of(context).pop(true);
-                },
-              ),
-            );
-            if (confirmed == true && context.mounted) {
-              final router = GetIt.I.get<AppRouter>();
-              await showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (dialogContext) => ResetProgressDialog(
-                  resetFunction: (updateStatus) async {
-                    await _resetWallets(context, onStatusUpdate: updateStatus);
-                  },
-                  onComplete: () async {
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop();
-                    }
-                    unawaited(bootBinaries(log));
-                  },
-                ),
-              );
-              await Future.delayed(const Duration(milliseconds: 100));
-              await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
-            }
-          },
+        ResetOptionTile(
+          value: _deleteBlockchainData,
+          onChanged: (v) => setState(() {
+            _deleteBlockchainData = v;
+            _updateObliterate();
+          }),
+          title: 'Delete Blockchain Data',
+          subtitle: 'Lets you resync the blockchain from scratch',
+          isDestructive: false,
         ),
+        ResetOptionTile(
+          value: _deleteSettings,
+          onChanged: (v) => setState(() {
+            _deleteSettings = v;
+            _updateObliterate();
+          }),
+          title: 'Delete BitWindow Settings',
+          subtitle: 'Resets all configuration to defaults',
+          isDestructive: false,
+        ),
+        ResetOptionTile(
+          value: _deleteWalletFiles,
+          onChanged: (v) => setState(() {
+            _deleteWalletFiles = v;
+            _updateObliterate();
+          }),
+          title: 'Delete My Wallet Files',
+          subtitle: 'Backup your seed phrase first!',
+          isDestructive: true,
+        ),
+        ResetOptionTile(
+          value: _alsoResetSidechains,
+          onChanged: (v) => setState(() {
+            _alsoResetSidechains = v;
+            _updateObliterate();
+          }),
+          title: 'Also Reset Sidechain Data',
+          subtitle: 'Also wipes all data for Thunder, BitNames, BitAssets and ZSide',
+          isDestructive: true,
+        ),
+        ResetOptionTile(
+          value: _obliterateEverything,
+          onChanged: (v) => setState(() {
+            _obliterateEverything = v;
+            _deleteNodeSoftware = v;
+            _deleteBlockchainData = v;
+            _deleteWalletFiles = v;
+            _deleteSettings = v;
+            _alsoResetSidechains = v;
+          }),
+          title: 'Fully Obliterate Everything',
+          subtitle: 'Deletes all data including sidechains',
+          isDestructive: true,
+        ),
+        const SailSpacing(SailStyleValues.padding16),
         SailButton(
-          label: 'Reset Everything',
+          label: 'Reset Selected',
           variant: ButtonVariant.destructive,
-          onPressed: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => SailAlertCard(
-                title: 'Reset Everything?',
-                subtitle:
-                    'Are you sure you want to reset absolutely everything? Even wallets will be deleted. This action cannot be undone.',
-                confirmButtonVariant: ButtonVariant.destructive,
-                onConfirm: () async {
-                  Navigator.of(context).pop(true);
-                },
-              ),
-            );
-            if (confirmed == true && context.mounted) {
-              await _resetEverything(context);
-            }
-          },
           skipLoading: true,
+          disabled: !_hasSelection,
+          onPressed: () async {
+            await _executeReset(context);
+          },
         ),
       ],
     );
   }
 
-  Future<void> _resetBlockchainData(BuildContext context) async {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
+  Future<void> _executeReset(BuildContext context) async {
+    final actions = <String>[];
+    if (_deleteNodeSoftware) actions.add('delete node software');
+    if (_deleteBlockchainData) actions.add('delete blockchain data');
+    if (_deleteWalletFiles) actions.add('delete wallet files');
+    if (_deleteSettings) actions.add('delete settings');
+    if (_alsoResetSidechains) actions.add('reset sidechain data');
+    if (_obliterateEverything) actions.add('obliterate everything');
 
-    final binaries = [
-      BitcoinCore(),
-      Enforcer(),
-      BitWindow(),
-    ];
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Confirm Reset',
+        subtitle: 'This will ${actions.join(', ')}.\n\nThis action cannot be undone.',
+        confirmButtonVariant: ButtonVariant.destructive,
+        onConfirm: () async {
+          Navigator.of(context).pop(true);
+        },
+      ),
+    );
 
-    final futures = <Future>[];
-    for (final binary in binaries) {
-      futures.add(binaryProvider.stop(binary));
-    }
+    if (confirmed != true || !context.mounted) return;
 
-    await Future.wait(futures);
-
-    await Future.delayed(const Duration(seconds: 3));
-
-    for (final binary in binaries) {
-      await binary.wipeAppDir();
-    }
-
-    unawaited(bootBinaries(GetIt.I.get<Logger>()));
-
-    final mainchainRPC = GetIt.I.get<MainchainRPC>();
-    while (!mainchainRPC.connected) {
-      await Future.delayed(const Duration(seconds: 1));
-    }
-  }
-
-  Future<void> _resetWallets(
-    BuildContext context, {
-    Future<void> Function()? beforeBoot,
-    void Function(String status)? onStatusUpdate,
-  }) async {
-    final logger = GetIt.I.get<Logger>();
-
-    try {
-      await GetIt.I.get<WalletWriterProvider>().deleteAllWallets(
-        beforeBoot: beforeBoot,
-        onStatusUpdate: onStatusUpdate,
-      );
-    } catch (e) {
-      logger.e('could not reset wallet data: $e');
-
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not reset wallets: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _resetEverything(BuildContext context) async {
     final router = GetIt.I.get<AppRouter>();
+    final needsWalletCreation = _deleteWalletFiles || _obliterateEverything;
 
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => ResetProgressDialog(
         resetFunction: (updateStatus) async {
-          updateStatus('Wiping wallets');
-
-          await _resetWallets(
-            context,
-            onStatusUpdate: updateStatus,
-            beforeBoot: () async {
-              log.i('resetting blockchain data');
-
-              final allBinaries = [
-                BitcoinCore(),
-                Enforcer(),
-                BitWindow(),
-                Thunder(),
-                BitNames(),
-                BitAssets(),
-                ZSide(),
-              ];
-
-              updateStatus('Wiping blockchain data');
-
-              try {
-                await Future.wait(allBinaries.map((binary) => binary.wipeAppDir()));
-                log.i('Successfully wiped all blockchain data');
-              } catch (e) {
-                log.e('could not reset blockchain data: $e');
-              }
-
-              updateStatus('Wiping asset data');
-
-              try {
-                await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(appDir.path))));
-
-                await copyBinariesFromAssets(log, appDir);
-                log.i('Successfully wiped all asset data');
-              } catch (e) {
-                log.e('could not reset asset data: $e');
-              }
-
-              updateStatus('Wiping config files');
-
-              try {
-                final bitcoinDatadir = BitcoinCore().datadir();
-                final bitwindowDatadir = BitWindow().datadir();
-
-                // Delete enforcer config
-                final enforcerConfPath = File('$bitwindowDatadir/bitwindow-enforcer.conf');
-                if (await enforcerConfPath.exists()) {
-                  await enforcerConfPath.delete();
-                  log.i('Deleted enforcer config: ${enforcerConfPath.path}');
-                }
-
-                // Delete generated bitcoin config (not user's private bitcoin.conf)
-                final bitcoinConfPath = File('$bitcoinDatadir/bitwindow-bitcoin.conf');
-                if (await bitcoinConfPath.exists()) {
-                  await bitcoinConfPath.delete();
-                  log.i('Deleted bitcoin config: ${bitcoinConfPath.path}');
-                }
-
-                // Delete network-specific [main] section configs
-                for (final networkName in ['mainnet', 'forknet']) {
-                  final networkConfPath = File('$bitcoinDatadir/bitwindow-$networkName.conf');
-                  if (await networkConfPath.exists()) {
-                    await networkConfPath.delete();
-                    log.i('Deleted network config: ${networkConfPath.path}');
-                  }
-                }
-              } catch (e) {
-                log.e('could not delete config files: $e');
-              }
-            },
-          );
+          await _performReset(updateStatus);
         },
         onComplete: () async {
           if (dialogContext.mounted) {
@@ -251,7 +165,150 @@ class _SettingsResetState extends State<SettingsReset> {
     );
 
     await Future.delayed(const Duration(milliseconds: 100));
-    unawaited(bootBinaries(log));
-    await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
+
+    if (!_obliterateEverything) {
+      unawaited(bootBinaries(log));
+    }
+
+    if (needsWalletCreation) {
+      await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
+    }
+  }
+
+  Future<void> _performReset(void Function(String) updateStatus) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+
+    final coreBinaries = [
+      BitcoinCore(),
+      Enforcer(),
+      BitWindow(),
+    ];
+
+    final sidechainBinaries = [
+      Thunder(),
+      BitNames(),
+      BitAssets(),
+      ZSide(),
+    ];
+
+    final binariesToReset = [
+      ...coreBinaries,
+      if (_alsoResetSidechains) ...sidechainBinaries,
+    ];
+
+    updateStatus('Stopping binaries');
+    await Future.wait(binariesToReset.map((b) => binaryProvider.stop(b)));
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (_deleteNodeSoftware) {
+      updateStatus('Deleting node software');
+      try {
+        await Future.wait(binariesToReset.map((b) => b.deleteBinaries(binDir(appDir.path))));
+        await copyBinariesFromAssets(log, appDir);
+        log.i('Successfully deleted and re-downloaded node software');
+      } catch (e) {
+        log.e('could not delete node software: $e');
+      }
+    }
+
+    if (_deleteBlockchainData) {
+      updateStatus('Deleting blockchain data');
+      try {
+        await Future.wait(binariesToReset.map((b) => b.deleteBlockchainData()));
+        log.i('Successfully deleted blockchain data');
+      } catch (e) {
+        log.e('could not delete blockchain data: $e');
+      }
+    }
+
+    if (_deleteSettings) {
+      updateStatus('Deleting settings');
+      try {
+        await Future.wait(binariesToReset.map((b) => b.deleteSettings()));
+        log.i('Successfully deleted settings');
+      } catch (e) {
+        log.e('could not delete settings: $e');
+      }
+    }
+
+    if (_deleteWalletFiles) {
+      updateStatus('Deleting wallet files');
+      try {
+        await Future.wait(binariesToReset.map((b) => b.deleteWallet(GetIt.I.get<BitcoinConfProvider>().network)));
+        log.i('Successfully deleted wallet files');
+      } catch (e) {
+        log.e('could not delete wallet files: $e');
+      }
+    }
+
+    updateStatus('Reset complete');
+  }
+}
+
+class ResetOptionTile extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String title;
+  final String subtitle;
+  final bool isDestructive;
+
+  const ResetOptionTile({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.title,
+    required this.subtitle,
+    required this.isDestructive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: SailStyleValues.borderRadiusSmall,
+      child: Container(
+        padding: const EdgeInsets.all(SailStyleValues.padding12),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: value ? (isDestructive ? theme.colors.error : theme.colors.primary) : theme.colors.border,
+          ),
+          borderRadius: SailStyleValues.borderRadiusSmall,
+        ),
+        child: SailRow(
+          spacing: SailStyleValues.padding12,
+          children: [
+            SailCheckbox(
+              value: value,
+              onChanged: onChanged,
+            ),
+            Expanded(
+              child: SailColumn(
+                spacing: SailStyleValues.padding04,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary13(
+                    title,
+                    color: isDestructive ? theme.colors.error : null,
+                  ),
+                  SailText.secondary12(
+                    subtitle,
+                    color: isDestructive ? theme.colors.error.withValues(alpha: 0.7) : null,
+                  ),
+                ],
+              ),
+            ),
+            if (isDestructive)
+              SailSVG.fromAsset(
+                SailSVGAsset.iconWarning,
+                color: theme.colors.error,
+                width: 20,
+                height: 20,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

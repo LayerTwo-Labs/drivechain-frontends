@@ -86,6 +86,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // Initialize BitassetsConfProvider (must be after BitcoinConfProvider)
   final bitassetsConfProvider = await BitassetsConfProvider.create();
   GetIt.I.registerLazySingleton<BitassetsConfProvider>(() => bitassetsConfProvider);
+  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitassetsConfProvider);
 
   GetIt.I.registerLazySingleton<BitAssetsProvider>(
     () => BitAssetsProvider(),

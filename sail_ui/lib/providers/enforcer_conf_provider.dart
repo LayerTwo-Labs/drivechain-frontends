@@ -127,8 +127,7 @@ class EnforcerConfProvider extends ChangeNotifier {
 
   /// Get the path to the enforcer config file
   String _getConfigPath() {
-    final datadir = BitWindow().datadir();
-    return path.join(datadir, 'bitwindow-enforcer.conf');
+    return path.join(BitWindow().rootDir(), 'bitwindow-enforcer.conf');
   }
 
   /// Load config from file, or create default if not exists
