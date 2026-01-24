@@ -84,7 +84,7 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final networkName = _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'Forknet' : 'Mainnet';
+    final networkName = _confProvider.network.toDisplayName();
 
     return Scaffold(
       backgroundColor: theme.colors.background,

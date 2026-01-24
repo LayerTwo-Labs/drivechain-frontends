@@ -97,22 +97,11 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
     }
   }
 
-  String _networkDisplayName(BitcoinNetwork network) {
-    return switch (network) {
-      BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'Mainnet',
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'Forknet',
-      BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'Testnet',
-      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'Signet',
-      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'Regtest',
-      _ => 'Unknown',
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final fromNetworkName = _networkDisplayName(widget.fromNetwork);
-    final toNetworkName = _networkDisplayName(widget.toNetwork);
+    final fromNetworkName = widget.fromNetwork.toDisplayName();
+    final toNetworkName = widget.toNetwork.toDisplayName();
 
     return Dialog(
       backgroundColor: Colors.transparent,
