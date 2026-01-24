@@ -62,9 +62,14 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTransactionDetails(tx, group),
-                _buildSigningDetails(tx, group, walletKeys, unsignedWalletKeys),
-                _buildKeyStatus(tx, group),
+                _TransactionDetails(transaction: tx, group: group),
+                _SigningDetails(
+                  transaction: tx,
+                  group: group,
+                  walletKeys: walletKeys,
+                  unsignedWalletKeys: unsignedWalletKeys,
+                ),
+                _KeyStatus(transaction: tx, group: group),
                 SailRow(
                   spacing: SailStyleValues.padding12,
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -89,8 +94,19 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
       ),
     );
   }
+}
 
-  Widget _buildTransactionDetails(MultisigTransaction tx, MultisigGroup group) {
+class _TransactionDetails extends StatelessWidget {
+  final MultisigTransaction transaction;
+  final MultisigGroup group;
+
+  const _TransactionDetails({
+    required this.transaction,
+    required this.group,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       shadowSize: ShadowSize.none,
       child: SailColumn(
@@ -118,7 +134,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SailText.secondary12('Transaction ID:'),
-                          SailText.primary13(tx.shortId),
+                          SailText.primary13(transaction.shortId),
                         ],
                       ),
                     ),
@@ -147,7 +163,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SailText.secondary12('Amount:'),
-                          SailText.primary13('${tx.amount.toStringAsFixed(8)} BTC'),
+                          SailText.primary13('${transaction.amount.toStringAsFixed(8)} BTC'),
                         ],
                       ),
                     ),
@@ -156,7 +172,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SailText.secondary12('Fee:'),
-                        SailText.primary13('${tx.fee.toStringAsFixed(8)} BTC'),
+                        SailText.primary13('${transaction.fee.toStringAsFixed(8)} BTC'),
                       ],
                     ),
                   ],
@@ -166,7 +182,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SailText.secondary12('Destination:'),
-                    SailText.primary13(tx.destination),
+                    SailText.primary13(transaction.destination),
                   ],
                 ),
               ],
@@ -176,13 +192,23 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
       ),
     );
   }
+}
 
-  Widget _buildSigningDetails(
-    MultisigTransaction tx,
-    MultisigGroup group,
-    List<MultisigKey> walletKeys,
-    List<MultisigKey> unsignedWalletKeys,
-  ) {
+class _SigningDetails extends StatelessWidget {
+  final MultisigTransaction transaction;
+  final MultisigGroup group;
+  final List<MultisigKey> walletKeys;
+  final List<MultisigKey> unsignedWalletKeys;
+
+  const _SigningDetails({
+    required this.transaction,
+    required this.group,
+    required this.walletKeys,
+    required this.unsignedWalletKeys,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       shadowSize: ShadowSize.none,
       child: SailColumn(
@@ -209,7 +235,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SailText.secondary12('Current Signatures:'),
-                        SailText.primary13('${tx.signatureCount}/${group.m}'),
+                        SailText.primary13('${transaction.signatureCount}/${group.m}'),
                       ],
                     ),
                     SailColumn(
@@ -249,8 +275,19 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
       ),
     );
   }
+}
 
-  Widget _buildKeyStatus(MultisigTransaction tx, MultisigGroup group) {
+class _KeyStatus extends StatelessWidget {
+  final MultisigTransaction transaction;
+  final MultisigGroup group;
+
+  const _KeyStatus({
+    required this.transaction,
+    required this.group,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       shadowSize: ShadowSize.none,
       child: SailColumn(
@@ -261,7 +298,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
           SailColumn(
             spacing: SailStyleValues.padding08,
             children: group.keys.map((key) {
-              final keyPSBT = tx.keyPSBTs.firstWhere(
+              final keyPSBT = transaction.keyPSBTs.firstWhere(
                 (kp) => kp.keyId == key.xpub,
                 orElse: () => KeyPSBTStatus(
                   keyId: key.xpub,

@@ -131,7 +131,15 @@ class SettingsPageState extends State<SettingsPage> {
                   const SailSpacing(SailStyleValues.padding40),
                   // Right content area
                   Expanded(
-                    child: _buildContent(),
+                    child: switch (_selectedIndex) {
+                      0 => const SettingsNetwork(),
+                      1 => _SecuritySettingsContent(),
+                      2 => const SettingsAppearance(),
+                      3 => const SettingsAdvanced(),
+                      4 => const SettingsReset(),
+                      5 => const SettingsAbout(),
+                      _ => const SettingsNetwork(),
+                    },
                   ),
                 ],
               ),
@@ -140,25 +148,6 @@ class SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
-  }
-
-  Widget _buildContent() {
-    switch (_selectedIndex) {
-      case 0:
-        return const SettingsNetwork();
-      case 1:
-        return _SecuritySettingsContent();
-      case 2:
-        return const SettingsAppearance();
-      case 3:
-        return const SettingsAdvanced();
-      case 4:
-        return const SettingsReset();
-      case 5:
-        return const SettingsAbout();
-      default:
-        return const SettingsNetwork();
-    }
   }
 }
 

@@ -69,8 +69,11 @@ class BlockExplorerDialog extends StatelessWidget {
                       final block = model.blocks[adjustedIndex];
                       return Row(
                         children: [
-                          _buildBlockColumn(context, block),
-                          if (adjustedIndex < model.blocks.length - 1) _buildBlockConnector(context),
+                          _BlockColumn(
+                            block: block,
+                            onDoubleTap: () => _showBlockDetails(context, block),
+                          ),
+                          if (adjustedIndex < model.blocks.length - 1) const _BlockConnector(),
                         ],
                       );
                     },
@@ -82,79 +85,6 @@ class BlockExplorerDialog extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildBlockColumn(BuildContext context, Block block) {
-    return GestureDetector(
-      onDoubleTap: () => _showBlockDetails(context, block),
-      child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(SailStyleValues.padding16),
-        decoration: BoxDecoration(
-          color: context.sailTheme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadius,
-          border: Border.all(
-            color: context.sailTheme.colors.divider,
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-              offset: const Offset(0, 2),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Block height as header
-            Container(
-              padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
-              margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: context.sailTheme.colors.divider,
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SailText.primary13(
-                    '${block.height}',
-                    monospace: true,
-                    color: context.sailTheme.colors.info,
-                  ),
-                  SailText.secondary13(
-                    block.blockTime.toDateTime().toLocal().format(),
-                    monospace: true,
-                  ),
-                ],
-              ),
-            ),
-            // Block details
-            BlockValue(label: 'Hash', value: block.hash),
-            BlockValue(label: 'Prev Hash', value: block.previousBlockHash),
-            BlockValue(label: 'Merkle Root', value: block.merkleRoot),
-            BlockValue(label: 'Bits', value: '0x${block.bits}'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBlockConnector(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
-      child: Icon(
-        Icons.chevron_left,
-        size: 20,
-        color: context.sailTheme.colors.textTertiary,
-      ),
     );
   }
 
@@ -873,4 +803,93 @@ Future<void> showTransactionDetails(BuildContext context, String txid) async {
       },
     );
   });
+}
+
+class _BlockColumn extends StatelessWidget {
+  final Block block;
+  final VoidCallback onDoubleTap;
+
+  const _BlockColumn({
+    required this.block,
+    required this.onDoubleTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTap: onDoubleTap,
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(SailStyleValues.padding16),
+        decoration: BoxDecoration(
+          color: context.sailTheme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadius,
+          border: Border.all(
+            color: context.sailTheme.colors.divider,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
+              offset: const Offset(0, 2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Block height as header
+            Container(
+              padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+              margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: context.sailTheme.colors.divider,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SailText.primary13(
+                    '${block.height}',
+                    monospace: true,
+                    color: context.sailTheme.colors.info,
+                  ),
+                  SailText.secondary13(
+                    block.blockTime.toDateTime().toLocal().format(),
+                    monospace: true,
+                  ),
+                ],
+              ),
+            ),
+            // Block details
+            BlockValue(label: 'Hash', value: block.hash),
+            BlockValue(label: 'Prev Hash', value: block.previousBlockHash),
+            BlockValue(label: 'Merkle Root', value: block.merkleRoot),
+            BlockValue(label: 'Bits', value: '0x${block.bits}'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlockConnector extends StatelessWidget {
+  const _BlockConnector();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
+      child: Icon(
+        Icons.chevron_left,
+        size: 20,
+        color: context.sailTheme.colors.textTertiary,
+      ),
+    );
+  }
 }

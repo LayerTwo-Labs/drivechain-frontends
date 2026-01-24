@@ -186,8 +186,42 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildDecodeTab(theme),
-                  _buildEncodeTab(theme),
+                  _DecodeTab(
+                    controller: _decodeInputController,
+                    decodeResult: _decodeResult,
+                    decodeError: _decodeError,
+                    onDecode: _decode,
+                    onInputChanged: () {
+                      if (_decodeResult != null || _decodeError != null) {
+                        setState(() {
+                          _decodeResult = null;
+                          _decodeError = null;
+                        });
+                      }
+                    },
+                  ),
+                  _EncodeTab(
+                    payloadController: _encodePayloadController,
+                    resultController: _encodeResultController,
+                    selectedVersionByte: _selectedVersionByte,
+                    versionBytes: _versionBytes,
+                    encodeError: _encodeError,
+                    onEncode: _encode,
+                    onVersionChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedVersionByte = value);
+                      }
+                    },
+                    onInputChanged: () {
+                      if (_encodeResultController.text.isNotEmpty || _encodeError != null) {
+                        setState(() {
+                          _encodeResultController.clear();
+                          _encodeError = null;
+                        });
+                      }
+                    },
+                    onCopy: _copyToClipboard,
+                  ),
                 ],
               ),
             ),
@@ -216,8 +250,27 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
       ),
     );
   }
+}
 
-  Widget _buildDecodeTab(SailThemeData theme) {
+class _DecodeTab extends StatelessWidget {
+  final TextEditingController controller;
+  final Base58DecodeResult? decodeResult;
+  final String? decodeError;
+  final VoidCallback onDecode;
+  final VoidCallback onInputChanged;
+
+  const _DecodeTab({
+    required this.controller,
+    required this.decodeResult,
+    required this.decodeError,
+    required this.onDecode,
+    required this.onInputChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -247,7 +300,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: _decodeInputController,
+                  controller: controller,
                   style: TextStyle(
                     fontFamily: 'IBMPlexMono',
                     fontSize: 13,
@@ -272,19 +325,11 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                     ),
                   ),
                   maxLines: 3,
-                  onChanged: (value) {
-                    // Clear results when input changes
-                    if (_decodeResult != null || _decodeError != null) {
-                      setState(() {
-                        _decodeResult = null;
-                        _decodeError = null;
-                      });
-                    }
-                  },
+                  onChanged: (_) => onInputChanged(),
                 ),
                 const SizedBox(height: 16),
                 SailButton(
-                  onPressed: () async => _decode(),
+                  onPressed: () async => onDecode(),
                   label: 'Decode',
                 ),
               ],
@@ -293,7 +338,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
           const SizedBox(height: 24),
 
           // Error display
-          if (_decodeError != null) ...[
+          if (decodeError != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -306,7 +351,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                   Icon(Icons.error_outline, color: theme.colors.error, size: 24),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: SailText.secondary13(_decodeError!, color: theme.colors.error),
+                    child: SailText.secondary13(decodeError!, color: theme.colors.error),
                   ),
                 ],
               ),
@@ -315,14 +360,14 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
           ],
 
           // Results display
-          if (_decodeResult != null) ...[
+          if (decodeResult != null) ...[
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: theme.colors.background,
                 borderRadius: SailStyleValues.borderRadiusSmall,
                 border: Border.all(
-                  color: _decodeResult!.checksumValid ? theme.colors.success : theme.colors.error,
+                  color: decodeResult!.checksumValid ? theme.colors.success : theme.colors.error,
                   width: 2,
                 ),
               ),
@@ -332,8 +377,8 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                   Row(
                     children: [
                       Icon(
-                        _decodeResult!.checksumValid ? Icons.check_circle : Icons.error,
-                        color: _decodeResult!.checksumValid ? theme.colors.success : theme.colors.error,
+                        decodeResult!.checksumValid ? Icons.check_circle : Icons.error,
+                        color: decodeResult!.checksumValid ? theme.colors.success : theme.colors.error,
                         size: 24,
                       ),
                       const SizedBox(width: 8),
@@ -341,29 +386,26 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildResultRow(
-                    theme,
-                    'Checksum Status:',
-                    _decodeResult!.checksumValid ? 'Valid ✓' : 'Invalid ✗',
-                    color: _decodeResult!.checksumValid ? theme.colors.success : theme.colors.error,
+                  ResultRow(
+                    label: 'Checksum Status:',
+                    value: decodeResult!.checksumValid ? 'Valid ✓' : 'Invalid ✗',
+                    color: decodeResult!.checksumValid ? theme.colors.success : theme.colors.error,
                   ),
                   const SizedBox(height: 12),
-                  _buildResultRow(theme, 'Version Byte:', _decodeResult!.versionHex),
+                  ResultRow(label: 'Version Byte:', value: decodeResult!.versionHex),
                   const SizedBox(height: 12),
-                  _buildResultRow(theme, 'Address Type:', _decodeResult!.addressType),
+                  ResultRow(label: 'Address Type:', value: decodeResult!.addressType),
                   const SizedBox(height: 12),
-                  _buildResultRow(
-                    theme,
-                    'Payload (Hex):',
-                    _decodeResult!.payloadHex,
+                  ResultRow(
+                    label: 'Payload (Hex):',
+                    value: decodeResult!.payloadHex,
                     monospace: true,
                     copyable: true,
                   ),
                   const SizedBox(height: 12),
-                  _buildResultRow(
-                    theme,
-                    'Checksum (Hex):',
-                    _decodeResult!.checksumHex,
+                  ResultRow(
+                    label: 'Checksum (Hex):',
+                    value: decodeResult!.checksumHex,
                     monospace: true,
                     copyable: true,
                   ),
@@ -375,8 +417,35 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
       ),
     );
   }
+}
 
-  Widget _buildEncodeTab(SailThemeData theme) {
+class _EncodeTab extends StatelessWidget {
+  final TextEditingController payloadController;
+  final TextEditingController resultController;
+  final int selectedVersionByte;
+  final Map<int, String> versionBytes;
+  final String? encodeError;
+  final VoidCallback onEncode;
+  final ValueChanged<int?> onVersionChanged;
+  final VoidCallback onInputChanged;
+  final void Function(String text, String label) onCopy;
+
+  const _EncodeTab({
+    required this.payloadController,
+    required this.resultController,
+    required this.selectedVersionByte,
+    required this.versionBytes,
+    required this.encodeError,
+    required this.onEncode,
+    required this.onVersionChanged,
+    required this.onInputChanged,
+    required this.onCopy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -408,7 +477,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                 SailText.primary13('Version Byte:'),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<int>(
-                  initialValue: _selectedVersionByte,
+                  initialValue: selectedVersionByte,
                   dropdownColor: theme.colors.backgroundSecondary,
                   style: TextStyle(
                     color: theme.colors.text,
@@ -431,17 +500,13 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                       borderSide: BorderSide(color: theme.colors.primary, width: 2),
                     ),
                   ),
-                  items: _versionBytes.entries.map((entry) {
+                  items: versionBytes.entries.map((entry) {
                     return DropdownMenuItem(
                       value: entry.key,
                       child: Text(entry.value),
                     );
                   }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedVersionByte = value);
-                    }
-                  },
+                  onChanged: onVersionChanged,
                 ),
                 const SizedBox(height: 16),
 
@@ -449,7 +514,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                 SailText.primary13('Payload (Hex):'),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: _encodePayloadController,
+                  controller: payloadController,
                   style: TextStyle(
                     fontFamily: 'IBMPlexMono',
                     fontSize: 13,
@@ -474,19 +539,11 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                     ),
                   ),
                   maxLines: 3,
-                  onChanged: (value) {
-                    // Clear results when input changes
-                    if (_encodeResultController.text.isNotEmpty || _encodeError != null) {
-                      setState(() {
-                        _encodeResultController.clear();
-                        _encodeError = null;
-                      });
-                    }
-                  },
+                  onChanged: (_) => onInputChanged(),
                 ),
                 const SizedBox(height: 16),
                 SailButton(
-                  onPressed: () async => _encode(),
+                  onPressed: () async => onEncode(),
                   label: 'Encode',
                 ),
               ],
@@ -495,7 +552,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
           const SizedBox(height: 24),
 
           // Error display
-          if (_encodeError != null) ...[
+          if (encodeError != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -508,7 +565,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                   Icon(Icons.error_outline, color: theme.colors.error, size: 24),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: SailText.secondary13(_encodeError!, color: theme.colors.error),
+                    child: SailText.secondary13(encodeError!, color: theme.colors.error),
                   ),
                 ],
               ),
@@ -517,7 +574,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
           ],
 
           // Result display
-          if (_encodeResultController.text.isNotEmpty) ...[
+          if (resultController.text.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -546,7 +603,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                       children: [
                         Expanded(
                           child: SelectableText(
-                            _encodeResultController.text,
+                            resultController.text,
                             style: TextStyle(
                               fontFamily: 'IBMPlexMono',
                               fontSize: 13,
@@ -557,7 +614,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                         const SizedBox(width: 12),
                         IconButton(
                           icon: Icon(Icons.copy, color: theme.colors.primary),
-                          onPressed: () => _copyToClipboard(_encodeResultController.text, 'Base58 result'),
+                          onPressed: () => onCopy(resultController.text, 'Base58 result'),
                         ),
                       ],
                     ),
@@ -566,57 +623,6 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultRow(
-    SailThemeData theme,
-    String label,
-    String value, {
-    bool monospace = false,
-    bool copyable = false,
-    Color? color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadiusSmall,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: SailText.secondary13(label, color: theme.colors.textSecondary),
-          ),
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: SelectableText(
-                    value,
-                    style: TextStyle(
-                      fontFamily: monospace ? 'IBMPlexMono' : 'Inter',
-                      fontSize: 13,
-                      color: color ?? theme.colors.text,
-                    ),
-                  ),
-                ),
-                if (copyable) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: Icon(Icons.copy, size: 18, color: theme.colors.primary),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _copyToClipboard(value, label.replaceAll(':', '')),
-                  ),
-                ],
-              ],
-            ),
-          ),
         ],
       ),
     );

@@ -261,7 +261,13 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                       SailText.secondary13('No transactions ready for processing found.'),
                       SailText.secondary12('Complete signing for transactions before processing.'),
                     ] else if (_eligibleTransactions.length == 1) ...[
-                      _buildTransactionDetails(_selectedTransaction!),
+                      _TransactionDetails(
+                        transaction: _selectedTransaction!,
+                        group: _multisigGroups.firstWhere(
+                          (g) => g.id == _selectedTransaction!.groupId,
+                          orElse: () => throw Exception('Group not found'),
+                        ),
+                      ),
                     ] else ...[
                       SailText.primary13('Available Transactions (${_eligibleTransactions.length})'),
                       SailSpacing(SailStyleValues.padding08),
@@ -292,7 +298,19 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                                         },
                                         child: Radio<String>(value: tx.id),
                                       ),
-                                      Expanded(child: _buildTransactionSummary(tx, group)),
+                                      Expanded(
+                                        child: SailColumn(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          spacing: SailStyleValues.padding04,
+                                          children: [
+                                            SailText.primary13('${tx.id} (${group.name})'),
+                                            SailText.secondary12(
+                                              '${tx.signatureCount}/${group.m} signatures • ${tx.amount.toStringAsFixed(8)} BTC',
+                                            ),
+                                            SailText.secondary12('To: ${tx.destination}'),
+                                          ],
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -301,7 +319,14 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                           },
                         ),
                       ),
-                      if (_selectedTransaction != null) _buildTransactionDetails(_selectedTransaction!),
+                      if (_selectedTransaction != null)
+                        _TransactionDetails(
+                          transaction: _selectedTransaction!,
+                          group: _multisigGroups.firstWhere(
+                            (g) => g.id == _selectedTransaction!.groupId,
+                            orElse: () => throw Exception('Group not found'),
+                          ),
+                        ),
                     ],
                     SailRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -326,25 +351,19 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       ),
     );
   }
+}
 
-  Widget _buildTransactionSummary(MultisigTransaction tx, MultisigGroup group) {
-    return SailColumn(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: SailStyleValues.padding04,
-      children: [
-        SailText.primary13('${tx.id} (${group.name})'),
-        SailText.secondary12('${tx.signatureCount}/${group.m} signatures • ${tx.amount.toStringAsFixed(8)} BTC'),
-        SailText.secondary12('To: ${tx.destination}'),
-      ],
-    );
-  }
+class _TransactionDetails extends StatelessWidget {
+  final MultisigTransaction transaction;
+  final MultisigGroup group;
 
-  Widget _buildTransactionDetails(MultisigTransaction tx) {
-    final group = _multisigGroups.firstWhere(
-      (g) => g.id == tx.groupId,
-      orElse: () => throw Exception('Group not found'),
-    );
+  const _TransactionDetails({
+    required this.transaction,
+    required this.group,
+  });
 
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -357,12 +376,12 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailText.primary12('Transaction Details:'),
-          SailText.secondary12('ID: ${tx.id}'),
+          SailText.secondary12('ID: ${transaction.id}'),
           SailText.secondary12('Group: ${group.name} (${group.m} of ${group.n})'),
-          SailText.secondary12('Amount: ${tx.amount.toStringAsFixed(8)} BTC'),
-          SailText.secondary12('Destination: ${tx.destination}'),
-          SailText.secondary12('Signatures: ${tx.signatureCount}/${group.m} required'),
-          SailText.secondary12('Status: ${tx.status.displayName}'),
+          SailText.secondary12('Amount: ${transaction.amount.toStringAsFixed(8)} BTC'),
+          SailText.secondary12('Destination: ${transaction.destination}'),
+          SailText.secondary12('Signatures: ${transaction.signatureCount}/${group.m} required'),
+          SailText.secondary12('Status: ${transaction.status.displayName}'),
         ],
       ),
     );

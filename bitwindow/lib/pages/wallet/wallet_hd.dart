@@ -24,15 +24,22 @@ class HDWalletTab extends StatelessWidget {
           spacing: 0,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildControlsCard(context, model),
-            _buildAddressesSection(context, model, BoxConstraints()),
+            _ControlsCard(model: model),
+            _AddressesSection(model: model),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildControlsCard(BuildContext context, HDWalletViewModel model) {
+class _ControlsCard extends StatelessWidget {
+  final HDWalletViewModel model;
+
+  const _ControlsCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       title: 'HD Wallet Explorer',
       error: model.errorMessage,
@@ -172,12 +179,15 @@ class HDWalletTab extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildAddressesSection(
-    BuildContext context,
-    HDWalletViewModel model,
-    BoxConstraints constraints,
-  ) {
+class _AddressesSection extends StatelessWidget {
+  final HDWalletViewModel model;
+
+  const _AddressesSection({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       title: 'Derived Addresses',
       subtitle: '${model.derivedEntries.length} address(es)',

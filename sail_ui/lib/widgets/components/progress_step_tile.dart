@@ -55,8 +55,8 @@ class ProgressStepTile extends StatelessWidget {
             color: isActive
                 ? theme.colors.primary
                 : isCompleted
-                    ? SailColorScheme.green
-                    : theme.colors.textSecondary,
+                ? SailColorScheme.green
+                : theme.colors.textSecondary,
           ),
         ),
         if (timeText.isNotEmpty)

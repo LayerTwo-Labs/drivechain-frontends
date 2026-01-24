@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SailToggle extends StatelessWidget {
-  final String label;
+  final String? label;
   final bool value;
   final ValueSetter<bool> onChanged;
 
-  const SailToggle({super.key, required this.label, required this.value, required this.onChanged});
+  const SailToggle({super.key, this.label, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class SailToggle extends StatelessWidget {
       child: SailRow(
         spacing: SailStyleValues.padding08,
         children: [
-          SailText.primary13(label),
+          if (label != null) SailText.primary13(label!),
           Container(
             width: 30,
             height: 20,

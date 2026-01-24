@@ -139,10 +139,46 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
 
     // Build page list based on wallet type
     final List<Widget> pages = [
-      _buildTypeSelectionStep(),
-      _buildNameStep(),
-      if (_selectedType == WalletCreationType.watchOnly) _buildXpubStep(),
-      _buildBackgroundStep(),
+      _TypeSelectionStep(
+        selectedType: _selectedType,
+        onTypeSelected: (type) {
+          setState(() => _selectedType = type);
+          if (type == WalletCreationType.restoreFromBackup || type == WalletCreationType.customEntropy) {
+            _createWallet();
+          } else {
+            _nextStep();
+          }
+        },
+      ),
+      _NameStep(
+        nameController: _nameController,
+        onNext: () {
+          setState(() {
+            _walletName = _nameController.text.trim();
+          });
+          _nextStep();
+        },
+      ),
+      if (_selectedType == WalletCreationType.watchOnly)
+        _XpubStep(
+          xpubController: _xpubController,
+          onNext: () {
+            setState(() {
+              _xpubOrDescriptor = _xpubController.text.trim();
+            });
+            _nextStep();
+          },
+        ),
+      _BackgroundSelectionStep(
+        selectedGradient: _selectedGradient,
+        isCreating: _isCreating,
+        onBackgroundSelected: (gradient) {
+          setState(() {
+            _selectedGradient = gradient;
+          });
+        },
+        onCreateWallet: _createWallet,
+      ),
     ];
 
     return Scaffold(
@@ -166,8 +202,19 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       ),
     );
   }
+}
 
-  Widget _buildTypeSelectionStep() {
+class _TypeSelectionStep extends StatelessWidget {
+  final WalletCreationType? selectedType;
+  final Function(WalletCreationType) onTypeSelected;
+
+  const _TypeSelectionStep({
+    required this.selectedType,
+    required this.onTypeSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -195,44 +242,32 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
                     title: 'Bitcoin Core Wallet',
                     description: 'Automatically generate a seed',
                     icon: SailSVGAsset.iconWallet,
-                    isSelected: _selectedType == WalletCreationType.bitcoinCore,
-                    onTap: () {
-                      setState(() => _selectedType = WalletCreationType.bitcoinCore);
-                      _nextStep();
-                    },
+                    isSelected: selectedType == WalletCreationType.bitcoinCore,
+                    onTap: () => onTypeSelected(WalletCreationType.bitcoinCore),
                   ),
                   _WalletTypeCard(
                     type: WalletCreationType.watchOnly,
                     title: 'Watch-Only Wallet',
                     description: 'Monitor addresses without private keys',
                     icon: SailSVGAsset.iconSearch,
-                    isSelected: _selectedType == WalletCreationType.watchOnly,
-                    onTap: () {
-                      setState(() => _selectedType = WalletCreationType.watchOnly);
-                      _nextStep();
-                    },
+                    isSelected: selectedType == WalletCreationType.watchOnly,
+                    onTap: () => onTypeSelected(WalletCreationType.watchOnly),
                   ),
                   _WalletTypeCard(
                     type: WalletCreationType.restoreFromBackup,
                     title: 'Restore from Backup',
                     description: 'Import wallet from seed phrase',
                     icon: SailSVGAsset.iconRestart,
-                    isSelected: _selectedType == WalletCreationType.restoreFromBackup,
-                    onTap: () {
-                      setState(() => _selectedType = WalletCreationType.restoreFromBackup);
-                      _createWallet();
-                    },
+                    isSelected: selectedType == WalletCreationType.restoreFromBackup,
+                    onTap: () => onTypeSelected(WalletCreationType.restoreFromBackup),
                   ),
                   _WalletTypeCard(
                     type: WalletCreationType.customEntropy,
                     title: 'Paranoid Mode',
                     description: 'Create wallet with custom entropy',
                     icon: SailSVGAsset.iconShield,
-                    isSelected: _selectedType == WalletCreationType.customEntropy,
-                    onTap: () {
-                      setState(() => _selectedType = WalletCreationType.customEntropy);
-                      _createWallet();
-                    },
+                    isSelected: selectedType == WalletCreationType.customEntropy,
+                    onTap: () => onTypeSelected(WalletCreationType.customEntropy),
                   ),
                 ],
               ),
@@ -240,43 +275,6 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildNameStep() {
-    return _NameStep(
-      nameController: _nameController,
-      onNext: () {
-        setState(() {
-          _walletName = _nameController.text.trim();
-        });
-        _nextStep();
-      },
-    );
-  }
-
-  Widget _buildXpubStep() {
-    return _XpubStep(
-      xpubController: _xpubController,
-      onNext: () {
-        setState(() {
-          _xpubOrDescriptor = _xpubController.text.trim();
-        });
-        _nextStep();
-      },
-    );
-  }
-
-  Widget _buildBackgroundStep() {
-    return _BackgroundSelectionStep(
-      selectedGradient: _selectedGradient,
-      isCreating: _isCreating,
-      onBackgroundSelected: (gradient) {
-        setState(() {
-          _selectedGradient = gradient;
-        });
-      },
-      onCreateWallet: _createWallet,
     );
   }
 }

@@ -161,8 +161,25 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildTreeTab(theme),
-                  _buildHelpTab(theme),
+                  _TreeTab(
+                    txidsController: _txidsController,
+                    tree: _tree,
+                    rcbTree: _rcbTree,
+                    error: _error,
+                    expectedRoot: widget.expectedRoot,
+                    onCalculate: _calculateTree,
+                    onCopy: _copyToClipboard,
+                    onInputChanged: () {
+                      if (_tree != null || _error != null) {
+                        setState(() {
+                          _tree = null;
+                          _rcbTree = null;
+                          _error = null;
+                        });
+                      }
+                    },
+                  ),
+                  const _HelpTab(),
                 ],
               ),
             ),
@@ -233,8 +250,33 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
       ),
     );
   }
+}
 
-  Widget _buildTreeTab(SailThemeData theme) {
+class _TreeTab extends StatelessWidget {
+  final TextEditingController txidsController;
+  final List<List<String>>? tree;
+  final List<List<String>>? rcbTree;
+  final String? error;
+  final String? expectedRoot;
+  final VoidCallback onCalculate;
+  final void Function(String text, String label) onCopy;
+  final VoidCallback onInputChanged;
+
+  const _TreeTab({
+    required this.txidsController,
+    required this.tree,
+    required this.rcbTree,
+    required this.error,
+    required this.expectedRoot,
+    required this.onCalculate,
+    required this.onCopy,
+    required this.onInputChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -264,7 +306,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: _txidsController,
+                  controller: txidsController,
                   style: TextStyle(
                     fontFamily: 'IBMPlexMono',
                     fontSize: 12,
@@ -291,20 +333,11 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                     ),
                   ),
                   maxLines: 8,
-                  onChanged: (value) {
-                    // Clear results when input changes
-                    if (_tree != null || _error != null) {
-                      setState(() {
-                        _tree = null;
-                        _rcbTree = null;
-                        _error = null;
-                      });
-                    }
-                  },
+                  onChanged: (_) => onInputChanged(),
                 ),
                 const SizedBox(height: 16),
                 SailButton(
-                  onPressed: () async => _calculateTree(),
+                  onPressed: () async => onCalculate(),
                   label: 'Calculate Merkle Tree',
                 ),
               ],
@@ -313,7 +346,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
           const SizedBox(height: 24),
 
           // Error display
-          if (_error != null) ...[
+          if (error != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -326,7 +359,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                   Icon(Icons.error_outline, color: theme.colors.error, size: 24),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: SailText.secondary13(_error!, color: theme.colors.error),
+                    child: SailText.secondary13(error!, color: theme.colors.error),
                   ),
                 ],
               ),
@@ -335,7 +368,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
           ],
 
           // Tree display
-          if (_tree != null) ...[
+          if (tree != null) ...[
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -359,8 +392,8 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                       IconButton(
                         icon: Icon(Icons.copy, color: theme.colors.primary),
                         onPressed: () {
-                          final treeText = MerkleTree.formatTreeText(_tree!, rcbTree: _rcbTree);
-                          _copyToClipboard(treeText, 'Merkle tree');
+                          final treeText = MerkleTree.formatTreeText(tree!, rcbTree: rcbTree);
+                          onCopy(treeText, 'Merkle tree');
                         },
                         tooltip: 'Copy tree to clipboard',
                       ),
@@ -382,7 +415,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                         SailText.primary13('Merkle Root:', bold: true),
                         const SizedBox(height: 8),
                         SelectableText(
-                          _tree!.last.first,
+                          tree!.last.first,
                           style: TextStyle(
                             fontFamily: 'IBMPlexMono',
                             fontSize: 13,
@@ -396,11 +429,11 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                   const SizedBox(height: 16),
 
                   // Validation against expected root (if provided)
-                  if (widget.expectedRoot != null) ...[
+                  if (expectedRoot != null) ...[
                     Builder(
                       builder: (context) {
-                        final calculatedRoot = _tree!.last.first;
-                        final isValid = calculatedRoot.toLowerCase() == widget.expectedRoot!.toLowerCase();
+                        final calculatedRoot = tree!.last.first;
+                        final isValid = calculatedRoot.toLowerCase() == expectedRoot!.toLowerCase();
 
                         return Container(
                           padding: const EdgeInsets.all(16),
@@ -435,7 +468,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                                 SailText.primary13('Expected:', bold: true),
                                 const SizedBox(height: 4),
                                 SelectableText(
-                                  widget.expectedRoot!,
+                                  expectedRoot!,
                                   style: TextStyle(
                                     fontFamily: 'IBMPlexMono',
                                     fontSize: 12,
@@ -472,7 +505,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: SelectableText(
-                        MerkleTree.formatTreeText(_tree!, rcbTree: _rcbTree),
+                        MerkleTree.formatTreeText(tree!, rcbTree: rcbTree),
                         style: TextStyle(
                           fontFamily: 'IBMPlexMono',
                           fontSize: 11,
@@ -490,8 +523,15 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
       ),
     );
   }
+}
 
-  Widget _buildHelpTab(SailThemeData theme) {
+class _HelpTab extends StatelessWidget {
+  const _HelpTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Container(

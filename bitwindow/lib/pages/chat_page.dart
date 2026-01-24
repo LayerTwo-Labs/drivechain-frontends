@@ -17,18 +17,113 @@ class ChatPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return QtPage(
       child: ViewModelBuilder<ChatViewModel>.reactive(
         viewModelBuilder: () => ChatViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
           if (!model.isConnected) {
-            return _buildDisconnectedView(context);
+            // Disconnected view (inlined)
+            return Center(
+              child: SailCard(
+                title: 'BitNames Required',
+                subtitle: 'Chat requires BitNames sidechain to be running',
+                child: Padding(
+                  padding: const EdgeInsets.all(SailStyleValues.padding20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SailSVG.fromAsset(
+                        SailSVGAsset.iconWarning,
+                        color: theme.colors.textSecondary,
+                        height: 48,
+                      ),
+                      const SizedBox(height: SailStyleValues.padding16),
+                      SailText.primary15(
+                        'BitNames sidechain is not connected',
+                        bold: true,
+                      ),
+                      const SizedBox(height: SailStyleValues.padding08),
+                      SailText.secondary13(
+                        'To use the Chat feature, you need to:\n'
+                        '1. Go to the Sidechains tab\n'
+                        '2. Download and start BitNames\n'
+                        '3. Register at least one BitName identity',
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
           }
 
           return Column(
             children: [
-              _buildIdentitySelector(context, model),
+              // Identity selector (inlined)
+              SailCard(
+                padding: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SailStyleValues.padding16,
+                    vertical: SailStyleValues.padding08,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Status bars - stack all status messages
+                      ...model.statusMessages.map(
+                        (status) => _ClaimingStatusBar(status: status.message),
+                      ),
+                      // Main action bar
+                      Row(
+                        children: [
+                          SailText.secondary13('Chatting as:'),
+                          const SizedBox(width: SailStyleValues.padding12),
+                          if (model.myIdentities.isNotEmpty)
+                            _SearchableIdentityDropdown(
+                              identities: model.myIdentities,
+                              allBitNames: model.allBitNames,
+                              selectedIdentity: model.selectedIdentity,
+                              onIdentitySelected: model.selectIdentity,
+                            )
+                          else
+                            SailText.secondary13('No BitNames owned'),
+                          const SizedBox(width: SailStyleValues.padding12),
+                          if (model.hasSufficientBalance)
+                            Tooltip(
+                              message: 'Registering a BitName costs sats on the BitNames sidechain',
+                              child: SailButton(
+                                label: 'Register BitName',
+                                variant: ButtonVariant.secondary,
+                                disabled: model.isClaiming,
+                                onPressed: () async => _showRegisterBitNameDialog(context, model),
+                                skipLoading: true,
+                              ),
+                            )
+                          else if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
+                            Tooltip(
+                              message: 'You need BitNames sidechain balance to register a BitName',
+                              child: SailButton(
+                                label: 'Deposit to BitNames',
+                                variant: ButtonVariant.primary,
+                                onPressed: () async => showDepositModal(context, BitNames().slot, 'BitNames'),
+                              ),
+                            ),
+                          const Spacer(),
+                          SailButton(
+                            label: 'Add Contact',
+                            variant: ButtonVariant.secondary,
+                            onPressed: () async => _showAddContactDialog(context, model),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: SailStyleValues.padding08),
               Expanded(
                 child: Row(
@@ -36,11 +131,221 @@ class ChatPage extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 280,
-                      child: _buildContactList(context, model),
+                      // Contact list (inlined)
+                      child: SailCard(
+                        title: 'Contacts',
+                        bottomPadding: false,
+                        child: model.contacts.isEmpty
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(SailStyleValues.padding20),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SailText.secondary13('No contacts yet'),
+                                      const SizedBox(height: SailStyleValues.padding08),
+                                      SailText.secondary12(
+                                        'Add a contact to start chatting',
+                                        color: theme.colors.textTertiary,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: model.contacts.length,
+                                itemBuilder: (context, index) {
+                                  final contact = model.contacts[index];
+                                  final isSelected = model.selectedContact?.id == contact.id;
+
+                                  return InkWell(
+                                    onTap: () => model.selectContact(contact),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(SailStyleValues.padding12),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? theme.colors.primary.withAlpha(30) : null,
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: theme.colors.divider,
+                                            width: 1,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Avatar (inlined)
+                                          Builder(
+                                            builder: (context) {
+                                              final initials = contact.displayName.isNotEmpty
+                                                  ? contact.displayName.substring(0, 1).toUpperCase()
+                                                  : '?';
+                                              return Container(
+                                                width: 40,
+                                                height: 40,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: theme.colors.primary.withAlpha(50),
+                                                ),
+                                                child: Center(
+                                                  child: SailText.primary13(initials, bold: true),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          const SizedBox(width: SailStyleValues.padding12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                SailText.primary13(
+                                                  contact.displayName,
+                                                  bold: true,
+                                                ),
+                                                if (contact.lastMessage != null)
+                                                  SailText.secondary12(
+                                                    contact.lastMessage!,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (contact.lastMessageTime != null)
+                                            SailText.secondary12(
+                                              _formatTime(contact.lastMessageTime!),
+                                              color: theme.colors.textTertiary,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
                     ),
                     const SizedBox(width: SailStyleValues.padding08),
                     Expanded(
-                      child: _buildChatPanel(context, model),
+                      // Chat panel (inlined)
+                      child: model.selectedContact == null
+                          ? SailCard(
+                              bottomPadding: false,
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SailSVG.fromAsset(
+                                      SailSVGAsset.messageCircle,
+                                      color: theme.colors.textTertiary,
+                                      height: 64,
+                                    ),
+                                    const SizedBox(height: SailStyleValues.padding16),
+                                    SailText.secondary13('Select a contact to start chatting'),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : SailCard(
+                              title: model.selectedContact!.displayName,
+                              subtitle:
+                                  'Paymail fee: ${model.selectedContact!.paymailFeeSats ?? 1000} sats per message',
+                              bottomPadding: false,
+                              child: Column(
+                                children: [
+                                  Expanded(
+                                    // Message list (inlined)
+                                    child: Builder(
+                                      builder: (context) {
+                                        final messages = model.currentConversation;
+
+                                        if (messages.isEmpty) {
+                                          return Center(
+                                            child: SailText.secondary13(
+                                              'No messages yet. Say hello!',
+                                              color: theme.colors.textTertiary,
+                                            ),
+                                          );
+                                        }
+
+                                        return ListView.builder(
+                                          reverse: true,
+                                          padding: const EdgeInsets.all(SailStyleValues.padding08),
+                                          itemCount: messages.length,
+                                          itemBuilder: (context, index) {
+                                            final message = messages[messages.length - 1 - index];
+                                            // Message bubble (inlined)
+                                            final isOwn = message.isOutgoing;
+
+                                            return Align(
+                                              alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
+                                              child: Container(
+                                                constraints: const BoxConstraints(maxWidth: 400),
+                                                margin: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04),
+                                                padding: const EdgeInsets.all(SailStyleValues.padding12),
+                                                decoration: BoxDecoration(
+                                                  color: isOwn
+                                                      ? theme.colors.primary.withAlpha(30)
+                                                      : theme.colors.backgroundSecondary,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: isOwn
+                                                        ? theme.colors.primary.withAlpha(50)
+                                                        : theme.colors.divider,
+                                                  ),
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    SailText.primary13(message.content),
+                                                    const SizedBox(height: SailStyleValues.padding04),
+                                                    Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        SailText.secondary12(
+                                                          _formatMessageTime(message.timestamp),
+                                                          color: theme.colors.textTertiary,
+                                                        ),
+                                                        if (message.valueSats != null) ...[
+                                                          const SizedBox(width: SailStyleValues.padding08),
+                                                          SailText.secondary12(
+                                                            '${message.valueSats} sats',
+                                                            color: theme.colors.textTertiary,
+                                                          ),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: SailStyleValues.padding08),
+                                  // Message input (inlined)
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: SailTextField(
+                                          controller: model.messageController,
+                                          hintText: 'Type a message...',
+                                          maxLines: 3,
+                                          minLines: 1,
+                                          onSubmitted: (_) => model.sendMessage(),
+                                        ),
+                                      ),
+                                      const SizedBox(width: SailStyleValues.padding08),
+                                      SailButton(
+                                        label: 'Send',
+                                        loading: model.isSending,
+                                        disabled: model.messageController.text.isEmpty,
+                                        onPressed: model.sendMessage,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -48,329 +353,6 @@ class ChatPage extends StatelessWidget {
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildDisconnectedView(BuildContext context) {
-    final theme = SailTheme.of(context);
-    return Center(
-      child: SailCard(
-        title: 'BitNames Required',
-        subtitle: 'Chat requires BitNames sidechain to be running',
-        child: Padding(
-          padding: const EdgeInsets.all(SailStyleValues.padding20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailSVG.fromAsset(
-                SailSVGAsset.iconWarning,
-                color: theme.colors.textSecondary,
-                height: 48,
-              ),
-              const SizedBox(height: SailStyleValues.padding16),
-              SailText.primary15(
-                'BitNames sidechain is not connected',
-                bold: true,
-              ),
-              const SizedBox(height: SailStyleValues.padding08),
-              SailText.secondary13(
-                'To use the Chat feature, you need to:\n'
-                '1. Go to the Sidechains tab\n'
-                '2. Download and start BitNames\n'
-                '3. Register at least one BitName identity',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIdentitySelector(BuildContext context, ChatViewModel model) {
-    return SailCard(
-      padding: false,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: SailStyleValues.padding16,
-          vertical: SailStyleValues.padding08,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Status bars - stack all status messages
-            ...model.statusMessages.map(
-              (status) => _ClaimingStatusBar(status: status.message),
-            ),
-            // Main action bar
-            Row(
-              children: [
-                SailText.secondary13('Chatting as:'),
-                const SizedBox(width: SailStyleValues.padding12),
-                if (model.myIdentities.isNotEmpty)
-                  _SearchableIdentityDropdown(
-                    identities: model.myIdentities,
-                    allBitNames: model.allBitNames,
-                    selectedIdentity: model.selectedIdentity,
-                    onIdentitySelected: model.selectIdentity,
-                  )
-                else
-                  SailText.secondary13('No BitNames owned'),
-                const SizedBox(width: SailStyleValues.padding12),
-                if (model.hasSufficientBalance)
-                  Tooltip(
-                    message: 'Registering a BitName costs sats on the BitNames sidechain',
-                    child: SailButton(
-                      label: 'Register BitName',
-                      variant: ButtonVariant.secondary,
-                      disabled: model.isClaiming,
-                      onPressed: () async => _showRegisterBitNameDialog(context, model),
-                      skipLoading: true,
-                    ),
-                  )
-                else if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
-                  Tooltip(
-                    message: 'You need BitNames sidechain balance to register a BitName',
-                    child: SailButton(
-                      label: 'Deposit to BitNames',
-                      variant: ButtonVariant.primary,
-                      onPressed: () async => showDepositModal(context, BitNames().slot, 'BitNames'),
-                    ),
-                  ),
-                const Spacer(),
-                SailButton(
-                  label: 'Add Contact',
-                  variant: ButtonVariant.secondary,
-                  onPressed: () async => _showAddContactDialog(context, model),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContactList(BuildContext context, ChatViewModel model) {
-    final theme = SailTheme.of(context);
-
-    return SailCard(
-      title: 'Contacts',
-      bottomPadding: false,
-      child: model.contacts.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(SailStyleValues.padding20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SailText.secondary13('No contacts yet'),
-                    const SizedBox(height: SailStyleValues.padding08),
-                    SailText.secondary12(
-                      'Add a contact to start chatting',
-                      color: theme.colors.textTertiary,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : ListView.builder(
-              itemCount: model.contacts.length,
-              itemBuilder: (context, index) {
-                final contact = model.contacts[index];
-                final isSelected = model.selectedContact?.id == contact.id;
-
-                return InkWell(
-                  onTap: () => model.selectContact(contact),
-                  child: Container(
-                    padding: const EdgeInsets.all(SailStyleValues.padding12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? theme.colors.primary.withAlpha(30) : null,
-                      border: Border(
-                        bottom: BorderSide(
-                          color: theme.colors.divider,
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildAvatar(context, contact),
-                        const SizedBox(width: SailStyleValues.padding12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SailText.primary13(
-                                contact.displayName,
-                                bold: true,
-                              ),
-                              if (contact.lastMessage != null)
-                                SailText.secondary12(
-                                  contact.lastMessage!,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                            ],
-                          ),
-                        ),
-                        if (contact.lastMessageTime != null)
-                          SailText.secondary12(
-                            _formatTime(contact.lastMessageTime!),
-                            color: theme.colors.textTertiary,
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-    );
-  }
-
-  Widget _buildChatPanel(BuildContext context, ChatViewModel model) {
-    final theme = SailTheme.of(context);
-
-    if (model.selectedContact == null) {
-      return SailCard(
-        bottomPadding: false,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailSVG.fromAsset(
-                SailSVGAsset.messageCircle,
-                color: theme.colors.textTertiary,
-                height: 64,
-              ),
-              const SizedBox(height: SailStyleValues.padding16),
-              SailText.secondary13('Select a contact to start chatting'),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return SailCard(
-      title: model.selectedContact!.displayName,
-      subtitle: 'Paymail fee: ${model.selectedContact!.paymailFeeSats ?? 1000} sats per message',
-      bottomPadding: false,
-      child: Column(
-        children: [
-          Expanded(
-            child: _buildMessageList(context, model),
-          ),
-          const SizedBox(height: SailStyleValues.padding08),
-          _buildMessageInput(context, model),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageList(BuildContext context, ChatViewModel model) {
-    final theme = SailTheme.of(context);
-    final messages = model.currentConversation;
-
-    if (messages.isEmpty) {
-      return Center(
-        child: SailText.secondary13(
-          'No messages yet. Say hello!',
-          color: theme.colors.textTertiary,
-        ),
-      );
-    }
-
-    return ListView.builder(
-      reverse: true,
-      padding: const EdgeInsets.all(SailStyleValues.padding08),
-      itemCount: messages.length,
-      itemBuilder: (context, index) {
-        final message = messages[messages.length - 1 - index];
-        return _buildMessageBubble(context, message);
-      },
-    );
-  }
-
-  Widget _buildMessageBubble(BuildContext context, ChatMessage message) {
-    final theme = SailTheme.of(context);
-    final isOwn = message.isOutgoing;
-
-    return Align(
-      alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 400),
-        margin: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04),
-        padding: const EdgeInsets.all(SailStyleValues.padding12),
-        decoration: BoxDecoration(
-          color: isOwn ? theme.colors.primary.withAlpha(30) : theme.colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isOwn ? theme.colors.primary.withAlpha(50) : theme.colors.divider,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary13(message.content),
-            const SizedBox(height: SailStyleValues.padding04),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.secondary12(
-                  _formatMessageTime(message.timestamp),
-                  color: theme.colors.textTertiary,
-                ),
-                if (message.valueSats != null) ...[
-                  const SizedBox(width: SailStyleValues.padding08),
-                  SailText.secondary12(
-                    '${message.valueSats} sats',
-                    color: theme.colors.textTertiary,
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageInput(BuildContext context, ChatViewModel model) {
-    return Row(
-      children: [
-        Expanded(
-          child: SailTextField(
-            controller: model.messageController,
-            hintText: 'Type a message...',
-            maxLines: 3,
-            minLines: 1,
-            onSubmitted: (_) => model.sendMessage(),
-          ),
-        ),
-        const SizedBox(width: SailStyleValues.padding08),
-        SailButton(
-          label: 'Send',
-          loading: model.isSending,
-          disabled: model.messageController.text.isEmpty,
-          onPressed: model.sendMessage,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAvatar(BuildContext context, ChatContact contact) {
-    final theme = SailTheme.of(context);
-    final initials = contact.displayName.isNotEmpty ? contact.displayName.substring(0, 1).toUpperCase() : '?';
-
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: theme.colors.primary.withAlpha(50),
-      ),
-      child: Center(
-        child: SailText.primary13(initials, bold: true),
       ),
     );
   }

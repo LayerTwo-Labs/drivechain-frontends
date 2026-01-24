@@ -100,8 +100,8 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
                   spacing: SailStyleValues.padding16,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildGroupsSection(context, viewModel, constraints),
-                    _buildTransactionsSection(context, viewModel, constraints),
+                    _GroupsSection(viewModel: viewModel),
+                    _TransactionsSection(viewModel: viewModel),
                   ],
                 );
               },
@@ -111,12 +111,15 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
       },
     );
   }
+}
 
-  Widget _buildGroupsSection(
-    BuildContext context,
-    MultisigLoungeViewModel viewModel,
-    BoxConstraints constraints,
-  ) {
+class _GroupsSection extends StatelessWidget {
+  final MultisigLoungeViewModel viewModel;
+
+  const _GroupsSection({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -187,12 +190,15 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
       ],
     );
   }
+}
 
-  Widget _buildTransactionsSection(
-    BuildContext context,
-    MultisigLoungeViewModel viewModel,
-    BoxConstraints constraints,
-  ) {
+class _TransactionsSection extends StatelessWidget {
+  final MultisigLoungeViewModel viewModel;
+
+  const _TransactionsSection({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -448,7 +454,33 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
           SailTableCell(value: group.n.toString()),
           SailTableCell(value: group.m.toString()),
           SailTableCell(value: 'xPub'),
-          _buildTxidCell(group),
+          if (group.txid != null && group.txid!.isNotEmpty)
+            SailTableCell(
+              value: 'Copy TXID',
+              alignment: Alignment.center,
+              child: Center(
+                child: SailButton(
+                  label: 'Copy',
+                  variant: ButtonVariant.secondary,
+                  insideTable: true,
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    await Clipboard.setData(ClipboardData(text: group.txid!));
+                    if (context.mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('TXID copied to clipboard'),
+                          duration: const Duration(seconds: 2),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            )
+          else
+            const SailTableCell(value: ''),
         ];
       },
       rowCount: _sortedGroups.length,
@@ -480,38 +512,6 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
         );
       },
     );
-  }
-
-  Widget _buildTxidCell(MultisigGroup group) {
-    if (group.txid != null && group.txid!.isNotEmpty) {
-      return SailTableCell(
-        value: 'Copy TXID',
-        alignment: Alignment.center,
-        child: Center(
-          child: SailButton(
-            label: 'Copy',
-            variant: ButtonVariant.secondary,
-            insideTable: true,
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              await Clipboard.setData(ClipboardData(text: group.txid!));
-              // Show a snackbar to confirm copy
-              if (context.mounted) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('TXID copied to clipboard'),
-                    duration: const Duration(seconds: 2),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-          ),
-        ),
-      );
-    } else {
-      return const SailTableCell(value: '');
-    }
   }
 }
 
@@ -780,7 +780,47 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
           SailTableCell(
             value: tx.confirmations > 0 ? tx.confirmations.toString() : '-',
           ),
-          _buildActionCell(txRow, tx, group),
+          if (txRow.hasWalletKeys &&
+              !txRow.walletHasSigned &&
+              (tx.status == TxStatus.needsSignatures || tx.status == TxStatus.awaitingSignedPSBTs))
+            SailTableCell(
+              value: 'Sign Button',
+              alignment: Alignment.center,
+              child: Center(
+                child: SailButton(
+                  label: 'Sign',
+                  variant: ButtonVariant.primary,
+                  insideTable: true,
+                  onPressed: () => widget.onSign(tx, group),
+                ),
+              ),
+            )
+          else if (tx.status == TxStatus.readyForBroadcast)
+            SailTableCell(
+              value: 'Broadcast Button',
+              alignment: Alignment.center,
+              child: Center(
+                child: SailButton(
+                  label: 'Broadcast',
+                  variant: ButtonVariant.secondary,
+                  insideTable: true,
+                  onPressed: () async => widget.onBroadcast(),
+                ),
+              ),
+            )
+          else
+            SailTableCell(
+              value: 'View Button',
+              alignment: Alignment.center,
+              child: Center(
+                child: SailButton(
+                  label: 'View',
+                  variant: ButtonVariant.secondary,
+                  insideTable: true,
+                  onPressed: () => widget.onView(tx),
+                ),
+              ),
+            ),
         ];
       },
       rowCount: _sortedTransactionRows.length,
@@ -814,55 +854,6 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
         );
       },
     );
-  }
-
-  Widget _buildActionCell(
-    TransactionRow txRow,
-    MultisigTransaction tx,
-    MultisigGroup group,
-  ) {
-    if (txRow.hasWalletKeys &&
-        !txRow.walletHasSigned &&
-        (tx.status == TxStatus.needsSignatures || tx.status == TxStatus.awaitingSignedPSBTs)) {
-      return SailTableCell(
-        value: 'Sign Button',
-        alignment: Alignment.center,
-        child: Center(
-          child: SailButton(
-            label: 'Sign',
-            variant: ButtonVariant.primary,
-            insideTable: true,
-            onPressed: () => widget.onSign(tx, group),
-          ),
-        ),
-      );
-    } else if (tx.status == TxStatus.readyForBroadcast) {
-      return SailTableCell(
-        value: 'Broadcast Button',
-        alignment: Alignment.center,
-        child: Center(
-          child: SailButton(
-            label: 'Broadcast',
-            variant: ButtonVariant.secondary,
-            insideTable: true,
-            onPressed: () async => widget.onBroadcast(),
-          ),
-        ),
-      );
-    } else {
-      return SailTableCell(
-        value: 'View Button',
-        alignment: Alignment.center,
-        child: Center(
-          child: SailButton(
-            label: 'View',
-            variant: ButtonVariant.secondary,
-            insideTable: true,
-            onPressed: () => widget.onView(tx),
-          ),
-        ),
-      );
-    }
   }
 }
 

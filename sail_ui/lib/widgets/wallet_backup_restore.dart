@@ -689,7 +689,6 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
       ),
     );
   }
-
 }
 
 /// Restore progress step
@@ -1175,5 +1174,4 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
       ),
     );
   }
-
 }

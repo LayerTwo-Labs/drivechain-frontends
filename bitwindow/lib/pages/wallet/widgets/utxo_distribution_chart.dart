@@ -147,7 +147,14 @@ class _UTXODistributionChartState extends State<UTXODistributionChart> {
             child: Column(
               children: [
                 Expanded(
-                  child: _buildLegend(buckets, totalValue, theme),
+                  child: _Legend(
+                    buckets: buckets,
+                    totalValue: totalValue,
+                    touchedIndex: _touchedIndex,
+                    onTouchChange: (index) => setState(() => _touchedIndex = index),
+                    onBucketTap: widget.onBucketTap,
+                    onBucketContextMenu: widget.onBucketContextMenu,
+                  ),
                 ),
                 if (hasSmallUtxos && widget.onConsolidate != null)
                   Padding(
@@ -205,8 +212,28 @@ class _UTXODistributionChartState extends State<UTXODistributionChart> {
       );
     }).toList();
   }
+}
 
-  Widget _buildLegend(List<UTXOBucket> buckets, double totalValue, SailThemeData theme) {
+class _Legend extends StatelessWidget {
+  final List<UTXOBucket> buckets;
+  final double totalValue;
+  final int touchedIndex;
+  final void Function(int) onTouchChange;
+  final void Function(List<String> outpoints)? onBucketTap;
+  final void Function(UTXOBucket bucket, Offset position)? onBucketContextMenu;
+
+  const _Legend({
+    required this.buckets,
+    required this.totalValue,
+    required this.touchedIndex,
+    required this.onTouchChange,
+    this.onBucketTap,
+    this.onBucketContextMenu,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     final colors = [
       theme.colors.info,
       theme.colors.success,
@@ -225,18 +252,18 @@ class _UTXODistributionChartState extends State<UTXODistributionChart> {
       itemBuilder: (context, index) {
         final bucket = buckets[index];
         final percentage = totalValue > 0 ? (bucket.valueSats.toDouble() / totalValue) * 100 : 0;
-        final isHovered = index == _touchedIndex;
+        final isHovered = index == touchedIndex;
 
         return MouseRegion(
-          onEnter: (_) => setState(() => _touchedIndex = index),
-          onExit: (_) => setState(() => _touchedIndex = -1),
+          onEnter: (_) => onTouchChange(index),
+          onExit: (_) => onTouchChange(-1),
           child: GestureDetector(
-            onTap: () => widget.onBucketTap?.call(bucket.outpoints),
+            onTap: () => onBucketTap?.call(bucket.outpoints),
             onSecondaryTapUp: (details) {
-              widget.onBucketContextMenu?.call(bucket, details.globalPosition);
+              onBucketContextMenu?.call(bucket, details.globalPosition);
             },
             onLongPressStart: (details) {
-              widget.onBucketContextMenu?.call(bucket, details.globalPosition);
+              onBucketContextMenu?.call(bucket, details.globalPosition);
             },
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 6),

@@ -23,7 +23,7 @@ class PSBTCoordinatorModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (group == null) {
-      return _buildGroupSelectionModal(context);
+      return _GroupSelectionModal(availableGroups: availableGroups);
     }
 
     return ViewModelBuilder<CreateTransactionViewModel>.reactive(
@@ -95,8 +95,15 @@ class PSBTCoordinatorModal extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildGroupSelectionModal(BuildContext context) {
+class _GroupSelectionModal extends StatelessWidget {
+  final List<MultisigGroup>? availableGroups;
+
+  const _GroupSelectionModal({this.availableGroups});
+
+  @override
+  Widget build(BuildContext context) {
     final fundedGroups = availableGroups?.where((g) => g.balance > 0).toList() ?? [];
 
     return Dialog(

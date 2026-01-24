@@ -137,7 +137,10 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                     ),
                     if (bandwidthHistory.length > 1) ...[
                       const SizedBox(height: 32),
-                      _buildBandwidthGraph(),
+                      _BandwidthGraph(
+                        bandwidthHistory: bandwidthHistory,
+                        formatBandwidth: _formatBandwidth,
+                      ),
                     ],
                     if (stats!.hasBitcoindBandwidth() || stats!.hasEnforcerBandwidth()) ...[
                       const SizedBox(height: 32),
@@ -216,8 +219,19 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
     if (hashrate < 1000000000000) return '${(hashrate / 1000000000).toStringAsFixed(2)} GH/s';
     return '${(hashrate / 1000000000000).toStringAsFixed(2)} TH/s';
   }
+}
 
-  Widget _buildBandwidthGraph() {
+class _BandwidthGraph extends StatelessWidget {
+  final List<BandwidthDataPoint> bandwidthHistory;
+  final String Function(double) formatBandwidth;
+
+  const _BandwidthGraph({
+    required this.bandwidthHistory,
+    required this.formatBandwidth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
     // Calculate bandwidth rates from cumulative totals
@@ -281,7 +295,7 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                     showTitles: true,
                     reservedSize: 60,
                     getTitlesWidget: (value, meta) {
-                      return SailText.secondary12(_formatBandwidth(value));
+                      return SailText.secondary12(formatBandwidth(value));
                     },
                   ),
                 ),
@@ -340,7 +354,7 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
                     return touchedSpots.map((spot) {
                       final label = spot.barIndex == 0 ? 'RX' : 'TX';
                       return LineTooltipItem(
-                        '$label: ${_formatBandwidth(spot.y)}',
+                        '$label: ${formatBandwidth(spot.y)}',
                         TextStyle(
                           color: theme.colors.text,
                           fontWeight: FontWeight.bold,

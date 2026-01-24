@@ -10,7 +10,6 @@ import 'package:stacked/stacked.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
-import 'package:zside/widgets/homepage_widget_catalog.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:zside/widgets/containers/tabs/zside_tab_widgets.dart';
