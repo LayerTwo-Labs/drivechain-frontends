@@ -281,29 +281,71 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
 
       // Show/hide tooltip
       if (newInputIndex != null || newOutputIndex != null || newFee) {
-        _showTooltip(context, globalPosition, _buildTooltipContent(context, formatter));
+        _showTooltip(
+          context,
+          globalPosition,
+          _TooltipContent(
+            details: widget.details,
+            hoveredInputIndex: _hoveredInputIndex,
+            hoveredOutputIndex: _hoveredOutputIndex,
+            hoveredFee: _hoveredFee,
+            formatter: formatter,
+          ),
+        );
       } else {
         _hideTooltip();
       }
     } else if (_tooltipOverlay != null) {
       // Update tooltip position
       _tooltipOverlay!.markNeedsBuild();
-      _showTooltip(context, globalPosition, _buildTooltipContent(context, formatter));
+      _showTooltip(
+        context,
+        globalPosition,
+        _TooltipContent(
+          details: widget.details,
+          hoveredInputIndex: _hoveredInputIndex,
+          hoveredOutputIndex: _hoveredOutputIndex,
+          hoveredFee: _hoveredFee,
+          formatter: formatter,
+        ),
+      );
     }
   }
+}
 
-  Widget _buildTooltipContent(BuildContext context, FormatterProvider formatter) {
+class _TooltipContent extends StatelessWidget {
+  final GetTransactionDetailsResponse details;
+  final int? hoveredInputIndex;
+  final int? hoveredOutputIndex;
+  final bool hoveredFee;
+  final FormatterProvider formatter;
+
+  const _TooltipContent({
+    required this.details,
+    required this.hoveredInputIndex,
+    required this.hoveredOutputIndex,
+    required this.hoveredFee,
+    required this.formatter,
+  });
+
+  String _truncateAddress(String address) {
+    if (address.isEmpty) return '???';
+    if (address.length <= 16) return address;
+    return '${address.substring(0, 8)}...${address.substring(address.length - 6)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = context.sailTheme;
-    final details = widget.details;
 
     Widget content;
-    if (_hoveredInputIndex != null && _hoveredInputIndex! < details.inputs.length) {
-      final input = details.inputs[_hoveredInputIndex!];
+    if (hoveredInputIndex != null && hoveredInputIndex! < details.inputs.length) {
+      final input = details.inputs[hoveredInputIndex!];
       content = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          SailText.primary12('Input #${_hoveredInputIndex! + 1}', bold: true),
+          SailText.primary12('Input #${hoveredInputIndex! + 1}', bold: true),
           const SizedBox(height: 4),
           if (input.isCoinbase)
             SailText.secondary12('Coinbase (newly minted)')
@@ -322,14 +364,14 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
           ],
         ],
       );
-    } else if (_hoveredOutputIndex != null && _hoveredOutputIndex! < details.outputs.length) {
-      final output = details.outputs[_hoveredOutputIndex!];
+    } else if (hoveredOutputIndex != null && hoveredOutputIndex! < details.outputs.length) {
+      final output = details.outputs[hoveredOutputIndex!];
       final isOpReturn = output.scriptType == 'nulldata';
       content = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          SailText.primary12('Output #${_hoveredOutputIndex! + 1}', bold: true),
+          SailText.primary12('Output #${hoveredOutputIndex! + 1}', bold: true),
           const SizedBox(height: 4),
           if (isOpReturn)
             SailText.secondary12('OP_RETURN (data carrier)')
@@ -345,7 +387,7 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
           ],
         ],
       );
-    } else if (_hoveredFee) {
+    } else if (hoveredFee) {
       content = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -380,12 +422,6 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
       ),
       child: content,
     );
-  }
-
-  String _truncateAddress(String address) {
-    if (address.isEmpty) return '???';
-    if (address.length <= 16) return address;
-    return '${address.substring(0, 8)}...${address.substring(address.length - 6)}';
   }
 }
 

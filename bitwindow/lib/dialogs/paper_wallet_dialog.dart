@@ -319,7 +319,34 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                         ),
                       )
                     else
-                      _buildWalletContent(theme),
+                      // Wallet Content
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left side - Public Address (for receiving)
+                          Expanded(
+                            child: _AddressPanel(
+                              keypair: _keypair!,
+                              showPrivateKey: false,
+                              onCopy: () => _copyToClipboard(_keypair!.publicAddress, 'Address'),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          // Right side - Private Key (for spending)
+                          Expanded(
+                            child: _PrivateKeyPanel(
+                              keypair: _keypair!,
+                              showPrivateKey: _showPrivateKey,
+                              onToggleVisibility: () {
+                                setState(() {
+                                  _showPrivateKey = !_showPrivateKey;
+                                });
+                              },
+                              onCopy: () => _copyToClipboard(_keypair!.privateKeyWIF, 'Private key'),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -365,28 +392,24 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
       ),
     );
   }
+}
 
-  Widget _buildWalletContent(SailThemeData theme) {
-    if (_keypair == null) return const SizedBox.shrink();
+/// Widget for displaying the public address panel
+class _AddressPanel extends StatelessWidget {
+  final PaperWalletKeypair keypair;
+  final bool showPrivateKey;
+  final VoidCallback onCopy;
 
-    // Layout similar to Bitcoin Core paper wallets
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Left side - Public Address (for receiving)
-        Expanded(
-          child: _buildAddressPanel(theme),
-        ),
-        const SizedBox(width: 24),
-        // Right side - Private Key (for spending)
-        Expanded(
-          child: _buildPrivateKeyPanel(theme),
-        ),
-      ],
-    );
-  }
+  const _AddressPanel({
+    required this.keypair,
+    required this.showPrivateKey,
+    required this.onCopy,
+  });
 
-  Widget _buildAddressPanel(SailThemeData theme) {
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -420,7 +443,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
               borderRadius: SailStyleValues.borderRadiusSmall,
             ),
             child: QrImageView(
-              data: _keypair!.publicAddress,
+              data: keypair.publicAddress,
               version: QrVersions.auto,
               size: 200,
               padding: EdgeInsets.zero,
@@ -436,7 +459,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
 
           // Address text
           SelectableText(
-            _keypair!.publicAddress,
+            keypair.publicAddress,
             style: TextStyle(
               fontFamily: 'IBMPlexMono',
               fontSize: 11,
@@ -450,7 +473,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
           SailButton(
             label: 'Copy Address',
             variant: ButtonVariant.secondary,
-            onPressed: () async => _copyToClipboard(_keypair!.publicAddress, 'Address'),
+            onPressed: () async => onCopy(),
           ),
           const SizedBox(height: 16),
 
@@ -464,8 +487,26 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
       ),
     );
   }
+}
 
-  Widget _buildPrivateKeyPanel(SailThemeData theme) {
+/// Widget for displaying the private key panel
+class _PrivateKeyPanel extends StatelessWidget {
+  final PaperWalletKeypair keypair;
+  final bool showPrivateKey;
+  final VoidCallback onToggleVisibility;
+  final VoidCallback onCopy;
+
+  const _PrivateKeyPanel({
+    required this.keypair,
+    required this.showPrivateKey,
+    required this.onToggleVisibility,
+    required this.onCopy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -485,16 +526,12 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
               const Spacer(),
               IconButton(
                 icon: Icon(
-                  _showPrivateKey ? Icons.visibility_off : Icons.visibility,
+                  showPrivateKey ? Icons.visibility_off : Icons.visibility,
                   color: theme.colors.text,
                   size: 20,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _showPrivateKey = !_showPrivateKey;
-                  });
-                },
-                tooltip: _showPrivateKey ? 'Hide private key' : 'Show private key',
+                onPressed: onToggleVisibility,
+                tooltip: showPrivateKey ? 'Hide private key' : 'Show private key',
               ),
             ],
           ),
@@ -505,7 +542,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
           ),
           const SizedBox(height: 16),
 
-          if (_showPrivateKey) ...[
+          if (showPrivateKey) ...[
             // QR Code
             Container(
               padding: const EdgeInsets.all(16),
@@ -514,7 +551,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                 borderRadius: SailStyleValues.borderRadiusSmall,
               ),
               child: QrImageView(
-                data: _keypair!.privateKeyWIF,
+                data: keypair.privateKeyWIF,
                 version: QrVersions.auto,
                 size: 200,
                 padding: EdgeInsets.zero,
@@ -530,7 +567,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
 
             // Private key text
             SelectableText(
-              _keypair!.privateKeyWIF,
+              keypair.privateKeyWIF,
               style: TextStyle(
                 fontFamily: 'IBMPlexMono',
                 fontSize: 11,
@@ -544,7 +581,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
             SailButton(
               label: 'Copy Private Key',
               variant: ButtonVariant.secondary,
-              onPressed: () async => _copyToClipboard(_keypair!.privateKeyWIF, 'Private key'),
+              onPressed: () async => onCopy(),
             ),
           ] else
             Column(

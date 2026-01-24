@@ -25,6 +25,8 @@ linter:
     prefer_single_quotes: true
 
 analyzer:
+  plugins:
+    - custom_lint
   exclude:
     - "**/*.g.dart"
     - "**/*.pb.dart"

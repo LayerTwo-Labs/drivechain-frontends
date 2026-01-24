@@ -5,7 +5,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/sail_ui.dart' hide DetailRow;
 import 'package:stacked/stacked.dart';
 
 class DeniabilityTab extends StatelessWidget {

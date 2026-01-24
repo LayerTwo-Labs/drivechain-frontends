@@ -22,6 +22,7 @@ class SailTextField extends StatelessWidget {
   final BoxConstraints? prefixIconConstraints;
   final TextFieldSize size;
   final void Function(String)? onSubmitted;
+  final void Function(String)? onChanged;
   final bool readOnly;
   final bool dense;
   final bool enabled;
@@ -48,6 +49,7 @@ class SailTextField extends StatelessWidget {
     this.focusNode,
     this.autofocus = false,
     this.onSubmitted,
+    this.onChanged,
     this.readOnly = false,
     this.dense = false,
     this.enabled = true,
@@ -81,6 +83,7 @@ class SailTextField extends StatelessWidget {
             controller: controller,
             focusNode: focusNode,
             onSubmitted: onSubmitted,
+            onChanged: onChanged,
             readOnly: readOnly,
             style: SailStyleValues.thirteen.copyWith(color: SailTheme.of(context).colors.text, fontSize: textSize),
             inputFormatters: [

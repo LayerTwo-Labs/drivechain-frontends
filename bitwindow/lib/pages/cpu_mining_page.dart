@@ -86,6 +86,7 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final isRunning = _miningProvider.isMining;
 
     return Scaffold(
       backgroundColor: theme.colors.background,
@@ -95,167 +96,154 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
         title: SailText.primary20('CPU Miner', bold: true),
       ),
       body: SafeArea(
-        child: _buildConfigScreen(theme, _miningProvider.isMining),
-      ),
-    );
-  }
-
-  Widget _buildConfigScreen(SailThemeData theme, bool isRunning) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: SailCard(
-          child: Padding(
-            padding: const EdgeInsets.all(30),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildStatusSection(theme, isRunning),
-                const SizedBox(height: 30),
-                _buildConfigSection(theme, isRunning),
-                const SizedBox(height: 30),
-                _buildControlSection(theme, isRunning),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusSection(SailThemeData theme, bool isRunning) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isRunning ? theme.colors.success : theme.colors.text.withValues(alpha: 0.3),
-              ),
-            ),
-            const SizedBox(width: SailStyleValues.padding08),
-            SailText.primary20(
-              isRunning ? 'Running' : 'Stopped',
-              bold: true,
-            ),
-          ],
-        ),
-        if (isRunning) ...[
-          const SizedBox(height: SailStyleValues.padding16),
-          SailText.secondary13(
-            'Hash Rate: ${_miningProvider.hashRate.toStringAsFixed(2)} H/s',
-          ),
-        ],
-        if (_miningProvider.blocksFound > 0) ...[
-          const SizedBox(height: SailStyleValues.padding08),
-          SailText.secondary13(
-            'Blocks Found: ${_miningProvider.blocksFound}',
-          ),
-        ],
-        if (_miningProvider.foundBlockHashes.isNotEmpty) ...[
-          const SizedBox(height: SailStyleValues.padding16),
-          SizedBox(
-            width: 500,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.primary13('Recent Blocks:', bold: true),
-                const SizedBox(height: SailStyleValues.padding08),
-                ..._miningProvider.foundBlockHashes
-                    .take(5)
-                    .map(
-                      (hash) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: SailText.secondary12(hash),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: SailCard(
+              child: Padding(
+                padding: const EdgeInsets.all(30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Status section
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isRunning ? theme.colors.success : theme.colors.text.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            const SizedBox(width: SailStyleValues.padding08),
+                            SailText.primary20(
+                              isRunning ? 'Running' : 'Stopped',
+                              bold: true,
+                            ),
+                          ],
+                        ),
+                        if (isRunning) ...[
+                          const SizedBox(height: SailStyleValues.padding16),
+                          SailText.secondary13(
+                            'Hash Rate: ${_miningProvider.hashRate.toStringAsFixed(2)} H/s',
+                          ),
+                        ],
+                        if (_miningProvider.blocksFound > 0) ...[
+                          const SizedBox(height: SailStyleValues.padding08),
+                          SailText.secondary13(
+                            'Blocks Found: ${_miningProvider.blocksFound}',
+                          ),
+                        ],
+                        if (_miningProvider.foundBlockHashes.isNotEmpty) ...[
+                          const SizedBox(height: SailStyleValues.padding16),
+                          SizedBox(
+                            width: 500,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary13('Recent Blocks:', bold: true),
+                                const SizedBox(height: SailStyleValues.padding08),
+                                ..._miningProvider.foundBlockHashes
+                                    .take(5)
+                                    .map(
+                                      (hash) => Padding(
+                                        padding: const EdgeInsets.only(bottom: 4),
+                                        child: SailText.secondary12(hash),
+                                      ),
+                                    ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (_miningProvider.error != null) ...[
+                          const SizedBox(height: SailStyleValues.padding16),
+                          SizedBox(
+                            width: 500,
+                            child: SailText.primary12(
+                              'Error: ${_miningProvider.error}',
+                              color: theme.colors.error,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    // Config section
+                    SizedBox(
+                      width: 400,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SailTextField(
+                            controller: _threadCountController,
+                            label: 'Thread Count',
+                            hintText: '1',
+                            enabled: !isRunning,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(2),
+                            ],
+                            textFieldType: TextFieldType.number,
+                          ),
+                          const SizedBox(height: SailStyleValues.padding16),
+                          SailTextField(
+                            loading: LoadingDetails(
+                              enabled: _isLoadingAddress,
+                              description: 'Generating address...',
+                            ),
+                            label: 'Coinbase Address',
+                            controller: TextEditingController(text: _coinbaseAddress),
+                            hintText: 'Block rewards will be sent to this address',
+                            readOnly: true,
+                          ),
+                        ],
                       ),
                     ),
-              ],
+                    const SizedBox(height: 30),
+                    // Control section
+                    SizedBox(
+                      width: 400,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SailButton(
+                              label: 'Start',
+                              onPressed: () async => await _startMiner(),
+                              disabled: isRunning,
+                            ),
+                          ),
+                          const SizedBox(width: SailStyleValues.padding12),
+                          Expanded(
+                            child: SailButton(
+                              label: 'Stop',
+                              onPressed: () async => await _stopMiner(),
+                              variant: ButtonVariant.secondary,
+                              disabled: !isRunning,
+                            ),
+                          ),
+                          const SizedBox(width: SailStyleValues.padding12),
+                          Expanded(
+                            child: SailButton(
+                              label: 'Restart',
+                              onPressed: () async => await _restartMiner(),
+                              variant: ButtonVariant.secondary,
+                              disabled: !isRunning,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ],
-        if (_miningProvider.error != null) ...[
-          const SizedBox(height: SailStyleValues.padding16),
-          SizedBox(
-            width: 500,
-            child: SailText.primary12(
-              'Error: ${_miningProvider.error}',
-              color: theme.colors.error,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildConfigSection(SailThemeData theme, bool isRunning) {
-    return SizedBox(
-      width: 400,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SailTextField(
-            controller: _threadCountController,
-            label: 'Thread Count',
-            hintText: '1',
-            enabled: !isRunning,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(2),
-            ],
-            textFieldType: TextFieldType.number,
-          ),
-          const SizedBox(height: SailStyleValues.padding16),
-          SailTextField(
-            loading: LoadingDetails(
-              enabled: _isLoadingAddress,
-              description: 'Generating address...',
-            ),
-            label: 'Coinbase Address',
-            controller: TextEditingController(text: _coinbaseAddress),
-            hintText: 'Block rewards will be sent to this address',
-            readOnly: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildControlSection(SailThemeData theme, bool isRunning) {
-    return SizedBox(
-      width: 400,
-      child: Row(
-        children: [
-          Expanded(
-            child: SailButton(
-              label: 'Start',
-              onPressed: () async => await _startMiner(),
-              disabled: isRunning,
-            ),
-          ),
-          const SizedBox(width: SailStyleValues.padding12),
-          Expanded(
-            child: SailButton(
-              label: 'Stop',
-              onPressed: () async => await _stopMiner(),
-              variant: ButtonVariant.secondary,
-              disabled: !isRunning,
-            ),
-          ),
-          const SizedBox(width: SailStyleValues.padding12),
-          Expanded(
-            child: SailButton(
-              label: 'Restart',
-              onPressed: () async => await _restartMiner(),
-              variant: ButtonVariant.secondary,
-              disabled: !isRunning,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

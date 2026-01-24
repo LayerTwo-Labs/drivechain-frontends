@@ -128,31 +128,6 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
     );
   }
 
-  Widget _buildScrollButton({
-    required VoidCallback onPressed,
-    required bool isLeft,
-    required SailThemeData theme,
-  }) {
-    return Material(
-      color: Colors.black,
-      borderRadius: SailStyleValues.borderRadius,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: SailStyleValues.borderRadius,
-        child: Container(
-          width: 32,
-          height: 32,
-          alignment: Alignment.center,
-          child: Icon(
-            isLeft ? Icons.arrow_back_ios_rounded : Icons.arrow_forward_ios_rounded,
-            color: Colors.white,
-            size: 16,
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (widget.group.articles.isEmpty) {
@@ -233,10 +208,9 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                               ),
                             ),
                           ),
-                          _buildScrollButton(
+                          _ScrollButton(
                             onPressed: () => _scroll(-scrollDistance),
                             isLeft: true,
-                            theme: theme,
                           ),
                         ],
                       ),
@@ -246,10 +220,9 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                     top: 100,
                     child: Row(
                       children: [
-                        _buildScrollButton(
+                        _ScrollButton(
                           onPressed: () => _scroll(scrollDistance),
                           isLeft: false,
-                          theme: theme,
                         ),
                         Container(
                           width: 24,
@@ -400,6 +373,38 @@ class _StoryCardContent extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ScrollButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool isLeft;
+
+  const _ScrollButton({
+    required this.onPressed,
+    required this.isLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black,
+      borderRadius: SailStyleValues.borderRadius,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: SailStyleValues.borderRadius,
+        child: Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          child: Icon(
+            isLeft ? Icons.arrow_back_ios_rounded : Icons.arrow_forward_ios_rounded,
+            color: Colors.white,
+            size: 16,
+          ),
+        ),
       ),
     );
   }

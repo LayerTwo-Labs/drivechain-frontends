@@ -444,7 +444,106 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                         ),
                       )
                     else
-                      _buildCheckContent(theme),
+                      // Check Content
+                      Column(
+                        children: [
+                          // Success banner (if funded)
+                          if (_txid != null) ...[
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: theme.colors.success.withValues(alpha: 0.1),
+                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                border: Border.all(color: theme.colors.success),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: theme.colors.success, size: 24),
+                                      const SizedBox(width: 12),
+                                      SailText.primary15('Check Created Successfully!', bold: true),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SailText.secondary12('Transaction ID:'),
+                                  const SizedBox(height: 4),
+                                  SelectableText(
+                                    _txid!,
+                                    style: TextStyle(
+                                      fontFamily: 'IBMPlexMono',
+                                      fontSize: 11,
+                                      color: theme.colors.text,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SailButton(
+                                    label: 'Copy TX ID',
+                                    variant: ButtonVariant.secondary,
+                                    onPressed: () async => _copyToClipboard(_txid!, 'Transaction ID'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Amount display
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: theme.colors.background,
+                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                border: Border.all(color: theme.colors.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.account_balance_wallet, color: theme.colors.primary, size: 32),
+                                  const SizedBox(width: 16),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.secondary12('Check Amount'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary20('${_amountController.text} BTC', bold: true),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+
+                          // Two-panel layout (matches Paper Wallet)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Left: Recipient Address
+                              Expanded(
+                                child: _RecipientPanel(
+                                  keypair: _keypair!,
+                                  txid: _txid,
+                                  onCopy: () => _copyToClipboard(_keypair!.publicAddress, 'Address'),
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              // Right: Redemption Key
+                              Expanded(
+                                child: _RedemptionPanel(
+                                  keypair: _keypair!,
+                                  showPrivateKey: _showPrivateKey,
+                                  onToggleVisibility: () {
+                                    setState(() {
+                                      _showPrivateKey = !_showPrivateKey;
+                                    });
+                                  },
+                                  onCopy: () => _copyToClipboard(_keypair!.privateKeyWIF, 'Private key'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -458,169 +557,88 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                   top: BorderSide(color: theme.colors.border),
                 ),
               ),
-              child: _buildFooterButtons(theme),
+              child: _txid == null
+                  // Before funding: Show Generate New and Create Check
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SailButton(
+                          label: 'Generate New Address',
+                          variant: ButtonVariant.secondary,
+                          onPressed: () async => _generateKeypair(),
+                          loading: _isGenerating,
+                          disabled: _isSending,
+                        ),
+                        Row(
+                          children: [
+                            SailButton(
+                              label: 'Create Check',
+                              onPressed: () async => _createCheck(),
+                              loading: _isSending,
+                              disabled: _isGenerating || _keypair == null,
+                            ),
+                            const SizedBox(width: 12),
+                            SailButton(
+                              label: 'Close',
+                              variant: ButtonVariant.secondary,
+                              onPressed: () async => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  // After funding: Show Create Another and Print
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SailButton(
+                          label: 'Create Another',
+                          variant: ButtonVariant.secondary,
+                          onPressed: () async {
+                            _amountController.clear();
+                            await _generateKeypair();
+                          },
+                        ),
+                        Row(
+                          children: [
+                            SailButton(
+                              label: 'Print',
+                              onPressed: () async => _printPaperCheck(),
+                            ),
+                            const SizedBox(width: 12),
+                            SailButton(
+                              label: 'Close',
+                              variant: ButtonVariant.secondary,
+                              onPressed: () async => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildFooterButtons(SailThemeData theme) {
-    if (_txid == null) {
-      // Before funding: Show Generate New and Create Check
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SailButton(
-            label: 'Generate New Address',
-            variant: ButtonVariant.secondary,
-            onPressed: () async => _generateKeypair(),
-            loading: _isGenerating,
-            disabled: _isSending,
-          ),
-          Row(
-            children: [
-              SailButton(
-                label: 'Create Check',
-                onPressed: () async => _createCheck(),
-                loading: _isSending,
-                disabled: _isGenerating || _keypair == null,
-              ),
-              const SizedBox(width: 12),
-              SailButton(
-                label: 'Close',
-                variant: ButtonVariant.secondary,
-                onPressed: () async => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        ],
-      );
-    } else {
-      // After funding: Show Create Another and Print
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SailButton(
-            label: 'Create Another',
-            variant: ButtonVariant.secondary,
-            onPressed: () async {
-              _amountController.clear();
-              await _generateKeypair();
-            },
-          ),
-          Row(
-            children: [
-              SailButton(
-                label: 'Print',
-                onPressed: () async => _printPaperCheck(),
-              ),
-              const SizedBox(width: 12),
-              SailButton(
-                label: 'Close',
-                variant: ButtonVariant.secondary,
-                onPressed: () async => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-  }
+/// Widget for displaying the recipient address panel
+class _RecipientPanel extends StatelessWidget {
+  final PaperWalletKeypair keypair;
+  final String? txid;
+  final VoidCallback onCopy;
 
-  Widget _buildCheckContent(SailThemeData theme) {
-    if (_keypair == null) return const SizedBox.shrink();
+  const _RecipientPanel({
+    required this.keypair,
+    required this.txid,
+    required this.onCopy,
+  });
 
-    return Column(
-      children: [
-        // Success banner (if funded)
-        if (_txid != null) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colors.success.withValues(alpha: 0.1),
-              borderRadius: SailStyleValues.borderRadiusSmall,
-              border: Border.all(color: theme.colors.success),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.check_circle, color: theme.colors.success, size: 24),
-                    const SizedBox(width: 12),
-                    SailText.primary15('Check Created Successfully!', bold: true),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SailText.secondary12('Transaction ID:'),
-                const SizedBox(height: 4),
-                SelectableText(
-                  _txid!,
-                  style: TextStyle(
-                    fontFamily: 'IBMPlexMono',
-                    fontSize: 11,
-                    color: theme.colors.text,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SailButton(
-                  label: 'Copy TX ID',
-                  variant: ButtonVariant.secondary,
-                  onPressed: () async => _copyToClipboard(_txid!, 'Transaction ID'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
 
-          // Amount display
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colors.background,
-              borderRadius: SailStyleValues.borderRadiusSmall,
-              border: Border.all(color: theme.colors.border),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.account_balance_wallet, color: theme.colors.primary, size: 32),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.secondary12('Check Amount'),
-                    const SizedBox(height: 4),
-                    SailText.primary20('${_amountController.text} BTC', bold: true),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-
-        // Two-panel layout (matches Paper Wallet)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left: Recipient Address
-            Expanded(
-              child: _buildRecipientPanel(theme),
-            ),
-            const SizedBox(width: 24),
-            // Right: Redemption Key
-            Expanded(
-              child: _buildRedemptionPanel(theme),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecipientPanel(SailThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -654,7 +672,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
               borderRadius: SailStyleValues.borderRadiusSmall,
             ),
             child: QrImageView(
-              data: _keypair!.publicAddress,
+              data: keypair.publicAddress,
               version: QrVersions.auto,
               size: 180,
               padding: EdgeInsets.zero,
@@ -670,7 +688,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
 
           // Address text
           SelectableText(
-            _keypair!.publicAddress,
+            keypair.publicAddress,
             style: TextStyle(
               fontFamily: 'IBMPlexMono',
               fontSize: 11,
@@ -684,13 +702,13 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
           SailButton(
             label: 'Copy Address',
             variant: ButtonVariant.secondary,
-            onPressed: () async => _copyToClipboard(_keypair!.publicAddress, 'Address'),
+            onPressed: () async => onCopy(),
           ),
           const SizedBox(height: 16),
 
           // Instructions
           SailText.secondary12(
-            _txid != null ? 'Give this check to the recipient' : 'Address where check will be sent',
+            txid != null ? 'Give this check to the recipient' : 'Address where check will be sent',
             textAlign: TextAlign.center,
             color: theme.colors.textSecondary,
           ),
@@ -698,8 +716,26 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
       ),
     );
   }
+}
 
-  Widget _buildRedemptionPanel(SailThemeData theme) {
+/// Widget for displaying the redemption key panel
+class _RedemptionPanel extends StatelessWidget {
+  final PaperWalletKeypair keypair;
+  final bool showPrivateKey;
+  final VoidCallback onToggleVisibility;
+  final VoidCallback onCopy;
+
+  const _RedemptionPanel({
+    required this.keypair,
+    required this.showPrivateKey,
+    required this.onToggleVisibility,
+    required this.onCopy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -719,16 +755,12 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
               const Spacer(),
               IconButton(
                 icon: Icon(
-                  _showPrivateKey ? Icons.visibility_off : Icons.visibility,
+                  showPrivateKey ? Icons.visibility_off : Icons.visibility,
                   color: theme.colors.text,
                   size: 20,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _showPrivateKey = !_showPrivateKey;
-                  });
-                },
-                tooltip: _showPrivateKey ? 'Hide private key' : 'Show private key',
+                onPressed: onToggleVisibility,
+                tooltip: showPrivateKey ? 'Hide private key' : 'Show private key',
               ),
             ],
           ),
@@ -739,7 +771,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
           ),
           const SizedBox(height: 16),
 
-          if (_showPrivateKey) ...[
+          if (showPrivateKey) ...[
             // QR Code
             Container(
               padding: const EdgeInsets.all(16),
@@ -748,7 +780,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                 borderRadius: SailStyleValues.borderRadiusSmall,
               ),
               child: QrImageView(
-                data: _keypair!.privateKeyWIF,
+                data: keypair.privateKeyWIF,
                 version: QrVersions.auto,
                 size: 180,
                 padding: EdgeInsets.zero,
@@ -764,7 +796,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
 
             // Private key text
             SelectableText(
-              _keypair!.privateKeyWIF,
+              keypair.privateKeyWIF,
               style: TextStyle(
                 fontFamily: 'IBMPlexMono',
                 fontSize: 11,
@@ -778,7 +810,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
             SailButton(
               label: 'Copy Private Key',
               variant: ButtonVariant.secondary,
-              onPressed: () async => _copyToClipboard(_keypair!.privateKeyWIF, 'Private key'),
+              onPressed: () async => onCopy(),
             ),
           ] else
             Column(

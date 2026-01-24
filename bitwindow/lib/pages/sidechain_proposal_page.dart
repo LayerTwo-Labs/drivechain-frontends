@@ -49,7 +49,7 @@ class SidechainProposalView extends StatelessWidget {
                   },
                   SailText.primary12('Required'),
                   const SizedBox(height: SailStyleValues.padding08),
-                  _buildRequiredSection(context, model),
+                  _RequiredSection(model: model),
                   const SizedBox(height: SailStyleValues.padding25),
                   Row(
                     children: [
@@ -64,7 +64,7 @@ class SidechainProposalView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: SailStyleValues.padding08),
-                  _buildOptionalSection(context, model),
+                  _OptionalSection(model: model),
                   const SizedBox(height: SailStyleValues.padding25),
                 ],
               ),
@@ -72,99 +72,6 @@ class SidechainProposalView extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildRequiredSection(BuildContext context, SidechainProposalViewModel model) {
-    return QtContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 1,
-                child: SailTextFormField(
-                  label: 'Slot #',
-                  controller: model.slotController,
-                  hintText: '0-255',
-                  keyboardType: TextInputType.number,
-                  validator: (value) => model.validateSlot(value),
-                  errorText: model.slotError,
-                  size: TextFieldSize.small,
-                ),
-              ),
-              const SizedBox(width: SailStyleValues.padding16),
-              Expanded(
-                flex: 3,
-                child: SailTextFormField(
-                  label: 'Title',
-                  hintText: 'Sidechain title',
-                  controller: model.titleController,
-                  validator: (value) => model.validateTitle(value),
-                  errorText: model.titleError,
-                  size: TextFieldSize.small,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOptionalSection(BuildContext context, SidechainProposalViewModel model) {
-    return QtContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailTextFormField(
-            label: 'Description',
-            hintText: 'Sidechain description',
-            controller: model.descriptionController,
-            maxLines: 5,
-            size: TextFieldSize.small,
-          ),
-          const SizedBox(height: SailStyleValues.padding16),
-          SailTextFormField(
-            label: 'Version',
-            hintText: '0',
-            controller: model.versionController,
-            keyboardType: TextInputType.number,
-            validator: (value) => model.validateVersion(value),
-            errorText: model.versionError,
-            size: TextFieldSize.small,
-          ),
-          const SizedBox(height: SailStyleValues.padding16),
-          SailTextFormField(
-            label: 'Release tarball hash (256 bits)',
-            hintText: 'Gitian build tarball hash (Linux x86-64)',
-            controller: model.tarballHashController,
-            validator: (value) => model.validateHash(value, 256),
-            errorText: model.tarballHashError,
-            size: TextFieldSize.small,
-          ),
-          const SizedBox(height: SailStyleValues.padding16),
-          SailTextFormField(
-            label: 'Build commit hash (160 bits)',
-            hintText: 'Gitian build commit hash',
-            controller: model.commitHashController,
-            validator: (value) => model.validateHash(value, 160),
-            errorText: model.commitHashError,
-            size: TextFieldSize.small,
-          ),
-          const SizedBox(height: SailStyleValues.padding25),
-          Center(
-            child: SailButton(
-              label: 'Propose Sidechain',
-              loading: model.isProposing,
-              disabled: !model.isFormValid,
-              onPressed: () async => model.proposeSidechain(context),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -378,4 +285,111 @@ Future<void> showSidechainProposalModal(BuildContext context) {
       );
     },
   );
+}
+
+class _RequiredSection extends StatelessWidget {
+  final SidechainProposalViewModel model;
+
+  const _RequiredSection({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return QtContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 1,
+                child: SailTextFormField(
+                  label: 'Slot #',
+                  controller: model.slotController,
+                  hintText: '0-255',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => model.validateSlot(value),
+                  errorText: model.slotError,
+                  size: TextFieldSize.small,
+                ),
+              ),
+              const SizedBox(width: SailStyleValues.padding16),
+              Expanded(
+                flex: 3,
+                child: SailTextFormField(
+                  label: 'Title',
+                  hintText: 'Sidechain title',
+                  controller: model.titleController,
+                  validator: (value) => model.validateTitle(value),
+                  errorText: model.titleError,
+                  size: TextFieldSize.small,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OptionalSection extends StatelessWidget {
+  final SidechainProposalViewModel model;
+
+  const _OptionalSection({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    return QtContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailTextFormField(
+            label: 'Description',
+            hintText: 'Sidechain description',
+            controller: model.descriptionController,
+            maxLines: 5,
+            size: TextFieldSize.small,
+          ),
+          const SizedBox(height: SailStyleValues.padding16),
+          SailTextFormField(
+            label: 'Version',
+            hintText: '0',
+            controller: model.versionController,
+            keyboardType: TextInputType.number,
+            validator: (value) => model.validateVersion(value),
+            errorText: model.versionError,
+            size: TextFieldSize.small,
+          ),
+          const SizedBox(height: SailStyleValues.padding16),
+          SailTextFormField(
+            label: 'Release tarball hash (256 bits)',
+            hintText: 'Gitian build tarball hash (Linux x86-64)',
+            controller: model.tarballHashController,
+            validator: (value) => model.validateHash(value, 256),
+            errorText: model.tarballHashError,
+            size: TextFieldSize.small,
+          ),
+          const SizedBox(height: SailStyleValues.padding16),
+          SailTextFormField(
+            label: 'Build commit hash (160 bits)',
+            hintText: 'Gitian build commit hash',
+            controller: model.commitHashController,
+            validator: (value) => model.validateHash(value, 160),
+            errorText: model.commitHashError,
+            size: TextFieldSize.small,
+          ),
+          const SizedBox(height: SailStyleValues.padding25),
+          Center(
+            child: SailButton(
+              label: 'Propose Sidechain',
+              loading: model.isProposing,
+              disabled: !model.isFormValid,
+              onPressed: () async => model.proposeSidechain(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

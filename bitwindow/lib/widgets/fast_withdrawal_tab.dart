@@ -48,24 +48,26 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Main Form
         if (!viewModel.isCompleted) ...[
-          if (viewModel.withdrawalHash == null) ...[
-            // Initial withdrawal form
-            _buildWithdrawalForm(viewModel, theme.colors),
-          ] else ...[
-            // Payment instructions and completion form
-            _buildPaymentSection(viewModel, theme.colors),
-          ],
-        ] else ...[
-          // Success state
-          _buildSuccessSection(viewModel),
-        ],
+          if (viewModel.withdrawalHash == null)
+            _WithdrawalForm(viewModel: viewModel, colors: theme.colors)
+          else
+            _PaymentSection(viewModel: viewModel, colors: theme.colors),
+        ] else
+          _SuccessSection(viewModel: viewModel),
       ],
     );
   }
+}
 
-  Widget _buildWithdrawalForm(FastWithdrawalTabViewModel viewModel, SailColor theme) {
+class _WithdrawalForm extends StatelessWidget {
+  final FastWithdrawalTabViewModel viewModel;
+  final SailColor colors;
+
+  const _WithdrawalForm({required this.viewModel, required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       title: 'Fast Withdrawal',
       subtitle: 'Quickly withdraw L2 coins to your L1-wallet',
@@ -75,7 +77,6 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: SailStyleValues.padding16,
         children: [
-          // Amount input with paste button
           SailTextField(
             label: 'Withdraw amount (BTC)',
             controller: viewModel.amountController,
@@ -84,7 +85,6 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
               onPaste: (text) => viewModel.amountController.text = text,
             ),
           ),
-
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -99,8 +99,6 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
               ),
             ],
           ),
-
-          // Server and L2 Chain selection
           Row(
             children: [
               Expanded(
@@ -124,8 +122,6 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
             ],
           ),
           const SizedBox(height: 24),
-
-          // Submit button
           SailButton(
             label: 'Request Withdrawal',
             onPressed: () => viewModel.requestWithdrawal(),
@@ -135,8 +131,16 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
       ),
     );
   }
+}
 
-  Widget _buildPaymentSection(FastWithdrawalTabViewModel viewModel, SailColor theme) {
+class _PaymentSection extends StatelessWidget {
+  final FastWithdrawalTabViewModel viewModel;
+  final SailColor colors;
+
+  const _PaymentSection({required this.viewModel, required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       title: 'Complete withdrawal',
       subtitle: 'Send funds to the info below to complete the withdrawal',
@@ -152,14 +156,13 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: SailStyleValues.padding16,
         children: [
-          // Payment instructions
-          if (viewModel.paymentMessage != null) ...[
+          if (viewModel.paymentMessage != null)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.backgroundSecondary,
+                color: colors.backgroundSecondary,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.border),
+                border: Border.all(color: colors.border),
               ),
               child: SailColumn(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,9 +170,7 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
                 children: [
                   SailText.primary13('Send L2 ${viewModel.layer2Chain} Coins to the info below'),
                   SailTextField(
-                    controller: TextEditingController(
-                      text: viewModel.paymentMessage!['amount'],
-                    ),
+                    controller: TextEditingController(text: viewModel.paymentMessage!['amount']),
                     hintText: 'Amount',
                     readOnly: true,
                     suffixWidget: CopyButton(text: viewModel.paymentMessage!['amount']),
@@ -183,9 +184,6 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
                 ],
               ),
             ),
-          ],
-
-          // Payment completion form
           Row(
             children: [
               Expanded(
@@ -206,14 +204,12 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
               ),
             ],
           ),
-
-          // Withdrawal Hash display
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.backgroundSecondary,
+              color: colors.backgroundSecondary,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.border),
+              border: Border.all(color: colors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,9 +218,7 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(
-                      child: SailText.primary13(viewModel.withdrawalHash!),
-                    ),
+                    Expanded(child: SailText.primary13(viewModel.withdrawalHash!)),
                     CopyButton(text: viewModel.withdrawalHash!),
                   ],
                 ),
@@ -235,8 +229,15 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
       ),
     );
   }
+}
 
-  Widget _buildSuccessSection(FastWithdrawalTabViewModel viewModel) {
+class _SuccessSection extends StatelessWidget {
+  final FastWithdrawalTabViewModel viewModel;
+
+  const _SuccessSection({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(

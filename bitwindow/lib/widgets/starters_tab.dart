@@ -98,26 +98,11 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
               spacing: SailStyleValues.padding08,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildBulletPoint(
-                  context,
-                  'Anyone with this seed phrase can steal ALL your funds',
-                ),
-                _buildBulletPoint(
-                  context,
-                  'Never share this seed phrase with anyone, ever',
-                ),
-                _buildBulletPoint(
-                  context,
-                  'Make sure no cameras, phones, or observers can see your screen',
-                ),
-                _buildBulletPoint(
-                  context,
-                  'Disable screen recording and screenshot tools',
-                ),
-                _buildBulletPoint(
-                  context,
-                  'Be in a secure, private location before proceeding',
-                ),
+                const BulletPoint('Anyone with this seed phrase can steal ALL your funds'),
+                const BulletPoint('Never share this seed phrase with anyone, ever'),
+                const BulletPoint('Make sure no cameras, phones, or observers can see your screen'),
+                const BulletPoint('Disable screen recording and screenshot tools'),
+                const BulletPoint('Be in a secure, private location before proceeding'),
               ],
             ),
           ),
@@ -162,30 +147,6 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBulletPoint(BuildContext context, String text) {
-    final theme = SailTheme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Container(
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colors.text,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        const SizedBox(width: SailStyleValues.padding08),
-        Expanded(
-          child: SailText.secondary13(text),
-        ),
-      ],
     );
   }
 }

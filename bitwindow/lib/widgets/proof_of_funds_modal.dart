@@ -515,7 +515,155 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                 ),
               ],
               if (_result != null) ...[
-                _buildVerificationResults(theme, formatter),
+                Builder(
+                  builder: (context) {
+                    final result = _result!;
+                    final isValid = result.validCount == result.totalCount;
+                    final color = isValid ? theme.colors.success : theme.colors.error;
+
+                    return SailColumn(
+                      spacing: SailStyleValues.padding16,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary15('Verification Results', bold: true),
+                        SailCard(
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding20,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    isValid ? Icons.verified : Icons.warning_rounded,
+                                    color: color,
+                                    size: 28,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary15(
+                                        isValid ? 'All Signatures Valid' : 'Some Signatures Failed',
+                                        bold: true,
+                                        color: color,
+                                      ),
+                                      SailText.secondary13(
+                                        '${result.validCount} of ${result.totalCount} signatures verified successfully',
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _StatCard(
+                                      label: 'Valid Signatures',
+                                      value: '${result.validCount}',
+                                      color: theme.colors.success,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _StatCard(
+                                      label: 'Total BTC',
+                                      value: formatter
+                                          .formatBTC(result.totalBTC)
+                                          .replaceAll(' ${formatter.currentUnit.symbol}', ''),
+                                      color: theme.colors.primary,
+                                    ),
+                                  ),
+                                  if (result.failedCount > 0) ...[
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _StatCard(
+                                        label: 'Failed',
+                                        value: '${result.failedCount}',
+                                        color: theme.colors.error,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (result.details.isNotEmpty) ...[
+                          SailText.primary15('Transaction Details', bold: true),
+                          SailCard(
+                            child: SizedBox(
+                              height: 240,
+                              child: SailColumn(
+                                spacing: SailStyleValues.padding08,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      SailText.secondary12('Address', bold: true),
+                                      const Spacer(),
+                                      SailText.secondary12('Amount (BTC)', bold: true),
+                                      const SizedBox(width: 60),
+                                      SailText.secondary12('Status', bold: true),
+                                    ],
+                                  ),
+                                  Expanded(
+                                    child: ListView.builder(
+                                      itemCount: result.details.length,
+                                      itemBuilder: (context, index) {
+                                        final detail = result.details[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                flex: 3,
+                                                child: SailText.primary12(
+                                                  '${detail.address.substring(0, 12)}...${detail.address.substring(detail.address.length - 6)}',
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: SailText.primary12(
+                                                  formatter
+                                                      .formatBTC(detail.amount)
+                                                      .replaceAll(' ${formatter.currentUnit.symbol}', ''),
+                                                  textAlign: TextAlign.right,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              SizedBox(
+                                                width: 60,
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                  children: [
+                                                    Icon(
+                                                      detail.isValid ? Icons.check_circle : Icons.cancel,
+                                                      color: detail.isValid ? theme.colors.success : theme.colors.error,
+                                                      size: 16,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    SailText.secondary12(
+                                                      detail.isValid ? 'Valid' : 'Invalid',
+                                                      color: detail.isValid ? theme.colors.success : theme.colors.error,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
+                ),
               ],
             ],
           ),
@@ -523,152 +671,21 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
       ),
     );
   }
+}
 
-  Widget _buildVerificationResults(SailThemeData theme, FormatterProvider formatter) {
-    final result = _result!;
-    final isValid = result.validCount == result.totalCount;
-    final color = isValid ? theme.colors.success : theme.colors.error;
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
 
-    return SailColumn(
-      spacing: SailStyleValues.padding16,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SailText.primary15('Verification Results', bold: true),
-        SailCard(
-          child: SailColumn(
-            spacing: SailStyleValues.padding20,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    isValid ? Icons.verified : Icons.warning_rounded,
-                    color: color,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailText.primary15(
-                        isValid ? 'All Signatures Valid' : 'Some Signatures Failed',
-                        bold: true,
-                        color: color,
-                      ),
-                      SailText.secondary13(
-                        '${result.validCount} of ${result.totalCount} signatures verified successfully',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      'Valid Signatures',
-                      '${result.validCount}',
-                      theme.colors.success,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      'Total BTC',
-                      formatter.formatBTC(result.totalBTC).replaceAll(' ${formatter.currentUnit.symbol}', ''),
-                      theme.colors.primary,
-                    ),
-                  ),
-                  if (result.failedCount > 0) ...[
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        'Failed',
-                        '${result.failedCount}',
-                        theme.colors.error,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-        if (result.details.isNotEmpty) ...[
-          SailText.primary15('Transaction Details', bold: true),
-          SailCard(
-            child: SizedBox(
-              height: 240,
-              child: SailColumn(
-                spacing: SailStyleValues.padding08,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      SailText.secondary12('Address', bold: true),
-                      const Spacer(),
-                      SailText.secondary12('Amount (BTC)', bold: true),
-                      const SizedBox(width: 60),
-                      SailText.secondary12('Status', bold: true),
-                    ],
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: result.details.length,
-                      itemBuilder: (context, index) {
-                        final detail = result.details[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: SailText.primary12(
-                                  '${detail.address.substring(0, 12)}...${detail.address.substring(detail.address.length - 6)}',
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: SailText.primary12(
-                                  formatter.formatBTC(detail.amount).replaceAll(' ${formatter.currentUnit.symbol}', ''),
-                                  textAlign: TextAlign.right,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 60,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Icon(
-                                      detail.isValid ? Icons.check_circle : Icons.cancel,
-                                      color: detail.isValid ? theme.colors.success : theme.colors.error,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    SailText.secondary12(
-                                      detail.isValid ? 'Valid' : 'Invalid',
-                                      color: detail.isValid ? theme.colors.success : theme.colors.error,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
-  Widget _buildStatCard(String label, String value, Color color) {
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

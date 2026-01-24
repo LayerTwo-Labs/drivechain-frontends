@@ -168,7 +168,7 @@ class _SettingsResetState extends State<SettingsReset> {
     if (_deleteWalletFiles) {
       setState(() => _status = 'Deleting wallet files...');
       try {
-        await binary.deleteWallet();
+        await binary.deleteWallet(GetIt.I.get<BitcoinConfProvider>().network);
         log.i('Successfully deleted Thunder wallet files');
       } catch (e) {
         log.e('Could not delete wallet files: $e');
