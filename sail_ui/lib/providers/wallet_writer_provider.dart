@@ -530,10 +530,10 @@ class WalletWriterProvider extends ChangeNotifier {
     return newSidechain.mnemonic;
   }
 
-  // Delete Bitcoin Core wallet directories in Drivechain/signet
+  // Delete Bitcoin Core wallet directories in network-specific datadir
   Future<void> _deleteCoreMultisigWallets(Logger logger) async {
     try {
-      final coreDataDir = Directory(path.join(BitcoinCore().datadir(), 'signet'));
+      final coreDataDir = Directory(BitcoinCore().datadirNetwork());
       final entities = await coreDataDir.list(recursive: false).toList();
 
       for (final maybeMusigWallet in entities) {
@@ -582,7 +582,7 @@ class WalletWriterProvider extends ChangeNotifier {
     try {
       for (final binary in binaryProvider.binaries) {
         // wipe all wallets, for the enforcer, bitnames, bitassets, thunder etc..
-        await binary.deleteWallet();
+        await binary.deleteWallet(GetIt.I.get<BitcoinConfProvider>().network);
       }
     } catch (e) {
       _logger.e('could not wipe wallets: $e');

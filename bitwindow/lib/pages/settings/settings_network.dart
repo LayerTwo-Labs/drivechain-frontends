@@ -65,7 +65,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     });
 
     try {
-      final defaultDir = BitcoinCore().datadir();
+      final defaultDir = BitcoinCore().datadirNetwork();
 
       final result = await FilePicker.platform.getDirectoryPath(
         initialDirectory: defaultDir,
@@ -258,7 +258,7 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
     });
 
     try {
-      final defaultDir = BitcoinCore().datadir();
+      final defaultDir = BitcoinCore().datadirNetwork();
 
       final result = await FilePicker.platform.getDirectoryPath(
         initialDirectory: defaultDir,

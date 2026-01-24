@@ -46,35 +46,11 @@ class BitcoinCorePidTracker {
     log.d('Stopped Bitcoin Core PID file watcher');
   }
 
-  /// Get the network-specific subdirectory for the PID file
-  String _getNetworkSubdir(BitcoinNetwork network) {
-    switch (network) {
-      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-        return ''; // Real mainnet uses root datadir
-      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        return ''; // Forknet uses root datadir
-      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
-        return 'testnet3'; // Testnet uses testnet3 subdirectory
-      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
-        return 'signet';
-      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-        return 'regtest';
-      default:
-        return ''; // Default to root
-    }
-  }
-
   /// Check the bitcoin.pid file and update our tracked PID
   Future<void> _checkPidFile() async {
     try {
-      // Get current network from BitcoinConfProvider
-      final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
-      final network = bitcoinConfProvider.network;
-
-      // Build the path to bitcoin.pid based on the network
-      final datadir = BitcoinCore().datadir();
-      final networkSubdir = _getNetworkSubdir(network);
-      final pidFile = File(path.join(datadir, networkSubdir, 'bitcoind.pid'));
+      // Build the path to bitcoin.pid (datadir() already handles network subdirs)
+      final pidFile = File(path.join(BitcoinCore().datadirNetwork(), 'bitcoind.pid'));
 
       if (await pidFile.exists()) {
         final pidString = await pidFile.readAsString();

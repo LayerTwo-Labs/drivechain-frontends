@@ -18,7 +18,7 @@ class BitnamesConfProvider extends GenericSidechainConfProvider {
   String get configFileName => 'bitnames.conf';
 
   @override
-  String getDataDir() => BitNames().datadir();
+  String getDataDir() => BitNames().datadirNetwork();
 
   @override
   Map<String, String> getNetworkPorts(String network) {

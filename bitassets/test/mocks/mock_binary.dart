@@ -12,11 +12,11 @@ class MockBinary extends Binary {
         description: 'Mock Binary',
         repoUrl: 'https://mock.test',
         directories: DirectoryConfig(
-          binary: {
+          binary: allNetworks({
             OS.linux: '.mock',
             OS.macos: 'Mock',
             OS.windows: 'Mock',
-          },
+          }),
           flutterFrontend: {
             OS.linux: '',
             OS.macos: '',
@@ -27,13 +27,11 @@ class MockBinary extends Binary {
           downloadConfig: DownloadConfig(
             binary: 'mock',
             baseUrl: '',
-            files: {
-              ...allNetworks({
-                OS.linux: 'mock',
-                OS.macos: 'mock',
-                OS.windows: 'mock',
-              }),
-            },
+            files: allNetworks({
+              OS.linux: 'mock',
+              OS.macos: 'mock',
+              OS.windows: 'mock',
+            }),
           ),
           remoteTimestamp: null,
           downloadedTimestamp: null,

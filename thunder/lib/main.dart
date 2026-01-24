@@ -85,6 +85,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // Initialize ThunderConfProvider (must be after BitcoinConfProvider)
   final thunderConfProvider = await ThunderConfProvider.create();
   GetIt.I.registerLazySingleton<ThunderConfProvider>(() => thunderConfProvider);
+  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => thunderConfProvider);
 
   // Register homepage provider
   final thunderHomepageProvider = ThunderHomepageProvider();

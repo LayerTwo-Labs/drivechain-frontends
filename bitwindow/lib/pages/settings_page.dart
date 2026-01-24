@@ -28,12 +28,19 @@ import 'package:path/path.dart' as path;
 
 @RoutePage()
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  final int initialSection;
 
-  static final GlobalKey<SettingsPageState> settingsKey = GlobalKey<SettingsPageState>();
+  const SettingsPage({super.key, @PathParam('section') this.initialSection = 0});
+
+  static SettingsPageState? _currentState;
+  static int? _pendingSection;
 
   static void setSection(int index) {
-    settingsKey.currentState?.setSelectedIndex(index);
+    if (_currentState != null) {
+      _currentState!.setSelectedIndex(index);
+    } else {
+      _pendingSection = index;
+    }
   }
 
   @override
@@ -41,7 +48,28 @@ class SettingsPage extends StatefulWidget {
 }
 
 class SettingsPageState extends State<SettingsPage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    SettingsPage._currentState = this;
+    // Use pending section if set, otherwise use route parameter
+    if (SettingsPage._pendingSection != null) {
+      _selectedIndex = SettingsPage._pendingSection!.clamp(0, 5);
+      SettingsPage._pendingSection = null;
+    } else {
+      _selectedIndex = widget.initialSection.clamp(0, 5);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (SettingsPage._currentState == this) {
+      SettingsPage._currentState = null;
+    }
+    super.dispose();
+  }
 
   void setSelectedIndex(int index) {
     if (index >= 0 && index < 6) {
@@ -56,7 +84,6 @@ class SettingsPageState extends State<SettingsPage> {
     final theme = SailTheme.of(context);
 
     return Container(
-      key: SettingsPage.settingsKey,
       color: theme.colors.background,
       padding: const EdgeInsets.all(SailStyleValues.padding12),
       child: SelectionArea(
@@ -1185,7 +1212,12 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
                   final index = entry.key;
                   final step = entry.value;
                   final isActive = index == _currentStepIndex && !step.isCompleted;
-                  return _buildStepTile(step, theme, index, isActive);
+                  return ProgressStepTile(
+                    name: step.name,
+                    isCompleted: step.isCompleted,
+                    duration: step.duration,
+                    isActive: isActive,
+                  );
                 }),
                 if (_isCompleted && widget.autoBackupPath != null) ...[
                   const SailSpacing(SailStyleValues.padding16),
@@ -1225,56 +1257,6 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStepTile(RestoreProgressStep step, SailThemeData theme, int index, bool isActive) {
-    Widget iconWidget;
-    String timeText = '';
-
-    if (step.isCompleted) {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circleCheck, color: SailColorScheme.green, width: 16, height: 16);
-      if (step.duration != null) {
-        final duration = step.duration!;
-        if (duration.inSeconds > 0) {
-          timeText = '${duration.inSeconds}.${(duration.inMilliseconds % 1000).toString().padLeft(3, '0')}s';
-        } else {
-          timeText = '${duration.inMilliseconds}ms';
-        }
-      }
-    } else if (isActive) {
-      iconWidget = SizedBox(
-        width: 16,
-        height: 16,
-        child: CircularProgressIndicator(
-          strokeWidth: 1,
-          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
-        ),
-      );
-    } else {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circle, color: theme.colors.textSecondary, width: 16, height: 16);
-    }
-
-    return SailRow(
-      spacing: SailStyleValues.padding04,
-      children: [
-        SizedBox(width: 16, child: iconWidget),
-        Expanded(
-          child: SailText.primary13(
-            step.name,
-            color: isActive
-                ? theme.colors.primary
-                : step.isCompleted
-                ? SailColorScheme.green
-                : theme.colors.textSecondary,
-          ),
-        ),
-        if (timeText.isNotEmpty)
-          SailText.secondary12(
-            timeText,
-            color: SailColorScheme.green,
-          ),
-      ],
     );
   }
 }
@@ -1978,7 +1960,7 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
 
     try {
       // Get the default Bitcoin Core datadir to use as initial directory
-      final defaultDir = BitcoinCore().datadir();
+      final defaultDir = BitcoinCore().datadirNetwork();
 
       final result = await FilePicker.platform.getDirectoryPath(
         initialDirectory: defaultDir,
@@ -2192,8 +2174,6 @@ class _ResetProgressDialogState extends State<ResetProgressDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return Dialog(
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
@@ -2215,63 +2195,18 @@ class _ResetProgressDialogState extends State<ResetProgressDialog> {
                   final index = entry.key;
                   final step = entry.value;
                   final isActive = index == _currentStepIndex && !step.isCompleted;
-                  return _buildStepTile(step, theme, index, isActive);
+                  return ProgressStepTile(
+                    name: step.name,
+                    isCompleted: step.isCompleted,
+                    duration: step.duration,
+                    isActive: isActive,
+                  );
                 }),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStepTile(ResetProgressStep step, SailThemeData theme, int index, bool isActive) {
-    Widget iconWidget;
-    String timeText = '';
-
-    if (step.isCompleted) {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circleCheck, color: SailColorScheme.green, width: 16, height: 16);
-      if (step.duration != null) {
-        final duration = step.duration!;
-        if (duration.inSeconds > 0) {
-          timeText = '${duration.inSeconds}.${(duration.inMilliseconds % 1000).toString().padLeft(3, '0')}s';
-        } else {
-          timeText = '${duration.inMilliseconds}ms';
-        }
-      }
-    } else if (isActive) {
-      iconWidget = SizedBox(
-        width: 16,
-        height: 16,
-        child: CircularProgressIndicator(
-          strokeWidth: 1,
-          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
-        ),
-      );
-    } else {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circle, color: theme.colors.textSecondary, width: 16, height: 16);
-    }
-
-    return SailRow(
-      spacing: SailStyleValues.padding04,
-      children: [
-        SizedBox(width: 16, child: iconWidget),
-        Expanded(
-          child: SailText.primary13(
-            step.name,
-            color: isActive
-                ? theme.colors.primary
-                : step.isCompleted
-                ? SailColorScheme.green
-                : theme.colors.textSecondary,
-          ),
-        ),
-        if (timeText.isNotEmpty)
-          SailText.secondary12(
-            timeText,
-            color: SailColorScheme.green,
-          ),
-      ],
     );
   }
 }
@@ -2375,7 +2310,6 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
     final fromNetworkName = widget.fromNetwork.toDisplayName();
     final toNetworkName = widget.toNetwork.toDisplayName();
 
@@ -2400,7 +2334,12 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
                   final index = entry.key;
                   final step = entry.value;
                   final isActive = index == _currentStepIndex && !step.isCompleted;
-                  return _buildStepTile(step, theme, index, isActive);
+                  return ProgressStepTile(
+                    name: step.name,
+                    isCompleted: step.isCompleted,
+                    duration: step.duration,
+                    isActive: isActive,
+                  );
                 }),
                 if (_isCompleted) const SailSpacing(SailStyleValues.padding08),
                 if (_isCompleted)
@@ -2425,56 +2364,6 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStepTile(NetworkSwapStep step, SailThemeData theme, int index, bool isActive) {
-    Widget iconWidget;
-    String timeText = '';
-
-    if (step.isCompleted) {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circleCheck, color: SailColorScheme.green, width: 16, height: 16);
-      if (step.duration != null) {
-        final duration = step.duration!;
-        if (duration.inSeconds > 0) {
-          timeText = '${duration.inSeconds}.${(duration.inMilliseconds % 1000).toString().padLeft(3, '0')}s';
-        } else {
-          timeText = '${duration.inMilliseconds}ms';
-        }
-      }
-    } else if (isActive) {
-      iconWidget = SizedBox(
-        width: 16,
-        height: 16,
-        child: CircularProgressIndicator(
-          strokeWidth: 1,
-          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
-        ),
-      );
-    } else {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circle, color: theme.colors.textSecondary, width: 16, height: 16);
-    }
-
-    return SailRow(
-      spacing: SailStyleValues.padding04,
-      children: [
-        SizedBox(width: 16, child: iconWidget),
-        Expanded(
-          child: SailText.primary13(
-            step.name,
-            color: isActive
-                ? theme.colors.primary
-                : step.isCompleted
-                ? SailColorScheme.green
-                : theme.colors.textSecondary,
-          ),
-        ),
-        if (timeText.isNotEmpty)
-          SailText.secondary12(
-            timeText,
-            color: SailColorScheme.green,
-          ),
-      ],
     );
   }
 }
@@ -2548,7 +2437,7 @@ Future<void> _resetEverything(BuildContext context) async {
             updateStatus('Wiping asset data');
 
             try {
-              await Future.wait(allBinaries.map((binary) => binary.wipeAsset(binDir(appDir.path))));
+              await Future.wait(allBinaries.map((binary) => binary.deleteBinaries(binDir(appDir.path))));
 
               // rewrite bitwindow-binary
               await copyBinariesFromAssets(log, appDir);

@@ -18,7 +18,7 @@ class BitassetsConfProvider extends GenericSidechainConfProvider {
   String get configFileName => 'bitassets.conf';
 
   @override
-  String getDataDir() => BitAssets().datadir();
+  String getDataDir() => BitAssets().datadirNetwork();
 
   @override
   Map<String, String> getNetworkPorts(String network) {
