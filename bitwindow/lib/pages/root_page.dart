@@ -21,6 +21,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
+import 'package:bitwindow/widgets/reset_button.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
@@ -1197,19 +1198,19 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                               items: [
                                 SailDropdownItem<BitcoinNetwork>(
                                   value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
-                                  label: 'Mainnet',
+                                  label: BitcoinNetwork.BITCOIN_NETWORK_MAINNET.toDisplayName(),
                                 ),
                                 SailDropdownItem<BitcoinNetwork>(
                                   value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                                  label: 'Forknet',
+                                  label: BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toDisplayName(),
                                 ),
                                 SailDropdownItem<BitcoinNetwork>(
                                   value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                                  label: 'Signet',
+                                  label: BitcoinNetwork.BITCOIN_NETWORK_SIGNET.toDisplayName(),
                                 ),
                                 SailDropdownItem<BitcoinNetwork>(
                                   value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
-                                  label: 'Testnet',
+                                  label: BitcoinNetwork.BITCOIN_NETWORK_TESTNET.toDisplayName(),
                                 ),
                               ],
                               onChanged: (BitcoinNetwork? network) async {
@@ -1407,6 +1408,8 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
             ),
           ),
         ),
+        const DividerDot(),
+        const ResetButton(),
       ],
     );
   }

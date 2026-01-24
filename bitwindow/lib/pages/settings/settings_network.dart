@@ -140,19 +140,19 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
               items: [
                 SailDropdownItem<BitcoinNetwork>(
                   value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
-                  label: 'Mainnet',
+                  label: BitcoinNetwork.BITCOIN_NETWORK_MAINNET.toDisplayName(),
                 ),
                 SailDropdownItem<BitcoinNetwork>(
                   value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                  label: 'Forknet',
+                  label: BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toDisplayName(),
                 ),
                 SailDropdownItem<BitcoinNetwork>(
                   value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                  label: 'Signet',
+                  label: BitcoinNetwork.BITCOIN_NETWORK_SIGNET.toDisplayName(),
                 ),
                 SailDropdownItem<BitcoinNetwork>(
                   value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
-                  label: 'Testnet',
+                  label: BitcoinNetwork.BITCOIN_NETWORK_TESTNET.toDisplayName(),
                 ),
               ],
               onChanged: (BitcoinNetwork? network) async {

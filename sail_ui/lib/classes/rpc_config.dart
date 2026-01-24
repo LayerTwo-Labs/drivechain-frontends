@@ -251,4 +251,24 @@ extension NetworkExtensions on BitcoinNetwork {
         return 'unknown';
     }
   }
+
+  /// User-facing display name for this network
+  /// L2L prefix indicates private test networks maintained by LayerTwo Labs
+  String toDisplayName() {
+    switch (this) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+        return 'BTC Mainnet';
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+        return 'L2L-Forknet';
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+        return 'L2L-Signet';
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+        return 'Testnet3';
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+        return 'Regtest';
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      default:
+        return 'Unknown';
+    }
+  }
 }
