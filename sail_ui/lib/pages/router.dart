@@ -16,6 +16,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: BackupWalletRoute.page),
     AutoRoute(page: RestoreWalletRoute.page),
     AutoRoute(page: DataDirSetupRoute.page),
+    AutoRoute(page: NetworkSwitchRoute.page),
     AutoRoute(page: BitcoinConfEditorRoute.page),
     AutoRoute(page: EnforcerConfEditorRoute.page),
     AutoRoute(page: SailTestRoute.page),
