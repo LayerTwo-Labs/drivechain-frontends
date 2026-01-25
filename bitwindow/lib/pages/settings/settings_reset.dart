@@ -62,7 +62,7 @@ class _SettingsResetState extends State<SettingsReset> {
             _updateObliterate();
           }),
           title: 'Delete Blockchain Data',
-          subtitle: 'Lets you resync the blockchain from scratch',
+          subtitle: 'Resyncs the blockchain from scratch',
           isDestructive: false,
         ),
         ResetOptionTile(
@@ -91,7 +91,7 @@ class _SettingsResetState extends State<SettingsReset> {
             _alsoResetSidechains = v;
             _updateObliterate();
           }),
-          title: 'Also Reset Sidechain Data',
+          title: 'Reset Sidechain Data',
           subtitle: 'Also wipes all data for Thunder, BitNames, BitAssets and ZSide',
           isDestructive: true,
         ),
@@ -234,7 +234,7 @@ class _SettingsResetState extends State<SettingsReset> {
     if (_deleteWalletFiles) {
       updateStatus('Deleting wallet files');
       try {
-        await Future.wait(binariesToReset.map((b) => b.deleteWallet(GetIt.I.get<BitcoinConfProvider>().network)));
+        await Future.wait(binariesToReset.map((b) => b.deleteWallet()));
         log.i('Successfully deleted wallet files');
       } catch (e) {
         log.e('could not delete wallet files: $e');

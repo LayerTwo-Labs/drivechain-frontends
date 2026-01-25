@@ -1949,7 +1949,7 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
 
     try {
       // Get the default Bitcoin Core datadir to use as initial directory
-      final defaultDir = BitcoinCore().datadirNetwork();
+      final defaultDir = BitcoinCore().datadir();
 
       final result = await FilePicker.platform.getDirectoryPath(
         initialDirectory: defaultDir,
