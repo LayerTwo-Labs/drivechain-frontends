@@ -9,6 +9,7 @@ import 'package:custom_lint_builder/custom_lint_builder.dart';
 /// ```dart
 /// class _MyPageState extends State<MyPage> {
 ///   Widget _buildHeader() { ... }  // Flagged
+///   Widget _createContent() { ... }  // Also flagged
 /// }
 /// ```
 ///
@@ -19,14 +20,14 @@ import 'package:custom_lint_builder/custom_lint_builder.dart';
 ///
 /// This rule does NOT flag:
 /// - Methods in ViewModels, providers, or other non-widget classes
-/// - Methods that show dialogs or are used as callbacks
+/// - Public methods (not starting with _)
 class AvoidBuildMethods extends DartLintRule {
   AvoidBuildMethods() : super(code: _code);
 
   static const _code = LintCode(
     name: 'avoid_build_methods',
     problemMessage:
-        'Avoid private _build* methods in views. Either inline the code or extract to a widget class.',
+        'Avoid private methods returning Widget in views. Either inline the code or extract to a widget class.',
     correctionMessage:
         'If used once, inline the code. If used multiple times, create a StatelessWidget/StatefulWidget class.',
   );
@@ -41,8 +42,8 @@ class AvoidBuildMethods extends DartLintRule {
       final name = node.name.lexeme;
       final returnType = node.returnType?.toSource();
 
-      // Only check methods that start with _build and return Widget
-      if (!name.startsWith('_build') || returnType != 'Widget') {
+      // Only check private methods (starting with _) that return Widget
+      if (!name.startsWith('_') || returnType != 'Widget') {
         return;
       }
 

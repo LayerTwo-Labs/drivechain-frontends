@@ -1,5 +1,14 @@
+fix:
+    dart fix --apply
+
 format:
-   find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format
+    find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format
+
+analyze:
+    dart analyze
+    dart run custom_lint
+
+lint: format fix analyze
 
 gen-version:
     cd ../ && bash scripts/generate-version.sh sail_ui
