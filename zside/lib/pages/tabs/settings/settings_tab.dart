@@ -9,10 +9,15 @@ import 'package:zside/pages/settings/settings_reset.dart';
 class SettingsTabPage extends StatefulWidget {
   const SettingsTabPage({super.key});
 
-  static final GlobalKey<SettingsTabPageState> settingsKey = GlobalKey<SettingsTabPageState>();
+  static SettingsTabPageState? _currentState;
+  static int? _pendingSection;
 
   static void setSection(int index) {
-    settingsKey.currentState?.setSelectedIndex(index);
+    if (_currentState != null) {
+      _currentState!.setSelectedIndex(index);
+    } else {
+      _pendingSection = index;
+    }
   }
 
   @override
@@ -20,7 +25,28 @@ class SettingsTabPage extends StatefulWidget {
 }
 
 class SettingsTabPageState extends State<SettingsTabPage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    SettingsTabPage._currentState = this;
+    // Use pending section if set, otherwise default to 0
+    if (SettingsTabPage._pendingSection != null) {
+      _selectedIndex = SettingsTabPage._pendingSection!.clamp(0, 2);
+      SettingsTabPage._pendingSection = null;
+    } else {
+      _selectedIndex = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (SettingsTabPage._currentState == this) {
+      SettingsTabPage._currentState = null;
+    }
+    super.dispose();
+  }
 
   void setSelectedIndex(int index) {
     if (index >= 0 && index < 3) {
@@ -34,64 +60,58 @@ class SettingsTabPageState extends State<SettingsTabPage> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return QtPage(
-      key: SettingsTabPage.settingsKey,
-      child: SingleChildScrollView(
-        child: SailColumn(
-          spacing: SailStyleValues.padding10,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailText.primary24(
-              'Settings',
-              bold: true,
-            ),
-            SailText.secondary13('Manage your ZSide settings.'),
-            const SailSpacing(SailStyleValues.padding10),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: theme.colors.divider,
-            ),
-            const SailSpacing(SailStyleValues.padding10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SideNav(
-                  items: const [
-                    SideNavItem(label: 'General'),
-                    SideNavItem(label: 'Reset'),
-                    SideNavItem(label: 'Info'),
-                  ],
-                  selectedIndex: _selectedIndex,
-                  onItemSelected: (index) {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                ),
-                const SailSpacing(SailStyleValues.padding40),
-                Expanded(
-                  child: _buildContent(),
-                ),
-              ],
-            ),
-          ],
+    return Container(
+      color: theme.colors.background,
+      padding: const EdgeInsets.all(SailStyleValues.padding12),
+      child: SelectionArea(
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding10,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailText.primary24(
+                'Settings',
+                bold: true,
+              ),
+              SailText.secondary13('Manage your ZSide settings.'),
+              const SailSpacing(SailStyleValues.padding10),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: theme.colors.divider,
+              ),
+              const SailSpacing(SailStyleValues.padding10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SideNav(
+                    items: const [
+                      SideNavItem(label: 'General'),
+                      SideNavItem(label: 'Reset'),
+                      SideNavItem(label: 'Info'),
+                    ],
+                    selectedIndex: _selectedIndex,
+                    onItemSelected: (index) {
+                      setState(() {
+                        _selectedIndex = index;
+                      });
+                    },
+                  ),
+                  const SailSpacing(SailStyleValues.padding40),
+                  Expanded(
+                    child: [
+                      const SettingsGeneral(),
+                      const SettingsReset(),
+                      const SettingsInfo(),
+                    ][_selectedIndex],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  Widget _buildContent() {
-    switch (_selectedIndex) {
-      case 0:
-        return const SettingsGeneral();
-      case 1:
-        return const SettingsReset();
-      case 2:
-        return const SettingsInfo();
-      default:
-        return const SettingsGeneral();
-    }
   }
 }

@@ -43,7 +43,7 @@ class _SettingsResetState extends State<SettingsReset> {
             _updateObliterate();
           }),
           title: 'Delete Blockchain Data',
-          subtitle: 'Lets you resync the blockchain from scratch',
+          subtitle: 'Resyncs the blockchain from scratch',
           isDestructive: false,
         ),
         ResetOptionTile(
@@ -168,7 +168,7 @@ class _SettingsResetState extends State<SettingsReset> {
     if (_deleteWalletFiles) {
       setState(() => _status = 'Deleting wallet files...');
       try {
-        await binary.deleteWallet(GetIt.I.get<BitcoinConfProvider>().network);
+        await binary.deleteWallet();
         log.i('Successfully deleted ZSide wallet files');
       } catch (e) {
         log.e('Could not delete wallet files: $e');
