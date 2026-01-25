@@ -18,7 +18,7 @@ class BitnamesConfProvider extends GenericSidechainConfProvider {
   String get configFileName => 'bitnames.conf';
 
   @override
-  String getDataDir() => BitNames().datadirNetwork();
+  String getDataDir() => BitNames().datadir();
 
   @override
   Map<String, String> getNetworkPorts(String network) {
@@ -28,6 +28,13 @@ class BitnamesConfProvider extends GenericSidechainConfProvider {
           'rpc-addr': '127.0.0.1:16002',
           'net-addr': '0.0.0.0:14002',
           'zmq-addr': '127.0.0.1:38002',
+          'mainchain-grpc-port': '50051',
+        };
+      case 'mainnet':
+        return {
+          'rpc-addr': '127.0.0.1:26002',
+          'net-addr': '0.0.0.0:24002',
+          'zmq-addr': '127.0.0.1:48002',
           'mainchain-grpc-port': '50051',
         };
       case 'signet':
@@ -49,6 +56,7 @@ class BitnamesConfProvider extends GenericSidechainConfProvider {
       network = switch (bitcoinConfProvider.network) {
         BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
         BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
+        BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'mainnet',
         _ => 'signet',
       };
     } catch (_) {}

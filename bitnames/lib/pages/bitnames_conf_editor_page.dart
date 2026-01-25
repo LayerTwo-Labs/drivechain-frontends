@@ -15,11 +15,18 @@ class BitnamesConfEditorPage extends StatelessWidget {
     return ViewModelBuilder<BitnamesConfigEditorViewModel>.reactive(
       viewModelBuilder: () => BitnamesConfigEditorViewModel(),
       onViewModelReady: (viewModel) => viewModel.loadConfig(),
-      builder: (context, viewModel, child) => _buildPage(context, viewModel),
+      builder: (context, viewModel, child) => _BitnamesConfEditorPageContent(viewModel: viewModel),
     );
   }
+}
 
-  Widget _buildPage(BuildContext context, BitnamesConfigEditorViewModel viewModel) {
+class _BitnamesConfEditorPageContent extends StatelessWidget {
+  final BitnamesConfigEditorViewModel viewModel;
+
+  const _BitnamesConfEditorPageContent({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailPage(
@@ -113,18 +120,27 @@ class BitnamesConfEditorPage extends StatelessWidget {
 
             // Main content
             Expanded(
-              child: _buildMainContent(theme, viewModel),
+              child: _MainContent(viewModel: viewModel),
             ),
 
             // CLI preview
-            _buildCliPreview(context, viewModel),
+            _CliPreview(viewModel: viewModel),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildMainContent(SailThemeData theme, BitnamesConfigEditorViewModel viewModel) {
+class _MainContent extends StatelessWidget {
+  final BitnamesConfigEditorViewModel viewModel;
+
+  const _MainContent({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     if (viewModel.isLoading && viewModel.workingConfig == null) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -160,7 +176,7 @@ class BitnamesConfEditorPage extends StatelessWidget {
         // Left panel - Editable config
         Expanded(
           flex: 1,
-          child: _buildEditableConfigPanel(theme, viewModel),
+          child: _EditableConfigPanel(viewModel: viewModel),
         ),
 
         Container(
@@ -171,13 +187,22 @@ class BitnamesConfEditorPage extends StatelessWidget {
         // Right panel - Settings configurator
         SizedBox(
           width: 400,
-          child: _buildConfiguratorPanel(theme, viewModel),
+          child: _ConfiguratorPanel(viewModel: viewModel),
         ),
       ],
     );
   }
+}
 
-  Widget _buildEditableConfigPanel(SailThemeData theme, BitnamesConfigEditorViewModel viewModel) {
+class _EditableConfigPanel extends StatelessWidget {
+  final BitnamesConfigEditorViewModel viewModel;
+
+  const _EditableConfigPanel({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -221,8 +246,15 @@ class BitnamesConfEditorPage extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildConfiguratorPanel(SailThemeData theme, BitnamesConfigEditorViewModel viewModel) {
+class _ConfiguratorPanel extends StatelessWidget {
+  final BitnamesConfigEditorViewModel viewModel;
+
+  const _ConfiguratorPanel({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     final config = viewModel.workingConfig;
     if (config == null) return const SizedBox.shrink();
 
@@ -235,29 +267,26 @@ class BitnamesConfEditorPage extends StatelessWidget {
           const SailSpacing(SailStyleValues.padding12),
 
           // Network
-          _buildDropdownSetting(
-            theme,
-            'Network',
-            config.getSetting('network') ?? 'signet',
-            ['signet', 'regtest'],
-            (value) => viewModel.updateSetting('network', value),
+          _DropdownSetting(
+            label: 'Network',
+            currentValue: config.getSetting('network') ?? 'signet',
+            options: const ['signet', 'regtest'],
+            onChanged: (value) => viewModel.updateSetting('network', value),
           ),
 
           // Headless
-          _buildToggleSetting(
-            theme,
-            'Headless Mode',
-            config.getSetting('headless') == 'true',
-            (value) => viewModel.updateSetting('headless', value.toString()),
+          _ToggleSetting(
+            label: 'Headless Mode',
+            currentValue: config.getSetting('headless') == 'true',
+            onChanged: (value) => viewModel.updateSetting('headless', value.toString()),
           ),
 
           // Log Level
-          _buildDropdownSetting(
-            theme,
-            'Log Level',
-            config.getSetting('log-level') ?? 'DEBUG',
-            ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'],
-            (value) => viewModel.updateSetting('log-level', value),
+          _DropdownSetting(
+            label: 'Log Level',
+            currentValue: config.getSetting('log-level') ?? 'DEBUG',
+            options: const ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'],
+            onChanged: (value) => viewModel.updateSetting('log-level', value),
           ),
 
           const SailSpacing(SailStyleValues.padding20),
@@ -265,27 +294,24 @@ class BitnamesConfEditorPage extends StatelessWidget {
           const SailSpacing(SailStyleValues.padding08),
 
           // RPC Address
-          _buildTextSetting(
-            theme,
-            'RPC Address',
-            config.getSetting('rpc-addr') ?? '127.0.0.1:6002',
-            (value) => viewModel.updateSetting('rpc-addr', value),
+          _TextSetting(
+            label: 'RPC Address',
+            currentValue: config.getSetting('rpc-addr') ?? '127.0.0.1:6002',
+            onChanged: (value) => viewModel.updateSetting('rpc-addr', value),
           ),
 
           // P2P Address
-          _buildTextSetting(
-            theme,
-            'P2P Address',
-            config.getSetting('net-addr') ?? '0.0.0.0:4002',
-            (value) => viewModel.updateSetting('net-addr', value),
+          _TextSetting(
+            label: 'P2P Address',
+            currentValue: config.getSetting('net-addr') ?? '0.0.0.0:4002',
+            onChanged: (value) => viewModel.updateSetting('net-addr', value),
           ),
 
           // ZMQ Address
-          _buildTextSetting(
-            theme,
-            'ZMQ Address',
-            config.getSetting('zmq-addr') ?? '127.0.0.1:28002',
-            (value) => viewModel.updateSetting('zmq-addr', value),
+          _TextSetting(
+            label: 'ZMQ Address',
+            currentValue: config.getSetting('zmq-addr') ?? '127.0.0.1:28002',
+            onChanged: (value) => viewModel.updateSetting('zmq-addr', value),
           ),
 
           const SailSpacing(SailStyleValues.padding20),
@@ -293,32 +319,39 @@ class BitnamesConfEditorPage extends StatelessWidget {
           const SailSpacing(SailStyleValues.padding08),
 
           // Mainchain gRPC Host
-          _buildTextSetting(
-            theme,
-            'Mainchain gRPC Host',
-            config.getSetting('mainchain-grpc-host') ?? '127.0.0.1',
-            (value) => viewModel.updateSetting('mainchain-grpc-host', value),
+          _TextSetting(
+            label: 'Mainchain gRPC Host',
+            currentValue: config.getSetting('mainchain-grpc-host') ?? '127.0.0.1',
+            onChanged: (value) => viewModel.updateSetting('mainchain-grpc-host', value),
           ),
 
           // Mainchain gRPC Port
-          _buildTextSetting(
-            theme,
-            'Mainchain gRPC Port',
-            config.getSetting('mainchain-grpc-port') ?? '50051',
-            (value) => viewModel.updateSetting('mainchain-grpc-port', value),
+          _TextSetting(
+            label: 'Mainchain gRPC Port',
+            currentValue: config.getSetting('mainchain-grpc-port') ?? '50051',
+            onChanged: (value) => viewModel.updateSetting('mainchain-grpc-port', value),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildDropdownSetting(
-    SailThemeData theme,
-    String label,
-    String currentValue,
-    List<String> options,
-    ValueChanged<String> onChanged,
-  ) {
+class _DropdownSetting extends StatelessWidget {
+  final String label;
+  final String currentValue;
+  final List<String> options;
+  final ValueChanged<String> onChanged;
+
+  const _DropdownSetting({
+    required this.label,
+    required this.currentValue,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -337,13 +370,23 @@ class BitnamesConfEditorPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildToggleSetting(
-    SailThemeData theme,
-    String label,
-    bool currentValue,
-    ValueChanged<bool> onChanged,
-  ) {
+class _ToggleSetting extends StatelessWidget {
+  final String label;
+  final bool currentValue;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleSetting({
+    required this.label,
+    required this.currentValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -360,13 +403,21 @@ class BitnamesConfEditorPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTextSetting(
-    SailThemeData theme,
-    String label,
-    String currentValue,
-    ValueChanged<String> onChanged,
-  ) {
+class _TextSetting extends StatelessWidget {
+  final String label;
+  final String currentValue;
+  final ValueChanged<String> onChanged;
+
+  const _TextSetting({
+    required this.label,
+    required this.currentValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -383,11 +434,17 @@ class BitnamesConfEditorPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildCliPreview(BuildContext context, BitnamesConfigEditorViewModel viewModel) {
+class _CliPreview extends StatelessWidget {
+  final BitnamesConfigEditorViewModel viewModel;
+
+  const _CliPreview({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final confProvider = GetIt.I.get<BitnamesConfProvider>();
-
     final cliArgs = confProvider.getCliArgs();
 
     return Container(
