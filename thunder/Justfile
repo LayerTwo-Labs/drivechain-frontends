@@ -4,7 +4,11 @@ fix:
 format:
     find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format
 
-lint: format fix
+analyze:
+    dart analyze
+    dart run custom_lint
+
+lint: format fix analyze
 
 gen-version:
     cd ../ && bash scripts/generate-version.sh thunder

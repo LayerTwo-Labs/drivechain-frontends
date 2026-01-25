@@ -18,6 +18,7 @@ import 'package:thunder/routing/router.dart';
 import 'package:thunder/services/code_search_service.dart';
 import 'package:thunder/utils/menu_commands.dart';
 import 'package:thunder/utils/navigation_registry.dart';
+import 'package:thunder/widgets/reset_button.dart';
 import 'package:window_manager/window_manager.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down
@@ -46,6 +47,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
+  BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   ThunderRPC get thunderRPC => GetIt.I.get<ThunderRPC>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
@@ -210,10 +212,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
       // This Node menu
       CommandItem(
-        label: 'Open Console Window',
+        label: 'Open Debug Window',
         category: 'This Node',
         onSelected: () async {
-          await windowProvider.open(SubWindowTypes.console);
+          await windowProvider.open(SubWindowTypes.debug);
         },
       ),
       CommandItem(
@@ -378,10 +380,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'Console',
+                  label: 'Debug Window',
                   onSelected: () async {
                     final windowProvider = GetIt.I.get<WindowProvider>();
-                    await windowProvider.open(SubWindowTypes.console);
+                    await windowProvider.open(SubWindowTypes.debug);
                   },
                 ),
                 PlatformMenuItem(
@@ -465,12 +467,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         icon: SailSVGAsset.settings,
                       ),
                     ],
-                    endWidget: SailButton(
-                      label: 'Configure Homepage',
-                      small: true,
-                      onPressed: () async {
-                        await GetIt.I.get<AppRouter>().push(ThunderConfigureHomepageRoute());
-                      },
+                    endWidget: SailRow(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        SailDropdownButton<BitcoinNetwork>(
+                          value: _confProvider.network,
+                          items: [
+                            SailDropdownItem<BitcoinNetwork>(
+                              value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+                              label: 'Forknet',
+                            ),
+                            SailDropdownItem<BitcoinNetwork>(
+                              value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+                              label: 'Signet',
+                            ),
+                            SailDropdownItem<BitcoinNetwork>(
+                              value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+                              label: 'Regtest',
+                            ),
+                          ],
+                          onChanged: (BitcoinNetwork? network) async {
+                            if (network == null || _confProvider.hasPrivateBitcoinConf) return;
+                            await _confProvider.swapNetwork(context, network);
+                          },
+                        ),
+                        SailButton(
+                          label: 'Configure Homepage',
+                          small: true,
+                          onPressed: () async {
+                            await GetIt.I.get<AppRouter>().push(ThunderConfigureHomepageRoute());
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   body: Column(
@@ -500,7 +528,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         onOpenAdditionalConfConfigurator: () {
                           GetIt.I.get<AppRouter>().push(ThunderConfEditorRoute());
                         },
-                        endWidgets: [],
+                        endWidgets: const [
+                          ResetButton(),
+                        ],
                         onlyShowAdditional: true,
                       ),
                     ],

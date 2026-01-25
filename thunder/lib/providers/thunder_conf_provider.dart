@@ -18,7 +18,7 @@ class ThunderConfProvider extends GenericSidechainConfProvider {
   String get configFileName => 'thunder.conf';
 
   @override
-  String getDataDir() => Thunder().datadirNetwork();
+  String getDataDir() => Thunder().datadir();
 
   @override
   List<String> get skippedCliKeys => ['network'];
@@ -30,6 +30,12 @@ class ThunderConfProvider extends GenericSidechainConfProvider {
         return {
           'rpc-addr': '127.0.0.1:16009',
           'net-addr': '0.0.0.0:14009',
+          'mainchain-grpc-url': 'http://localhost:50051',
+        };
+      case 'mainnet':
+        return {
+          'rpc-addr': '127.0.0.1:26009',
+          'net-addr': '0.0.0.0:24009',
           'mainchain-grpc-url': 'http://localhost:50051',
         };
       case 'signet':
@@ -50,6 +56,7 @@ class ThunderConfProvider extends GenericSidechainConfProvider {
       network = switch (bitcoinConfProvider.network) {
         BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
         BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
+        BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'mainnet',
         _ => 'signet',
       };
     } catch (_) {}
