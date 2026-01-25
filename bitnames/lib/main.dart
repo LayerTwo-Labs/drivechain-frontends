@@ -14,7 +14,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/console/integrated_console_view.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main(List<String> args) async {
@@ -49,9 +48,14 @@ Future<void> runMultiWindow(
     child: SailText.primary15('no window type provided, the programmers messed up'),
   );
 
+  final bitnames = GetIt.I.get<BitnamesRPC>();
+
   switch (arguments['window_type']) {
-    case SubWindowTypes.consoleId:
-      child = const IntegratedConsoleView();
+    case SubWindowTypes.debugId:
+      child = SidechainDebugWindow(
+        rpc: bitnames,
+        sidechainName: 'BitNames',
+      );
       break;
     case SubWindowTypes.logsId:
       child = LogPage(
@@ -62,7 +66,6 @@ Future<void> runMultiWindow(
   }
 
   log.i('starting bitnames in multi window');
-  final bitnames = GetIt.I.get<BitnamesRPC>();
 
   return runApp(
     buildSailWindowApp(
@@ -230,15 +233,15 @@ void bootBinaries(Logger log) async {
   );
 }
 
-// BitAssets window types
+// BitNames window types
 class SubWindowTypes {
-  static const String consoleId = 'console';
+  static const String debugId = 'debug';
   static const String logsId = 'logs';
 
-  static var console = SailWindow(
-    identifier: consoleId,
-    name: 'Console',
-    defaultSize: Size(800, 600),
+  static var debug = SailWindow(
+    identifier: debugId,
+    name: 'Debug Window',
+    defaultSize: Size(900, 700),
     defaultPosition: Offset(100, 100),
   );
 

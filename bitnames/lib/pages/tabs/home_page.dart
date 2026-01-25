@@ -11,6 +11,7 @@ import 'package:bitnames/routing/router.dart';
 import 'package:bitnames/services/code_search_service.dart';
 import 'package:bitnames/utils/menu_commands.dart';
 import 'package:bitnames/utils/navigation_registry.dart';
+import 'package:bitnames/widgets/reset_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -52,6 +53,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
+  BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   BitnamesRPC get _rpc => GetIt.I.get<BitnamesRPC>();
   bool _shutdownInProgress = false;
   DateTime? _lastShiftPress;
@@ -232,10 +234,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
       // This Node menu
       CommandItem(
-        label: 'Open Console Window',
+        label: 'Open Debug Window',
         category: 'This Node',
         onSelected: () async {
-          await windowProvider.open(SubWindowTypes.console);
+          await windowProvider.open(SubWindowTypes.debug);
         },
       ),
       CommandItem(
@@ -353,10 +355,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 PlatformMenuItemGroup(
                   members: [
                     PlatformMenuItem(
-                      label: 'Console',
+                      label: 'Debug Window',
                       onSelected: () async {
                         final windowProvider = GetIt.I.get<WindowProvider>();
-                        await windowProvider.open(SubWindowTypes.console);
+                        await windowProvider.open(SubWindowTypes.debug);
                       },
                     ),
                     PlatformMenuItem(
@@ -458,12 +460,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             icon: SailSVGAsset.settings,
                           ),
                         ],
-                        endWidget: SailButton(
-                          label: 'Configure Homepage',
-                          small: true,
-                          onPressed: () async {
-                            await GetIt.I.get<AppRouter>().push(BitnamesConfigureHomepageRoute());
-                          },
+                        endWidget: SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            SailDropdownButton<BitcoinNetwork>(
+                              value: _confProvider.network,
+                              items: [
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+                                  label: 'Forknet',
+                                ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+                                  label: 'Signet',
+                                ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+                                  label: 'Regtest',
+                                ),
+                              ],
+                              onChanged: (BitcoinNetwork? network) async {
+                                if (network == null || _confProvider.hasPrivateBitcoinConf) return;
+                                await _confProvider.swapNetwork(context, network);
+                              },
+                            ),
+                            SailButton(
+                              label: 'Configure Homepage',
+                              small: true,
+                              onPressed: () async {
+                                await GetIt.I.get<AppRouter>().push(BitnamesConfigureHomepageRoute());
+                              },
+                            ),
+                          ],
                         ),
                       ),
                       body: Column(
@@ -494,7 +522,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             onOpenAdditionalConfConfigurator: () {
                               GetIt.I.get<AppRouter>().push(BitnamesConfEditorRoute());
                             },
-                            endWidgets: [],
+                            endWidgets: const [
+                              ResetButton(),
+                            ],
                           ),
                         ],
                       ),
