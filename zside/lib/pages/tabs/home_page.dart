@@ -19,6 +19,7 @@ import 'package:zside/routing/router.dart';
 import 'package:zside/services/code_search_service.dart';
 import 'package:zside/utils/menu_commands.dart';
 import 'package:zside/utils/navigation_registry.dart';
+import 'package:zside/widgets/reset_button.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down
 // in this file, when updating here. Route order should match exactly
@@ -50,6 +51,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
+  BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
@@ -233,7 +235,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
         label: 'Open Console Window',
         category: 'This Node',
         onSelected: () async {
-          await windowProvider.open(SubWindowTypes.console);
+          await windowProvider.open(SubWindowTypes.debug);
         },
       ),
       CommandItem(
@@ -351,7 +353,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                   label: 'Console',
                   onSelected: () async {
                     final windowProvider = GetIt.I.get<WindowProvider>();
-                    await windowProvider.open(SubWindowTypes.console);
+                    await windowProvider.open(SubWindowTypes.debug);
                   },
                 ),
                 PlatformMenuItem(
@@ -456,12 +458,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         icon: SailSVGAsset.settings,
                       ),
                     ],
-                    endWidget: SailButton(
-                      label: 'Configure Homepage',
-                      small: true,
-                      onPressed: () async {
-                        await GetIt.I.get<AppRouter>().push(ZSideConfigureHomepageRoute());
-                      },
+                    endWidget: SailRow(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        SailDropdownButton<BitcoinNetwork>(
+                          value: _confProvider.network,
+                          items: [
+                            SailDropdownItem<BitcoinNetwork>(
+                              value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+                              label: 'Forknet',
+                            ),
+                            SailDropdownItem<BitcoinNetwork>(
+                              value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+                              label: 'Signet',
+                            ),
+                            SailDropdownItem<BitcoinNetwork>(
+                              value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+                              label: 'Regtest',
+                            ),
+                          ],
+                          onChanged: (BitcoinNetwork? network) async {
+                            if (network == null || _confProvider.hasPrivateBitcoinConf) return;
+                            await _confProvider.swapNetwork(context, network);
+                          },
+                        ),
+                        SailButton(
+                          label: 'Configure Homepage',
+                          small: true,
+                          onPressed: () async {
+                            await GetIt.I.get<AppRouter>().push(ZSideConfigureHomepageRoute());
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   body: Column(
@@ -489,7 +517,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         onOpenEnforcerConfConfigurator: () {
                           GetIt.I.get<AppRouter>().push(EnforcerConfEditorRoute());
                         },
-                        endWidgets: [],
+                        endWidgets: const [
+                          ResetButton(),
+                        ],
                       ),
                     ],
                   ),
