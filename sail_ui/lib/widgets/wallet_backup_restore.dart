@@ -1050,7 +1050,6 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
       ),
     );
   }
-
 }
 
 class _RestoreProgressScreen extends StatelessWidget {
@@ -1205,8 +1204,8 @@ class _RestoreStepRow extends StatelessWidget {
               color: isActive
                   ? theme.colors.primary
                   : step.isCompleted
-                      ? SailColorScheme.green
-                      : theme.colors.textSecondary,
+                  ? SailColorScheme.green
+                  : theme.colors.textSecondary,
             ),
           ),
           if (timeText.isNotEmpty)

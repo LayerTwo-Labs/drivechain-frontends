@@ -76,7 +76,6 @@ class _SailTableState extends State<SailTable> {
   bool _sortAscending = true;
   BoxConstraints? _currentConstraints;
   double _startColumnWidth = 0;
-  final double _dragStartX = 0;
   int? _numColumns;
 
   double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);

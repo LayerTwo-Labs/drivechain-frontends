@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
