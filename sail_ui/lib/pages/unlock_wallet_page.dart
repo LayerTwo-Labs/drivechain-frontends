@@ -82,74 +82,11 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
         foregroundColor: SailTheme.of(context).colors.text,
       ),
       body: SafeArea(
-        child: _buildUnlockScreen(),
-      ),
-    );
-  }
-
-  Widget _buildUnlockScreen() {
-    final theme = SailTheme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0),
-        child: SizedBox(
-          width: 800,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              const BootTitle(
-                title: 'Decrypt Your Wallet',
-                subtitle: 'Your wallet is encrypted. Please enter your password to unlock it.',
-              ),
-              const Spacer(),
-              // Password input
-              SizedBox(
-                width: 400,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SailTextField(
-                      controller: _passwordController,
-                      hintText: 'Enter your password',
-                      obscureText: true,
-                      textFieldType: TextFieldType.text,
-                      size: TextFieldSize.regular,
-                      enabled: !_isUnlocking,
-                      onSubmitted: (_) => _handleUnlock(),
-                      autofocus: true,
-                      maxLines: 1,
-                    ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 8),
-                      SailText.secondary12(
-                        _errorMessage!,
-                        color: theme.colors.error,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Spacer(),
-              const Spacer(),
-              // Unlock button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SailButton(
-                    label: 'Decrypt Wallet',
-                    variant: ButtonVariant.primary,
-                    loading: _isUnlocking,
-                    onPressed: _handleUnlock,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+        child: _UnlockScreen(
+          passwordController: _passwordController,
+          isUnlocking: _isUnlocking,
+          errorMessage: _errorMessage,
+          onUnlock: _handleUnlock,
         ),
       ),
     );
@@ -192,6 +129,89 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
         _isUnlocking = false;
       });
     }
+  }
+}
+
+class _UnlockScreen extends StatelessWidget {
+  final TextEditingController passwordController;
+  final bool isUnlocking;
+  final String? errorMessage;
+  final VoidCallback onUnlock;
+
+  const _UnlockScreen({
+    required this.passwordController,
+    required this.isUnlocking,
+    required this.errorMessage,
+    required this.onUnlock,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: SizedBox(
+          width: 800,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              const BootTitle(
+                title: 'Decrypt Your Wallet',
+                subtitle: 'Your wallet is encrypted. Please enter your password to unlock it.',
+              ),
+              const Spacer(),
+              // Password input
+              SizedBox(
+                width: 400,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SailTextField(
+                      controller: passwordController,
+                      hintText: 'Enter your password',
+                      obscureText: true,
+                      textFieldType: TextFieldType.text,
+                      size: TextFieldSize.regular,
+                      enabled: !isUnlocking,
+                      onSubmitted: (_) => onUnlock(),
+                      autofocus: true,
+                      maxLines: 1,
+                    ),
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 8),
+                      SailText.secondary12(
+                        errorMessage!,
+                        color: theme.colors.error,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Spacer(),
+              const Spacer(),
+              // Unlock button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SailButton(
+                    label: 'Decrypt Wallet',
+                    variant: ButtonVariant.primary,
+                    loading: isUnlocking,
+                    onPressed: () async => onUnlock(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

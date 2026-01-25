@@ -13,11 +13,18 @@ class EnforcerConfEditorPage extends StatelessWidget {
     return ViewModelBuilder<EnforcerConfigEditorViewModel>.reactive(
       viewModelBuilder: () => EnforcerConfigEditorViewModel(),
       onViewModelReady: (viewModel) => viewModel.loadConfig(),
-      builder: (context, viewModel, child) => _buildPage(context, viewModel),
+      builder: (context, viewModel, child) => _EnforcerConfEditorPageContent(viewModel: viewModel),
     );
   }
+}
 
-  Widget _buildPage(BuildContext context, EnforcerConfigEditorViewModel viewModel) {
+class _EnforcerConfEditorPageContent extends StatelessWidget {
+  final EnforcerConfigEditorViewModel viewModel;
+
+  const _EnforcerConfEditorPageContent({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailPage(
@@ -39,7 +46,7 @@ class EnforcerConfEditorPage extends StatelessWidget {
                   Row(
                     children: [
                       // Preset dropdown
-                      _buildSimpleDropdown(viewModel),
+                      _PresetDropdown(viewModel: viewModel),
                       const SailSpacing(SailStyleValues.padding12),
                       // Reset button
                       SailButton(
@@ -98,7 +105,7 @@ class EnforcerConfEditorPage extends StatelessWidget {
             const SailSpacing(SailStyleValues.padding12),
 
             // Warning when node-rpc settings are out of sync with Bitcoin conf
-            _buildNodeRpcSyncWarning(context, viewModel),
+            _NodeRpcSyncWarning(viewModel: viewModel),
 
             Divider(
               height: 1,
@@ -108,18 +115,25 @@ class EnforcerConfEditorPage extends StatelessWidget {
 
             // Three-panel layout
             Expanded(
-              child: _buildMainContent(theme, viewModel),
+              child: _MainContent(viewModel: viewModel),
             ),
 
             // CLI preview
-            _buildCliPreview(context, viewModel),
+            const _CliPreview(),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildSimpleDropdown(EnforcerConfigEditorViewModel viewModel) {
+class _PresetDropdown extends StatelessWidget {
+  final EnforcerConfigEditorViewModel viewModel;
+
+  const _PresetDropdown({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     return SailDropdownButton<EnforcerConfigPreset>(
       value: viewModel.currentPreset == EnforcerConfigPreset.custom ? null : viewModel.currentPreset,
       hint: 'Load a preset...',
@@ -136,8 +150,17 @@ class EnforcerConfEditorPage extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildMainContent(SailThemeData theme, EnforcerConfigEditorViewModel viewModel) {
+class _MainContent extends StatelessWidget {
+  final EnforcerConfigEditorViewModel viewModel;
+
+  const _MainContent({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     if (viewModel.isLoading && viewModel.workingConfig == null) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -200,8 +223,15 @@ class EnforcerConfEditorPage extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildNodeRpcSyncWarning(BuildContext context, EnforcerConfigEditorViewModel viewModel) {
+class _NodeRpcSyncWarning extends StatelessWidget {
+  final EnforcerConfigEditorViewModel viewModel;
+
+  const _NodeRpcSyncWarning({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final enforcerConfProvider = GetIt.I.get<EnforcerConfProvider>();
 
@@ -245,8 +275,13 @@ class EnforcerConfEditorPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildCliPreview(BuildContext context, EnforcerConfigEditorViewModel viewModel) {
+class _CliPreview extends StatelessWidget {
+  const _CliPreview();
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final confProvider = GetIt.I.get<BitcoinConfProvider>();
     final enforcerConfProvider = GetIt.I.get<EnforcerConfProvider>();

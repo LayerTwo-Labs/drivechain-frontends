@@ -265,7 +265,8 @@ abstract class Binary {
   /// @deprecated Use deleteBlockchainData() instead
   Future<void> wipeAppDir() => deleteBlockchainData();
 
-  Future<void> deleteWallet(BitcoinNetwork network) async {
+  Future<void> deleteWallet() async {
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
     _log('Starting wallet backup for $name (network: ${network.toReadableNet()})');
 
     final networkDir = datadirNetwork();
@@ -284,7 +285,7 @@ abstract class Binary {
         await _renameWalletDir(rootdir, walletNetworkDir);
 
       case BinaryType.bitcoinCore:
-        await _backupBitcoinCoreWallets(networkDir, network);
+        await _backupBitcoinCoreWallets(networkDir);
 
       case BinaryType.bitnames:
         await _renameWalletDir(networkDir, 'wallet.mdb');
@@ -355,46 +356,37 @@ abstract class Binary {
   // Bitcoin Core wallets can be:
   // 1. wallet.dat at root level
   // 2. Named wallet directories (e.g. cheque_watch/, wallet_0D27987F/) containing wallet.dat
-  // 3. Same structure inside network subdirs (signet/, regtest/, testnet/)
-  Future<void> _backupBitcoinCoreWallets(String dir, BitcoinNetwork? network) async {
+  Future<void> _backupBitcoinCoreWallets(String dir) async {
+    final network = GetIt.I<BitcoinConfProvider>().network;
+
     // NEVER touch mainnet wallets - they contain real funds
     if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
       _log('Refusing to backup mainnet wallets');
       return;
     }
 
-    // Only backup wallets from network subdirectories (signet/regtest/testnet)
-    // Mainnet and forknet use root dir which risks touching real funds
-    if (network == null || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      _log('Bitcoin Core wallet backup requires a specific network');
-      return;
-    }
-
-    const networkDirs = {'signet', 'regtest', 'testnet', 'testnet3'};
-    final searchDir = path.join(dir, network.toReadableNet());
-
-    final searchDirectory = Directory(searchDir);
+    final searchDirectory = Directory(dir);
     if (!await searchDirectory.exists()) {
-      _log('Bitcoin Core directory does not exist: $searchDir');
+      _log('Bitcoin Core directory does not exist: $dir');
       return;
     }
 
-    await _renameWalletDir(searchDir, 'wallet.dat');
+    await _renameWalletDir(dir, 'wallet.dat');
 
     // Named wallet directories (contain wallet.dat)
     await for (final entity in searchDirectory.list()) {
       if (entity is Directory) {
         final dirName = path.basename(entity.path);
 
-        // Skip wallet_backups and network directories
-        if (dirName == 'wallet_backups' || networkDirs.contains(dirName)) {
+        // Skip wallet_backups directory
+        if (dirName == 'wallet_backups') {
           continue;
         }
 
         // Check if this directory contains wallet.dat (making it a named wallet)
         final walletDat = File(path.join(entity.path, 'wallet.dat'));
         if (await walletDat.exists()) {
-          await _renameWalletDir(searchDir, dirName);
+          await _renameWalletDir(dir, dirName);
         }
       }
     }
@@ -1088,27 +1080,25 @@ extension BinaryPaths on Binary {
 
   String _getBitcoinConfFile() {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
-    // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir
-    final datadir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
+    // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir (respects custom datadir)
+    final confDir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
         ? path.join(BitcoinCore().appdir(), 'Bitcoin')
-        : BitcoinCore().datadirNetwork();
+        : BitcoinCore().datadir();
 
     // Always check for bitcoin.conf first - user config takes priority
-    final bitcoinConfPath = path.join(datadir, 'bitcoin.conf');
+    final bitcoinConfPath = path.join(confDir, 'bitcoin.conf');
     if (File(bitcoinConfPath).existsSync()) {
       return bitcoinConfPath;
     }
 
     // Fall back to our generated config (full absolute path)
-    return path.join(datadir, 'bitwindow-bitcoin.conf');
+    return path.join(confDir, 'bitwindow-bitcoin.conf');
   }
 
   String logPath() {
-    final network = GetIt.I.get<BitcoinConfProvider>().network;
-
     return switch (type) {
-      BinaryType.bitcoinCore => _getBitcoinLogPath(network),
-      BinaryType.bitWindow => filePath([datadirNetwork(), network.toReadableNet(), 'server.log']),
+      BinaryType.bitcoinCore => filePath([BitcoinCore().datadirNetwork(), 'debug.log']),
+      BinaryType.bitWindow => filePath([datadirNetwork(), 'server.log']),
       BinaryType.thunder ||
       BinaryType.bitnames ||
       BinaryType.bitassets ||
@@ -1116,29 +1106,6 @@ extension BinaryPaths on Binary {
       BinaryType.enforcer => _findLatestEnforcerLog(),
       BinaryType.grpcurl => '',
     };
-  }
-
-  String _getBitcoinLogPath(BitcoinNetwork network) {
-    // Absolute path from bitcoin.conf's datadir setting (if configured)
-    final customDataDir = GetIt.I.get<BitcoinConfProvider>().detectedDataDir;
-
-    // If a custom datadir is set in bitcoin.conf, use it (debug.log goes there)
-    // Otherwise fall back to defaults: Bitcoin datadir for mainnet, Drivechain datadir for others
-    final baseDir = (customDataDir != null && customDataDir.isNotEmpty)
-        ? customDataDir
-        : (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ? path.join(appdir(), 'Bitcoin') : datadirNetwork());
-
-    // Get network-specific subdirectory
-    final networkDir = switch (network) {
-      BitcoinNetwork.BITCOIN_NETWORK_MAINNET => '', // mainnet uses root datadir
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => '', // forknet uses root datadir
-      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
-      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-      BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'testnet',
-      _ => 'signet', // default to signet for unknown networks
-    };
-
-    return filePath([baseDir, networkDir, 'debug.log']);
   }
 
   String _findLatestEnforcerLog() {
@@ -1285,20 +1252,14 @@ extension BinaryPaths on Binary {
     return rootDirNetwork(directories.binary.keys.first);
   }
 
-  /// Returns the network-aware datadir
-  String datadirNetwork() {
+  /// Returns the base datadir (respects custom datadir, no network subdir)
+  String datadir() {
     final network = GetIt.I<BitcoinConfProvider>().network;
 
     switch (type) {
       case BinaryType.bitcoinCore:
         final provider = GetIt.I<BitcoinConfProvider>();
-        final baseDir = (provider.detectedDataDir?.isNotEmpty == true)
-            ? provider.detectedDataDir!
-            : rootDirNetwork(network);
-        if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-          return baseDir;
-        }
-        return path.join(baseDir, network.toReadableNet());
+        return (provider.detectedDataDir?.isNotEmpty == true) ? provider.detectedDataDir! : rootDirNetwork(network);
 
       case BinaryType.enforcer:
         final provider = GetIt.I<EnforcerConfProvider>();
@@ -1312,15 +1273,40 @@ extension BinaryPaths on Binary {
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
-          customDir ?? rootDir();
+          if (customDir != null) return customDir;
         }
         return rootDir();
 
       case BinaryType.bitWindow:
-        return path.join(rootDir(), network.toReadableNet());
+        return rootDir();
 
       case BinaryType.grpcurl:
         return rootDir();
+    }
+  }
+
+  /// Returns the network-aware datadir (base + network subdir when needed)
+  String datadirNetwork() {
+    final network = GetIt.I<BitcoinConfProvider>().network;
+    final baseDir = datadir();
+
+    switch (type) {
+      case BinaryType.bitcoinCore:
+        if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+          return baseDir;
+        }
+        return path.join(baseDir, network.toReadableNet());
+
+      case BinaryType.bitWindow:
+        return path.join(baseDir, network.toReadableNet());
+
+      case BinaryType.enforcer:
+      case BinaryType.thunder:
+      case BinaryType.bitnames:
+      case BinaryType.bitassets:
+      case BinaryType.zSide:
+      case BinaryType.grpcurl:
+        return baseDir;
     }
   }
 

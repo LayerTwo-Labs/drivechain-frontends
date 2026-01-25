@@ -396,23 +396,31 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Sync config from upstream location (Drivechain or Bitcoin dir) to BitWindow directory
-  Future<void> _syncConfigUpstream(String upstreamPath) async {
+  Future<void> _syncConfigUpstream(String sourcePath) async {
     if (hasPrivateBitcoinConf) return;
 
     try {
-      final destPath = _getBitWindowConfigPath();
-
-      final sourceFile = File(upstreamPath);
+      final sourceFile = File(sourcePath);
       if (!await sourceFile.exists()) {
-        log.w('Cannot sync upstream - source file does not exist: $upstreamPath');
+        log.w('Cannot sync upstream - source file does not exist: $sourcePath');
         return;
       }
 
+      // Read and parse to compare with current config
+      final content = await sourceFile.readAsString();
+      final sourceConfig = BitcoinConfig.parse(content);
+      if (currentConfig != null && sourceConfig == currentConfig) {
+        log.d('Upstream config unchanged, skipping sync');
+        return;
+      }
+
+      // Downstream is different from currently saved config, sync it!
+      final destPath = _getBitWindowConfigPath();
       final destFile = File(destPath);
       await destFile.parent.create(recursive: true);
-      await sourceFile.copy(destPath);
+      await destFile.writeAsString(content);
 
-      log.d('Synced config upstream: $upstreamPath -> $destPath');
+      log.d('Synced config upstream: $sourcePath -> $destPath');
     } catch (e) {
       log.e('Failed to sync config upstream: $e');
     }
@@ -522,7 +530,6 @@ class BitcoinConfProvider extends ChangeNotifier {
 
     _fileWatchDebouncer?.cancel();
     _fileWatchDebouncer = Timer(const Duration(milliseconds: 50), () async {
-      // Sync upstream file to BitWindow dir - this will trigger the primary watcher
       await _syncConfigUpstream(event.path);
     });
   }
@@ -723,7 +730,7 @@ $mainSection
   /// Get the path for the saved main-section file for mainnet/forknet
   /// Stored in BitWindow directory alongside the main config
   String _getMainSectionPath(BitcoinNetwork network) {
-    final datadir = BitWindow().datadirNetwork();
+    final datadir = BitWindow().datadir();
     final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
     return path.join(datadir, 'bitwindow-$networkName.conf');
   }

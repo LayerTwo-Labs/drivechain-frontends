@@ -76,7 +76,7 @@ class _SailTableState extends State<SailTable> {
   bool _sortAscending = true;
   BoxConstraints? _currentConstraints;
   double _startColumnWidth = 0;
-  double _dragStartX = 0;
+  final double _dragStartX = 0;
   int? _numColumns;
 
   double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
@@ -147,6 +147,8 @@ class _SailTableState extends State<SailTable> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Only auto-size if width is valid and changed
@@ -160,7 +162,154 @@ class _SailTableState extends State<SailTable> {
             });
           }
         }
-        return _buildTable(context, constraints);
+
+        // Calculate total width including resize handles
+        final handleWidth = widget.resizableColumns ? (_numColumns! - 1) * 8.0 : 0.0;
+        final tableWidth = _totalColumnWidths + handleWidth;
+
+        // Build header cells with resize handles
+        final headerCells = <Widget>[];
+        final headers = widget.headerBuilder(context);
+        for (var i = 0; i < headers.length; i++) {
+          final cell = headers[i];
+          // Wrap header cell
+          if (cell is SailTableHeaderCell) {
+            headerCells.add(
+              SizedBox(
+                width: _widths[i],
+                child: ClipRect(
+                  child: SailTableHeaderCell(
+                    name: cell.name,
+                    alignment: cell.alignment,
+                    padding: cell.padding,
+                    isSorted: _sortColumnIndex == i,
+                    isAscending: _sortAscending,
+                    onSort: () => _handleSort(i),
+                  ),
+                ),
+              ),
+            );
+          } else {
+            headerCells.add(
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _handleSort(i),
+                child: SizedBox(
+                  width: _widths[i],
+                  child: ClipRect(child: cell),
+                ),
+              ),
+            );
+          }
+
+          // Add resize handle between columns
+          if (i < headers.length - 1 && widget.resizableColumns) {
+            headerCells.add(
+              _ResizeHandle(
+                index: i,
+                onDragStart: (index) {
+                  _startColumnWidth = _widths[index];
+                },
+                onDragUpdate: (index, globalX, startX) {
+                  final dragDelta = globalX - startX;
+                  _handleColumnResize(index, dragDelta);
+                },
+              ),
+            );
+          }
+        }
+
+        // Build rows content
+        Widget rowsContent;
+        if (widget.rowCount == 0 && widget.emptyPlaceholder != null) {
+          rowsContent = Center(
+            child: SailText.primary15(widget.emptyPlaceholder!, color: theme.colors.textTertiary),
+          );
+        } else if (widget.shrinkWrap) {
+          rowsContent = Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(widget.rowCount, (index) {
+              final rowId = widget.getRowId(index);
+              final isSelected = rowId == _selectedId;
+              final isLastRow = index == widget.rowCount - 1;
+              final bgColor =
+                  widget.rowBackgroundColor?.call(index) ?? (index % 2 == 1 ? widget.altBackgroundColor : null);
+              return _TableRow(
+                cells: widget.rowBuilder(context, index, isSelected),
+                widths: _widths,
+                height: widget.cellHeight,
+                selected: isSelected,
+                backgroundColor: bgColor,
+                grid: widget.drawGrid,
+                drawBorder: widget.drawLastRowsBorder || !isLastRow,
+                onPressed: () => _handleRowSelection(rowId),
+                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+                contextMenuItems: widget.contextMenuItems,
+                rowId: rowId,
+              );
+            }),
+          );
+        } else {
+          rowsContent = ListView.builder(
+            padding: EdgeInsets.zero,
+            controller: _verticalController,
+            itemCount: widget.rowCount,
+            itemExtent: widget.cellHeight,
+            itemBuilder: (context, index) {
+              final rowId = widget.getRowId(index);
+              final isSelected = rowId == _selectedId;
+              final isLastRow = index == widget.rowCount - 1;
+              final bgColor =
+                  widget.rowBackgroundColor?.call(index) ?? (index % 2 == 1 ? widget.altBackgroundColor : null);
+              return _TableRow(
+                cells: widget.rowBuilder(context, index, isSelected),
+                widths: _widths,
+                height: widget.cellHeight,
+                selected: isSelected,
+                backgroundColor: bgColor,
+                grid: widget.drawGrid,
+                drawBorder: widget.drawLastRowsBorder || !isLastRow,
+                onPressed: () => _handleRowSelection(rowId),
+                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+                contextMenuItems: widget.contextMenuItems,
+                rowId: rowId,
+              );
+            },
+          );
+        }
+
+        return SelectionContainer.disabled(
+          child: Scrollbar(
+            controller: _horizontalController,
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            child: SingleChildScrollView(
+              controller: _horizontalController,
+              scrollDirection: Axis.horizontal,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: SizedBox(
+                width: tableWidth,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: theme.colors.divider)),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(children: headerCells),
+                    ),
+                    if (!widget.shrinkWrap) Expanded(child: rowsContent),
+                    if (widget.shrinkWrap) rowsContent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
       },
     );
   }
@@ -168,8 +317,6 @@ class _SailTableState extends State<SailTable> {
   void _resizeColumns(double parentWidth, {bool force = false}) {
     if (parentWidth <= 0 || !mounted) return;
 
-    // Always auto-size columns when window size changes
-    // This ensures columns are properly sized for the new window dimensions
     setState(() {
       _autoSizeColumns(parentWidth);
     });
@@ -178,17 +325,14 @@ class _SailTableState extends State<SailTable> {
   void _autoSizeColumns(double availableWidth) {
     _widths.clear();
 
-    // Measure content for each column
     final columnWidths = List<double>.filled(_numColumns!, 0);
 
-    // Measure headers
     final headers = widget.headerBuilder(context);
     for (int col = 0; col < headers.length; col++) {
       final headerWidth = _calculateColumnWidth(headers[col]);
       columnWidths[col] = max(columnWidths[col], headerWidth);
     }
 
-    // Sample up to 20 rows for width calculation (first 10 + last 10)
     final rowsToSample = <int>[];
     if (widget.rowCount <= 20) {
       rowsToSample.addAll(List.generate(widget.rowCount, (i) => i));
@@ -205,7 +349,6 @@ class _SailTableState extends State<SailTable> {
       }
     }
 
-    // Apply minimum width constraint only
     for (int i = 0; i < _numColumns!; i++) {
       columnWidths[i] = max(columnWidths[i], defaultMinColumnWidth);
     }
@@ -219,11 +362,9 @@ class _SailTableState extends State<SailTable> {
 
     if (widget is SailTableCell) {
       text = widget.value;
-      // Use the actual style from SailText.primary12
       textStyle = SailStyleValues.twelve.copyWith(fontFamily: widget.monospace ? 'IBMPlexMono' : 'Inter');
     } else if (widget is SailTableHeaderCell) {
       text = widget.name;
-      // Headers might use a different style - adjust as needed
       textStyle = SailStyleValues.twelve.copyWith(fontFamily: 'Inter', fontWeight: SailStyleValues.boldWeight);
     }
 
@@ -237,7 +378,7 @@ class _SailTableState extends State<SailTable> {
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
-      return textPainter.width + 25; // Add padding
+      return textPainter.width + 25;
     }
 
     return defaultMinColumnWidth;
@@ -273,109 +414,48 @@ class _SailTableState extends State<SailTable> {
     });
   }
 
-  Widget _buildTable(BuildContext context, BoxConstraints constraints) {
-    // Calculate total width including resize handles
-    final handleWidth = widget.resizableColumns ? (_numColumns! - 1) * 8.0 : 0.0; // Fixed: was _numColumns! * 8.0
-    final tableWidth = _totalColumnWidths + handleWidth;
-
-    return SelectionContainer.disabled(
-      child: Scrollbar(
-        controller: _horizontalController,
-        scrollbarOrientation: ScrollbarOrientation.bottom,
-        child: SingleChildScrollView(
-          controller: _horizontalController,
-          scrollDirection: Axis.horizontal,
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SizedBox(
-            width: tableWidth,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),
-                if (widget.shrinkWrap) _buildRows(context),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  void _handleRowSelection(String rowId) {
+    if (!widget.selectableRows) return;
+    setState(() {
+      _selectedId = _selectedId == rowId ? null : rowId;
+    });
+    widget.onSelectedRow?.call(_selectedId);
   }
+}
 
-  Widget _buildHeader(BuildContext context) {
-    final theme = SailTheme.of(context);
-    final headerCells = widget
-        .headerBuilder(context)
-        .asMap()
-        .map((i, cell) => MapEntry(i, _wrapHeaderCell(i, cell)))
-        .values
-        .toList();
+class _ResizeHandle extends StatefulWidget {
+  final int index;
+  final void Function(int index) onDragStart;
+  final void Function(int index, double globalX, double startX) onDragUpdate;
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.colors.divider)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(children: _addResizeHandles(headerCells)),
-    );
-  }
+  const _ResizeHandle({
+    required this.index,
+    required this.onDragStart,
+    required this.onDragUpdate,
+  });
 
-  Widget _wrapHeaderCell(int index, Widget cell) {
-    if (cell is SailTableHeaderCell) {
-      return SizedBox(
-        width: _widths[index],
-        child: ClipRect(
-          child: SailTableHeaderCell(
-            name: cell.name,
-            alignment: cell.alignment,
-            padding: cell.padding,
-            isSorted: _sortColumnIndex == index,
-            isAscending: _sortAscending,
-            onSort: () => _handleSort(index),
-          ),
-        ),
-      );
-    }
+  @override
+  State<_ResizeHandle> createState() => _ResizeHandleState();
+}
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _handleSort(index),
-      child: SizedBox(
-        width: _widths[index],
-        child: ClipRect(child: cell),
-      ),
-    );
-  }
+class _ResizeHandleState extends State<_ResizeHandle> {
+  double _dragStartX = 0;
 
-  List<Widget> _addResizeHandles(List<Widget> cells) {
-    final result = <Widget>[];
-    for (var i = 0; i < cells.length; i++) {
-      result.add(cells[i]);
-
-      if (i < cells.length - 1 && widget.resizableColumns) {
-        result.add(_buildResizeHandle(i));
-      }
-    }
-    return result;
-  }
-
-  Widget _buildResizeHandle(int index) {
+  @override
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.resizeLeftRight,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onHorizontalDragStart: (details) {
-          _startColumnWidth = _widths[index];
+          widget.onDragStart(widget.index);
           _dragStartX = details.globalPosition.dx;
         },
         onHorizontalDragUpdate: (details) {
-          final dragDelta = details.globalPosition.dx - _dragStartX;
-          _handleColumnResize(index, dragDelta);
+          widget.onDragUpdate(widget.index, details.globalPosition.dx, _dragStartX);
         },
         child: Container(
-          width: 8, // Make it huge
+          width: 8,
           decoration: BoxDecoration(
             border: Border(left: BorderSide(color: context.sailTheme.colors.divider)),
           ),
@@ -383,66 +463,6 @@ class _SailTableState extends State<SailTable> {
         ),
       ),
     );
-  }
-
-  Widget _buildRows(BuildContext context) {
-    // Show empty placeholder when there are no rows
-    if (widget.rowCount == 0 && widget.emptyPlaceholder != null) {
-      final theme = SailTheme.of(context);
-      return Center(
-        child: SailText.primary15(
-          widget.emptyPlaceholder!,
-          color: theme.colors.textTertiary,
-        ),
-      );
-    }
-
-    if (widget.shrinkWrap) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(widget.rowCount, (index) => _buildRow(context, index)),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      controller: _verticalController,
-      itemCount: widget.rowCount,
-      itemExtent: widget.cellHeight,
-      itemBuilder: (context, index) => _buildRow(context, index),
-    );
-  }
-
-  Widget _buildRow(BuildContext context, int index) {
-    final rowId = widget.getRowId(index);
-    final isSelected = rowId == _selectedId;
-    final isLastRow = index == widget.rowCount - 1;
-    final backgroundColor =
-        widget.rowBackgroundColor?.call(index) ?? (index % 2 == 1 ? widget.altBackgroundColor : null);
-
-    return _TableRow(
-      cells: widget.rowBuilder(context, index, isSelected),
-      widths: _widths,
-      height: widget.cellHeight,
-      selected: isSelected,
-      backgroundColor: backgroundColor,
-      grid: widget.drawGrid,
-      drawBorder: widget.drawLastRowsBorder || !isLastRow,
-      onPressed: () => _handleRowSelection(rowId),
-      onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
-      contextMenuItems: widget.contextMenuItems,
-      rowId: rowId,
-    );
-  }
-
-  void _handleRowSelection(String rowId) {
-    if (!widget.selectableRows) return;
-    setState(() {
-      _selectedId = _selectedId == rowId ? null : rowId;
-    });
-    widget.onSelectedRow?.call(_selectedId);
   }
 }
 

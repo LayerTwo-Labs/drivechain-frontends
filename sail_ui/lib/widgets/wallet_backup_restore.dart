@@ -517,7 +517,7 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
     final theme = SailTheme.of(context);
 
     if (_success) {
-      return _buildSuccessScreen(theme);
+      return _BackupSuccessScreen(selectedPath: _selectedPath);
     }
 
     return Scaffold(
@@ -636,8 +636,17 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
       ),
     );
   }
+}
 
-  Widget _buildSuccessScreen(SailThemeData theme) {
+class _BackupSuccessScreen extends StatelessWidget {
+  final String? selectedPath;
+
+  const _BackupSuccessScreen({required this.selectedPath});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Scaffold(
       backgroundColor: theme.colors.background,
       body: Center(
@@ -666,7 +675,7 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
                 ),
                 const SizedBox(height: 8),
                 SelectableText(
-                  _selectedPath ?? '',
+                  selectedPath ?? '',
                   style: TextStyle(
                     fontSize: 13,
                     color: theme.colors.textSecondary,
@@ -919,7 +928,13 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     final theme = SailTheme.of(context);
 
     if (_isRestoring || _success) {
-      return _buildProgressScreen(theme);
+      return _RestoreProgressScreen(
+        success: _success,
+        steps: _steps,
+        currentStepIndex: _currentStepIndex,
+        autoBackupPath: _autoBackupPath,
+        error: _error,
+      );
     }
 
     return Scaffold(
@@ -1036,7 +1051,27 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     );
   }
 
-  Widget _buildProgressScreen(SailThemeData theme) {
+}
+
+class _RestoreProgressScreen extends StatelessWidget {
+  final bool success;
+  final List<RestoreProgressStep> steps;
+  final int currentStepIndex;
+  final String? autoBackupPath;
+  final String? error;
+
+  const _RestoreProgressScreen({
+    required this.success,
+    required this.steps,
+    required this.currentStepIndex,
+    this.autoBackupPath,
+    this.error,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Scaffold(
       backgroundColor: theme.colors.background,
       body: Center(
@@ -1048,8 +1083,8 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _PageTitle(
-                  title: _success ? 'Restore complete!' : 'Restoring your wallet',
-                  subtitle: _success
+                  title: success ? 'Restore complete!' : 'Restoring your wallet',
+                  subtitle: success
                       ? 'Your wallet has been restored successfully.'
                       : 'Please wait while your wallet is being restored...',
                 ),
@@ -1058,13 +1093,13 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        ..._steps.asMap().entries.map((entry) {
+                        ...steps.asMap().entries.map((entry) {
                           final index = entry.key;
                           final step = entry.value;
-                          final isActive = index == _currentStepIndex && !step.isCompleted;
-                          return _buildStepRow(step, theme, isActive);
+                          final isActive = index == currentStepIndex && !step.isCompleted;
+                          return _RestoreStepRow(step: step, isActive: isActive);
                         }),
-                        if (_success && _autoBackupPath != null) ...[
+                        if (success && autoBackupPath != null) ...[
                           const SizedBox(height: 24),
                           Container(
                             padding: const EdgeInsets.all(16),
@@ -1078,7 +1113,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                                 SailText.primary13('Previous wallet backed up to:', bold: true),
                                 const SizedBox(height: 8),
                                 SelectableText(
-                                  _autoBackupPath!,
+                                  autoBackupPath!,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: theme.colors.textSecondary,
@@ -1089,7 +1124,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                             ),
                           ),
                         ],
-                        if (_error != null) ...[
+                        if (error != null) ...[
                           const SizedBox(height: 16),
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -1097,7 +1132,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                               color: theme.colors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: SailText.primary13(_error!, color: theme.colors.error),
+                            child: SailText.primary13(error!, color: theme.colors.error),
                           ),
                         ],
                       ],
@@ -1105,7 +1140,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                if (_success || _error != null)
+                if (success || error != null)
                   SailButton(
                     label: 'Done',
                     variant: ButtonVariant.primary,
@@ -1121,8 +1156,17 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
       ),
     );
   }
+}
 
-  Widget _buildStepRow(RestoreProgressStep step, SailThemeData theme, bool isActive) {
+class _RestoreStepRow extends StatelessWidget {
+  final RestoreProgressStep step;
+  final bool isActive;
+
+  const _RestoreStepRow({required this.step, required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     Widget iconWidget;
     String timeText = '';
 
@@ -1161,8 +1205,8 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
               color: isActive
                   ? theme.colors.primary
                   : step.isCompleted
-                  ? SailColorScheme.green
-                  : theme.colors.textSecondary,
+                      ? SailColorScheme.green
+                      : theme.colors.textSecondary,
             ),
           ),
           if (timeText.isNotEmpty)

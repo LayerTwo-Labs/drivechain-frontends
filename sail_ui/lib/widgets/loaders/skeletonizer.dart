@@ -51,10 +51,11 @@ class _SailSkeletonizerState extends State<SailSkeletonizer> {
     }
   }
 
-  Widget _buildSkeletonizer() {
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Skeletonizer(
+    Widget createSkeletonizer() => Skeletonizer(
       enabled: widget.enabled,
       effect: ShimmerEffect(
         baseColor: theme.colors.backgroundSecondary,
@@ -65,19 +66,15 @@ class _SailSkeletonizerState extends State<SailSkeletonizer> {
       justifyMultiLineText: widget.justifyMultiLineText,
       child: widget.child,
     );
-  }
 
-  @override
-  Widget build(BuildContext context) {
     // When disabled, always build fresh
     if (!widget.enabled) {
-      final skeletonizer = _buildSkeletonizer();
-      return skeletonizer;
+      return createSkeletonizer();
     }
 
     // When enabled, cache the skeletonizer to not restart animation
     if (_cachedSkeletonizer == null || _lastEnabled != widget.enabled) {
-      _cachedSkeletonizer = _buildSkeletonizer();
+      _cachedSkeletonizer = createSkeletonizer();
       _lastEnabled = widget.enabled;
     }
 

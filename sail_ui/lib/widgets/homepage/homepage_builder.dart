@@ -36,138 +36,133 @@ class HomepageBuilder extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final widgets = _buildWidgetLayout(context, constraints);
+        final layoutWidgets = <Widget>[];
+        final halfWidthBuffer = <Widget>[];
+
+        for (int i = 0; i < configuration.widgets.length; i++) {
+          final widgetConfig = configuration.widgets[i];
+          final widgetInfo = widgetCatalog[widgetConfig.widgetId];
+
+          if (widgetInfo == null) {
+            continue;
+          }
+
+          // Create widget from catalog
+          Widget createdWidget;
+          final catalogInfo = widgetCatalog[widgetConfig.widgetId];
+          if (catalogInfo == null) {
+            createdWidget = Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.red),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(child: Text('Widget not found: ${widgetConfig.widgetId}')),
+            );
+          } else {
+            createdWidget = catalogInfo.builder(widgetConfig.settings);
+          }
+
+          // Wrap widget if in preview mode
+          Widget wrappedWidget;
+          if (!isPreview) {
+            wrappedWidget = createdWidget;
+          } else {
+            wrappedWidget = DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3), width: 1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(7),
+                        topRight: Radius.circular(7),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        SailSVG.icon(widgetInfo.icon, width: 12),
+                        const SizedBox(width: 4),
+                        SailText.secondary12(widgetInfo.name),
+                        const Spacer(),
+                        SailText.secondary12(
+                          widgetInfo.size == WidgetSize.full ? 'Full Width' : 'Half Width',
+                        ),
+                      ],
+                    ),
+                  ),
+                  createdWidget,
+                ],
+              ),
+            );
+          }
+
+          if (widgetInfo.size == WidgetSize.full) {
+            // Flush any pending half-width widgets
+            if (halfWidthBuffer.isNotEmpty) {
+              if (halfWidthBuffer.length == 1) {
+                layoutWidgets.add(halfWidthBuffer[0]);
+              } else {
+                layoutWidgets.add(
+                  SailRow(
+                    spacing: SailStyleValues.padding16,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: halfWidthBuffer.map((w) => Expanded(child: w)).toList(),
+                  ),
+                );
+              }
+              halfWidthBuffer.clear();
+            }
+            // Add full-width widget
+            layoutWidgets.add(wrappedWidget);
+          } else {
+            // Add to half-width buffer
+            halfWidthBuffer.add(wrappedWidget);
+
+            // If we have 2 half-width widgets, create a row
+            if (halfWidthBuffer.length == 2) {
+              layoutWidgets.add(
+                SailRow(
+                  spacing: SailStyleValues.padding16,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: halfWidthBuffer.map((w) => Expanded(child: w)).toList(),
+                ),
+              );
+              halfWidthBuffer.clear();
+            }
+          }
+        }
+
+        // Flush any remaining half-width widget
+        if (halfWidthBuffer.isNotEmpty) {
+          if (halfWidthBuffer.length == 1) {
+            layoutWidgets.add(halfWidthBuffer[0]);
+          } else {
+            layoutWidgets.add(
+              SailRow(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: halfWidthBuffer.map((w) => Expanded(child: w)).toList(),
+              ),
+            );
+          }
+        }
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(isPreview ? 8 : 0),
           child: SailColumn(
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: widgets,
+            children: layoutWidgets,
           ),
         );
       },
-    );
-  }
-
-  List<Widget> _buildWidgetLayout(BuildContext context, BoxConstraints constraints) {
-    final List<Widget> layoutWidgets = [];
-    final List<Widget> halfWidthBuffer = [];
-
-    for (int i = 0; i < configuration.widgets.length; i++) {
-      final widgetConfig = configuration.widgets[i];
-      final widgetInfo = widgetCatalog[widgetConfig.widgetId];
-
-      if (widgetInfo == null) {
-        continue;
-      }
-
-      final widget = _wrapWidget(
-        _buildWidget(widgetConfig.widgetId, settings: widgetConfig.settings),
-        widgetInfo,
-        isPreview,
-      );
-
-      if (widgetInfo.size == WidgetSize.full) {
-        // Flush any pending half-width widgets
-        if (halfWidthBuffer.isNotEmpty) {
-          layoutWidgets.add(_createHalfWidthRow(halfWidthBuffer, constraints));
-          halfWidthBuffer.clear();
-        }
-        // Add full-width widget
-        layoutWidgets.add(widget);
-      } else {
-        // Add to half-width buffer
-        halfWidthBuffer.add(widget);
-
-        // If we have 2 half-width widgets, create a row
-        if (halfWidthBuffer.length == 2) {
-          layoutWidgets.add(_createHalfWidthRow(halfWidthBuffer, constraints));
-          halfWidthBuffer.clear();
-        }
-      }
-    }
-
-    // Flush any remaining half-width widget
-    if (halfWidthBuffer.isNotEmpty) {
-      layoutWidgets.add(_createHalfWidthRow(halfWidthBuffer, constraints));
-    }
-
-    return layoutWidgets;
-  }
-
-  Widget _createHalfWidthRow(List<Widget> widgets, BoxConstraints constraints) {
-    if (widgets.length == 1) {
-      // Single half-width widget takes full width
-      return widgets[0];
-    }
-
-    // Two half-width widgets side by side
-    return SailRow(
-      spacing: SailStyleValues.padding16,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: widgets.map((widget) => Expanded(child: widget)).toList(),
-    );
-  }
-
-  Widget _buildWidget(String id, {Map<String, dynamic> settings = const {}}) {
-    final widgetInfo = widgetCatalog[id];
-    if (widgetInfo == null) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.red),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text('Widget not found: $id'),
-        ),
-      );
-    }
-    return widgetInfo.builder(settings);
-  }
-
-  Widget _wrapWidget(Widget widget, HomepageWidgetInfo info, bool isPreview) {
-    if (!isPreview) {
-      return widget;
-    }
-
-    // Add preview wrapper with info
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.blue.withValues(alpha: 0.3),
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(7),
-                topRight: Radius.circular(7),
-              ),
-            ),
-            child: Row(
-              children: [
-                SailSVG.icon(info.icon, width: 12),
-                const SizedBox(width: 4),
-                SailText.secondary12(info.name),
-                const Spacer(),
-                SailText.secondary12(
-                  info.size == WidgetSize.full ? 'Full Width' : 'Half Width',
-                ),
-              ],
-            ),
-          ),
-          widget,
-        ],
-      ),
     );
   }
 }
