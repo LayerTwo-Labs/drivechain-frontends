@@ -241,6 +241,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     _mnemonicController.clear();
   }
 
+  // ignore: avoid_build_methods
   Widget _buildMnemonicDisplay() {
     if (_currentWalletData.isEmpty || !_currentWalletData.containsKey('mnemonic')) {
       return const SizedBox.shrink();
@@ -355,6 +356,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     );
   }
 
+  // ignore: avoid_build_methods
   Widget _buildInfoPanel() {
     final theme = SailTheme.of(context);
     final binaryString = _currentWalletData['bip39_binary'] ?? '';
@@ -458,6 +460,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     );
   }
 
+  // ignore: avoid_build_methods
   Widget _buildAdvancedScreen() {
     final theme = SailTheme.of(context);
     return Stack(
@@ -613,6 +616,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     );
   }
 
+  // ignore: avoid_build_methods
   Widget _buildInitialScreen() {
     final theme = SailTheme.of(context);
     return Center(
@@ -736,6 +740,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     );
   }
 
+  // ignore: avoid_build_methods
   Widget _buildRestoreScreen() {
     return Center(
       child: Padding(
@@ -899,6 +904,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     }
   }
 
+  // ignore: avoid_build_methods
   Widget _buildSuccessScreen() {
     final theme = SailTheme.of(context);
 

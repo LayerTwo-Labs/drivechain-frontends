@@ -37,19 +37,9 @@ class SailPage extends StatelessWidget {
   }
 
   Widget buildBody(BuildContext context) {
-    if (scrollable) {
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: _pageContainer(),
-      );
-    }
-
-    return _pageContainer();
-  }
-
-  Widget _pageContainer() {
+    Widget pageContainer;
     if (title != null) {
-      return _withPadding(
+      pageContainer = _withPadding(
         Row(
           children: [
             Expanded(child: Container()),
@@ -79,9 +69,18 @@ class SailPage extends StatelessWidget {
         title,
         scrollable,
       );
+    } else {
+      pageContainer = _withPadding(body, title, scrollable);
     }
 
-    return _withPadding(body, title, scrollable);
+    if (scrollable) {
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: pageContainer,
+      );
+    }
+
+    return pageContainer;
   }
 }
 

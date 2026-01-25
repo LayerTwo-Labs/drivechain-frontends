@@ -99,7 +99,6 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
     final fromNetworkName = widget.fromNetwork.toDisplayName();
     final toNetworkName = widget.toNetwork.toDisplayName();
 
@@ -124,7 +123,7 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
                   final index = entry.key;
                   final step = entry.value;
                   final isActive = index == _currentStepIndex && !step.isCompleted;
-                  return _buildStepTile(step, theme, index, isActive);
+                  return _StepTile(step: step, isActive: isActive);
                 }),
                 if (_isCompleted) const SailSpacing(SailStyleValues.padding08),
                 if (_isCompleted)
@@ -151,8 +150,17 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
       ),
     );
   }
+}
 
-  Widget _buildStepTile(NetworkSwapStep step, SailThemeData theme, int index, bool isActive) {
+class _StepTile extends StatelessWidget {
+  final NetworkSwapStep step;
+  final bool isActive;
+
+  const _StepTile({required this.step, required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     Widget iconWidget;
     String timeText = '';
 

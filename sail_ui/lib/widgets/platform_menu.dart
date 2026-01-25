@@ -24,17 +24,13 @@ class CrossPlatformMenuBar extends StatelessWidget {
             children: [
               const SizedBox(width: 8),
               for (final menu in menus)
-                if (menu is PlatformMenu) ...[_buildMenu(context, menu), const SizedBox(width: 4)],
+                if (menu is PlatformMenu) ...[_MenuButton(menu: menu), const SizedBox(width: 4)],
             ],
           ),
         ),
         Expanded(child: child),
       ],
     );
-  }
-
-  Widget _buildMenu(BuildContext context, PlatformMenu menu) {
-    return _MenuButton(menu: menu);
   }
 }
 

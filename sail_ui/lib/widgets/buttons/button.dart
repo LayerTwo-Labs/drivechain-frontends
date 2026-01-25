@@ -80,7 +80,19 @@ class _SailButtonState extends State<SailButton> {
     final colors = theme.colors;
 
     final style = _getVariantStyle(widget.variant, colors, widget.textColor);
-    final content = _buildButtonContent(style.foregroundColor, widget.variant);
+    final content = _ButtonContent(
+      foregroundColor: style.foregroundColor,
+      variant: widget.variant,
+      isLoading: _isLoading,
+      loadingLabel: widget.loadingLabel,
+      icon: widget.icon,
+      endIcon: widget.endIcon,
+      iconHeight: widget.iconHeight,
+      iconWidth: widget.iconWidth,
+      label: widget.label,
+      small: widget.small,
+      insideTable: widget.insideTable,
+    );
 
     return _SailScaleButton(
       onPressed: _handlePress,
@@ -104,44 +116,73 @@ class _SailButtonState extends State<SailButton> {
       ),
     );
   }
+}
 
-  Widget _buildButtonContent(Color foregroundColor, ButtonVariant variant) {
+class _ButtonContent extends StatelessWidget {
+  final Color foregroundColor;
+  final ButtonVariant variant;
+  final bool isLoading;
+  final String? loadingLabel;
+  final SailSVGAsset? icon;
+  final SailSVGAsset? endIcon;
+  final double? iconHeight;
+  final double? iconWidth;
+  final String? label;
+  final bool small;
+  final bool insideTable;
+
+  const _ButtonContent({
+    required this.foregroundColor,
+    required this.variant,
+    required this.isLoading,
+    this.loadingLabel,
+    this.icon,
+    this.endIcon,
+    this.iconHeight,
+    this.iconWidth,
+    this.label,
+    required this.small,
+    required this.insideTable,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (_isLoading) ...[
+        if (isLoading) ...[
           SizedBox(width: 12, height: 12, child: LoadingIndicator.insideButton(foregroundColor)),
           const SizedBox(width: 8),
-        ] else if (widget.icon != null || widget.endIcon != null) ...[
-          if (widget.icon != null)
+        ] else if (icon != null || endIcon != null) ...[
+          if (icon != null)
             SailSVG.fromAsset(
-              widget.icon!,
+              icon!,
               color: foregroundColor,
-              height: widget.iconHeight,
-              width: (widget.iconWidth ?? widget.iconHeight) == null ? 14 : widget.iconWidth,
+              height: iconHeight,
+              width: (iconWidth ?? iconHeight) == null ? 14 : iconWidth,
             ),
-          if (widget.icon != null && widget.label != null) const SizedBox(width: 8),
-          if (widget.endIcon != null)
+          if (icon != null && label != null) const SizedBox(width: 8),
+          if (endIcon != null)
             SailSVG.fromAsset(
-              widget.endIcon!,
+              endIcon!,
               color: foregroundColor,
-              height: widget.iconHeight,
-              width: (widget.iconWidth ?? widget.iconHeight) == null ? 14 : widget.iconWidth,
+              height: iconHeight,
+              width: (iconWidth ?? iconHeight) == null ? 14 : iconWidth,
             ),
-          if (widget.endIcon != null && widget.label != null) const SizedBox(width: 8),
+          if (endIcon != null && label != null) const SizedBox(width: 8),
         ],
-        if (widget.label != null)
-          widget.small || widget.insideTable
+        if (label != null)
+          small || insideTable
               ? SailText.primary10(
-                  _isLoading ? widget.loadingLabel ?? 'Please wait' : widget.label!,
+                  isLoading ? loadingLabel ?? 'Please wait' : label!,
                   color: foregroundColor,
                   bold: true,
                   decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
                 )
               : SailText.primary12(
-                  _isLoading ? widget.loadingLabel ?? 'Please wait' : widget.label!,
+                  isLoading ? loadingLabel ?? 'Please wait' : label!,
                   color: foregroundColor,
                   bold: true,
                   decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,

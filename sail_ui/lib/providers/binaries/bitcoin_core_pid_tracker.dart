@@ -49,7 +49,7 @@ class BitcoinCorePidTracker {
   /// Check the bitcoin.pid file and update our tracked PID
   Future<void> _checkPidFile() async {
     try {
-      // Build the path to bitcoin.pid (datadir() already handles network subdirs)
+      // Build the path to bitcoin.pid, located in the network-aware datadir
       final pidFile = File(path.join(BitcoinCore().datadirNetwork(), 'bitcoind.pid'));
 
       if (await pidFile.exists()) {

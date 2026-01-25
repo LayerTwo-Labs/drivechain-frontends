@@ -12,11 +12,18 @@ class BitcoinConfEditorPage extends StatelessWidget {
     return ViewModelBuilder<BitcoinConfigEditorViewModel>.reactive(
       viewModelBuilder: () => BitcoinConfigEditorViewModel(),
       onViewModelReady: (viewModel) => viewModel.loadConfig(),
-      builder: (context, viewModel, child) => _buildPage(context, viewModel),
+      builder: (context, viewModel, child) => _BitcoinConfEditorPageContent(viewModel: viewModel),
     );
   }
+}
 
-  Widget _buildPage(BuildContext context, BitcoinConfigEditorViewModel viewModel) {
+class _BitcoinConfEditorPageContent extends StatelessWidget {
+  final BitcoinConfigEditorViewModel viewModel;
+
+  const _BitcoinConfEditorPageContent({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailPage(
@@ -38,7 +45,7 @@ class BitcoinConfEditorPage extends StatelessWidget {
                   Row(
                     children: [
                       // Preset dropdown
-                      _buildSimpleDropdown(viewModel),
+                      _PresetDropdown(viewModel: viewModel),
                       const SailSpacing(SailStyleValues.padding12),
                       // Reset button
                       SailButton(
@@ -73,15 +80,22 @@ class BitcoinConfEditorPage extends StatelessWidget {
 
             // Three-panel layout
             Expanded(
-              child: _buildMainContent(theme, viewModel),
+              child: _MainContent(viewModel: viewModel),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildSimpleDropdown(BitcoinConfigEditorViewModel viewModel) {
+class _PresetDropdown extends StatelessWidget {
+  final BitcoinConfigEditorViewModel viewModel;
+
+  const _PresetDropdown({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
     return SailDropdownButton<ConfigPreset>(
       value: viewModel.currentPreset == ConfigPreset.custom ? null : viewModel.currentPreset,
       hint: 'Load a preset...',
@@ -98,8 +112,17 @@ class BitcoinConfEditorPage extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildMainContent(SailThemeData theme, BitcoinConfigEditorViewModel viewModel) {
+class _MainContent extends StatelessWidget {
+  final BitcoinConfigEditorViewModel viewModel;
+
+  const _MainContent({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     if (viewModel.isLoading && viewModel.workingConfig == null) {
       return const Center(
         child: CircularProgressIndicator(),

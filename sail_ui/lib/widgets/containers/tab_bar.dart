@@ -162,20 +162,18 @@ class InlineTabBarState extends State<InlineTabBar> {
           ],
         ),
         const SizedBox(height: SailStyleValues.padding16),
-        Expanded(child: _buildTabContent()),
+        Expanded(
+          child: () {
+            final tab = widget.tabs[_selectedIndex];
+            if (tab is MultiSelectTabItem && _selectedSubItem != null) {
+              final selectedItem = tab.items.firstWhere((item) => item.label == _selectedSubItem);
+              return selectedItem.child;
+            }
+            return tab.child;
+          }(),
+        ),
       ],
     );
-  }
-
-  Widget _buildTabContent() {
-    final tab = widget.tabs[_selectedIndex];
-
-    if (tab is MultiSelectTabItem && _selectedSubItem != null) {
-      final selectedItem = tab.items.firstWhere((item) => item.label == _selectedSubItem);
-      return selectedItem.child;
-    }
-
-    return tab.child;
   }
 }
 

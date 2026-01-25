@@ -28,7 +28,6 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
   String _searchQuery = '';
   String? _selectedCategory;
   final bool _showOnlyUseful = false;
-  final Map<String, bool> _fileSelectionLoading = {};
 
   @override
   void initState() {
@@ -46,21 +45,15 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
   }
 
   void _onConfigChanged() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   void _onSearchChanged() {
-    setState(() {
-      _searchQuery = _searchController.text.toLowerCase();
-    });
+    setState(() => _searchQuery = _searchController.text.toLowerCase());
   }
 
-  // Options that must go in network sections (e.g., [main], [signet])
   static const _networkSpecificKeys = {'datadir', 'port', 'rpcport', 'rpcbind', 'bind'};
 
-  /// Get the section for an option based on whether it's network-specific
   String? _getSectionForOption(BitcoinConfigOption option) {
     if (_networkSpecificKeys.contains(option.key)) {
       return (widget.viewModel.confProvider.network).toCoreNetwork();
@@ -68,21 +61,38 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
     return null;
   }
 
-  /// Update a setting, automatically using the correct section
-  void _updateSetting(BitcoinConfigOption option, dynamic value) {
-    widget.viewModel.updateSetting(option.key, value, section: _getSectionForOption(option));
+  List<BitcoinConfigOption> _getFilteredOptions() {
+    List<BitcoinConfigOption> options = BitcoinConfigOptions.allOptions;
+
+    if (_searchQuery.isNotEmpty) {
+      options = options.where((option) {
+        return option.key.toLowerCase().contains(_searchQuery) ||
+            option.description.toLowerCase().contains(_searchQuery) ||
+            option.tooltip.toLowerCase().contains(_searchQuery);
+      }).toList();
+    }
+
+    if (_selectedCategory != null) {
+      options = options.where((option) => option.category == _selectedCategory).toList();
+    }
+
+    if (_showOnlyUseful) {
+      options = options.where((option) => option.isUseful).toList();
+    }
+
+    return options;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final filteredOptions = _getFilteredOptions();
 
     return Container(
       color: theme.colors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with search and filters
           Padding(
             padding: const EdgeInsets.all(5.5),
             child: SailTextField(
@@ -100,158 +110,148 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
               prefixIconConstraints: BoxConstraints(maxWidth: 21, maxHeight: 13),
             ),
           ),
-
-          Container(
-            height: 1,
-            color: theme.colors.divider,
-          ),
-
-          // Options list
+          Container(height: 1, color: theme.colors.divider),
           Expanded(
             child: widget.viewModel.workingConfig == null
-                ? Center(
-                    child: SailText.secondary13('No config loaded'),
-                  )
-                : _buildOptionsList(),
+                ? Center(child: SailText.secondary13('No config loaded'))
+                : filteredOptions.isEmpty
+                ? Center(child: SailText.secondary13('No options match your filters'))
+                : _OptionsList(
+                    options: filteredOptions,
+                    viewModel: widget.viewModel,
+                    showOnlyUseful: _showOnlyUseful,
+                    getSectionForOption: _getSectionForOption,
+                  ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildOptionsList() {
-    final filteredOptions = _getFilteredOptions();
+class _OptionsList extends StatelessWidget {
+  final List<BitcoinConfigOption> options;
+  final BitcoinConfigEditorViewModel viewModel;
+  final bool showOnlyUseful;
+  final String? Function(BitcoinConfigOption) getSectionForOption;
 
-    if (filteredOptions.isEmpty) {
-      return Center(
-        child: SailText.secondary13('No options match your filters'),
-      );
+  const _OptionsList({
+    required this.options,
+    required this.viewModel,
+    required this.showOnlyUseful,
+    required this.getSectionForOption,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final usefulOptions = options.where((o) => o.isUseful).toList();
+    final regularOptions = options.where((o) => !o.isUseful).toList();
+
+    final groupedRegular = <String, List<BitcoinConfigOption>>{};
+    final optionsToGroup = showOnlyUseful ? usefulOptions : regularOptions;
+    for (final option in optionsToGroup) {
+      groupedRegular.putIfAbsent(option.category, () => []).add(option);
     }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _buildOptionsWithUsefulFirst(filteredOptions),
+        children: [
+          if (usefulOptions.isNotEmpty && !showOnlyUseful) ...[
+            _UsefulSection(
+              options: usefulOptions,
+              viewModel: viewModel,
+              getSectionForOption: getSectionForOption,
+            ),
+            const SailSpacing(SailStyleValues.padding32),
+          ],
+          for (final category in groupedRegular.keys.toList()..sort()) ...[
+            _CategorySection(
+              category: category,
+              options: groupedRegular[category]!..sort((a, b) => a.key.compareTo(b.key)),
+              viewModel: viewModel,
+              getSectionForOption: getSectionForOption,
+            ),
+            const SailSpacing(SailStyleValues.padding32),
+          ],
+        ],
       ),
     );
   }
+}
 
-  List<BitcoinConfigOption> _getFilteredOptions() {
-    List<BitcoinConfigOption> options = BitcoinConfigOptions.allOptions;
+class _UsefulSection extends StatelessWidget {
+  final List<BitcoinConfigOption> options;
+  final BitcoinConfigEditorViewModel viewModel;
+  final String? Function(BitcoinConfigOption) getSectionForOption;
 
-    // Filter by search query
-    if (_searchQuery.isNotEmpty) {
-      options = options.where((option) {
-        return option.key.toLowerCase().contains(_searchQuery) ||
-            option.description.toLowerCase().contains(_searchQuery) ||
-            option.tooltip.toLowerCase().contains(_searchQuery);
-      }).toList();
-    }
+  const _UsefulSection({
+    required this.options,
+    required this.viewModel,
+    required this.getSectionForOption,
+  });
 
-    // Filter by category
-    if (_selectedCategory != null) {
-      options = options.where((option) => option.category == _selectedCategory).toList();
-    }
-
-    // Filter by useful only
-    if (_showOnlyUseful) {
-      options = options.where((option) => option.isUseful).toList();
-    }
-
-    return options;
-  }
-
-  List<Widget> _buildOptionsWithUsefulFirst(List<BitcoinConfigOption> options) {
-    final widgets = <Widget>[];
-
-    // Split into useful and regular options
-    final usefulOptions = options.where((o) => o.isUseful).toList();
-    final regularOptions = options.where((o) => !o.isUseful).toList();
-
-    // Show useful options first if any exist and not filtering by useful only
-    if (usefulOptions.isNotEmpty && !_showOnlyUseful) {
-      widgets.add(_buildUsefulSection(usefulOptions));
-      widgets.add(const SailSpacing(SailStyleValues.padding32));
-    }
-
-    // Show regular options grouped by category
-    if (!_showOnlyUseful) {
-      widgets.addAll(_buildGroupedOptions(regularOptions));
-    } else {
-      widgets.addAll(_buildGroupedOptions(usefulOptions));
-    }
-
-    return widgets;
-  }
-
-  Widget _buildUsefulSection(List<BitcoinConfigOption> usefulOptions) {
-    // Group useful options by category
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     final groupedUseful = <String, List<BitcoinConfigOption>>{};
-    for (final option in usefulOptions) {
+    for (final option in options) {
       groupedUseful.putIfAbsent(option.category, () => []).add(option);
     }
 
-    final widgets = <Widget>[];
-    widgets.add(
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: SailTheme.of(context).colors.orange.withValues(alpha: 0.1),
-          borderRadius: SailStyleValues.borderRadius,
-          border: Border.all(color: SailTheme.of(context).colors.orange.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...groupedUseful.entries.map((entry) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailText.primary20(entry.key, bold: true, color: SailTheme.of(context).colors.orange),
-                  const SailSpacing(SailStyleValues.padding08),
-                  ...entry.value.map((option) => _buildOptionWidget(option)),
-                  const SailSpacing(SailStyleValues.padding12),
-                ],
-              );
-            }),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colors.orange.withValues(alpha: 0.1),
+        borderRadius: SailStyleValues.borderRadius,
+        border: Border.all(color: theme.colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final entry in groupedUseful.entries) ...[
+            SailText.primary20(entry.key, bold: true, color: theme.colors.orange),
+            const SailSpacing(SailStyleValues.padding08),
+            for (final option in entry.value)
+              _OptionWidget(
+                option: option,
+                viewModel: viewModel,
+                getSectionForOption: getSectionForOption,
+              ),
+            const SailSpacing(SailStyleValues.padding12),
           ],
-        ),
+        ],
       ),
     );
-
-    return Column(children: widgets);
   }
+}
 
-  List<Widget> _buildGroupedOptions(List<BitcoinConfigOption> options) {
-    final groupedOptions = <String, List<BitcoinConfigOption>>{};
+class _CategorySection extends StatelessWidget {
+  final String category;
+  final List<BitcoinConfigOption> options;
+  final BitcoinConfigEditorViewModel viewModel;
+  final String? Function(BitcoinConfigOption) getSectionForOption;
 
-    for (final option in options) {
-      groupedOptions.putIfAbsent(option.category, () => []).add(option);
-    }
+  const _CategorySection({
+    required this.category,
+    required this.options,
+    required this.viewModel,
+    required this.getSectionForOption,
+  });
 
-    final widgets = <Widget>[];
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
 
-    for (final category in groupedOptions.keys.toList()..sort()) {
-      final categoryOptions = groupedOptions[category]!;
-      categoryOptions.sort((a, b) => a.key.compareTo(b.key));
-
-      widgets.add(_buildCategorySection(category, categoryOptions));
-      widgets.add(const SailSpacing(SailStyleValues.padding32));
-    }
-
-    return widgets;
-  }
-
-  Widget _buildCategorySection(String category, List<BitcoinConfigOption> options) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(0),
       decoration: BoxDecoration(
-        color: SailTheme.of(context).colors.background,
+        color: theme.colors.background,
         borderRadius: SailStyleValues.borderRadius,
-        border: Border.all(color: SailTheme.of(context).colors.border),
+        border: Border.all(color: theme.colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,23 +259,41 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: SailTheme.of(context).colors.primary.withValues(alpha: 0.1),
+              color: theme.colors.primary.withValues(alpha: 0.1),
               borderRadius: SailStyleValues.borderRadiusSmall,
             ),
-            child: SailText.primary15(category, bold: true, color: SailTheme.of(context).colors.primary),
+            child: SailText.primary15(category, bold: true, color: theme.colors.primary),
           ),
           const SailSpacing(SailStyleValues.padding20),
-          ...options.map((option) => _buildOptionWidget(option)),
+          for (final option in options)
+            _OptionWidget(
+              option: option,
+              viewModel: viewModel,
+              getSectionForOption: getSectionForOption,
+            ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildOptionWidget(BitcoinConfigOption option) {
-    final section = _getSectionForOption(option);
+class _OptionWidget extends StatelessWidget {
+  final BitcoinConfigOption option;
+  final BitcoinConfigEditorViewModel viewModel;
+  final String? Function(BitcoinConfigOption) getSectionForOption;
+
+  const _OptionWidget({
+    required this.option,
+    required this.viewModel,
+    required this.getSectionForOption,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final section = getSectionForOption(option);
     final currentValue = section != null
-        ? widget.viewModel.workingConfig!.getEffectiveSetting(option.key, section)
-        : widget.viewModel.workingConfig!.getSetting(option.key);
+        ? viewModel.workingConfig!.getEffectiveSetting(option.key, section)
+        : viewModel.workingConfig!.getSetting(option.key);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -287,181 +305,301 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
             child: SailText.primary15(option.description, bold: true),
           ),
           const SailSpacing(SailStyleValues.padding08),
-          _buildInputWidget(option, currentValue),
+          _InputWidget(
+            option: option,
+            currentValue: currentValue,
+            viewModel: viewModel,
+            getSectionForOption: getSectionForOption,
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildInputWidget(BitcoinConfigOption option, String? currentValue) {
+class _InputWidget extends StatelessWidget {
+  final BitcoinConfigOption option;
+  final String? currentValue;
+  final BitcoinConfigEditorViewModel viewModel;
+  final String? Function(BitcoinConfigOption) getSectionForOption;
+
+  const _InputWidget({
+    required this.option,
+    required this.currentValue,
+    required this.viewModel,
+    required this.getSectionForOption,
+  });
+
+  void _updateSetting(dynamic value) {
+    viewModel.updateSetting(option.key, value, section: getSectionForOption(option));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     switch (option.inputType) {
       case ConfigInputType.dropdown:
-        return _buildDropdownInput(option, currentValue);
+        return _DropdownInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
       case ConfigInputType.boolean:
-        return _buildBooleanInput(option, currentValue);
+        return _BooleanInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
       case ConfigInputType.number:
-        return _buildNumberInput(option, currentValue);
+        return _NumberInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
       case ConfigInputType.bitcoinAmount:
-        return _buildBitcoinAmountInput(option, currentValue);
+        return _BitcoinAmountInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
       case ConfigInputType.text:
       case ConfigInputType.command:
       case ConfigInputType.ipAddress:
       case ConfigInputType.network:
-        return _buildTextInput(option, currentValue);
+        return _TextInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
       case ConfigInputType.file:
       case ConfigInputType.directory:
-        return _buildFileInput(option, currentValue);
+        return _FileInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
     }
   }
+}
 
-  Widget _buildDropdownInput(BitcoinConfigOption option, String? currentValue) {
+class _DropdownInput extends StatelessWidget {
+  final BitcoinConfigOption option;
+  final String? currentValue;
+  final void Function(dynamic) onChanged;
+
+  const _DropdownInput({required this.option, required this.currentValue, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
     return SailDropdownButton<String>(
       value: option.dropdownValues!.contains(currentValue) ? currentValue : null,
       hint: 'Select ${option.description}',
       items: option.dropdownValues!.map((value) {
-        return SailDropdownItem<String>(
-          value: value,
-          label: value,
-        );
+        return SailDropdownItem<String>(value: value, label: value);
       }).toList(),
-      onChanged: (value) {
-        _updateSetting(option, value);
-      },
+      onChanged: (value) => onChanged(value),
     );
   }
+}
 
-  Widget _buildBooleanInput(BitcoinConfigOption option, String? currentValue) {
+class _BooleanInput extends StatelessWidget {
+  final BitcoinConfigOption option;
+  final String? currentValue;
+  final void Function(dynamic) onChanged;
+
+  const _BooleanInput({required this.option, required this.currentValue, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
     final boolValue = currentValue == '1' || currentValue == 'true';
 
     return SailToggle(
       label: option.key,
       value: boolValue,
-      onChanged: (value) {
-        _updateSetting(option, value ? '1' : '0');
-      },
+      onChanged: (value) => onChanged(value ? '1' : '0'),
     );
   }
+}
 
-  Widget _buildNumberInput(BitcoinConfigOption option, String? currentValue) {
-    final controller = TextEditingController(text: currentValue ?? '');
+class _NumberInput extends StatefulWidget {
+  final BitcoinConfigOption option;
+  final String? currentValue;
+  final void Function(dynamic) onChanged;
 
-    controller.addListener(() {
-      final value = controller.text;
-      if (value.trim().isEmpty) {
-        _updateSetting(option, null);
-      } else {
-        _updateSetting(option, value);
-      }
-    });
+  const _NumberInput({required this.option, required this.currentValue, required this.onChanged});
+
+  @override
+  State<_NumberInput> createState() => _NumberInputState();
+}
+
+class _NumberInputState extends State<_NumberInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentValue ?? '');
+    _controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final value = _controller.text;
+    widget.onChanged(value.trim().isEmpty ? null : value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final defaultStr = widget.option.defaultValue?.toString();
+    final formattedDefault = defaultStr != null ? formatWithThousandSpacers(int.tryParse(defaultStr) ?? 0) : null;
 
     return SailTextField(
-      controller: controller,
-      hintText: option.defaultValue != null
-          ? 'Default: ${_formatNumber(option.defaultValue.toString())}${option.unit != null ? ' ${option.unit}' : ''}'
-          : 'Enter ${option.description.toLowerCase()}${option.unit != null ? ' (${option.unit})' : ''}',
-      suffix: option.unit,
+      controller: _controller,
+      hintText: formattedDefault != null
+          ? 'Default: $formattedDefault${widget.option.unit != null ? ' ${widget.option.unit}' : ''}'
+          : 'Enter ${widget.option.description.toLowerCase()}${widget.option.unit != null ? ' (${widget.option.unit})' : ''}',
+      suffix: widget.option.unit,
     );
   }
+}
 
-  Widget _buildBitcoinAmountInput(BitcoinConfigOption option, String? currentValue) {
-    final controller = TextEditingController(text: currentValue ?? '');
+class _BitcoinAmountInput extends StatefulWidget {
+  final BitcoinConfigOption option;
+  final String? currentValue;
+  final void Function(dynamic) onChanged;
 
-    controller.addListener(() {
-      final value = controller.text;
-      if (value.trim().isEmpty) {
-        _updateSetting(option, null);
-      } else {
-        _updateSetting(option, value);
-      }
-    });
+  const _BitcoinAmountInput({required this.option, required this.currentValue, required this.onChanged});
+
+  @override
+  State<_BitcoinAmountInput> createState() => _BitcoinAmountInputState();
+}
+
+class _BitcoinAmountInputState extends State<_BitcoinAmountInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentValue ?? '');
+    _controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final value = _controller.text;
+    widget.onChanged(value.trim().isEmpty ? null : value);
+  }
+
+  String _formatBitcoinAmount(String value) {
+    if (value.isEmpty) return value;
+    final number = double.tryParse(value);
+    if (number == null) return value;
+    if (value.contains('e') || value.contains('E')) {
+      return number.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    }
+    return value;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final defaultStr = widget.option.defaultValue?.toString();
+    final formattedDefault = defaultStr != null ? _formatBitcoinAmount(defaultStr) : null;
 
     return SailTextField(
-      controller: controller,
-      hintText: option.defaultValue != null
-          ? 'Default: ${_formatBitcoinAmount(option.defaultValue.toString())}${option.unit != null ? ' ${option.unit}' : ''}'
-          : 'Enter ${option.description.toLowerCase()}${option.unit != null ? ' (${option.unit})' : ''}',
-      suffix: option.unit,
+      controller: _controller,
+      hintText: formattedDefault != null
+          ? 'Default: $formattedDefault${widget.option.unit != null ? ' ${widget.option.unit}' : ''}'
+          : 'Enter ${widget.option.description.toLowerCase()}${widget.option.unit != null ? ' (${widget.option.unit})' : ''}',
+      suffix: widget.option.unit,
     );
   }
+}
 
-  Widget _buildTextInput(BitcoinConfigOption option, String? currentValue) {
-    final controller = TextEditingController(text: currentValue ?? '');
+class _TextInput extends StatefulWidget {
+  final BitcoinConfigOption option;
+  final String? currentValue;
+  final void Function(dynamic) onChanged;
 
-    controller.addListener(() {
-      final value = controller.text;
-      if (value.trim().isEmpty) {
-        _updateSetting(option, null);
-      } else {
-        _updateSetting(option, value);
-      }
-    });
+  const _TextInput({required this.option, required this.currentValue, required this.onChanged});
 
+  @override
+  State<_TextInput> createState() => _TextInputState();
+}
+
+class _TextInputState extends State<_TextInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentValue ?? '');
+    _controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final value = _controller.text;
+    widget.onChanged(value.trim().isEmpty ? null : value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SailTextField(
-      controller: controller,
-      hintText: option.defaultValue != null
-          ? 'Default: ${option.defaultValue}'
-          : 'Enter ${option.description.toLowerCase()}',
+      controller: _controller,
+      hintText: widget.option.defaultValue != null
+          ? 'Default: ${widget.option.defaultValue}'
+          : 'Enter ${widget.option.description.toLowerCase()}',
     );
   }
+}
 
-  Widget _buildFileInput(BitcoinConfigOption option, String? currentValue) {
-    final controller = TextEditingController(text: currentValue ?? '');
-    final isLoading = _fileSelectionLoading[option.key] ?? false;
+class _FileInput extends StatefulWidget {
+  final BitcoinConfigOption option;
+  final String? currentValue;
+  final void Function(dynamic) onChanged;
 
-    controller.addListener(() {
-      final value = controller.text;
-      if (value.trim().isEmpty) {
-        _updateSetting(option, null);
-      } else {
-        _updateSetting(option, value);
-      }
-    });
+  const _FileInput({required this.option, required this.currentValue, required this.onChanged});
 
-    return Row(
-      children: [
-        Expanded(
-          child: SailTextField(
-            controller: controller,
-            hintText: option.defaultValue != null
-                ? 'Default: ${option.defaultValue}'
-                : 'Enter ${option.description.toLowerCase()} path',
-          ),
-        ),
-        const SailSpacing(SailStyleValues.padding08),
-        SailButton(
-          label: 'Browse',
-          variant: ButtonVariant.outline,
-          small: true,
-          loading: isLoading,
-          onPressed: () async => await _selectPath(option, controller),
-        ),
-      ],
-    );
+  @override
+  State<_FileInput> createState() => _FileInputState();
+}
+
+class _FileInputState extends State<_FileInput> {
+  late final TextEditingController _controller;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentValue ?? '');
+    _controller.addListener(_onChanged);
   }
 
-  Future<void> _selectPath(BitcoinConfigOption option, TextEditingController controller) async {
-    setState(() {
-      _fileSelectionLoading[option.key] = true;
-    });
+  @override
+  void dispose() {
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final value = _controller.text;
+    widget.onChanged(value.trim().isEmpty ? null : value);
+  }
+
+  Future<void> _selectPath() async {
+    setState(() => _isLoading = true);
 
     try {
       String? result;
 
-      if (option.inputType == ConfigInputType.directory) {
+      if (widget.option.inputType == ConfigInputType.directory) {
         result = await FilePicker.platform.getDirectoryPath(
-          initialDirectory: controller.text.isNotEmpty ? controller.text : null,
+          initialDirectory: _controller.text.isNotEmpty ? _controller.text : null,
         );
       } else {
         final fileResult = await FilePicker.platform.pickFiles(
-          initialDirectory: controller.text.isNotEmpty ? path.dirname(controller.text) : null,
+          initialDirectory: _controller.text.isNotEmpty ? path.dirname(_controller.text) : null,
           type: FileType.any,
         );
         result = fileResult?.files.single.path;
       }
 
       if (result != null) {
-        // For directories, validate that it's writable
-        if (option.inputType == ConfigInputType.directory) {
+        if (widget.option.inputType == ConfigInputType.directory) {
           final testFile = File(path.join(result, '.bitwindow_test'));
           try {
             await testFile.writeAsString('test');
@@ -479,51 +617,46 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
           }
         }
 
-        controller.text = result;
-        _updateSetting(option, result);
+        _controller.text = result;
+        widget.onChanged(result);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Error selecting ${option.inputType == ConfigInputType.directory ? 'directory' : 'file'}: $e',
+              'Error selecting ${widget.option.inputType == ConfigInputType.directory ? 'directory' : 'file'}: $e',
             ),
             backgroundColor: SailTheme.of(context).colors.error,
           ),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _fileSelectionLoading[option.key] = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  String _formatNumber(String value) {
-    if (value.isEmpty) return value;
-
-    final number = int.tryParse(value);
-    if (number == null) return value;
-
-    // Use thousand separators for large numbers
-    return formatWithThousandSpacers(number);
-  }
-
-  String _formatBitcoinAmount(String value) {
-    if (value.isEmpty) return value;
-
-    final number = double.tryParse(value);
-    if (number == null) return value;
-
-    // Handle scientific notation by converting to fixed decimal
-    if (value.contains('e') || value.contains('E')) {
-      // Format with enough precision to avoid scientific notation
-      return number.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
-    }
-
-    return value;
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: SailTextField(
+            controller: _controller,
+            hintText: widget.option.defaultValue != null
+                ? 'Default: ${widget.option.defaultValue}'
+                : 'Enter ${widget.option.description.toLowerCase()} path',
+          ),
+        ),
+        const SailSpacing(SailStyleValues.padding08),
+        SailButton(
+          label: 'Browse',
+          variant: ButtonVariant.outline,
+          small: true,
+          loading: _isLoading,
+          onPressed: _selectPath,
+        ),
+      ],
+    );
   }
 }
