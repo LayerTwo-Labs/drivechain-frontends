@@ -83,16 +83,16 @@ mkdir -p release
 # convert client to releases-name
 if [ "$CLIENT" == "bitwindow" ]; then
     RELEASES_NAME="BitWindow"
-    RELEASES_FILENAME="BitWindow-latest-win32-x64.exe"
+    RELEASES_FILENAME="BitWindow-latest-x86_64-windows.exe"
 elif [ "$CLIENT" == "bitassets" ]; then
     RELEASES_NAME="BitAssets"
-    RELEASES_FILENAME="test-bitassets-win32-x64.exe"
+    RELEASES_FILENAME="test-bitassets-x86_64-windows.exe"
 elif [ "$CLIENT" == "bitnames" ]; then
     RELEASES_NAME="BitNames"
-    RELEASES_FILENAME="test-bitnames-win32-x64.exe"
+    RELEASES_FILENAME="test-bitnames-x86_64-windows.exe"
 elif [ "$CLIENT" == "thunder" ]; then
     RELEASES_NAME="Thunder"
-    RELEASES_FILENAME="test-thunder-win32-x64.exe"
+    RELEASES_FILENAME="test-thunder-x86_64-windows.exe"
 fi
 
 cat > "$FRAGMENT_FILE" << EOF
