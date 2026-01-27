@@ -51,7 +51,11 @@ dependencies:
   thirds: ^0.2.0-alpha.1
   encrypt: ^5.0.3
   connectrpc: ^1.0.0
-  desktop_multi_window: ^0.3.0
+  desktop_multi_window:
+    git:
+      url: https://github.com/octobocto/flutter-plugins.git
+      ref: 252f3f7910288500039c39ae2b944622a0e55152
+      path: packages/desktop_multi_window
   convert: ^3.1.2
   bip39_mnemonic: ^4.0.1
   dart_bip32_bip44: ^0.2.0

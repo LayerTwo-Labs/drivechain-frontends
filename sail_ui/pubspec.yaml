@@ -39,7 +39,11 @@ dependencies:
   url_launcher: ^6.3.2
   connectrpc: 1.0.0
   convert: ^3.1.2
-  desktop_multi_window: ^0.3.0
+  desktop_multi_window:
+    git:
+      url: https://github.com/octobocto/flutter-plugins.git
+      ref: 252f3f7910288500039c39ae2b944622a0e55152
+      path: packages/desktop_multi_window
   window_manager: ^0.5.1
   web: ^1.1.1
   thirds: ^0.2.0-alpha.1
