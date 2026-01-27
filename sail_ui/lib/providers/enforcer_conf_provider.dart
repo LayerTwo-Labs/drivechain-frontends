@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io' show Directory, File, FileSystemEvent, Platform;
+import 'dart:io' show Directory, File, FileSystemEvent;
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -69,7 +69,7 @@ class EnforcerConfProvider extends ChangeNotifier {
 
   /// Get expected node-rpc settings from BitcoinConfProvider
   Map<String, String> getExpectedNodeRpcSettings() {
-    final host = Platform.isWindows ? 'localhost' : '0.0.0.0';
+    const host = '127.0.0.1';
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
     final port = bitcoinConfProvider.rpcPort;
 

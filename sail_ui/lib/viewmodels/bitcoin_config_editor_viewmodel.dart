@@ -160,7 +160,7 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
       }
 
       // Add ZMQ settings
-      workingConfig!.setSetting('zmqpubsequence', 'tcp://0.0.0.0:29000');
+      workingConfig!.setSetting('zmqpubsequence', 'tcp://127.0.0.1:29000');
     }
 
     currentPreset = preset;

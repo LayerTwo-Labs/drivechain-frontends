@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
@@ -97,7 +96,7 @@ class EnforcerLive extends EnforcerRPC {
 
     // Add node-rpc-* from mainchainConf
     final mainchainConf = readMainchainConf();
-    final host = Platform.isWindows ? 'localhost' : '0.0.0.0';
+    const host = '127.0.0.1';
     args.add('--node-rpc-user=${mainchainConf.username}');
     args.add('--node-rpc-pass=${mainchainConf.password}');
     args.add('--node-rpc-addr=$host:${mainchainConf.port}');

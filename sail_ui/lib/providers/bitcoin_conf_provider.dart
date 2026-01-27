@@ -563,12 +563,12 @@ chain=main
 [main]
 port=8300
 rpcport=18301
-rpcbind=0.0.0.0
+rpcbind=127.0.0.1
 rpcallowip=0.0.0.0/0
-zmqpubhashblock=tcp://0.0.0.0:29001
-zmqpubhashtx=tcp://0.0.0.0:29002
-zmqpubrawblock=tcp://0.0.0.0:29003
-zmqpubrawtx=tcp://0.0.0.0:29004
+zmqpubhashblock=tcp://127.0.0.1:29001
+zmqpubhashtx=tcp://127.0.0.1:29002
+zmqpubrawblock=tcp://127.0.0.1:29003
+zmqpubrawtx=tcp://127.0.0.1:29004
 assumevalid=0000000000000000000000000000000000000000000000000000000000000000
 minimumchainwork=0x00
 listenonion=0
@@ -587,7 +587,7 @@ rpcpassword=password
 server=1
 listen=1
 txindex=1
-zmqpubsequence=tcp://0.0.0.0:29000
+zmqpubsequence=tcp://127.0.0.1:29000
 rpcthreads=20
 rpcworkqueue=100
 rest=1
@@ -681,7 +681,7 @@ $mainSection
     final confInfo = _getConfigFileInfo();
 
     // Get connection settings from current config
-    String host = 'localhost';
+    String host = '127.0.0.1';
     String username = 'user';
     String password = 'password';
 
@@ -709,12 +709,12 @@ $mainSection
       return {
         'port': '8300',
         'rpcport': '18301',
-        'rpcbind': '0.0.0.0',
+        'rpcbind': '127.0.0.1',
         'rpcallowip': '0.0.0.0/0',
-        'zmqpubhashblock': 'tcp://0.0.0.0:29001',
-        'zmqpubhashtx': 'tcp://0.0.0.0:29002',
-        'zmqpubrawblock': 'tcp://0.0.0.0:29003',
-        'zmqpubrawtx': 'tcp://0.0.0.0:29004',
+        'zmqpubhashblock': 'tcp://127.0.0.1:29001',
+        'zmqpubhashtx': 'tcp://127.0.0.1:29002',
+        'zmqpubrawblock': 'tcp://127.0.0.1:29003',
+        'zmqpubrawtx': 'tcp://127.0.0.1:29004',
         'assumevalid': '0000000000000000000000000000000000000000000000000000000000000000',
         'minimumchainwork': '0x00',
         'listenonion': '0',
