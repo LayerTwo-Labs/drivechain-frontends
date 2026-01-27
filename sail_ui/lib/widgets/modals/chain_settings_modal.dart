@@ -145,7 +145,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                   ),
                   if (viewModel.binary.repoUrl.isNotEmpty)
                     StaticField(label: 'Repository', value: viewModel.binary.repoUrl, copyable: true),
-                  StaticField(label: 'Host', value: 'localhost', copyable: true),
+                  StaticField(label: 'Host', value: '127.0.0.1', copyable: true),
                   StaticField(label: 'Port', value: widget.connection.binary.port.toString(), copyable: true),
                   if (args.isNotEmpty)
                     StaticField(label: 'Binary Arguments', value: args.join(' \\\n'), copyable: true),

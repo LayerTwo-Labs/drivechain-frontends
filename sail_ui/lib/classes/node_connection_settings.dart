@@ -47,7 +47,7 @@ class CoreConnectionSettings extends ChangeNotifier {
 
     return CoreConnectionSettings(
       '',
-      'localhost',
+      '127.0.0.1',
       defaultPort,
       'user',
       'password',
@@ -122,7 +122,7 @@ CoreConnectionSettings readMainchainConf() {
   final host =
       config.getEffectiveSetting('rpcconnect', networkSection) ??
       config.getEffectiveSetting('rpchost', networkSection) ??
-      'localhost';
+      '127.0.0.1';
   final port = confProvider.rpcPort; // Uses the getter that already handles sections
 
   final configFile = confProvider.hasPrivateBitcoinConf ? 'bitcoin.conf' : 'bitwindow-bitcoin.conf';

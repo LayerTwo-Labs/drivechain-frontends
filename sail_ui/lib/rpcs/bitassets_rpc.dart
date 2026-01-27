@@ -176,7 +176,7 @@ abstract class BitAssetsRPC extends SidechainRPC {
 class BitAssetsLive extends BitAssetsRPC {
   RPCClient _client() {
     final client = RPCClient(
-      host: 'localhost',
+      host: '127.0.0.1',
       port: binary.port,
       username: 'N/A',
       password: 'N/A',
