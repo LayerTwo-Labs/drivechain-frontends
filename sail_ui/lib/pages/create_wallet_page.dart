@@ -99,13 +99,20 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     return Scaffold(
       backgroundColor: SailTheme.of(context).colors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: hasExistingWallet || widget.onBack != null,
+        automaticallyImplyLeading: false,
         backgroundColor: SailTheme.of(context).colors.background,
         foregroundColor: SailTheme.of(context).colors.text,
-        leading: (hasExistingWallet || widget.onBack != null)
+        leading: (hasExistingWallet || widget.onBack != null) &&
+                (_currentScreen == WelcomeScreen.initial || widget.initialScreen == _currentScreen)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: widget.onBack,
+                onPressed: () {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else {
+                    context.router.maybePop();
+                  }
+                },
               )
             : null,
       ),
