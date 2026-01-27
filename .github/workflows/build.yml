@@ -6,6 +6,7 @@ on:
     paths:
       - "scripts/**"
       - "sail_ui/**"
+      - "drivechain_lints/**"
       - "bitwindow/**"
       - "thunder/**"
       - "bitnames/**"
@@ -17,6 +18,7 @@ on:
     paths:
       - "scripts/**"
       - "sail_ui/**"
+      - "drivechain_lints/**"
       - "bitwindow/**"
       - "thunder/**"
       - "bitnames/**"
@@ -44,26 +46,31 @@ jobs:
               - 'scripts/**'
               - 'thunder/**'
               - 'sail_ui/**'
+              - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitnames:
               - 'scripts/**'
               - 'bitnames/**'
               - 'sail_ui/**'
+              - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitassets:
               - 'scripts/**'
               - 'bitassets/**'
               - 'sail_ui/**'
+              - 'drivechain_lints/**'
               - '.github/workflows/**'
             zside:
               - 'scripts/**'
               - 'zside/**'
               - 'sail_ui/**'
+              - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitwindow:
               - 'scripts/**'
               - 'bitwindow/**'
               - 'sail_ui/**'
+              - 'drivechain_lints/**'
               - '.github/workflows/**'
 
   matrix-prep:
@@ -148,6 +155,7 @@ jobs:
           cp -r ${{ matrix.client }} "$BUILD_DIR/"
           cp -r scripts "$BUILD_DIR/"
           cp -r sail_ui "$BUILD_DIR/"
+          cp -r drivechain_lints "$BUILD_DIR/"
           # Recreate assets/bin directory
           mkdir -p "$BUILD_DIR/${{ matrix.client }}/assets/bin"
           echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV

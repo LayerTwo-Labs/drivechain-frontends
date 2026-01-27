@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "sail_ui/**"
+      - "drivechain_lints/**"
       - "thunder/**"
       - "bitnames/**"
       - "bitassets/**"
