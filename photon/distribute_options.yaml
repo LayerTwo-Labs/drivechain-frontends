@@ -1,0 +1,13 @@
+output: release/
+releases:
+  - name: prod
+    jobs:
+      - name: macos-zip
+        package:
+          platform: macos
+          target: zip
+      # See full documentation: https://distributor.leanflutter.org/configuration/makers/exe
+      - name: windows-exe
+        package:
+          platform: windows
+          target: exe

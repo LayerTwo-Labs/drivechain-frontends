@@ -48,6 +48,14 @@ updates:
         update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
+    directory: "/photon"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: pub
     directory: "/bitnames"
     schedule:
       interval: weekly

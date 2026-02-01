@@ -33,6 +33,9 @@ abstract class Sidechain extends Binary {
 
       case 'bitassets':
         return BitAssets();
+
+      case 'photon':
+        return Photon();
     }
     return null;
   }
