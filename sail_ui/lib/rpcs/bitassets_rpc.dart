@@ -393,6 +393,12 @@ class BitAssetsLive extends BitAssetsRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
+    final response = await _client().call('list_utxos') as List<dynamic>;
+    return response.map((e) => BitAssetsUTXO.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
   Future<List<SidechainUTXO>> myUnconfirmedUtxos() async {
     final response = await _client().call('my_unconfirmed_utxos') as List<dynamic>;
     return response.map((e) => BitAssetsUTXO.fromJson(e as Map<String, dynamic>)).toList();

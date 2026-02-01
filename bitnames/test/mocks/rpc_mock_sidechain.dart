@@ -107,6 +107,11 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
+    return [];
+  }
+
+  @override
   Future<BmmResult> mine(int feeSats) async {
     return BmmResult.empty();
   }

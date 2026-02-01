@@ -186,6 +186,8 @@ class _SettingsResetState extends State<SettingsReset> {
 
     final sidechainBinaries = [
       Thunder(),
+      Truthcoin(),
+      Photon(),
       BitNames(),
       BitAssets(),
       ZSide(),

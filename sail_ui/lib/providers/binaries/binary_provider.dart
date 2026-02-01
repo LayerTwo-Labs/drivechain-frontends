@@ -41,6 +41,8 @@ class BinaryProvider extends ChangeNotifier {
 
   BitwindowRPC? _bitwindowRPC;
   ThunderRPC? _thunderRPC;
+  TruthcoinRPC? _truthcoinRPC;
+  PhotonRPC? _photonRPC;
   BitnamesRPC? _bitnamesRPC;
   BitAssetsRPC? _bitassetsRPC;
   ZSideRPC? _zsideRPC;
@@ -59,6 +61,22 @@ class BinaryProvider extends ChangeNotifier {
       _thunderRPC!.addListener(notifyListeners);
     }
     return _thunderRPC;
+  }
+
+  TruthcoinRPC? get truthcoinRPC {
+    if (_truthcoinRPC == null && GetIt.I.isRegistered<TruthcoinRPC>()) {
+      _truthcoinRPC = GetIt.I.get<TruthcoinRPC>();
+      _truthcoinRPC!.addListener(notifyListeners);
+    }
+    return _truthcoinRPC;
+  }
+
+  PhotonRPC? get photonRPC {
+    if (_photonRPC == null && GetIt.I.isRegistered<PhotonRPC>()) {
+      _photonRPC = GetIt.I.get<PhotonRPC>();
+      _photonRPC!.addListener(notifyListeners);
+    }
+    return _photonRPC;
   }
 
   BitnamesRPC? get bitnamesRPC {
@@ -102,6 +120,8 @@ class BinaryProvider extends ChangeNotifier {
   bool get enforcerConnected => enforcerRPC?.connected ?? false;
   bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
   bool get thunderConnected => thunderRPC?.connected ?? false;
+  bool get truthcoinConnected => truthcoinRPC?.connected ?? false;
+  bool get photonConnected => photonRPC?.connected ?? false;
   bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
   bool get bitassetsConnected => bitassetsRPC?.connected ?? false;
   bool get zsideConnected => zsideRPC?.connected ?? false;
@@ -110,6 +130,8 @@ class BinaryProvider extends ChangeNotifier {
   bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
+  bool get truthcoinInitializing => truthcoinRPC?.initializingBinary ?? false;
+  bool get photonInitializing => photonRPC?.initializingBinary ?? false;
   bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
   bool get bitassetsInitializing => bitassetsRPC?.initializingBinary ?? false;
   bool get zsideInitializing => zsideRPC?.initializingBinary ?? false;
@@ -118,6 +140,8 @@ class BinaryProvider extends ChangeNotifier {
   bool get enforcerStopping => enforcerRPC?.stoppingBinary ?? false;
   bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
   bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
+  bool get truthcoinStopping => truthcoinRPC?.stoppingBinary ?? false;
+  bool get photonStopping => photonRPC?.stoppingBinary ?? false;
   bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
   bool get bitassetsStopping => bitassetsRPC?.stoppingBinary ?? false;
   bool get zsideStopping => zsideRPC?.stoppingBinary ?? false;
@@ -126,6 +150,8 @@ class BinaryProvider extends ChangeNotifier {
   DownloadInfo get enforcerDownloadState => _downloadManager.getProgress(BinaryType.enforcer);
   DownloadInfo get bitwindowDownloadState => _downloadManager.getProgress(BinaryType.bitWindow);
   DownloadInfo get thunderDownloadState => _downloadManager.getProgress(BinaryType.thunder);
+  DownloadInfo get truthcoinDownloadState => _downloadManager.getProgress(BinaryType.truthcoin);
+  DownloadInfo get photonDownloadState => _downloadManager.getProgress(BinaryType.photon);
   DownloadInfo get bitnamesDownloadState => _downloadManager.getProgress(BinaryType.bitnames);
   DownloadInfo get bitassetsDownloadState => _downloadManager.getProgress(BinaryType.bitassets);
   DownloadInfo get zsideDownloadState => _downloadManager.getProgress(BinaryType.zSide);
@@ -135,6 +161,8 @@ class BinaryProvider extends ChangeNotifier {
   String? get enforcerError => enforcerRPC?.connectionError;
   String? get bitwindowError => bitwindowRPC?.connectionError;
   String? get thunderError => thunderRPC?.connectionError;
+  String? get truthcoinError => truthcoinRPC?.connectionError;
+  String? get photonError => photonRPC?.connectionError;
   String? get bitnamesError => bitnamesRPC?.connectionError;
   String? get bitassetsError => bitassetsRPC?.connectionError;
   String? get zsideError => zsideRPC?.connectionError;
@@ -144,6 +172,8 @@ class BinaryProvider extends ChangeNotifier {
   String? get enforcerStartupError => enforcerRPC?.startupError;
   String? get bitwindowStartupError => bitwindowRPC?.startupError;
   String? get thunderStartupError => thunderRPC?.startupError;
+  String? get truthcoinStartupError => truthcoinRPC?.startupError;
+  String? get photonStartupError => photonRPC?.startupError;
   String? get bitnamesStartupError => bitnamesRPC?.startupError;
   String? get bitassetsStartupError => bitassetsRPC?.startupError;
   String? get zsideStartupError => zsideRPC?.startupError;
@@ -282,6 +312,8 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerRPC,
       var b when b is BitWindow => bitwindowRPC,
       var b when b is Thunder => thunderRPC,
+      var b when b is Truthcoin => truthcoinRPC,
+      var b when b is Photon => photonRPC,
       var b when b is BitNames => bitnamesRPC,
       var b when b is BitAssets => bitassetsRPC,
       var b when b is ZSide => zsideRPC,
@@ -425,6 +457,10 @@ class BinaryProvider extends ChangeNotifier {
           await bitwindowRPC?.bitwindowd.stop(skipDownstream: skipDownstream);
         case Thunder():
           await thunderRPC?.stop();
+        case Truthcoin():
+          await truthcoinRPC?.stop();
+        case Photon():
+          await photonRPC?.stop();
         case BitNames():
           await bitnamesRPC?.stop();
         case BitAssets():
@@ -523,6 +559,8 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerConnected,
       var b when b is BitWindow => bitwindowConnected,
       var b when b is Thunder => thunderConnected,
+      var b when b is Truthcoin => truthcoinConnected,
+      var b when b is Photon => photonConnected,
       var b when b is BitNames => bitnamesConnected,
       var b when b is BitAssets => bitassetsConnected,
       var b when b is ZSide => zsideConnected,
@@ -538,6 +576,8 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerInitializing,
       var b when b is BitWindow => bitwindowInitializing,
       var b when b is Thunder => thunderInitializing,
+      var b when b is Truthcoin => truthcoinInitializing,
+      var b when b is Photon => photonInitializing,
       var b when b is BitNames => bitnamesInitializing,
       var b when b is BitAssets => bitassetsInitializing,
       var b when b is ZSide => zsideInitializing,
@@ -553,6 +593,8 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerError,
       var b when b is BitWindow => bitwindowError,
       var b when b is Thunder => thunderError,
+      var b when b is Truthcoin => truthcoinError,
+      var b when b is Photon => photonError,
       var b when b is BitNames => bitnamesError,
       var b when b is BitAssets => bitassetsError,
       var b when b is ZSide => zsideError,
@@ -571,6 +613,8 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is Enforcer => enforcerStopping,
       var b when b is BitWindow => bitwindowStopping,
       var b when b is Thunder => thunderStopping,
+      var b when b is Truthcoin => truthcoinStopping,
+      var b when b is Photon => photonStopping,
       var b when b is BitNames => bitnamesStopping,
       var b when b is BitAssets => bitassetsStopping,
       var b when b is ZSide => zsideStopping,
@@ -595,6 +639,8 @@ class BinaryProvider extends ChangeNotifier {
       enforcerRPC?.restartOnInitialFailure = true;
       bitwindowRPC?.restartOnInitialFailure = true;
       thunderRPC?.restartOnInitialFailure = true;
+      truthcoinRPC?.restartOnInitialFailure = true;
+      photonRPC?.restartOnInitialFailure = true;
       bitnamesRPC?.restartOnInitialFailure = true;
       bitassetsRPC?.restartOnInitialFailure = true;
       zsideRPC?.restartOnInitialFailure = true;
@@ -800,6 +846,8 @@ class BinaryProvider extends ChangeNotifier {
       Enforcer(),
       BitWindow(),
       Thunder(),
+      Truthcoin(),
+      Photon(),
       BitNames(),
       BitAssets(),
       ZSide(),
@@ -873,6 +921,8 @@ class BinaryProvider extends ChangeNotifier {
     enforcerRPC?.removeListener(notifyListeners);
     bitwindowRPC?.removeListener(notifyListeners);
     thunderRPC?.removeListener(notifyListeners);
+    truthcoinRPC?.removeListener(notifyListeners);
+    photonRPC?.removeListener(notifyListeners);
     bitnamesRPC?.removeListener(notifyListeners);
     bitassetsRPC?.removeListener(notifyListeners);
     zsideRPC?.removeListener(notifyListeners);

@@ -31,6 +31,9 @@ abstract class SidechainRPC extends RPCConnection {
   Future<double> sideEstimateFee();
   Future<List<SidechainUTXO>> listUTXOs();
 
+  /// List all UTXOs (not just wallet UTXOs)
+  Future<List<SidechainUTXO>> listAllUTXOs();
+
   /// Mine a block with a fee
   Future<BmmResult> mine(int feeSats);
 

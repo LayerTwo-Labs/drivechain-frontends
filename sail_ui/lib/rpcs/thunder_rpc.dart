@@ -266,10 +266,17 @@ class ThunderLive extends ThunderRPC {
     return response as String;
   }
 
-  /// List all UTXOs
+  /// List wallet UTXOs
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
     final response = await _client().call('get_wallet_utxos') as List<dynamic>;
+    return SidechainUTXO.fromJsonList(response);
+  }
+
+  /// List all UTXOs (not just wallet UTXOs)
+  @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
+    final response = await _client().call('list_utxos') as List<dynamic>;
     return SidechainUTXO.fromJsonList(response);
   }
 

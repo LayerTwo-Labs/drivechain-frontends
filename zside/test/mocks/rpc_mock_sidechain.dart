@@ -120,4 +120,9 @@ class MockSidechainRPC extends SidechainRPC {
   Future<int?> getLatestFailedWithdrawalBundleHeight() {
     return Future.value(0);
   }
+
+  @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
+    return [];
+  }
 }

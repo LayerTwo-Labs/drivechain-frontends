@@ -1361,6 +1361,8 @@ class _DepositModalState extends State<DepositModal> {
     // Get the RPC for this sidechain type
     final rpc = switch (sidechain) {
       Thunder() => binaryProvider.thunderRPC,
+      Truthcoin() => binaryProvider.truthcoinRPC,
+      Photon() => binaryProvider.photonRPC,
       BitNames() => binaryProvider.bitnamesRPC,
       BitAssets() => binaryProvider.bitassetsRPC,
       ZSide() => binaryProvider.zsideRPC,

@@ -532,6 +532,11 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> listAllUTXOs() {
+    return Future.value([]);
+  }
+
+  @override
   Future<BmmResult> mine(int feeSats) async {
     return BmmResult.empty();
   }
@@ -718,6 +723,11 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> listAllUTXOs() {
+    return Future.value([]);
+  }
+
+  @override
   Future<BmmResult> mine(int feeSats) async {
     return BmmResult.empty();
   }
@@ -734,7 +744,27 @@ class MockTruthcoinRPC extends TruthcoinRPC {
 
   // Prediction Markets
   @override
-  Future<String> marketCreate(Map<String, dynamic> marketParams) {
+  Future<Map<String, dynamic>> calculateInitialLiquidity({
+    required double beta,
+    int? numOutcomes,
+    String? dimensions,
+  }) {
+    return Future.value({'liquidity': 0});
+  }
+
+  @override
+  Future<String> marketCreate({
+    required String title,
+    required String description,
+    required String dimensions,
+    required int feeSats,
+    double? beta,
+    int? initialLiquidity,
+    double? tradingFee,
+    List<String>? tags,
+    List<String>? categoryTxids,
+    List<String>? residualNames,
+  }) {
     return Future.value('market_create_1234');
   }
 
@@ -749,54 +779,69 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<String> marketBuy(String marketId, int outcome, int shares) {
-    return Future.value('market_buy_1234');
+  Future<Map<String, dynamic>> marketBuy({
+    required String marketId,
+    required int outcomeIndex,
+    required double sharesAmount,
+    bool? dryRun,
+    int? feeSats,
+    int? maxCost,
+  }) {
+    return Future.value({'txid': 'market_buy_1234'});
   }
 
   @override
-  Future<List<Map<String, dynamic>>> marketPositions() {
-    return Future.value([]);
-  }
-
-  @override
-  Future<int> calculateShareCost(String marketId, int outcome, int shares) {
-    return Future.value(0);
+  Future<Map<String, dynamic>> marketPositions({String? address, String? marketId}) {
+    return Future.value({});
   }
 
   // Slots
   @override
-  Future<Map<String, dynamic>?> slotStatus(int slotId) {
-    return Future.value(null);
+  Future<Map<String, dynamic>> slotStatus() {
+    return Future.value({});
   }
 
   @override
-  Future<List<Map<String, dynamic>>> slotList() {
+  Future<List<Map<String, dynamic>>> slotList({int? period, String? status}) {
     return Future.value([]);
   }
 
   @override
-  Future<Map<String, dynamic>?> slotGet(int slotId) {
+  Future<Map<String, dynamic>?> slotGet(String slotId) {
     return Future.value(null);
   }
 
   @override
-  Future<String> slotClaim(int slotId) {
+  Future<String> slotClaim({
+    required int feeSats,
+    required int periodIndex,
+    required int slotIndex,
+    required String question,
+    required bool isStandard,
+    bool? isScaled,
+    int? min,
+    int? max,
+  }) {
     return Future.value('slot_claim_1234');
   }
 
   @override
-  Future<String> slotClaimCategory(int slotId, String category) {
+  Future<String> slotClaimCategory({
+    required List<Map<String, dynamic>> slots,
+    required bool isStandard,
+    required int feeSats,
+  }) {
     return Future.value('slot_claim_category_1234');
   }
 
   // Voting
   @override
-  Future<String> voteRegister() {
+  Future<String> voteRegister({required int feeSats, int? reputationBondSats}) {
     return Future.value('vote_register_1234');
   }
 
   @override
-  Future<Map<String, dynamic>?> voteVoter(String voterId) {
+  Future<Map<String, dynamic>?> voteVoter(String address) {
     return Future.value(null);
   }
 
@@ -806,50 +851,115 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<String> voteSubmit(Map<String, dynamic> voteData) {
+  Future<String> voteSubmit({required List<Map<String, dynamic>> votes, required int feeSats}) {
     return Future.value('vote_submit_1234');
   }
 
   @override
-  Future<List<Map<String, dynamic>>> voteList() {
+  Future<List<Map<String, dynamic>>> voteList({String? voter, String? decisionId, int? periodId}) {
     return Future.value([]);
   }
 
   @override
-  Future<Map<String, dynamic>?> votePeriod() {
+  Future<Map<String, dynamic>?> votePeriod({int? periodId}) {
     return Future.value(null);
   }
 
   // Votecoin
   @override
-  Future<String> votecoinTransfer(String address, int amount) {
+  Future<String> votecoinTransfer({
+    required String dest,
+    required int amount,
+    required int feeSats,
+    String? memo,
+  }) {
     return Future.value('votecoin_transfer_1234');
   }
 
   @override
-  Future<int> votecoinBalance() {
+  Future<int> votecoinBalance(String address) {
     return Future.value(0);
+  }
+
+  @override
+  Future<String> transferVotecoin({
+    required String dest,
+    required int amount,
+    required int feeSats,
+    String? memo,
+  }) {
+    return Future.value('transfer_votecoin_1234');
   }
 
   // Crypto utilities
   @override
-  Future<String> encryptMsg(String message, String publicKey) {
+  Future<String> getNewEncryptionKey() {
+    return Future.value('encryption_key_1234');
+  }
+
+  @override
+  Future<String> getNewVerifyingKey() {
+    return Future.value('verifying_key_1234');
+  }
+
+  @override
+  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) {
     return Future.value('encrypted_msg_1234');
   }
 
   @override
-  Future<String> decryptMsg(String encryptedMessage) {
+  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) {
     return Future.value('decrypted_msg_1234');
   }
 
   @override
-  Future<String> signArbitraryMsg(String message) {
+  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) {
     return Future.value('signature_1234');
   }
 
   @override
-  Future<bool> verifySignature(String message, String signature, String publicKey) {
+  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({required String address, required String msg}) {
+    return Future.value({'verifying_key': 'key', 'signature': 'sig'});
+  }
+
+  @override
+  Future<bool> verifySignature({
+    required String msg,
+    required String signature,
+    required String verifyingKey,
+    required String dst,
+  }) {
     return Future.value(true);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getTransaction(String txid) {
+    return Future.value(null);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getTransactionInfo(String txid) {
+    return Future.value(null);
+  }
+
+  @override
+  Future<List<String>> getWalletAddresses() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<List<SidechainUTXO>> myUnconfirmedUtxos() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<List<SidechainUTXO>> myUtxos() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<void> refreshWallet() async {
+    return;
   }
 }
 
@@ -1029,6 +1139,16 @@ class MockPhotonRPC extends PhotonRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> listAllUTXOs() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<List<String>> getWalletAddresses() {
+    return Future.value([]);
+  }
+
+  @override
   Future<BmmResult> mine(int feeSats) async {
     return BmmResult.empty();
   }
@@ -1190,6 +1310,11 @@ class MockBitnamesRPC extends BitnamesRPC {
 
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
+    return [];
+  }
+
+  @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
     return [];
   }
 
@@ -1638,6 +1763,8 @@ class MockBinaryProvider extends BinaryProvider {
     MockBinary(type: BinaryType.bitWindow),
     MockBinary(type: BinaryType.zSide),
     MockBinary(type: BinaryType.thunder),
+    MockBinary(type: BinaryType.truthcoin),
+    MockBinary(type: BinaryType.photon),
     MockBinary(type: BinaryType.bitnames),
     MockBinary(type: BinaryType.bitassets),
   ];
@@ -1667,6 +1794,12 @@ class MockBinaryProvider extends BinaryProvider {
   bool get zsideConnected => false;
 
   @override
+  bool get truthcoinConnected => false;
+
+  @override
+  bool get photonConnected => false;
+
+  @override
   bool get mainchainInitializing => false;
 
   @override
@@ -1686,6 +1819,12 @@ class MockBinaryProvider extends BinaryProvider {
 
   @override
   bool get zsideInitializing => false;
+
+  @override
+  bool get truthcoinInitializing => false;
+
+  @override
+  bool get photonInitializing => false;
 
   @override
   bool get mainchainStopping => false;
@@ -1709,6 +1848,12 @@ class MockBinaryProvider extends BinaryProvider {
   bool get zsideStopping => false;
 
   @override
+  bool get truthcoinStopping => false;
+
+  @override
+  bool get photonStopping => false;
+
+  @override
   String? get mainchainError => null;
 
   @override
@@ -1730,6 +1875,12 @@ class MockBinaryProvider extends BinaryProvider {
   String? get zsideError => null;
 
   @override
+  String? get truthcoinError => null;
+
+  @override
+  String? get photonError => null;
+
+  @override
   String? get mainchainStartupError => null;
 
   @override
@@ -1749,6 +1900,12 @@ class MockBinaryProvider extends BinaryProvider {
 
   @override
   String? get zsideStartupError => null;
+
+  @override
+  String? get truthcoinStartupError => null;
+
+  @override
+  String? get photonStartupError => null;
 
   @override
   ExitTuple? exited(Binary binary) => null;
