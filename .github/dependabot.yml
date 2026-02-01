@@ -11,22 +11,6 @@ updates:
         update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
-    directory: "/faucet"
-    schedule:
-      interval: weekly
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
-
-  - package-ecosystem: pub
-    directory: "/faucet/server"
-    schedule:
-      interval: weekly
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
-
-  - package-ecosystem: pub
     directory: "/bitwindow"
     schedule:
       interval: weekly
