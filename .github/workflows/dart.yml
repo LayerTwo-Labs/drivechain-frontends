@@ -12,7 +12,6 @@ on:
       - "bitassets/**"
       - "zside/**"
       - "bitwindow/**"
-      - "faucet/**"
       - ".github/workflows/**"
 
 jobs:
@@ -64,11 +63,6 @@ jobs:
 
       - name: Run tests for ${{ matrix.package }}
         run: |
-          if [ ${{ matrix.package }} == 'faucet' ]; then
-            echo "Skipping tests for faucet"
-            exit 0
-          fi
-
           if [ -d "test" ]; then
             flutter test
           else
@@ -77,8 +71,4 @@ jobs:
 
       - name: Build Flutter app
         run: |
-          if [ "${{ matrix.package }}" == "faucet" ]; then
-            flutter build web
-          else
-            flutter build
-          fi
+          flutter build

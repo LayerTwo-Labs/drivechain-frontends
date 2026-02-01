@@ -43,26 +43,6 @@
             ]
         },
         {
-            "name": "faucet",
-            "cwd": "clients/faucet",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "faucet (profile mode)",
-            "cwd": "clients/faucet",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "faucet (release mode)",
-            "cwd": "clients/faucet",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "release"
-        },
-        {
             "name": "sail_ui",
             "cwd": "clients/sail_ui",
             "request": "launch",
