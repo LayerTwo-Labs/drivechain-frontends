@@ -16,23 +16,25 @@ import 'package:thunder/routing/router.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main(List<String> args) async {
-  try {
-    WidgetsFlutterBinding.ensureInitialized();
+  await withWindowsFileRetry(() async {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Get the current window controller to check if this is a sub-window
-    final windowController = await WindowController.fromCurrentEngine();
+      // Get the current window controller to check if this is a sub-window
+      final windowController = await WindowController.fromCurrentEngine();
 
-    final (applicationDir, logFile, log) = await init(windowController.arguments);
+      final (applicationDir, logFile, log) = await init(windowController.arguments);
 
-    // If arguments are not empty, this is a sub-window
-    if (windowController.arguments.isNotEmpty) {
-      return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
+      // If arguments are not empty, this is a sub-window
+      if (windowController.arguments.isNotEmpty) {
+        return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
+      }
+
+      await runMainWindow(log, applicationDir, logFile);
+    } catch (e, stackTrace) {
+      runErrorScreen(e, stackTrace);
     }
-
-    await runMainWindow(log, applicationDir, logFile);
-  } catch (e, stackTrace) {
-    runErrorScreen(e, stackTrace);
-  }
+  });
 }
 
 Future<(Directory, File, Logger)> init(String arguments) async {

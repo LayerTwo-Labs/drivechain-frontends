@@ -18,39 +18,41 @@ import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 
 void main(List<String> args) async {
-  try {
-    WidgetsFlutterBinding.ensureInitialized();
+  await withWindowsFileRetry(() async {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Suppress harmless Flutter framework errors (mouse tracker, keyboard state)
-    FlutterError.onError = (FlutterErrorDetails details) {
-      final errorString = details.exception.toString();
+      // Suppress harmless Flutter framework errors (mouse tracker, keyboard state)
+      FlutterError.onError = (FlutterErrorDetails details) {
+        final errorString = details.exception.toString();
 
-      // Ignore known harmless desktop platform bugs
-      if (errorString.contains('mouse_tracker.dart') ||
-          errorString.contains('KeyDownEvent is dispatched') ||
-          errorString.contains('_debugDuringDeviceUpdate')) {
-        // Silently ignore these errors
-        return;
+        // Ignore known harmless desktop platform bugs
+        if (errorString.contains('mouse_tracker.dart') ||
+            errorString.contains('KeyDownEvent is dispatched') ||
+            errorString.contains('_debugDuringDeviceUpdate')) {
+          // Silently ignore these errors
+          return;
+        }
+
+        // For all other errors, use default error handling
+        FlutterError.presentError(details);
+      };
+
+      // Get the current window controller to check if this is a sub-window
+      final windowController = await WindowController.fromCurrentEngine();
+
+      final (applicationDir, logFile, log) = await init(windowController.arguments);
+
+      // If arguments are not empty, this is a sub-window
+      if (windowController.arguments.isNotEmpty) {
+        return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
       }
 
-      // For all other errors, use default error handling
-      FlutterError.presentError(details);
-    };
-
-    // Get the current window controller to check if this is a sub-window
-    final windowController = await WindowController.fromCurrentEngine();
-
-    final (applicationDir, logFile, log) = await init(windowController.arguments);
-
-    // If arguments are not empty, this is a sub-window
-    if (windowController.arguments.isNotEmpty) {
-      return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
+      await runMainWindow(log, applicationDir, logFile);
+    } catch (e, stackTrace) {
+      runErrorScreen(e, stackTrace);
     }
-
-    await runMainWindow(log, applicationDir, logFile);
-  } catch (e, stackTrace) {
-    runErrorScreen(e, stackTrace);
-  }
+  });
 }
 
 Future<(Directory, File, Logger)> init(String arguments) async {
