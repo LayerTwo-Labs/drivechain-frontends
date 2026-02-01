@@ -19,6 +19,7 @@ enum BinaryType {
   thunder,
   bitnames,
   bitassets,
+  truthcoin,
   photon,
   grpcurl,
 }
@@ -32,6 +33,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.thunder => Thunder(),
     BinaryType.bitnames => BitNames(),
     BinaryType.bitassets => BitAssets(),
+    BinaryType.truthcoin => Truthcoin(),
     BinaryType.photon => Photon(),
     BinaryType.grpcurl => GRPCurl(),
   };
@@ -205,6 +207,12 @@ abstract class Binary {
       case BinaryType.zSide:
         await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
 
+      case BinaryType.truthcoin:
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+
+      case BinaryType.photon:
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+
       case BinaryType.grpcurl:
         break;
     }
@@ -259,6 +267,12 @@ abstract class Binary {
       case BinaryType.zSide:
         await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
 
+      case BinaryType.truthcoin:
+        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+
+      case BinaryType.photon:
+        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+
       case BinaryType.grpcurl:
         break;
     }
@@ -299,6 +313,12 @@ abstract class Binary {
         await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.zSide:
+        await _renameWalletDir(networkDir, 'wallet.mdb');
+
+      case BinaryType.truthcoin:
+        await _renameWalletDir(networkDir, 'wallet.mdb');
+
+      case BinaryType.photon:
         await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.bitWindow:
@@ -443,6 +463,12 @@ abstract class Binary {
 
       case BinaryType.zSide:
         await _deleteFilesInDir(dir, ['thunder-orchard']);
+
+      case BinaryType.truthcoin:
+        await _deleteFilesInDir(dir, ['truthcoin-cli']);
+
+      case BinaryType.photon:
+        await _deleteFilesInDir(dir, ['photon-cli']);
 
       case BinaryType.grpcurl:
         break;
@@ -1104,7 +1130,9 @@ extension BinaryPaths on Binary {
       BinaryType.thunder ||
       BinaryType.bitnames ||
       BinaryType.bitassets ||
-      BinaryType.zSide => _findLatestDirVersionedLog(),
+      BinaryType.zSide ||
+      BinaryType.truthcoin ||
+      BinaryType.photon => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
       BinaryType.grpcurl => '',
     };
@@ -1272,6 +1300,8 @@ extension BinaryPaths on Binary {
       case BinaryType.bitnames:
       case BinaryType.bitassets:
       case BinaryType.zSide:
+      case BinaryType.truthcoin:
+      case BinaryType.photon:
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
@@ -1307,6 +1337,8 @@ extension BinaryPaths on Binary {
       case BinaryType.bitnames:
       case BinaryType.bitassets:
       case BinaryType.zSide:
+      case BinaryType.truthcoin:
+      case BinaryType.photon:
       case BinaryType.grpcurl:
         return baseDir;
     }
