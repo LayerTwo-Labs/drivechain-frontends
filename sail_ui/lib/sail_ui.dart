@@ -133,6 +133,7 @@ export 'style/style_values.dart';
 export 'theme/theme.dart';
 export 'theme/theme_data.dart';
 export 'utils/change_tracker.dart';
+export 'utils/file_overrides.dart';
 export 'utils/file_utils.dart';
 export 'utils/diff_utils.dart';
 export 'viewmodels/bitcoin_config_editor_viewmodel.dart';

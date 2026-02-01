@@ -166,7 +166,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
             }
           } else if (entity is File) {
             // Check if this file is one of our CLI executables
-            final fileName = entity.path.split('/').last;
+            final fileName = path.basename(entity.path);
 
             if (binaryToCLI.values.contains(fileName)) {
               if (Platform.isMacOS || Platform.isLinux) {

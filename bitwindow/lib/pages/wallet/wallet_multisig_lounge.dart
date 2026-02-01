@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as path;
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
@@ -1726,7 +1727,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'PSBT exported successfully to ${file.path.split('/').last}',
+                'PSBT exported successfully to ${path.basename(file.path)}',
               ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
