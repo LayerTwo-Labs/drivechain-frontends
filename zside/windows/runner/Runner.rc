@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "ZSide" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "ZSide" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 LayerTwo Labs, Inc. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 LayerTwo Labs, Inc. All rights reserved." "\0"
             VALUE "OriginalFilename", "zside.exe" "\0"
             VALUE "ProductName", "ZSide" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
