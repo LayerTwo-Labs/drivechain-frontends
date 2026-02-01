@@ -6,6 +6,7 @@ on:
       - "sail_ui/**"
       - "drivechain_lints/**"
       - "thunder/**"
+      - "photon/**"
       - "bitnames/**"
       - "bitassets/**"
       - "zside/**"
@@ -18,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [sail_ui, thunder, bitnames, bitassets, zside, bitwindow]
+        package: [sail_ui, thunder, photon, bitnames, bitassets, zside, bitwindow]
 
     defaults:
       run:

@@ -19,6 +19,7 @@ enum BinaryType {
   thunder,
   bitnames,
   bitassets,
+  photon,
   grpcurl,
 }
 
@@ -31,6 +32,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.thunder => Thunder(),
     BinaryType.bitnames => BitNames(),
     BinaryType.bitassets => BitAssets(),
+    BinaryType.photon => Photon(),
     BinaryType.grpcurl => GRPCurl(),
   };
 }

@@ -546,6 +546,196 @@ class MockThunderRPC extends ThunderRPC {
     return;
   }
 }
+class MockPhotonRPC extends PhotonRPC {
+  MockPhotonRPC() : super(binaryType: BinaryType.photon, restartOnFailure: true);
+
+  bool _connected = false;
+  bool _initializing = false;
+  bool _stopping = false;
+  String? _error;
+
+  @override
+  bool get connected => _connected;
+  @override
+  bool get initializingBinary => _initializing;
+  @override
+  bool get stoppingBinary => _stopping;
+  @override
+  String? get connectionError => _error;
+
+  void setConnected(bool value) {
+    _connected = value;
+    notifyListeners();
+  }
+
+  void setInitializing(bool value) {
+    _initializing = value;
+    notifyListeners();
+  }
+
+  void setStopping(bool value) {
+    _stopping = value;
+    notifyListeners();
+  }
+
+  void setError(String? value) {
+    _error = value;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> stopRPC() async {}
+
+  @override
+  Future<(double, double)> balance() {
+    return Future.value((0.0, 0.0));
+  }
+
+  @override
+  Future<List<String>> binaryArgs() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<int> ping() async {
+    return await getBlockCount();
+  }
+
+  @override
+  Future<int> getBlockCount() {
+    return Future.value(0);
+  }
+
+  @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() {
+    throw UnimplementedError();
+  }
+
+  @override
+  List<String> getMethods() {
+    return photonRPCMethods;
+  }
+
+  @override
+  Future<dynamic> callRAW(String method, [dynamic params]) async {
+    return;
+  }
+
+  @override
+  Future<String> getDepositAddress() {
+    return Future.value('tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+  }
+
+  @override
+  Future<String> getSideAddress() {
+    return Future.value('tb1qyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy');
+  }
+
+  @override
+  Future<List<CoreTransaction>> listTransactions() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
+    return Future.value('txid_mainchain_send_1234');
+  }
+
+  @override
+  Future<double> sideEstimateFee() {
+    return Future.value(0.00001);
+  }
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+    return Future.value('txid_sidechain_send_5678');
+  }
+
+  @override
+  Future<void> connectPeer(String peerAddress) async {
+    return;
+  }
+
+  @override
+  Future<void> forgetPeer(String peerAddress) async {
+    return;
+  }
+
+  @override
+  Future<String> createDeposit(String address, double amount, double fee) {
+    return Future.value('txid_create_deposit_1234');
+  }
+
+  @override
+  Future<String> generateMnemonic() {
+    return Future.value('mnemonic_generate_1234');
+  }
+
+  @override
+  Future<String> getBMMInclusions(String blockHash) {
+    return Future.value('txid_get_bmm_inclusions_1234');
+  }
+
+  @override
+  Future<String?> getBestMainchainBlockHash() {
+    return Future.value('blockhash_get_best_mainchain_1234');
+  }
+
+  @override
+  Future<String?> getBestSidechainBlockHash() {
+    return Future.value('blockhash_get_best_sidechain_1234');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getBlock(String hash) {
+    return Future.value({'block': 'block_get_1234'});
+  }
+
+  @override
+  Future<int?> getLatestFailedWithdrawalBundleHeight() {
+    return Future.value(1234);
+  }
+
+  @override
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() {
+    return Future.value(PendingWithdrawalBundle.empty());
+  }
+
+  @override
+  Future<double> getSidechainWealth() {
+    return Future.value(1234.56);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> listPeers() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<BmmResult> mine(int feeSats) async {
+    return BmmResult.empty();
+  }
+
+  @override
+  Future<void> removeFromMempool(String txid) async {
+    return;
+  }
+
+  @override
+  Future<void> setSeedFromMnemonic(String mnemonic) async {
+    return;
+  }
+}
 
 class MockBitnamesRPC extends BitnamesRPC {
   MockBitnamesRPC()
@@ -1120,6 +1310,8 @@ String _binaryTypeName(BinaryType type) {
       return 'zSide';
     case BinaryType.grpcurl:
       return 'grpcurl';
+    case BinaryType.photon:
+      return 'Photon';
   }
 }
 
