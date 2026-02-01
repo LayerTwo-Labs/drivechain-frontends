@@ -34,6 +34,9 @@ abstract class Sidechain extends Binary {
       case 'bitassets':
         return BitAssets();
 
+      case 'truthcoin':
+        return Truthcoin();
+
       case 'photon':
         return Photon();
     }
@@ -80,6 +83,30 @@ abstract class Sidechain extends Binary {
 
       case 'BitAssets':
         return BitAssets(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          port: binary.port,
+          chainLayer: binary.chainLayer,
+        );
+
+      case 'Truthcoin':
+        return Truthcoin(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          port: binary.port,
+          chainLayer: binary.chainLayer,
+        );
+
+      case 'Photon':
+        return Photon(
           name: binary.name,
           version: binary.version,
           description: binary.description,
@@ -474,6 +501,172 @@ class BitAssets extends Sidechain {
     List<String>? extraBootArgs,
   }) {
     return BitAssets(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
+    );
+  }
+}
+
+class Truthcoin extends Sidechain {
+  Truthcoin({
+    super.name = 'Truthcoin',
+    super.version = 'latest',
+    super.description = 'Bitcoin Hivemind prediction market sidechain',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/truthcoin',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.port = 6013,
+    super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: allNetworks({
+                 OS.linux: 'truthcoin',
+                 OS.macos: 'truthcoin',
+                 OS.windows: 'truthcoin',
+               }),
+               flutterFrontend: {
+                 OS.linux: 'com.layertwolabs.truthcoin',
+                 OS.macos: 'com.layertwolabs.truthcoin',
+                 OS.windows: 'com.layertwolabs.truthcoin',
+               },
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'truthcoin',
+                 files: allNetworks({
+                   OS.linux: 'L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip',
+                 }),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
+
+  @override
+  final int slot = 13;
+
+  @override
+  BinaryType get type => BinaryType.truthcoin;
+
+  @override
+  Color color = SailColorScheme.orange;
+
+  @override
+  Truthcoin copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
+  }) {
+    return Truthcoin(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
+    );
+  }
+}
+
+class Photon extends Sidechain {
+  Photon({
+    super.name = 'Photon',
+    super.version = 'latest',
+    super.description = 'Photon sidechain',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/photon',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.port = 6099,
+    super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: allNetworks({
+                 OS.linux: 'photon',
+                 OS.macos: 'photon',
+                 OS.windows: 'photon',
+               }),
+               flutterFrontend: {
+                 OS.linux: 'com.layertwolabs.photon',
+                 OS.macos: 'com.layertwolabs.photon',
+                 OS.windows: 'com.layertwolabs.photon',
+               },
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'photon',
+                 files: allNetworks({
+                   OS.linux: 'L2-S99-Photon-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L2-S99-Photon-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L2-S99-Photon-latest-x86_64-pc-windows-gnu.zip',
+                 }),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
+
+  @override
+  final int slot = 99;
+
+  @override
+  BinaryType get type => BinaryType.photon;
+
+  @override
+  Color color = SailColorScheme.purple;
+
+  @override
+  Photon copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
+  }) {
+    return Photon(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,
