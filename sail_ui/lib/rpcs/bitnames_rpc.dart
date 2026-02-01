@@ -341,6 +341,12 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
+    final response = await _client().call('list_utxos') as List<dynamic>;
+    return response.map((e) => BitnamesUTXO.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
     final response = await _client().call('get_block', hash);
     return response as Map<String, dynamic>?;

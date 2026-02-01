@@ -2408,6 +2408,8 @@ Future<void> _resetEverything(BuildContext context) async {
               Enforcer(),
               BitWindow(),
               Thunder(),
+              Truthcoin(),
+              Photon(),
               BitNames(),
               BitAssets(),
               ZSide(),

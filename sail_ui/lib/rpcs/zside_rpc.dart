@@ -322,6 +322,13 @@ class ZSideLive extends ZSideRPC {
     return SidechainUTXO.fromJsonList(response);
   }
 
+  /// List all UTXOs (not just wallet UTXOs)
+  @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
+    final response = await _client().call('list_utxos') as List<dynamic>;
+    return SidechainUTXO.fromJsonList(response);
+  }
+
   @override
   Future<void> removeFromMempool(String txid) async {
     await _client().call('remove_from_mempool', txid);

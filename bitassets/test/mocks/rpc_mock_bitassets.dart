@@ -255,6 +255,11 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
+  Future<List<SidechainUTXO>> listAllUTXOs() {
+    return Future.value([]);
+  }
+
+  @override
   Future<List<SidechainUTXO>> myUnconfirmedUtxos() {
     return Future.value([]);
   }

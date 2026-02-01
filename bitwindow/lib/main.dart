@@ -800,6 +800,8 @@ List<Binary> initalBinaries() {
     BitAssets(),
     BitNames(),
     Thunder(),
+    Truthcoin(),
+    Photon(),
     ZSide(),
     GRPCurl(),
   ];

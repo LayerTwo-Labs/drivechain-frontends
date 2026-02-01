@@ -278,4 +278,9 @@ class MockZSideRPC extends ZSideRPC {
   Future<int> getBlockCount() async {
     return 1;
   }
+
+  @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async {
+    return [];
+  }
 }
