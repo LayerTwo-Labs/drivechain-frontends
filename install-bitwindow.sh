@@ -74,20 +74,28 @@ mkdir -p "$HOME/.local/share/icons"
 
 # Download AppImage
 APPIMAGE_PATH="$INSTALL_DIR/$APP_NAME_LOWER.AppImage"
+APPIMAGE_TEMP="$INSTALL_DIR/$APP_NAME_LOWER.AppImage.tmp"
 print_info "Downloading BitWindow..."
 print_info "This may take a few minutes depending on your connection..."
 
+# Download to temp file first to avoid "Text file busy" error if BitWindow is running
 if command -v curl &> /dev/null; then
-    curl -L --progress-bar -o "$APPIMAGE_PATH" "$APPIMAGE_URL" || {
+    curl -L --progress-bar -o "$APPIMAGE_TEMP" "$APPIMAGE_URL" || {
         print_error "Failed to download AppImage"
+        rm -f "$APPIMAGE_TEMP"
         exit 1
     }
 elif command -v wget &> /dev/null; then
-    wget --show-progress -q -O "$APPIMAGE_PATH" "$APPIMAGE_URL" || {
+    wget --show-progress -q -O "$APPIMAGE_TEMP" "$APPIMAGE_URL" || {
         print_error "Failed to download AppImage"
+        rm -f "$APPIMAGE_TEMP"
         exit 1
     }
 fi
+
+# Remove old AppImage (works even if running) and move new one into place
+rm -f "$APPIMAGE_PATH"
+mv "$APPIMAGE_TEMP" "$APPIMAGE_PATH"
 
 print_success "AppImage downloaded successfully"
 
