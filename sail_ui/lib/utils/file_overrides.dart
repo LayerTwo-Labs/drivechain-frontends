@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' as io;
 import 'dart:typed_data';
@@ -201,7 +202,9 @@ R withWindowsFileRetry<R>(R Function() body) {
 
   return io.IOOverrides.runZoned(
     body,
-    createFile: (path) => RetryFile(io.File(path)),
-    createDirectory: (path) => RetryDirectory(io.Directory(path)),
+    // Use Zone.root.run to create underlying objects outside the override zone,
+    // otherwise io.File/io.Directory calls would trigger the override recursively
+    createFile: (path) => RetryFile(Zone.root.run(() => io.File(path))),
+    createDirectory: (path) => RetryDirectory(Zone.root.run(() => io.Directory(path))),
   );
 }

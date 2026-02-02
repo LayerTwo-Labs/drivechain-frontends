@@ -9,9 +9,9 @@ set -e
 APP_NAME=$1
 
 # Check if app name is provided, valid, directory exists, and is a Flutter app
-if [ $# -eq 0 ] || ! [[ "$APP_NAME" =~ ^(thunder|bitnames|bitassets|bitwindow|zside)$ ]] || [ ! -d "$APP_NAME" ] || [ ! -f "$APP_NAME/pubspec.yaml" ]; then
+if [ $# -eq 0 ] || ! [[ "$APP_NAME" =~ ^(thunder|bitnames|bitassets|bitwindow|zside|photon|truthcoin)$ ]] || [ ! -d "$APP_NAME" ] || [ ! -f "$APP_NAME/pubspec.yaml" ]; then
     echo "Error: Invalid app name '$APP_NAME'"
-    echo "Usage: $0 <thunder/bitnames/bitassets/bitwindow/zside>"
+    echo "Usage: $0 <thunder/bitnames/bitassets/bitwindow/zside/photon/truthcoin>"
     echo ""
     echo "Examples:"
     echo "  $0 bitwindow"
