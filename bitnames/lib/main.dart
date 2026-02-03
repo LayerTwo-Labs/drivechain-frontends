@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:auto_updater/auto_updater.dart';
 import 'package:bitnames/config/runtime_args.dart';
+import 'package:bitnames/gen/version.dart';
 import 'package:bitnames/providers/bitnames_homepage_provider.dart';
 import 'package:bitnames/providers/bitnames_conf_provider.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
@@ -123,6 +125,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     applicationDir: applicationDir,
     log: log,
     router: router,
+    currentVersion: AppVersion.version,
   );
 
   // Initialize BitnamesConfProvider (must be after BitcoinConfProvider)
@@ -161,6 +164,8 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+
+  await initAutoUpdater(log);
 
   final router = GetIt.I.get<AppRouter>();
   final bitnames = GetIt.I.get<BitnamesRPC>();
@@ -233,6 +238,25 @@ void bootBinaries(Logger log) async {
   await binaryProvider.startWithEnforcer(
     bitnames,
   );
+}
+
+Future<void> initAutoUpdater(Logger log) async {
+  if (!Platform.isMacOS && !Platform.isWindows) {
+    log.i('Skipping auto updater initialization because we are not on macOS or Windows');
+    return;
+  }
+
+  try {
+    const feedURL = 'https://releases.drivechain.info/appcast-bitnames.xml';
+    log.i('Initializing auto updater with feed URL: $feedURL');
+
+    await autoUpdater.setFeedURL(feedURL);
+    await autoUpdater.checkForUpdates(inBackground: true);
+
+    log.i('Auto updater initialized successfully');
+  } catch (e) {
+    log.w('Failed to initialize auto updater: $e');
+  }
 }
 
 // BitNames window types

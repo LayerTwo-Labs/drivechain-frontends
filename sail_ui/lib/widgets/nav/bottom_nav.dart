@@ -119,6 +119,7 @@ class BottomNav extends StatelessWidget {
                     ),
                     const SizedBox(width: SailStyleValues.padding08),
                     ChainLoaders(),
+                    const UpdateIndicator(),
                     const DividerDot(),
                     ...endWidgets,
                     const SailSpacing(SailStyleValues.padding08),
@@ -665,5 +666,81 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   void dispose() {
     _balanceProvider.removeListener(_onChange);
     super.dispose();
+  }
+}
+
+class UpdateIndicator extends StatelessWidget {
+  UpdateProvider get updateProvider => GetIt.I.get<UpdateProvider>();
+
+  const UpdateIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: updateProvider,
+      builder: (context, _) {
+        if (!updateProvider.updateAvailable) {
+          return const SizedBox.shrink();
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DividerDot(),
+            Tooltip(
+              message: 'Update to v${updateProvider.latestVersion}',
+              child: InkWell(
+                onTap: () => _showUpdateDialog(context, updateProvider),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: SailColorScheme.green.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: SailColorScheme.green.withValues(alpha: 0.5)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.update,
+                        size: 14,
+                        color: SailColorScheme.green,
+                      ),
+                      const SizedBox(width: 4),
+                      SailText.primary12(
+                        'Update available',
+                        color: SailColorScheme.green,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showUpdateDialog(BuildContext context, UpdateProvider updateProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Update Available',
+        subtitle:
+            'A new version (v${updateProvider.latestVersion}) is available.\n\n'
+            'The application will download and install the update, then restart automatically.',
+        cancelText: 'Hide Alert',
+        confirmText: 'Update',
+        onCancel: () async {
+          updateProvider.dismissUpdate();
+          Navigator.of(context).pop();
+        },
+        onConfirm: () async {
+          Navigator.of(context).pop();
+          await updateProvider.performUpdate();
+        },
+      ),
+    );
   }
 }

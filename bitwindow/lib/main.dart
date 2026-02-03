@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/gen/version.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
@@ -210,6 +211,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
   GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
+  GetIt.I.registerSingleton<UpdateProvider>(
+    UpdateProvider(
+      log: log,
+      binaryType: BinaryType.bitWindow,
+      currentVersion: AppVersion.version,
+    ),
+  );
 
   return (applicationDir, logFile, log);
 }
@@ -814,7 +822,7 @@ Future<void> initAutoUpdater(Logger log) async {
   }
 
   try {
-    const feedURL = 'https://releases.drivechain.info/bitwindow-appcast.xml';
+    const feedURL = 'https://releases.drivechain.info/appcast-bitwindow.xml';
     log.i('Initializing auto updater with feed URL: $feedURL');
 
     await autoUpdater.setFeedURL(feedURL);

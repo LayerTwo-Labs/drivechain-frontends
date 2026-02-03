@@ -237,16 +237,22 @@ class SailAlertCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Future<void> Function() onConfirm;
+  final Future<void> Function()? onCancel;
   final ButtonVariant? confirmButtonVariant;
   final String? loadingLabel;
+  final String confirmText;
+  final String cancelText;
 
   const SailAlertCard({
     super.key,
     required this.title,
     required this.subtitle,
     required this.onConfirm,
+    this.onCancel,
     this.confirmButtonVariant,
     this.loadingLabel,
+    this.confirmText = 'Confirm',
+    this.cancelText = 'Cancel',
   });
 
   @override
@@ -263,12 +269,18 @@ class SailAlertCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.max,
             children: [
               SailButton(
-                label: 'Cancel',
+                label: cancelText,
                 variant: ButtonVariant.ghost,
-                onPressed: () async => Navigator.of(context).pop(),
+                onPressed: () async {
+                  if (onCancel != null) {
+                    await onCancel!();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
               ),
               SailButton(
-                label: 'Confirm',
+                label: confirmText,
                 variant: confirmButtonVariant ?? ButtonVariant.secondary,
                 loadingLabel: loadingLabel,
                 loading: loadingLabel != null,
