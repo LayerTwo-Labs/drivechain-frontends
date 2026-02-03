@@ -19,6 +19,7 @@ Future<void> initSidechainDependencies({
   required Directory applicationDir,
   required Logger log,
   required RootStackRouter router,
+  required String currentVersion,
 }) async {
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
@@ -84,6 +85,15 @@ Future<void> initSidechainDependencies({
   unawaited(syncProvider.fetch());
   GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => SidechainTransactionsProvider());
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
+
+  // Register UpdateProvider for checking updates
+  GetIt.I.registerSingleton<UpdateProvider>(
+    UpdateProvider(
+      log: log,
+      binaryType: sidechainType,
+      currentVersion: currentVersion,
+    ),
+  );
 }
 
 Future<File> getLogFile(Directory appDir) async {

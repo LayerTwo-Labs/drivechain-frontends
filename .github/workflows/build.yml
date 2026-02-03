@@ -989,31 +989,31 @@ jobs:
               [ -n "$windows_fragment" ] && echo "  Windows: $windows_fragment"
 
               # Start building the appcast XML
-              echo '<?xml version="1.0" encoding="UTF-8"?>' > "$client-appcast.xml"
-              echo '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">' >> "$client-appcast.xml"
-              echo '  <channel>' >> "$client-appcast.xml"
-              echo "    <title>$client</title>" >> "$client-appcast.xml"
-              echo '    <link>https://releases.drivechain.info/</link>' >> "$client-appcast.xml"
-              echo "    <description>$client - Drivechain Application</description>" >> "$client-appcast.xml"
-              echo '    <language>en</language>' >> "$client-appcast.xml"
+              echo '<?xml version="1.0" encoding="UTF-8"?>' > "appcast-$client.xml"
+              echo '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">' >> "appcast-$client.xml"
+              echo '  <channel>' >> "appcast-$client.xml"
+              echo "    <title>$client</title>" >> "appcast-$client.xml"
+              echo '    <link>https://releases.drivechain.info/</link>' >> "appcast-$client.xml"
+              echo "    <description>$client - Drivechain Application</description>" >> "appcast-$client.xml"
+              echo '    <language>en</language>' >> "appcast-$client.xml"
 
               # Add Windows fragment if it exists
               if [ -n "$windows_fragment" ] && [ -f "$windows_fragment" ]; then
-                echo "    <!-- Windows fragment -->" >> "$client-appcast.xml"
-                cat "$windows_fragment" >> "$client-appcast.xml"
+                echo "    <!-- Windows fragment -->" >> "appcast-$client.xml"
+                cat "$windows_fragment" >> "appcast-$client.xml"
               fi
 
               # Add macOS fragment if it exists
               if [ -n "$macos_fragment" ] && [ -f "$macos_fragment" ]; then
-                cat "$macos_fragment" >> "$client-appcast.xml"
+                cat "$macos_fragment" >> "appcast-$client.xml"
               fi
 
               # Close the XML
-              echo '  </channel>' >> "$client-appcast.xml"
-              echo '</rss>' >> "$client-appcast.xml"
+              echo '  </channel>' >> "appcast-$client.xml"
+              echo '</rss>' >> "appcast-$client.xml"
 
-              echo "Generated $client-appcast.xml"
-              cat "$client-appcast.xml"
+              echo "Generated appcast-$client.xml"
+              cat "appcast-$client.xml"
             else
               echo "No appcast fragments found for $client, skipping"
             fi
@@ -1036,10 +1036,10 @@ jobs:
             'test-*.exe' => '/var/www/html/'
             'test-*.AppImage' => '/var/www/html/'
             'versions.json' => '/var/www/html/'
-            'bitwindow-appcast.xml' => '/var/www/html/'
-            'bitnames-appcast.xml' => '/var/www/html/'
-            'bitassets-appcast.xml' => '/var/www/html/'
-            'thunder-appcast.xml' => '/var/www/html/'
-            'truthcoin-appcast.xml' => '/var/www/html/'
-            'photon-appcast.xml' => '/var/www/html/'
-            'zside-appcast.xml' => '/var/www/html/'
+            'appcast-bitwindow.xml' => '/var/www/html/'
+            'appcast-bitnames.xml' => '/var/www/html/'
+            'appcast-bitassets.xml' => '/var/www/html/'
+            'appcast-thunder.xml' => '/var/www/html/'
+            'appcast-truthcoin.xml' => '/var/www/html/'
+            'appcast-photon.xml' => '/var/www/html/'
+            'appcast-zside.xml' => '/var/www/html/'

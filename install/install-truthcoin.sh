@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# BitWindow Installer Script
+# Truthcoin Installer Script
 #
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/master/install-bitwindow.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/master/install/install-truthcoin.sh | bash
 #   or
-#   wget -qO- https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/master/install-bitwindow.sh | bash
+#   wget -qO- https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/master/install/install-truthcoin.sh | bash
 
 set -e
 
@@ -17,11 +17,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-APPIMAGE_URL="https://releases.drivechain.info/BitWindow-latest-x86_64-unknown-linux-gnu.AppImage"
-APP_NAME="BitWindow"
-APP_NAME_LOWER="bitwindow"
+APPIMAGE_URL="https://releases.drivechain.info/Truthcoin-latest-x86_64-unknown-linux-gnu.AppImage"
+APP_NAME="Truthcoin"
+APP_NAME_LOWER="truthcoin"
 INSTALL_DIR="$HOME/.local/bin"
-ICON_URL="https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/master/bitwindow/assets/bitwindow.png"
+ICON_URL="https://raw.githubusercontent.com/LayerTwo-Labs/drivechain-frontends/master/truthcoin/assets/truthcoin.png"
 
 # Print colored messages
 print_info() {
@@ -43,7 +43,7 @@ print_warning() {
 # Header
 echo ""
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║     BitWindow AppImage Installer       ║${NC}"
+echo -e "${BLUE}║    Truthcoin AppImage Installer        ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -75,10 +75,10 @@ mkdir -p "$HOME/.local/share/icons"
 # Download AppImage
 APPIMAGE_PATH="$INSTALL_DIR/$APP_NAME_LOWER.AppImage"
 APPIMAGE_TEMP="$INSTALL_DIR/$APP_NAME_LOWER.AppImage.tmp"
-print_info "Downloading BitWindow..."
+print_info "Downloading Truthcoin..."
 print_info "This may take a few minutes depending on your connection..."
 
-# Download to temp file first to avoid "Text file busy" error if BitWindow is running
+# Download to temp file first to avoid "Text file busy" error if Truthcoin is running
 if command -v curl &> /dev/null; then
     curl -L --progress-bar -o "$APPIMAGE_TEMP" "$APPIMAGE_URL" || {
         print_error "Failed to download AppImage"
@@ -144,14 +144,14 @@ DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME_LOWER.desktop"
 cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
 Type=Application
-Name=BitWindow
-GenericName=Drivechain Node Manager
-Comment=Manage Bitcoin and Drivechain nodes
+Name=Truthcoin
+GenericName=Drivechain Sidechain
+Comment=Truthcoin Sidechain for Drivechain - Prediction markets
 Exec=$APPIMAGE_PATH %U
 Terminal=false
 Categories=Network;P2P;Finance;
-StartupWMClass=bitwindow
-Keywords=bitcoin;drivechain;bip300;bip301;node;
+StartupWMClass=truthcoin
+Keywords=bitcoin;drivechain;sidechain;truthcoin;prediction;markets;
 EOF
 
 if [ -n "$ICON_PATH" ] && [ -f "$ICON_PATH" ]; then
@@ -171,7 +171,7 @@ if command -v gtk-update-icon-cache &> /dev/null; then
 fi
 
 # Create command line shortcut
-ln -sf "$APPIMAGE_PATH" "$INSTALL_DIR/bitwindow"
+ln -sf "$APPIMAGE_PATH" "$INSTALL_DIR/truthcoin"
 print_success "Created command line shortcut"
 
 # Check PATH
@@ -183,32 +183,32 @@ fi
 # Success message
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║    Installation Complete! 🎉          ║${NC}"
+echo -e "${GREEN}║    Installation Complete!              ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${GREEN}BitWindow has been successfully installed!${NC}"
+echo -e "${GREEN}Truthcoin has been successfully installed!${NC}"
 echo ""
 echo "Installation details:"
-echo "  • AppImage: $APPIMAGE_PATH"
-echo "  • Desktop entry: $DESKTOP_FILE"
-[ -n "$ICON_PATH" ] && echo "  • Icon: $ICON_PATH"
-echo "  • Command: $INSTALL_DIR/bitwindow"
+echo "  - AppImage: $APPIMAGE_PATH"
+echo "  - Desktop entry: $DESKTOP_FILE"
+[ -n "$ICON_PATH" ] && echo "  - Icon: $ICON_PATH"
+echo "  - Command: $INSTALL_DIR/truthcoin"
 echo ""
 echo "You can now:"
-echo "  • Find BitWindow in your application menu"
-echo "  • Launch from terminal: $APPIMAGE_PATH"
+echo "  - Find Truthcoin in your application menu"
+echo "  - Launch from terminal: $APPIMAGE_PATH"
 
 if [ "$path_configured" = true ]; then
-    echo "  • Run directly: bitwindow"
+    echo "  - Run directly: truthcoin"
 else
     echo ""
-    print_warning "To run 'bitwindow' from anywhere, you need to add ~/.local/bin to your PATH"
+    print_warning "To run 'truthcoin' from anywhere, you need to add ~/.local/bin to your PATH"
     echo ""
 
     # Detect current shell
     current_shell=$(basename "$SHELL")
 
-    echo "Run this command to add bitwindow to your PATH:"
+    echo "Run this command to add truthcoin to your PATH:"
     echo ""
 
     case "$current_shell" in
@@ -236,10 +236,10 @@ else
 fi
 
 echo ""
-echo "To uninstall BitWindow, run:"
+echo "To uninstall Truthcoin, run:"
 echo "  rm $APPIMAGE_PATH"
 echo "  rm $DESKTOP_FILE"
 [ -n "$ICON_PATH" ] && echo "  rm $ICON_PATH"
-echo "  rm $INSTALL_DIR/bitwindow"
+echo "  rm $INSTALL_DIR/truthcoin"
 echo ""
-print_info "Enjoy using BitWindow!"
+print_info "Enjoy using Truthcoin!"

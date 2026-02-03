@@ -2,10 +2,8 @@ import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/gen/version.dart';
-import 'package:bitwindow/services/linux_updater.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SettingsAbout extends StatefulWidget {
@@ -16,82 +14,51 @@ class SettingsAbout extends StatefulWidget {
 }
 
 class _SettingsAboutState extends State<SettingsAbout> {
-  LinuxUpdater? _linuxUpdater;
-  UpdateStatus _updateStatus = UpdateStatus.idle;
-  String? _statusMessage;
+  UpdateProvider get _updateProvider => GetIt.I.get<UpdateProvider>();
 
   @override
   void initState() {
     super.initState();
-    if (Platform.isLinux) {
-      _linuxUpdater = LinuxUpdater(log: GetIt.I.get<Logger>());
-    }
+    _updateProvider.addListener(_onUpdateProviderChanged);
+  }
+
+  @override
+  void dispose() {
+    _updateProvider.removeListener(_onUpdateProviderChanged);
+    super.dispose();
+  }
+
+  void _onUpdateProviderChanged() {
+    setState(() {});
   }
 
   Future<void> _checkForUpdates() async {
-    setState(() {
-      _updateStatus = UpdateStatus.checking;
-      _statusMessage = null;
-    });
-
-    try {
-      if (Platform.isLinux) {
-        final hasUpdate = await _linuxUpdater!.checkForUpdates();
-        setState(() {
-          _updateStatus = _linuxUpdater!.status;
-
-          if (hasUpdate) {
-            _statusMessage = 'Update available: v${_linuxUpdater!.latestVersion}';
-          } else if (_updateStatus == UpdateStatus.upToDate) {
-            _statusMessage = 'You have the latest version';
-          } else if (_updateStatus == UpdateStatus.error) {
-            _statusMessage = 'Error: ${_linuxUpdater!.errorMessage}';
-          }
-        });
-      } else {
-        await autoUpdater.checkForUpdates();
-        setState(() {
-          _updateStatus = UpdateStatus.upToDate;
-          _statusMessage = 'Check complete. If update available, you will be notified.';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _updateStatus = UpdateStatus.error;
-        _statusMessage = 'Error checking for updates: $e';
-      });
+    if (Platform.isLinux) {
+      await _updateProvider.checkNow();
+    } else {
+      await autoUpdater.checkForUpdates();
     }
   }
 
   Future<void> _performUpdate() async {
-    if (!Platform.isLinux || _linuxUpdater == null) return;
+    if (!Platform.isLinux) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => SailAlertCard(
         title: 'Update BitWindow?',
         subtitle:
-            'The application will download and install version ${_linuxUpdater!.latestVersion}, then restart automatically.',
+            'The application will download and install version ${_updateProvider.latestVersion}, then restart automatically.',
         onConfirm: () async => Navigator.of(context).pop(true),
       ),
     );
 
     if (confirmed != true) return;
 
-    setState(() {
-      _updateStatus = UpdateStatus.downloading;
-      _statusMessage = 'Downloading update...';
-    });
-
     try {
-      await _linuxUpdater!.performUpdate();
+      await _updateProvider.performUpdate();
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _updateStatus = UpdateStatus.error;
-          _statusMessage = 'Update failed: $e';
-        });
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Update failed: $e'),
@@ -152,13 +119,10 @@ class _SettingsAboutState extends State<SettingsAbout> {
               children: [
                 SailButton(
                   label: 'Check for Updates',
-                  loading:
-                      _updateStatus == UpdateStatus.checking ||
-                      _updateStatus == UpdateStatus.downloading ||
-                      _updateStatus == UpdateStatus.installing,
+                  loading: _updateProvider.checking || _updateProvider.updating,
                   onPressed: () async => await _checkForUpdates(),
                 ),
-                if (_updateStatus == UpdateStatus.updateAvailable && Platform.isLinux)
+                if (_updateProvider.updateAvailable && Platform.isLinux)
                   SailButton(
                     label: 'Install Update',
                     variant: ButtonVariant.primary,
@@ -166,15 +130,17 @@ class _SettingsAboutState extends State<SettingsAbout> {
                   ),
               ],
             ),
-            if (_statusMessage != null) ...[
+            if (_updateProvider.errorMessage != null) ...[
               const SailSpacing(4),
               SailText.secondary12(
-                _statusMessage!,
-                color: _updateStatus == UpdateStatus.error
-                    ? SailTheme.of(context).colors.error
-                    : _updateStatus == UpdateStatus.updateAvailable
-                    ? SailTheme.of(context).colors.primary
-                    : null,
+                _updateProvider.errorMessage!,
+                color: SailTheme.of(context).colors.error,
+              ),
+            ] else if (_updateProvider.updateAvailable) ...[
+              const SailSpacing(4),
+              SailText.secondary12(
+                'Update available: v${_updateProvider.latestVersion}',
+                color: SailTheme.of(context).colors.primary,
               ),
             ],
           ],

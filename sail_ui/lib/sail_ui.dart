@@ -103,6 +103,7 @@ export 'providers/sidechain/address_provider.dart';
 export 'providers/sidechain/notification_provider.dart';
 export 'providers/sidechain/sidechain_transactions_provider.dart';
 export 'providers/sync_provider.dart';
+export 'providers/update_provider.dart';
 export 'providers/homepage_provider.dart';
 export 'rpcs/bitassets_rpc.dart';
 export 'rpcs/bitnames_rpc.dart';

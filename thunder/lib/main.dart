@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:auto_updater/auto_updater.dart';
 import 'package:collection/collection.dart';
+import 'package:thunder/gen/version.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -81,6 +83,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     applicationDir: applicationDir,
     log: log,
     router: router,
+    currentVersion: AppVersion.version,
   );
 
   // Initialize ThunderConfProvider (must be after BitcoinConfProvider)
@@ -158,6 +161,8 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
+  await initAutoUpdater(log);
+
   log.i('starting thunder');
   final thunder = GetIt.I.get<ThunderRPC>();
   final router = GetIt.I.get<AppRouter>();
@@ -231,6 +236,25 @@ void bootBinaries(Logger log) async {
   await binaryProvider.startWithEnforcer(
     thunder,
   );
+}
+
+Future<void> initAutoUpdater(Logger log) async {
+  if (!Platform.isMacOS && !Platform.isWindows) {
+    log.i('Skipping auto updater initialization because we are not on macOS or Windows');
+    return;
+  }
+
+  try {
+    const feedURL = 'https://releases.drivechain.info/appcast-thunder.xml';
+    log.i('Initializing auto updater with feed URL: $feedURL');
+
+    await autoUpdater.setFeedURL(feedURL);
+    await autoUpdater.checkForUpdates(inBackground: true);
+
+    log.i('Auto updater initialized successfully');
+  } catch (e) {
+    log.w('Failed to initialize auto updater: $e');
+  }
 }
 
 // Thunder window types
