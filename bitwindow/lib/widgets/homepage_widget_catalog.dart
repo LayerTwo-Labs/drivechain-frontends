@@ -1,3 +1,4 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
@@ -10,6 +11,7 @@ import 'package:bitwindow/widgets/peers_table_widget.dart';
 import 'package:bitwindow/widgets/traffic_graph_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -198,33 +200,23 @@ class HomepageWidgetCatalog {
   static bool get _supportsSidechains => GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains;
 
   static HomepageWidgetInfo? getWidget(String id) {
-    if (_sidechainWidgetIds.contains(id) && !_supportsSidechains) {
-      return null;
-    }
     return _widgets[id];
   }
 
   static List<HomepageWidgetInfo> getAllWidgets() {
-    return _widgets.values.where((w) => !_sidechainWidgetIds.contains(w.id) || _supportsSidechains).toList();
+    return _widgets.values.toList();
   }
 
   static List<HomepageWidgetInfo> getFullWidthWidgets() {
-    return _widgets.values
-        .where((w) => w.size == WidgetSize.full && (!_sidechainWidgetIds.contains(w.id) || _supportsSidechains))
-        .toList();
+    return _widgets.values.where((w) => w.size == WidgetSize.full).toList();
   }
 
   static List<HomepageWidgetInfo> getHalfWidthWidgets() {
-    return _widgets.values
-        .where((w) => w.size == WidgetSize.half && (!_sidechainWidgetIds.contains(w.id) || _supportsSidechains))
-        .toList();
+    return _widgets.values.where((w) => w.size == WidgetSize.half).toList();
   }
 
   static Map<String, HomepageWidgetInfo> getCatalogMap() {
-    if (_supportsSidechains) {
-      return Map.from(_widgets);
-    }
-    return Map.fromEntries(_widgets.entries.where((e) => !_sidechainWidgetIds.contains(e.key)));
+    return Map.from(_widgets);
   }
 
   static Widget buildWidget(String id, {Map<String, dynamic> settings = const {}}) {
@@ -241,6 +233,72 @@ class HomepageWidgetCatalog {
         ),
       );
     }
+
+    // Show greyed-out placeholder for sidechain widgets on mainnet
+    if (_sidechainWidgetIds.contains(id) && !_supportsSidechains) {
+      return _buildDisabledSidechainWidget(widgetInfo);
+    }
+
     return widgetInfo.builder(settings);
+  }
+
+  static Widget _buildDisabledSidechainWidget(HomepageWidgetInfo widgetInfo) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () {
+              AutoRouter.of(context).push(
+                ComingSoonRoute(),
+              );
+            },
+            child: Opacity(
+              opacity: 0.5,
+              child: SailCard(
+                title: widgetInfo.name,
+                subtitle: 'Not available on this network',
+                child: Padding(
+                  padding: const EdgeInsets.all(SailStyleValues.padding20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SailText.primary15('Unlock with BIP300'),
+                      const SailSpacing(SailStyleValues.padding12),
+                      SailText.secondary13(
+                        'This feature requires Forknet or Signet network. '
+                        'Switch networks in Settings to unlock sidechain functionality.',
+                      ),
+                      const SailSpacing(SailStyleValues.padding12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.colors.backgroundSecondary,
+                          borderRadius: SailStyleValues.borderRadius,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SailSVG.fromAsset(
+                              widgetInfo.icon,
+                              color: theme.colors.textTertiary,
+                              width: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            SailText.secondary12(widgetInfo.description),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

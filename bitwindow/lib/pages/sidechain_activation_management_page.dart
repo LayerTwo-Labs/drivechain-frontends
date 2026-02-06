@@ -15,18 +15,62 @@ class SidechainActivationManagementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final confProvider = GetIt.I.get<BitcoinConfProvider>();
+    final theme = SailTheme.of(context);
+
     if (!confProvider.networkSupportsSidechains) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AutoRouter.of(context).pop();
-      });
-      return const SizedBox.shrink();
+      return Scaffold(
+        backgroundColor: theme.colors.background,
+        appBar: AppBar(
+          backgroundColor: theme.colors.background,
+          foregroundColor: theme.colors.text,
+          title: SailText.primary20('Sidechain Activation'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(SailStyleValues.padding16),
+          child: SailCard(
+            title: 'Sidechain Activation',
+            subtitle: 'Not available on this network',
+            child: Padding(
+              padding: const EdgeInsets.all(SailStyleValues.padding20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailText.primary20('Unlock Sidechain Activation with BIP300'),
+                  const SailSpacing(SailStyleValues.padding20),
+                  SailText.secondary13(
+                    'Sidechain activation is only available on Drivechain-enabled networks (Forknet and Signet). '
+                    'These networks implement BIP300, which enables trustless two-way pegged sidechains.',
+                  ),
+                  const SailSpacing(SailStyleValues.padding20),
+                  SailText.primary15('What is Sidechain Activation?'),
+                  const SailSpacing(SailStyleValues.padding08),
+                  SailText.secondary13(
+                    'As a miner, you can propose new sidechains and vote on sidechain proposals. '
+                    'Once a proposal receives enough votes, the sidechain becomes active and users can deposit funds.',
+                  ),
+                  const SailSpacing(SailStyleValues.padding20),
+                  SailText.primary15('How to Enable'),
+                  const SailSpacing(SailStyleValues.padding08),
+                  SailText.secondary13(
+                    '1. Go to Settings\n'
+                    '2. Switch to "Forknet" or "Signet" network\n'
+                    '3. Restart BitWindow\n'
+                    '4. Return here to manage sidechain proposals',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
-      backgroundColor: SailTheme.of(context).colors.background,
+      backgroundColor: theme.colors.background,
       appBar: AppBar(
-        backgroundColor: SailTheme.of(context).colors.background,
-        foregroundColor: SailTheme.of(context).colors.text,
+        backgroundColor: theme.colors.background,
+        foregroundColor: theme.colors.text,
         title: SailText.primary20('Sidechain Activation'),
       ),
       body: ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(

@@ -62,6 +62,8 @@ class _TopNavState extends State<TopNav> {
                           label: entry.value.label,
                           icon: entry.value.icon,
                           active: tabsRouter.activeIndex == entry.key,
+                          disabled: entry.value.disabled,
+                          disabledMessage: entry.value.disabledMessage,
                           onTap: () {
                             if (entry.value.onTap != null) {
                               entry.value.onTap!();
@@ -91,9 +93,17 @@ class TopNavRoute {
   final VoidCallback? onTap;
   final SailSVGAsset? icon;
   final int? optionalKey;
+  final bool disabled;
+  final String? disabledMessage;
 
-  const TopNavRoute({this.label, this.onTap, this.icon, this.optionalKey})
-    : assert((label != null) != (icon != null), 'Either label or icon must be set');
+  const TopNavRoute({
+    this.label,
+    this.onTap,
+    this.icon,
+    this.optionalKey,
+    this.disabled = false,
+    this.disabledMessage,
+  }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
 }
 
 class QtTab extends StatefulWidget {
@@ -101,9 +111,18 @@ class QtTab extends StatefulWidget {
   final SailSVGAsset? icon;
   final bool active;
   final VoidCallback onTap;
+  final bool disabled;
+  final String? disabledMessage;
 
-  const QtTab({super.key, this.label, this.icon, required this.active, required this.onTap})
-    : assert((label != null) != (icon != null), 'Either label or icon must be set');
+  const QtTab({
+    super.key,
+    this.label,
+    this.icon,
+    required this.active,
+    required this.onTap,
+    this.disabled = false,
+    this.disabledMessage,
+  }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
 
   @override
   State<QtTab> createState() => _QtTabState();
@@ -116,26 +135,51 @@ class _QtTabState extends State<QtTab> {
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
-    return SelectionContainer.disabled(
+    Color getColor() {
+      if (widget.disabled) {
+        return theme.colors.textTertiary;
+      }
+      if (widget.active || isHovered) {
+        return theme.colors.activeNavText;
+      }
+      return theme.colors.inactiveNavText;
+    }
+
+    Widget tab = SelectionContainer.disabled(
       child: MouseRegion(
-        cursor: SystemMouseCursors.click,
+        cursor: widget.disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
         onEnter: (_) => setState(() => isHovered = true),
         onExit: (_) => setState(() => isHovered = false),
         child: GestureDetector(
-          onTap: widget.onTap,
+          onTap: widget.disabled
+              ? () {
+                  if (widget.disabledMessage != null) {
+                    showSnackBar(context, widget.disabledMessage!);
+                  }
+                }
+              : widget.onTap,
           child: widget.label != null
               ? SailText.primary13(
                   widget.label!,
-                  color: widget.active || isHovered ? theme.colors.activeNavText : theme.colors.inactiveNavText,
+                  color: getColor(),
                   bold: true,
                 )
               : SailSVG.fromAsset(
                   widget.icon!,
-                  color: widget.active || isHovered ? theme.colors.activeNavText : theme.colors.inactiveNavText,
+                  color: getColor(),
                   width: 18,
                 ),
         ),
       ),
     );
+
+    if (widget.disabled && widget.disabledMessage != null) {
+      tab = Tooltip(
+        message: widget.disabledMessage!,
+        child: tab,
+      );
+    }
+
+    return tab;
   }
 }

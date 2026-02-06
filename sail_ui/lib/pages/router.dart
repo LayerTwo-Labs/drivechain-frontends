@@ -21,6 +21,7 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: EnforcerConfEditorRoute.page),
     AutoRoute(page: SailTestRoute.page),
     AutoRoute(page: ConsoleTabRoute.page),
+    AutoRoute(page: ComingSoonRoute.page),
   ];
 
   @override
