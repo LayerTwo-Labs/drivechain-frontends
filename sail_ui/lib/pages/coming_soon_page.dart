@@ -3,11 +3,14 @@ import 'dart:ui' as ui;
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class ComingSoonPage extends StatefulWidget {
-  const ComingSoonPage({super.key});
+  final RootStackRouter router;
+
+  const ComingSoonPage({super.key, required this.router});
 
   @override
   State<ComingSoonPage> createState() => _ComingSoonPageState();
@@ -124,14 +127,52 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
 
                     // Description
                     Text(
-                      'Drivechain (BIP-300/301) enables sidechains on Bitcoin mainnet. '
+                      'Drivechain (BIP-300/301) enables sidechains on Bitcoin. '
                       'This feature requires activation with a soft fork.\n\n'
-                      'Until then, you can explore everything on Signet or Forknet where drivechain is already active.',
+                      'Until then, you can take a peak into the future by switching to Signet, where Drivechain is already active.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withValues(alpha: 0.7),
                         height: 1.8,
+                      ),
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    // Switch to Signet button
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.router.push(NetworkSwitchRoute());
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            'Switch to Signet',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],

@@ -102,18 +102,49 @@ class BitcoinConfEditorRoute extends _i15.PageRouteInfo<void> {
 
 /// generated route for
 /// [_i3.ComingSoonPage]
-class ComingSoonRoute extends _i15.PageRouteInfo<void> {
-  const ComingSoonRoute({List<_i15.PageRouteInfo>? children})
-    : super(ComingSoonRoute.name, initialChildren: children);
+class ComingSoonRoute extends _i15.PageRouteInfo<ComingSoonRouteArgs> {
+  ComingSoonRoute({
+    _i16.Key? key,
+    required _i15.RootStackRouter router,
+    List<_i15.PageRouteInfo>? children,
+  }) : super(
+         ComingSoonRoute.name,
+         args: ComingSoonRouteArgs(key: key, router: router),
+         initialChildren: children,
+       );
 
   static const String name = 'ComingSoonRoute';
 
   static _i15.PageInfo page = _i15.PageInfo(
     name,
     builder: (data) {
-      return const _i3.ComingSoonPage();
+      final args = data.argsAs<ComingSoonRouteArgs>();
+      return _i3.ComingSoonPage(key: args.key, router: args.router);
     },
   );
+}
+
+class ComingSoonRouteArgs {
+  const ComingSoonRouteArgs({this.key, required this.router});
+
+  final _i16.Key? key;
+
+  final _i15.RootStackRouter router;
+
+  @override
+  String toString() {
+    return 'ComingSoonRouteArgs{key: $key, router: $router}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ComingSoonRouteArgs) return false;
+    return key == other.key && router == other.router;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ router.hashCode;
 }
 
 /// generated route for

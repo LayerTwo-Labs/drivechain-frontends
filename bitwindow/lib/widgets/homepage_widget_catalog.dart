@@ -4,6 +4,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/providers/network_provider.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/network_stats_widget.dart';
@@ -251,7 +252,7 @@ class HomepageWidgetCatalog {
           child: GestureDetector(
             onTap: () {
               AutoRouter.of(context).push(
-                ComingSoonRoute(),
+                ComingSoonRoute(router: GetIt.I.get<AppRouter>()),
               );
             },
             child: Opacity(

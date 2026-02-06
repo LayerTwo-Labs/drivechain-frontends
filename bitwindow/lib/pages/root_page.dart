@@ -147,7 +147,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       CommandItem(
         label: 'Coming Soon Page',
         category: 'Debug',
-        onSelected: () => GetIt.I.get<AppRouter>().push(ComingSoonRoute()),
+        onSelected: () => GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>())),
       ),
 
       // Your Wallet
@@ -250,7 +250,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () {
           if (!_confProvider.networkSupportsSidechains) {
-            GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+            GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
             return;
           }
           GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
@@ -276,7 +276,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () {
           if (!_confProvider.networkSupportsSidechains) {
-            GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+            GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
             return;
           }
           final tabsRouter = _routerKey.currentState?.controller;
@@ -876,7 +876,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Sidechains',
                       onSelected: () {
                         if (!_confProvider.networkSupportsSidechains) {
-                          GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+                          GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
                           return;
                         }
                         final tabsRouter = _routerKey.currentState?.controller;
@@ -913,7 +913,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Sidechain Activation',
                       onSelected: () {
                         if (!_confProvider.networkSupportsSidechains) {
-                          GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+                          GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
                           return;
                         }
                         GetIt.I.get<AppRouter>().push(SidechainActivationManagementRoute());
@@ -923,7 +923,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Sidechain Withdrawal Admin',
                       onSelected: () async {
                         if (!_confProvider.networkSupportsSidechains) {
-                          await GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+                          await GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
                           return;
                         }
                         await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
@@ -1198,8 +1198,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           ),
                           TopNavRoute(
                             label: 'Sidechains',
-                            disabled: !_confProvider.networkSupportsSidechains,
-                            disabledMessage: 'Sidechains require Forknet or Signet network. Switch networks to unlock.',
+                            onTap: _confProvider.networkSupportsSidechains
+                                ? null
+                                : () => GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>())),
                           ),
                           TopNavRoute(
                             label: 'Learn',
