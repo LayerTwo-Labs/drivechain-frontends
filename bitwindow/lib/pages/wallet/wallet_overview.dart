@@ -57,20 +57,30 @@ class OverviewTab extends StatelessWidget {
                             icon: SailSVGAsset.coins,
                           ),
                         ),
-                        // Only show sidechain deposit volume on networks that support sidechains
-                        if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
-                          Expanded(
-                            child: WalletStats(
-                              title: 'Sidechain Deposit Volume',
-                              value: formatter
-                                  .formatSats(model.stats?.sidechainDepositVolume.toInt() ?? 0)
-                                  .replaceAll(' ${formatter.currentUnit.symbol}', ''),
-                              subtitle:
-                                  '${formatter.formatSats(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0)} last 30 days',
-                              bitcoinAmount: true,
-                              icon: SailSVGAsset.wallet,
+                        // Show sidechain deposit volume (greyed out on mainnet)
+                        Expanded(
+                          child: Tooltip(
+                            message: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
+                                ? ''
+                                : 'Sidechains require Forknet or Signet network',
+                            child: Opacity(
+                              opacity: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains ? 1.0 : 0.4,
+                              child: WalletStats(
+                                title: 'Sidechain Deposit Volume',
+                                value: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
+                                    ? formatter
+                                          .formatSats(model.stats?.sidechainDepositVolume.toInt() ?? 0)
+                                          .replaceAll(' ${formatter.currentUnit.symbol}', '')
+                                    : '-',
+                                subtitle: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
+                                    ? '${formatter.formatSats(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0)} last 30 days'
+                                    : 'Switch networks to unlock',
+                                bitcoinAmount: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains,
+                                icon: SailSVGAsset.wallet,
+                              ),
                             ),
                           ),
+                        ),
                         Expanded(
                           child: WalletStats(
                             title: 'Transaction Count',

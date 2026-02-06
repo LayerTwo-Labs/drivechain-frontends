@@ -85,8 +85,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     if (mounted) setState(() {});
   }
 
-  int _getSettingsTabIndex() => _confProvider.networkSupportsSidechains ? 6 : 5;
-
   bool _handleGlobalKeyEvent(KeyEvent event) {
     // Double-shift detection
     if (event is KeyDownEvent &&
@@ -145,6 +143,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   List<CommandItem> _getMenuCommands() {
     return [
+      // Debug/Test
+      CommandItem(
+        label: 'Coming Soon Page',
+        category: 'Debug',
+        onSelected: () => GetIt.I.get<AppRouter>().push(ComingSoonRoute()),
+      ),
+
       // Your Wallet
       CommandItem(
         label: 'Create New Wallet',
@@ -240,12 +245,17 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () => GetIt.I.get<AppRouter>().push(CpuMiningRoute()),
       ),
-      if (_confProvider.networkSupportsSidechains)
-        CommandItem(
-          label: 'M4 Explorer',
-          category: 'Use Bitcoin',
-          onSelected: () => GetIt.I.get<AppRouter>().push(M4ExplorerRoute()),
-        ),
+      CommandItem(
+        label: 'M4 Explorer',
+        category: 'Use Bitcoin',
+        onSelected: () {
+          if (!_confProvider.networkSupportsSidechains) {
+            GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+            return;
+          }
+          GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
+        },
+      ),
       CommandItem(
         label: 'Timestamp File(s)',
         category: 'Use Bitcoin',
@@ -261,15 +271,18 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.messageSigner),
       ),
-      if (_confProvider.networkSupportsSidechains)
-        CommandItem(
-          label: 'Sidechains',
-          category: 'Use Bitcoin',
-          onSelected: () {
-            final tabsRouter = _routerKey.currentState?.controller;
-            tabsRouter?.setActiveIndex(2);
-          },
-        ),
+      CommandItem(
+        label: 'Sidechains',
+        category: 'Use Bitcoin',
+        onSelected: () {
+          if (!_confProvider.networkSupportsSidechains) {
+            GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+            return;
+          }
+          final tabsRouter = _routerKey.currentState?.controller;
+          tabsRouter?.setActiveIndex(2);
+        },
+      ),
 
       // Crypto Tools
       CommandItem(
@@ -299,7 +312,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'This Node',
         onSelected: () {
           final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(_getSettingsTabIndex());
+          tabsRouter?.setActiveIndex(6);
         },
       ),
       CommandItem(
@@ -859,14 +872,17 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         );
                       },
                     ),
-                    if (_confProvider.networkSupportsSidechains)
-                      PlatformMenuItem(
-                        label: 'Sidechains',
-                        onSelected: () {
-                          final tabsRouter = _routerKey.currentState?.controller;
-                          tabsRouter?.setActiveIndex(2);
-                        },
-                      ),
+                    PlatformMenuItem(
+                      label: 'Sidechains',
+                      onSelected: () {
+                        if (!_confProvider.networkSupportsSidechains) {
+                          GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+                          return;
+                        }
+                        final tabsRouter = _routerKey.currentState?.controller;
+                        tabsRouter?.setActiveIndex(2);
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -893,20 +909,26 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         );
                       },
                     ),
-                    if (_confProvider.networkSupportsSidechains)
-                      PlatformMenuItem(
-                        label: 'Sidechain Activation',
-                        onSelected: () {
-                          GetIt.I.get<AppRouter>().push(SidechainActivationManagementRoute());
-                        },
-                      ),
-                    if (_confProvider.networkSupportsSidechains)
-                      PlatformMenuItem(
-                        label: 'Sidechain Withdrawal Admin',
-                        onSelected: () async {
-                          await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
-                        },
-                      ),
+                    PlatformMenuItem(
+                      label: 'Sidechain Activation',
+                      onSelected: () {
+                        if (!_confProvider.networkSupportsSidechains) {
+                          GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+                          return;
+                        }
+                        GetIt.I.get<AppRouter>().push(SidechainActivationManagementRoute());
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Sidechain Withdrawal Admin',
+                      onSelected: () async {
+                        if (!_confProvider.networkSupportsSidechains) {
+                          await GetIt.I.get<AppRouter>().push(ComingSoonRoute());
+                          return;
+                        }
+                        await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -982,7 +1004,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Options',
                       onSelected: () {
                         final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(_getSettingsTabIndex());
+                        tabsRouter?.setActiveIndex(6);
                       },
                     ),
                     PlatformMenuItem(
@@ -1053,7 +1075,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               routes: [
                 OverviewRoute(),
                 WalletRoute(),
-                if (_confProvider.networkSupportsSidechains) SidechainsRoute(),
+                SidechainsRoute(),
                 LearnRoute(),
                 ConsoleRoute(),
                 ChatRoute(),
@@ -1174,10 +1196,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           TopNavRoute(
                             label: 'Wallet',
                           ),
-                          if (_confProvider.networkSupportsSidechains)
-                            TopNavRoute(
-                              label: 'Sidechains',
-                            ),
+                          TopNavRoute(
+                            label: 'Sidechains',
+                            disabled: !_confProvider.networkSupportsSidechains,
+                            disabledMessage: 'Sidechains require Forknet or Signet network. Switch networks to unlock.',
+                          ),
                           TopNavRoute(
                             label: 'Learn',
                           ),
@@ -1319,7 +1342,7 @@ class StatusBar extends StatefulWidget {
   State<StatusBar> createState() => _StatusBarState();
 }
 
-class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTrackingMixin {
+class _StatusBarState extends State<StatusBar> {
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
@@ -1328,7 +1351,6 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
   @override
   void initState() {
     super.initState();
-    initChangeTracker();
     blockchainProvider.addListener(_onChange);
     balanceProvider.addListener(_onChange);
     if (!Environment.isInTest) {
@@ -1337,9 +1359,7 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
   }
 
   void _onChange() {
-    track('lastBlockTime', blockchainProvider.syncProvider.mainchainSyncInfo?.lastBlockAt);
-    track('peerCount', blockchainProvider.peers.length);
-    notifyIfChanged();
+    if (mounted) setState(() {});
   }
 
   String _getTimeSinceLastBlock() {
@@ -1415,16 +1435,10 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
   }
 
   @override
-  void notifyListeners() {
-    if (mounted) setState(() {});
-  }
-
-  @override
   void dispose() {
     _timer?.cancel();
     blockchainProvider.removeListener(_onChange);
     balanceProvider.removeListener(_onChange);
-    disposeChangeTracker();
     super.dispose();
   }
 }

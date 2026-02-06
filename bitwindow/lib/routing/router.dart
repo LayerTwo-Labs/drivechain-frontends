@@ -193,5 +193,13 @@ class AppRouter extends RootStackRouter {
       path: '/datadir-setup',
       page: DataDirSetupRoute.page,
     ),
+    AutoRoute(
+      path: '/network-switch',
+      page: NetworkSwitchRoute.page,
+    ),
+    AutoRoute(
+      path: '/coming-soon',
+      page: ComingSoonRoute.page,
+    ),
   ];
 }

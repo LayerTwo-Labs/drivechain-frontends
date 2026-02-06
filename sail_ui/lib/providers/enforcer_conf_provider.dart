@@ -113,14 +113,6 @@ class EnforcerConfProvider extends ChangeNotifier {
       currentConfig!.removeSetting('wallet-esplora-url');
     }
 
-    // Sync datadir from BitcoinConfProvider
-    final dataDir = bitcoinConfProvider.detectedDataDir;
-    if (dataDir != null && dataDir.isNotEmpty) {
-      currentConfig!.setSetting('datadir', dataDir);
-    } else {
-      currentConfig!.removeSetting('datadir');
-    }
-
     notifyListeners();
     await _saveConfig();
   }
