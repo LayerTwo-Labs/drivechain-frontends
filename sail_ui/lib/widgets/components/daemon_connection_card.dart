@@ -7,6 +7,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 class DaemonConnectionCard extends StatelessWidget {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
+  LogProvider get _logProvider => GetIt.I.get<LogProvider>();
 
   final void Function(String name, String logPath, BinaryType type)? navigateToLogs;
   final RPCConnection connection;
@@ -82,18 +83,25 @@ class DaemonConnectionCard extends StatelessWidget {
                     }
                   },
                 ),
-              Tooltip(
-                message: File(connection.binary.logPath()).existsSync() ? 'View log file' : 'Log file does not exist',
-                child: SailButton(
-                  variant: ButtonVariant.ghost,
-                  onPressed: () async => navigateToLogs!(
-                    connection.binary.binary,
-                    connection.binary.logPath(),
-                    connection.binary.type,
-                  ),
-                  disabled: !File(connection.binary.logPath()).existsSync(),
-                  label: 'View logs',
-                ),
+              Builder(
+                builder: (context) {
+                  final hasLogFile = File(connection.binary.logPath()).existsSync();
+                  final hasProcessLogs = _logProvider.hasLogsForBinary(connection.binary.type);
+                  final hasLogs = hasLogFile || hasProcessLogs;
+                  return Tooltip(
+                    message: hasLogs ? 'View logs' : 'No logs available yet',
+                    child: SailButton(
+                      variant: ButtonVariant.ghost,
+                      onPressed: () async => navigateToLogs!(
+                        connection.binary.binary,
+                        connection.binary.logPath(),
+                        connection.binary.type,
+                      ),
+                      disabled: !hasLogs,
+                      label: 'View logs',
+                    ),
+                  );
+                },
               ),
               SailButton(
                 variant: ButtonVariant.icon,

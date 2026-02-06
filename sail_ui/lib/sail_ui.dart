@@ -105,6 +105,7 @@ export 'providers/sidechain/sidechain_transactions_provider.dart';
 export 'providers/sync_provider.dart';
 export 'providers/update_provider.dart';
 export 'providers/homepage_provider.dart';
+export 'providers/log_provider.dart';
 export 'rpcs/bitassets_rpc.dart';
 export 'rpcs/bitnames_rpc.dart';
 export 'rpcs/bitwindow_api.dart';

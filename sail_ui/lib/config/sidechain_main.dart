@@ -57,6 +57,9 @@ Future<void> initSidechainDependencies({
   // first of all, write all binaries to the assets/bin directory
   await copyBinariesFromAssets(log, applicationDir);
 
+  // Register LogProvider for process output capture
+  GetIt.I.registerSingleton<LogProvider>(LogProvider());
+
   // Load and register initial binary states
   final binaries = _initialBinaries(sidechainType.binary);
   final binaryProvider = await BinaryProvider.create(appDir: applicationDir, initialBinaries: binaries);
