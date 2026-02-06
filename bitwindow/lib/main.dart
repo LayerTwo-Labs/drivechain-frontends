@@ -143,6 +143,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   await copyBinariesFromAssets(log, applicationDir);
 
+  // Register LogProvider for process output capture
+  GetIt.I.registerSingleton<LogProvider>(LogProvider());
+
   // Load initial binary states
   final binaryProvider = await BinaryProvider.create(
     appDir: applicationDir,

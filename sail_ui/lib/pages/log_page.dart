@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
@@ -42,7 +41,7 @@ class _LogPageState extends State<LogPage> {
               child: _FileLogsTab(logPath: widget.logPath),
             ),
             SingleTabItem(
-              label: 'Process Logs',
+              label: 'Process Output',
               child: _ProcessLogsTab(binaryType: widget.binaryType),
             ),
           ],
@@ -381,82 +380,157 @@ class _ProcessLogsTab extends StatefulWidget {
 }
 
 class _ProcessLogsTabState extends State<_ProcessLogsTab> {
+  LogProvider get _logProvider => GetIt.I.get<LogProvider>();
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
   Timer? _refreshTimer;
+  bool _stickToBottom = true;
+  int _lastLogCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_scrollListener);
     if (!Environment.isInTest) {
-      _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        setState(() {});
+      _refreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+        final currentCount = _getLogCount();
+        if (currentCount != _lastLogCount) {
+          _lastLogCount = currentCount;
+          setState(() {});
+          _autoScrollToBottom();
+        }
       });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  int _getLogCount() {
+    if (widget.binaryType != null) {
+      return _logProvider.getLogsForBinary(widget.binaryType!).length;
+    }
+    int count = 0;
+    for (final binary in _binaryProvider.binaries) {
+      count += _logProvider.getLogsForBinary(binary.type).length;
+    }
+    return count;
+  }
+
+  void _scrollListener() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    _stickToBottom = maxScroll - currentScroll <= 50.0;
+  }
+
+  void _autoScrollToBottom() {
+    if (_stickToBottom && _scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      _stickToBottom = true;
     }
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final allLogs = <ProcessLogEntry>[];
+    final allLogs = <FullProcessLogEntry>[];
 
-    final binariesToShow = widget.binaryType != null
-        ? _binaryProvider.binaries.where((b) => b.type == widget.binaryType)
-        : _binaryProvider.binaries;
-
-    for (final binary in binariesToShow) {
-      allLogs.addAll(binary.startupLogs);
+    if (widget.binaryType != null) {
+      allLogs.addAll(_logProvider.getLogsForBinary(widget.binaryType!));
+    } else {
+      for (final binary in _binaryProvider.binaries) {
+        allLogs.addAll(_logProvider.getLogsForBinary(binary.type));
+      }
+      allLogs.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     }
-
-    allLogs.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     if (allLogs.isEmpty) {
       return Center(
         child: SailText.secondary13(
-          'No process logs captured yet. Logs will appear here when binaries output interesting events.',
+          'No process logs captured yet. Logs will appear here when binaries start.',
         ),
       );
     }
 
     return SelectableRegion(
-      focusNode: FocusNode(),
+      focusNode: _focusNode,
       selectionControls: DesktopTextSelectionControls(),
       child: ListView.builder(
-        itemCount: allLogs.length,
+        controller: _scrollController,
+        itemCount: allLogs.length + 1,
         itemBuilder: (context, index) {
+          if (index == allLogs.length) {
+            return const SizedBox(height: 100);
+          }
+
           final log = allLogs[index];
 
+          if (log.isStartupMarker) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Center(
+                child: SailText.secondary12(
+                  log.message,
+                  color: SailColorScheme.greyLight,
+                ),
+              ),
+            );
+          }
+
+          final textColor = log.isStderr ? SailColorScheme.redLight : SailColorScheme.whiteDark;
+
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 120,
+                  width: 90,
                   child: SailText.secondary12(
                     formatDate(log.timestamp, long: false),
                     color: SailColorScheme.greyLight,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+                if (log.isStderr) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: SailColorScheme.red.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: SailText.primary10(
+                      'ERR',
+                      color: SailColorScheme.red,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Expanded(
                   child: SailText.primary12(
                     log.message,
-                    color: SailColorScheme.whiteDark,
+                    color: textColor,
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 16),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: log.message));
-                  },
                 ),
               ],
             ),

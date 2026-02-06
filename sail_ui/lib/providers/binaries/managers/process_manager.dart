@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binaries/managers/pid_file_manager.dart';
+import 'package:sail_ui/providers/log_provider.dart';
 
 class ProcessManager extends ChangeNotifier {
   final Directory appDir;
@@ -18,6 +19,7 @@ class ProcessManager extends ChangeNotifier {
   });
 
   Logger get log => GetIt.I.get<Logger>();
+  LogProvider get logProvider => GetIt.I.get<LogProvider>();
 
   final Map<String, ExitTuple> _exitTuples = {};
   ExitTuple? exited(Binary binary) => _exitTuples[binary.name];
@@ -33,6 +35,22 @@ class ProcessManager extends ChangeNotifier {
   Stream<String>? stderr(Binary binary) => _stderrStreams[binary.name];
   List<String>? stderrLogs(Binary binary) => _stderrLogs[binary.name];
   bool running(Binary binary) => runningProcesses.containsKey(binary.name);
+
+  /// Forward a line to the LogProvider for full log capture.
+  void _addToLogProvider(Binary binary, String line, {required bool isStderr}) {
+    // Strip ANSI color codes for clean storage
+    final cleanLine = line.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
+    if (cleanLine.isEmpty) return;
+
+    logProvider.addLog(
+      FullProcessLogEntry(
+        timestamp: DateTime.now(),
+        message: cleanLine,
+        isStderr: isStderr,
+        binaryType: binary.type,
+      ),
+    );
+  }
 
   Future<int> start(
     Binary binary,
@@ -71,6 +89,9 @@ class ProcessManager extends ChangeNotifier {
     final stdoutController = StreamController<String>();
     final stderrController = StreamController<String>();
 
+    // Add startup marker to LogProvider
+    logProvider.addStartupMarker(binary.type, binary.name);
+
     log.d('Setting up stdout listener for ${file.path}');
     process.stdout
         .transform(systemEncoding.decoder)
@@ -85,6 +106,7 @@ class ProcessManager extends ChangeNotifier {
             for (final line in data.split('\n')) {
               if (line.trim().isNotEmpty) {
                 _captureStartupLog(binary, line);
+                _addToLogProvider(binary, line, isStderr: false);
               }
             }
           },
@@ -120,6 +142,7 @@ class ProcessManager extends ChangeNotifier {
             for (final line in data.split('\n')) {
               if (line.trim().isNotEmpty) {
                 _captureStartupLog(binary, line);
+                _addToLogProvider(binary, line, isStderr: true);
               }
             }
           },
@@ -166,6 +189,9 @@ class ProcessManager extends ChangeNotifier {
           }
 
           log.log(level, '"${file.path}" exited with code $code');
+
+          // Add exit marker to LogProvider
+          logProvider.addExitMarker(binary.type, binary.name, code);
 
           // Resolve the process exit future
           processExited.complete(true);
