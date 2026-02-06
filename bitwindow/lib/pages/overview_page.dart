@@ -7,6 +7,7 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart' as bitwindow;
 import 'package:bitwindow/providers/news_provider.dart';
+import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -520,8 +521,11 @@ void _showNewsHelp(BuildContext context) {
       content: const Text(
         'With this page you can pay a fee to broadcast news on any topic. '
         'Clicking "Broadcast" will create a transaction with an OP_RETURN '
-        'output that encodes the text you have entered. Anyone subscribed to '
-        'the topic will see posts filtered by time and sorted by fee amount.',
+        'output that encodes the text you have entered.\n\n'
+        'The highlighted green portion is your headline (up to 64 characters). '
+        'Press Enter to end the headline early - everything after becomes content.\n\n'
+        'Anyone subscribed to the topic will see posts filtered by time and '
+        'sorted by fee amount.',
       ),
       actions: [
         TextButton(
@@ -563,21 +567,11 @@ class BroadcastNewsView extends StatelessWidget {
                 value: viewModel.topic,
                 hint: 'Select a topic',
               ),
-              SailTextField(
-                label: 'Headline (max 64 characters)',
-                controller: viewModel.headlineController,
-                hintText: 'Enter a headline',
-                size: TextFieldSize.small,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(64),
-                ],
-              ),
-              SailTextField(
-                label: 'Content',
-                controller: viewModel.contentController,
-                hintText: 'Enter news content',
+              HeadlineHighlightTextField(
+                controller: viewModel.messageController,
+                label: 'Message (highlighted = headline)',
+                hintText: 'First 64 chars (or until Enter) is the headline',
                 minLines: 10,
-                maxLines: null,
               ),
               SailRow(
                 spacing: SailStyleValues.padding08,
@@ -592,8 +586,7 @@ class BroadcastNewsView extends StatelessWidget {
                   SailButton(
                     label: 'Broadcast',
                     onPressed: () async => viewModel.broadcastNews(context),
-                    disabled:
-                        viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 64,
+                    disabled: viewModel.headline.isEmpty,
                   ),
                 ],
               ),
@@ -635,17 +628,36 @@ class BroadcastNewsViewModel extends BaseViewModel {
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
-  final TextEditingController headlineController = TextEditingController();
-  final TextEditingController contentController = TextEditingController();
+  // Single unified controller for headline + content
+  final TextEditingController messageController = TextEditingController();
 
   Topic? topic;
 
   List<Topic> get topics => _newsProvider.topics;
 
+  /// Extract headline from unified text (first 64 chars or up to first newline)
+  String get headline {
+    final text = messageController.text;
+    final newlineIndex = text.indexOf('\n');
+    if (newlineIndex >= 0 && newlineIndex < 64) {
+      return text.substring(0, newlineIndex);
+    }
+    return text.substring(0, min(64, text.length));
+  }
+
+  /// Extract content from unified text (everything after headline)
+  String get content {
+    final text = messageController.text;
+    final newlineIndex = text.indexOf('\n');
+    if (newlineIndex >= 0 && newlineIndex < 64) {
+      return text.substring(newlineIndex + 1);
+    }
+    return text.length > 64 ? text.substring(64) : '';
+  }
+
   BroadcastNewsViewModel() {
     _loadLastUsedTopic();
-    headlineController.addListener(notifyListeners);
-    contentController.addListener(notifyListeners);
+    messageController.addListener(notifyListeners);
   }
 
   Future<void> _loadLastUsedTopic() async {
@@ -684,17 +696,12 @@ class BroadcastNewsViewModel extends BaseViewModel {
   }
 
   Future<void> broadcastNews(BuildContext context) async {
-    if (headlineController.text.isEmpty) {
-      return;
-    }
-
-    if (headlineController.text.length > 64) {
-      showSnackBar(context, 'Headline must be 64 characters or less');
+    if (headline.isEmpty) {
       return;
     }
 
     try {
-      await _api.misc.broadcastNews(topic!.topic, headlineController.text, contentController.text);
+      await _api.misc.broadcastNews(topic!.topic, headline, content);
       if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');
       Navigator.of(context).pop();
@@ -705,10 +712,8 @@ class BroadcastNewsViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    headlineController.removeListener(notifyListeners);
-    headlineController.dispose();
-    contentController.removeListener(notifyListeners);
-    contentController.dispose();
+    messageController.removeListener(notifyListeners);
+    messageController.dispose();
     super.dispose();
   }
 }
