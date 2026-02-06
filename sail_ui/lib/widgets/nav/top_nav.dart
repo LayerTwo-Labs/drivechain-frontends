@@ -62,8 +62,6 @@ class _TopNavState extends State<TopNav> {
                           label: entry.value.label,
                           icon: entry.value.icon,
                           active: tabsRouter.activeIndex == entry.key,
-                          disabled: entry.value.disabled,
-                          disabledMessage: entry.value.disabledMessage,
                           onTap: () {
                             if (entry.value.onTap != null) {
                               entry.value.onTap!();
@@ -93,16 +91,12 @@ class TopNavRoute {
   final VoidCallback? onTap;
   final SailSVGAsset? icon;
   final int? optionalKey;
-  final bool disabled;
-  final String? disabledMessage;
 
   const TopNavRoute({
     this.label,
     this.onTap,
     this.icon,
     this.optionalKey,
-    this.disabled = false,
-    this.disabledMessage,
   }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
 }
 
@@ -111,8 +105,6 @@ class QtTab extends StatefulWidget {
   final SailSVGAsset? icon;
   final bool active;
   final VoidCallback onTap;
-  final bool disabled;
-  final String? disabledMessage;
 
   const QtTab({
     super.key,
@@ -120,8 +112,6 @@ class QtTab extends StatefulWidget {
     this.icon,
     required this.active,
     required this.onTap,
-    this.disabled = false,
-    this.disabledMessage,
   }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
 
   @override
@@ -136,9 +126,6 @@ class _QtTabState extends State<QtTab> {
     final theme = context.sailTheme;
 
     Color getColor() {
-      if (widget.disabled) {
-        return theme.colors.textTertiary;
-      }
       if (widget.active || isHovered) {
         return theme.colors.activeNavText;
       }
@@ -147,17 +134,11 @@ class _QtTabState extends State<QtTab> {
 
     Widget tab = SelectionContainer.disabled(
       child: MouseRegion(
-        cursor: widget.disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+        cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => isHovered = true),
         onExit: (_) => setState(() => isHovered = false),
         child: GestureDetector(
-          onTap: widget.disabled
-              ? () {
-                  if (widget.disabledMessage != null) {
-                    showSnackBar(context, widget.disabledMessage!);
-                  }
-                }
-              : widget.onTap,
+          onTap: widget.onTap,
           child: widget.label != null
               ? SailText.primary13(
                   widget.label!,
@@ -172,13 +153,6 @@ class _QtTabState extends State<QtTab> {
         ),
       ),
     );
-
-    if (widget.disabled && widget.disabledMessage != null) {
-      tab = Tooltip(
-        message: widget.disabledMessage!,
-        child: tab,
-      );
-    }
 
     return tab;
   }
