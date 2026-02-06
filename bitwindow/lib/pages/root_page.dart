@@ -1200,7 +1200,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                             label: 'Sidechains',
                             onTap: _confProvider.networkSupportsSidechains
                                 ? null
-                                : () => GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>())),
+                                : () =>
+                                      GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>())),
                           ),
                           TopNavRoute(
                             label: 'Learn',
