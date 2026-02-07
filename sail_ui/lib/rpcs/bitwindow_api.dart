@@ -1386,6 +1386,7 @@ abstract class DrivechainAPI {
     int startBlockHeight = 0,
     int endBlockHeight = 0,
   });
+  Future<ListRecentActionsResponse> listRecentActions({int limit = 10});
 }
 
 class _DrivechainAPILive implements DrivechainAPI {
@@ -1459,6 +1460,18 @@ class _DrivechainAPILive implements DrivechainAPI {
       return response.bundles;
     } catch (e) {
       final error = 'could not list withdrawals: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+
+  @override
+  Future<ListRecentActionsResponse> listRecentActions({int limit = 10}) async {
+    try {
+      final request = ListRecentActionsRequest(limit: limit);
+      final response = await _client.listRecentActions(request);
+      return response;
+    } catch (e) {
+      final error = 'could not list recent actions: ${extractConnectException(e)}';
       throw DrivechainException(error);
     }
   }

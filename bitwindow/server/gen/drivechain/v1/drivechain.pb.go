@@ -622,6 +622,202 @@ func (x *ListWithdrawalsResponse) GetBundles() []*WithdrawalBundle {
 	return nil
 }
 
+type ListRecentActionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         uint32                 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"` // Maximum number of actions to return (default 10)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRecentActionsRequest) Reset() {
+	*x = ListRecentActionsRequest{}
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRecentActionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRecentActionsRequest) ProtoMessage() {}
+
+func (x *ListRecentActionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRecentActionsRequest.ProtoReflect.Descriptor instead.
+func (*ListRecentActionsRequest) Descriptor() ([]byte, []int) {
+	return file_drivechain_v1_drivechain_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListRecentActionsRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type RecentAction struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ActionType    string                 `protobuf:"bytes,1,opt,name=action_type,json=actionType,proto3" json:"action_type,omitempty"` // 'deposit', 'withdrawal', 'withdrawal_ack', 'sidechain_proposal', 'sidechain_ack'
+	SidechainSlot uint32                 `protobuf:"varint,2,opt,name=sidechain_slot,json=sidechainSlot,proto3" json:"sidechain_slot,omitempty"`
+	SidechainName string                 `protobuf:"bytes,3,opt,name=sidechain_name,json=sidechainName,proto3" json:"sidechain_name,omitempty"`
+	AmountSatoshi int64                  `protobuf:"varint,4,opt,name=amount_satoshi,json=amountSatoshi,proto3" json:"amount_satoshi,omitempty"` // For deposits/withdrawals
+	AckCount      uint32                 `protobuf:"varint,5,opt,name=ack_count,json=ackCount,proto3" json:"ack_count,omitempty"`                // For ack-type actions (current acks)
+	AckTotal      uint32                 `protobuf:"varint,6,opt,name=ack_total,json=ackTotal,proto3" json:"ack_total,omitempty"`                // For ack-type actions (total needed)
+	ExtraInfo     string                 `protobuf:"bytes,7,opt,name=extra_info,json=extraInfo,proto3" json:"extra_info,omitempty"`              // Additional info like "Ethereum at slot 9"
+	CreatedAt     int64                  `protobuf:"varint,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`             // Unix timestamp
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecentAction) Reset() {
+	*x = RecentAction{}
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecentAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecentAction) ProtoMessage() {}
+
+func (x *RecentAction) ProtoReflect() protoreflect.Message {
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecentAction.ProtoReflect.Descriptor instead.
+func (*RecentAction) Descriptor() ([]byte, []int) {
+	return file_drivechain_v1_drivechain_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RecentAction) GetActionType() string {
+	if x != nil {
+		return x.ActionType
+	}
+	return ""
+}
+
+func (x *RecentAction) GetSidechainSlot() uint32 {
+	if x != nil {
+		return x.SidechainSlot
+	}
+	return 0
+}
+
+func (x *RecentAction) GetSidechainName() string {
+	if x != nil {
+		return x.SidechainName
+	}
+	return ""
+}
+
+func (x *RecentAction) GetAmountSatoshi() int64 {
+	if x != nil {
+		return x.AmountSatoshi
+	}
+	return 0
+}
+
+func (x *RecentAction) GetAckCount() uint32 {
+	if x != nil {
+		return x.AckCount
+	}
+	return 0
+}
+
+func (x *RecentAction) GetAckTotal() uint32 {
+	if x != nil {
+		return x.AckTotal
+	}
+	return 0
+}
+
+func (x *RecentAction) GetExtraInfo() string {
+	if x != nil {
+		return x.ExtraInfo
+	}
+	return ""
+}
+
+func (x *RecentAction) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+type ListRecentActionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Actions       []*RecentAction        `protobuf:"bytes,1,rep,name=actions,proto3" json:"actions,omitempty"`
+	Subtitle      string                 `protobuf:"bytes,2,opt,name=subtitle,proto3" json:"subtitle,omitempty"` // Summary text like "Users have made 49,382 transactions last month"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRecentActionsResponse) Reset() {
+	*x = ListRecentActionsResponse{}
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRecentActionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRecentActionsResponse) ProtoMessage() {}
+
+func (x *ListRecentActionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRecentActionsResponse.ProtoReflect.Descriptor instead.
+func (*ListRecentActionsResponse) Descriptor() ([]byte, []int) {
+	return file_drivechain_v1_drivechain_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListRecentActionsResponse) GetActions() []*RecentAction {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+func (x *ListRecentActionsResponse) GetSubtitle() string {
+	if x != nil {
+		return x.Subtitle
+	}
+	return ""
+}
+
 type ListSidechainsResponse_Sidechain struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Title            string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
@@ -643,7 +839,7 @@ type ListSidechainsResponse_Sidechain struct {
 
 func (x *ListSidechainsResponse_Sidechain) Reset() {
 	*x = ListSidechainsResponse_Sidechain{}
-	mi := &file_drivechain_v1_drivechain_proto_msgTypes[10]
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -655,7 +851,7 @@ func (x *ListSidechainsResponse_Sidechain) String() string {
 func (*ListSidechainsResponse_Sidechain) ProtoMessage() {}
 
 func (x *ListSidechainsResponse_Sidechain) ProtoReflect() protoreflect.Message {
-	mi := &file_drivechain_v1_drivechain_proto_msgTypes[10]
+	mi := &file_drivechain_v1_drivechain_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -826,12 +1022,30 @@ const file_drivechain_v1_drivechain_proto_rawDesc = "" +
 	"\vblocks_left\x18\t \x01(\rR\n" +
 	"blocksLeft\"T\n" +
 	"\x17ListWithdrawalsResponse\x129\n" +
-	"\abundles\x18\x01 \x03(\v2\x1f.drivechain.v1.WithdrawalBundleR\abundles2\xb0\x03\n" +
+	"\abundles\x18\x01 \x03(\v2\x1f.drivechain.v1.WithdrawalBundleR\abundles\"0\n" +
+	"\x18ListRecentActionsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\rR\x05limit\"\x9c\x02\n" +
+	"\fRecentAction\x12\x1f\n" +
+	"\vaction_type\x18\x01 \x01(\tR\n" +
+	"actionType\x12%\n" +
+	"\x0esidechain_slot\x18\x02 \x01(\rR\rsidechainSlot\x12%\n" +
+	"\x0esidechain_name\x18\x03 \x01(\tR\rsidechainName\x12%\n" +
+	"\x0eamount_satoshi\x18\x04 \x01(\x03R\ramountSatoshi\x12\x1b\n" +
+	"\tack_count\x18\x05 \x01(\rR\backCount\x12\x1b\n" +
+	"\tack_total\x18\x06 \x01(\rR\backTotal\x12\x1d\n" +
+	"\n" +
+	"extra_info\x18\a \x01(\tR\textraInfo\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt\"n\n" +
+	"\x19ListRecentActionsResponse\x125\n" +
+	"\aactions\x18\x01 \x03(\v2\x1b.drivechain.v1.RecentActionR\aactions\x12\x1a\n" +
+	"\bsubtitle\x18\x02 \x01(\tR\bsubtitle2\x98\x04\n" +
 	"\x11DrivechainService\x12]\n" +
 	"\x0eListSidechains\x12$.drivechain.v1.ListSidechainsRequest\x1a%.drivechain.v1.ListSidechainsResponse\x12u\n" +
 	"\x16ListSidechainProposals\x12,.drivechain.v1.ListSidechainProposalsRequest\x1a-.drivechain.v1.ListSidechainProposalsResponse\x12c\n" +
 	"\x10ProposeSidechain\x12&.drivechain.v1.ProposeSidechainRequest\x1a'.drivechain.v1.ProposeSidechainResponse\x12`\n" +
-	"\x0fListWithdrawals\x12%.drivechain.v1.ListWithdrawalsRequest\x1a&.drivechain.v1.ListWithdrawalsResponseB\xcc\x01\n" +
+	"\x0fListWithdrawals\x12%.drivechain.v1.ListWithdrawalsRequest\x1a&.drivechain.v1.ListWithdrawalsResponse\x12f\n" +
+	"\x11ListRecentActions\x12'.drivechain.v1.ListRecentActionsRequest\x1a(.drivechain.v1.ListRecentActionsResponseB\xcc\x01\n" +
 	"\x11com.drivechain.v1B\x0fDrivechainProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1;drivechainv1\xa2\x02\x03DXX\xaa\x02\rDrivechain.V1\xca\x02\rDrivechain\\V1\xe2\x02\x19Drivechain\\V1\\GPBMetadata\xea\x02\x0eDrivechain::V1b\x06proto3"
 
 var (
@@ -846,7 +1060,7 @@ func file_drivechain_v1_drivechain_proto_rawDescGZIP() []byte {
 	return file_drivechain_v1_drivechain_proto_rawDescData
 }
 
-var file_drivechain_v1_drivechain_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_drivechain_v1_drivechain_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_drivechain_v1_drivechain_proto_goTypes = []any{
 	(*ListSidechainsRequest)(nil),            // 0: drivechain.v1.ListSidechainsRequest
 	(*ListSidechainsResponse)(nil),           // 1: drivechain.v1.ListSidechainsResponse
@@ -858,25 +1072,31 @@ var file_drivechain_v1_drivechain_proto_goTypes = []any{
 	(*ListWithdrawalsRequest)(nil),           // 7: drivechain.v1.ListWithdrawalsRequest
 	(*WithdrawalBundle)(nil),                 // 8: drivechain.v1.WithdrawalBundle
 	(*ListWithdrawalsResponse)(nil),          // 9: drivechain.v1.ListWithdrawalsResponse
-	(*ListSidechainsResponse_Sidechain)(nil), // 10: drivechain.v1.ListSidechainsResponse.Sidechain
+	(*ListRecentActionsRequest)(nil),         // 10: drivechain.v1.ListRecentActionsRequest
+	(*RecentAction)(nil),                     // 11: drivechain.v1.RecentAction
+	(*ListRecentActionsResponse)(nil),        // 12: drivechain.v1.ListRecentActionsResponse
+	(*ListSidechainsResponse_Sidechain)(nil), // 13: drivechain.v1.ListSidechainsResponse.Sidechain
 }
 var file_drivechain_v1_drivechain_proto_depIdxs = []int32{
-	10, // 0: drivechain.v1.ListSidechainsResponse.sidechains:type_name -> drivechain.v1.ListSidechainsResponse.Sidechain
+	13, // 0: drivechain.v1.ListSidechainsResponse.sidechains:type_name -> drivechain.v1.ListSidechainsResponse.Sidechain
 	3,  // 1: drivechain.v1.ListSidechainProposalsResponse.proposals:type_name -> drivechain.v1.SidechainProposal
 	8,  // 2: drivechain.v1.ListWithdrawalsResponse.bundles:type_name -> drivechain.v1.WithdrawalBundle
-	0,  // 3: drivechain.v1.DrivechainService.ListSidechains:input_type -> drivechain.v1.ListSidechainsRequest
-	2,  // 4: drivechain.v1.DrivechainService.ListSidechainProposals:input_type -> drivechain.v1.ListSidechainProposalsRequest
-	5,  // 5: drivechain.v1.DrivechainService.ProposeSidechain:input_type -> drivechain.v1.ProposeSidechainRequest
-	7,  // 6: drivechain.v1.DrivechainService.ListWithdrawals:input_type -> drivechain.v1.ListWithdrawalsRequest
-	1,  // 7: drivechain.v1.DrivechainService.ListSidechains:output_type -> drivechain.v1.ListSidechainsResponse
-	4,  // 8: drivechain.v1.DrivechainService.ListSidechainProposals:output_type -> drivechain.v1.ListSidechainProposalsResponse
-	6,  // 9: drivechain.v1.DrivechainService.ProposeSidechain:output_type -> drivechain.v1.ProposeSidechainResponse
-	9,  // 10: drivechain.v1.DrivechainService.ListWithdrawals:output_type -> drivechain.v1.ListWithdrawalsResponse
-	7,  // [7:11] is the sub-list for method output_type
-	3,  // [3:7] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	11, // 3: drivechain.v1.ListRecentActionsResponse.actions:type_name -> drivechain.v1.RecentAction
+	0,  // 4: drivechain.v1.DrivechainService.ListSidechains:input_type -> drivechain.v1.ListSidechainsRequest
+	2,  // 5: drivechain.v1.DrivechainService.ListSidechainProposals:input_type -> drivechain.v1.ListSidechainProposalsRequest
+	5,  // 6: drivechain.v1.DrivechainService.ProposeSidechain:input_type -> drivechain.v1.ProposeSidechainRequest
+	7,  // 7: drivechain.v1.DrivechainService.ListWithdrawals:input_type -> drivechain.v1.ListWithdrawalsRequest
+	10, // 8: drivechain.v1.DrivechainService.ListRecentActions:input_type -> drivechain.v1.ListRecentActionsRequest
+	1,  // 9: drivechain.v1.DrivechainService.ListSidechains:output_type -> drivechain.v1.ListSidechainsResponse
+	4,  // 10: drivechain.v1.DrivechainService.ListSidechainProposals:output_type -> drivechain.v1.ListSidechainProposalsResponse
+	6,  // 11: drivechain.v1.DrivechainService.ProposeSidechain:output_type -> drivechain.v1.ProposeSidechainResponse
+	9,  // 12: drivechain.v1.DrivechainService.ListWithdrawals:output_type -> drivechain.v1.ListWithdrawalsResponse
+	12, // 13: drivechain.v1.DrivechainService.ListRecentActions:output_type -> drivechain.v1.ListRecentActionsResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_drivechain_v1_drivechain_proto_init() }
@@ -890,7 +1110,7 @@ func file_drivechain_v1_drivechain_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_drivechain_v1_drivechain_proto_rawDesc), len(file_drivechain_v1_drivechain_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -45,6 +45,9 @@ const (
 	// DrivechainServiceListWithdrawalsProcedure is the fully-qualified name of the DrivechainService's
 	// ListWithdrawals RPC.
 	DrivechainServiceListWithdrawalsProcedure = "/drivechain.v1.DrivechainService/ListWithdrawals"
+	// DrivechainServiceListRecentActionsProcedure is the fully-qualified name of the
+	// DrivechainService's ListRecentActions RPC.
+	DrivechainServiceListRecentActionsProcedure = "/drivechain.v1.DrivechainService/ListRecentActions"
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
@@ -53,6 +56,7 @@ type DrivechainServiceClient interface {
 	ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error)
 	ProposeSidechain(context.Context, *connect.Request[v1.ProposeSidechainRequest]) (*connect.Response[v1.ProposeSidechainResponse], error)
 	ListWithdrawals(context.Context, *connect.Request[v1.ListWithdrawalsRequest]) (*connect.Response[v1.ListWithdrawalsResponse], error)
+	ListRecentActions(context.Context, *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error)
 }
 
 // NewDrivechainServiceClient constructs a client for the drivechain.v1.DrivechainService service.
@@ -90,6 +94,12 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(drivechainServiceMethods.ByName("ListWithdrawals")),
 			connect.WithClientOptions(opts...),
 		),
+		listRecentActions: connect.NewClient[v1.ListRecentActionsRequest, v1.ListRecentActionsResponse](
+			httpClient,
+			baseURL+DrivechainServiceListRecentActionsProcedure,
+			connect.WithSchema(drivechainServiceMethods.ByName("ListRecentActions")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -99,6 +109,7 @@ type drivechainServiceClient struct {
 	listSidechainProposals *connect.Client[v1.ListSidechainProposalsRequest, v1.ListSidechainProposalsResponse]
 	proposeSidechain       *connect.Client[v1.ProposeSidechainRequest, v1.ProposeSidechainResponse]
 	listWithdrawals        *connect.Client[v1.ListWithdrawalsRequest, v1.ListWithdrawalsResponse]
+	listRecentActions      *connect.Client[v1.ListRecentActionsRequest, v1.ListRecentActionsResponse]
 }
 
 // ListSidechains calls drivechain.v1.DrivechainService.ListSidechains.
@@ -121,12 +132,18 @@ func (c *drivechainServiceClient) ListWithdrawals(ctx context.Context, req *conn
 	return c.listWithdrawals.CallUnary(ctx, req)
 }
 
+// ListRecentActions calls drivechain.v1.DrivechainService.ListRecentActions.
+func (c *drivechainServiceClient) ListRecentActions(ctx context.Context, req *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error) {
+	return c.listRecentActions.CallUnary(ctx, req)
+}
+
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
 	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
 	ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error)
 	ProposeSidechain(context.Context, *connect.Request[v1.ProposeSidechainRequest]) (*connect.Response[v1.ProposeSidechainResponse], error)
 	ListWithdrawals(context.Context, *connect.Request[v1.ListWithdrawalsRequest]) (*connect.Response[v1.ListWithdrawalsResponse], error)
+	ListRecentActions(context.Context, *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error)
 }
 
 // NewDrivechainServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -160,6 +177,12 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		connect.WithSchema(drivechainServiceMethods.ByName("ListWithdrawals")),
 		connect.WithHandlerOptions(opts...),
 	)
+	drivechainServiceListRecentActionsHandler := connect.NewUnaryHandler(
+		DrivechainServiceListRecentActionsProcedure,
+		svc.ListRecentActions,
+		connect.WithSchema(drivechainServiceMethods.ByName("ListRecentActions")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DrivechainServiceListSidechainsProcedure:
@@ -170,6 +193,8 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 			drivechainServiceProposeSidechainHandler.ServeHTTP(w, r)
 		case DrivechainServiceListWithdrawalsProcedure:
 			drivechainServiceListWithdrawalsHandler.ServeHTTP(w, r)
+		case DrivechainServiceListRecentActionsProcedure:
+			drivechainServiceListRecentActionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -193,4 +218,8 @@ func (UnimplementedDrivechainServiceHandler) ProposeSidechain(context.Context, *
 
 func (UnimplementedDrivechainServiceHandler) ListWithdrawals(context.Context, *connect.Request[v1.ListWithdrawalsRequest]) (*connect.Response[v1.ListWithdrawalsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListWithdrawals is not implemented"))
+}
+
+func (UnimplementedDrivechainServiceHandler) ListRecentActions(context.Context, *connect.Request[v1.ListRecentActionsRequest]) (*connect.Response[v1.ListRecentActionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListRecentActions is not implemented"))
 }

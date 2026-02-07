@@ -7,6 +7,7 @@ service DrivechainService {
   rpc ListSidechainProposals(ListSidechainProposalsRequest) returns (ListSidechainProposalsResponse);
   rpc ProposeSidechain(ProposeSidechainRequest) returns (ProposeSidechainResponse);
   rpc ListWithdrawals(ListWithdrawalsRequest) returns (ListWithdrawalsResponse);
+  rpc ListRecentActions(ListRecentActionsRequest) returns (ListRecentActionsResponse);
 }
 
 message ListSidechainsRequest {}
@@ -84,4 +85,24 @@ message WithdrawalBundle {
 
 message ListWithdrawalsResponse {
   repeated WithdrawalBundle bundles = 1;
+}
+
+message ListRecentActionsRequest {
+  uint32 limit = 1;  // Maximum number of actions to return (default 10)
+}
+
+message RecentAction {
+  string action_type = 1;      // 'deposit', 'withdrawal', 'withdrawal_ack', 'sidechain_proposal', 'sidechain_ack'
+  uint32 sidechain_slot = 2;
+  string sidechain_name = 3;
+  int64 amount_satoshi = 4;    // For deposits/withdrawals
+  uint32 ack_count = 5;        // For ack-type actions (current acks)
+  uint32 ack_total = 6;        // For ack-type actions (total needed)
+  string extra_info = 7;       // Additional info like "Ethereum at slot 9"
+  int64 created_at = 8;        // Unix timestamp
+}
+
+message ListRecentActionsResponse {
+  repeated RecentAction actions = 1;
+  string subtitle = 2;         // Summary text like "Users have made 49,382 transactions last month"
 }

@@ -75,4 +75,21 @@ extension type DrivechainServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  Future<drivechainv1drivechain.ListRecentActionsResponse> listRecentActions(
+    drivechainv1drivechain.ListRecentActionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.DrivechainService.listRecentActions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

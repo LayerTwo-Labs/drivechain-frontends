@@ -9,8 +9,9 @@ import 'package:sail_ui/sail_ui.dart';
 @RoutePage()
 class ComingSoonPage extends StatefulWidget {
   final RootStackRouter router;
+  final String message;
 
-  const ComingSoonPage({super.key, required this.router});
+  const ComingSoonPage({super.key, required this.router, required this.message});
 
   @override
   State<ComingSoonPage> createState() => _ComingSoonPageState();
@@ -89,7 +90,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
                         ],
                       ).createShader(bounds),
                       child: const Text(
-                        'COMING SOON TO BITCOIN',
+                        'THIS COULD BE BITCOIN',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 42,
@@ -114,7 +115,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
 
                     // Subtitle
                     Text(
-                      'Lobby your local bitcoiner to activate Drivechains!',
+                      widget.message,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 18,
@@ -129,7 +130,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
                     Text(
                       'Drivechain (BIP-300/301) enables sidechains on Bitcoin. '
                       'This feature requires activation with a soft fork.\n\n'
-                      'Until then, you can take a peak into the future by switching to Signet, where Drivechain is already active.',
+                      'Until activated, you can continue this demo and take a peak into the future by switching to Signet, where Drivechain is already active.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,

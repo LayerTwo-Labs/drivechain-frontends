@@ -154,6 +154,7 @@ export 'widgets/components/core_transaction.dart';
 export 'widgets/components/progress_step_tile.dart';
 export 'widgets/components/stat_row.dart';
 export 'widgets/components/detail_row.dart';
+export 'widgets/components/recent_actions.dart';
 export 'widgets/components/block_value.dart';
 export 'widgets/components/setting_row.dart';
 export 'widgets/components/result_row.dart';
