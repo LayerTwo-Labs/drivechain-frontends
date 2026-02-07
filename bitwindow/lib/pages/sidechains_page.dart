@@ -84,47 +84,43 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final isDemoMode = GetIt.I.get<BitcoinConfProvider>().isDemoMode;
 
-    return SingleChildScrollView(
-      child: SailColumn(
-        spacing: SailStyleValues.padding16,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              const spacing = SailStyleValues.padding08;
-              final sidechainsWidth = max(480, constraints.maxWidth * 0.6);
-              final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
-
-              return SailRow(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: spacing,
-                children: [
-                  SizedBox(
-                    width: sidechainsWidth.toDouble(),
-                    child: SidechainsList(
-                      smallVersion: false,
-                    ),
-                  ),
-                  SizedBox(
-                    width: depositsWidth,
-                    child: const DepositWithdrawView(),
-                  ),
-                ],
-              );
-            },
+    final mainContent = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 6,
+          child: SidechainsList(
+            smallVersion: false,
           ),
-          if (isDemoMode)
-            ViewModelBuilder<RecentActionsViewModel>.reactive(
-              viewModelBuilder: () => RecentActionsViewModel(),
-              builder: (context, actionsModel, child) {
-                return RecentActionsCard(
-                  title: 'Recent Actions',
-                  subtitle: actionsModel.subtitle,
-                  actions: actionsModel.actions,
-                );
-              },
-            ),
-        ],
-      ),
+        ),
+        const SizedBox(width: SailStyleValues.padding08),
+        Expanded(
+          flex: 4,
+          child: const DepositWithdrawView(),
+        ),
+      ],
+    );
+
+    if (!isDemoMode) {
+      return mainContent;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: mainContent),
+        const SizedBox(height: SailStyleValues.padding16),
+        ViewModelBuilder<RecentActionsViewModel>.reactive(
+          viewModelBuilder: () => RecentActionsViewModel(),
+          builder: (context, actionsModel, child) {
+            return RecentActionsCard(
+              title: 'Recent Actions',
+              subtitle: actionsModel.subtitle,
+              actions: actionsModel.actions,
+            );
+          },
+        ),
+      ],
     );
   }
 }
