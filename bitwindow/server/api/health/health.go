@@ -71,30 +71,33 @@ func (s *Server) Watch(ctx context.Context, _ *connect.Request[emptypb.Empty], s
 	}
 	myUpdateCh := make(chan serviceStatusEvent, 10)
 
+	// Helper to forward status changes with context cancellation support
+	forwardStatus := func(name string, ch <-chan bool) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case status, ok := <-ch:
+				if !ok {
+					return
+				}
+				select {
+				case myUpdateCh <- serviceStatusEvent{name: name, status: status}:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}
+
 	// listens for status changes from all running services,
 	// and sends a status update whenever the status changes
 	// any update from any service triggers an event to be sent
 	// on the stream
-	go func() {
-		for status := range s.bitcoind.ConnectedChan() {
-			myUpdateCh <- serviceStatusEvent{name: "bitcoind", status: status}
-		}
-	}()
-	go func() {
-		for status := range s.enforcer.ConnectedChan() {
-			myUpdateCh <- serviceStatusEvent{name: "enforcer", status: status}
-		}
-	}()
-	go func() {
-		for status := range s.wallet.ConnectedChan() {
-			myUpdateCh <- serviceStatusEvent{name: "wallet", status: status}
-		}
-	}()
-	go func() {
-		for status := range s.crypto.ConnectedChan() {
-			myUpdateCh <- serviceStatusEvent{name: "crypto", status: status}
-		}
-	}()
+	go forwardStatus("bitcoind", s.bitcoind.ConnectedChan())
+	go forwardStatus("enforcer", s.enforcer.ConnectedChan())
+	go forwardStatus("wallet", s.wallet.ConnectedChan())
+	go forwardStatus("crypto", s.crypto.ConnectedChan())
 
 	// get initial status and send it when a client subscribes
 	statuses, err := s.getServiceStatuses(ctx)
