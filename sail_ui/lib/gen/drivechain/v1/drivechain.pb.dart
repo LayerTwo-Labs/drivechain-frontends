@@ -988,6 +988,262 @@ class ListWithdrawalsResponse extends $pb.GeneratedMessage {
   $core.List<WithdrawalBundle> get bundles => $_getList(0);
 }
 
+class ListRecentActionsRequest extends $pb.GeneratedMessage {
+  factory ListRecentActionsRequest({
+    $core.int? limit,
+  }) {
+    final $result = create();
+    if (limit != null) {
+      $result.limit = limit;
+    }
+    return $result;
+  }
+  ListRecentActionsRequest._() : super();
+  factory ListRecentActionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListRecentActionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentActionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'limit', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListRecentActionsRequest clone() => ListRecentActionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListRecentActionsRequest copyWith(void Function(ListRecentActionsRequest) updates) => super.copyWith((message) => updates(message as ListRecentActionsRequest)) as ListRecentActionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListRecentActionsRequest create() => ListRecentActionsRequest._();
+  ListRecentActionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListRecentActionsRequest> createRepeated() => $pb.PbList<ListRecentActionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListRecentActionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRecentActionsRequest>(create);
+  static ListRecentActionsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get limit => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set limit($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasLimit() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLimit() => clearField(1);
+}
+
+class RecentAction extends $pb.GeneratedMessage {
+  factory RecentAction({
+    $core.String? actionType,
+    $core.int? sidechainSlot,
+    $core.String? sidechainName,
+    $fixnum.Int64? amountSatoshi,
+    $core.int? ackCount,
+    $core.int? ackTotal,
+    $core.String? extraInfo,
+    $fixnum.Int64? createdAt,
+  }) {
+    final $result = create();
+    if (actionType != null) {
+      $result.actionType = actionType;
+    }
+    if (sidechainSlot != null) {
+      $result.sidechainSlot = sidechainSlot;
+    }
+    if (sidechainName != null) {
+      $result.sidechainName = sidechainName;
+    }
+    if (amountSatoshi != null) {
+      $result.amountSatoshi = amountSatoshi;
+    }
+    if (ackCount != null) {
+      $result.ackCount = ackCount;
+    }
+    if (ackTotal != null) {
+      $result.ackTotal = ackTotal;
+    }
+    if (extraInfo != null) {
+      $result.extraInfo = extraInfo;
+    }
+    if (createdAt != null) {
+      $result.createdAt = createdAt;
+    }
+    return $result;
+  }
+  RecentAction._() : super();
+  factory RecentAction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RecentAction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RecentAction', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'actionType')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'sidechainSlot', $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'sidechainName')
+    ..aInt64(4, _omitFieldNames ? '' : 'amountSatoshi')
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'ackCount', $pb.PbFieldType.OU3)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'ackTotal', $pb.PbFieldType.OU3)
+    ..aOS(7, _omitFieldNames ? '' : 'extraInfo')
+    ..aInt64(8, _omitFieldNames ? '' : 'createdAt')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RecentAction clone() => RecentAction()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RecentAction copyWith(void Function(RecentAction) updates) => super.copyWith((message) => updates(message as RecentAction)) as RecentAction;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecentAction create() => RecentAction._();
+  RecentAction createEmptyInstance() => create();
+  static $pb.PbList<RecentAction> createRepeated() => $pb.PbList<RecentAction>();
+  @$core.pragma('dart2js:noInline')
+  static RecentAction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RecentAction>(create);
+  static RecentAction? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get actionType => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set actionType($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasActionType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearActionType() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get sidechainSlot => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set sidechainSlot($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSidechainSlot() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSidechainSlot() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get sidechainName => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sidechainName($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSidechainName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSidechainName() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get amountSatoshi => $_getI64(3);
+  @$pb.TagNumber(4)
+  set amountSatoshi($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAmountSatoshi() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAmountSatoshi() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get ackCount => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set ackCount($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasAckCount() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAckCount() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get ackTotal => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set ackTotal($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasAckTotal() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearAckTotal() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get extraInfo => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set extraInfo($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasExtraInfo() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearExtraInfo() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get createdAt => $_getI64(7);
+  @$pb.TagNumber(8)
+  set createdAt($fixnum.Int64 v) { $_setInt64(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasCreatedAt() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearCreatedAt() => clearField(8);
+}
+
+class ListRecentActionsResponse extends $pb.GeneratedMessage {
+  factory ListRecentActionsResponse({
+    $core.Iterable<RecentAction>? actions,
+    $core.String? subtitle,
+  }) {
+    final $result = create();
+    if (actions != null) {
+      $result.actions.addAll(actions);
+    }
+    if (subtitle != null) {
+      $result.subtitle = subtitle;
+    }
+    return $result;
+  }
+  ListRecentActionsResponse._() : super();
+  factory ListRecentActionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListRecentActionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentActionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..pc<RecentAction>(1, _omitFieldNames ? '' : 'actions', $pb.PbFieldType.PM, subBuilder: RecentAction.create)
+    ..aOS(2, _omitFieldNames ? '' : 'subtitle')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListRecentActionsResponse clone() => ListRecentActionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListRecentActionsResponse copyWith(void Function(ListRecentActionsResponse) updates) => super.copyWith((message) => updates(message as ListRecentActionsResponse)) as ListRecentActionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListRecentActionsResponse create() => ListRecentActionsResponse._();
+  ListRecentActionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListRecentActionsResponse> createRepeated() => $pb.PbList<ListRecentActionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListRecentActionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRecentActionsResponse>(create);
+  static ListRecentActionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<RecentAction> get actions => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.String get subtitle => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set subtitle($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSubtitle() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSubtitle() => clearField(2);
+}
+
 class DrivechainServiceApi {
   $pb.RpcClient _client;
   DrivechainServiceApi(this._client);
@@ -1003,6 +1259,9 @@ class DrivechainServiceApi {
   ;
   $async.Future<ListWithdrawalsResponse> listWithdrawals($pb.ClientContext? ctx, ListWithdrawalsRequest request) =>
     _client.invoke<ListWithdrawalsResponse>(ctx, 'DrivechainService', 'ListWithdrawals', request, ListWithdrawalsResponse())
+  ;
+  $async.Future<ListRecentActionsResponse> listRecentActions($pb.ClientContext? ctx, ListRecentActionsRequest request) =>
+    _client.invoke<ListRecentActionsResponse>(ctx, 'DrivechainService', 'ListRecentActions', request, ListRecentActionsResponse())
   ;
 }
 

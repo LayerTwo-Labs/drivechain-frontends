@@ -37,6 +37,11 @@ class BitcoinConfProvider extends ChangeNotifier {
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
 
+  /// Returns true when running on mainnet, enabling demo mode with
+  /// simulated sidechain data. Users can explore the UI but cannot
+  /// launch sidechains or make deposits.
+  bool get isDemoMode => network != BitcoinNetwork.BITCOIN_NETWORK_MAINNET;
+
   /// Router for navigation (required for network swap dialogs)
   late final RootStackRouter router;
 

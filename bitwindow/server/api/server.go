@@ -179,6 +179,8 @@ func New(
 	drivechainClient := drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
 		validatorSvc,
 		walletSvc,
+		svcs.Database,
+		conf,
 	))
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 

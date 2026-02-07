@@ -200,41 +200,15 @@ class HomepageWidgetCatalog {
       description: 'Recent sidechain activity',
       size: WidgetSize.half,
       icon: SailSVGAsset.iconTransactions,
-      builder: (_) => RecentActionsCard(
-        title: 'Recent Actions',
-        subtitle: 'Users have made 49 382 transactions last month',
-        actions: [
-          ActionEntry(
-            avatar: Image.asset('packages/sail_ui/assets/pngs/zside.png', width: 40, height: 40),
-            title: 'Deposit',
-            subtitle: 'zSide',
-            value: '+ 10.000,000 BTC',
-          ),
-          ActionEntry(
-            avatar: Image.asset('packages/sail_ui/assets/pngs/thunder.png', width: 40, height: 40),
-            title: 'Withdrawal Executed',
-            subtitle: 'Thunder',
-            value: '- 100.0000,0000 BTC',
-          ),
-          ActionEntry(
-            avatar: Image.asset('packages/sail_ui/assets/pngs/bitnames.png', width: 40, height: 40),
-            title: 'Withdrawal Ack',
-            subtitle: 'BitNames',
-            value: '10 000 / 13 150 acks',
-          ),
-          ActionEntry(
-            avatar: Image.asset('packages/sail_ui/assets/pngs/bitassets.png', width: 40, height: 40),
-            title: 'New Sidechain Proposal',
-            subtitle: 'BitAssets',
-            value: '98/256 acks',
-          ),
-          ActionEntry(
-            avatar: Image.asset('packages/sail_ui/assets/pngs/thunder.png', width: 40, height: 40),
-            title: 'Sidechain Ack',
-            subtitle: 'Thunder',
-            value: 'Ethereum at slot 9',
-          ),
-        ],
+      builder: (_) => ViewModelBuilder<RecentActionsViewModel>.reactive(
+        viewModelBuilder: () => RecentActionsViewModel(),
+        builder: (context, viewModel, child) {
+          return RecentActionsCard(
+            title: 'Recent Actions',
+            subtitle: viewModel.subtitle,
+            actions: viewModel.actions,
+          );
+        },
       ),
     ),
   };
@@ -347,5 +321,97 @@ class HomepageWidgetCatalog {
         );
       },
     );
+  }
+}
+
+/// ViewModel for Recent Actions widget that fetches from the API in demo mode
+class RecentActionsViewModel extends BaseViewModel {
+  BitwindowRPC get _rpc => GetIt.I.get<BitwindowRPC>();
+
+  List<ActionEntry> actions = [];
+  String? subtitle;
+
+  RecentActionsViewModel() {
+    _fetchActions();
+  }
+
+  Future<void> _fetchActions() async {
+    try {
+      final response = await _rpc.drivechain.listRecentActions(limit: 10);
+
+      actions = response.actions.map((action) {
+        return ActionEntry(
+          avatar: _getAvatarForSidechain(action.sidechainSlot),
+          title: _getTitleForAction(action.actionType),
+          subtitle: action.sidechainName,
+          value: _getValueForAction(action),
+        );
+      }).toList();
+
+      subtitle = response.subtitle.isNotEmpty ? response.subtitle : null;
+      notifyListeners();
+    } catch (e) {
+      // If API fails (e.g., not in demo mode), show empty list
+      actions = [];
+      subtitle = null;
+      notifyListeners();
+    }
+  }
+
+  Widget _getAvatarForSidechain(int slot) {
+    final assetName = switch (slot) {
+      2 => 'bitnames',
+      4 => 'bitassets',
+      9 => 'thunder',
+      13 => 'truthcoin',
+      98 => 'zside',
+      99 => 'photon',
+      _ => 'thunder', // fallback
+    };
+    return Image.asset(
+      'packages/sail_ui/assets/pngs/$assetName.png',
+      width: 40,
+      height: 40,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: SailTheme.of(context).colors.backgroundSecondary,
+        ),
+      ),
+    );
+  }
+
+  String _getTitleForAction(String actionType) {
+    return switch (actionType) {
+      'deposit' => 'Deposit',
+      'withdrawal' => 'Withdrawal Executed',
+      'withdrawal_ack' => 'Withdrawal Ack',
+      'sidechain_proposal' => 'New Sidechain Proposal',
+      'sidechain_ack' => 'Sidechain Ack',
+      _ => actionType,
+    };
+  }
+
+  String _getValueForAction(dynamic action) {
+    return switch (action.actionType) {
+      'deposit' => '+ ${_formatBTC(action.amountSatoshi)} BTC',
+      'withdrawal' => '- ${_formatBTC(action.amountSatoshi)} BTC',
+      'withdrawal_ack' => '${_formatNumber(action.ackCount)} / ${_formatNumber(action.ackTotal)} acks',
+      'sidechain_proposal' => '${action.ackCount}/${action.ackTotal} acks',
+      'sidechain_ack' => action.extraInfo,
+      _ => '',
+    };
+  }
+
+  String _formatBTC(int satoshi) {
+    final btc = satoshi / 100000000;
+    return btc.toStringAsFixed(btc < 1 ? 6 : 4);
+  }
+
+  String _formatNumber(int number) {
+    if (number < 1000) return number.toString();
+    return '${(number / 1000).toStringAsFixed(0)} ${number % 1000}'.trim();
   }
 }

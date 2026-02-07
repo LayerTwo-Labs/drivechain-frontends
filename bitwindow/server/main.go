@@ -228,6 +228,15 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		errs <- srv.NotificationEngine.Run(ctx)
 	}()
 
+	// Start demo engine if in demo mode (mainnet)
+	if conf.IsDemoMode() {
+		demoEngine := engines.NewDemoEngine(db)
+		go func() {
+			errs <- demoEngine.Run(ctx)
+		}()
+		log.Info().Msg("demo mode enabled: simulating sidechain activity")
+	}
+
 	// If Bitcoin Core publishes raw transactions, we can use this to handle
 	// pending mempool entries. ZMQ notifications might not be available
 	// right away. We want a retry mechanism that doesn't stall startup for

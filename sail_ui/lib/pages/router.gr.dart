@@ -106,10 +106,11 @@ class ComingSoonRoute extends _i15.PageRouteInfo<ComingSoonRouteArgs> {
   ComingSoonRoute({
     _i16.Key? key,
     required _i15.RootStackRouter router,
+    required String message,
     List<_i15.PageRouteInfo>? children,
   }) : super(
          ComingSoonRoute.name,
-         args: ComingSoonRouteArgs(key: key, router: router),
+         args: ComingSoonRouteArgs(key: key, router: router, message: message),
          initialChildren: children,
        );
 
@@ -119,32 +120,44 @@ class ComingSoonRoute extends _i15.PageRouteInfo<ComingSoonRouteArgs> {
     name,
     builder: (data) {
       final args = data.argsAs<ComingSoonRouteArgs>();
-      return _i3.ComingSoonPage(key: args.key, router: args.router);
+      return _i3.ComingSoonPage(
+        key: args.key,
+        router: args.router,
+        message: args.message,
+      );
     },
   );
 }
 
 class ComingSoonRouteArgs {
-  const ComingSoonRouteArgs({this.key, required this.router});
+  const ComingSoonRouteArgs({
+    this.key,
+    required this.router,
+    required this.message,
+  });
 
   final _i16.Key? key;
 
   final _i15.RootStackRouter router;
 
+  final String message;
+
   @override
   String toString() {
-    return 'ComingSoonRouteArgs{key: $key, router: $router}';
+    return 'ComingSoonRouteArgs{key: $key, router: $router, message: $message}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! ComingSoonRouteArgs) return false;
-    return key == other.key && router == other.router;
+    return key == other.key &&
+        router == other.router &&
+        message == other.message;
   }
 
   @override
-  int get hashCode => key.hashCode ^ router.hashCode;
+  int get hashCode => key.hashCode ^ router.hashCode ^ message.hashCode;
 }
 
 /// generated route for

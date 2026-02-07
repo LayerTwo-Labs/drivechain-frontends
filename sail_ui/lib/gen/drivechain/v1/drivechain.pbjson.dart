@@ -196,6 +196,56 @@ final $typed_data.Uint8List listWithdrawalsResponseDescriptor = $convert.base64D
     'ChdMaXN0V2l0aGRyYXdhbHNSZXNwb25zZRI5CgdidW5kbGVzGAEgAygLMh8uZHJpdmVjaGFpbi'
     '52MS5XaXRoZHJhd2FsQnVuZGxlUgdidW5kbGVz');
 
+@$core.Deprecated('Use listRecentActionsRequestDescriptor instead')
+const ListRecentActionsRequest$json = {
+  '1': 'ListRecentActionsRequest',
+  '2': [
+    {'1': 'limit', '3': 1, '4': 1, '5': 13, '10': 'limit'},
+  ],
+};
+
+/// Descriptor for `ListRecentActionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listRecentActionsRequestDescriptor = $convert.base64Decode(
+    'ChhMaXN0UmVjZW50QWN0aW9uc1JlcXVlc3QSFAoFbGltaXQYASABKA1SBWxpbWl0');
+
+@$core.Deprecated('Use recentActionDescriptor instead')
+const RecentAction$json = {
+  '1': 'RecentAction',
+  '2': [
+    {'1': 'action_type', '3': 1, '4': 1, '5': 9, '10': 'actionType'},
+    {'1': 'sidechain_slot', '3': 2, '4': 1, '5': 13, '10': 'sidechainSlot'},
+    {'1': 'sidechain_name', '3': 3, '4': 1, '5': 9, '10': 'sidechainName'},
+    {'1': 'amount_satoshi', '3': 4, '4': 1, '5': 3, '10': 'amountSatoshi'},
+    {'1': 'ack_count', '3': 5, '4': 1, '5': 13, '10': 'ackCount'},
+    {'1': 'ack_total', '3': 6, '4': 1, '5': 13, '10': 'ackTotal'},
+    {'1': 'extra_info', '3': 7, '4': 1, '5': 9, '10': 'extraInfo'},
+    {'1': 'created_at', '3': 8, '4': 1, '5': 3, '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `RecentAction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recentActionDescriptor = $convert.base64Decode(
+    'CgxSZWNlbnRBY3Rpb24SHwoLYWN0aW9uX3R5cGUYASABKAlSCmFjdGlvblR5cGUSJQoOc2lkZW'
+    'NoYWluX3Nsb3QYAiABKA1SDXNpZGVjaGFpblNsb3QSJQoOc2lkZWNoYWluX25hbWUYAyABKAlS'
+    'DXNpZGVjaGFpbk5hbWUSJQoOYW1vdW50X3NhdG9zaGkYBCABKANSDWFtb3VudFNhdG9zaGkSGw'
+    'oJYWNrX2NvdW50GAUgASgNUghhY2tDb3VudBIbCglhY2tfdG90YWwYBiABKA1SCGFja1RvdGFs'
+    'Eh0KCmV4dHJhX2luZm8YByABKAlSCWV4dHJhSW5mbxIdCgpjcmVhdGVkX2F0GAggASgDUgljcm'
+    'VhdGVkQXQ=');
+
+@$core.Deprecated('Use listRecentActionsResponseDescriptor instead')
+const ListRecentActionsResponse$json = {
+  '1': 'ListRecentActionsResponse',
+  '2': [
+    {'1': 'actions', '3': 1, '4': 3, '5': 11, '6': '.drivechain.v1.RecentAction', '10': 'actions'},
+    {'1': 'subtitle', '3': 2, '4': 1, '5': 9, '10': 'subtitle'},
+  ],
+};
+
+/// Descriptor for `ListRecentActionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listRecentActionsResponseDescriptor = $convert.base64Decode(
+    'ChlMaXN0UmVjZW50QWN0aW9uc1Jlc3BvbnNlEjUKB2FjdGlvbnMYASADKAsyGy5kcml2ZWNoYW'
+    'luLnYxLlJlY2VudEFjdGlvblIHYWN0aW9ucxIaCghzdWJ0aXRsZRgCIAEoCVIIc3VidGl0bGU=');
+
 const $core.Map<$core.String, $core.dynamic> DrivechainServiceBase$json = {
   '1': 'DrivechainService',
   '2': [
@@ -203,6 +253,7 @@ const $core.Map<$core.String, $core.dynamic> DrivechainServiceBase$json = {
     {'1': 'ListSidechainProposals', '2': '.drivechain.v1.ListSidechainProposalsRequest', '3': '.drivechain.v1.ListSidechainProposalsResponse'},
     {'1': 'ProposeSidechain', '2': '.drivechain.v1.ProposeSidechainRequest', '3': '.drivechain.v1.ProposeSidechainResponse'},
     {'1': 'ListWithdrawals', '2': '.drivechain.v1.ListWithdrawalsRequest', '3': '.drivechain.v1.ListWithdrawalsResponse'},
+    {'1': 'ListRecentActions', '2': '.drivechain.v1.ListRecentActionsRequest', '3': '.drivechain.v1.ListRecentActionsResponse'},
   ],
 };
 
@@ -219,6 +270,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Drivechain
   '.drivechain.v1.ListWithdrawalsRequest': ListWithdrawalsRequest$json,
   '.drivechain.v1.ListWithdrawalsResponse': ListWithdrawalsResponse$json,
   '.drivechain.v1.WithdrawalBundle': WithdrawalBundle$json,
+  '.drivechain.v1.ListRecentActionsRequest': ListRecentActionsRequest$json,
+  '.drivechain.v1.ListRecentActionsResponse': ListRecentActionsResponse$json,
+  '.drivechain.v1.RecentAction': RecentAction$json,
 };
 
 /// Descriptor for `DrivechainService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -230,5 +284,7 @@ final $typed_data.Uint8List drivechainServiceDescriptor = $convert.base64Decode(
     'YWxzUmVzcG9uc2USYwoQUHJvcG9zZVNpZGVjaGFpbhImLmRyaXZlY2hhaW4udjEuUHJvcG9zZV'
     'NpZGVjaGFpblJlcXVlc3QaJy5kcml2ZWNoYWluLnYxLlByb3Bvc2VTaWRlY2hhaW5SZXNwb25z'
     'ZRJgCg9MaXN0V2l0aGRyYXdhbHMSJS5kcml2ZWNoYWluLnYxLkxpc3RXaXRoZHJhd2Fsc1JlcX'
-    'Vlc3QaJi5kcml2ZWNoYWluLnYxLkxpc3RXaXRoZHJhd2Fsc1Jlc3BvbnNl');
+    'Vlc3QaJi5kcml2ZWNoYWluLnYxLkxpc3RXaXRoZHJhd2Fsc1Jlc3BvbnNlEmYKEUxpc3RSZWNl'
+    'bnRBY3Rpb25zEicuZHJpdmVjaGFpbi52MS5MaXN0UmVjZW50QWN0aW9uc1JlcXVlc3QaKC5kcm'
+    'l2ZWNoYWluLnYxLkxpc3RSZWNlbnRBY3Rpb25zUmVzcG9uc2U=');
 
