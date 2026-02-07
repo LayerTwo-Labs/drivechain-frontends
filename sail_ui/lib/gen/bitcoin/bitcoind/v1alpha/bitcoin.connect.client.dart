@@ -252,6 +252,23 @@ extension type BitcoinServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<bitcoinbitcoindv1alphabitcoin.ListDescriptorsResponse> listDescriptors(
+    bitcoinbitcoindv1alphabitcoin.ListDescriptorsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinService.listDescriptors,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<bitcoinbitcoindv1alphabitcoin.ListWalletsResponse> listWallets(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
@@ -536,6 +553,40 @@ extension type BitcoinServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.BitcoinService.unloadWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoinbitcoindv1alphabitcoin.RescanBlockchainResponse> rescanBlockchain(
+    bitcoinbitcoindv1alphabitcoin.RescanBlockchainRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinService.rescanBlockchain,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoinbitcoindv1alphabitcoin.AbortRescanResponse> abortRescan(
+    bitcoinbitcoindv1alphabitcoin.AbortRescanRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinService.abortRescan,
       input,
       signal: signal,
       headers: headers,

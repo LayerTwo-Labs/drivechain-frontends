@@ -4150,6 +4150,304 @@ class DecodeRawTransactionResponse extends $pb.GeneratedMessage {
   $core.List<Output> get outputs => $_getList(8);
 }
 
+class ListDescriptorsRequest extends $pb.GeneratedMessage {
+  factory ListDescriptorsRequest({
+    $core.String? wallet,
+    $core.bool? includePrivateDescriptors,
+  }) {
+    final $result = create();
+    if (wallet != null) {
+      $result.wallet = wallet;
+    }
+    if (includePrivateDescriptors != null) {
+      $result.includePrivateDescriptors = includePrivateDescriptors;
+    }
+    return $result;
+  }
+  ListDescriptorsRequest._() : super();
+  factory ListDescriptorsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListDescriptorsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDescriptorsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'wallet')
+    ..aOB(2, _omitFieldNames ? '' : 'includePrivateDescriptors')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsRequest clone() => ListDescriptorsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsRequest copyWith(void Function(ListDescriptorsRequest) updates) => super.copyWith((message) => updates(message as ListDescriptorsRequest)) as ListDescriptorsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsRequest create() => ListDescriptorsRequest._();
+  ListDescriptorsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListDescriptorsRequest> createRepeated() => $pb.PbList<ListDescriptorsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListDescriptorsRequest>(create);
+  static ListDescriptorsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get wallet => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set wallet($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWallet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWallet() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get includePrivateDescriptors => $_getBF(1);
+  @$pb.TagNumber(2)
+  set includePrivateDescriptors($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasIncludePrivateDescriptors() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearIncludePrivateDescriptors() => clearField(2);
+}
+
+class ListDescriptorsResponse_Range extends $pb.GeneratedMessage {
+  factory ListDescriptorsResponse_Range({
+    $core.int? start,
+    $core.int? end,
+  }) {
+    final $result = create();
+    if (start != null) {
+      $result.start = start;
+    }
+    if (end != null) {
+      $result.end = end;
+    }
+    return $result;
+  }
+  ListDescriptorsResponse_Range._() : super();
+  factory ListDescriptorsResponse_Range.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListDescriptorsResponse_Range.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDescriptorsResponse.Range', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'start', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'end', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsResponse_Range clone() => ListDescriptorsResponse_Range()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsResponse_Range copyWith(void Function(ListDescriptorsResponse_Range) updates) => super.copyWith((message) => updates(message as ListDescriptorsResponse_Range)) as ListDescriptorsResponse_Range;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsResponse_Range create() => ListDescriptorsResponse_Range._();
+  ListDescriptorsResponse_Range createEmptyInstance() => create();
+  static $pb.PbList<ListDescriptorsResponse_Range> createRepeated() => $pb.PbList<ListDescriptorsResponse_Range>();
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsResponse_Range getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListDescriptorsResponse_Range>(create);
+  static ListDescriptorsResponse_Range? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get start => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set start($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStart() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStart() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get end => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set end($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasEnd() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEnd() => clearField(2);
+}
+
+class ListDescriptorsResponse_Descriptor extends $pb.GeneratedMessage {
+  factory ListDescriptorsResponse_Descriptor({
+    $core.String? descriptor,
+    $0.Timestamp? timestamp,
+    $core.bool? active,
+    $core.bool? internal,
+    ListDescriptorsResponse_Range? range,
+    $core.int? nextIndex,
+  }) {
+    final $result = create();
+    if (descriptor != null) {
+      $result.descriptor = descriptor;
+    }
+    if (timestamp != null) {
+      $result.timestamp = timestamp;
+    }
+    if (active != null) {
+      $result.active = active;
+    }
+    if (internal != null) {
+      $result.internal = internal;
+    }
+    if (range != null) {
+      $result.range = range;
+    }
+    if (nextIndex != null) {
+      $result.nextIndex = nextIndex;
+    }
+    return $result;
+  }
+  ListDescriptorsResponse_Descriptor._() : super();
+  factory ListDescriptorsResponse_Descriptor.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListDescriptorsResponse_Descriptor.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDescriptorsResponse.Descriptor', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'descriptor')
+    ..aOM<$0.Timestamp>(2, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
+    ..aOB(3, _omitFieldNames ? '' : 'active')
+    ..aOB(4, _omitFieldNames ? '' : 'internal')
+    ..aOM<ListDescriptorsResponse_Range>(5, _omitFieldNames ? '' : 'range', subBuilder: ListDescriptorsResponse_Range.create)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'nextIndex', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsResponse_Descriptor clone() => ListDescriptorsResponse_Descriptor()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsResponse_Descriptor copyWith(void Function(ListDescriptorsResponse_Descriptor) updates) => super.copyWith((message) => updates(message as ListDescriptorsResponse_Descriptor)) as ListDescriptorsResponse_Descriptor;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsResponse_Descriptor create() => ListDescriptorsResponse_Descriptor._();
+  ListDescriptorsResponse_Descriptor createEmptyInstance() => create();
+  static $pb.PbList<ListDescriptorsResponse_Descriptor> createRepeated() => $pb.PbList<ListDescriptorsResponse_Descriptor>();
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsResponse_Descriptor getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListDescriptorsResponse_Descriptor>(create);
+  static ListDescriptorsResponse_Descriptor? _defaultInstance;
+
+  /// Can contain private keys. Sensitive!
+  @$pb.TagNumber(1)
+  $core.String get descriptor => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set descriptor($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDescriptor() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDescriptor() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $0.Timestamp get timestamp => $_getN(1);
+  @$pb.TagNumber(2)
+  set timestamp($0.Timestamp v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTimestamp() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTimestamp() => clearField(2);
+  @$pb.TagNumber(2)
+  $0.Timestamp ensureTimestamp() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.bool get active => $_getBF(2);
+  @$pb.TagNumber(3)
+  set active($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasActive() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearActive() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get internal => $_getBF(3);
+  @$pb.TagNumber(4)
+  set internal($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasInternal() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearInternal() => clearField(4);
+
+  @$pb.TagNumber(5)
+  ListDescriptorsResponse_Range get range => $_getN(4);
+  @$pb.TagNumber(5)
+  set range(ListDescriptorsResponse_Range v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasRange() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRange() => clearField(5);
+  @$pb.TagNumber(5)
+  ListDescriptorsResponse_Range ensureRange() => $_ensure(4);
+
+  /// Only present for ranged descriptors
+  @$pb.TagNumber(7)
+  $core.int get nextIndex => $_getIZ(5);
+  @$pb.TagNumber(7)
+  set nextIndex($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasNextIndex() => $_has(5);
+  @$pb.TagNumber(7)
+  void clearNextIndex() => clearField(7);
+}
+
+class ListDescriptorsResponse extends $pb.GeneratedMessage {
+  factory ListDescriptorsResponse({
+    $core.Iterable<ListDescriptorsResponse_Descriptor>? descriptors,
+  }) {
+    final $result = create();
+    if (descriptors != null) {
+      $result.descriptors.addAll(descriptors);
+    }
+    return $result;
+  }
+  ListDescriptorsResponse._() : super();
+  factory ListDescriptorsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListDescriptorsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDescriptorsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..pc<ListDescriptorsResponse_Descriptor>(1, _omitFieldNames ? '' : 'descriptors', $pb.PbFieldType.PM, subBuilder: ListDescriptorsResponse_Descriptor.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsResponse clone() => ListDescriptorsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListDescriptorsResponse copyWith(void Function(ListDescriptorsResponse) updates) => super.copyWith((message) => updates(message as ListDescriptorsResponse)) as ListDescriptorsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsResponse create() => ListDescriptorsResponse._();
+  ListDescriptorsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListDescriptorsResponse> createRepeated() => $pb.PbList<ListDescriptorsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListDescriptorsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListDescriptorsResponse>(create);
+  static ListDescriptorsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<ListDescriptorsResponse_Descriptor> get descriptors => $_getList(0);
+}
+
 class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
   factory ImportDescriptorsRequest_Request({
     $core.String? descriptor,
@@ -7040,6 +7338,248 @@ class UnloadWalletResponse extends $pb.GeneratedMessage {
   static UnloadWalletResponse? _defaultInstance;
 }
 
+class RescanBlockchainRequest extends $pb.GeneratedMessage {
+  factory RescanBlockchainRequest({
+    $core.String? wallet,
+    $core.int? startHeight,
+    $core.int? endHeight,
+  }) {
+    final $result = create();
+    if (wallet != null) {
+      $result.wallet = wallet;
+    }
+    if (startHeight != null) {
+      $result.startHeight = startHeight;
+    }
+    if (endHeight != null) {
+      $result.endHeight = endHeight;
+    }
+    return $result;
+  }
+  RescanBlockchainRequest._() : super();
+  factory RescanBlockchainRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RescanBlockchainRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RescanBlockchainRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'wallet')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'startHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'endHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RescanBlockchainRequest clone() => RescanBlockchainRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RescanBlockchainRequest copyWith(void Function(RescanBlockchainRequest) updates) => super.copyWith((message) => updates(message as RescanBlockchainRequest)) as RescanBlockchainRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RescanBlockchainRequest create() => RescanBlockchainRequest._();
+  RescanBlockchainRequest createEmptyInstance() => create();
+  static $pb.PbList<RescanBlockchainRequest> createRepeated() => $pb.PbList<RescanBlockchainRequest>();
+  @$core.pragma('dart2js:noInline')
+  static RescanBlockchainRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RescanBlockchainRequest>(create);
+  static RescanBlockchainRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get wallet => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set wallet($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWallet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWallet() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get startHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set startHeight($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasStartHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStartHeight() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get endHeight => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set endHeight($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasEndHeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEndHeight() => clearField(3);
+}
+
+class RescanBlockchainResponse extends $pb.GeneratedMessage {
+  factory RescanBlockchainResponse({
+    $core.int? startHeight,
+    $core.int? stopHeight,
+  }) {
+    final $result = create();
+    if (startHeight != null) {
+      $result.startHeight = startHeight;
+    }
+    if (stopHeight != null) {
+      $result.stopHeight = stopHeight;
+    }
+    return $result;
+  }
+  RescanBlockchainResponse._() : super();
+  factory RescanBlockchainResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RescanBlockchainResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RescanBlockchainResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'startHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'stopHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RescanBlockchainResponse clone() => RescanBlockchainResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RescanBlockchainResponse copyWith(void Function(RescanBlockchainResponse) updates) => super.copyWith((message) => updates(message as RescanBlockchainResponse)) as RescanBlockchainResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RescanBlockchainResponse create() => RescanBlockchainResponse._();
+  RescanBlockchainResponse createEmptyInstance() => create();
+  static $pb.PbList<RescanBlockchainResponse> createRepeated() => $pb.PbList<RescanBlockchainResponse>();
+  @$core.pragma('dart2js:noInline')
+  static RescanBlockchainResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RescanBlockchainResponse>(create);
+  static RescanBlockchainResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get startHeight => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set startHeight($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStartHeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStartHeight() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get stopHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set stopHeight($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasStopHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStopHeight() => clearField(2);
+}
+
+class AbortRescanRequest extends $pb.GeneratedMessage {
+  factory AbortRescanRequest({
+    $core.String? wallet,
+  }) {
+    final $result = create();
+    if (wallet != null) {
+      $result.wallet = wallet;
+    }
+    return $result;
+  }
+  AbortRescanRequest._() : super();
+  factory AbortRescanRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AbortRescanRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AbortRescanRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'wallet')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AbortRescanRequest clone() => AbortRescanRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AbortRescanRequest copyWith(void Function(AbortRescanRequest) updates) => super.copyWith((message) => updates(message as AbortRescanRequest)) as AbortRescanRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AbortRescanRequest create() => AbortRescanRequest._();
+  AbortRescanRequest createEmptyInstance() => create();
+  static $pb.PbList<AbortRescanRequest> createRepeated() => $pb.PbList<AbortRescanRequest>();
+  @$core.pragma('dart2js:noInline')
+  static AbortRescanRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AbortRescanRequest>(create);
+  static AbortRescanRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get wallet => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set wallet($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWallet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWallet() => clearField(1);
+}
+
+class AbortRescanResponse extends $pb.GeneratedMessage {
+  factory AbortRescanResponse({
+    $core.bool? aborted,
+  }) {
+    final $result = create();
+    if (aborted != null) {
+      $result.aborted = aborted;
+    }
+    return $result;
+  }
+  AbortRescanResponse._() : super();
+  factory AbortRescanResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AbortRescanResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AbortRescanResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'aborted')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AbortRescanResponse clone() => AbortRescanResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AbortRescanResponse copyWith(void Function(AbortRescanResponse) updates) => super.copyWith((message) => updates(message as AbortRescanResponse)) as AbortRescanResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AbortRescanResponse create() => AbortRescanResponse._();
+  AbortRescanResponse createEmptyInstance() => create();
+  static $pb.PbList<AbortRescanResponse> createRepeated() => $pb.PbList<AbortRescanResponse>();
+  @$core.pragma('dart2js:noInline')
+  static AbortRescanResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AbortRescanResponse>(create);
+  static AbortRescanResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get aborted => $_getBF(0);
+  @$pb.TagNumber(1)
+  set aborted($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAborted() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAborted() => clearField(1);
+}
+
 class KeyPoolRefillRequest extends $pb.GeneratedMessage {
   factory KeyPoolRefillRequest({
     $core.int? newSize,
@@ -7897,19 +8437,19 @@ class CreateRawTransactionResponse extends $pb.GeneratedMessage {
 
 class SendRawTransactionRequest extends $pb.GeneratedMessage {
   factory SendRawTransactionRequest({
-    $core.String? hexString,
-    $core.double? maxfeerate,
-    $core.double? maxburnamount,
+    RawTransaction? tx,
+    $core.double? maxFeeRate,
+    $core.double? maxBurnAmount,
   }) {
     final $result = create();
-    if (hexString != null) {
-      $result.hexString = hexString;
+    if (tx != null) {
+      $result.tx = tx;
     }
-    if (maxfeerate != null) {
-      $result.maxfeerate = maxfeerate;
+    if (maxFeeRate != null) {
+      $result.maxFeeRate = maxFeeRate;
     }
-    if (maxburnamount != null) {
-      $result.maxburnamount = maxburnamount;
+    if (maxBurnAmount != null) {
+      $result.maxBurnAmount = maxBurnAmount;
     }
     return $result;
   }
@@ -7918,9 +8458,9 @@ class SendRawTransactionRequest extends $pb.GeneratedMessage {
   factory SendRawTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendRawTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'hexString')
-    ..a<$core.double>(2, _omitFieldNames ? '' : 'maxfeerate', $pb.PbFieldType.OD)
-    ..a<$core.double>(3, _omitFieldNames ? '' : 'maxburnamount', $pb.PbFieldType.OD)
+    ..aOM<RawTransaction>(1, _omitFieldNames ? '' : 'tx', subBuilder: RawTransaction.create)
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'maxFeeRate', $pb.PbFieldType.OD)
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'maxBurnAmount', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -7946,31 +8486,33 @@ class SendRawTransactionRequest extends $pb.GeneratedMessage {
   static SendRawTransactionRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get hexString => $_getSZ(0);
+  RawTransaction get tx => $_getN(0);
   @$pb.TagNumber(1)
-  set hexString($core.String v) { $_setString(0, v); }
+  set tx(RawTransaction v) { setField(1, v); }
   @$pb.TagNumber(1)
-  $core.bool hasHexString() => $_has(0);
+  $core.bool hasTx() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHexString() => clearField(1);
+  void clearTx() => clearField(1);
+  @$pb.TagNumber(1)
+  RawTransaction ensureTx() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $core.double get maxfeerate => $_getN(1);
+  $core.double get maxFeeRate => $_getN(1);
   @$pb.TagNumber(2)
-  set maxfeerate($core.double v) { $_setDouble(1, v); }
+  set maxFeeRate($core.double v) { $_setDouble(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasMaxfeerate() => $_has(1);
+  $core.bool hasMaxFeeRate() => $_has(1);
   @$pb.TagNumber(2)
-  void clearMaxfeerate() => clearField(2);
+  void clearMaxFeeRate() => clearField(2);
 
   @$pb.TagNumber(3)
-  $core.double get maxburnamount => $_getN(2);
+  $core.double get maxBurnAmount => $_getN(2);
   @$pb.TagNumber(3)
-  set maxburnamount($core.double v) { $_setDouble(2, v); }
+  set maxBurnAmount($core.double v) { $_setDouble(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasMaxburnamount() => $_has(2);
+  $core.bool hasMaxBurnAmount() => $_has(2);
   @$pb.TagNumber(3)
-  void clearMaxburnamount() => clearField(3);
+  void clearMaxBurnAmount() => clearField(3);
 }
 
 class SendRawTransactionResponse extends $pb.GeneratedMessage {
@@ -10406,6 +10948,9 @@ class BitcoinServiceApi {
   $async.Future<ImportDescriptorsResponse> importDescriptors($pb.ClientContext? ctx, ImportDescriptorsRequest request) =>
     _client.invoke<ImportDescriptorsResponse>(ctx, 'BitcoinService', 'ImportDescriptors', request, ImportDescriptorsResponse())
   ;
+  $async.Future<ListDescriptorsResponse> listDescriptors($pb.ClientContext? ctx, ListDescriptorsRequest request) =>
+    _client.invoke<ListDescriptorsResponse>(ctx, 'BitcoinService', 'ListDescriptors', request, ListDescriptorsResponse())
+  ;
   $async.Future<ListWalletsResponse> listWallets($pb.ClientContext? ctx, $3.Empty request) =>
     _client.invoke<ListWalletsResponse>(ctx, 'BitcoinService', 'ListWallets', request, ListWalletsResponse())
   ;
@@ -10456,6 +11001,12 @@ class BitcoinServiceApi {
   ;
   $async.Future<UnloadWalletResponse> unloadWallet($pb.ClientContext? ctx, UnloadWalletRequest request) =>
     _client.invoke<UnloadWalletResponse>(ctx, 'BitcoinService', 'UnloadWallet', request, UnloadWalletResponse())
+  ;
+  $async.Future<RescanBlockchainResponse> rescanBlockchain($pb.ClientContext? ctx, RescanBlockchainRequest request) =>
+    _client.invoke<RescanBlockchainResponse>(ctx, 'BitcoinService', 'RescanBlockchain', request, RescanBlockchainResponse())
+  ;
+  $async.Future<AbortRescanResponse> abortRescan($pb.ClientContext? ctx, AbortRescanRequest request) =>
+    _client.invoke<AbortRescanResponse>(ctx, 'BitcoinService', 'AbortRescan', request, AbortRescanResponse())
   ;
   $async.Future<KeyPoolRefillResponse> keyPoolRefill($pb.ClientContext? ctx, KeyPoolRefillRequest request) =>
     _client.invoke<KeyPoolRefillResponse>(ctx, 'BitcoinService', 'KeyPoolRefill', request, KeyPoolRefillResponse())

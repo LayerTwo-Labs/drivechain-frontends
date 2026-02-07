@@ -114,6 +114,13 @@ abstract final class BitcoinService {
     bitcoinbitcoindv1alphabitcoin.ImportDescriptorsResponse.new,
   );
 
+  static const listDescriptors = connect.Spec(
+    '/$name/ListDescriptors',
+    connect.StreamType.unary,
+    bitcoinbitcoindv1alphabitcoin.ListDescriptorsRequest.new,
+    bitcoinbitcoindv1alphabitcoin.ListDescriptorsResponse.new,
+  );
+
   static const listWallets = connect.Spec(
     '/$name/ListWallets',
     connect.StreamType.unary,
@@ -234,6 +241,20 @@ abstract final class BitcoinService {
     connect.StreamType.unary,
     bitcoinbitcoindv1alphabitcoin.UnloadWalletRequest.new,
     bitcoinbitcoindv1alphabitcoin.UnloadWalletResponse.new,
+  );
+
+  static const rescanBlockchain = connect.Spec(
+    '/$name/RescanBlockchain',
+    connect.StreamType.unary,
+    bitcoinbitcoindv1alphabitcoin.RescanBlockchainRequest.new,
+    bitcoinbitcoindv1alphabitcoin.RescanBlockchainResponse.new,
+  );
+
+  static const abortRescan = connect.Spec(
+    '/$name/AbortRescan',
+    connect.StreamType.unary,
+    bitcoinbitcoindv1alphabitcoin.AbortRescanRequest.new,
+    bitcoinbitcoindv1alphabitcoin.AbortRescanResponse.new,
   );
 
   /// Key/Address management
