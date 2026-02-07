@@ -194,6 +194,49 @@ class HomepageWidgetCatalog {
         child: const PeersTableWidget(),
       ),
     ),
+    'recent_actions': HomepageWidgetInfo(
+      id: 'recent_actions',
+      name: 'Recent Actions',
+      description: 'Recent sidechain activity',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconTransactions,
+      builder: (_) => RecentActionsCard(
+        title: 'Recent Actions',
+        subtitle: 'Users have made 49 382 transactions last month',
+        actions: [
+          ActionEntry(
+            avatar: Image.asset('packages/sail_ui/assets/pngs/zside.png', width: 40, height: 40),
+            title: 'Deposit',
+            subtitle: 'zSide',
+            value: '+ 10.000,000 BTC',
+          ),
+          ActionEntry(
+            avatar: Image.asset('packages/sail_ui/assets/pngs/thunder.png', width: 40, height: 40),
+            title: 'Withdrawal Executed',
+            subtitle: 'Thunder',
+            value: '- 100.0000,0000 BTC',
+          ),
+          ActionEntry(
+            avatar: Image.asset('packages/sail_ui/assets/pngs/bitnames.png', width: 40, height: 40),
+            title: 'Withdrawal Ack',
+            subtitle: 'BitNames',
+            value: '10 000 / 13 150 acks',
+          ),
+          ActionEntry(
+            avatar: Image.asset('packages/sail_ui/assets/pngs/bitassets.png', width: 40, height: 40),
+            title: 'New Sidechain Proposal',
+            subtitle: 'BitAssets',
+            value: '98/256 acks',
+          ),
+          ActionEntry(
+            avatar: Image.asset('packages/sail_ui/assets/pngs/thunder.png', width: 40, height: 40),
+            title: 'Sidechain Ack',
+            subtitle: 'Thunder',
+            value: 'Ethereum at slot 9',
+          ),
+        ],
+      ),
+    ),
   };
 
   static const _sidechainWidgetIds = {'fast_withdrawal', 'sidechains_compact'};
@@ -252,7 +295,10 @@ class HomepageWidgetCatalog {
           child: GestureDetector(
             onTap: () {
               AutoRouter.of(context).push(
-                ComingSoonRoute(router: GetIt.I.get<AppRouter>()),
+                ComingSoonRoute(
+                  router: GetIt.I.get<AppRouter>(),
+                  message: 'Terribly sorry, but this is not available on mainnet yet.',
+                ),
               );
             },
             child: Opacity(

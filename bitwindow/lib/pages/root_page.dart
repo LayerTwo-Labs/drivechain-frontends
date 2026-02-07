@@ -143,13 +143,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   List<CommandItem> _getMenuCommands() {
     return [
-      // Debug/Test
-      CommandItem(
-        label: 'Coming Soon Page',
-        category: 'Debug',
-        onSelected: () => GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>())),
-      ),
-
       // Your Wallet
       CommandItem(
         label: 'Create New Wallet',
@@ -250,7 +243,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () {
           if (!_confProvider.networkSupportsSidechains) {
-            GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
+            GetIt.I.get<AppRouter>().push(
+              ComingSoonRoute(
+                router: GetIt.I.get<AppRouter>(),
+                message:
+                    "The M4 Explorer would let you view sidechain withdrawals, coins flowing safely back to mainnet. But alas, Drivechains aren't activated yet.",
+              ),
+            );
             return;
           }
           GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
@@ -275,10 +274,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         label: 'Sidechains',
         category: 'Use Bitcoin',
         onSelected: () {
-          if (!_confProvider.networkSupportsSidechains) {
-            GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
-            return;
-          }
           final tabsRouter = _routerKey.currentState?.controller;
           tabsRouter?.setActiveIndex(2);
         },
@@ -875,10 +870,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Sidechains',
                       onSelected: () {
-                        if (!_confProvider.networkSupportsSidechains) {
-                          GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
-                          return;
-                        }
                         final tabsRouter = _routerKey.currentState?.controller;
                         tabsRouter?.setActiveIndex(2);
                       },
@@ -913,7 +904,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Sidechain Activation',
                       onSelected: () {
                         if (!_confProvider.networkSupportsSidechains) {
-                          GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
+                          GetIt.I.get<AppRouter>().push(
+                            ComingSoonRoute(
+                              router: GetIt.I.get<AppRouter>(),
+                              message:
+                                  'As a miner, this is where you would propose new sidechains and vote on sidechain proposals. Once a proposal receives enough votes, the sidechain becomes active and users can deposit funds.',
+                            ),
+                          );
                           return;
                         }
                         GetIt.I.get<AppRouter>().push(SidechainActivationManagementRoute());
@@ -923,7 +920,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Sidechain Withdrawal Admin',
                       onSelected: () async {
                         if (!_confProvider.networkSupportsSidechains) {
-                          await GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>()));
+                          await GetIt.I.get<AppRouter>().push(
+                            ComingSoonRoute(
+                              router: GetIt.I.get<AppRouter>(),
+                              message:
+                                  "The M4 Explorer is where you would see the status of sidechain withdrawals, and see coins flowing safely back to mainnet. But alas, Drivechains aren't activated yet.",
+                            ),
+                          );
                           return;
                         }
                         await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
@@ -1198,10 +1201,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           ),
                           TopNavRoute(
                             label: 'Sidechains',
-                            onTap: _confProvider.networkSupportsSidechains
-                                ? null
-                                : () =>
-                                      GetIt.I.get<AppRouter>().push(ComingSoonRoute(router: GetIt.I.get<AppRouter>())),
                           ),
                           TopNavRoute(
                             label: 'Learn',
@@ -1348,6 +1347,7 @@ class _StatusBarState extends State<StatusBar> {
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
+  BitcoinConfProvider get confProvider => GetIt.I.get<BitcoinConfProvider>();
   Timer? _timer;
 
   @override
@@ -1355,6 +1355,7 @@ class _StatusBarState extends State<StatusBar> {
     super.initState();
     blockchainProvider.addListener(_onChange);
     balanceProvider.addListener(_onChange);
+    confProvider.addListener(_onChange);
     if (!Environment.isInTest) {
       _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
     }
@@ -1441,6 +1442,7 @@ class _StatusBarState extends State<StatusBar> {
     _timer?.cancel();
     blockchainProvider.removeListener(_onChange);
     balanceProvider.removeListener(_onChange);
+    confProvider.removeListener(_onChange);
     super.dispose();
   }
 }
