@@ -43,6 +43,24 @@ abstract class Sidechain extends Binary {
     return null;
   }
 
+  static final List<Sidechain> all = [
+    ZSide(),
+    Thunder(),
+    BitNames(),
+    BitAssets(),
+    Truthcoin(),
+    Photon(),
+  ];
+
+  static Sidechain? fromSlot(int slot) {
+    for (final sidechain in all) {
+      if (sidechain.slot == slot) {
+        return sidechain;
+      }
+    }
+    return null;
+  }
+
   static Sidechain fromBinary(Binary binary) {
     switch (binary.name) {
       case 'zSide':
