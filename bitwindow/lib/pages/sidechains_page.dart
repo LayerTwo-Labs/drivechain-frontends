@@ -5,6 +5,7 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
@@ -13,11 +14,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class SidechainsPage extends StatelessWidget {
+  BitcoinConfProvider get confProvider => GetIt.I.get<BitcoinConfProvider>();
+
   const SidechainsPage({super.key});
 
   @override
@@ -27,6 +31,28 @@ class SidechainsPage extends StatelessWidget {
         viewModelBuilder: () => SidechainsViewModel(),
         builder: (context, model, child) {
           return InlineTabBar(
+            endWidget: confProvider.isDemoMode
+                ? Tooltip(
+                    message: 'This tab is just a demo, sidechains are simulated on mainnet',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFD97706).withValues(alpha: 0.3)),
+                      ),
+                      child: const Text(
+                        'THIS COULD BE BITCOIN',
+                        style: TextStyle(
+                          color: Color(0xFFD97706),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
             key: ValueKey('sidechains_page'),
             tabs: [
               TabItem(
@@ -345,6 +371,27 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
     int slot,
     SidechainOverview sidechain,
   ) {
+    final confProvider = GetIt.I.get<BitcoinConfProvider>();
+
+    // Demo mode: redirect to coming soon page
+    if (confProvider.isDemoMode) {
+      return SailButton(
+        label: 'Deposit',
+        variant: ButtonVariant.primary,
+        insideTable: true,
+        onPressed: () async {
+          final router = GetIt.I.get<AppRouter>();
+          await router.push(
+            ComingSoonRoute(
+              router: router,
+              message:
+                  "It would be nice to deposit real coins to ${Sidechain.fromSlot(slot)?.name ?? 'sidechains'}, wouldn't it? We think so too.",
+            ),
+          );
+        },
+      );
+    }
+
     final isDisabled = viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot);
     final button = SailButton(
       label: 'Deposit',
@@ -426,24 +473,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             ),
             SailTableCell(
               value: '        ',
-              child: sidechain != null
-                  ? Tooltip(
-                      message: !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
-                          ? 'Switch to your enforcer wallet and start the sidechain before depositing'
-                          : viewModel.isUsingBitcoinCoreWallet
-                          ? 'Switch to your enforcer wallet to deposit'
-                          : !viewModel.isSidechainRunning(slot)
-                          ? 'Start the sidechain before depositing'
-                          : null,
-                      child: SailButton(
-                        label: 'Deposit',
-                        variant: ButtonVariant.primary,
-                        insideTable: true,
-                        disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
-                        onPressed: () => showDepositModal(context, slot, sidechain.info.title),
-                      ),
-                    )
-                  : null,
+              child: sidechain != null ? _buildFullTableDepositButton(context, viewModel, slot, sidechain) : null,
             ),
             if (binary != null)
               SailTableCell(
@@ -513,6 +543,51 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             ),
           ];
         },
+      ),
+    );
+  }
+
+  Widget _buildFullTableDepositButton(
+    BuildContext context,
+    SidechainsViewModel viewModel,
+    int slot,
+    SidechainOverview sidechain,
+  ) {
+    final confProvider = GetIt.I.get<BitcoinConfProvider>();
+
+    // Demo mode: redirect to coming soon page
+    if (confProvider.isDemoMode) {
+      return SailButton(
+        label: 'Deposit',
+        variant: ButtonVariant.primary,
+        insideTable: true,
+        onPressed: () async {
+          final router = GetIt.I.get<AppRouter>();
+          await router.push(
+            ComingSoonRoute(
+              router: router,
+              message:
+                  "It would be nice to deposit real coins to ${Sidechain.fromSlot(slot)?.name ?? 'sidechains'}, wouldn't it? We think so too.",
+            ),
+          );
+        },
+      );
+    }
+
+    return Tooltip(
+      message: !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
+          ? 'Switch to your enforcer wallet and start the sidechain before depositing'
+          : viewModel.isUsingBitcoinCoreWallet
+          ? 'Switch to your enforcer wallet to deposit'
+          : !viewModel.isSidechainRunning(slot)
+          ? 'Start the sidechain before depositing'
+          : null,
+      child: SailButton(
+        label: 'Deposit',
+        variant: ButtonVariant.primary,
+        insideTable: true,
+        disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
+        onPressed: () => showDepositModal(context, slot, sidechain.info.title),
       ),
     );
   }
@@ -746,6 +821,26 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (sidechain.isDownloaded) {
+      // Demo mode: redirect to coming soon page instead of starting
+      if (_confProvider.isDemoMode) {
+        return SailButton(
+          key: ValueKey('preview_slot_${sidechain.slot}_${sidechain.name}'),
+          label: 'Preview',
+          variant: ButtonVariant.primary,
+          onPressed: () async {
+            final router = GetIt.I.get<AppRouter>();
+            await router.push(
+              ComingSoonRoute(
+                router: router,
+                message:
+                    "We're afraid sidechains aren't available on mainnet yet. But you can take a spin on signet by clicking the button below.",
+              ),
+            );
+          },
+          insideTable: true,
+        );
+      }
+
       return SailButton(
         key: ValueKey('start_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Start',
