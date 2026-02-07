@@ -7,6 +7,7 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
+import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -81,29 +82,49 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const spacing = SailStyleValues.padding08;
-        final sidechainsWidth = max(480, constraints.maxWidth * 0.6);
-        final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
+    final isDemoMode = GetIt.I.get<BitcoinConfProvider>().isDemoMode;
 
-        return SailRow(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: spacing,
-          children: [
-            SizedBox(
-              width: sidechainsWidth.toDouble(),
-              child: SidechainsList(
-                smallVersion: false,
-              ),
+    return SingleChildScrollView(
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = SailStyleValues.padding08;
+              final sidechainsWidth = max(480, constraints.maxWidth * 0.6);
+              final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
+
+              return SailRow(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: spacing,
+                children: [
+                  SizedBox(
+                    width: sidechainsWidth.toDouble(),
+                    child: SidechainsList(
+                      smallVersion: false,
+                    ),
+                  ),
+                  SizedBox(
+                    width: depositsWidth,
+                    child: const DepositWithdrawView(),
+                  ),
+                ],
+              );
+            },
+          ),
+          if (isDemoMode)
+            ViewModelBuilder<RecentActionsViewModel>.reactive(
+              viewModelBuilder: () => RecentActionsViewModel(),
+              builder: (context, actionsModel, child) {
+                return RecentActionsCard(
+                  title: 'Recent Actions',
+                  subtitle: actionsModel.subtitle,
+                  actions: actionsModel.actions,
+                );
+              },
             ),
-            SizedBox(
-              width: depositsWidth,
-              child: const DepositWithdrawView(),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -668,6 +689,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitNames => _binaryProvider.bitnamesRPC,
       var b when b is BitAssets => _binaryProvider.bitassetsRPC,
       var b when b is ZSide => _binaryProvider.zsideRPC,
+      var b when b is Truthcoin => _binaryProvider.truthcoinRPC,
+      var b when b is Photon => _binaryProvider.photonRPC,
       _ => null,
     };
 
@@ -685,6 +708,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitNames => _binaryProvider.bitnamesConnected,
       var b when b is BitAssets => _binaryProvider.bitassetsConnected,
       var b when b is ZSide => _binaryProvider.zsideConnected,
+      var b when b is Truthcoin => _binaryProvider.truthcoinConnected,
+      var b when b is Photon => _binaryProvider.photonConnected,
       _ => false,
     };
   }
@@ -715,6 +740,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitNames => _binaryProvider.bitnamesConnected,
       var b when b is BitAssets => _binaryProvider.bitassetsConnected,
       var b when b is ZSide => _binaryProvider.zsideConnected,
+      var b when b is Truthcoin => _binaryProvider.truthcoinConnected,
+      var b when b is Photon => _binaryProvider.photonConnected,
       _ => false,
     };
 
@@ -727,6 +754,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitNames => _binaryProvider.bitnamesInitializing,
       var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
       var b when b is ZSide => _binaryProvider.zsideInitializing,
+      var b when b is Truthcoin => _binaryProvider.truthcoinInitializing,
+      var b when b is Photon => _binaryProvider.photonInitializing,
       _ => false,
     };
 
@@ -738,6 +767,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitNames => _binaryProvider.bitnamesStopping,
       var b when b is BitAssets => _binaryProvider.bitassetsStopping,
       var b when b is ZSide => _binaryProvider.zsideStopping,
+      var b when b is Truthcoin => _binaryProvider.truthcoinStopping,
+      var b when b is Photon => _binaryProvider.photonStopping,
       _ => false,
     };
 
@@ -749,6 +780,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitNames => _binaryProvider.bitnamesDownloadState.isDownloading,
       var b when b is BitAssets => _binaryProvider.bitassetsDownloadState.isDownloading,
       var b when b is ZSide => _binaryProvider.zsideDownloadState.isDownloading,
+      var b when b is Truthcoin => _binaryProvider.truthcoinDownloadState.isDownloading,
+      var b when b is Photon => _binaryProvider.photonDownloadState.isDownloading,
       _ => false,
     };
 
@@ -1112,18 +1145,24 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'thunderConnected': _binaryProvider.thunderConnected,
       'bitnamesConnected': _binaryProvider.bitnamesConnected,
       'bitassetsConnected': _binaryProvider.bitassetsConnected,
+      'truthcoinConnected': _binaryProvider.truthcoinConnected,
+      'photonConnected': _binaryProvider.photonConnected,
       'mainchainInitializing': _binaryProvider.mainchainInitializing,
       'enforcerInitializing': _binaryProvider.enforcerInitializing,
       'bitwindowInitializing': _binaryProvider.bitwindowInitializing,
       'thunderInitializing': _binaryProvider.thunderInitializing,
       'bitnamesInitializing': _binaryProvider.bitnamesInitializing,
       'bitassetsInitializing': _binaryProvider.bitassetsInitializing,
+      'truthcoinInitializing': _binaryProvider.truthcoinInitializing,
+      'photonInitializing': _binaryProvider.photonInitializing,
       'mainchainStopping': _binaryProvider.mainchainStopping,
       'enforcerStopping': _binaryProvider.enforcerStopping,
       'bitwindowStopping': _binaryProvider.bitwindowStopping,
       'thunderStopping': _binaryProvider.thunderStopping,
       'bitnamesStopping': _binaryProvider.bitnamesStopping,
       'bitassetsStopping': _binaryProvider.bitassetsStopping,
+      'truthcoinStopping': _binaryProvider.truthcoinStopping,
+      'photonStopping': _binaryProvider.photonStopping,
       // Track complete download states for better change detection
       'bitnamesDownloadState': _binaryProvider.bitnamesDownloadState,
       'bitassetsDownloadState': _binaryProvider.bitassetsDownloadState,
@@ -1131,6 +1170,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'enforcerDownloadState': _binaryProvider.enforcerDownloadState,
       'bitwindowDownloadState': _binaryProvider.bitwindowDownloadState,
       'thunderDownloadState': _binaryProvider.thunderDownloadState,
+      'truthcoinDownloadState': _binaryProvider.truthcoinDownloadState,
+      'photonDownloadState': _binaryProvider.photonDownloadState,
     };
 
     return states;
