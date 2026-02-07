@@ -471,6 +471,11 @@ class MockDrivechainAPI implements DrivechainAPI {
   }) async {
     return [];
   }
+
+  @override
+  Future<ListRecentActionsResponse> listRecentActions({int limit = 10}) {
+    return Future.value(ListRecentActionsResponse());
+  }
 }
 
 class MockMiscAPI implements MiscAPI {

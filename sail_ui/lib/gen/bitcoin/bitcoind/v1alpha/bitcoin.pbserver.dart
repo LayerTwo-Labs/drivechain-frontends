@@ -36,6 +36,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
   $async.Future<$4.BumpFeeResponse> bumpFee($pb.ServerContext ctx, $4.BumpFeeRequest request);
   $async.Future<$4.EstimateSmartFeeResponse> estimateSmartFee($pb.ServerContext ctx, $4.EstimateSmartFeeRequest request);
   $async.Future<$4.ImportDescriptorsResponse> importDescriptors($pb.ServerContext ctx, $4.ImportDescriptorsRequest request);
+  $async.Future<$4.ListDescriptorsResponse> listDescriptors($pb.ServerContext ctx, $4.ListDescriptorsRequest request);
   $async.Future<$4.ListWalletsResponse> listWallets($pb.ServerContext ctx, $3.Empty request);
   $async.Future<$4.ListUnspentResponse> listUnspent($pb.ServerContext ctx, $4.ListUnspentRequest request);
   $async.Future<$4.ListTransactionsResponse> listTransactions($pb.ServerContext ctx, $4.ListTransactionsRequest request);
@@ -53,6 +54,8 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
   $async.Future<$4.LoadWalletResponse> loadWallet($pb.ServerContext ctx, $4.LoadWalletRequest request);
   $async.Future<$4.BackupWalletResponse> backupWallet($pb.ServerContext ctx, $4.BackupWalletRequest request);
   $async.Future<$4.UnloadWalletResponse> unloadWallet($pb.ServerContext ctx, $4.UnloadWalletRequest request);
+  $async.Future<$4.RescanBlockchainResponse> rescanBlockchain($pb.ServerContext ctx, $4.RescanBlockchainRequest request);
+  $async.Future<$4.AbortRescanResponse> abortRescan($pb.ServerContext ctx, $4.AbortRescanRequest request);
   $async.Future<$4.KeyPoolRefillResponse> keyPoolRefill($pb.ServerContext ctx, $4.KeyPoolRefillRequest request);
   $async.Future<$4.GetAccountResponse> getAccount($pb.ServerContext ctx, $4.GetAccountRequest request);
   $async.Future<$4.SetAccountResponse> setAccount($pb.ServerContext ctx, $4.SetAccountRequest request);
@@ -84,6 +87,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'BumpFee': return $4.BumpFeeRequest();
       case 'EstimateSmartFee': return $4.EstimateSmartFeeRequest();
       case 'ImportDescriptors': return $4.ImportDescriptorsRequest();
+      case 'ListDescriptors': return $4.ListDescriptorsRequest();
       case 'ListWallets': return $3.Empty();
       case 'ListUnspent': return $4.ListUnspentRequest();
       case 'ListTransactions': return $4.ListTransactionsRequest();
@@ -101,6 +105,8 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'LoadWallet': return $4.LoadWalletRequest();
       case 'BackupWallet': return $4.BackupWalletRequest();
       case 'UnloadWallet': return $4.UnloadWalletRequest();
+      case 'RescanBlockchain': return $4.RescanBlockchainRequest();
+      case 'AbortRescan': return $4.AbortRescanRequest();
       case 'KeyPoolRefill': return $4.KeyPoolRefillRequest();
       case 'GetAccount': return $4.GetAccountRequest();
       case 'SetAccount': return $4.SetAccountRequest();
@@ -135,6 +141,7 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'BumpFee': return this.bumpFee(ctx, request as $4.BumpFeeRequest);
       case 'EstimateSmartFee': return this.estimateSmartFee(ctx, request as $4.EstimateSmartFeeRequest);
       case 'ImportDescriptors': return this.importDescriptors(ctx, request as $4.ImportDescriptorsRequest);
+      case 'ListDescriptors': return this.listDescriptors(ctx, request as $4.ListDescriptorsRequest);
       case 'ListWallets': return this.listWallets(ctx, request as $3.Empty);
       case 'ListUnspent': return this.listUnspent(ctx, request as $4.ListUnspentRequest);
       case 'ListTransactions': return this.listTransactions(ctx, request as $4.ListTransactionsRequest);
@@ -152,6 +159,8 @@ abstract class BitcoinServiceBase extends $pb.GeneratedService {
       case 'LoadWallet': return this.loadWallet(ctx, request as $4.LoadWalletRequest);
       case 'BackupWallet': return this.backupWallet(ctx, request as $4.BackupWalletRequest);
       case 'UnloadWallet': return this.unloadWallet(ctx, request as $4.UnloadWalletRequest);
+      case 'RescanBlockchain': return this.rescanBlockchain(ctx, request as $4.RescanBlockchainRequest);
+      case 'AbortRescan': return this.abortRescan(ctx, request as $4.AbortRescanRequest);
       case 'KeyPoolRefill': return this.keyPoolRefill(ctx, request as $4.KeyPoolRefillRequest);
       case 'GetAccount': return this.getAccount(ctx, request as $4.GetAccountRequest);
       case 'SetAccount': return this.setAccount(ctx, request as $4.SetAccountRequest);
