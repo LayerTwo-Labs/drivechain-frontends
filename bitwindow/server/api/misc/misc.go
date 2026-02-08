@@ -113,18 +113,35 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	if err != nil {
 		return nil, err
 	}
-	resp, err := wallet.SendTransaction(ctx,
-		connect.NewRequest(&validatorpb.SendTransactionRequest{
-			OpReturnMessage: &commonv1.Hex{
-				Hex: &wrapperspb.StringValue{
-					Value: hex.EncodeToString(
-						opreturns.EncodeNewsMessage(
-							topicID, req.Msg.Headline, req.Msg.Content,
-						),
+
+	sendReq := &validatorpb.SendTransactionRequest{
+		OpReturnMessage: &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{
+				Value: hex.EncodeToString(
+					opreturns.EncodeNewsMessage(
+						topicID, req.Msg.Headline, req.Msg.Content,
 					),
-				},
+				),
 			},
-		}))
+		},
+	}
+
+	// Set fee rate if specified
+	if req.Msg.FeeSatPerVbyte > 0 {
+		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{
+				SatPerVbyte: req.Msg.FeeSatPerVbyte,
+			},
+		}
+	} else if req.Msg.FeeSats > 0 {
+		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{
+				Sats: req.Msg.FeeSats,
+			},
+		}
+	}
+
+	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
 	if err != nil {
 		return nil, fmt.Errorf("broadcast news: %w", err)
 	}
@@ -171,6 +188,12 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	// Calculate retention days (default to 7)
+	retentionDays := req.Msg.RetentionDays
+	if retentionDays == 0 {
+		retentionDays = 7 // Default to 7 days
+	}
+
 	// Send the transaction
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
@@ -181,7 +204,7 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 			OpReturnMessage: &commonv1.Hex{
 				Hex: &wrapperspb.StringValue{
 					Value: hex.EncodeToString(
-						opreturns.EncodeTopicCreationMessage(topicID, req.Msg.Name),
+						opreturns.EncodeTopicCreationMessage(topicID, req.Msg.Name, retentionDays),
 					),
 				},
 			},
@@ -193,7 +216,7 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 
 	// Insert topic into database immediately so it's available in the UI
 	// before the transaction is mined
-	if err := opreturns.CreateTopic(ctx, s.database, topicID, req.Msg.Name, txid, false); err != nil {
+	if err := opreturns.CreateTopic(ctx, s.database, topicID, req.Msg.Name, txid, false, retentionDays); err != nil {
 		// Log but don't fail - topic will also be created when block is processed
 		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to insert topic immediately")
 	}
@@ -224,12 +247,13 @@ func (s *Server) ListTopics(ctx context.Context, req *connect.Request[emptypb.Em
 
 func topicToProto(topic opreturns.Topic, _ int) *miscv1.Topic {
 	return &miscv1.Topic{
-		Id:         topic.ID,
-		Topic:      topic.Topic.String(),
-		Name:       topic.Name,
-		CreateTime: timestamppb.New(topic.CreatedAt),
-		Confirmed:  topic.Confirmed,
-		Txid:       topic.Txid,
+		Id:            topic.ID,
+		Topic:         topic.Topic.String(),
+		Name:          topic.Name,
+		CreateTime:    timestamppb.New(topic.CreatedAt),
+		Confirmed:     topic.Confirmed,
+		Txid:          topic.Txid,
+		RetentionDays: topic.RetentionDays,
 	}
 }
 

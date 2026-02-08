@@ -152,12 +152,15 @@ func (x *OPReturn) GetCreateTime() *timestamppb.Timestamp {
 }
 
 type BroadcastNewsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Headline      string                 `protobuf:"bytes,2,opt,name=headline,proto3" json:"headline,omitempty"`
-	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Topic    string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	Headline string                 `protobuf:"bytes,2,opt,name=headline,proto3" json:"headline,omitempty"`
+	Content  string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	// Fee options - exactly one should be set (0 = use Core's estimate)
+	FeeSatPerVbyte uint64 `protobuf:"varint,4,opt,name=fee_sat_per_vbyte,json=feeSatPerVbyte,proto3" json:"fee_sat_per_vbyte,omitempty"` // Fee rate in sat/vB
+	FeeSats        uint64 `protobuf:"varint,5,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`                          // Total fee in satoshis
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *BroadcastNewsRequest) Reset() {
@@ -211,6 +214,20 @@ func (x *BroadcastNewsRequest) GetContent() string {
 	return ""
 }
 
+func (x *BroadcastNewsRequest) GetFeeSatPerVbyte() uint64 {
+	if x != nil {
+		return x.FeeSatPerVbyte
+	}
+	return 0
+}
+
+func (x *BroadcastNewsRequest) GetFeeSats() uint64 {
+	if x != nil {
+		return x.FeeSats
+	}
+	return 0
+}
+
 type BroadcastNewsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
@@ -259,6 +276,7 @@ type CreateTopicRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	RetentionDays int32                  `protobuf:"varint,3,opt,name=retention_days,json=retentionDays,proto3" json:"retention_days,omitempty"` // 0 = infinite retention
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -305,6 +323,13 @@ func (x *CreateTopicRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *CreateTopicRequest) GetRetentionDays() int32 {
+	if x != nil {
+		return x.RetentionDays
+	}
+	return 0
 }
 
 type CreateTopicResponse struct {
@@ -360,7 +385,9 @@ type Topic struct {
 	// Whether the topic creation transaction has been mined
 	Confirmed bool `protobuf:"varint,5,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
 	// Transaction ID of the topic creation
-	Txid          string `protobuf:"bytes,6,opt,name=txid,proto3" json:"txid,omitempty"`
+	Txid string `protobuf:"bytes,6,opt,name=txid,proto3" json:"txid,omitempty"`
+	// Retention period for news items (0 = infinite)
+	RetentionDays int32 `protobuf:"varint,7,opt,name=retention_days,json=retentionDays,proto3" json:"retention_days,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -435,6 +462,13 @@ func (x *Topic) GetTxid() string {
 		return x.Txid
 	}
 	return ""
+}
+
+func (x *Topic) GetRetentionDays() int32 {
+	if x != nil {
+		return x.RetentionDays
+	}
+	return 0
 }
 
 type ListTopicsResponse struct {
@@ -1039,18 +1073,21 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x06height\x18\x05 \x01(\x05H\x00R\x06height\x88\x01\x01\x12;\n" +
 	"\vcreate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTimeB\t\n" +
-	"\a_height\"b\n" +
+	"\a_height\"\xa8\x01\n" +
 	"\x14BroadcastNewsRequest\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x1a\n" +
 	"\bheadline\x18\x02 \x01(\tR\bheadline\x12\x18\n" +
-	"\acontent\x18\x03 \x01(\tR\acontent\"+\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\x12)\n" +
+	"\x11fee_sat_per_vbyte\x18\x04 \x01(\x04R\x0efeeSatPerVbyte\x12\x19\n" +
+	"\bfee_sats\x18\x05 \x01(\x04R\afeeSats\"+\n" +
 	"\x15BroadcastNewsResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\">\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"e\n" +
 	"\x12CreateTopicRequest\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\")\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
+	"\x0eretention_days\x18\x03 \x01(\x05R\rretentionDays\")\n" +
 	"\x13CreateTopicResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xb0\x01\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xd7\x01\n" +
 	"\x05Topic\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x12\n" +
@@ -1058,7 +1095,8 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\vcreate_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12\x1c\n" +
 	"\tconfirmed\x18\x05 \x01(\bR\tconfirmed\x12\x12\n" +
-	"\x04txid\x18\x06 \x01(\tR\x04txid\"<\n" +
+	"\x04txid\x18\x06 \x01(\tR\x04txid\x12%\n" +
+	"\x0eretention_days\x18\a \x01(\x05R\rretentionDays\"<\n" +
 	"\x12ListTopicsResponse\x12&\n" +
 	"\x06topics\x18\x01 \x03(\v2\x0e.misc.v1.TopicR\x06topics\":\n" +
 	"\x13ListCoinNewsRequest\x12\x19\n" +

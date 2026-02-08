@@ -80,8 +80,9 @@ func (p *Parser) Run(ctx context.Context) error {
 	}
 	p.topics = lo.Map(topics, func(t opreturns.Topic, _ int) opreturns.TopicInfo {
 		return opreturns.TopicInfo{
-			ID:   t.Topic,
-			Name: t.Name,
+			ID:            t.Topic,
+			Name:          t.Name,
+			RetentionDays: t.RetentionDays,
 		}
 	})
 
@@ -343,7 +344,7 @@ func (p *Parser) handleCreateTopic(
 		Msgf("bitcoind_engine/parser: found create topic: %s", info.Name)
 
 	if err := opreturns.CreateTopic(
-		ctx, p.db, info.ID, info.Name, txid, true,
+		ctx, p.db, info.ID, info.Name, txid, true, info.RetentionDays,
 	); err != nil {
 		return fmt.Errorf("persist create topic: %w", err)
 	}
@@ -352,8 +353,9 @@ func (p *Parser) handleCreateTopic(
 	defer p.mu.Unlock()
 
 	p.topics = append(p.topics, opreturns.TopicInfo{
-		ID:   info.ID,
-		Name: info.Name,
+		ID:            info.ID,
+		Name:          info.Name,
+		RetentionDays: info.RetentionDays,
 	})
 
 	return nil

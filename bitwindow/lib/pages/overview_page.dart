@@ -575,6 +575,26 @@ class BroadcastNewsView extends StatelessWidget {
               ),
               SailRow(
                 spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: SailTextField(
+                      controller: viewModel.feeController,
+                      hintText: 'Fee (optional)',
+                      suffixWidget: Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: SailText.secondary12(viewModel.useFeeRate ? 'sat/vB' : 'sats'),
+                      ),
+                    ),
+                  ),
+                  SailButton(
+                    label: viewModel.useFeeRate ? 'Rate' : 'Total',
+                    variant: ButtonVariant.secondary,
+                    onPressed: () async => viewModel.toggleFeeMode(),
+                  ),
+                ],
+              ),
+              SailRow(
+                spacing: SailStyleValues.padding08,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SailButton(
@@ -630,6 +650,10 @@ class BroadcastNewsViewModel extends BaseViewModel {
 
   // Single unified controller for headline + content
   final TextEditingController messageController = TextEditingController();
+  final TextEditingController feeController = TextEditingController();
+
+  // Fee mode toggle: true = sat/vB, false = total sats
+  bool useFeeRate = true;
 
   Topic? topic;
 
@@ -658,6 +682,12 @@ class BroadcastNewsViewModel extends BaseViewModel {
   BroadcastNewsViewModel() {
     _loadLastUsedTopic();
     messageController.addListener(notifyListeners);
+    feeController.addListener(notifyListeners);
+  }
+
+  void toggleFeeMode() {
+    useFeeRate = !useFeeRate;
+    notifyListeners();
   }
 
   Future<void> _loadLastUsedTopic() async {
@@ -701,7 +731,14 @@ class BroadcastNewsViewModel extends BaseViewModel {
     }
 
     try {
-      await _api.misc.broadcastNews(topic!.topic, headline, content);
+      final feeValue = int.tryParse(feeController.text);
+      await _api.misc.broadcastNews(
+        topic!.topic,
+        headline,
+        content,
+        feeSatPerVbyte: useFeeRate ? feeValue : null,
+        feeSats: !useFeeRate ? feeValue : null,
+      );
       if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');
       Navigator.of(context).pop();
@@ -714,6 +751,8 @@ class BroadcastNewsViewModel extends BaseViewModel {
   void dispose() {
     messageController.removeListener(notifyListeners);
     messageController.dispose();
+    feeController.removeListener(notifyListeners);
+    feeController.dispose();
     super.dispose();
   }
 }
@@ -900,6 +939,11 @@ class _CreateTopicTab extends StatelessWidget {
             controller: viewModel.identifierController,
             hintText: 'Enter header bytes e.g. A1A1A1A1',
           ),
+          SailTextField(
+            label: 'Retention Days (0 = infinite, max 255)',
+            controller: viewModel.retentionDaysController,
+            hintText: '7',
+          ),
           SailButton(
             label: 'Create Topic',
             onPressed: viewModel.canCreate ? () async => viewModel.createTopic(context) : null,
@@ -947,6 +991,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
   final TextEditingController identifierController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController urlController = TextEditingController();
+  final TextEditingController retentionDaysController = TextEditingController(text: '7');
 
   bool get canCreate =>
       identifierController.text.isNotEmpty && nameController.text.isNotEmpty && identifierController.text.length == 8;
@@ -956,6 +1001,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     identifierController.addListener(notifyListeners);
     nameController.addListener(notifyListeners);
     urlController.addListener(notifyListeners);
+    retentionDaysController.addListener(notifyListeners);
   }
 
   Future<void> createTopic(BuildContext context) async {
@@ -975,14 +1021,24 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       showSnackBar(context, 'Name must be 20 characters or less');
       return;
     }
+    final retentionDays = int.tryParse(retentionDaysController.text) ?? 7;
+    if (retentionDays < 0 || retentionDays > 255) {
+      showSnackBar(context, 'Retention days must be between 0 and 255 (0 = infinite)');
+      return;
+    }
 
     try {
-      final response = await _api.misc.createTopic(identifierController.text, nameController.text);
+      final response = await _api.misc.createTopic(
+        identifierController.text,
+        nameController.text,
+        retentionDays: retentionDays,
+      );
       await _newsProvider.fetch();
       if (!context.mounted) return;
       showSnackBar(context, 'Topic created! txid: ${response.txid.substring(0, 8)}...');
       identifierController.clear();
       nameController.clear();
+      retentionDaysController.text = '7';
     } catch (e) {
       showSnackBar(context, 'Could not create topic: $e');
     }
@@ -1009,11 +1065,12 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       return;
     }
 
+    final days = int.tryParse(match.group(1)!) ?? 7;
     final identifier = match.group(2)!;
     final name = match.group(3)!;
 
     try {
-      final response = await _api.misc.createTopic(identifier, name);
+      final response = await _api.misc.createTopic(identifier, name, retentionDays: days);
       await _newsProvider.fetch();
       if (!context.mounted) return;
       showSnackBar(context, 'Subscribed to "$name"! txid: ${response.txid.substring(0, 8)}...');
@@ -1024,7 +1081,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
   }
 
   Future<void> exportTopics(BuildContext context) async {
-    final urls = topics.map((t) => '7{${t.topic}}${t.name}').join('\n');
+    final urls = topics.map((t) => '${t.retentionDays}{${t.topic}}${t.name}').join('\n');
     await Clipboard.setData(ClipboardData(text: urls));
     if (!context.mounted) return;
     showSnackBar(context, 'Topics exported to clipboard');
@@ -1047,6 +1104,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       final match = regex.firstMatch(line.trim());
 
       if (match != null) {
+        final days = int.tryParse(match.group(1)!) ?? 7;
         final identifier = match.group(2)!;
         final name = match.group(3)!;
 
@@ -1056,7 +1114,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
         }
 
         try {
-          await _api.misc.createTopic(identifier, name);
+          await _api.misc.createTopic(identifier, name, retentionDays: days);
           imported++;
         } catch (e) {
           failed++;
@@ -1080,16 +1138,17 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
 
   Future<void> restoreDefaults(BuildContext context) async {
     // Default topics from mainchain-deprecated
+    // Format: (identifier, name, retentionDays)
     const defaults = [
-      ('a1a1a1a1', 'US Weekly'),
-      ('a2a2a2a2', 'Japan Weekly'),
+      ('a1a1a1a1', 'US Weekly', 7),
+      ('a2a2a2a2', 'Japan Weekly', 7),
     ];
 
     var restored = 0;
-    for (final (identifier, name) in defaults) {
+    for (final (identifier, name, days) in defaults) {
       if (!topics.any((t) => t.topic == identifier)) {
         try {
-          await _api.misc.createTopic(identifier, name);
+          await _api.misc.createTopic(identifier, name, retentionDays: days);
           restored++;
         } catch (e) {
           // Ignore errors for defaults
@@ -1114,6 +1173,8 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     identifierController.dispose();
     nameController.removeListener(notifyListeners);
     nameController.dispose();
+    retentionDaysController.removeListener(notifyListeners);
+    retentionDaysController.dispose();
     urlController.removeListener(notifyListeners);
     urlController.dispose();
     super.dispose();

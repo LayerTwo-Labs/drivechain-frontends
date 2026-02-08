@@ -157,8 +157,9 @@ func ValidNewsTopicID(topic string) (TopicID, error) {
 }
 
 type TopicInfo struct {
-	ID   TopicID
-	Name string
+	ID            TopicID
+	Name          string
+	RetentionDays int32
 }
 
 var newTopicTag = []byte("new")
@@ -182,8 +183,31 @@ func IsCreateTopic(data []byte) (TopicInfo, bool) {
 		return TopicInfo{}, false
 	}
 
-	// Name is everything after "new"
-	name := string(rest[len(newTopicTag):])
+	afterNew := rest[len(newTopicTag):]
+
+	// New format: <retention_1byte><name>
+	// Old format (legacy): <name> directly
+	//
+	// Detection: Old topic names always start with printable ASCII (>= 32).
+	// New format uses first byte as retention (0-255).
+	// If first byte < 32 (control char) or > 127 (non-ASCII), it's the new format.
+	// Otherwise it's the legacy format (name starts directly).
+	var name string
+	var retentionDays int32 = 7 // default for legacy topics
+
+	if len(afterNew) > 0 {
+		firstByte := afterNew[0]
+		if firstByte >= 32 && firstByte <= 127 {
+			// Legacy format - first byte is printable ASCII, entire thing is name
+			name = string(afterNew)
+		} else {
+			// New format - first byte is retention days (0-31 or 128-255)
+			retentionDays = int32(firstByte)
+			if len(afterNew) > 1 {
+				name = string(afterNew[1:])
+			}
+		}
+	}
 
 	// Legacy topic created without double "new" prefix
 	if name == "sflashbitcoinsucks" {
@@ -191,21 +215,23 @@ func IsCreateTopic(data []byte) (TopicInfo, bool) {
 	}
 
 	return TopicInfo{
-		ID:   topicID,
-		Name: name,
+		ID:            topicID,
+		Name:          name,
+		RetentionDays: retentionDays,
 	}, true
 }
 
-func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, txid string, confirmed bool) error {
+func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, txid string, confirmed bool, retentionDays int32) error {
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO coin_news_topics (
 			topic,
 			name,
 			txid,
-			confirmed
-		) VALUES (?, ?, ?, ?)
+			confirmed,
+			retention_days
+		) VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT (topic) DO UPDATE SET confirmed = excluded.confirmed OR coin_news_topics.confirmed
-	`, topic.String(), name, txid, confirmed)
+	`, topic.String(), name, txid, confirmed, retentionDays)
 	if err != nil {
 		return fmt.Errorf("create topic: %w", err)
 	}
@@ -214,11 +240,12 @@ func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, tx
 }
 
 type Topic struct {
-	ID        int64
-	Topic     TopicID
-	Name      string
-	Confirmed bool
-	Txid      string
+	ID            int64
+	Topic         TopicID
+	Name          string
+	Confirmed     bool
+	Txid          string
+	RetentionDays int32
 
 	CreatedAt time.Time
 }
@@ -236,7 +263,7 @@ type CoinNews struct {
 
 func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	rows, err := db.QueryContext(ctx, `
-	SELECT id, topic, name, confirmed, COALESCE(txid, ''), created_at
+	SELECT id, topic, name, confirmed, COALESCE(txid, ''), COALESCE(retention_days, 7), created_at
 	FROM coin_news_topics
 	ORDER BY created_at ASC
 `)
@@ -249,7 +276,7 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	for rows.Next() {
 		var topic Topic
 		var rawTopicID string
-		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.CreatedAt)
+		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &topic.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("list topics: scan: %w", err)
 		}
@@ -289,10 +316,18 @@ func EncodeNewsMessage(topic TopicID, headline string, content string) []byte {
 	)
 }
 
-// Format for OP_RETURN message: <topic>new<title>
-func EncodeTopicCreationMessage(topic TopicID, name string) []byte {
+// Format for OP_RETURN message: <topic>new<retention_days_1byte><title>
+// retention_days is stored as a single byte (0-255, where 0 = infinite)
+func EncodeTopicCreationMessage(topic TopicID, name string, retentionDays int32) []byte {
+	// Clamp retention days to 0-255
+	if retentionDays < 0 {
+		retentionDays = 0
+	}
+	if retentionDays > 255 {
+		retentionDays = 255
+	}
 	return slices.Concat(
-		topic[:], newTopicTag, []byte(name),
+		topic[:], newTopicTag, []byte{byte(retentionDays)}, []byte(name),
 	)
 }
 
@@ -336,6 +371,14 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 		topic, ok := extractTopic(topics, TopicID(opReturn.Data[:TopicIdLength]))
 		if !ok {
 			continue
+		}
+
+		// Filter by retention days (0 = infinite retention)
+		if topic.RetentionDays > 0 {
+			cutoff := time.Now().AddDate(0, 0, -int(topic.RetentionDays))
+			if opReturn.CreatedAt.Before(cutoff) {
+				continue
+			}
 		}
 
 		var (
