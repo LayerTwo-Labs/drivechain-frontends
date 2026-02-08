@@ -720,7 +720,13 @@ String formatDate(DateTime date, {bool long = true}) {
   // Choose format string based on 24-hour preference
   var dateFormat = use24Hour ? 'yyyy MMM dd HH:mm' : 'yyyy MMM dd hh:mm a';
   if (!long) {
-    dateFormat = dateFormat.replaceAll('yyyy ', '');
+    // For short format, include year only if date is from a different year
+    final now = DateTime.now();
+    if (date.year != now.year) {
+      dateFormat = use24Hour ? "MMM dd ''yy HH:mm" : "MMM dd ''yy hh:mm a";
+    } else {
+      dateFormat = use24Hour ? 'MMM dd HH:mm' : 'MMM dd hh:mm a';
+    }
   }
 
   return intl.DateFormat(dateFormat, intl.Intl.getCurrentLocale()).format(date.toLocal());
