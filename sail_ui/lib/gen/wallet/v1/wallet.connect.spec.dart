@@ -222,4 +222,12 @@ abstract final class WalletService {
     walletv1wallet.BumpFeeRequest.new,
     walletv1wallet.BumpFeeResponse.new,
   );
+
+  /// Coin Selection - Select UTXOs for a transaction
+  static const selectCoins = connect.Spec(
+    '/$name/SelectCoins',
+    connect.StreamType.unary,
+    walletv1wallet.SelectCoinsRequest.new,
+    walletv1wallet.SelectCoinsResponse.new,
+  );
 }

@@ -15,36 +15,36 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'drivechain.pb.dart' as $3;
+import 'drivechain.pb.dart' as $4;
 import 'drivechain.pbjson.dart';
 
 export 'drivechain.pb.dart';
 
 abstract class DrivechainServiceBase extends $pb.GeneratedService {
-  $async.Future<$3.ListSidechainsResponse> listSidechains($pb.ServerContext ctx, $3.ListSidechainsRequest request);
-  $async.Future<$3.ListSidechainProposalsResponse> listSidechainProposals($pb.ServerContext ctx, $3.ListSidechainProposalsRequest request);
-  $async.Future<$3.ProposeSidechainResponse> proposeSidechain($pb.ServerContext ctx, $3.ProposeSidechainRequest request);
-  $async.Future<$3.ListWithdrawalsResponse> listWithdrawals($pb.ServerContext ctx, $3.ListWithdrawalsRequest request);
-  $async.Future<$3.ListRecentActionsResponse> listRecentActions($pb.ServerContext ctx, $3.ListRecentActionsRequest request);
+  $async.Future<$4.ListSidechainsResponse> listSidechains($pb.ServerContext ctx, $4.ListSidechainsRequest request);
+  $async.Future<$4.ListSidechainProposalsResponse> listSidechainProposals($pb.ServerContext ctx, $4.ListSidechainProposalsRequest request);
+  $async.Future<$4.ProposeSidechainResponse> proposeSidechain($pb.ServerContext ctx, $4.ProposeSidechainRequest request);
+  $async.Future<$4.ListWithdrawalsResponse> listWithdrawals($pb.ServerContext ctx, $4.ListWithdrawalsRequest request);
+  $async.Future<$4.ListRecentActionsResponse> listRecentActions($pb.ServerContext ctx, $4.ListRecentActionsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListSidechains': return $3.ListSidechainsRequest();
-      case 'ListSidechainProposals': return $3.ListSidechainProposalsRequest();
-      case 'ProposeSidechain': return $3.ProposeSidechainRequest();
-      case 'ListWithdrawals': return $3.ListWithdrawalsRequest();
-      case 'ListRecentActions': return $3.ListRecentActionsRequest();
+      case 'ListSidechains': return $4.ListSidechainsRequest();
+      case 'ListSidechainProposals': return $4.ListSidechainProposalsRequest();
+      case 'ProposeSidechain': return $4.ProposeSidechainRequest();
+      case 'ListWithdrawals': return $4.ListWithdrawalsRequest();
+      case 'ListRecentActions': return $4.ListRecentActionsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListSidechains': return this.listSidechains(ctx, request as $3.ListSidechainsRequest);
-      case 'ListSidechainProposals': return this.listSidechainProposals(ctx, request as $3.ListSidechainProposalsRequest);
-      case 'ProposeSidechain': return this.proposeSidechain(ctx, request as $3.ProposeSidechainRequest);
-      case 'ListWithdrawals': return this.listWithdrawals(ctx, request as $3.ListWithdrawalsRequest);
-      case 'ListRecentActions': return this.listRecentActions(ctx, request as $3.ListRecentActionsRequest);
+      case 'ListSidechains': return this.listSidechains(ctx, request as $4.ListSidechainsRequest);
+      case 'ListSidechainProposals': return this.listSidechainProposals(ctx, request as $4.ListSidechainProposalsRequest);
+      case 'ProposeSidechain': return this.proposeSidechain(ctx, request as $4.ProposeSidechainRequest);
+      case 'ListWithdrawals': return this.listWithdrawals(ctx, request as $4.ListWithdrawalsRequest);
+      case 'ListRecentActions': return this.listRecentActions(ctx, request as $4.ListRecentActionsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

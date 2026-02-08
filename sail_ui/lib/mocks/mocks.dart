@@ -288,6 +288,10 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   NotificationAPI get notifications => throw UnimplementedError();
   @override
+  BitDriveAPI get bitdrive => throw UnimplementedError();
+  @override
+  UtilsAPI get utils => throw UnimplementedError();
+  @override
   Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
   @override
   Stream<WatchResponse> get notificationStream =>

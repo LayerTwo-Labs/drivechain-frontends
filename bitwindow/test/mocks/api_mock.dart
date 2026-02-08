@@ -2,16 +2,22 @@ import 'package:fixnum/src/int64.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
     hide UnspentOutput, BumpFeeRequest, BumpFeeResponse;
+import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/health/v1/health.pb.dart';
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
+import 'package:sail_ui/gen/utils/v1/utils.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class MockAPI extends BitwindowRPC {
+  @override
+  final BitDriveAPI bitdrive = MockBitDriveAPI();
+  @override
+  final UtilsAPI utils = MockUtilsAPI();
   @override
   BitwindowAPI get bitwindowd => MockBitwindowdAPI();
   @override
@@ -331,6 +337,19 @@ class MockWalletAPI implements WalletAPI {
   Future<BumpFeeResponse> bumpFee(String txid) {
     return Future.value(BumpFeeResponse(txid: 'mock_new_txid'));
   }
+
+  @override
+  Future<SelectCoinsResponse> selectCoins({
+    required String walletId,
+    required Int64 targetSats,
+    required Int64 feeSatsPerVbyte,
+    int numOutputs = 2,
+    CoinSelectionStrategy strategy = CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST,
+    List<String> frozenOutpoints = const [],
+    List<String> requiredOutpoints = const [],
+  }) {
+    return Future.value(SelectCoinsResponse());
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {
@@ -579,5 +598,104 @@ class MockNotificationAPI implements NotificationAPI {
   @override
   Stream<WatchResponse> watch() {
     return Stream.periodic(const Duration(seconds: 1)).map((_) => WatchResponse());
+  }
+}
+
+class MockBitDriveAPI implements BitDriveAPI {
+  @override
+  Future<StoreFileResponse> storeFile({
+    required List<int> content,
+    String? filename,
+    String? mimeType,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  }) {
+    return Future.value(StoreFileResponse());
+  }
+
+  @override
+  Future<RetrieveContentResponse> retrieveContent(String txid) {
+    return Future.value(RetrieveContentResponse());
+  }
+
+  @override
+  Future<ScanForFilesResponse> scanForFiles() {
+    return Future.value(ScanForFilesResponse());
+  }
+
+  @override
+  Future<DownloadPendingFilesResponse> downloadPendingFiles() {
+    return Future.value(DownloadPendingFilesResponse());
+  }
+
+  @override
+  Future<List<BitDriveFile>> listFiles() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<GetFileResponse> getFile({Int64? id, String? txid}) {
+    return Future.value(GetFileResponse());
+  }
+
+  @override
+  Future<void> deleteFile(Int64 id) {
+    return Future.value();
+  }
+
+  @override
+  Future<StoreMultisigDataResponse> storeMultisigData({
+    required List<int> jsonData,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  }) {
+    return Future.value(StoreMultisigDataResponse());
+  }
+
+  @override
+  Future<void> wipeData() {
+    return Future.value();
+  }
+}
+
+class MockUtilsAPI implements UtilsAPI {
+  @override
+  Future<ParseBitcoinURIResponse> parseBitcoinURI(String uri) {
+    return Future.value(ParseBitcoinURIResponse());
+  }
+
+  @override
+  Future<ValidateBitcoinURIResponse> validateBitcoinURI(String uri) {
+    return Future.value(ValidateBitcoinURIResponse());
+  }
+
+  @override
+  Future<DecodeBase58CheckResponse> decodeBase58Check(String input) {
+    return Future.value(DecodeBase58CheckResponse());
+  }
+
+  @override
+  Future<EncodeBase58CheckResponse> encodeBase58Check(int versionByte, List<int> data) {
+    return Future.value(EncodeBase58CheckResponse());
+  }
+
+  @override
+  Future<CalculateMerkleTreeResponse> calculateMerkleTree(List<String> txids) {
+    return Future.value(CalculateMerkleTreeResponse());
+  }
+
+  @override
+  Future<GeneratePaperWalletResponse> generatePaperWallet() {
+    return Future.value(GeneratePaperWalletResponse());
+  }
+
+  @override
+  Future<ValidateWIFResponse> validateWIF(String wif) {
+    return Future.value(ValidateWIFResponse());
+  }
+
+  @override
+  Future<WIFToAddressResponse> wifToAddress(String wif) {
+    return Future.value(WIFToAddressResponse());
   }
 }

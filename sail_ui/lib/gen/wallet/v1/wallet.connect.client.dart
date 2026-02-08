@@ -510,4 +510,22 @@ extension type WalletServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Coin Selection - Select UTXOs for a transaction
+  Future<walletv1wallet.SelectCoinsResponse> selectCoins(
+    walletv1wallet.SelectCoinsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.selectCoins,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

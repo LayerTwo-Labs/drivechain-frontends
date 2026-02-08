@@ -14,6 +14,7 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
+	api_bitdrive "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitdrive"
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/drivechain"
 	api_enforcer "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/enforcer"
@@ -21,9 +22,11 @@ import (
 	api_m4 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/m4"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
 	api_notification "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/notification"
+	api_utils "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/utils"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1/bitdrivev1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -32,6 +35,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -53,6 +57,7 @@ type Services struct {
 	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
 	ChainParams       *chaincfg.Params
 	WalletDir         string
+	DataDir           string
 }
 
 // New creates a new Server with interceptors applied.
@@ -100,6 +105,9 @@ func New(
 
 	// Create notification engine for streaming notifications
 	notificationEngine := engines.NewNotificationEngine(svcs.Database, bitcoindSvc)
+
+	// Create BitDrive engine for file storage
+	bitdriveEngine := engines.NewBitDriveEngine(svcs.Database, walletEngine, svcs.DataDir, svcs.ChainParams)
 
 	srv := &Server{
 		mux:                mux,
@@ -198,6 +206,12 @@ func New(
 	)))
 	Register(srv, notificationv1connect.NewNotificationServiceHandler, notificationv1connect.NotificationServiceHandler(api_notification.New(
 		notificationEngine,
+	)))
+	Register(srv, bitdrivev1connect.NewBitDriveServiceHandler, bitdrivev1connect.BitDriveServiceHandler(api_bitdrive.New(
+		svcs.Database, walletSvc, bitcoindSvc, bitdriveEngine,
+	)))
+	Register(srv, utilsv1connect.NewUtilsServiceHandler, utilsv1connect.UtilsServiceHandler(api_utils.New(
+		svcs.ChainParams,
 	)))
 
 	// Register all enforcer services, only to be used as a bridge

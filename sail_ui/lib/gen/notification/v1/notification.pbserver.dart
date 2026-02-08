@@ -16,13 +16,13 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
-import 'notification.pb.dart' as $7;
+import 'notification.pb.dart' as $8;
 import 'notification.pbjson.dart';
 
 export 'notification.pb.dart';
 
 abstract class NotificationServiceBase extends $pb.GeneratedService {
-  $async.Future<$7.WatchResponse> watch($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$8.WatchResponse> watch($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {

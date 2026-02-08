@@ -2877,3 +2877,57 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 		NewFee:      bumpResp.Msg.NewFee,
 	}), nil
 }
+
+// SelectCoins implements walletv1connect.WalletServiceHandler.
+func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCoinsRequest]) (*connect.Response[pb.SelectCoinsResponse], error) {
+	// Get all UTXOs for the wallet
+	unspentResp, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{
+		WalletId: c.Msg.WalletId,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("list unspent: %w", err)
+	}
+
+	// Build frozen and required outpoints maps
+	frozenOutpoints := make(map[string]bool)
+	for _, outpoint := range c.Msg.FrozenOutpoints {
+		frozenOutpoints[outpoint] = true
+	}
+
+	requiredOutpoints := make(map[string]bool)
+	for _, outpoint := range c.Msg.RequiredOutpoints {
+		requiredOutpoints[outpoint] = true
+	}
+
+	// Set defaults
+	numOutputs := int(c.Msg.NumOutputs)
+	if numOutputs <= 0 {
+		numOutputs = 2
+	}
+
+	strategy := c.Msg.Strategy
+	if strategy == pb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_UNSPECIFIED {
+		strategy = pb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST
+	}
+
+	// Run coin selection
+	result, err := engines.SelectCoins(
+		unspentResp.Msg.Utxos,
+		frozenOutpoints,
+		c.Msg.TargetSats,
+		c.Msg.FeeSatsPerVbyte,
+		numOutputs,
+		strategy,
+		requiredOutpoints,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	return connect.NewResponse(&pb.SelectCoinsResponse{
+		SelectedUtxos:  result.SelectedUTXOs,
+		TotalInputSats: result.TotalInputSats,
+		FeeSats:        result.FeeSats,
+		ChangeSats:     result.ChangeSats,
+	}), nil
+}
