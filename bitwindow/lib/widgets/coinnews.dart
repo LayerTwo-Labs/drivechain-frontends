@@ -794,10 +794,17 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
       return '${difference.inMinutes}m';
     } else if (difference.inHours < 24) {
       return '${difference.inHours}h';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d';
+    } else if (difference.inDays < 30) {
+      return '${(difference.inDays / 7).floor()}w';
     }
 
-    final months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    return '${date.day}.${months[date.month - 1]}';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (date.year != now.year) {
+      return "${months[date.month - 1]} '${date.year.toString().substring(2)}";
+    }
+    return '${date.day} ${months[date.month - 1]}';
   }
 
   @override
