@@ -34,7 +34,7 @@ func TestOpReturnHandling(t *testing.T) {
 	knownTopicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
 
-	require.NoError(t, opreturns.CreateTopic(ctx, db, knownTopicID, "The Known Topic", "txid", true))
+	require.NoError(t, opreturns.CreateTopic(ctx, db, knownTopicID, "The Known Topic", "txid", true, 7))
 
 	unknownTopicID, err := opreturns.ValidNewsTopicID("12345678")
 	require.NoError(t, err)
@@ -80,7 +80,7 @@ func TestOpReturnHandling(t *testing.T) {
 			},
 			{
 				Value:    0,
-				PkScript: pkScript(t, opreturns.EncodeTopicCreationMessage(newTopicID, "The New Topic")),
+				PkScript: pkScript(t, opreturns.EncodeTopicCreationMessage(newTopicID, "The New Topic", 7)),
 			},
 			{
 				Value:    0,

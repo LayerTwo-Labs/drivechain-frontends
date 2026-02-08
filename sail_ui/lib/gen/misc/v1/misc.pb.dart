@@ -189,6 +189,8 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
     $core.String? topic,
     $core.String? headline,
     $core.String? content,
+    $fixnum.Int64? feeSatPerVbyte,
+    $fixnum.Int64? feeSats,
   }) {
     final $result = create();
     if (topic != null) {
@@ -200,6 +202,12 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
     if (content != null) {
       $result.content = content;
     }
+    if (feeSatPerVbyte != null) {
+      $result.feeSatPerVbyte = feeSatPerVbyte;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
     return $result;
   }
   BroadcastNewsRequest._() : super();
@@ -210,6 +218,8 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'topic')
     ..aOS(2, _omitFieldNames ? '' : 'headline')
     ..aOS(3, _omitFieldNames ? '' : 'content')
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -260,6 +270,25 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   $core.bool hasContent() => $_has(2);
   @$pb.TagNumber(3)
   void clearContent() => clearField(3);
+
+  /// Fee options - exactly one should be set (0 = use Core's estimate)
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get feeSatPerVbyte => $_getI64(3);
+  @$pb.TagNumber(4)
+  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFeeSatPerVbyte() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFeeSatPerVbyte() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get feeSats => $_getI64(4);
+  @$pb.TagNumber(5)
+  set feeSats($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasFeeSats() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearFeeSats() => clearField(5);
 }
 
 class BroadcastNewsResponse extends $pb.GeneratedMessage {
@@ -316,6 +345,7 @@ class CreateTopicRequest extends $pb.GeneratedMessage {
   factory CreateTopicRequest({
     $core.String? topic,
     $core.String? name,
+    $core.int? retentionDays,
   }) {
     final $result = create();
     if (topic != null) {
@@ -323,6 +353,9 @@ class CreateTopicRequest extends $pb.GeneratedMessage {
     }
     if (name != null) {
       $result.name = name;
+    }
+    if (retentionDays != null) {
+      $result.retentionDays = retentionDays;
     }
     return $result;
   }
@@ -333,6 +366,7 @@ class CreateTopicRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateTopicRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'topic')
     ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'retentionDays', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -374,6 +408,15 @@ class CreateTopicRequest extends $pb.GeneratedMessage {
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
   void clearName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get retentionDays => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set retentionDays($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasRetentionDays() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRetentionDays() => clearField(3);
 }
 
 class CreateTopicResponse extends $pb.GeneratedMessage {
@@ -434,6 +477,7 @@ class Topic extends $pb.GeneratedMessage {
     $0.Timestamp? createTime,
     $core.bool? confirmed,
     $core.String? txid,
+    $core.int? retentionDays,
   }) {
     final $result = create();
     if (id != null) {
@@ -454,6 +498,9 @@ class Topic extends $pb.GeneratedMessage {
     if (txid != null) {
       $result.txid = txid;
     }
+    if (retentionDays != null) {
+      $result.retentionDays = retentionDays;
+    }
     return $result;
   }
   Topic._() : super();
@@ -467,6 +514,7 @@ class Topic extends $pb.GeneratedMessage {
     ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..aOB(5, _omitFieldNames ? '' : 'confirmed')
     ..aOS(6, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'retentionDays', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -548,6 +596,16 @@ class Topic extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(5);
   @$pb.TagNumber(6)
   void clearTxid() => clearField(6);
+
+  /// Retention period for news items (0 = infinite)
+  @$pb.TagNumber(7)
+  $core.int get retentionDays => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set retentionDays($core.int v) { $_setSignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasRetentionDays() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearRetentionDays() => clearField(7);
 }
 
 class ListTopicsResponse extends $pb.GeneratedMessage {

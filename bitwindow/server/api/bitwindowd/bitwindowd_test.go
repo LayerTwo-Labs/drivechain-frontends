@@ -1094,7 +1094,7 @@ func TestService_GetFireplaceStats(t *testing.T) {
 
 	topicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
-	require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid1", true))
+	require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid1", true, 7))
 
 	unknownTopicID, err := opreturns.ValidNewsTopicID("12345678")
 	require.NoError(t, err)
@@ -1106,7 +1106,7 @@ func TestService_GetFireplaceStats(t *testing.T) {
 			Height:    lo.ToPtr(uint32(10)),
 			TxID:      "topic_txid1",
 			Vout:      0,
-			Data:      opreturns.EncodeTopicCreationMessage(topicID, "Test Topic"),
+			Data:      opreturns.EncodeTopicCreationMessage(topicID, "Test Topic", 7),
 			CreatedAt: lo.ToPtr(time.Now()),
 		},
 		// looks like a coin news entry, but we don't know about the topic

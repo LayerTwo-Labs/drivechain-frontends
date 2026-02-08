@@ -36,6 +36,9 @@ message BroadcastNewsRequest {
   string topic = 1;
   string headline = 2;
   string content = 3;
+  // Fee options - exactly one should be set (0 = use Core's estimate)
+  uint64 fee_sat_per_vbyte = 4;  // Fee rate in sat/vB
+  uint64 fee_sats = 5;           // Total fee in satoshis
 }
 
 message BroadcastNewsResponse {
@@ -45,6 +48,7 @@ message BroadcastNewsResponse {
 message CreateTopicRequest {
   string topic = 1;
   string name = 2;
+  int32 retention_days = 3;  // 0 = infinite retention
 }
 
 message CreateTopicResponse {
@@ -62,6 +66,8 @@ message Topic {
   bool confirmed = 5;
   // Transaction ID of the topic creation
   string txid = 6;
+  // Retention period for news items (0 = infinite)
+  int32 retention_days = 7;
 }
 
 message ListTopicsResponse {

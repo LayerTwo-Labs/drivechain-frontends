@@ -59,13 +59,17 @@ const BroadcastNewsRequest$json = {
     {'1': 'topic', '3': 1, '4': 1, '5': 9, '10': 'topic'},
     {'1': 'headline', '3': 2, '4': 1, '5': 9, '10': 'headline'},
     {'1': 'content', '3': 3, '4': 1, '5': 9, '10': 'content'},
+    {'1': 'fee_sat_per_vbyte', '3': 4, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
+    {'1': 'fee_sats', '3': 5, '4': 1, '5': 4, '10': 'feeSats'},
   ],
 };
 
 /// Descriptor for `BroadcastNewsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List broadcastNewsRequestDescriptor = $convert.base64Decode(
     'ChRCcm9hZGNhc3ROZXdzUmVxdWVzdBIUCgV0b3BpYxgBIAEoCVIFdG9waWMSGgoIaGVhZGxpbm'
-    'UYAiABKAlSCGhlYWRsaW5lEhgKB2NvbnRlbnQYAyABKAlSB2NvbnRlbnQ=');
+    'UYAiABKAlSCGhlYWRsaW5lEhgKB2NvbnRlbnQYAyABKAlSB2NvbnRlbnQSKQoRZmVlX3NhdF9w'
+    'ZXJfdmJ5dGUYBCABKARSDmZlZVNhdFBlclZieXRlEhkKCGZlZV9zYXRzGAUgASgEUgdmZWVTYX'
+    'Rz');
 
 @$core.Deprecated('Use broadcastNewsResponseDescriptor instead')
 const BroadcastNewsResponse$json = {
@@ -85,13 +89,14 @@ const CreateTopicRequest$json = {
   '2': [
     {'1': 'topic', '3': 1, '4': 1, '5': 9, '10': 'topic'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'retention_days', '3': 3, '4': 1, '5': 5, '10': 'retentionDays'},
   ],
 };
 
 /// Descriptor for `CreateTopicRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createTopicRequestDescriptor = $convert.base64Decode(
     'ChJDcmVhdGVUb3BpY1JlcXVlc3QSFAoFdG9waWMYASABKAlSBXRvcGljEhIKBG5hbWUYAiABKA'
-    'lSBG5hbWU=');
+    'lSBG5hbWUSJQoOcmV0ZW50aW9uX2RheXMYAyABKAVSDXJldGVudGlvbkRheXM=');
 
 @$core.Deprecated('Use createTopicResponseDescriptor instead')
 const CreateTopicResponse$json = {
@@ -115,6 +120,7 @@ const Topic$json = {
     {'1': 'create_time', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
     {'1': 'confirmed', '3': 5, '4': 1, '5': 8, '10': 'confirmed'},
     {'1': 'txid', '3': 6, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'retention_days', '3': 7, '4': 1, '5': 5, '10': 'retentionDays'},
   ],
 };
 
@@ -123,7 +129,7 @@ final $typed_data.Uint8List topicDescriptor = $convert.base64Decode(
     'CgVUb3BpYxIOCgJpZBgBIAEoA1ICaWQSFAoFdG9waWMYAiABKAlSBXRvcGljEhIKBG5hbWUYAy'
     'ABKAlSBG5hbWUSOwoLY3JlYXRlX3RpbWUYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0'
     'YW1wUgpjcmVhdGVUaW1lEhwKCWNvbmZpcm1lZBgFIAEoCFIJY29uZmlybWVkEhIKBHR4aWQYBi'
-    'ABKAlSBHR4aWQ=');
+    'ABKAlSBHR4aWQSJQoOcmV0ZW50aW9uX2RheXMYByABKAVSDXJldGVudGlvbkRheXM=');
 
 @$core.Deprecated('Use listTopicsResponseDescriptor instead')
 const ListTopicsResponse$json = {
