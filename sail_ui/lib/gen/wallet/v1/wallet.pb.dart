@@ -4357,6 +4357,135 @@ class UTXOBucket extends $pb.GeneratedMessage {
   $core.List<$core.String> get outpoints => $_getList(3);
 }
 
+/// RBF - Replace-By-Fee (uses Bitcoin Core's automatic fee estimation)
+class BumpFeeRequest extends $pb.GeneratedMessage {
+  factory BumpFeeRequest({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  BumpFeeRequest._() : super();
+  factory BumpFeeRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BumpFeeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BumpFeeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BumpFeeRequest clone() => BumpFeeRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BumpFeeRequest copyWith(void Function(BumpFeeRequest) updates) => super.copyWith((message) => updates(message as BumpFeeRequest)) as BumpFeeRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BumpFeeRequest create() => BumpFeeRequest._();
+  BumpFeeRequest createEmptyInstance() => create();
+  static $pb.PbList<BumpFeeRequest> createRepeated() => $pb.PbList<BumpFeeRequest>();
+  @$core.pragma('dart2js:noInline')
+  static BumpFeeRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BumpFeeRequest>(create);
+  static BumpFeeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
+class BumpFeeResponse extends $pb.GeneratedMessage {
+  factory BumpFeeResponse({
+    $core.String? txid,
+    $core.double? originalFee,
+    $core.double? newFee,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (originalFee != null) {
+      $result.originalFee = originalFee;
+    }
+    if (newFee != null) {
+      $result.newFee = newFee;
+    }
+    return $result;
+  }
+  BumpFeeResponse._() : super();
+  factory BumpFeeResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BumpFeeResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BumpFeeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'originalFee', $pb.PbFieldType.OD)
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'newFee', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BumpFeeResponse clone() => BumpFeeResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BumpFeeResponse copyWith(void Function(BumpFeeResponse) updates) => super.copyWith((message) => updates(message as BumpFeeResponse)) as BumpFeeResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BumpFeeResponse create() => BumpFeeResponse._();
+  BumpFeeResponse createEmptyInstance() => create();
+  static $pb.PbList<BumpFeeResponse> createRepeated() => $pb.PbList<BumpFeeResponse>();
+  @$core.pragma('dart2js:noInline')
+  static BumpFeeResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BumpFeeResponse>(create);
+  static BumpFeeResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get originalFee => $_getN(1);
+  @$pb.TagNumber(2)
+  set originalFee($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasOriginalFee() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOriginalFee() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get newFee => $_getN(2);
+  @$pb.TagNumber(3)
+  set newFee($core.double v) { $_setDouble(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasNewFee() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNewFee() => clearField(3);
+}
+
 class WalletServiceApi {
   $pb.RpcClient _client;
   WalletServiceApi(this._client);
@@ -4444,6 +4573,9 @@ class WalletServiceApi {
   ;
   $async.Future<GetUTXODistributionResponse> getUTXODistribution($pb.ClientContext? ctx, GetUTXODistributionRequest request) =>
     _client.invoke<GetUTXODistributionResponse>(ctx, 'WalletService', 'GetUTXODistribution', request, GetUTXODistributionResponse())
+  ;
+  $async.Future<BumpFeeResponse> bumpFee($pb.ClientContext? ctx, BumpFeeRequest request) =>
+    _client.invoke<BumpFeeResponse>(ctx, 'WalletService', 'BumpFee', request, BumpFeeResponse())
   ;
 }
 

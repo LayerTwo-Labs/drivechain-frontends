@@ -492,4 +492,22 @@ extension type WalletServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// RBF - Replace-By-Fee for unconfirmed transactions
+  Future<walletv1wallet.BumpFeeResponse> bumpFee(
+    walletv1wallet.BumpFeeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.bumpFee,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

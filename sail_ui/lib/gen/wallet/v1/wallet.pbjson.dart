@@ -967,6 +967,33 @@ final $typed_data.Uint8List uTXOBucketDescriptor = $convert.base64Decode(
     'l2YWx1ZVNhdHMSFAoFY291bnQYAyABKAVSBWNvdW50EhwKCW91dHBvaW50cxgEIAMoCVIJb3V0'
     'cG9pbnRz');
 
+@$core.Deprecated('Use bumpFeeRequestDescriptor instead')
+const BumpFeeRequest$json = {
+  '1': 'BumpFeeRequest',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `BumpFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bumpFeeRequestDescriptor = $convert.base64Decode(
+    'Cg5CdW1wRmVlUmVxdWVzdBISCgR0eGlkGAEgASgJUgR0eGlk');
+
+@$core.Deprecated('Use bumpFeeResponseDescriptor instead')
+const BumpFeeResponse$json = {
+  '1': 'BumpFeeResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'original_fee', '3': 2, '4': 1, '5': 1, '10': 'originalFee'},
+    {'1': 'new_fee', '3': 3, '4': 1, '5': 1, '10': 'newFee'},
+  ],
+};
+
+/// Descriptor for `BumpFeeResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bumpFeeResponseDescriptor = $convert.base64Decode(
+    'Cg9CdW1wRmVlUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZBIhCgxvcmlnaW5hbF9mZWUYAi'
+    'ABKAFSC29yaWdpbmFsRmVlEhcKB25ld19mZWUYAyABKAFSBm5ld0ZlZQ==');
+
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
   '2': [
@@ -998,6 +1025,7 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'GetCoinSelectionStrategy', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetCoinSelectionStrategyResponse'},
     {'1': 'GetTransactionDetails', '2': '.wallet.v1.GetTransactionDetailsRequest', '3': '.wallet.v1.GetTransactionDetailsResponse'},
     {'1': 'GetUTXODistribution', '2': '.wallet.v1.GetUTXODistributionRequest', '3': '.wallet.v1.GetUTXODistributionResponse'},
+    {'1': 'BumpFee', '2': '.wallet.v1.BumpFeeRequest', '3': '.wallet.v1.BumpFeeResponse'},
   ],
 };
 
@@ -1066,6 +1094,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.GetUTXODistributionRequest': GetUTXODistributionRequest$json,
   '.wallet.v1.GetUTXODistributionResponse': GetUTXODistributionResponse$json,
   '.wallet.v1.UTXOBucket': UTXOBucket$json,
+  '.wallet.v1.BumpFeeRequest': BumpFeeRequest$json,
+  '.wallet.v1.BumpFeeResponse': BumpFeeResponse$json,
 };
 
 /// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -1114,5 +1144,6 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'cud2FsbGV0LnYxLkdldFRyYW5zYWN0aW9uRGV0YWlsc1JlcXVlc3QaKC53YWxsZXQudjEuR2V0'
     'VHJhbnNhY3Rpb25EZXRhaWxzUmVzcG9uc2USZAoTR2V0VVRYT0Rpc3RyaWJ1dGlvbhIlLndhbG'
     'xldC52MS5HZXRVVFhPRGlzdHJpYnV0aW9uUmVxdWVzdBomLndhbGxldC52MS5HZXRVVFhPRGlz'
-    'dHJpYnV0aW9uUmVzcG9uc2U=');
+    'dHJpYnV0aW9uUmVzcG9uc2USQAoHQnVtcEZlZRIZLndhbGxldC52MS5CdW1wRmVlUmVxdWVzdB'
+    'oaLndhbGxldC52MS5CdW1wRmVlUmVzcG9uc2U=');
 

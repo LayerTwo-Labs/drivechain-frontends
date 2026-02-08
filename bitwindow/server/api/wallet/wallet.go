@@ -2825,3 +2825,55 @@ func formatBucketRange(minSats, maxSats uint64) string {
 
 	return fmt.Sprintf("%s - %s BTC", formatVal(minBTC), formatVal(maxBTC))
 }
+
+// BumpFee implements RBF (Replace-By-Fee) for unconfirmed transactions.
+// Uses Bitcoin Core's bumpfee command with automatic fee estimation.
+func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeRequest]) (*connect.Response[pb.BumpFeeResponse], error) {
+	log := zerolog.Ctx(ctx)
+	txid := c.Msg.Txid
+
+	if txid == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid required"))
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the list of loaded wallets to find one that owns this transaction
+	listResp, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		return nil, fmt.Errorf("list wallets: %w", err)
+	}
+
+	// Try each wallet until one successfully bumps the fee
+	var bumpResp *connect.Response[corepb.BumpFeeResponse]
+	for _, walletName := range listResp.Msg.Wallets {
+		resp, err := bitcoind.BumpFee(ctx, connect.NewRequest(&corepb.BumpFeeRequest{
+			Wallet: walletName,
+			Txid:   txid,
+		}))
+		if err == nil {
+			bumpResp = resp
+			break
+		}
+	}
+
+	if bumpResp == nil {
+		return nil, fmt.Errorf("could not bump fee: transaction not found in any wallet")
+	}
+
+	log.Info().
+		Str("old_txid", txid).
+		Str("new_txid", bumpResp.Msg.Txid).
+		Float64("original_fee", bumpResp.Msg.OriginalFee).
+		Float64("new_fee", bumpResp.Msg.NewFee).
+		Msg("RBF transaction broadcast via Core bumpfee")
+
+	return connect.NewResponse(&pb.BumpFeeResponse{
+		Txid:        bumpResp.Msg.Txid,
+		OriginalFee: bumpResp.Msg.OriginalFee,
+		NewFee:      bumpResp.Msg.NewFee,
+	}), nil
+}

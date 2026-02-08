@@ -9,7 +9,13 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
-    hide UnspentOutput, GetNewAddressRequest, ListTransactionsRequest, ListUnspentRequest;
+    hide
+        UnspentOutput,
+        GetNewAddressRequest,
+        ListTransactionsRequest,
+        ListUnspentRequest,
+        BumpFeeRequest,
+        BumpFeeResponse;
 import 'package:sail_ui/gen/m4/v1/m4.connect.client.dart';
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/gen/notification/v1/notification.connect.client.dart';
@@ -636,6 +642,9 @@ abstract class WalletAPI {
 
   // UTXO distribution for chart visualization
   Future<GetUTXODistributionResponse> getUTXODistribution(String walletId, {int maxBuckets = 10});
+
+  // RBF - Replace-By-Fee for unconfirmed transactions (uses Core's automatic fee estimation)
+  Future<BumpFeeResponse> bumpFee(String txid);
 }
 
 class SweepChequeResult {
@@ -1027,6 +1036,17 @@ class _WalletAPILive implements WalletAPI {
       throw WalletException(error);
     }
   }
+
+  @override
+  Future<BumpFeeResponse> bumpFee(String txid) async {
+    try {
+      final response = await _client.bumpFee(BumpFeeRequest(txid: txid));
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
 }
 
 abstract class BitcoindAPI {
@@ -1035,6 +1055,7 @@ abstract class BitcoindAPI {
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
   Future<GetRawTransactionResponse> getRawTransaction(String txid);
   Future<GetBlockResponse> getBlock({String? hash, int? height});
+  Future<GetRawMempoolResponse> getRawMempool();
 
   Future<CreateWalletResponse> createWallet(
     String name,
@@ -1368,6 +1389,17 @@ class _BitcoindAPILive implements BitcoindAPI {
       throw BitcoindException(error);
     }
   }
+
+  @override
+  Future<GetRawMempoolResponse> getRawMempool() async {
+    try {
+      final response = await _client.getRawMempool(GetRawMempoolRequest());
+      return response;
+    } catch (e) {
+      final error = 'could not get raw mempool: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
 }
 
 abstract class DrivechainAPI {
@@ -1481,8 +1513,14 @@ abstract class MiscAPI {
   Future<List<OPReturn>> listOPReturns();
   Future<List<CoinNews>> listCoinNews();
   Future<List<Topic>> listTopics();
-  Future<CreateTopicResponse> createTopic(String topic, String name);
-  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content);
+  Future<CreateTopicResponse> createTopic(String topic, String name, {int retentionDays = 7});
+  Future<BroadcastNewsResponse> broadcastNews(
+    String topic,
+    String headline,
+    String content, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  });
   Future<TimestampFileResponse> timestampFile(String filename, List<int> fileData);
   Future<List<FileTimestamp>> listTimestamps();
   Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename);
@@ -1506,14 +1544,26 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content) async {
+  Future<BroadcastNewsResponse> broadcastNews(
+    String topic,
+    String headline,
+    String content, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
     try {
-      final response = await _client.broadcastNews(
-        BroadcastNewsRequest()
-          ..topic = topic
-          ..headline = headline
-          ..content = content,
-      );
+      final request = BroadcastNewsRequest()
+        ..topic = topic
+        ..headline = headline
+        ..content = content;
+
+      if (feeSatPerVbyte != null) {
+        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
+      } else if (feeSats != null) {
+        request.feeSats = Int64(feeSats);
+      }
+
+      final response = await _client.broadcastNews(request);
       return response;
     } catch (e) {
       final error = 'could not broadcast news: ${extractConnectException(e)}';
@@ -1522,12 +1572,13 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<CreateTopicResponse> createTopic(String topic, String name) async {
+  Future<CreateTopicResponse> createTopic(String topic, String name, {int retentionDays = 7}) async {
     try {
       final response = await _client.createTopic(
         CreateTopicRequest()
           ..topic = topic
-          ..name = name,
+          ..name = name
+          ..retentionDays = retentionDays,
       );
       return response;
     } catch (e) {

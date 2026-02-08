@@ -116,6 +116,8 @@ const (
 	// WalletServiceGetUTXODistributionProcedure is the fully-qualified name of the WalletService's
 	// GetUTXODistribution RPC.
 	WalletServiceGetUTXODistributionProcedure = "/wallet.v1.WalletService/GetUTXODistribution"
+	// WalletServiceBumpFeeProcedure is the fully-qualified name of the WalletService's BumpFee RPC.
+	WalletServiceBumpFeeProcedure = "/wallet.v1.WalletService/BumpFee"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -156,6 +158,8 @@ type WalletServiceClient interface {
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	// UTXO Distribution (for chart visualization)
 	GetUTXODistribution(context.Context, *connect.Request[v1.GetUTXODistributionRequest]) (*connect.Response[v1.GetUTXODistributionResponse], error)
+	// RBF - Replace-By-Fee for unconfirmed transactions
+	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -337,6 +341,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("GetUTXODistribution")),
 			connect.WithClientOptions(opts...),
 		),
+		bumpFee: connect.NewClient[v1.BumpFeeRequest, v1.BumpFeeResponse](
+			httpClient,
+			baseURL+WalletServiceBumpFeeProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("BumpFee")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -370,6 +380,7 @@ type walletServiceClient struct {
 	getCoinSelectionStrategy *connect.Client[emptypb.Empty, v1.GetCoinSelectionStrategyResponse]
 	getTransactionDetails    *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
 	getUTXODistribution      *connect.Client[v1.GetUTXODistributionRequest, v1.GetUTXODistributionResponse]
+	bumpFee                  *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
 }
 
 // CreateBitcoinCoreWallet calls wallet.v1.WalletService.CreateBitcoinCoreWallet.
@@ -512,6 +523,11 @@ func (c *walletServiceClient) GetUTXODistribution(ctx context.Context, req *conn
 	return c.getUTXODistribution.CallUnary(ctx, req)
 }
 
+// BumpFee calls wallet.v1.WalletService.BumpFee.
+func (c *walletServiceClient) BumpFee(ctx context.Context, req *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
+	return c.bumpFee.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
@@ -550,6 +566,8 @@ type WalletServiceHandler interface {
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	// UTXO Distribution (for chart visualization)
 	GetUTXODistribution(context.Context, *connect.Request[v1.GetUTXODistributionRequest]) (*connect.Response[v1.GetUTXODistributionResponse], error)
+	// RBF - Replace-By-Fee for unconfirmed transactions
+	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -727,6 +745,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("GetUTXODistribution")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceBumpFeeHandler := connect.NewUnaryHandler(
+		WalletServiceBumpFeeProcedure,
+		svc.BumpFee,
+		connect.WithSchema(walletServiceMethods.ByName("BumpFee")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceCreateBitcoinCoreWalletProcedure:
@@ -785,6 +809,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceGetTransactionDetailsHandler.ServeHTTP(w, r)
 		case WalletServiceGetUTXODistributionProcedure:
 			walletServiceGetUTXODistributionHandler.ServeHTTP(w, r)
+		case WalletServiceBumpFeeProcedure:
+			walletServiceBumpFeeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -904,4 +930,8 @@ func (UnimplementedWalletServiceHandler) GetTransactionDetails(context.Context, 
 
 func (UnimplementedWalletServiceHandler) GetUTXODistribution(context.Context, *connect.Request[v1.GetUTXODistributionRequest]) (*connect.Response[v1.GetUTXODistributionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetUTXODistribution is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.BumpFee is not implemented"))
 }

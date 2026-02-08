@@ -1,6 +1,7 @@
 import 'package:fixnum/src/int64.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' hide UnspentOutput;
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
+    hide UnspentOutput, BumpFeeRequest, BumpFeeResponse;
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/health/v1/health.pb.dart';
@@ -325,6 +326,11 @@ class MockWalletAPI implements WalletAPI {
   Future<GetUTXODistributionResponse> getUTXODistribution(String walletId, {int maxBuckets = 10}) {
     return Future.value(GetUTXODistributionResponse());
   }
+
+  @override
+  Future<BumpFeeResponse> bumpFee(String txid) {
+    return Future.value(BumpFeeResponse(txid: 'mock_new_txid'));
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {
@@ -438,6 +444,11 @@ class MockBitcoindAPI implements BitcoindAPI {
   Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request) async {
     return UtxoUpdatePsbtResponse();
   }
+
+  @override
+  Future<GetRawMempoolResponse> getRawMempool() async {
+    return GetRawMempoolResponse();
+  }
 }
 
 class MockDrivechainAPI implements DrivechainAPI {
@@ -485,12 +496,18 @@ class MockMiscAPI implements MiscAPI {
   }
 
   @override
-  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content) async {
+  Future<BroadcastNewsResponse> broadcastNews(
+    String topic,
+    String headline,
+    String content, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
     return BroadcastNewsResponse();
   }
 
   @override
-  Future<CreateTopicResponse> createTopic(String topic, String name) async {
+  Future<CreateTopicResponse> createTopic(String topic, String name, {int retentionDays = 7}) async {
     return CreateTopicResponse();
   }
 

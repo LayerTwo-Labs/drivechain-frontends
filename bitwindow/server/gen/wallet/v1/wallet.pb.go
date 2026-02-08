@@ -3418,6 +3418,111 @@ func (x *UTXOBucket) GetOutpoints() []string {
 	return nil
 }
 
+// RBF - Replace-By-Fee (uses Bitcoin Core's automatic fee estimation)
+type BumpFeeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"` // Original unconfirmed transaction to replace
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BumpFeeRequest) Reset() {
+	*x = BumpFeeRequest{}
+	mi := &file_wallet_v1_wallet_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BumpFeeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BumpFeeRequest) ProtoMessage() {}
+
+func (x *BumpFeeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_wallet_v1_wallet_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BumpFeeRequest.ProtoReflect.Descriptor instead.
+func (*BumpFeeRequest) Descriptor() ([]byte, []int) {
+	return file_wallet_v1_wallet_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *BumpFeeRequest) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+type BumpFeeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`                                    // New replacement transaction ID
+	OriginalFee   float64                `protobuf:"fixed64,2,opt,name=original_fee,json=originalFee,proto3" json:"original_fee,omitempty"` // Original fee in BTC
+	NewFee        float64                `protobuf:"fixed64,3,opt,name=new_fee,json=newFee,proto3" json:"new_fee,omitempty"`                // New fee in BTC
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BumpFeeResponse) Reset() {
+	*x = BumpFeeResponse{}
+	mi := &file_wallet_v1_wallet_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BumpFeeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BumpFeeResponse) ProtoMessage() {}
+
+func (x *BumpFeeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_wallet_v1_wallet_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BumpFeeResponse.ProtoReflect.Descriptor instead.
+func (*BumpFeeResponse) Descriptor() ([]byte, []int) {
+	return file_wallet_v1_wallet_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *BumpFeeResponse) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *BumpFeeResponse) GetOriginalFee() float64 {
+	if x != nil {
+		return x.OriginalFee
+	}
+	return 0
+}
+
+func (x *BumpFeeResponse) GetNewFee() float64 {
+	if x != nil {
+		return x.NewFee
+	}
+	return 0
+}
+
 type ListSidechainDepositsResponse_SidechainDeposit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
@@ -3430,7 +3535,7 @@ type ListSidechainDepositsResponse_SidechainDeposit struct {
 
 func (x *ListSidechainDepositsResponse_SidechainDeposit) Reset() {
 	*x = ListSidechainDepositsResponse_SidechainDeposit{}
-	mi := &file_wallet_v1_wallet_proto_msgTypes[57]
+	mi := &file_wallet_v1_wallet_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3442,7 +3547,7 @@ func (x *ListSidechainDepositsResponse_SidechainDeposit) String() string {
 func (*ListSidechainDepositsResponse_SidechainDeposit) ProtoMessage() {}
 
 func (x *ListSidechainDepositsResponse_SidechainDeposit) ProtoReflect() protoreflect.Message {
-	mi := &file_wallet_v1_wallet_proto_msgTypes[57]
+	mi := &file_wallet_v1_wallet_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3753,12 +3858,18 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\n" +
 	"value_sats\x18\x02 \x01(\x03R\tvalueSats\x12\x14\n" +
 	"\x05count\x18\x03 \x01(\x05R\x05count\x12\x1c\n" +
-	"\toutpoints\x18\x04 \x03(\tR\toutpoints*\xbb\x01\n" +
+	"\toutpoints\x18\x04 \x03(\tR\toutpoints\"$\n" +
+	"\x0eBumpFeeRequest\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"a\n" +
+	"\x0fBumpFeeResponse\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\x12!\n" +
+	"\foriginal_fee\x18\x02 \x01(\x01R\voriginalFee\x12\x17\n" +
+	"\anew_fee\x18\x03 \x01(\x01R\x06newFee*\xbb\x01\n" +
 	"\x15CoinSelectionStrategy\x12'\n" +
 	"#COIN_SELECTION_STRATEGY_UNSPECIFIED\x10\x00\x12)\n" +
 	"%COIN_SELECTION_STRATEGY_LARGEST_FIRST\x10\x01\x12*\n" +
 	"&COIN_SELECTION_STRATEGY_SMALLEST_FIRST\x10\x02\x12\"\n" +
-	"\x1eCOIN_SELECTION_STRATEGY_RANDOM\x10\x032\x9b\x13\n" +
+	"\x1eCOIN_SELECTION_STRATEGY_RANDOM\x10\x032\xdd\x13\n" +
 	"\rWalletService\x12p\n" +
 	"\x17CreateBitcoinCoreWallet\x12).wallet.v1.CreateBitcoinCoreWalletRequest\x1a*.wallet.v1.CreateBitcoinCoreWalletResponse\x12X\n" +
 	"\x0fSendTransaction\x12!.wallet.v1.SendTransactionRequest\x1a\".wallet.v1.SendTransactionResponse\x12I\n" +
@@ -3789,7 +3900,8 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x18SetCoinSelectionStrategy\x12*.wallet.v1.SetCoinSelectionStrategyRequest\x1a\x16.google.protobuf.Empty\x12_\n" +
 	"\x18GetCoinSelectionStrategy\x12\x16.google.protobuf.Empty\x1a+.wallet.v1.GetCoinSelectionStrategyResponse\x12j\n" +
 	"\x15GetTransactionDetails\x12'.wallet.v1.GetTransactionDetailsRequest\x1a(.wallet.v1.GetTransactionDetailsResponse\x12d\n" +
-	"\x13GetUTXODistribution\x12%.wallet.v1.GetUTXODistributionRequest\x1a&.wallet.v1.GetUTXODistributionResponseB\xac\x01\n" +
+	"\x13GetUTXODistribution\x12%.wallet.v1.GetUTXODistributionRequest\x1a&.wallet.v1.GetUTXODistributionResponse\x12@\n" +
+	"\aBumpFee\x12\x19.wallet.v1.BumpFeeRequest\x1a\x1a.wallet.v1.BumpFeeResponseB\xac\x01\n" +
 	"\rcom.wallet.v1B\vWalletProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1;walletv1\xa2\x02\x03WXX\xaa\x02\tWallet.V1\xca\x02\tWallet\\V1\xe2\x02\x15Wallet\\V1\\GPBMetadata\xea\x02\n" +
 	"Wallet::V1b\x06proto3"
 
@@ -3806,7 +3918,7 @@ func file_wallet_v1_wallet_proto_rawDescGZIP() []byte {
 }
 
 var file_wallet_v1_wallet_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_wallet_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 59)
+var file_wallet_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 61)
 var file_wallet_v1_wallet_proto_goTypes = []any{
 	(CoinSelectionStrategy)(0),                             // 0: wallet.v1.CoinSelectionStrategy
 	(*GetBalanceRequest)(nil),                              // 1: wallet.v1.GetBalanceRequest
@@ -3865,32 +3977,34 @@ var file_wallet_v1_wallet_proto_goTypes = []any{
 	(*GetUTXODistributionRequest)(nil),                     // 54: wallet.v1.GetUTXODistributionRequest
 	(*GetUTXODistributionResponse)(nil),                    // 55: wallet.v1.GetUTXODistributionResponse
 	(*UTXOBucket)(nil),                                     // 56: wallet.v1.UTXOBucket
-	nil,                                                    // 57: wallet.v1.SendTransactionRequest.DestinationsEntry
-	(*ListSidechainDepositsResponse_SidechainDeposit)(nil), // 58: wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
-	nil,                           // 59: wallet.v1.GetUTXOMetadataResponse.MetadataEntry
-	(*timestamppb.Timestamp)(nil), // 60: google.protobuf.Timestamp
-	(*v1.DenialInfo)(nil),         // 61: bitwindowd.v1.DenialInfo
-	(*emptypb.Empty)(nil),         // 62: google.protobuf.Empty
+	(*BumpFeeRequest)(nil),                                 // 57: wallet.v1.BumpFeeRequest
+	(*BumpFeeResponse)(nil),                                // 58: wallet.v1.BumpFeeResponse
+	nil,                                                    // 59: wallet.v1.SendTransactionRequest.DestinationsEntry
+	(*ListSidechainDepositsResponse_SidechainDeposit)(nil), // 60: wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
+	nil,                           // 61: wallet.v1.GetUTXOMetadataResponse.MetadataEntry
+	(*timestamppb.Timestamp)(nil), // 62: google.protobuf.Timestamp
+	(*v1.DenialInfo)(nil),         // 63: bitwindowd.v1.DenialInfo
+	(*emptypb.Empty)(nil),         // 64: google.protobuf.Empty
 }
 var file_wallet_v1_wallet_proto_depIdxs = []int32{
-	57, // 0: wallet.v1.SendTransactionRequest.destinations:type_name -> wallet.v1.SendTransactionRequest.DestinationsEntry
+	59, // 0: wallet.v1.SendTransactionRequest.destinations:type_name -> wallet.v1.SendTransactionRequest.DestinationsEntry
 	12, // 1: wallet.v1.SendTransactionRequest.required_inputs:type_name -> wallet.v1.UnspentOutput
 	17, // 2: wallet.v1.ListTransactionsResponse.transactions:type_name -> wallet.v1.WalletTransaction
-	60, // 3: wallet.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
-	61, // 4: wallet.v1.UnspentOutput.denial_info:type_name -> bitwindowd.v1.DenialInfo
+	62, // 3: wallet.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
+	63, // 4: wallet.v1.UnspentOutput.denial_info:type_name -> bitwindowd.v1.DenialInfo
 	12, // 5: wallet.v1.ListUnspentResponse.utxos:type_name -> wallet.v1.UnspentOutput
 	15, // 6: wallet.v1.ListReceiveAddressesResponse.addresses:type_name -> wallet.v1.ReceiveAddress
-	60, // 7: wallet.v1.ReceiveAddress.last_used_at:type_name -> google.protobuf.Timestamp
-	60, // 8: wallet.v1.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
+	62, // 7: wallet.v1.ReceiveAddress.last_used_at:type_name -> google.protobuf.Timestamp
+	62, // 8: wallet.v1.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
 	16, // 9: wallet.v1.WalletTransaction.confirmation_time:type_name -> wallet.v1.Confirmation
-	58, // 10: wallet.v1.ListSidechainDepositsResponse.deposits:type_name -> wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
+	60, // 10: wallet.v1.ListSidechainDepositsResponse.deposits:type_name -> wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
 	34, // 11: wallet.v1.GetChequeResponse.cheque:type_name -> wallet.v1.Cheque
-	60, // 12: wallet.v1.Cheque.created_at:type_name -> google.protobuf.Timestamp
-	60, // 13: wallet.v1.Cheque.funded_at:type_name -> google.protobuf.Timestamp
-	60, // 14: wallet.v1.Cheque.swept_at:type_name -> google.protobuf.Timestamp
+	62, // 12: wallet.v1.Cheque.created_at:type_name -> google.protobuf.Timestamp
+	62, // 13: wallet.v1.Cheque.funded_at:type_name -> google.protobuf.Timestamp
+	62, // 14: wallet.v1.Cheque.swept_at:type_name -> google.protobuf.Timestamp
 	34, // 15: wallet.v1.ListChequesResponse.cheques:type_name -> wallet.v1.Cheque
-	60, // 16: wallet.v1.CheckChequeFundingResponse.funded_at:type_name -> google.protobuf.Timestamp
-	59, // 17: wallet.v1.GetUTXOMetadataResponse.metadata:type_name -> wallet.v1.GetUTXOMetadataResponse.MetadataEntry
+	62, // 16: wallet.v1.CheckChequeFundingResponse.funded_at:type_name -> google.protobuf.Timestamp
+	61, // 17: wallet.v1.GetUTXOMetadataResponse.metadata:type_name -> wallet.v1.GetUTXOMetadataResponse.MetadataEntry
 	0,  // 18: wallet.v1.SetCoinSelectionStrategyRequest.strategy:type_name -> wallet.v1.CoinSelectionStrategy
 	0,  // 19: wallet.v1.GetCoinSelectionStrategyResponse.strategy:type_name -> wallet.v1.CoinSelectionStrategy
 	52, // 20: wallet.v1.GetTransactionDetailsResponse.inputs:type_name -> wallet.v1.TransactionInput
@@ -3910,8 +4024,8 @@ var file_wallet_v1_wallet_proto_depIdxs = []int32{
 	24, // 34: wallet.v1.WalletService.VerifyMessage:input_type -> wallet.v1.VerifyMessageRequest
 	7,  // 35: wallet.v1.WalletService.GetStats:input_type -> wallet.v1.GetStatsRequest
 	27, // 36: wallet.v1.WalletService.UnlockWallet:input_type -> wallet.v1.UnlockWalletRequest
-	62, // 37: wallet.v1.WalletService.LockWallet:input_type -> google.protobuf.Empty
-	62, // 38: wallet.v1.WalletService.IsWalletUnlocked:input_type -> google.protobuf.Empty
+	64, // 37: wallet.v1.WalletService.LockWallet:input_type -> google.protobuf.Empty
+	64, // 38: wallet.v1.WalletService.IsWalletUnlocked:input_type -> google.protobuf.Empty
 	28, // 39: wallet.v1.WalletService.CreateCheque:input_type -> wallet.v1.CreateChequeRequest
 	30, // 40: wallet.v1.WalletService.GetCheque:input_type -> wallet.v1.GetChequeRequest
 	32, // 41: wallet.v1.WalletService.GetChequePrivateKey:input_type -> wallet.v1.GetChequePrivateKeyRequest
@@ -3922,39 +4036,41 @@ var file_wallet_v1_wallet_proto_depIdxs = []int32{
 	45, // 46: wallet.v1.WalletService.SetUTXOMetadata:input_type -> wallet.v1.SetUTXOMetadataRequest
 	46, // 47: wallet.v1.WalletService.GetUTXOMetadata:input_type -> wallet.v1.GetUTXOMetadataRequest
 	48, // 48: wallet.v1.WalletService.SetCoinSelectionStrategy:input_type -> wallet.v1.SetCoinSelectionStrategyRequest
-	62, // 49: wallet.v1.WalletService.GetCoinSelectionStrategy:input_type -> google.protobuf.Empty
+	64, // 49: wallet.v1.WalletService.GetCoinSelectionStrategy:input_type -> google.protobuf.Empty
 	50, // 50: wallet.v1.WalletService.GetTransactionDetails:input_type -> wallet.v1.GetTransactionDetailsRequest
 	54, // 51: wallet.v1.WalletService.GetUTXODistribution:input_type -> wallet.v1.GetUTXODistributionRequest
-	43, // 52: wallet.v1.WalletService.CreateBitcoinCoreWallet:output_type -> wallet.v1.CreateBitcoinCoreWalletResponse
-	9,  // 53: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
-	10, // 54: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
-	3,  // 55: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
-	11, // 56: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
-	13, // 57: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
-	14, // 58: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
-	19, // 59: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
-	21, // 60: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
-	23, // 61: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
-	25, // 62: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
-	26, // 63: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
-	62, // 64: wallet.v1.WalletService.UnlockWallet:output_type -> google.protobuf.Empty
-	62, // 65: wallet.v1.WalletService.LockWallet:output_type -> google.protobuf.Empty
-	62, // 66: wallet.v1.WalletService.IsWalletUnlocked:output_type -> google.protobuf.Empty
-	29, // 67: wallet.v1.WalletService.CreateCheque:output_type -> wallet.v1.CreateChequeResponse
-	31, // 68: wallet.v1.WalletService.GetCheque:output_type -> wallet.v1.GetChequeResponse
-	33, // 69: wallet.v1.WalletService.GetChequePrivateKey:output_type -> wallet.v1.GetChequePrivateKeyResponse
-	36, // 70: wallet.v1.WalletService.ListCheques:output_type -> wallet.v1.ListChequesResponse
-	38, // 71: wallet.v1.WalletService.CheckChequeFunding:output_type -> wallet.v1.CheckChequeFundingResponse
-	40, // 72: wallet.v1.WalletService.SweepCheque:output_type -> wallet.v1.SweepChequeResponse
-	62, // 73: wallet.v1.WalletService.DeleteCheque:output_type -> google.protobuf.Empty
-	62, // 74: wallet.v1.WalletService.SetUTXOMetadata:output_type -> google.protobuf.Empty
-	47, // 75: wallet.v1.WalletService.GetUTXOMetadata:output_type -> wallet.v1.GetUTXOMetadataResponse
-	62, // 76: wallet.v1.WalletService.SetCoinSelectionStrategy:output_type -> google.protobuf.Empty
-	49, // 77: wallet.v1.WalletService.GetCoinSelectionStrategy:output_type -> wallet.v1.GetCoinSelectionStrategyResponse
-	51, // 78: wallet.v1.WalletService.GetTransactionDetails:output_type -> wallet.v1.GetTransactionDetailsResponse
-	55, // 79: wallet.v1.WalletService.GetUTXODistribution:output_type -> wallet.v1.GetUTXODistributionResponse
-	52, // [52:80] is the sub-list for method output_type
-	24, // [24:52] is the sub-list for method input_type
+	57, // 52: wallet.v1.WalletService.BumpFee:input_type -> wallet.v1.BumpFeeRequest
+	43, // 53: wallet.v1.WalletService.CreateBitcoinCoreWallet:output_type -> wallet.v1.CreateBitcoinCoreWalletResponse
+	9,  // 54: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
+	10, // 55: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
+	3,  // 56: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
+	11, // 57: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
+	13, // 58: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
+	14, // 59: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
+	19, // 60: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
+	21, // 61: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
+	23, // 62: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
+	25, // 63: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
+	26, // 64: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
+	64, // 65: wallet.v1.WalletService.UnlockWallet:output_type -> google.protobuf.Empty
+	64, // 66: wallet.v1.WalletService.LockWallet:output_type -> google.protobuf.Empty
+	64, // 67: wallet.v1.WalletService.IsWalletUnlocked:output_type -> google.protobuf.Empty
+	29, // 68: wallet.v1.WalletService.CreateCheque:output_type -> wallet.v1.CreateChequeResponse
+	31, // 69: wallet.v1.WalletService.GetCheque:output_type -> wallet.v1.GetChequeResponse
+	33, // 70: wallet.v1.WalletService.GetChequePrivateKey:output_type -> wallet.v1.GetChequePrivateKeyResponse
+	36, // 71: wallet.v1.WalletService.ListCheques:output_type -> wallet.v1.ListChequesResponse
+	38, // 72: wallet.v1.WalletService.CheckChequeFunding:output_type -> wallet.v1.CheckChequeFundingResponse
+	40, // 73: wallet.v1.WalletService.SweepCheque:output_type -> wallet.v1.SweepChequeResponse
+	64, // 74: wallet.v1.WalletService.DeleteCheque:output_type -> google.protobuf.Empty
+	64, // 75: wallet.v1.WalletService.SetUTXOMetadata:output_type -> google.protobuf.Empty
+	47, // 76: wallet.v1.WalletService.GetUTXOMetadata:output_type -> wallet.v1.GetUTXOMetadataResponse
+	64, // 77: wallet.v1.WalletService.SetCoinSelectionStrategy:output_type -> google.protobuf.Empty
+	49, // 78: wallet.v1.WalletService.GetCoinSelectionStrategy:output_type -> wallet.v1.GetCoinSelectionStrategyResponse
+	51, // 79: wallet.v1.WalletService.GetTransactionDetails:output_type -> wallet.v1.GetTransactionDetailsResponse
+	55, // 80: wallet.v1.WalletService.GetUTXODistribution:output_type -> wallet.v1.GetUTXODistributionResponse
+	58, // 81: wallet.v1.WalletService.BumpFee:output_type -> wallet.v1.BumpFeeResponse
+	53, // [53:82] is the sub-list for method output_type
+	24, // [24:53] is the sub-list for method input_type
 	24, // [24:24] is the sub-list for extension type_name
 	24, // [24:24] is the sub-list for extension extendee
 	0,  // [0:24] is the sub-list for field type_name
@@ -3975,7 +4091,7 @@ func file_wallet_v1_wallet_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_wallet_v1_wallet_proto_rawDesc), len(file_wallet_v1_wallet_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   59,
+			NumMessages:   61,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

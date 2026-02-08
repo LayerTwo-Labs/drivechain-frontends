@@ -7,6 +7,7 @@ import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
+import 'package:bitwindow/widgets/mempool_widget.dart';
 import 'package:bitwindow/widgets/network_stats_widget.dart';
 import 'package:bitwindow/widgets/peers_table_widget.dart';
 import 'package:bitwindow/widgets/traffic_graph_widget.dart';
@@ -210,6 +211,14 @@ class HomepageWidgetCatalog {
           );
         },
       ),
+    ),
+    'mempool': HomepageWidgetInfo(
+      id: 'mempool',
+      name: 'Mempool',
+      description: 'Transaction mempool visualization',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.iconTransactions,
+      builder: (_) => const MempoolWidget(),
     ),
   };
 

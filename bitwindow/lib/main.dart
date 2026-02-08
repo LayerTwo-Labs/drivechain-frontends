@@ -25,6 +25,7 @@ import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart';
 import 'package:bitwindow/providers/m4_provider.dart';
+import 'package:bitwindow/providers/mempool_provider.dart';
 import 'package:bitwindow/providers/mining_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/notification_stream_provider.dart';
@@ -212,6 +213,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // Register the abstract HomepageProvider as an alias to the concrete implementation
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
+  GetIt.I.registerLazySingleton<MempoolProvider>(() => MempoolProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
   GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
   GetIt.I.registerSingleton<UpdateProvider>(
