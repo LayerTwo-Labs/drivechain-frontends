@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package bitdrive.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service BitDriveService {
+  // Store file/content to blockchain with optional encryption
+  rpc StoreFile(StoreFileRequest) returns (StoreFileResponse);
+
+  // Retrieve content from blockchain by txid
+  rpc RetrieveContent(RetrieveContentRequest) returns (RetrieveContentResponse);
+
+  // Scan for files in wallet transactions
+  rpc ScanForFiles(google.protobuf.Empty) returns (ScanForFilesResponse);
+
+  // Download/restore pending files
+  rpc DownloadPendingFiles(google.protobuf.Empty) returns (DownloadPendingFilesResponse);
+
+  // List stored files from local storage
+  rpc ListFiles(google.protobuf.Empty) returns (ListFilesResponse);
+
+  // Get file details
+  rpc GetFile(GetFileRequest) returns (GetFileResponse);
+
+  // Delete local file (does not affect blockchain)
+  rpc DeleteFile(DeleteFileRequest) returns (google.protobuf.Empty);
+
+  // Store multisig group data on blockchain
+  rpc StoreMultisigData(StoreMultisigDataRequest) returns (StoreMultisigDataResponse);
+
+  // Wipe all local BitDrive data
+  rpc WipeData(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+// File metadata stored in OP_RETURN (9 bytes total)
+message BitDriveMetadata {
+  // Flags (1 byte): bit 0 = encrypted, bit 1 = multisig
+  uint32 flags = 1;
+  // Unix timestamp (4 bytes, big endian)
+  uint32 timestamp = 2;
+  // File type extension (4 bytes ASCII, padded with spaces)
+  string file_type = 3;
+}
+
+// Request to store file content
+message StoreFileRequest {
+  // Raw file content (max 1MB)
+  bytes content = 1;
+  // Optional filename
+  string filename = 2;
+  // Optional MIME type
+  string mime_type = 3;
+  // Whether to encrypt the content
+  bool encrypt = 4;
+  // Fee in satoshis per vbyte
+  uint64 fee_sat_per_vbyte = 5;
+}
+
+message StoreFileResponse {
+  // Transaction ID of the stored content
+  string txid = 1;
+  // Detected or assigned file type
+  string file_type = 2;
+  // Whether content was encrypted
+  bool encrypted = 3;
+}
+
+// Request to retrieve content by txid
+message RetrieveContentRequest {
+  // Transaction ID containing the OP_RETURN data
+  string txid = 1;
+}
+
+message RetrieveContentResponse {
+  // Decrypted/raw file content
+  bytes content = 1;
+  // File type
+  string file_type = 2;
+  // Whether content was encrypted
+  bool encrypted = 3;
+  // Timestamp
+  uint32 timestamp = 4;
+}
+
+// Scan results
+message ScanForFilesResponse {
+  // Files found that are not yet downloaded
+  repeated PendingFile pending_files = 1;
+  // Total files scanned
+  uint32 total_scanned = 2;
+}
+
+message PendingFile {
+  string txid = 1;
+  bool encrypted = 2;
+  uint32 timestamp = 3;
+  string file_type = 4;
+  string filename = 5;
+}
+
+message DownloadPendingFilesResponse {
+  // Number of files successfully downloaded
+  uint32 downloaded_count = 1;
+  // Number of files that failed to download
+  uint32 failed_count = 2;
+}
+
+// Local file info
+message BitDriveFile {
+  int64 id = 1;
+  string filename = 2;
+  string file_type = 3;
+  int64 size_bytes = 4;
+  bool encrypted = 5;
+  string txid = 6;
+  uint32 timestamp = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message ListFilesResponse {
+  repeated BitDriveFile files = 1;
+}
+
+message GetFileRequest {
+  // Either id or txid
+  int64 id = 1;
+  string txid = 2;
+}
+
+message GetFileResponse {
+  BitDriveFile file = 1;
+  // Full file content
+  bytes content = 2;
+}
+
+message DeleteFileRequest {
+  int64 id = 1;
+}
+
+// Multisig data storage
+message StoreMultisigDataRequest {
+  // Multisig group data as JSON
+  bytes json_data = 1;
+  // Whether to encrypt the data
+  bool encrypt = 2;
+  // Fee in satoshis per vbyte
+  uint64 fee_sat_per_vbyte = 3;
+}
+
+message StoreMultisigDataResponse {
+  string txid = 1;
+}

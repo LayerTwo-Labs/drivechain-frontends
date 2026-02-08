@@ -111,6 +111,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		},
 		ChainParams: &chaincfg.SigNetParams,
 		WalletDir:   walletDir,
+		DataDir:     walletDir,
 	}
 
 	srv, err := api.New(context.Background(), services, config.Config{

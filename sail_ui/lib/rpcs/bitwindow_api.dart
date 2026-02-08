@@ -8,6 +8,8 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
+import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
+import 'package:sail_ui/gen/utils/v1/utils.pb.dart' as utilspb;
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
     hide
         UnspentOutput,
@@ -39,6 +41,8 @@ abstract class BitwindowRPC extends RPCConnection {
   M4API get m4;
   HealthAPI get health;
   NotificationAPI get notifications;
+  BitDriveAPI get bitdrive;
+  UtilsAPI get utils;
 
   /// Stream of health check updates
   Stream<CheckResponse> get healthStream;
@@ -67,6 +71,10 @@ class BitwindowRPCLive extends BitwindowRPC {
   late HealthAPI health;
   @override
   late NotificationAPI notifications;
+  @override
+  late BitDriveAPI bitdrive;
+  @override
+  late UtilsAPI utils;
 
   BitwindowRPCLive({required String host, required int port})
     : super(binaryType: BinaryType.bitWindow, restartOnFailure: true) {
@@ -86,6 +94,8 @@ class BitwindowRPCLive extends BitwindowRPC {
     m4 = _M4APILive(M4ServiceClient(transport));
     health = _HealthAPILive(HealthServiceClient(transport));
     notifications = _NotificationAPILive(NotificationServiceClient(transport));
+    bitdrive = _BitDriveAPILive(BitDriveServiceClient(transport));
+    utils = _UtilsAPILive(UtilsServiceClient(transport));
 
     // must test connection before moving on, in case it is already running!
     await startConnectionTimer();
@@ -232,6 +242,23 @@ class BitwindowRPCLive extends BitwindowRPC {
       'wallet.v1.WalletService/SendTransaction',
       'wallet.v1.WalletService/SignMessage',
       'wallet.v1.WalletService/VerifyMessage',
+      'bitdrive.v1.BitDriveService/StoreFile',
+      'bitdrive.v1.BitDriveService/RetrieveContent',
+      'bitdrive.v1.BitDriveService/ScanForFiles',
+      'bitdrive.v1.BitDriveService/DownloadPendingFiles',
+      'bitdrive.v1.BitDriveService/ListFiles',
+      'bitdrive.v1.BitDriveService/GetFile',
+      'bitdrive.v1.BitDriveService/DeleteFile',
+      'bitdrive.v1.BitDriveService/StoreMultisigData',
+      'bitdrive.v1.BitDriveService/WipeData',
+      'utils.v1.UtilsService/ParseBitcoinURI',
+      'utils.v1.UtilsService/ValidateBitcoinURI',
+      'utils.v1.UtilsService/DecodeBase58Check',
+      'utils.v1.UtilsService/EncodeBase58Check',
+      'utils.v1.UtilsService/CalculateMerkleTree',
+      'utils.v1.UtilsService/GeneratePaperWallet',
+      'utils.v1.UtilsService/ValidateWIF',
+      'utils.v1.UtilsService/WIFToAddress',
     ];
   }
 
@@ -645,6 +672,17 @@ abstract class WalletAPI {
 
   // RBF - Replace-By-Fee for unconfirmed transactions (uses Core's automatic fee estimation)
   Future<BumpFeeResponse> bumpFee(String txid);
+
+  // Coin Selection
+  Future<SelectCoinsResponse> selectCoins({
+    required String walletId,
+    required Int64 targetSats,
+    required Int64 feeSatsPerVbyte,
+    int numOutputs = 2,
+    CoinSelectionStrategy strategy = CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST,
+    List<String> frozenOutpoints = const [],
+    List<String> requiredOutpoints = const [],
+  });
 }
 
 class SweepChequeResult {
@@ -1041,6 +1079,35 @@ class _WalletAPILive implements WalletAPI {
   Future<BumpFeeResponse> bumpFee(String txid) async {
     try {
       final response = await _client.bumpFee(BumpFeeRequest(txid: txid));
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<SelectCoinsResponse> selectCoins({
+    required String walletId,
+    required Int64 targetSats,
+    required Int64 feeSatsPerVbyte,
+    int numOutputs = 2,
+    CoinSelectionStrategy strategy = CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST,
+    List<String> frozenOutpoints = const [],
+    List<String> requiredOutpoints = const [],
+  }) async {
+    try {
+      final response = await _client.selectCoins(
+        SelectCoinsRequest(
+          walletId: walletId,
+          targetSats: targetSats,
+          feeSatsPerVbyte: feeSatsPerVbyte,
+          numOutputs: numOutputs,
+          strategy: strategy,
+          frozenOutpoints: frozenOutpoints,
+          requiredOutpoints: requiredOutpoints,
+        ),
+      );
       return response;
     } catch (e) {
       final error = extractConnectException(e);
@@ -1778,6 +1845,283 @@ class _NotificationAPILive implements NotificationAPI {
       throw BitcoindException(error);
     }
   }
+}
+
+abstract class BitDriveAPI {
+  Future<bitdrivepb.StoreFileResponse> storeFile({
+    required List<int> content,
+    String? filename,
+    String? mimeType,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  });
+
+  Future<bitdrivepb.RetrieveContentResponse> retrieveContent(String txid);
+
+  Future<bitdrivepb.ScanForFilesResponse> scanForFiles();
+
+  Future<bitdrivepb.DownloadPendingFilesResponse> downloadPendingFiles();
+
+  Future<List<bitdrivepb.BitDriveFile>> listFiles();
+
+  Future<bitdrivepb.GetFileResponse> getFile({Int64? id, String? txid});
+
+  Future<void> deleteFile(Int64 id);
+
+  Future<bitdrivepb.StoreMultisigDataResponse> storeMultisigData({
+    required List<int> jsonData,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  });
+
+  Future<void> wipeData();
+}
+
+class _BitDriveAPILive implements BitDriveAPI {
+  final BitDriveServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _BitDriveAPILive(this._client);
+
+  @override
+  Future<bitdrivepb.StoreFileResponse> storeFile({
+    required List<int> content,
+    String? filename,
+    String? mimeType,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  }) async {
+    try {
+      final request = bitdrivepb.StoreFileRequest(
+        content: content,
+        filename: filename,
+        mimeType: mimeType,
+        encrypt: encrypt,
+        feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
+      );
+      final response = await _client.storeFile(request);
+      return response;
+    } catch (e) {
+      final error = 'could not store file: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.RetrieveContentResponse> retrieveContent(String txid) async {
+    try {
+      final request = bitdrivepb.RetrieveContentRequest(txid: txid);
+      final response = await _client.retrieveContent(request);
+      return response;
+    } catch (e) {
+      final error = 'could not retrieve content: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.ScanForFilesResponse> scanForFiles() async {
+    try {
+      final response = await _client.scanForFiles(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not scan for files: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.DownloadPendingFilesResponse> downloadPendingFiles() async {
+    try {
+      final response = await _client.downloadPendingFiles(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not download pending files: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<List<bitdrivepb.BitDriveFile>> listFiles() async {
+    try {
+      final response = await _client.listFiles(Empty());
+      return response.files;
+    } catch (e) {
+      final error = 'could not list files: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.GetFileResponse> getFile({Int64? id, String? txid}) async {
+    try {
+      final request = bitdrivepb.GetFileRequest(id: id, txid: txid);
+      final response = await _client.getFile(request);
+      return response;
+    } catch (e) {
+      final error = 'could not get file: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<void> deleteFile(Int64 id) async {
+    try {
+      await _client.deleteFile(bitdrivepb.DeleteFileRequest(id: id));
+    } catch (e) {
+      final error = 'could not delete file: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.StoreMultisigDataResponse> storeMultisigData({
+    required List<int> jsonData,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  }) async {
+    try {
+      final request = bitdrivepb.StoreMultisigDataRequest(
+        jsonData: jsonData,
+        encrypt: encrypt,
+        feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
+      );
+      final response = await _client.storeMultisigData(request);
+      return response;
+    } catch (e) {
+      final error = 'could not store multisig data: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<void> wipeData() async {
+    try {
+      await _client.wipeData(Empty());
+    } catch (e) {
+      final error = 'could not wipe data: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+}
+
+class BitDriveException implements Exception {
+  final String message;
+  BitDriveException(this.message);
+  @override
+  String toString() => 'BitDriveException: $message';
+}
+
+abstract class UtilsAPI {
+  Future<utilspb.ParseBitcoinURIResponse> parseBitcoinURI(String uri);
+  Future<utilspb.ValidateBitcoinURIResponse> validateBitcoinURI(String uri);
+  Future<utilspb.DecodeBase58CheckResponse> decodeBase58Check(String input);
+  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(int versionByte, List<int> data);
+  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(List<String> txids);
+  Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet();
+  Future<utilspb.ValidateWIFResponse> validateWIF(String wif);
+  Future<utilspb.WIFToAddressResponse> wifToAddress(String wif);
+}
+
+class _UtilsAPILive implements UtilsAPI {
+  final UtilsServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _UtilsAPILive(this._client);
+
+  @override
+  Future<utilspb.ParseBitcoinURIResponse> parseBitcoinURI(String uri) async {
+    try {
+      final request = utilspb.ParseBitcoinURIRequest(uri: uri);
+      return await _client.parseBitcoinURI(request);
+    } catch (e) {
+      final error = 'could not parse bitcoin URI: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.ValidateBitcoinURIResponse> validateBitcoinURI(String uri) async {
+    try {
+      final request = utilspb.ValidateBitcoinURIRequest(uri: uri);
+      return await _client.validateBitcoinURI(request);
+    } catch (e) {
+      final error = 'could not validate bitcoin URI: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.DecodeBase58CheckResponse> decodeBase58Check(String input) async {
+    try {
+      final request = utilspb.DecodeBase58CheckRequest(input: input);
+      return await _client.decodeBase58Check(request);
+    } catch (e) {
+      final error = 'could not decode base58check: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(int versionByte, List<int> data) async {
+    try {
+      final request = utilspb.EncodeBase58CheckRequest(versionByte: versionByte, data: data);
+      return await _client.encodeBase58Check(request);
+    } catch (e) {
+      final error = 'could not encode base58check: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(List<String> txids) async {
+    try {
+      final request = utilspb.CalculateMerkleTreeRequest(txids: txids);
+      return await _client.calculateMerkleTree(request);
+    } catch (e) {
+      final error = 'could not calculate merkle tree: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet() async {
+    try {
+      return await _client.generatePaperWallet(Empty());
+    } catch (e) {
+      final error = 'could not generate paper wallet: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.ValidateWIFResponse> validateWIF(String wif) async {
+    try {
+      final request = utilspb.ValidateWIFRequest(wif: wif);
+      return await _client.validateWIF(request);
+    } catch (e) {
+      final error = 'could not validate WIF: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.WIFToAddressResponse> wifToAddress(String wif) async {
+    try {
+      final request = utilspb.WIFToAddressRequest(wif: wif);
+      return await _client.wIFToAddress(request);
+    } catch (e) {
+      final error = 'could not convert WIF to address: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+}
+
+class UtilsException implements Exception {
+  final String message;
+  UtilsException(this.message);
+  @override
+  String toString() => 'UtilsException: $message';
 }
 
 class WalletException implements Exception {

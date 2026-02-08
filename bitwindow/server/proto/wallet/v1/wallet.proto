@@ -55,6 +55,9 @@ service WalletService {
 
   // RBF - Replace-By-Fee for unconfirmed transactions
   rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
+
+  // Coin Selection - Select UTXOs for a transaction
+  rpc SelectCoins(SelectCoinsRequest) returns (SelectCoinsResponse);
 }
 
 message GetBalanceRequest {
@@ -461,4 +464,22 @@ message BumpFeeResponse {
   string txid = 1;              // New replacement transaction ID
   double original_fee = 2;      // Original fee in BTC
   double new_fee = 3;           // New fee in BTC
+}
+
+// Coin Selection - Select UTXOs for a transaction
+message SelectCoinsRequest {
+  string wallet_id = 1;
+  int64 target_sats = 2;              // Amount to send (not including fees)
+  int64 fee_sats_per_vbyte = 3;       // Fee rate
+  int32 num_outputs = 4;              // Number of outputs (default 2: destination + change)
+  CoinSelectionStrategy strategy = 5; // Selection strategy
+  repeated string frozen_outpoints = 6;   // Outpoints that should not be spent
+  repeated string required_outpoints = 7; // Outpoints that must be included
+}
+
+message SelectCoinsResponse {
+  repeated UnspentOutput selected_utxos = 1;
+  int64 total_input_sats = 2;
+  int64 fee_sats = 3;
+  int64 change_sats = 4;
 }

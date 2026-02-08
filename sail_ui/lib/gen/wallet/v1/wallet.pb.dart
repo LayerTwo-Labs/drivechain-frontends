@@ -15,7 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../bitwindowd/v1/bitwindowd.pb.dart' as $2;
+import '../../bitwindowd/v1/bitwindowd.pb.dart' as $3;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
 import 'wallet.pbenum.dart';
@@ -681,7 +681,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $fixnum.Int64? valueSats,
     $core.bool? isChange,
     $0.Timestamp? receivedAt,
-    $2.DenialInfo? denialInfo,
+    $3.DenialInfo? denialInfo,
   }) {
     final $result = create();
     if (output != null) {
@@ -718,7 +718,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(5, _omitFieldNames ? '' : 'isChange')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
-    ..aOM<$2.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $2.DenialInfo.create)
+    ..aOM<$3.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $3.DenialInfo.create)
     ..hasRequiredFields = false
   ;
 
@@ -807,15 +807,15 @@ class UnspentOutput extends $pb.GeneratedMessage {
 
   /// If set, this utxo is part of a denial chain
   @$pb.TagNumber(7)
-  $2.DenialInfo get denialInfo => $_getN(6);
+  $3.DenialInfo get denialInfo => $_getN(6);
   @$pb.TagNumber(7)
-  set denialInfo($2.DenialInfo v) { setField(7, v); }
+  set denialInfo($3.DenialInfo v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasDenialInfo() => $_has(6);
   @$pb.TagNumber(7)
   void clearDenialInfo() => clearField(7);
   @$pb.TagNumber(7)
-  $2.DenialInfo ensureDenialInfo() => $_ensure(6);
+  $3.DenialInfo ensureDenialInfo() => $_ensure(6);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {
@@ -4486,6 +4486,215 @@ class BumpFeeResponse extends $pb.GeneratedMessage {
   void clearNewFee() => clearField(3);
 }
 
+/// Coin Selection - Select UTXOs for a transaction
+class SelectCoinsRequest extends $pb.GeneratedMessage {
+  factory SelectCoinsRequest({
+    $core.String? walletId,
+    $fixnum.Int64? targetSats,
+    $fixnum.Int64? feeSatsPerVbyte,
+    $core.int? numOutputs,
+    CoinSelectionStrategy? strategy,
+    $core.Iterable<$core.String>? frozenOutpoints,
+    $core.Iterable<$core.String>? requiredOutpoints,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (targetSats != null) {
+      $result.targetSats = targetSats;
+    }
+    if (feeSatsPerVbyte != null) {
+      $result.feeSatsPerVbyte = feeSatsPerVbyte;
+    }
+    if (numOutputs != null) {
+      $result.numOutputs = numOutputs;
+    }
+    if (strategy != null) {
+      $result.strategy = strategy;
+    }
+    if (frozenOutpoints != null) {
+      $result.frozenOutpoints.addAll(frozenOutpoints);
+    }
+    if (requiredOutpoints != null) {
+      $result.requiredOutpoints.addAll(requiredOutpoints);
+    }
+    return $result;
+  }
+  SelectCoinsRequest._() : super();
+  factory SelectCoinsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SelectCoinsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SelectCoinsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aInt64(2, _omitFieldNames ? '' : 'targetSats')
+    ..aInt64(3, _omitFieldNames ? '' : 'feeSatsPerVbyte')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'numOutputs', $pb.PbFieldType.O3)
+    ..e<CoinSelectionStrategy>(5, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: CoinSelectionStrategy.COIN_SELECTION_STRATEGY_UNSPECIFIED, valueOf: CoinSelectionStrategy.valueOf, enumValues: CoinSelectionStrategy.values)
+    ..pPS(6, _omitFieldNames ? '' : 'frozenOutpoints')
+    ..pPS(7, _omitFieldNames ? '' : 'requiredOutpoints')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SelectCoinsRequest clone() => SelectCoinsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SelectCoinsRequest copyWith(void Function(SelectCoinsRequest) updates) => super.copyWith((message) => updates(message as SelectCoinsRequest)) as SelectCoinsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SelectCoinsRequest create() => SelectCoinsRequest._();
+  SelectCoinsRequest createEmptyInstance() => create();
+  static $pb.PbList<SelectCoinsRequest> createRepeated() => $pb.PbList<SelectCoinsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SelectCoinsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SelectCoinsRequest>(create);
+  static SelectCoinsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get targetSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set targetSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTargetSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTargetSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSatsPerVbyte => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSatsPerVbyte($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSatsPerVbyte() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSatsPerVbyte() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get numOutputs => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set numOutputs($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasNumOutputs() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNumOutputs() => clearField(4);
+
+  @$pb.TagNumber(5)
+  CoinSelectionStrategy get strategy => $_getN(4);
+  @$pb.TagNumber(5)
+  set strategy(CoinSelectionStrategy v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasStrategy() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearStrategy() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.List<$core.String> get frozenOutpoints => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $core.List<$core.String> get requiredOutpoints => $_getList(6);
+}
+
+class SelectCoinsResponse extends $pb.GeneratedMessage {
+  factory SelectCoinsResponse({
+    $core.Iterable<UnspentOutput>? selectedUtxos,
+    $fixnum.Int64? totalInputSats,
+    $fixnum.Int64? feeSats,
+    $fixnum.Int64? changeSats,
+  }) {
+    final $result = create();
+    if (selectedUtxos != null) {
+      $result.selectedUtxos.addAll(selectedUtxos);
+    }
+    if (totalInputSats != null) {
+      $result.totalInputSats = totalInputSats;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (changeSats != null) {
+      $result.changeSats = changeSats;
+    }
+    return $result;
+  }
+  SelectCoinsResponse._() : super();
+  factory SelectCoinsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SelectCoinsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SelectCoinsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..pc<UnspentOutput>(1, _omitFieldNames ? '' : 'selectedUtxos', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..aInt64(2, _omitFieldNames ? '' : 'totalInputSats')
+    ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
+    ..aInt64(4, _omitFieldNames ? '' : 'changeSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SelectCoinsResponse clone() => SelectCoinsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SelectCoinsResponse copyWith(void Function(SelectCoinsResponse) updates) => super.copyWith((message) => updates(message as SelectCoinsResponse)) as SelectCoinsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SelectCoinsResponse create() => SelectCoinsResponse._();
+  SelectCoinsResponse createEmptyInstance() => create();
+  static $pb.PbList<SelectCoinsResponse> createRepeated() => $pb.PbList<SelectCoinsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SelectCoinsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SelectCoinsResponse>(create);
+  static SelectCoinsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<UnspentOutput> get selectedUtxos => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get totalInputSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set totalInputSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTotalInputSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTotalInputSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get changeSats => $_getI64(3);
+  @$pb.TagNumber(4)
+  set changeSats($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasChangeSats() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearChangeSats() => clearField(4);
+}
+
 class WalletServiceApi {
   $pb.RpcClient _client;
   WalletServiceApi(this._client);
@@ -4576,6 +4785,9 @@ class WalletServiceApi {
   ;
   $async.Future<BumpFeeResponse> bumpFee($pb.ClientContext? ctx, BumpFeeRequest request) =>
     _client.invoke<BumpFeeResponse>(ctx, 'WalletService', 'BumpFee', request, BumpFeeResponse())
+  ;
+  $async.Future<SelectCoinsResponse> selectCoins($pb.ClientContext? ctx, SelectCoinsRequest request) =>
+    _client.invoke<SelectCoinsResponse>(ctx, 'WalletService', 'SelectCoins', request, SelectCoinsResponse())
   ;
 }
 

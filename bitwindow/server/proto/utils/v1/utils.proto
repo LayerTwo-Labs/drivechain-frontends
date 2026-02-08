@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package utils.v1;
+
+import "google/protobuf/empty.proto";
+
+service UtilsService {
+  // Bitcoin URI parsing (BIP-0021)
+  rpc ParseBitcoinURI(ParseBitcoinURIRequest) returns (ParseBitcoinURIResponse);
+  rpc ValidateBitcoinURI(ValidateBitcoinURIRequest) returns (ValidateBitcoinURIResponse);
+
+  // Base58Check encoding/decoding
+  rpc DecodeBase58Check(DecodeBase58CheckRequest) returns (DecodeBase58CheckResponse);
+  rpc EncodeBase58Check(EncodeBase58CheckRequest) returns (EncodeBase58CheckResponse);
+
+  // Merkle Tree calculation
+  rpc CalculateMerkleTree(CalculateMerkleTreeRequest) returns (CalculateMerkleTreeResponse);
+
+  // Paper Wallet generation
+  rpc GeneratePaperWallet(google.protobuf.Empty) returns (GeneratePaperWalletResponse);
+  rpc ValidateWIF(ValidateWIFRequest) returns (ValidateWIFResponse);
+  rpc WIFToAddress(WIFToAddressRequest) returns (WIFToAddressResponse);
+}
+
+// Bitcoin URI (BIP-0021)
+message ParseBitcoinURIRequest {
+  string uri = 1;
+}
+
+message ParseBitcoinURIResponse {
+  string address = 1;
+  double amount = 2;          // Amount in BTC (optional)
+  string label = 3;           // Label (optional)
+  string message = 4;         // Message (optional)
+  map<string, string> extra_params = 5;  // Any additional parameters
+}
+
+message ValidateBitcoinURIRequest {
+  string uri = 1;
+}
+
+message ValidateBitcoinURIResponse {
+  bool valid = 1;
+  string error = 2;  // Error message if invalid
+}
+
+// Base58Check
+message DecodeBase58CheckRequest {
+  string input = 1;
+}
+
+message DecodeBase58CheckResponse {
+  bool valid = 1;
+  int32 version_byte = 2;
+  bytes payload = 3;
+  bytes checksum = 4;
+  bool checksum_valid = 5;
+  string address_type = 6;  // Human-readable type description
+  string error = 7;         // Error message if invalid
+}
+
+message EncodeBase58CheckRequest {
+  int32 version_byte = 1;
+  bytes data = 2;
+}
+
+message EncodeBase58CheckResponse {
+  string encoded = 1;
+  string error = 2;
+}
+
+// Merkle Tree
+message CalculateMerkleTreeRequest {
+  repeated string txids = 1;  // List of transaction IDs (hex)
+}
+
+message CalculateMerkleTreeResponse {
+  string merkle_root = 1;
+  repeated MerkleTreeLevel levels = 2;
+  string formatted_text = 3;  // Human-readable tree display
+}
+
+message MerkleTreeLevel {
+  int32 level = 1;
+  repeated string hashes = 2;
+  repeated string rcb = 3;  // Reversed Concatenated Bytes for manual verification
+}
+
+// Paper Wallet
+message GeneratePaperWalletResponse {
+  string private_key_wif = 1;
+  string public_address = 2;
+  string private_key_hex = 3;
+}
+
+message ValidateWIFRequest {
+  string wif = 1;
+}
+
+message ValidateWIFResponse {
+  bool valid = 1;
+}
+
+message WIFToAddressRequest {
+  string wif = 1;
+}
+
+message WIFToAddressResponse {
+  string address = 1;
+  string error = 2;
+}
