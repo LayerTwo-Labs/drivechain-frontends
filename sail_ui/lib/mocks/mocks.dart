@@ -1656,6 +1656,11 @@ class MockBitcoindAPI implements BitcoindAPI {
   Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request) {
     return Future.value(UtxoUpdatePsbtResponse());
   }
+
+  @override
+  Future<GetRawMempoolResponse> getRawMempool() {
+    return Future.value(GetRawMempoolResponse());
+  }
 }
 
 class MockBinary extends Binary {

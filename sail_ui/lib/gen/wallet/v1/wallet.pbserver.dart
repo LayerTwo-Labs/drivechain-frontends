@@ -50,6 +50,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$8.GetCoinSelectionStrategyResponse> getCoinSelectionStrategy($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$8.GetTransactionDetailsResponse> getTransactionDetails($pb.ServerContext ctx, $8.GetTransactionDetailsRequest request);
   $async.Future<$8.GetUTXODistributionResponse> getUTXODistribution($pb.ServerContext ctx, $8.GetUTXODistributionRequest request);
+  $async.Future<$8.BumpFeeResponse> bumpFee($pb.ServerContext ctx, $8.BumpFeeRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -81,6 +82,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'GetCoinSelectionStrategy': return $1.Empty();
       case 'GetTransactionDetails': return $8.GetTransactionDetailsRequest();
       case 'GetUTXODistribution': return $8.GetUTXODistributionRequest();
+      case 'BumpFee': return $8.BumpFeeRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -115,6 +117,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'GetCoinSelectionStrategy': return this.getCoinSelectionStrategy(ctx, request as $1.Empty);
       case 'GetTransactionDetails': return this.getTransactionDetails(ctx, request as $8.GetTransactionDetailsRequest);
       case 'GetUTXODistribution': return this.getUTXODistribution(ctx, request as $8.GetUTXODistributionRequest);
+      case 'BumpFee': return this.bumpFee(ctx, request as $8.BumpFeeRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

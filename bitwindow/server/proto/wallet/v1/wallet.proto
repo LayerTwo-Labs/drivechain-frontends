@@ -52,6 +52,9 @@ service WalletService {
 
   // UTXO Distribution (for chart visualization)
   rpc GetUTXODistribution(GetUTXODistributionRequest) returns (GetUTXODistributionResponse);
+
+  // RBF - Replace-By-Fee for unconfirmed transactions
+  rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
 }
 
 message GetBalanceRequest {
@@ -447,4 +450,15 @@ message UTXOBucket {
   int64 value_sats = 2;         // Total value in bucket
   int32 count = 3;              // Number of UTXOs (1 for individual, N for "Other")
   repeated string outpoints = 4; // For click-to-highlight in table
+}
+
+// RBF - Replace-By-Fee (uses Bitcoin Core's automatic fee estimation)
+message BumpFeeRequest {
+  string txid = 1;              // Original unconfirmed transaction to replace
+}
+
+message BumpFeeResponse {
+  string txid = 1;              // New replacement transaction ID
+  double original_fee = 2;      // Original fee in BTC
+  double new_fee = 3;           // New fee in BTC
 }

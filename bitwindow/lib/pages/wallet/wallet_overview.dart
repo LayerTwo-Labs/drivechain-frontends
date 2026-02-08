@@ -9,6 +9,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -287,6 +288,7 @@ class _TransactionTableState extends State<TransactionTable> {
                       },
                       contextMenuItems: (rowId) {
                         final entry = entries.firstWhere((e) => e.txid == rowId);
+                        final isUnconfirmed = entry.confirmationTime.height == 0;
 
                         return [
                           SailMenuItem(
@@ -329,6 +331,14 @@ class _TransactionTableState extends State<TransactionTable> {
                             },
                             child: SailText.primary12(entry.note.isEmpty ? 'Add Note' : 'Update Note'),
                           ),
+                          // RBF bump fee - only for unconfirmed Core wallet transactions
+                          if (isUnconfirmed && widget.model.isCoreWallet)
+                            SailMenuItem(
+                              onSelected: () async {
+                                await widget.model.bumpFee(context, entry);
+                              },
+                              child: SailText.primary12('Bump Fee (RBF)'),
+                            ),
                           MempoolMenuItem(txid: entry.txid),
                         ];
                       },
@@ -448,6 +458,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
+
+  bool get isCoreWallet => _walletReader.activeWallet?.walletType != BinaryType.enforcer;
 
   String sortColumn = 'date';
   bool sortAscending = true;
@@ -569,6 +581,28 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       notifyListeners();
     } finally {
       setBusy(false);
+    }
+  }
+
+  Future<void> bumpFee(BuildContext context, WalletTransaction tx) async {
+    final log = GetIt.I<Logger>();
+
+    try {
+      // Use Bitcoin Core's bumpfee with automatic fee estimation
+      final result = await _bitwindowRPC.wallet.bumpFee(tx.txid);
+
+      log.i('RBF transaction broadcast: ${result.txid} (replaced ${tx.txid})');
+
+      if (context.mounted) {
+        final oldFeeBTC = result.originalFee.toStringAsFixed(8);
+        final newFeeBTC = result.newFee.toStringAsFixed(8);
+        showSnackBar(context, 'Fee bumped! $oldFeeBTC -> $newFeeBTC BTC');
+      }
+    } catch (e) {
+      log.e('Failed to bump fee: $e');
+      if (context.mounted) {
+        showSnackBar(context, 'Failed to bump fee: $e');
+      }
     }
   }
 
