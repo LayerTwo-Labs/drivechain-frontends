@@ -881,6 +881,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
   bool isLoadingGroups = false;
   bool isLoadingTransactions = false;
   String? errorMessage;
+  bool _disposed = false;
 
   MultisigLoungeViewModel();
 
@@ -890,19 +891,25 @@ class MultisigLoungeViewModel extends BaseViewModel {
     notifyListeners();
 
     _transactionListener = () async {
+      if (_disposed) return;
       await _stateManager.refreshData();
+      if (_disposed) return;
       notifyListeners();
     };
     TransactionStorage.notifier.addListener(_transactionListener);
 
     _blockchainListener = () async {
+      if (_disposed) return;
       await _stateManager.refreshData();
+      if (_disposed) return;
       notifyListeners();
     };
     _blockchainProvider.addListener(_blockchainListener);
 
     await _stateManager.refreshData();
+    if (_disposed) return;
     await _validateAndFixWalletFlags();
+    if (_disposed) return;
 
     isLoadingGroups = false;
     isLoadingTransactions = false;
@@ -910,11 +917,13 @@ class MultisigLoungeViewModel extends BaseViewModel {
   }
 
   Future<void> refreshData() async {
+    if (_disposed) return;
     isLoadingGroups = true;
     isLoadingTransactions = true;
     notifyListeners();
 
     await _stateManager.refreshData();
+    if (_disposed) return;
     isLoading = _stateManager.isLoading;
     errorMessage = _stateManager.errorMessage;
 
@@ -1109,13 +1118,17 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
       if (groupsUpdated) {
         await MultisigStorage.saveGroups(updatedGroups);
+        if (_disposed) return;
         await _stateManager.refreshData();
+        if (_disposed) return;
 
         for (final group in updatedGroups) {
           if (group.keys.any((k) => k.isWallet)) {
             try {
               await MultisigStorage.restoreTransactionHistory(group);
+              if (_disposed) return;
               await BalanceManager.updateGroupBalance(group);
+              if (_disposed) return;
             } catch (e) {
               _logger.e('Failed to restore transaction history for group ${group.name}: $e');
             }
@@ -1195,7 +1208,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
       context: context,
       builder: (context) => CombineBroadcastModal(
         onSuccess: () async {
+          if (_disposed) return;
           await _stateManager.refreshData();
+          if (_disposed) return;
           notifyListeners();
         },
       ),
@@ -1646,6 +1661,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
 
       await _stateManager.refreshData();
+      if (_disposed) return;
       notifyListeners();
     } catch (e) {
       MultisigLogger.error('Error in transaction signing: $e');
@@ -1659,6 +1675,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
         );
       }
 
+      if (_disposed) return;
       await _stateManager.refreshData();
     }
   }
@@ -1751,6 +1768,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    _disposed = true;
     TransactionStorage.notifier.removeListener(_transactionListener);
     _blockchainProvider.removeListener(_blockchainListener);
 
