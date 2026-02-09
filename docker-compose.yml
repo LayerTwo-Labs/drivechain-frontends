@@ -1,7 +1,7 @@
 services:
   mainchain:
-    # 38333 = P2P, 38332 = RPC
-    ports: ["38333:38333", "38332:38332"]
+    # 38343 = P2P, 38332 = RPC
+    ports: ["38343:38343", "38332:38332"]
     healthcheck:
       test:
         [
@@ -25,8 +25,8 @@ services:
       - -rpcpassword=password
       - -server
       - -signet
-      - -signetblocktime=60
-      - -signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a
+      - -signetblocktime=600
+      - -signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987
       - -listen
       - -rpcbind=0.0.0.0
       - -rpcallowip=0.0.0.0/0
