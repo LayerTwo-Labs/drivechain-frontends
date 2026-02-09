@@ -23,8 +23,8 @@ $ drivechaind \
   -rpcpassword=password \
   -server \
   -signet \
-  -signetblocktime=60 \
-  -signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a \
+  -signetblocktime=600 \
+  -signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987 \
   -listen
 
 #

@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:auto_route/auto_route.dart';
+import 'package:sail_ui/migrations/bitcoin_conf/bitcoin_conf_migrations.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -116,12 +117,45 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
   }
 
-  /// Load config content from BitWindow config file, or create default if missing
+  /// Current config version. Bump when adding a migration and add to bitcoin_conf_migrations.dart.
+  static const int _kBitwindowBitcoinConfVersion = 1;
+
+  /// Load config content from BitWindow config file, or create default if missing.
+  /// Runs versioned migrations on load when stored version < current.
+  /// First migrates bitwindow-forknet.conf, then checks network to apply forknet data.
   Future<String> _loadOrCreateConfigContent() async {
     final bitwindowFile = File(_getBitWindowConfigPath());
 
+    // Always migrate forknet and mainnet configs first (if they exist or have pending migrations)
+    await _migrateForknetConfig();
+    await _migrateMainnetConfig();
+
     if (await bitwindowFile.exists()) {
-      return await bitwindowFile.readAsString();
+      var content = await bitwindowFile.readAsString();
+      final config = BitcoinConfig.parse(content);
+
+      // Determine if current config is forknet (chain=main + drivechain=1)
+      final chainSetting = config.getSetting('chain')?.toLowerCase();
+      final drivechainSetting = config.getEffectiveSetting('drivechain', 'main');
+      final isForknet = (chainSetting == 'main' || chainSetting == 'mainnet') && drivechainSetting == '1';
+
+      // Run migrations - forknet data only applies to [main] if currently on forknet
+      final migrated = runBitcoinConfMigrations(
+        config,
+        _kBitwindowBitcoinConfVersion,
+        bitcoinConfMigrations,
+        isForknet: isForknet,
+      );
+      if (migrated) {
+        content = config.serialize();
+        try {
+          await bitwindowFile.writeAsString(content);
+          log.i('Migrated bitwindow-bitcoin.conf (version $_kBitwindowBitcoinConfVersion, isForknet: $isForknet)');
+        } catch (e) {
+          log.e('Failed to write migrated config: $e');
+        }
+      }
+      return content;
     }
 
     // Create default config
@@ -134,6 +168,70 @@ class BitcoinConfProvider extends ChangeNotifier {
       log.e('Failed to write default config file: $e');
     }
     return content;
+  }
+
+  /// Migrate bitwindow-forknet.conf with forknet-specific data from migrations.
+  Future<void> _migrateForknetConfig() async {
+    try {
+      final confPath = _getMainSectionPath(BitcoinNetwork.BITCOIN_NETWORK_FORKNET);
+      final file = File(confPath);
+
+      ForknetConfig forknetConfig;
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        forknetConfig = ForknetConfig.parse(content);
+      } else {
+        forknetConfig = ForknetConfig();
+        // Apply defaults for new forknet config
+        forknetConfig.settings.addAll(_getDefaultMainSection(BitcoinNetwork.BITCOIN_NETWORK_FORKNET));
+      }
+
+      final migrated = runForknetConfMigrations(
+        forknetConfig,
+        _kBitwindowBitcoinConfVersion,
+        bitcoinConfMigrations,
+      );
+
+      if (migrated) {
+        await file.parent.create(recursive: true);
+        await file.writeAsString(forknetConfig.serialize());
+        log.i('Migrated bitwindow-forknet.conf (version $_kBitwindowBitcoinConfVersion)');
+      }
+    } catch (e) {
+      log.e('Failed to migrate forknet config: $e');
+    }
+  }
+
+  /// Migrate bitwindow-mainnet.conf with mainnet-specific data from migrations.
+  Future<void> _migrateMainnetConfig() async {
+    try {
+      final confPath = _getMainSectionPath(BitcoinNetwork.BITCOIN_NETWORK_MAINNET);
+      final file = File(confPath);
+
+      MainnetConfig mainnetConfig;
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        mainnetConfig = MainnetConfig.parse(content);
+      } else {
+        mainnetConfig = MainnetConfig();
+        // Apply defaults for new mainnet config
+        mainnetConfig.settings.addAll(_getDefaultMainSection(BitcoinNetwork.BITCOIN_NETWORK_MAINNET));
+      }
+
+      final migrated = runMainnetConfMigrations(
+        mainnetConfig,
+        _kBitwindowBitcoinConfVersion,
+        bitcoinConfMigrations,
+      );
+
+      if (migrated) {
+        await file.parent.create(recursive: true);
+        await file.writeAsString(mainnetConfig.serialize());
+        log.i('Migrated bitwindow-mainnet.conf (version $_kBitwindowBitcoinConfVersion)');
+      }
+    } catch (e) {
+      log.e('Failed to migrate mainnet config: $e');
+    }
   }
 
   /// Parse config content and update state (network, datadir)
@@ -583,7 +681,10 @@ drivechain=1
 [main]
 ''';
 
-    return '''# Generated code. Any changes to this file *will* get overwritten.
+    // New users get current version so no migrations run on first load
+    return '''$kBitcoinConfVersionCommentPrefix$_kBitwindowBitcoinConfVersion
+
+# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
 # Common settings for all networks
@@ -613,9 +714,9 @@ chain=$currentNetwork # current network
 
 # Signet-specific settings
 [signet]
-addnode=172.105.148.135:38333
-signetblocktime=60
-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
+addnode=172.105.148.135:38343
+signetblocktime=600
+signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987
 acceptnonstdtxn=1
 
 $mainSection
@@ -740,7 +841,8 @@ $mainSection
     return path.join(datadir, 'bitwindow-$networkName.conf');
   }
 
-  /// Save current main-section to file for the specified network (mainnet or forknet)
+  /// Save current main-section to file for the specified network (mainnet or forknet).
+  /// For forknet, uses ForknetConfig to preserve migration version.
   Future<void> _saveMainSectionForNetwork(BitcoinNetwork network) async {
     if (currentConfig == null) return;
     if (!_isMainnetOrForknet(network)) return;
@@ -751,15 +853,32 @@ $mainSection
       await file.parent.create(recursive: true);
 
       final mainSettings = currentConfig!.networkSettings['main'] ?? {};
+      String contentToWrite;
 
-      // Write as key=value pairs
-      final buffer = StringBuffer();
-      buffer.writeln('# Saved [main] section for $network');
-      for (final entry in mainSettings.entries) {
-        buffer.writeln('${entry.key}=${entry.value}');
+      // Read existing version if file exists
+      int existingVersion = _kBitwindowBitcoinConfVersion;
+
+      if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+        if (await file.exists()) {
+          final existingContent = await file.readAsString();
+          existingVersion = ForknetConfig.parse(existingContent).version;
+        }
+        final forknetConfig = ForknetConfig();
+        forknetConfig.version = existingVersion;
+        forknetConfig.settings.addAll(mainSettings);
+        contentToWrite = forknetConfig.serialize();
+      } else {
+        // Mainnet
+        if (await file.exists()) {
+          final existingContent = await file.readAsString();
+          existingVersion = MainnetConfig.parse(existingContent).version;
+        }
+        final mainnetConfig = MainnetConfig();
+        mainnetConfig.version = existingVersion;
+        mainnetConfig.settings.addAll(mainSettings);
+        contentToWrite = mainnetConfig.serialize();
       }
 
-      final contentToWrite = buffer.toString();
       await file.writeAsString(contentToWrite);
 
       // Verify the write
@@ -775,7 +894,8 @@ $mainSection
     }
   }
 
-  /// Load main-section from file for the specified network (mainnet or forknet)
+  /// Load main-section from file for the specified network (mainnet or forknet).
+  /// For forknet, uses ForknetConfig which tracks migration version.
   Future<void> _loadMainSectionForNetwork(BitcoinNetwork network) async {
     if (currentConfig == null) return;
     if (!_isMainnetOrForknet(network)) return;
@@ -792,22 +912,16 @@ $mainSection
       }
 
       final content = await file.readAsString();
-      final settings = <String, String>{};
 
-      // Parse key=value pairs from saved file
-      for (final line in content.split('\n')) {
-        final trimmed = line.trim();
-        if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
-
-        final equals = trimmed.indexOf('=');
-        if (equals > 0) {
-          final key = trimmed.substring(0, equals).trim();
-          final value = trimmed.substring(equals + 1).trim();
-          settings[key] = value;
-        }
+      if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+        final forknetConfig = ForknetConfig.parse(content);
+        currentConfig!.networkSettings['main'] = Map<String, String>.from(forknetConfig.settings);
+      } else {
+        // Mainnet
+        final mainnetConfig = MainnetConfig.parse(content);
+        currentConfig!.networkSettings['main'] = Map<String, String>.from(mainnetConfig.settings);
       }
 
-      currentConfig!.networkSettings['main'] = settings;
       log.i('Loaded [main] section for $network from $confPath');
     } catch (e) {
       log.e('Failed to load [main] section for $network: $e');

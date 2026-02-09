@@ -14,6 +14,7 @@ export 'models/enforcer_config_options.dart';
 export 'classes/rpc_config.dart';
 export 'classes/rpc_connection.dart';
 export 'config/binaries.dart';
+export 'config/config_migration.dart';
 export 'config/sidechain_main.dart' hide bootBinaries, getLogFile;
 export 'config/sidechains.dart';
 export 'extensions/build_context.dart';
