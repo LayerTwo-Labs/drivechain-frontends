@@ -18,8 +18,6 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   // File watching and management
   StreamSubscription<FileSystemEvent>? _bitWindowWatcher;
-  StreamSubscription<FileSystemEvent>? _drivechainWatcher;
-  StreamSubscription<FileSystemEvent>? _bitcoinWatcher;
   Timer? _fileWatchDebouncer;
 
   // Config file state
@@ -89,8 +87,6 @@ class BitcoinConfProvider extends ChangeNotifier {
   @override
   void dispose() {
     _bitWindowWatcher?.cancel();
-    _drivechainWatcher?.cancel();
-    _bitcoinWatcher?.cancel();
     _fileWatchDebouncer?.cancel();
     super.dispose();
   }
@@ -107,8 +103,6 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       await _handleNetworkChangeIfNeeded(oldNetwork, isFirst);
 
-      await _copyConfigDownstream();
-
       await _promptForDatadirIfNeeded();
     } catch (e) {
       log.e('Failed to load config: $e');
@@ -118,20 +112,20 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   /// Current config version. Bump when adding a migration and add to bitcoin_conf_migrations.dart.
-  static const int _kBitwindowBitcoinConfVersion = 1;
+  static const int _kBitwindowBitcoinConfVersion = 2;
 
-  /// Load config content from BitWindow config file, or create default if missing.
+  /// Load config content from Bitcoin Core datadir, or create default if missing.
   /// Runs versioned migrations on load when stored version < current.
   /// First migrates bitwindow-forknet.conf, then checks network to apply forknet data.
   Future<String> _loadOrCreateConfigContent() async {
-    final bitwindowFile = File(_getBitWindowConfigPath());
+    final configFile = File(_getBitcoinCoreConfigPath());
 
     // Always migrate forknet and mainnet configs first (if they exist or have pending migrations)
     await _migrateForknetConfig();
     await _migrateMainnetConfig();
 
-    if (await bitwindowFile.exists()) {
-      var content = await bitwindowFile.readAsString();
+    if (await configFile.exists()) {
+      var content = await configFile.readAsString();
       final config = BitcoinConfig.parse(content);
 
       // Determine if current config is forknet (chain=main + drivechain=1)
@@ -149,7 +143,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       if (migrated) {
         content = config.serialize();
         try {
-          await bitwindowFile.writeAsString(content);
+          await configFile.writeAsString(content);
           log.i('Migrated bitwindow-bitcoin.conf (version $_kBitwindowBitcoinConfVersion, isForknet: $isForknet)');
         } catch (e) {
           log.e('Failed to write migrated config: $e');
@@ -161,9 +155,9 @@ class BitcoinConfProvider extends ChangeNotifier {
     // Create default config
     final content = _defaultConf();
     try {
-      await bitwindowFile.parent.create(recursive: true);
-      await bitwindowFile.writeAsString(content);
-      log.i('Created default config file: ${bitwindowFile.path}');
+      await configFile.parent.create(recursive: true);
+      await configFile.writeAsString(content);
+      log.i('Created default config file: ${configFile.path}');
     } catch (e) {
       log.e('Failed to write default config file: $e');
     }
@@ -462,71 +456,15 @@ class BitcoinConfProvider extends ChangeNotifier {
       return (hasPrivateConf: true, path: bitcoinConf.path);
     }
 
-    // Use BitWindow directory as the source of truth for generated config
-    return (hasPrivateConf: false, path: _getBitWindowConfigPath());
+    // Config lives in Bitcoin Core's datadir
+    return (hasPrivateConf: false, path: _getBitcoinCoreConfigPath());
   }
 
-  /// Get the path to the config file in BitWindow directory (source of truth)
-  String _getBitWindowConfigPath() {
-    return path.join(BitWindow().rootDir(), 'bitwindow-bitcoin.conf');
-  }
-
-  /// Get the path where config should be copied for Bitcoin Core to find
-  String _getDownstreamConfigPath() {
+  /// Get the path to the config file in Bitcoin Core's default datadir.
+  /// Uses rootDirNetwork (not datadir) to avoid chicken-and-egg problem -
+  /// we need to read the config to know the custom datadir.
+  String _getBitcoinCoreConfigPath() {
     return path.join(BitcoinCore().rootDirNetwork(network), 'bitwindow-bitcoin.conf');
-  }
-
-  /// Copy config from BitWindow directory to downstream location (Drivechain or Bitcoin dir)
-  Future<void> _copyConfigDownstream() async {
-    try {
-      final sourcePath = _getBitWindowConfigPath();
-      final destPath = _getDownstreamConfigPath();
-
-      final sourceFile = File(sourcePath);
-      if (!await sourceFile.exists()) {
-        log.w('Cannot copy downstream - source file does not exist: $sourcePath');
-        return;
-      }
-
-      final destFile = File(destPath);
-      await destFile.parent.create(recursive: true);
-      await sourceFile.copy(destPath);
-
-      log.d('Copied config downstream: $sourcePath -> $destPath');
-    } catch (e) {
-      log.e('Failed to copy config downstream: $e');
-    }
-  }
-
-  /// Sync config from upstream location (Drivechain or Bitcoin dir) to BitWindow directory
-  Future<void> _syncConfigUpstream(String sourcePath) async {
-    if (hasPrivateBitcoinConf) return;
-
-    try {
-      final sourceFile = File(sourcePath);
-      if (!await sourceFile.exists()) {
-        log.w('Cannot sync upstream - source file does not exist: $sourcePath');
-        return;
-      }
-
-      // Read and parse to compare with current config
-      final content = await sourceFile.readAsString();
-      final sourceConfig = BitcoinConfig.parse(content);
-      if (currentConfig != null && sourceConfig == currentConfig) {
-        log.d('Upstream config unchanged, skipping sync');
-        return;
-      }
-
-      // Downstream is different from currently saved config, sync it!
-      final destPath = _getBitWindowConfigPath();
-      final destFile = File(destPath);
-      await destFile.parent.create(recursive: true);
-      await destFile.writeAsString(content);
-
-      log.d('Synced config upstream: $sourcePath -> $destPath');
-    } catch (e) {
-      log.e('Failed to sync config upstream: $e');
-    }
   }
 
   /// Load network and datadir state from currentConfig
@@ -543,66 +481,34 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   void _setupFileWatching() {
-    _setupBitWindowWatcher();
-    _setupUpstreamWatcher();
+    _setupConfigWatcher();
   }
 
-  /// Primary watcher: watches BitWindow directory (source of truth)
-  void _setupBitWindowWatcher() {
+  /// Watcher: watches Bitcoin Core datadir for config changes
+  void _setupConfigWatcher() {
     _bitWindowWatcher?.cancel();
 
     try {
-      final bitWindowDir = Directory(BitWindow().rootDir());
-      if (!bitWindowDir.existsSync()) {
-        bitWindowDir.createSync(recursive: true);
+      final confPath = _getBitcoinCoreConfigPath();
+      final confDir = Directory(path.dirname(confPath));
+      if (!confDir.existsSync()) {
+        confDir.createSync(recursive: true);
       }
 
-      _bitWindowWatcher = bitWindowDir
+      _bitWindowWatcher = confDir
           .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
           .where((event) => event.path.endsWith('bitwindow-bitcoin.conf'))
-          .listen(_handleBitWindowConfigChange);
+          .listen(_handleConfigChange);
 
-      log.d('BitWindow config watcher enabled for ${bitWindowDir.path}');
+      log.d('Config watcher enabled for ${confDir.path}');
     } catch (e) {
-      log.e('Failed to setup BitWindow watcher: $e');
+      log.e('Failed to setup config watcher: $e');
     }
   }
 
-  /// Upstream watcher: watches both Drivechain and Bitcoin directories
-  void _setupUpstreamWatcher() {
-    _drivechainWatcher?.cancel();
-    _bitcoinWatcher?.cancel();
-
-    try {
-      // Watch Drivechain directory (for signet/forknet/etc)
-      final drivechainDir = Directory(BitcoinCore().rootDirNetwork(network));
-      if (drivechainDir.existsSync()) {
-        _drivechainWatcher = drivechainDir
-            .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
-            .where((event) => event.path.endsWith('bitwindow-bitcoin.conf'))
-            .listen(_handleUpstreamConfigChange);
-        log.d('Drivechain config watcher enabled for ${drivechainDir.path}');
-      }
-
-      // Watch Bitcoin directory (for mainnet)
-      final mainnetSubdir = BitcoinCore().directories.binary[BitcoinNetwork.BITCOIN_NETWORK_MAINNET]?[OS.current];
-      if (mainnetSubdir == null) return;
-      final bitcoinDir = Directory(filePath([BitcoinCore().appdir(), mainnetSubdir]));
-      if (bitcoinDir.existsSync()) {
-        _bitcoinWatcher = bitcoinDir
-            .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
-            .where((event) => event.path.endsWith('bitwindow-bitcoin.conf'))
-            .listen(_handleUpstreamConfigChange);
-        log.d('Bitcoin config watcher enabled for ${bitcoinDir.path}');
-      }
-    } catch (e) {
-      log.e('Failed to setup upstream watchers: $e');
-    }
-  }
-
-  /// Handle changes to the BitWindow config file (primary source of truth)
-  void _handleBitWindowConfigChange(FileSystemEvent event) {
-    log.d('BitWindow config changed: ${event.path}');
+  /// Handle changes to the config file
+  void _handleConfigChange(FileSystemEvent event) {
+    log.d('Config file changed: ${event.path}');
 
     _fileWatchDebouncer?.cancel();
     _fileWatchDebouncer = Timer(const Duration(milliseconds: 50), () async {
@@ -620,20 +526,9 @@ class BitcoinConfProvider extends ChangeNotifier {
         }
 
         await loadConfig();
-        await _copyConfigDownstream();
       } catch (e) {
         log.e('Error handling BitWindow config change: $e');
       }
-    });
-  }
-
-  /// Handle changes to upstream config files (Drivechain or Bitcoin dir)
-  void _handleUpstreamConfigChange(FileSystemEvent event) {
-    log.d('Upstream config changed: ${event.path}');
-
-    _fileWatchDebouncer?.cancel();
-    _fileWatchDebouncer = Timer(const Duration(milliseconds: 50), () async {
-      await _syncConfigUpstream(event.path);
     });
   }
 
@@ -714,9 +609,9 @@ chain=$currentNetwork # current network
 
 # Signet-specific settings
 [signet]
-addnode=172.105.148.135:38343
-signetblocktime=600
-signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987
+addnode=172.105.148.135:38333
+signetblocktime=60
+signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
 acceptnonstdtxn=1
 
 $mainSection
@@ -833,12 +728,11 @@ $mainSection
     return {};
   }
 
-  /// Get the path for the saved main-section file for mainnet/forknet
-  /// Stored in BitWindow directory alongside the main config
-  String _getMainSectionPath(BitcoinNetwork network) {
-    final datadir = BitWindow().datadir();
-    final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
-    return path.join(datadir, 'bitwindow-$networkName.conf');
+  /// Get the path for the saved main-section file for mainnet/forknet.
+  /// Stored in BitWindow directory (these are app state, not Bitcoin Core config).
+  String _getMainSectionPath(BitcoinNetwork targetNetwork) {
+    final networkName = targetNetwork == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
+    return path.join(BitWindow().rootDir(), 'bitwindow-$networkName.conf');
   }
 
   /// Save current main-section to file for the specified network (mainnet or forknet).

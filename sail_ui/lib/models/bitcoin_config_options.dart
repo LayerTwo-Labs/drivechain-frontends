@@ -167,7 +167,7 @@ class BitcoinConfigOptions {
       category: 'Connection',
       description: 'Listen Port',
       tooltip:
-          'Listen for connections on <port> (default: 8333, testnet3: 18333, testnet4: 48333, signet: 38343, regtest: 18444). Not relevant for I2P. If set to a value x, the default onion listening port will be set to x+1.',
+          'Listen for connections on <port> (default: 8333, testnet3: 18333, testnet4: 48333, signet: 38333, regtest: 18444). Not relevant for I2P. If set to a value x, the default onion listening port will be set to x+1.',
       inputType: ConfigInputType.number,
       isUseful: true,
       defaultValue: 8333,

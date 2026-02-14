@@ -125,9 +125,10 @@ class EnforcerConfProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  /// Get the path to the enforcer config file
+  /// Get the path to the enforcer config file in enforcer's default datadir.
+  /// We need to read the config to know the custom datadir.
   String _getConfigPath() {
-    return path.join(BitWindow().rootDir(), 'bitwindow-enforcer.conf');
+    return path.join(Enforcer().rootDir(), 'bitwindow-enforcer.conf');
   }
 
   /// Current config version. Bump when adding a migration and add to [_enforcerConfMigrations].

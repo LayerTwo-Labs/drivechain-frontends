@@ -4,8 +4,10 @@
 import 'package:sail_ui/config/config_migration.dart';
 import 'package:sail_ui/models/bitcoin_config.dart';
 
-import '001_new_signet.dart';
+import 'package:sail_ui/migrations/bitcoin_conf/001_new_signet.dart';
+import 'package:sail_ui/migrations/bitcoin_conf/002_revert_signet.dart';
 
 List<ConfigMigration<BitcoinConfig>> get bitcoinConfMigrations => [
   Migration001NewSignet(),
+  Migration002RevertSignet(),
 ];
