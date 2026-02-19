@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
 class CoreConnectionSettings extends ChangeNotifier {
@@ -116,16 +119,62 @@ CoreConnectionSettings readMainchainConf() {
   final config = confProvider.currentConfig!;
   final networkSection = network.toCoreNetwork();
 
-  // Read all connection settings from BitcoinConfProvider (single source of truth)
-  final username = config.getEffectiveSetting('rpcuser', networkSection) ?? 'user';
-  final password = config.getEffectiveSetting('rpcpassword', networkSection) ?? 'password';
+  // Read connection settings from config (null if not set)
+  final configUsername = config.getEffectiveSetting('rpcuser', networkSection);
+  final configPassword = config.getEffectiveSetting('rpcpassword', networkSection);
   final host =
       config.getEffectiveSetting('rpcconnect', networkSection) ??
       config.getEffectiveSetting('rpchost', networkSection) ??
       '127.0.0.1';
   final port = confProvider.rpcPort; // Uses the getter that already handles sections
 
-  final configFile = confProvider.hasPrivateBitcoinConf ? 'bitcoin.conf' : 'bitwindow-bitcoin.conf';
+  // Determine credentials: use config values, or fall back to cookie auth if both are empty
+  String username;
+  String password;
+
+  final configHasCredentials = (configUsername?.isNotEmpty == true) && (configPassword?.isNotEmpty == true);
+
+  if (configHasCredentials) {
+    // Use credentials from config
+    username = configUsername!;
+    password = configPassword!;
+  } else {
+    // Try cookie auth - Bitcoin Core creates .cookie when no rpcuser/rpcpassword configured
+    final datadir = BitcoinCore().datadir();
+    // Both mainnet and forknet use root datadir, other networks use subdirs
+    final networkDir = filePath([
+      datadir,
+      (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
+          ? ''
+          : network.toReadableNet(),
+    ]);
+    final cookieFile = File(filePath([networkDir, '.cookie']));
+
+    if (cookieFile.existsSync()) {
+      try {
+        final cookieData = cookieFile.readAsStringSync();
+        final parts = cookieData.split(':');
+        if (parts.length == 2) {
+          username = parts[0];
+          password = parts[1];
+          log.i('Using cookie auth from ${cookieFile.path}');
+        } else {
+          throw FormatException('Invalid cookie format');
+        }
+      } catch (e) {
+        log.w('Failed to read cookie file: $e, using defaults');
+        username = 'user';
+        password = 'password';
+      }
+    } else {
+      // No cookie file, use defaults as last resort
+      log.w('No rpcuser/rpcpassword in config and no cookie file found, using defaults');
+      username = 'user';
+      password = 'password';
+    }
+  }
+
+  final configFile = path.basename(confProvider.configPath!);
   log.i('Using $configFile for mainchain configuration: $username@$host:$port');
 
   // Merge global + network-specific config values
