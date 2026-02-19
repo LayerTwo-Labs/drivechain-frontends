@@ -103,6 +103,8 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       await _handleNetworkChangeIfNeeded(oldNetwork, isFirst);
 
+      await _copyConfigDownstream();
+
       await _promptForDatadirIfNeeded();
     } catch (e) {
       log.e('Failed to load config: $e');
@@ -115,14 +117,14 @@ class BitcoinConfProvider extends ChangeNotifier {
   /// Runs versioned migrations on load when stored version < current.
   /// First migrates bitwindow-forknet.conf, then checks network to apply forknet data.
   Future<String> _loadOrCreateConfigContent() async {
-    final configFile = File(_getBitcoinCoreConfigPath());
+    final bitwindowFile = File(_getBitWindowConfigPath());
 
     // Always migrate forknet and mainnet configs first (if they exist or have pending migrations)
     await _migrateForknetConfig();
     await _migrateMainnetConfig();
 
-    if (await configFile.exists()) {
-      var content = await configFile.readAsString();
+    if (await bitwindowFile.exists()) {
+      var content = await bitwindowFile.readAsString();
       final config = BitcoinConfig.parse(content);
 
       // Determine if current config is forknet (chain=main + drivechain=1)
@@ -152,9 +154,9 @@ class BitcoinConfProvider extends ChangeNotifier {
     // Create default config
     final content = _defaultConf();
     try {
-      await configFile.parent.create(recursive: true);
-      await configFile.writeAsString(content);
-      log.i('Created default config file: ${configFile.path}');
+      await bitwindowFile.parent.create(recursive: true);
+      await bitwindowFile.writeAsString(content);
+      log.i('Created default config file: ${bitwindowFile.path}');
     } catch (e) {
       log.e('Failed to write default config file: $e');
     }
@@ -520,20 +522,19 @@ class BitcoinConfProvider extends ChangeNotifier {
     _bitWindowWatcher?.cancel();
 
     try {
-      final confPath = _getBitcoinCoreConfigPath();
-      final confDir = Directory(path.dirname(confPath));
-      if (!confDir.existsSync()) {
-        confDir.createSync(recursive: true);
+      final bitWindowDir = Directory(BitWindow().rootDir());
+      if (!bitWindowDir.existsSync()) {
+        bitWindowDir.createSync(recursive: true);
       }
 
-      _bitWindowWatcher = confDir
+      _bitWindowWatcher = bitWindowDir
           .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
           .where((event) => event.path.endsWith(kBitwindowBitcoinConfFilename))
           .listen(_handleBitWindowConfigChange);
 
-      log.d('Config watcher enabled for ${confDir.path}');
+      log.d('BitWindow config watcher enabled for ${bitWindowDir.path}');
     } catch (e) {
-      log.e('Failed to setup config watcher: $e');
+      log.e('Failed to setup BitWindow watcher: $e');
     }
   }
 
@@ -557,6 +558,7 @@ class BitcoinConfProvider extends ChangeNotifier {
         }
 
         await loadConfig();
+        await _copyConfigDownstream();
       } catch (e) {
         log.e('Error handling BitWindow config change: $e');
       }
@@ -732,11 +734,12 @@ $mainSection
     return {};
   }
 
-  /// Get the path for the saved main-section file for mainnet/forknet.
-  /// Stored in BitWindow directory (these are app state, not Bitcoin Core config).
-  String _getMainSectionPath(BitcoinNetwork targetNetwork) {
-    final networkName = targetNetwork == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
-    return path.join(BitWindow().rootDir(), 'bitwindow-$networkName.conf');
+  /// Get the path for the saved main-section file for mainnet/forknet
+  /// Stored in BitWindow directory alongside the main config
+  String _getMainSectionPath(BitcoinNetwork network) {
+    final datadir = BitWindow().datadir();
+    final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
+    return path.join(datadir, 'bitwindow-$networkName.conf');
   }
 
   /// Save current main-section to file for the specified network (mainnet or forknet).
@@ -826,3 +829,4 @@ $mainSection
     }
   }
 }
+

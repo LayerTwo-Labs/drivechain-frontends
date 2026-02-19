@@ -80,8 +80,7 @@ bool runConfigMigrations<T>(
 ) {
   final stored = getVersion(config);
   // stored == 0 means no version line (legacy); run all migrations
-  final toRun = migrations.where((m) => m.version > stored).toList()
-    ..sort((a, b) => a.version.compareTo(b.version));
+  final toRun = migrations.where((m) => m.version > stored).toList()..sort((a, b) => a.version.compareTo(b.version));
   for (final m in toRun) {
     m.apply(config);
   }
@@ -98,8 +97,7 @@ bool runBitcoinConfMigrations(
   required bool isForknet,
 }) {
   final stored = config.configVersion;
-  final toRun = migrations.where((m) => m.version > stored).toList()
-    ..sort((a, b) => a.version.compareTo(b.version));
+  final toRun = migrations.where((m) => m.version > stored).toList()..sort((a, b) => a.version.compareTo(b.version));
   for (final m in toRun) {
     if (m is StructuredBitcoinConfMigration) {
       m.applyWithNetwork(config, isForknet: isForknet);
@@ -119,8 +117,7 @@ bool runForknetConfMigrations(
   List<ConfigMigration<BitcoinConfig>> migrations,
 ) {
   final stored = config.version;
-  final toRun = migrations.where((m) => m.version > stored).toList()
-    ..sort((a, b) => a.version.compareTo(b.version));
+  final toRun = migrations.where((m) => m.version > stored).toList()..sort((a, b) => a.version.compareTo(b.version));
   for (final m in toRun) {
     if (m is StructuredBitcoinConfMigration) {
       final forknetData = m.forknetChanges;
@@ -143,8 +140,7 @@ bool runMainnetConfMigrations(
   List<ConfigMigration<BitcoinConfig>> migrations,
 ) {
   final stored = config.version;
-  final toRun = migrations.where((m) => m.version > stored).toList()
-    ..sort((a, b) => a.version.compareTo(b.version));
+  final toRun = migrations.where((m) => m.version > stored).toList()..sort((a, b) => a.version.compareTo(b.version));
   for (final m in toRun) {
     if (m is StructuredBitcoinConfMigration) {
       final mainnetData = m.mainnetChanges;
@@ -252,4 +248,3 @@ class MainnetConfig {
     return buffer.toString();
   }
 }
-
