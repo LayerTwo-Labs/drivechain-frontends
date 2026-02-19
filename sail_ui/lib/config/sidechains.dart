@@ -39,6 +39,9 @@ abstract class Sidechain extends Binary {
 
       case 'photon':
         return Photon();
+
+      case 'coinshift':
+        return CoinShift();
     }
     return null;
   }
@@ -50,6 +53,7 @@ abstract class Sidechain extends Binary {
     BitAssets(),
     Truthcoin(),
     Photon(),
+    CoinShift(),
   ];
 
   static Sidechain? fromSlot(int slot) {
@@ -125,6 +129,18 @@ abstract class Sidechain extends Binary {
 
       case 'Photon':
         return Photon(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          port: binary.port,
+          chainLayer: binary.chainLayer,
+        );
+
+      case 'CoinShift':
+        return CoinShift(
           name: binary.name,
           version: binary.version,
           description: binary.description,
@@ -685,6 +701,89 @@ class Photon extends Sidechain {
     List<String>? extraBootArgs,
   }) {
     return Photon(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
+    );
+  }
+}
+
+class CoinShift extends Sidechain {
+  CoinShift({
+    super.name = 'CoinShift',
+    super.version = 'latest',
+    super.description = 'CoinShift sidechain',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/coinshift',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.port = 6255,
+    super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: allNetworks({
+                 OS.linux: 'coinshift',
+                 OS.macos: 'coinshift',
+                 OS.windows: 'coinshift',
+               }),
+               flutterFrontend: {
+                 OS.linux: '',
+                 OS.macos: '',
+                 OS.windows: '',
+               },
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'coinshift',
+                 files: allNetworks({
+                   OS.linux: 'L2-S255-CoinShift-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L2-S255-CoinShift-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L2-S255-CoinShift-latest-x86_64-pc-windows-gnu.zip',
+                 }),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
+
+  @override
+  final int slot = 255;
+
+  @override
+  BinaryType get type => BinaryType.coinShift;
+
+  @override
+  Color color = SailColorScheme.orange;
+
+  @override
+  CoinShift copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
+  }) {
+    return CoinShift(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,

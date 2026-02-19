@@ -21,7 +21,7 @@ class Environment {
   );
   static const bitwindowdPort = Variable(
     'BITWINDOWD_PORT',
-    int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 2122),
+    int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 30301),
   );
   static const network = Variable(
     'BITWINDOW_NETWORK',

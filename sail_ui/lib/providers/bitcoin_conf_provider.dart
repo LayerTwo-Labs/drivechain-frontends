@@ -449,11 +449,20 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   ({bool hasPrivateConf, String path}) _getConfigFileInfo() {
-    // Use the same logic as Core to determine which config file to use
-    // This ensures BitcoinConfProvider and Core always use the same file
-    final confPath = BitcoinCore().confFile();
-    final isPrivate = path.basename(confPath) == 'bitcoin.conf';
-    return (hasPrivateConf: isPrivate, path: confPath);
+    // Replicate confFile() logic but use instance's network to avoid GetIt during init
+    // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir
+    final confDir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
+        ? path.join(BitcoinCore().appdir(), 'Bitcoin')
+        : BitcoinCore().rootDirNetwork(network);
+
+    // Always check for bitcoin.conf first - user config takes priority
+    final bitcoinConfPath = path.join(confDir, 'bitcoin.conf');
+    if (File(bitcoinConfPath).existsSync()) {
+      return (hasPrivateConf: true, path: bitcoinConfPath);
+    }
+
+    // Use master config file in BitWindow directory (source of truth)
+    return (hasPrivateConf: false, path: path.join(BitWindow().rootDir(), kBitwindowBitcoinConfFilename));
   }
 
   /// Get the path to the config file in BitWindow directory (source of truth)

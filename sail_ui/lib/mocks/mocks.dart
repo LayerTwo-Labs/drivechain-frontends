@@ -1755,6 +1755,8 @@ String _binaryTypeName(BinaryType type) {
       return 'Photon';
     case BinaryType.truthcoin:
       return 'Truthcoin';
+    case BinaryType.coinShift:
+      return 'CoinShift';
   }
 }
 
@@ -1776,6 +1778,7 @@ class MockBinaryProvider extends BinaryProvider {
     MockBinary(type: BinaryType.photon),
     MockBinary(type: BinaryType.bitnames),
     MockBinary(type: BinaryType.bitassets),
+    MockBinary(type: BinaryType.coinShift),
   ];
 
   @override
@@ -1809,6 +1812,9 @@ class MockBinaryProvider extends BinaryProvider {
   bool get photonConnected => false;
 
   @override
+  bool get coinshiftConnected => false;
+
+  @override
   bool get mainchainInitializing => false;
 
   @override
@@ -1834,6 +1840,9 @@ class MockBinaryProvider extends BinaryProvider {
 
   @override
   bool get photonInitializing => false;
+
+  @override
+  bool get coinshiftInitializing => false;
 
   @override
   bool get mainchainStopping => false;
@@ -1863,6 +1872,9 @@ class MockBinaryProvider extends BinaryProvider {
   bool get photonStopping => false;
 
   @override
+  bool get coinshiftStopping => false;
+
+  @override
   String? get mainchainError => null;
 
   @override
@@ -1890,6 +1902,9 @@ class MockBinaryProvider extends BinaryProvider {
   String? get photonError => null;
 
   @override
+  String? get coinshiftError => null;
+
+  @override
   String? get mainchainStartupError => null;
 
   @override
@@ -1915,6 +1930,9 @@ class MockBinaryProvider extends BinaryProvider {
 
   @override
   String? get photonStartupError => null;
+
+  @override
+  String? get coinshiftStartupError => null;
 
   @override
   ExitTuple? exited(Binary binary) => null;

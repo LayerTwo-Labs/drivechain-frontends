@@ -123,6 +123,7 @@ export 'providers/log_provider.dart';
 export 'rpcs/bitassets_rpc.dart';
 export 'rpcs/bitnames_rpc.dart';
 export 'rpcs/bitwindow_api.dart';
+export 'rpcs/coinshift_rpc.dart';
 export 'rpcs/enforcer_rpc.dart';
 export 'rpcs/mainchain_rpc.dart';
 export 'rpcs/rpc_sidechain.dart';

@@ -186,7 +186,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:2122/$url'),
+        Uri.parse('http://localhost:30301/$url'),
         headers: {'content-type': 'application/json'},
         body: body,
       );
