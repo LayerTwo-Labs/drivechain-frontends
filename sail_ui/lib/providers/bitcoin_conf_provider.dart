@@ -80,7 +80,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     await instance.loadConfig(isFirst: true);
     instance._setupBitWindowWatcher();
 
-    instance._updateMainchainRPCConfig(readMainchainConf());
+    instance._updateMainchainRPCConfig(readMainchainConf(provider: instance));
     return instance;
   }
 
@@ -629,9 +629,6 @@ fallbackfee=0.00021
 chain=$currentNetwork # current network
 
 # [Sections]
-# Most options automatically apply to mainnet, testnet,
-# and regtest.
-
 # If you want to confine an option to just one network,
 # you should add it in the relevant section.
 
@@ -737,7 +734,8 @@ $mainSection
   /// Get the path for the saved main-section file for mainnet/forknet
   /// Stored in BitWindow directory alongside the main config
   String _getMainSectionPath(BitcoinNetwork network) {
-    final datadir = BitWindow().datadir();
+    // Use rootDir() instead of datadir() to avoid GetIt access during initialization
+    final datadir = BitWindow().rootDir();
     final networkName = network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ? 'forknet' : 'mainnet';
     return path.join(datadir, 'bitwindow-$networkName.conf');
   }
@@ -829,4 +827,3 @@ $mainSection
     }
   }
 }
-
