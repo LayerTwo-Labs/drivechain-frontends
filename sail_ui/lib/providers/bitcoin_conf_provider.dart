@@ -111,10 +111,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
   }
 
-  /// Current config version. Bump when adding a migration and add to bitcoin_conf_migrations.dart.
-  static const int _kBitwindowBitcoinConfVersion = 2;
-
-  /// Load config content from Bitcoin Core datadir, or create default if missing.
+  /// Load config content from BitWindow config file, or create default if missing.
   /// Runs versioned migrations on load when stored version < current.
   /// First migrates bitwindow-forknet.conf, then checks network to apply forknet data.
   Future<String> _loadOrCreateConfigContent() async {
@@ -136,15 +133,15 @@ class BitcoinConfProvider extends ChangeNotifier {
       // Run migrations - forknet data only applies to [main] if currently on forknet
       final migrated = runBitcoinConfMigrations(
         config,
-        _kBitwindowBitcoinConfVersion,
+        bitcoinConfMigrationsVersion,
         bitcoinConfMigrations,
         isForknet: isForknet,
       );
       if (migrated) {
         content = config.serialize();
         try {
-          await configFile.writeAsString(content);
-          log.i('Migrated bitwindow-bitcoin.conf (version $_kBitwindowBitcoinConfVersion, isForknet: $isForknet)');
+          await bitwindowFile.writeAsString(content);
+          log.i('Migrated bitwindow-bitcoin.conf (version $bitcoinConfMigrationsVersion, isForknet: $isForknet)');
         } catch (e) {
           log.e('Failed to write migrated config: $e');
         }
@@ -182,14 +179,14 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       final migrated = runForknetConfMigrations(
         forknetConfig,
-        _kBitwindowBitcoinConfVersion,
+        bitcoinConfMigrationsVersion,
         bitcoinConfMigrations,
       );
 
       if (migrated) {
         await file.parent.create(recursive: true);
         await file.writeAsString(forknetConfig.serialize());
-        log.i('Migrated bitwindow-forknet.conf (version $_kBitwindowBitcoinConfVersion)');
+        log.i('Migrated bitwindow-forknet.conf (version $bitcoinConfMigrationsVersion)');
       }
     } catch (e) {
       log.e('Failed to migrate forknet config: $e');
@@ -214,14 +211,14 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       final migrated = runMainnetConfMigrations(
         mainnetConfig,
-        _kBitwindowBitcoinConfVersion,
+        bitcoinConfMigrationsVersion,
         bitcoinConfMigrations,
       );
 
       if (migrated) {
         await file.parent.create(recursive: true);
         await file.writeAsString(mainnetConfig.serialize());
-        log.i('Migrated bitwindow-mainnet.conf (version $_kBitwindowBitcoinConfVersion)');
+        log.i('Migrated bitwindow-mainnet.conf (version $bitcoinConfMigrationsVersion)');
       }
     } catch (e) {
       log.e('Failed to migrate mainnet config: $e');
@@ -577,7 +574,7 @@ drivechain=1
 ''';
 
     // New users get current version so no migrations run on first load
-    return '''$kBitcoinConfVersionCommentPrefix$_kBitwindowBitcoinConfVersion
+    return '''$kBitcoinConfVersionCommentPrefix$bitcoinConfMigrationsVersion
 
 # Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
@@ -750,7 +747,7 @@ $mainSection
       String contentToWrite;
 
       // Read existing version if file exists
-      int existingVersion = _kBitwindowBitcoinConfVersion;
+      int existingVersion = bitcoinConfMigrationsVersion;
 
       if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
         if (await file.exists()) {
