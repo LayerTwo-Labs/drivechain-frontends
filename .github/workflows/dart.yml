@@ -19,7 +19,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [sail_ui, thunder, truthcoin, photon, bitnames, bitassets, zside, bitwindow]
+        package:
+          [
+            sail_ui,
+            thunder,
+            truthcoin,
+            photon,
+            bitnames,
+            bitassets,
+            zside,
+            bitwindow,
+          ]
 
     defaults:
       run:
@@ -27,14 +37,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check migration registrations
+        if: matrix.package == 'sail_ui'
+        run: ../scripts/check-migrations.sh
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.38.9
+          flutter-version: 3.41.1
 
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: 3.10.8
+          sdk: 3.11.0
 
       - name: Install dependencies for ${{ matrix.package }}
         run: flutter pub get --enforce-lockfile
