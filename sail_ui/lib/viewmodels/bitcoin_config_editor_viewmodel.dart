@@ -154,7 +154,7 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
       if (preset == ConfigPreset.performance || preset == ConfigPreset.storageOptimized) {
         // Add signet configuration
         workingConfig!.setSetting('addnode', '172.105.148.135:38333', section: 'signet');
-        workingConfig!.setSetting('signetblocktime', '60', section: 'signet');
+        workingConfig!.setSetting('signetblocktime', '600', section: 'signet');
         workingConfig!.setSetting(
           'signetchallenge',
           '00141551188e5153533b4fdd555449e640d9cc129456',
