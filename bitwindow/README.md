@@ -16,7 +16,7 @@ To get the app(s) up and running, make sure you have the following dependencies:
 Running the app is as simple as the following command:
 
 ```bash
-flutter run --dart-define BITWINDOWD_HOST=localhost --dart-define BITWINDOWD_PORT=2122
+flutter run --dart-define BITWINDOWD_HOST=localhost --dart-define BITWINDOWD_PORT=30301
 ```
 
 The project is set up with launch configurations for Visual Studio Code as well.

@@ -23,6 +23,7 @@ enum BinaryType {
   bitassets,
   truthcoin,
   photon,
+  coinShift,
   grpcurl,
 }
 
@@ -37,6 +38,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.bitassets => BitAssets(),
     BinaryType.truthcoin => Truthcoin(),
     BinaryType.photon => Photon(),
+    BinaryType.coinShift => CoinShift(),
     BinaryType.grpcurl => GRPCurl(),
   };
 }
@@ -215,6 +217,9 @@ abstract class Binary {
       case BinaryType.photon:
         await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
 
+      case BinaryType.coinShift:
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+
       case BinaryType.grpcurl:
         break;
     }
@@ -275,6 +280,9 @@ abstract class Binary {
       case BinaryType.photon:
         await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
 
+      case BinaryType.coinShift:
+        await _deleteFilesInDir(datadirNetwork(), ['debug.log', 'settings.json']);
+
       case BinaryType.grpcurl:
         break;
     }
@@ -321,6 +329,9 @@ abstract class Binary {
         await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.photon:
+        await _renameWalletDir(networkDir, 'wallet.mdb');
+
+      case BinaryType.coinShift:
         await _renameWalletDir(networkDir, 'wallet.mdb');
 
       case BinaryType.bitWindow:
@@ -471,6 +482,9 @@ abstract class Binary {
 
       case BinaryType.photon:
         await _deleteFilesInDir(dir, ['photon-cli']);
+
+      case BinaryType.coinShift:
+        await _deleteFilesInDir(dir, ['coinshift-cli']);
 
       case BinaryType.grpcurl:
         break;
@@ -880,7 +894,7 @@ class BitWindow extends Binary {
                binaryPath: null,
                updateable: false,
              ),
-         port: port ?? 2122,
+         port: port ?? 30301,
        );
 
   @override
@@ -1133,7 +1147,8 @@ extension BinaryPaths on Binary {
       BinaryType.bitassets ||
       BinaryType.zSide ||
       BinaryType.truthcoin ||
-      BinaryType.photon => _findLatestDirVersionedLog(),
+      BinaryType.photon ||
+      BinaryType.coinShift => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
       BinaryType.grpcurl => '',
     };
@@ -1303,6 +1318,7 @@ extension BinaryPaths on Binary {
       case BinaryType.zSide:
       case BinaryType.truthcoin:
       case BinaryType.photon:
+      case BinaryType.coinShift:
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
@@ -1340,6 +1356,7 @@ extension BinaryPaths on Binary {
       case BinaryType.zSide:
       case BinaryType.truthcoin:
       case BinaryType.photon:
+      case BinaryType.coinShift:
       case BinaryType.grpcurl:
         return baseDir;
     }

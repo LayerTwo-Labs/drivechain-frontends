@@ -187,6 +187,7 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	if chainTipResp.Msg.BlockHeaderInfo == nil ||
 		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
 		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
+		log.Error().Msg("chain tip missing block hash")
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("chain tip missing block hash"))
 	}
@@ -199,13 +200,17 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	s.sidechainsCacheMu.RUnlock()
 
 	if cache != nil && cache.lastBlockHash == currentBlockHash {
-		log.Debug().Msg("ListSidechains: returning cached data")
+		log.Info().
+			Int("cachedSidechains", len(cache.sidechains)).
+			Str("blockHash", cache.lastBlockHash).
+			Msg("cache hit, returning cached sidechains")
 		return connect.NewResponse(&pb.ListSidechainsResponse{
 			Sidechains: cache.sidechains,
 		}), nil
 	}
 
-	// Cache miss - fetch fresh data
+	log.Info().Str("blockHash", currentBlockHash).Msg("cache miss, fetching fresh sidechains")
+
 	sidechains, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
 		err = fmt.Errorf("enforcer/validator: could not get sidechains: %w", err)
@@ -213,33 +218,14 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		return nil, err
 	}
 
-	// Loop over all sidechains and get their chaintiptxid using s.enforcer.GetCtip()
+	// Loop over all sidechains and get their chaintip if available
 	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
 	for _, sidechain := range sidechains.Msg.Sidechains {
-		ctipResponse, err := validator.GetCtip(ctx, connect.NewRequest(
-			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber.Value)},
-		))
-		if err != nil {
-			log.Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber.Value).Msg("could not get ctip")
-			continue
-		}
-
-		if ctipResponse.Msg.Ctip == nil || ctipResponse.Msg.Ctip.Txid == nil {
-			continue
-		}
-
-		// Decode the txid using chainhash.NewHashFromStr
-		txidHash, err := chainhash.NewHashFromStr(ctipResponse.Msg.Ctip.Txid.Hex.Value)
-		if err != nil {
-			log.Error().Err(err).Msgf("could not decode txid: %s", ctipResponse.Msg.Ctip.Txid.Hex.Value)
-			continue
-		}
-
 		declaration := sidechain.Declaration.GetV0()
-		sidechainList = append(sidechainList, &pb.ListSidechainsResponse_Sidechain{
+
+		sc := &pb.ListSidechainsResponse_Sidechain{
 			Title:            declaration.Title.Value,
 			Description:      declaration.Description.Value,
-			Nversion:         uint32(ctipResponse.Msg.Ctip.SequenceNumber),
 			Hashid1:          declaration.HashId_1.Hex.Value,
 			Hashid2:          declaration.HashId_2.Hex.Value,
 			Slot:             sidechain.SidechainNumber.Value,
@@ -247,10 +233,23 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			ProposalHeight:   sidechain.ProposalHeight.Value,
 			ActivationHeight: sidechain.ActivationHeight.Value,
 			DescriptionHex:   sidechain.Description.Hex.Value,
-			BalanceSatoshi:   int64(ctipResponse.Msg.Ctip.Value),
-			ChaintipTxid:     txidHash.String(),
-			ChaintipVout:     ctipResponse.Msg.Ctip.Vout,
-		})
+		}
+
+		// Try to get ctip (may not exist if no deposits yet)
+		ctipResponse, err := validator.GetCtip(ctx, connect.NewRequest(
+			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber.Value)},
+		))
+		if err == nil && ctipResponse.Msg.Ctip != nil && ctipResponse.Msg.Ctip.Txid != nil {
+			txidHash, err := chainhash.NewHashFromStr(ctipResponse.Msg.Ctip.Txid.Hex.Value)
+			if err == nil {
+				sc.Nversion = uint32(ctipResponse.Msg.Ctip.SequenceNumber)
+				sc.BalanceSatoshi = int64(ctipResponse.Msg.Ctip.Value)
+				sc.ChaintipTxid = txidHash.String()
+				sc.ChaintipVout = ctipResponse.Msg.Ctip.Vout
+			}
+		}
+
+		sidechainList = append(sidechainList, sc)
 	}
 
 	// Update cache
@@ -261,9 +260,10 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	}
 	s.sidechainsCacheMu.Unlock()
 
-	log.Debug().
-		Int("count", len(sidechainList)).
-		Msg("ListSidechains: fetched and cached")
+	log.Info().
+		Int("sidechains", len(sidechainList)).
+		Str("blockHash", currentBlockHash).
+		Msg("fetched and cached sidechains")
 
 	return connect.NewResponse(&pb.ListSidechainsResponse{
 		Sidechains: sidechainList,

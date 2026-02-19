@@ -687,6 +687,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is ZSide => _binaryProvider.zsideRPC,
       var b when b is Truthcoin => _binaryProvider.truthcoinRPC,
       var b when b is Photon => _binaryProvider.photonRPC,
+      var b when b is CoinShift => _binaryProvider.coinshiftRPC,
       _ => null,
     };
 
@@ -706,6 +707,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is ZSide => _binaryProvider.zsideConnected,
       var b when b is Truthcoin => _binaryProvider.truthcoinConnected,
       var b when b is Photon => _binaryProvider.photonConnected,
+      var b when b is CoinShift => _binaryProvider.coinshiftConnected,
       _ => false,
     };
   }
@@ -738,6 +740,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is ZSide => _binaryProvider.zsideConnected,
       var b when b is Truthcoin => _binaryProvider.truthcoinConnected,
       var b when b is Photon => _binaryProvider.photonConnected,
+      var b when b is CoinShift => _binaryProvider.coinshiftConnected,
       _ => false,
     };
 
@@ -752,6 +755,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is ZSide => _binaryProvider.zsideInitializing,
       var b when b is Truthcoin => _binaryProvider.truthcoinInitializing,
       var b when b is Photon => _binaryProvider.photonInitializing,
+      var b when b is CoinShift => _binaryProvider.coinshiftInitializing,
       _ => false,
     };
 
@@ -765,6 +769,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is ZSide => _binaryProvider.zsideStopping,
       var b when b is Truthcoin => _binaryProvider.truthcoinStopping,
       var b when b is Photon => _binaryProvider.photonStopping,
+      var b when b is CoinShift => _binaryProvider.coinshiftStopping,
       _ => false,
     };
 
@@ -778,6 +783,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is ZSide => _binaryProvider.zsideDownloadState.isDownloading,
       var b when b is Truthcoin => _binaryProvider.truthcoinDownloadState.isDownloading,
       var b when b is Photon => _binaryProvider.photonDownloadState.isDownloading,
+      var b when b is CoinShift => _binaryProvider.coinshiftDownloadState.isDownloading,
       _ => false,
     };
 
@@ -1143,6 +1149,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'bitassetsConnected': _binaryProvider.bitassetsConnected,
       'truthcoinConnected': _binaryProvider.truthcoinConnected,
       'photonConnected': _binaryProvider.photonConnected,
+      'coinshiftConnected': _binaryProvider.coinshiftConnected,
       'mainchainInitializing': _binaryProvider.mainchainInitializing,
       'enforcerInitializing': _binaryProvider.enforcerInitializing,
       'bitwindowInitializing': _binaryProvider.bitwindowInitializing,
@@ -1151,6 +1158,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'bitassetsInitializing': _binaryProvider.bitassetsInitializing,
       'truthcoinInitializing': _binaryProvider.truthcoinInitializing,
       'photonInitializing': _binaryProvider.photonInitializing,
+      'coinshiftInitializing': _binaryProvider.coinshiftInitializing,
       'mainchainStopping': _binaryProvider.mainchainStopping,
       'enforcerStopping': _binaryProvider.enforcerStopping,
       'bitwindowStopping': _binaryProvider.bitwindowStopping,
@@ -1159,6 +1167,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'bitassetsStopping': _binaryProvider.bitassetsStopping,
       'truthcoinStopping': _binaryProvider.truthcoinStopping,
       'photonStopping': _binaryProvider.photonStopping,
+      'coinshiftStopping': _binaryProvider.coinshiftStopping,
       // Track complete download states for better change detection
       'bitnamesDownloadState': _binaryProvider.bitnamesDownloadState,
       'bitassetsDownloadState': _binaryProvider.bitassetsDownloadState,
@@ -1168,6 +1177,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'thunderDownloadState': _binaryProvider.thunderDownloadState,
       'truthcoinDownloadState': _binaryProvider.truthcoinDownloadState,
       'photonDownloadState': _binaryProvider.photonDownloadState,
+      'coinshiftDownloadState': _binaryProvider.coinshiftDownloadState,
     };
 
     return states;
@@ -1498,6 +1508,7 @@ class _DepositModalState extends State<DepositModal> {
       BitNames() => binaryProvider.bitnamesRPC,
       BitAssets() => binaryProvider.bitassetsRPC,
       ZSide() => binaryProvider.zsideRPC,
+      CoinShift() => binaryProvider.coinshiftRPC,
       _ => null,
     };
 

@@ -46,6 +46,7 @@ class BinaryProvider extends ChangeNotifier {
   BitnamesRPC? _bitnamesRPC;
   BitAssetsRPC? _bitassetsRPC;
   ZSideRPC? _zsideRPC;
+  CoinShiftRPC? _coinshiftRPC;
 
   BitwindowRPC? get bitwindowRPC {
     if (_bitwindowRPC == null && GetIt.I.isRegistered<BitwindowRPC>()) {
@@ -103,6 +104,14 @@ class BinaryProvider extends ChangeNotifier {
     return _zsideRPC;
   }
 
+  CoinShiftRPC? get coinshiftRPC {
+    if (_coinshiftRPC == null && GetIt.I.isRegistered<CoinShiftRPC>()) {
+      _coinshiftRPC = GetIt.I.get<CoinShiftRPC>();
+      _coinshiftRPC!.addListener(notifyListeners);
+    }
+    return _coinshiftRPC;
+  }
+
   late final DownloadManager _downloadManager;
   late final ProcessManager _processManager;
 
@@ -125,6 +134,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
   bool get bitassetsConnected => bitassetsRPC?.connected ?? false;
   bool get zsideConnected => zsideRPC?.connected ?? false;
+  bool get coinshiftConnected => coinshiftRPC?.connected ?? false;
 
   bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
   bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
@@ -135,6 +145,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
   bool get bitassetsInitializing => bitassetsRPC?.initializingBinary ?? false;
   bool get zsideInitializing => zsideRPC?.initializingBinary ?? false;
+  bool get coinshiftInitializing => coinshiftRPC?.initializingBinary ?? false;
 
   bool get mainchainStopping => mainchainRPC?.stoppingBinary ?? false;
   bool get enforcerStopping => enforcerRPC?.stoppingBinary ?? false;
@@ -145,6 +156,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
   bool get bitassetsStopping => bitassetsRPC?.stoppingBinary ?? false;
   bool get zsideStopping => zsideRPC?.stoppingBinary ?? false;
+  bool get coinshiftStopping => coinshiftRPC?.stoppingBinary ?? false;
 
   DownloadInfo get mainchainDownloadState => _downloadManager.getProgress(BinaryType.bitcoinCore);
   DownloadInfo get enforcerDownloadState => _downloadManager.getProgress(BinaryType.enforcer);
@@ -154,6 +166,7 @@ class BinaryProvider extends ChangeNotifier {
   DownloadInfo get photonDownloadState => _downloadManager.getProgress(BinaryType.photon);
   DownloadInfo get bitnamesDownloadState => _downloadManager.getProgress(BinaryType.bitnames);
   DownloadInfo get bitassetsDownloadState => _downloadManager.getProgress(BinaryType.bitassets);
+  DownloadInfo get coinshiftDownloadState => _downloadManager.getProgress(BinaryType.coinShift);
   DownloadInfo get zsideDownloadState => _downloadManager.getProgress(BinaryType.zSide);
 
   // Only show errors for explicitly launched binaries
@@ -166,6 +179,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get bitnamesError => bitnamesRPC?.connectionError;
   String? get bitassetsError => bitassetsRPC?.connectionError;
   String? get zsideError => zsideRPC?.connectionError;
+  String? get coinshiftError => coinshiftRPC?.connectionError;
 
   // Only show errors for explicitly launched binaries
   String? get mainchainStartupError => mainchainRPC?.startupError;
@@ -177,6 +191,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get bitnamesStartupError => bitnamesRPC?.startupError;
   String? get bitassetsStartupError => bitassetsRPC?.startupError;
   String? get zsideStartupError => zsideRPC?.startupError;
+  String? get coinshiftStartupError => coinshiftRPC?.startupError;
 
   // let the download manager handle all binary stuff. Only it does updates!
   List<Binary> get binaries => _downloadManager.binaries;
@@ -317,6 +332,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesRPC,
       var b when b is BitAssets => bitassetsRPC,
       var b when b is ZSide => zsideRPC,
+      var b when b is CoinShift => coinshiftRPC,
       _ => null,
     };
 
@@ -467,6 +483,8 @@ class BinaryProvider extends ChangeNotifier {
           await bitassetsRPC?.stop();
         case ZSide():
           await zsideRPC?.stop();
+        case CoinShift():
+          await coinshiftRPC?.stop();
       }
     } catch (e) {
       log.e('could not stop ${binary.name}: $e');
@@ -564,6 +582,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesConnected,
       var b when b is BitAssets => bitassetsConnected,
       var b when b is ZSide => zsideConnected,
+      var b when b is CoinShift => coinshiftConnected,
       _ => false,
     };
   }
@@ -581,6 +600,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesInitializing,
       var b when b is BitAssets => bitassetsInitializing,
       var b when b is ZSide => zsideInitializing,
+      var b when b is CoinShift => coinshiftInitializing,
       _ => false,
     };
   }
@@ -598,6 +618,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesError,
       var b when b is BitAssets => bitassetsError,
       var b when b is ZSide => zsideError,
+      var b when b is CoinShift => coinshiftError,
       _ => null,
     };
   }
@@ -618,6 +639,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitNames => bitnamesStopping,
       var b when b is BitAssets => bitassetsStopping,
       var b when b is ZSide => zsideStopping,
+      var b when b is CoinShift => coinshiftStopping,
       _ => false,
     };
   }
@@ -644,6 +666,7 @@ class BinaryProvider extends ChangeNotifier {
       bitnamesRPC?.restartOnInitialFailure = true;
       bitassetsRPC?.restartOnInitialFailure = true;
       zsideRPC?.restartOnInitialFailure = true;
+      coinshiftRPC?.restartOnInitialFailure = true;
     }
 
     log.i('[T+0ms] STARTUP: Booting L1 binaries + ${binaryToBoot.name}');
@@ -926,6 +949,7 @@ class BinaryProvider extends ChangeNotifier {
     bitnamesRPC?.removeListener(notifyListeners);
     bitassetsRPC?.removeListener(notifyListeners);
     zsideRPC?.removeListener(notifyListeners);
+    coinshiftRPC?.removeListener(notifyListeners);
     _downloadManager.dispose();
     super.dispose();
   }
