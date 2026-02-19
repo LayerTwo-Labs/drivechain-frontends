@@ -1,7 +1,7 @@
 services:
   mainchain:
-    # 38343 = P2P, 38332 = RPC
-    ports: ["38343:38343", "38332:38332"]
+    # 38333 = P2P, 38332 = RPC
+    ports: ["38333:38333", "38332:38332"]
     healthcheck:
       test:
         [

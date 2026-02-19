@@ -610,8 +610,8 @@ chain=$currentNetwork # current network
 # Signet-specific settings
 [signet]
 addnode=172.105.148.135:38333
-signetblocktime=60
-signetchallenge=00141551188e5153533b4fdd555449e640d9cc129456
+signetblocktime=600
+signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987
 acceptnonstdtxn=1
 
 $mainSection
