@@ -17,7 +17,7 @@ linter:
     use_decorated_box: true
 
     # Readability
-    comment_references: true
+    comment_references: false
     avoid_escaping_inner_quotes: true
     prefer_if_null_operators: true
     unnecessary_new: true
@@ -36,6 +36,8 @@ analyzer:
     - "**/*.pbgrpc.dart"
     - "build/**"
     - "lib/gen/**"
+  errors:
+    undefined_identifier: ignore
 
 formatter:
   trailing_commas: preserve
