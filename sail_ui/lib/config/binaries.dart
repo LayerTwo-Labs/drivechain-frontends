@@ -11,6 +11,8 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
+const kBitwindowBitcoinConfFilename = 'bitwindow-bitcoin.conf';
+
 enum BinaryType {
   bitcoinCore,
   bitWindow,
@@ -231,7 +233,7 @@ abstract class Binary {
 
         final rootdir = rootDir();
         await _deleteFilesInDir(rootdir, [
-          'bitwindow-bitcoin.conf',
+          kBitwindowBitcoinConfFilename,
         ]);
 
       case BinaryType.enforcer:
@@ -245,7 +247,7 @@ abstract class Binary {
         final dir = BitWindow().rootDir();
         await _deleteFilesInDir(dir, [
           'assets',
-          'bitwindow-bitcoin.conf',
+          kBitwindowBitcoinConfFilename,
           'bitwindow-mainnet.conf',
           'bitwindow-forknet.conf',
           'debug.log',
@@ -1101,23 +1103,25 @@ class GRPCurl extends Binary {
 extension BinaryPaths on Binary {
   String confFile() {
     return switch (type) {
-      BinaryType.bitcoinCore => _getBitcoinConfFile(),
+      BinaryType.bitcoinCore => () {
+        final network = GetIt.I.get<BitcoinConfProvider>().network;
+        // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir (respects custom datadir)
+        final confDir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
+            ? path.join(BitcoinCore().appdir(), 'Bitcoin')
+            : BitcoinCore().datadir();
+
+        // Always check for bitcoin.conf first - user config takes priority
+        final bitcoinConfPath = path.join(confDir, 'bitcoin.conf');
+        if (File(bitcoinConfPath).existsSync()) {
+          return bitcoinConfPath;
+        }
+
+        // Use master config file in BitWindow directory (source of truth)
+        // A read-only copy is also placed in the Bitcoin/Drivechain dir for inspection
+        return path.join(BitWindow().rootDir(), kBitwindowBitcoinConfFilename);
+      }(),
       _ => throw 'binary does not have a config file: $type',
     };
-  }
-
-  String _getBitcoinConfFile() {
-    final network = GetIt.I.get<BitcoinConfProvider>().network;
-    // Config lives in default datadir (not custom datadir) to avoid chicken-and-egg problem
-    final confDir = BitcoinCore().rootDirNetwork(network);
-
-    // Check for bitcoin.conf first - user config takes priority
-    final bitcoinConfPath = path.join(confDir, 'bitcoin.conf');
-    if (File(bitcoinConfPath).existsSync()) {
-      return bitcoinConfPath;
-    }
-
-    return path.join(confDir, 'bitwindow-bitcoin.conf');
   }
 
   String logPath() {

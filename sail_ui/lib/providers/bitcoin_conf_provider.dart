@@ -457,11 +457,14 @@ class BitcoinConfProvider extends ChangeNotifier {
     return (hasPrivateConf: false, path: _getBitcoinCoreConfigPath());
   }
 
-  /// Get the path to the config file in Bitcoin Core's default datadir.
-  /// Uses rootDirNetwork (not datadir) to avoid chicken-and-egg problem -
-  /// we need to read the config to know the custom datadir.
-  String _getBitcoinCoreConfigPath() {
-    return path.join(BitcoinCore().rootDirNetwork(network), 'bitwindow-bitcoin.conf');
+  /// Get the path to the config file in BitWindow directory (source of truth)
+  String _getBitWindowConfigPath() {
+    return path.join(BitWindow().rootDir(), kBitwindowBitcoinConfFilename);
+  }
+
+  /// Get the path where config should be copied for Bitcoin Core to find
+  String _getDownstreamConfigPath() {
+    return path.join(BitcoinCore().rootDirNetwork(network), kBitwindowBitcoinConfFilename);
   }
 
   /// Load network and datadir state from currentConfig
@@ -494,8 +497,8 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       _bitWindowWatcher = confDir
           .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
-          .where((event) => event.path.endsWith('bitwindow-bitcoin.conf'))
-          .listen(_handleConfigChange);
+          .where((event) => event.path.endsWith(kBitwindowBitcoinConfFilename))
+          .listen(_handleBitWindowConfigChange);
 
       log.d('Config watcher enabled for ${confDir.path}');
     } catch (e) {
