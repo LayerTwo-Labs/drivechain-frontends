@@ -105,9 +105,11 @@ class CoreConnectionSettings extends ChangeNotifier {
   }
 }
 
-CoreConnectionSettings readMainchainConf() {
+/// Read mainchain configuration settings.
+/// Optionally accepts a [provider] for use during initialization before GetIt registration.
+CoreConnectionSettings readMainchainConf({BitcoinConfProvider? provider}) {
   final log = GetIt.I.get<Logger>();
-  final confProvider = GetIt.I.get<BitcoinConfProvider>();
+  final confProvider = provider ?? GetIt.I.get<BitcoinConfProvider>();
 
   final network = confProvider.network;
 
@@ -140,7 +142,10 @@ CoreConnectionSettings readMainchainConf() {
     password = configPassword!;
   } else {
     // Try cookie auth - Bitcoin Core creates .cookie when no rpcuser/rpcpassword configured
-    final datadir = BitcoinCore().datadir();
+    // Use provider's detectedDataDir if available, otherwise use rootDir to avoid GetIt during init
+    final datadir = confProvider.detectedDataDir?.isNotEmpty == true
+        ? confProvider.detectedDataDir!
+        : BitcoinCore().rootDirNetwork(network);
     // Both mainnet and forknet use root datadir, other networks use subdirs
     final networkDir = filePath([
       datadir,
@@ -174,7 +179,7 @@ CoreConnectionSettings readMainchainConf() {
     }
   }
 
-  final configFile = path.basename(confProvider.configPath!);
+  final configFile = confProvider.configPath != null ? path.basename(confProvider.configPath!) : 'config';
   log.i('Using $configFile for mainchain configuration: $username@$host:$port');
 
   // Merge global + network-specific config values
