@@ -145,35 +145,36 @@ class _SettingsResetState extends State<SettingsReset> {
     await binaryProvider.stop(binary);
     await Future.delayed(const Duration(seconds: 2));
 
-    if (_deleteBlockchainData) {
-      setState(() => _status = 'Deleting blockchain data...');
-      try {
-        await binary.deleteBlockchainData();
-        log.i('Successfully deleted Truthcoin blockchain data');
-      } catch (e) {
-        log.e('Could not delete blockchain data: $e');
-      }
-    }
-
-    if (_deleteSettings) {
-      setState(() => _status = 'Deleting settings...');
-      try {
-        await binary.deleteSettings();
-        log.i('Successfully deleted Truthcoin settings');
-      } catch (e) {
-        log.e('Could not delete settings: $e');
-      }
-    }
-
-    if (_deleteWalletFiles) {
-      setState(() => _status = 'Deleting wallet files...');
-      try {
-        await binary.deleteWallet();
-        log.i('Successfully deleted Truthcoin wallet files');
-      } catch (e) {
-        log.e('Could not delete wallet files: $e');
-      }
-    }
+    setState(() => _status = 'Deleting data...');
+    await Future.wait([
+      if (_deleteBlockchainData)
+        () async {
+          try {
+            await binary.deleteBlockchainData();
+            log.i('Successfully deleted Truthcoin blockchain data');
+          } catch (e) {
+            log.e('Could not delete blockchain data: $e');
+          }
+        }(),
+      if (_deleteSettings)
+        () async {
+          try {
+            await binary.deleteSettings();
+            log.i('Successfully deleted Truthcoin settings');
+          } catch (e) {
+            log.e('Could not delete settings: $e');
+          }
+        }(),
+      if (_deleteWalletFiles)
+        () async {
+          try {
+            await binary.deleteWallet();
+            log.i('Successfully deleted Truthcoin wallet files');
+          } catch (e) {
+            log.e('Could not delete wallet files: $e');
+          }
+        }(),
+    ]);
 
     setState(() => _status = 'Restarting Truthcoin...');
     bootBinaries(log);
