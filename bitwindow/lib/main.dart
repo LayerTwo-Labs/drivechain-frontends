@@ -167,6 +167,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<BitnamesRPC>(BitnamesLive());
   GetIt.I.registerSingleton<ThunderRPC>(ThunderLive());
   GetIt.I.registerSingleton<ZSideRPC>(ZSideLive());
+  GetIt.I.registerSingleton<CoinShiftRPC>(CoinShiftLive());
 
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
@@ -816,6 +817,7 @@ List<Binary> initalBinaries() {
     Truthcoin(),
     Photon(),
     ZSide(),
+    CoinShift(),
     GRPCurl(),
   ];
 }
