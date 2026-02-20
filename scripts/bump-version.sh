@@ -10,9 +10,9 @@ APP_NAME=$1
 BUMP_TYPE=${2:-patch}  # Default to patch bump
 
 # Check if app name is provided, valid, directory exists, and is a Flutter app
-if [ $# -eq 0 ] || ! [[ "$APP_NAME" =~ ^(thunder|bitnames|bitassets|bitwindow|zside|photon|truthcoin)$ ]] || [ ! -d "$APP_NAME" ] || [ ! -f "$APP_NAME/pubspec.yaml" ]; then
+if [ $# -eq 0 ] || ! [[ "$APP_NAME" =~ ^(thunder|bitnames|bitassets|bitwindow|zside|photon|truthcoin|coinshift)$ ]] || [ ! -d "$APP_NAME" ] || [ ! -f "$APP_NAME/pubspec.yaml" ]; then
     echo "Error: Invalid app name '$APP_NAME'"
-    echo "Usage: $0 <thunder/bitnames/bitassets/bitwindow/zside/photon/truthcoin> [major|minor|patch]"
+    echo "Usage: $0 <thunder/bitnames/bitassets/bitwindow/zside/photon/truthcoin/coinshift> [major|minor|patch]"
     echo ""
     echo "Examples:"
     echo "  $0 bitwindow patch    # Bump patch version (default)"

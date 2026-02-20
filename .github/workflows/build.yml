@@ -14,6 +14,7 @@ on:
       - "bitnames/**"
       - "bitassets/**"
       - "zside/**"
+      - "coinshift/**"
       - ".github/workflows/**"
   pull_request:
     branches: [master]
@@ -28,6 +29,7 @@ on:
       - "bitnames/**"
       - "bitassets/**"
       - "zside/**"
+      - "coinshift/**"
       - ".github/workflows/**"
 
 jobs:
@@ -40,6 +42,7 @@ jobs:
       bitnames: ${{ steps.filter.outputs.bitnames }}
       bitassets: ${{ steps.filter.outputs.bitassets }}
       zside: ${{ steps.filter.outputs.zside }}
+      coinshift: ${{ steps.filter.outputs.coinshift }}
       bitwindow: ${{ steps.filter.outputs.bitwindow }}
       build_all: ${{ steps.filter.outputs.build_all }}
     steps:
@@ -81,6 +84,12 @@ jobs:
             zside:
               - 'scripts/**'
               - 'zside/**'
+              - 'sail_ui/**'
+              - 'drivechain_lints/**'
+              - '.github/workflows/**'
+            coinshift:
+              - 'scripts/**'
+              - 'coinshift/**'
               - 'sail_ui/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
@@ -133,6 +142,7 @@ jobs:
           add_client_configs "bitnames" "${{ needs.check-changes.outputs.bitnames }}"
           add_client_configs "bitassets" "${{ needs.check-changes.outputs.bitassets }}"
           add_client_configs "zside" "${{ needs.check-changes.outputs.zside }}"
+          add_client_configs "coinshift" "${{ needs.check-changes.outputs.coinshift }}"
           add_client_configs "bitwindow" "${{ needs.check-changes.outputs.bitwindow }}"
 
           # Join configurations with commas
@@ -821,7 +831,7 @@ jobs:
           cat existing_versions.json | jq .
 
           # Compare versions for each client
-          for client in bitwindow bitnames bitassets thunder truthcoin photon zside; do
+          for client in bitwindow bitnames bitassets thunder truthcoin photon zside coinshift; do
             # Get highest version from new and existing
             new_ver=$(jq -r ".$client // {} | to_entries | map(.value.version) | max // \"0.0.0\"" new_versions.json)
             existing_ver=$(jq -r ".$client // {} | to_entries | map(.value.version) | max // \"0.0.0\"" existing_versions.json)
@@ -906,6 +916,17 @@ jobs:
             echo "Skipping ZSide artifacts (version not increased)"
           fi
 
+          # CoinShift - only rename if version increased
+          if [ "$UPLOAD_COINSHIFT" = "true" ]; then
+            echo "Preparing CoinShift artifacts for upload..."
+            mv coinshift-binaries-macOS/coinshift-osx64.zip test-coinshift-x86_64-apple-darwin.zip || true
+            mv coinshift-binaries-Linux/coinshift-x86_64-linux-gnu.zip test-coinshift-x86_64-unknown-linux-gnu.zip || true
+            mv coinshift-binaries-Linux/CoinShift-x86_64.AppImage test-coinshift-x86_64-unknown-linux-gnu.AppImage || true
+            mv coinshift-binaries-Windows/coinshift.exe test-coinshift-x86_64-windows.exe || true
+          else
+            echo "Skipping CoinShift artifacts (version not increased)"
+          fi
+
           # BitWindow - only rename if version increased
           if [ "$UPLOAD_BITWINDOW" = "true" ]; then
             echo "Preparing BitWindow artifacts for upload..."
@@ -970,7 +991,7 @@ jobs:
         continue-on-error: true
         run: |
           # Process appcast fragments for each client that has version updates
-          for client in bitwindow thunder truthcoin photon bitnames bitassets zside; do
+          for client in bitwindow thunder truthcoin photon bitnames bitassets zside coinshift; do
             # Check if this client should be uploaded (version increased)
             upload_var="UPLOAD_${client^^}"
             if [ "${!upload_var}" != "true" ]; then
@@ -1043,3 +1064,4 @@ jobs:
             'appcast-truthcoin.xml' => '/var/www/html/'
             'appcast-photon.xml' => '/var/www/html/'
             'appcast-zside.xml' => '/var/www/html/'
+            'appcast-coinshift.xml' => '/var/www/html/'

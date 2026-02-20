@@ -737,9 +737,9 @@ class CoinShift extends Sidechain {
                  OS.windows: 'coinshift',
                }),
                flutterFrontend: {
-                 OS.linux: '',
-                 OS.macos: '',
-                 OS.windows: '',
+                 OS.linux: 'com.layertwolabs.coinshift',
+                 OS.macos: 'com.layertwolabs.coinshift',
+                 OS.windows: 'com.layertwolabs.coinshift',
                },
              ),
          metadata:

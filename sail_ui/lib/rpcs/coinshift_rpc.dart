@@ -75,10 +75,10 @@ abstract class CoinShiftRPC extends SidechainRPC {
   });
 
   /// Claim a swap (after L1 transaction has required confirmations)
-  Future<String> claimSwap(List<int> swapId, {String? l2ClaimerAddress});
+  Future<String> claimSwap(String swapId, {String? l2ClaimerAddress});
 
   /// Get swap status
-  Future<CoinShiftSwap?> getSwapStatus(List<int> swapId);
+  Future<CoinShiftSwap?> getSwapStatus(String swapId);
 
   /// List all swaps
   Future<List<CoinShiftSwap>> listSwaps();
@@ -88,7 +88,7 @@ abstract class CoinShiftRPC extends SidechainRPC {
 
   /// Update swap L1 transaction ID
   Future<void> updateSwapL1Txid({
-    required List<int> swapId,
+    required String swapId,
     required String l1TxidHex,
     required int confirmations,
   });
@@ -193,7 +193,7 @@ class CoinShiftLive extends CoinShiftRPC {
   }
 
   @override
-  Future<dynamic> callRAW(String method, [dynamic params]) async {
+  Future<dynamic> callRAW(String method, [List<dynamic>? params]) async {
     return await _client().call(method, params).catchError((err) {
       log.t('rpc: $method threw exception: $err');
       throw err;
@@ -219,12 +219,7 @@ class CoinShiftLive extends CoinShiftRPC {
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', {
-      'mainchain_address': address,
-      'amount_sats': amountSats,
-      'fee_sats': sidechainFeeSats,
-      'mainchain_fee_sats': mainchainFeeSats,
-    });
+    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
     return response as String;
   }
 
@@ -236,11 +231,11 @@ class CoinShiftLive extends CoinShiftRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final response = await _client().call('transfer', {
-      'dest': address,
-      'value_sats': btcToSatoshi(amount).toInt(),
-      'fee_sats': btcToSatoshi(0.00001).toInt(),
-    });
+    final response = await _client().call('transfer', [
+      address,
+      btcToSatoshi(amount).toInt(),
+      btcToSatoshi(0.00001).toInt(),
+    ]);
     return response as String;
   }
 
@@ -254,11 +249,11 @@ class CoinShiftLive extends CoinShiftRPC {
   /// Create a deposit transaction
   @override
   Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create_deposit', {
-      'address': address,
-      'value_sats': btcToSatoshi(amount),
-      'fee_sats': btcToSatoshi(fee),
-    });
+    final response = await _client().call('create_deposit', [
+      address,
+      btcToSatoshi(amount).toInt(),
+      btcToSatoshi(fee).toInt(),
+    ]);
     return response as String;
   }
 
@@ -291,7 +286,7 @@ class CoinShiftLive extends CoinShiftRPC {
   /// Mine a block with optional coinbase value
   @override
   Future<BmmResult> mine(int feeSats) async {
-    final response = await _client().call('mine', feeSats > 0 ? feeSats : null);
+    final response = await _client().call('mine', [feeSats]);
     return BmmResult.fromMap(response);
   }
 
@@ -397,32 +392,29 @@ class CoinShiftLive extends CoinShiftRPC {
     int? requiredConfirmations,
     required int feeSats,
   }) async {
-    final response = await _client().call('create_swap', {
-      'l2_amount_sats': l2AmountSats,
-      'l1_amount_sats': l1AmountSats,
-      'l1_recipient_address': l1RecipientAddress,
-      'parent_chain': parentChain,
-      'l2_recipient': l2Recipient,
-      'required_confirmations': requiredConfirmations,
-      'fee_sats': feeSats,
-    });
+    final response = await _client().call('create_swap', [
+      l2AmountSats,
+      l1AmountSats,
+      l1RecipientAddress,
+      parentChain,
+      l2Recipient,
+      requiredConfirmations,
+      feeSats,
+    ]);
     return CoinShiftSwapCreateResult.fromMap(response as Map<String, dynamic>);
   }
 
   /// Claim a swap (after L1 transaction has required confirmations)
   @override
-  Future<String> claimSwap(List<int> swapId, {String? l2ClaimerAddress}) async {
-    final response = await _client().call('claim_swap', {
-      'swap_id': swapId,
-      'l2_claimer_address': l2ClaimerAddress,
-    });
+  Future<String> claimSwap(String swapId, {String? l2ClaimerAddress}) async {
+    final response = await _client().call('claim_swap', [swapId, l2ClaimerAddress]);
     return response as String;
   }
 
   /// Get swap status
   @override
-  Future<CoinShiftSwap?> getSwapStatus(List<int> swapId) async {
-    final response = await _client().call('get_swap_status', swapId);
+  Future<CoinShiftSwap?> getSwapStatus(String swapId) async {
+    final response = await _client().call('get_swap_status', [swapId]);
     if (response == null) return null;
     return CoinShiftSwap.fromMap(response as Map<String, dynamic>);
   }
@@ -444,15 +436,11 @@ class CoinShiftLive extends CoinShiftRPC {
   /// Update swap L1 transaction ID
   @override
   Future<void> updateSwapL1Txid({
-    required List<int> swapId,
+    required String swapId,
     required String l1TxidHex,
     required int confirmations,
   }) async {
-    await _client().call('update_swap_l1_txid', {
-      'swap_id': swapId,
-      'l1_txid_hex': l1TxidHex,
-      'confirmations': confirmations,
-    });
+    await _client().call('update_swap_l1_txid', [swapId, l1TxidHex, confirmations]);
   }
 
   /// Reconstruct all swaps from blockchain
@@ -465,16 +453,24 @@ class CoinShiftLive extends CoinShiftRPC {
 
 /// Result from creating a swap
 class CoinShiftSwapCreateResult {
-  final List<int> swapId;
+  final String swapId;
   final String txid;
 
   CoinShiftSwapCreateResult({required this.swapId, required this.txid});
 
   factory CoinShiftSwapCreateResult.fromMap(Map<String, dynamic> map) {
     return CoinShiftSwapCreateResult(
-      swapId: (map['0'] as List<dynamic>).cast<int>(),
-      txid: map['1'] as String,
+      swapId: _parseSwapId(map['swap_id'] ?? map['0']),
+      txid: (map['txid'] ?? map['1']) as String,
     );
+  }
+
+  static String _parseSwapId(dynamic value) {
+    if (value is String) return value;
+    if (value is List) {
+      return (value).map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join();
+    }
+    return value.toString();
   }
 }
 
@@ -564,7 +560,7 @@ class SwapState {
 
 /// CoinShift swap data structure
 class CoinShiftSwap {
-  final List<int> id;
+  final String id;
   final SwapDirection direction;
   final ParentChainType parentChain;
   final String? l1Txid;
@@ -600,7 +596,7 @@ class CoinShiftSwap {
 
   factory CoinShiftSwap.fromMap(Map<String, dynamic> map) {
     return CoinShiftSwap(
-      id: (map['id'] as List<dynamic>).cast<int>(),
+      id: _parseSwapId(map['id']),
       direction: SwapDirection.fromString(map['direction'] as String),
       parentChain: ParentChainType.fromString(map['parent_chain'] as String),
       l1Txid: _extractTxid(map['l1_txid']),
@@ -618,6 +614,14 @@ class CoinShiftSwap {
     );
   }
 
+  static String _parseSwapId(dynamic value) {
+    if (value is String) return value;
+    if (value is List) {
+      return (value).map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join();
+    }
+    return value.toString();
+  }
+
   static String? _extractTxid(dynamic value) {
     if (value == null) return null;
     if (value is String) return value;
@@ -628,8 +632,8 @@ class CoinShiftSwap {
     return null;
   }
 
-  /// Get swap ID as hex string
-  String get idHex => id.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  /// Get swap ID as hex string (for display)
+  String get idHex => id;
 }
 
 final coinShiftRPCMethods = [

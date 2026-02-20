@@ -1,0 +1,143 @@
+name: coinshift
+description: UI for CoinShift Drivechain sidechain with L1/L2 swap functionality
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0
+
+environment:
+  sdk: 3.11.0
+  flutter: 3.41.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sail_ui:
+    path: ../sail_ui
+
+  cupertino_icons: ^1.0.8
+  dart_coin_rpc:
+    git:
+      url: https://github.com/barebitcoin/dart_coin_rpc.git
+      # master, as of 08.06.2024
+      ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
+  flutter_highlighter: ^0.1.1
+  logger: ^2.6.2
+  dio: 5.9.0
+  auto_route: ^11.1.0
+  get_it: ^8.3.0
+  qr_flutter: ^4.1.0
+  window_manager: ^0.5.1
+  collection: ^1.19.1
+  stacked: ^3.5.0
+  desktop_multi_window:
+    git:
+      url: https://github.com/octobocto/flutter-plugins.git
+      ref: 252f3f7910288500039c39ae2b944622a0e55152
+      path: packages/desktop_multi_window
+  synchronized: ^3.4.0
+  intl: ^0.20.2
+  http: ^1.6.0
+  path_provider: ^2.1.5
+  crypto: ^3.0.7
+  connectrpc: ^1.0.0
+  path: ^1.9.1
+  auto_updater: ^1.0.0
+
+# Needed for silencing complaints from adding the web3dart lib
+dependency_overrides:
+  stream_channel: 2.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  custom_lint: ^0.8.0
+  drivechain_lints:
+    path: ../drivechain_lints
+  auto_route_generator: ^10.4.0
+  build_runner: ^2.10.4
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  windows:
+    generate: true
+    image_path: "assets/coinshift.png"
+    icon_size: 256
+  macos:
+    generate: true
+  image_path: "assets/coinshift.png"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/bin/
+    # Source files for code search
+    - lib/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: ./assets/fonts/Inter-ExtraLight.ttf
+          weight: 200
+        - asset: ./assets/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: ./assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: ./assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: ./assets/fonts/Inter-Bold.ttf
+          weight: 600
+        - asset: ./assets/fonts/Inter-Black.ttf
+          weight: 700
+
+    - family: IBMPlexMono
+      fonts:
+        - asset: ./assets/fonts/IBMPlexMono-ExtraLight.ttf
+          weight: 200
+        - asset: ./assets/fonts/IBMPlexMono-Light.ttf
+          weight: 300
+        - asset: ./assets/fonts/IBMPlexMono-Regular.ttf
+          weight: 400
+        - asset: ./assets/fonts/IBMPlexMono-Medium.ttf
+          weight: 500
+        - asset: ./assets/fonts/IBMPlexMono-Bold.ttf
+          weight: 600
+
+        - asset: ./assets/fonts/IBMPlexMono-ExtraLightItalic.ttf
+          style: italic
+          weight: 200
+        - asset: ./assets/fonts/IBMPlexMono-LightItalic.ttf
+          style: italic
+          weight: 300
+        - asset: ./assets/fonts/IBMPlexMono-Italic.ttf
+          style: italic
+          weight: 400
+        - asset: ./assets/fonts/IBMPlexMono-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: ./assets/fonts/IBMPlexMono-BoldItalic.ttf
+          style: italic
+          weight: 600
+        - asset: ./assets/fonts/IBMPlexMono-BoldItalic.ttf
+          style: italic
+          weight: 600
+
+# Windows release stuff.
+# CI has a certificate.pfx we use to sign the build with
+# https://pub.dev/packages/msix
+msix_config:
+  display_name: CoinShift
+  languages: en-us
+  windows_build_args: --dart-define-from-file=build-vars.env
+  publisher: CN=CB6BF331-C832-4005-970F-B880295700CA
+  publisher_display_name: LayerTwo Labs
+  identity_name: LayerTwoLabs.CoinShift
+  msix_version: 1.0.0.0
+  logo_path: windows/runner/resources/app_icon.ico
+  capabilities: internetClient,internetClientServer
+  os_min_version: 10.0.17763.0
+  store: false
+  install_certificate: false
+  sign_msix: true
