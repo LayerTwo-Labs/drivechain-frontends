@@ -172,15 +172,19 @@ abstract class Binary {
     switch (type) {
       case BinaryType.bitcoinCore:
         await _deleteFilesInDir(networkDir, [
+          '.lock',
           'anchors.dat',
           'banlist.json',
+          'bitcoin.pid',
           'bitcoind.pid',
           'blocks',
           'chainstate',
+          'debug.log',
           'fee_estimates.dat',
           'indexes',
           'mempool.dat',
           'peers.dat',
+          'settings.json',
         ]);
 
       case BinaryType.enforcer:
@@ -198,27 +202,26 @@ abstract class Binary {
           'bitwindow.db',
         ]);
 
-      // TODO: Check if this is correct, probably is like the enforcer
       case BinaryType.bitnames:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.bitassets:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.thunder:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.zSide:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.truthcoin:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.photon:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.coinShift:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'logs']);
+        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.grpcurl:
         break;
@@ -492,18 +495,37 @@ abstract class Binary {
   }
 
   Future<void> _deleteFilesInDir(String dir, List<String> filesToWipe) async {
-    for (final file in filesToWipe) {
-      final filePath = path.join(dir, file);
+    _log('Deleting files in $dir: $filesToWipe');
 
-      if (await FileSystemEntity.isDirectory(filePath)) {
-        await Directory(filePath).delete(recursive: true);
-      } else {
-        final file = File(filePath);
-        if (await file.exists()) {
-          await file.delete();
+    await Future.wait(
+      filesToWipe.map((file) async {
+        final filePath = path.join(dir, file);
+
+        for (var attempt = 1; attempt <= 5; attempt++) {
+          try {
+            if (await FileSystemEntity.isDirectory(filePath)) {
+              _log('Deleting directory: $filePath (attempt $attempt/5)');
+              await Directory(filePath).delete(recursive: true);
+              _log('Deleted directory: $filePath');
+              return;
+            } else {
+              final f = File(filePath);
+              if (await f.exists()) {
+                _log('Deleting file: $filePath (attempt $attempt/5)');
+                await f.delete();
+                _log('Deleted file: $filePath');
+              }
+              return;
+            }
+          } catch (e) {
+            _log('Failed to delete $filePath (attempt $attempt/5): $e');
+            if (attempt < 5) {
+              await Future.delayed(const Duration(seconds: 1));
+            }
+          }
         }
-      }
-    }
+      }),
+    );
   }
 
   Future<File> resolveBinaryPath(Directory appDir) async {

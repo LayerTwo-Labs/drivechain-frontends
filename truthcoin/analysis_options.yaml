@@ -12,6 +12,7 @@ linter:
     constant_identifier_names: false
     avoid_relative_lib_imports: true
     always_use_package_imports: true
+    file_names: false
 
     # Performance
     use_decorated_box: true

@@ -202,46 +202,46 @@ class _SettingsResetState extends State<SettingsReset> {
     await Future.wait(binariesToReset.map((b) => binaryProvider.stop(b)));
     await Future.delayed(const Duration(seconds: 3));
 
-    if (_deleteNodeSoftware) {
-      updateStatus('Deleting node software');
-      try {
-        await Future.wait(binariesToReset.map((b) => b.deleteBinaries(binDir(appDir.path))));
-        await copyBinariesFromAssets(log, appDir);
-        log.i('Successfully deleted and re-downloaded node software');
-      } catch (e) {
-        log.e('could not delete node software: $e');
-      }
-    }
-
-    if (_deleteBlockchainData) {
-      updateStatus('Deleting blockchain data');
-      try {
-        await Future.wait(binariesToReset.map((b) => b.deleteBlockchainData()));
-        log.i('Successfully deleted blockchain data');
-      } catch (e) {
-        log.e('could not delete blockchain data: $e');
-      }
-    }
-
-    if (_deleteSettings) {
-      updateStatus('Deleting settings');
-      try {
-        await Future.wait(binariesToReset.map((b) => b.deleteSettings()));
-        log.i('Successfully deleted settings');
-      } catch (e) {
-        log.e('could not delete settings: $e');
-      }
-    }
-
-    if (_deleteWalletFiles) {
-      updateStatus('Deleting wallet files');
-      try {
-        await Future.wait(binariesToReset.map((b) => b.deleteWallet()));
-        log.i('Successfully deleted wallet files');
-      } catch (e) {
-        log.e('could not delete wallet files: $e');
-      }
-    }
+    updateStatus('Deleting data...');
+    await Future.wait([
+      if (_deleteNodeSoftware)
+        () async {
+          try {
+            await Future.wait(binariesToReset.map((b) => b.deleteBinaries(binDir(appDir.path))));
+            await copyBinariesFromAssets(log, appDir);
+            log.i('Successfully deleted and re-downloaded node software');
+          } catch (e) {
+            log.e('could not delete node software: $e');
+          }
+        }(),
+      if (_deleteBlockchainData)
+        () async {
+          try {
+            await Future.wait(binariesToReset.map((b) => b.deleteBlockchainData()));
+            log.i('Successfully deleted blockchain data');
+          } catch (e) {
+            log.e('could not delete blockchain data: $e');
+          }
+        }(),
+      if (_deleteSettings)
+        () async {
+          try {
+            await Future.wait(binariesToReset.map((b) => b.deleteSettings()));
+            log.i('Successfully deleted settings');
+          } catch (e) {
+            log.e('could not delete settings: $e');
+          }
+        }(),
+      if (_deleteWalletFiles)
+        () async {
+          try {
+            await Future.wait(binariesToReset.map((b) => b.deleteWallet()));
+            log.i('Successfully deleted wallet files');
+          } catch (e) {
+            log.e('could not delete wallet files: $e');
+          }
+        }(),
+    ]);
 
     updateStatus('Reset complete');
   }
