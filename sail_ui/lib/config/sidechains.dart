@@ -749,9 +749,9 @@ class CoinShift extends Sidechain {
                  baseUrl: 'https://releases.drivechain.info/',
                  binary: 'coinshift',
                  files: allNetworks({
-                   OS.linux: 'L2-S255-CoinShift-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos: 'L2-S255-CoinShift-latest-x86_64-apple-darwin.zip',
-                   OS.windows: 'L2-S255-CoinShift-latest-x86_64-pc-windows-gnu.zip',
+                   OS.linux: 'L2-S255-Coinshift-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'L2-S255-Coinshift-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'L2-S255-Coinshift-latest-x86_64-pc-windows-gnu.zip',
                  }),
                ),
                remoteTimestamp: null,
