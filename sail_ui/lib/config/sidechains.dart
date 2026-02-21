@@ -588,6 +588,20 @@ class Truthcoin extends Sidechain {
                    OS.windows: 'L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip',
                  }),
                ),
+               alternativeDownloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'truthcoin',
+                 files: allNetworks({
+                   OS.linux: 'test-truthcoin-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'test-truthcoin-x86_64-apple-darwin.zip',
+                   OS.windows: 'test-truthcoin-x86_64-windows.exe',
+                 }),
+                 extractSubfolder: allNetworks({
+                   OS.linux: 'truthcoin',
+                   OS.macos: '',
+                   OS.windows: '',
+                 }),
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -671,6 +685,20 @@ class Photon extends Sidechain {
                    OS.windows: 'L2-S99-Photon-latest-x86_64-pc-windows-gnu.zip',
                  }),
                ),
+               alternativeDownloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'photon',
+                 files: allNetworks({
+                   OS.linux: 'test-photon-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'test-photon-x86_64-apple-darwin.zip',
+                   OS.windows: 'test-photon-x86_64-windows.exe',
+                 }),
+                 extractSubfolder: allNetworks({
+                   OS.linux: 'photon',
+                   OS.macos: '',
+                   OS.windows: '',
+                 }),
+               ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
@@ -752,6 +780,20 @@ class CoinShift extends Sidechain {
                    OS.linux: 'L2-S255-Coinshift-latest-x86_64-unknown-linux-gnu.zip',
                    OS.macos: 'L2-S255-Coinshift-latest-x86_64-apple-darwin.zip',
                    OS.windows: 'L2-S255-Coinshift-latest-x86_64-pc-windows-gnu.zip',
+                 }),
+               ),
+               alternativeDownloadConfig: DownloadConfig(
+                 baseUrl: 'https://releases.drivechain.info/',
+                 binary: 'coinshift',
+                 files: allNetworks({
+                   OS.linux: 'test-coinshift-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'test-coinshift-x86_64-apple-darwin.zip',
+                   OS.windows: 'test-coinshift-x86_64-windows.exe',
+                 }),
+                 extractSubfolder: allNetworks({
+                   OS.linux: 'coinshift',
+                   OS.macos: '',
+                   OS.windows: '',
                  }),
                ),
                remoteTimestamp: null,
