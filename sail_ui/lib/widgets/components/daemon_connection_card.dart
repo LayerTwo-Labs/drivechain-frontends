@@ -185,6 +185,13 @@ class BlockStatus extends StatelessWidget {
     final currentProgress = formatProgress(syncInfo.progressCurrent, syncInfo.downloadInfo.isDownloading);
     final goalProgress = formatProgress(syncInfo.progressGoal, syncInfo.downloadInfo.isDownloading);
 
+    // Check if download just finished but blockchain sync hasn't started yet
+    // This happens when progressCurrent is very low (download progress was 0-1)
+    // but we're no longer downloading
+    final downloadJustFinished = !syncInfo.downloadInfo.isDownloading &&
+        syncInfo.downloadInfo.progressPercent >= 1 &&
+        syncInfo.progressCurrent <= 1;
+
     return SailRow(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +200,9 @@ class BlockStatus extends StatelessWidget {
           child: Tooltip(
             message: syncInfo.downloadInfo.isDownloading
                 ? 'Downloading $name\nProgress: $currentProgress MB\nSize: $goalProgress MB'
-                : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
+                : downloadJustFinished
+                    ? 'Starting $name...'
+                    : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -203,6 +212,8 @@ class BlockStatus extends StatelessWidget {
                   Expanded(
                     child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal),
                   )
+                else if (downloadJustFinished)
+                  SailText.secondary12('Finishing up...')
                 else
                   SailText.secondary12(
                     syncInfo.downloadInfo.isDownloading

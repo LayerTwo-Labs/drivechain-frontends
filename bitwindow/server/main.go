@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"os/signal"
@@ -208,6 +210,16 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
+	// Start pprof server for profiling (memory leaks, CPU, etc.)
+	// Access at http://localhost:6060/debug/pprof/
+	go func() {
+		pprofAddr := "localhost:6060"
+		log.Info().Msgf("pprof: listening on %s", pprofAddr)
+		if err := http.ListenAndServe(pprofAddr, nil); err != nil {
+			log.Error().Err(err).Msg("pprof server failed")
+		}
+	}()
+
 	errs := make(chan error)
 	go func() {
 		errs <- srv.Serve(ctx, conf.APIHost)
@@ -346,17 +358,29 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 	zerolog.DefaultContextLogger = &logger
 }
 
-var coreProxyOnce sync.Once
+var (
+	coreProxyMu      sync.Mutex
+	cachedCoreProxy  *coreproxy.Bitcoind
+	coreProxyLogOnce sync.Once
+)
 
 func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoind, error) {
+	coreProxyMu.Lock()
+	defer coreProxyMu.Unlock()
+
+	// Return cached instance if available
+	if cachedCoreProxy != nil {
+		return cachedCoreProxy, nil
+	}
+
 	coreURL, err := url.Parse(conf.BitcoinCoreURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse bitcoin core url: %w", err)
 	}
 
-	coreProxyOnce.Do(func() {
+	// Log only once
+	coreProxyLogOnce.Do(func() {
 		at := coreURL.Host
-
 		if conf.BitcoinCoreRpcUser != "" {
 			at = fmt.Sprintf("%s:****@%s", conf.BitcoinCoreRpcUser, at)
 		}
@@ -369,7 +393,7 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 	// We don't want info logs from the core proxy because the ReconnectLoop()
 	// makes it spammy
 	warnLogger := zerolog.Ctx(ctx).Level(logLevel)
-	ctx = warnLogger.WithContext(ctx)
+	initCtx := warnLogger.WithContext(ctx)
 
 	opts := []coreproxy.Option{
 		// Also configure the per-request log level
@@ -386,8 +410,8 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 		opts = append(opts, coreproxy.WithTLS())
 	}
 
-	core, err := coreproxy.NewBitcoind(
-		ctx, coreURL.Host,
+	proxy, err := coreproxy.NewBitcoind(
+		initCtx, coreURL.Host,
 		conf.BitcoinCoreRpcUser, conf.BitcoinCoreRpcPassword,
 		opts...,
 	)
@@ -395,7 +419,9 @@ func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoin
 		return nil, err
 	}
 
-	return core, nil
+	// Cache on success
+	cachedCoreProxy = proxy
+	return cachedCoreProxy, nil
 }
 
 func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
