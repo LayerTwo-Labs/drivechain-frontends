@@ -188,7 +188,8 @@ class BlockStatus extends StatelessWidget {
     // Check if download just finished but blockchain sync hasn't started yet
     // This happens when progressCurrent is very low (download progress was 0-1)
     // but we're no longer downloading
-    final downloadJustFinished = !syncInfo.downloadInfo.isDownloading &&
+    final downloadJustFinished =
+        !syncInfo.downloadInfo.isDownloading &&
         syncInfo.downloadInfo.progressPercent >= 1 &&
         syncInfo.progressCurrent <= 1;
 
@@ -201,8 +202,8 @@ class BlockStatus extends StatelessWidget {
             message: syncInfo.downloadInfo.isDownloading
                 ? 'Downloading $name\nProgress: $currentProgress MB\nSize: $goalProgress MB'
                 : downloadJustFinished
-                    ? 'Starting $name...'
-                    : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
+                ? 'Starting $name...'
+                : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.start,

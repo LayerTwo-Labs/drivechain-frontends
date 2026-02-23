@@ -86,28 +86,26 @@ class SettingsPageState extends State<SettingsPage> {
       color: theme.colors.background,
       padding: const EdgeInsets.all(SailStyleValues.padding12),
       child: SelectionArea(
-        child: SingleChildScrollView(
-          child: SailColumn(
-            spacing: SailStyleValues.padding10,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              SailText.primary24(
-                'Settings',
-                bold: true,
-              ),
-              SailText.secondary13('Manage your BitWindow settings.'),
-              const SailSpacing(SailStyleValues.padding10),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: theme.colors.divider,
-              ),
-              const SailSpacing(SailStyleValues.padding10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header (fixed, not scrollable)
+            SailText.primary24(
+              'Settings',
+              bold: true,
+            ),
+            SailText.secondary13('Manage your BitWindow settings.'),
+            const SailSpacing(SailStyleValues.padding10),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: theme.colors.divider,
+            ),
+            const SailSpacing(SailStyleValues.padding10),
 
-              // Navigation and Content side by side
-              Row(
+            // Navigation and Content side by side (fills remaining space)
+            Expanded(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Left navigation
@@ -128,7 +126,7 @@ class SettingsPageState extends State<SettingsPage> {
                     },
                   ),
                   const SailSpacing(SailStyleValues.padding40),
-                  // Right content area
+                  // Right content area (fills remaining space with bounded height)
                   Expanded(
                     child: switch (_selectedIndex) {
                       0 => const SettingsNetwork(),
@@ -142,8 +140,8 @@ class SettingsPageState extends State<SettingsPage> {
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1552,7 +1550,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
 
     // wipe all chain data
     for (final binary in binaries) {
-      await binary.wipeAppDir();
+      await binary.deleteFiles(await binary.getBlockchainDataPaths());
     }
 
     // finally, boot the binaries
@@ -2384,7 +2382,9 @@ Future<void> _resetEverything(BuildContext context) async {
 
             // wipe all chain data - don't swallow errors
             try {
-              await Future.wait(allBinaries.map((binary) => binary.wipeAppDir()));
+              for (final binary in allBinaries) {
+                await binary.deleteFiles(await binary.getBlockchainDataPaths());
+              }
               log.i('Successfully wiped all blockchain data');
             } catch (e) {
               log.e('could not reset blockchain data: $e');

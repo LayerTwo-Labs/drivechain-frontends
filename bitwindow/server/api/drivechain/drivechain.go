@@ -200,16 +200,10 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	s.sidechainsCacheMu.RUnlock()
 
 	if cache != nil && cache.lastBlockHash == currentBlockHash {
-		log.Info().
-			Int("cachedSidechains", len(cache.sidechains)).
-			Str("blockHash", cache.lastBlockHash).
-			Msg("cache hit, returning cached sidechains")
 		return connect.NewResponse(&pb.ListSidechainsResponse{
 			Sidechains: cache.sidechains,
 		}), nil
 	}
-
-	log.Info().Str("blockHash", currentBlockHash).Msg("cache miss, fetching fresh sidechains")
 
 	sidechains, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
@@ -259,11 +253,6 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		lastBlockHash: currentBlockHash,
 	}
 	s.sidechainsCacheMu.Unlock()
-
-	log.Info().
-		Int("sidechains", len(sidechainList)).
-		Str("blockHash", currentBlockHash).
-		Msg("fetched and cached sidechains")
 
 	return connect.NewResponse(&pb.ListSidechainsResponse{
 		Sidechains: sidechainList,
