@@ -164,272 +164,6 @@ abstract class Binary {
     DownloadInfo? downloadInfo,
   });
 
-  Future<void> deleteBlockchainData() async {
-    _log('Deleting blockchain data for $name');
-
-    final networkDir = datadirNetwork();
-
-    switch (type) {
-      case BinaryType.bitcoinCore:
-        await _deleteFilesInDir(networkDir, [
-          '.lock',
-          'anchors.dat',
-          'banlist.json',
-          'bitcoin.pid',
-          'bitcoind.pid',
-          'blocks',
-          'chainstate',
-          'debug.log',
-          'fee_estimates.dat',
-          'indexes',
-          'mempool.dat',
-          'peers.dat',
-          'settings.json',
-        ]);
-
-      case BinaryType.enforcer:
-        final rootdir = rootDir();
-        final network = GetIt.I.get<BitcoinConfProvider>().network;
-        // enforcer paths are like validator/signet/, validator/bitcoin
-        await _deleteFilesInDir(rootdir, [
-          'validator',
-          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
-        ]);
-
-      case BinaryType.bitWindow:
-        await _deleteFilesInDir(networkDir, [
-          'bitdrive',
-          'bitwindow.db',
-        ]);
-
-      case BinaryType.bitnames:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
-
-      case BinaryType.bitassets:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
-
-      case BinaryType.thunder:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
-
-      case BinaryType.zSide:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
-
-      case BinaryType.truthcoin:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
-
-      case BinaryType.photon:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
-
-      case BinaryType.coinShift:
-        await _deleteFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
-
-      case BinaryType.grpcurl:
-        break;
-    }
-  }
-
-  Future<void> deleteSettings() async {
-    _log('Deleting settings for $name');
-
-    switch (type) {
-      case BinaryType.bitcoinCore:
-        // from network-aware datadir
-        final dir = datadirNetwork();
-        await _deleteFilesInDir(dir, [
-          'settings.json',
-        ]);
-
-        final rootdir = rootDir();
-        await _deleteFilesInDir(rootdir, [
-          kBitwindowBitcoinConfFilename,
-        ]);
-
-      case BinaryType.enforcer:
-      // nothing to do, there are no settings!
-
-      case BinaryType.bitWindow:
-        await _deleteFilesInDir(datadirNetwork(), [
-          'server.log',
-        ]);
-        // from rootdir
-        final dir = BitWindow().rootDir();
-        await _deleteFilesInDir(dir, [
-          'assets',
-          kBitwindowBitcoinConfFilename,
-          'bitwindow-mainnet.conf',
-          'bitwindow-forknet.conf',
-          'debug.log',
-          'downloads',
-          'pids',
-          'settings.json',
-        ]);
-
-      case BinaryType.bitnames:
-        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
-
-      case BinaryType.bitassets:
-        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
-
-      case BinaryType.thunder:
-        await _deleteFilesInDir(rootDir(), ['start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']);
-        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
-
-      case BinaryType.zSide:
-        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
-
-      case BinaryType.truthcoin:
-        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
-
-      case BinaryType.photon:
-        await _deleteFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
-
-      case BinaryType.coinShift:
-        await _deleteFilesInDir(datadirNetwork(), ['debug.log', 'settings.json']);
-
-      case BinaryType.grpcurl:
-        break;
-    }
-  }
-
-  /// @deprecated Use deleteBlockchainData() instead
-  Future<void> wipeAppDir() => deleteBlockchainData();
-
-  Future<void> deleteWallet() async {
-    final network = GetIt.I.get<BitcoinConfProvider>().network;
-    _log('Starting wallet backup for $name (network: ${network.toReadableNet()})');
-
-    final networkDir = datadirNetwork();
-
-    switch (type) {
-      case BinaryType.enforcer:
-        // Enforcer wallet is at: bip300301_enforcer/wallet/<Network>
-        // If network specified, move only that network's wallet
-        // Otherwise move the whole wallet directory
-        final rootdir = rootDir();
-        final walletNetworkDir = path.join(
-          rootdir,
-          'wallet',
-          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
-        );
-        await _renameWalletDir(rootdir, walletNetworkDir);
-
-      case BinaryType.bitcoinCore:
-        await _backupBitcoinCoreWallets(networkDir);
-
-      case BinaryType.bitnames:
-        await _renameWalletDir(networkDir, 'wallet.mdb');
-
-      case BinaryType.bitassets:
-        await _renameWalletDir(networkDir, 'wallet.mdb');
-
-      case BinaryType.thunder:
-        await _renameWalletDir(networkDir, 'wallet.mdb');
-
-      case BinaryType.zSide:
-        await _renameWalletDir(networkDir, 'wallet.mdb');
-
-      case BinaryType.truthcoin:
-        await _renameWalletDir(networkDir, 'wallet.mdb');
-
-      case BinaryType.photon:
-        await _renameWalletDir(networkDir, 'wallet.mdb');
-
-      case BinaryType.coinShift:
-        await _renameWalletDir(networkDir, 'wallet.mdb');
-
-      case BinaryType.bitWindow:
-        await _renameWalletDir(networkDir, 'wallet.json');
-        await _renameWalletDir(networkDir, 'wallet_encryption.json');
-
-      case BinaryType.grpcurl:
-        // No wallet for this type
-        break;
-    }
-  }
-
-  Future<void> _renameWalletDir(String dir, String walletName) async {
-    final walletPath = path.join(dir, walletName);
-    final walletFile = File(walletPath);
-    final walletDir = Directory(walletPath);
-
-    final backupsDir = Directory(path.join(dir, 'wallet_backups'));
-    if (!await backupsDir.exists()) {
-      await backupsDir.create(recursive: true);
-    }
-
-    if (await walletFile.exists()) {
-      // Handle wallet file
-      final newName = await _findAvailableName(backupsDir.path, walletName);
-      final newPath = path.join(backupsDir.path, newName);
-      await walletFile.rename(newPath);
-      _log('Renamed wallet file $walletName to $newName in wallet_backups');
-    } else if (await walletDir.exists()) {
-      // Handle wallet directory
-      final newName = await _findAvailableName(backupsDir.path, walletName);
-      final newPath = path.join(backupsDir.path, newName);
-      await walletDir.rename(newPath);
-      _log('Renamed wallet directory $walletName to $newName in wallet_backups');
-    } else {
-      _log('No wallet found at $walletPath');
-    }
-  }
-
-  Future<String> _findAvailableName(String dir, String originalName) async {
-    final baseName = path.basenameWithoutExtension(originalName);
-    final extension = path.extension(originalName);
-
-    // Try the original name first
-    String candidateName = originalName;
-    int counter = 2;
-
-    while (await File(path.join(dir, candidateName)).exists() ||
-        await Directory(path.join(dir, candidateName)).exists()) {
-      candidateName = '$baseName-$counter$extension';
-      counter++;
-    }
-
-    return candidateName;
-  }
-
-  // Bitcoin Core wallets can be:
-  // 1. wallet.dat at root level
-  // 2. Named wallet directories (e.g. cheque_watch/, wallet_0D27987F/) containing wallet.dat
-  Future<void> _backupBitcoinCoreWallets(String dir) async {
-    final network = GetIt.I<BitcoinConfProvider>().network;
-
-    // NEVER touch mainnet wallets - they contain real funds
-    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
-      _log('Refusing to backup mainnet wallets');
-      return;
-    }
-
-    final searchDirectory = Directory(dir);
-    if (!await searchDirectory.exists()) {
-      _log('Bitcoin Core directory does not exist: $dir');
-      return;
-    }
-
-    await _renameWalletDir(dir, 'wallet.dat');
-
-    // Named wallet directories (contain wallet.dat)
-    await for (final entity in searchDirectory.list()) {
-      if (entity is Directory) {
-        final dirName = path.basename(entity.path);
-
-        // Skip wallet_backups directory
-        if (dirName == 'wallet_backups') {
-          continue;
-        }
-
-        // Check if this directory contains wallet.dat (making it a named wallet)
-        final walletDat = File(path.join(entity.path, 'wallet.dat'));
-        if (await walletDat.exists()) {
-          await _renameWalletDir(dir, dirName);
-        }
-      }
-    }
-  }
-
   Future<void> deleteBinaries(Directory assetsDir) async {
     _log('Deleting binaries for $name in ${assetsDir.path}');
 
@@ -526,6 +260,304 @@ abstract class Binary {
         }
       }),
     );
+  }
+
+  /// Delete files at the given paths with retry logic (5 attempts, 1 second delay)
+  Future<void> deleteFiles(List<String> paths) async {
+    _log('Deleting ${paths.length} files');
+
+    for (final filePath in paths) {
+      for (var attempt = 1; attempt <= 5; attempt++) {
+        try {
+          if (await FileSystemEntity.isDirectory(filePath)) {
+            _log('Deleting directory: $filePath (attempt $attempt/5)');
+            await Directory(filePath).delete(recursive: true);
+            _log('Deleted directory: $filePath');
+            break;
+          } else {
+            final f = File(filePath);
+            if (await f.exists()) {
+              _log('Deleting file: $filePath (attempt $attempt/5)');
+              await f.delete();
+              _log('Deleted file: $filePath');
+            }
+            break;
+          }
+        } catch (e) {
+          _log('Failed to delete $filePath (attempt $attempt/5): $e');
+          if (attempt < 5) {
+            await Future.delayed(const Duration(seconds: 1));
+          }
+        }
+      }
+    }
+  }
+
+  /// Returns list of existing file/directory paths that would be deleted
+  Future<List<String>> _getExistingFilesInDir(String dir, List<String> files) async {
+    final existing = <String>[];
+    for (final file in files) {
+      final filePath = path.join(dir, file);
+      if (await FileSystemEntity.isDirectory(filePath)) {
+        existing.add(filePath);
+      } else if (await File(filePath).exists()) {
+        existing.add(filePath);
+      }
+    }
+    return existing;
+  }
+
+  /// Get list of blockchain data paths that exist and would be deleted
+  Future<List<String>> getBlockchainDataPaths() async {
+    final networkDir = datadirNetwork();
+
+    switch (type) {
+      case BinaryType.bitcoinCore:
+        return _getExistingFilesInDir(networkDir, [
+          '.lock',
+          'anchors.dat',
+          'banlist.json',
+          'bitcoin.pid',
+          'bitcoind.pid',
+          'blocks',
+          'chainstate',
+          'debug.log',
+          'fee_estimates.dat',
+          'indexes',
+          'mempool.dat',
+          'peers.dat',
+          'settings.json',
+        ]);
+
+      case BinaryType.enforcer:
+        final rootdir = rootDir();
+        final network = GetIt.I.get<BitcoinConfProvider>().network;
+        return _getExistingFilesInDir(rootdir, [
+          'validator',
+          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
+        ]);
+
+      case BinaryType.bitWindow:
+        return _getExistingFilesInDir(networkDir, ['bitdrive', 'bitwindow.db']);
+
+      case BinaryType.bitnames:
+      case BinaryType.bitassets:
+      case BinaryType.thunder:
+      case BinaryType.zSide:
+      case BinaryType.truthcoin:
+      case BinaryType.photon:
+      case BinaryType.coinShift:
+        return _getExistingFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
+
+      case BinaryType.grpcurl:
+        return [];
+    }
+  }
+
+  /// Get list of settings paths that exist and would be deleted
+  Future<List<String>> getSettingsPaths() async {
+    switch (type) {
+      case BinaryType.bitcoinCore:
+        final network = GetIt.I<BitcoinConfProvider>().network;
+        final paths = <String>[];
+        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['settings.json']));
+        paths.addAll(await _getExistingFilesInDir(rootDirNetwork(network), [kBitwindowBitcoinConfFilename]));
+        return paths;
+
+      case BinaryType.enforcer:
+        return [];
+
+      case BinaryType.bitWindow:
+        final paths = <String>[];
+        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['server.log']));
+        paths.addAll(
+          await _getExistingFilesInDir(BitWindow().rootDir(), [
+            'assets',
+            kBitwindowBitcoinConfFilename,
+            'bitwindow-mainnet.conf',
+            'bitwindow-forknet.conf',
+            'debug.log',
+            'downloads',
+            'pids',
+            'settings.json',
+          ]),
+        );
+        return paths;
+
+      case BinaryType.bitnames:
+      case BinaryType.bitassets:
+      case BinaryType.zSide:
+      case BinaryType.truthcoin:
+      case BinaryType.photon:
+        return _getExistingFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+
+      case BinaryType.thunder:
+        final paths = <String>[];
+        paths.addAll(
+          await _getExistingFilesInDir(rootDir(), ['start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']),
+        );
+        paths.addAll(
+          await _getExistingFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']),
+        );
+        return paths;
+
+      case BinaryType.coinShift:
+        return _getExistingFilesInDir(datadirNetwork(), ['debug.log', 'settings.json']);
+
+      case BinaryType.grpcurl:
+        return [];
+    }
+  }
+
+  /// Get list of wallet paths that exist and would be backed up/deleted
+  Future<List<String>> getWalletPaths() async {
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    final networkDir = datadirNetwork();
+
+    switch (type) {
+      case BinaryType.enforcer:
+        final rootdir = rootDir();
+        final walletNetworkDir = path.join(
+          rootdir,
+          'wallet',
+          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
+        );
+        if (await Directory(walletNetworkDir).exists()) {
+          return [walletNetworkDir];
+        }
+        return [];
+
+      case BinaryType.bitcoinCore:
+        return _getBitcoinCoreWalletPaths(networkDir);
+
+      case BinaryType.bitnames:
+      case BinaryType.bitassets:
+      case BinaryType.thunder:
+      case BinaryType.zSide:
+      case BinaryType.truthcoin:
+      case BinaryType.photon:
+      case BinaryType.coinShift:
+        return _getExistingFilesInDir(networkDir, ['wallet.mdb']);
+
+      case BinaryType.bitWindow:
+        return _getExistingFilesInDir(networkDir, ['wallet.json', 'wallet_encryption.json']);
+
+      case BinaryType.grpcurl:
+        return [];
+    }
+  }
+
+  /// Get Bitcoin Core wallet paths (wallets directory and named wallets)
+  Future<List<String>> _getBitcoinCoreWalletPaths(String networkDir) async {
+    final paths = <String>[];
+    final walletsDir = Directory(path.join(networkDir, 'wallets'));
+
+    if (await walletsDir.exists()) {
+      paths.add(walletsDir.path);
+    }
+
+    // Also check for legacy wallet.dat
+    final legacyWallet = File(path.join(networkDir, 'wallet.dat'));
+    if (await legacyWallet.exists()) {
+      paths.add(legacyWallet.path);
+    }
+
+    return paths;
+  }
+
+  /// Get list of binary paths that exist and would be deleted
+  Future<List<String>> getBinaryPaths(Directory assetsDir) async {
+    final dir = assetsDir.path;
+    final paths = <String>[];
+
+    // Raw binary assets
+    paths.addAll(
+      await _getExistingFilesInDir(dir, [
+        binary,
+        binary.replaceAll('.exe', ''),
+        '$binary.exe',
+        '$binary.app',
+        '$binary.meta',
+      ]),
+    );
+
+    // Extra files per chain
+    switch (type) {
+      case BinaryType.bitcoinCore:
+        paths.addAll(
+          await _getExistingFilesInDir(dir, [
+            'bitcoin-cli',
+            'bitcoin-util',
+            'bitcoin-cli.exe',
+            'bitcoin-util.exe',
+            'qt',
+          ]),
+        );
+
+      case BinaryType.enforcer:
+        paths.addAll(await _getExistingFilesInDir(dir, ['LICENSE', 'grpcurl']));
+
+      case BinaryType.bitWindow:
+        paths.addAll(
+          await _getExistingFilesInDir(dir, [
+            'data',
+            'lib',
+            'bitwindow.exe',
+            'flutter_platform_alert_plugin.dll',
+            'flutter_windows.dll',
+            'screen_retriever_windows_plugin.dll',
+            'url_launcher_windows_plugin.dll',
+            'window_manager_plugin.dll',
+          ]),
+        );
+
+      case BinaryType.bitnames:
+        paths.addAll(await _getExistingFilesInDir(dir, ['bitnames-cli']));
+
+      case BinaryType.bitassets:
+        paths.addAll(await _getExistingFilesInDir(dir, ['bitassets-cli']));
+
+      case BinaryType.thunder:
+        paths.addAll(await _getExistingFilesInDir(dir, ['thunder-cli']));
+
+      case BinaryType.zSide:
+        paths.addAll(await _getExistingFilesInDir(dir, ['thunder-orchard']));
+
+      case BinaryType.truthcoin:
+        paths.addAll(await _getExistingFilesInDir(dir, ['truthcoin-cli']));
+
+      case BinaryType.photon:
+        paths.addAll(await _getExistingFilesInDir(dir, ['photon-cli']));
+
+      case BinaryType.coinShift:
+        paths.addAll(await _getExistingFilesInDir(dir, ['coinshift-cli']));
+
+      case BinaryType.grpcurl:
+        break;
+    }
+
+    return paths;
+  }
+
+  /// Get all files and directories in the binary's datadir (recursively)
+  Future<List<String>> getAllDatadirPaths() async {
+    final paths = <String>[];
+    final networkDir = datadirNetwork();
+    final dir = Directory(networkDir);
+
+    if (!await dir.exists()) {
+      return paths;
+    }
+
+    try {
+      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+        paths.add(entity.path);
+      }
+    } catch (e) {
+      _log('Error listing datadir contents: $e');
+    }
+
+    return paths;
   }
 
   Future<File> resolveBinaryPath(Directory appDir) async {

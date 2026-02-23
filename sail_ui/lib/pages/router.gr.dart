@@ -178,18 +178,49 @@ class ConsoleTabRoute extends _i15.PageRouteInfo<void> {
 
 /// generated route for
 /// [_i5.DataDirSetupPage]
-class DataDirSetupRoute extends _i15.PageRouteInfo<void> {
-  const DataDirSetupRoute({List<_i15.PageRouteInfo>? children})
-    : super(DataDirSetupRoute.name, initialChildren: children);
+class DataDirSetupRoute extends _i15.PageRouteInfo<DataDirSetupRouteArgs> {
+  DataDirSetupRoute({
+    _i16.Key? key,
+    required _i17.BitcoinNetwork network,
+    List<_i15.PageRouteInfo>? children,
+  }) : super(
+         DataDirSetupRoute.name,
+         args: DataDirSetupRouteArgs(key: key, network: network),
+         initialChildren: children,
+       );
 
   static const String name = 'DataDirSetupRoute';
 
   static _i15.PageInfo page = _i15.PageInfo(
     name,
     builder: (data) {
-      return const _i5.DataDirSetupPage();
+      final args = data.argsAs<DataDirSetupRouteArgs>();
+      return _i5.DataDirSetupPage(key: args.key, network: args.network);
     },
   );
+}
+
+class DataDirSetupRouteArgs {
+  const DataDirSetupRouteArgs({this.key, required this.network});
+
+  final _i16.Key? key;
+
+  final _i17.BitcoinNetwork network;
+
+  @override
+  String toString() {
+    return 'DataDirSetupRouteArgs{key: $key, network: $network}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! DataDirSetupRouteArgs) return false;
+    return key == other.key && network == other.network;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ network.hashCode;
 }
 
 /// generated route for

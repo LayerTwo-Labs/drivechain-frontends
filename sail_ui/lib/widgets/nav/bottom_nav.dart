@@ -545,7 +545,8 @@ class ChainLoader extends StatelessWidget {
     final goalProgress = formatProgress(syncInfo.progressGoal, syncInfo.downloadInfo.isDownloading);
 
     // Check if download just finished but blockchain sync hasn't started yet
-    final downloadJustFinished = !syncInfo.downloadInfo.isDownloading &&
+    final downloadJustFinished =
+        !syncInfo.downloadInfo.isDownloading &&
         syncInfo.downloadInfo.progressPercent >= 1 &&
         syncInfo.progressCurrent <= 1;
 
@@ -553,8 +554,8 @@ class ChainLoader extends StatelessWidget {
       message: syncInfo.downloadInfo.isDownloading
           ? 'Downloading $name\n${syncInfo.downloadInfo.message}'
           : downloadJustFinished
-              ? 'Starting $name...'
-              : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
+          ? 'Starting $name...'
+          : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
       child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal, justPercent: justPercent),
     );
 

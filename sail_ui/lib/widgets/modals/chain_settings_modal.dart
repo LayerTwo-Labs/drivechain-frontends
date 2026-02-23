@@ -120,11 +120,14 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                         onPressed: () async {
                           final binaryProvider = GetIt.I.get<BinaryProvider>();
                           final appDir = GetIt.I.get<BinaryProvider>().appDir;
+                          final binary = widget.connection.binary;
 
-                          await binaryProvider.stop(widget.connection.binary, skipDownstream: true);
+                          await binaryProvider.stop(binary, skipDownstream: true);
 
-                          await widget.connection.binary.deleteBinaries(binDir(appDir.path));
-                          await widget.connection.binary.wipeAppDir();
+                          // Delete binaries and all datadir paths
+                          await binary.deleteBinaries(binDir(appDir.path));
+                          final allPaths = await binary.getAllDatadirPaths();
+                          await binary.deleteFiles(allPaths);
                           await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
 
                           if (context.mounted) {
@@ -277,7 +280,8 @@ class ChainSettingsViewModel extends BaseViewModel {
 
   Future<void> handleDelete() async {
     await _binary.deleteBinaries(binDir(appDir.path));
-    await _binary.wipeAppDir();
+    final allPaths = await _binary.getAllDatadirPaths();
+    await _binary.deleteFiles(allPaths);
   }
 
   Widget buildInfoRow(BuildContext context, String label, String value) {

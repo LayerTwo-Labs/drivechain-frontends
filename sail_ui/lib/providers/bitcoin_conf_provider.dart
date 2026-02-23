@@ -268,7 +268,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   Future<void> _promptForDatadirIfNeeded() async {
     final needsDatadir = _isMainnetOrForknet(network) && (detectedDataDir == null || detectedDataDir!.isEmpty);
     if (needsDatadir) {
-      await router.push(DataDirSetupRoute());
+      await router.push(DataDirSetupRoute(network: network));
     }
   }
 
@@ -341,6 +341,60 @@ class BitcoinConfProvider extends ChangeNotifier {
   Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork) async {
     if (hasPrivateBitcoinConf) {
       log.w('Cannot swap network - controlled by user bitcoin.conf');
+      return;
+    }
+
+    if (network == newNetwork) return;
+
+    // Check if the new network requires a datadir that isn't configured yet
+    if (_isMainnetOrForknet(newNetwork)) {
+      final hasDatadir = await _hasDatadirForNetwork(newNetwork);
+      if (!hasDatadir) {
+        // Show datadir setup page with pending network - don't change network yet
+        // Network change will be committed when user saves the datadir
+        final result = await router.push(DataDirSetupRoute(network: newNetwork));
+        if (result != true) {
+          // User cancelled - don't change network
+          log.i('User cancelled datadir setup, not switching to $newNetwork');
+          return;
+        }
+        // Network change was already committed by DataDirSetupPage
+        return;
+      }
+    }
+
+    await updateNetwork(newNetwork);
+  }
+
+  /// Check if a datadir is configured for a specific network (reads from saved network config)
+  Future<bool> _hasDatadirForNetwork(BitcoinNetwork targetNetwork) async {
+    if (!_isMainnetOrForknet(targetNetwork)) return true;
+
+    try {
+      final confPath = _getMainSectionPath(targetNetwork);
+      final file = File(confPath);
+      if (!await file.exists()) return false;
+
+      final content = await file.readAsString();
+      if (targetNetwork == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+        final config = ForknetConfig.parse(content);
+        final datadir = config.settings['datadir'];
+        return datadir != null && datadir.isNotEmpty;
+      } else {
+        final config = MainnetConfig.parse(content);
+        final datadir = config.settings['datadir'];
+        return datadir != null && datadir.isNotEmpty;
+      }
+    } catch (e) {
+      log.e('Error checking datadir for $targetNetwork: $e');
+      return false;
+    }
+  }
+
+  /// Commit a pending network change (called from DataDirSetupPage after user saves datadir)
+  Future<void> commitNetworkChange(BitcoinNetwork newNetwork) async {
+    if (hasPrivateBitcoinConf) {
+      log.w('Cannot commit network change - controlled by user bitcoin.conf');
       return;
     }
 

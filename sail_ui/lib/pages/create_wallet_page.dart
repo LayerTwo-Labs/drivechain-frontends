@@ -578,47 +578,32 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
             ),
           ),
         ),
-        // Navigation buttons at bottom
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 16,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-            color: SailTheme.of(context).colors.background,
-            child: Center(
-              child: SizedBox(
-                width: 800,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SailButton(
-                      label: '← Back',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async {
-                        // If we started on this screen and haven't navigated internally, pop the route
-                        if (widget.initialScreen == _currentScreen && !_hasNavigatedInternally) {
-                          if (widget.onBack != null) {
-                            widget.onBack!();
-                          } else {
-                            await context.router.maybePop();
-                          }
-                        } else {
-                          _setScreen(WelcomeScreen.initial);
-                        }
-                      },
-                    ),
-                    SailButton(
-                      label: 'Create Wallet',
-                      variant: ButtonVariant.primary,
-                      disabled: !_isValidInput,
-                      onPressed: _handleAdvancedCreate,
-                    ),
-                  ],
-                ),
-              ),
+        BottomActionBar(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SailButton(
+              label: '← Back',
+              variant: ButtonVariant.secondary,
+              onPressed: () async {
+                // If we started on this screen and haven't navigated internally, pop the route
+                if (widget.initialScreen == _currentScreen && !_hasNavigatedInternally) {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else {
+                    await context.router.maybePop();
+                  }
+                } else {
+                  _setScreen(WelcomeScreen.initial);
+                }
+              },
             ),
-          ),
+            SailButton(
+              label: 'Create Wallet',
+              variant: ButtonVariant.primary,
+              disabled: !_isValidInput,
+              onPressed: _handleAdvancedCreate,
+            ),
+          ],
         ),
       ],
     );

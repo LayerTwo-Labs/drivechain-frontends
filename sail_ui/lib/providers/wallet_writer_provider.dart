@@ -582,7 +582,8 @@ class WalletWriterProvider extends ChangeNotifier {
     try {
       for (final binary in binaryProvider.binaries) {
         // wipe all wallets, for the enforcer, bitnames, bitassets, thunder etc..
-        await binary.deleteWallet();
+        final walletPaths = await binary.getWalletPaths();
+        await binary.deleteFiles(walletPaths);
       }
     } catch (e) {
       _logger.e('could not wipe wallets: $e');

@@ -9,7 +9,13 @@ import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class DataDirSetupPage extends StatefulWidget {
-  const DataDirSetupPage({super.key});
+  /// The network we're configuring the datadir for.
+  final BitcoinNetwork network;
+
+  const DataDirSetupPage({
+    super.key,
+    required this.network,
+  });
 
   @override
   State<DataDirSetupPage> createState() => _DataDirSetupPageState();
@@ -21,6 +27,8 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
   String? _errorMessage;
 
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
+
+  BitcoinNetwork get _targetNetwork => widget.network;
 
   Future<void> _selectDirectory() async {
     setState(() {
@@ -68,8 +76,14 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
     }
 
     try {
-      // Save the datadir for the current network
-      await _confProvider.updateDataDir(_selectedPath, forNetwork: _confProvider.network);
+      // Save the datadir for the target network
+      await _confProvider.updateDataDir(_selectedPath, forNetwork: _targetNetwork);
+
+      // sleep for 500 millis because windows file stuff sucks, and we cant await
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Commit the network change now that datadir is configured
+      await _confProvider.commitNetworkChange(widget.network);
 
       if (mounted) {
         context.router.pop(true);
@@ -84,7 +98,7 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final networkName = _confProvider.network.toDisplayName();
+    final networkName = _targetNetwork.toDisplayName();
 
     return Scaffold(
       backgroundColor: theme.colors.background,
