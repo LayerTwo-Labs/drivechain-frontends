@@ -30,6 +30,12 @@ enum Tabs {
   // truthcoin configurable homepage
   TruthcoinHomepage,
 
+  // prediction markets
+  Markets,
+
+  // voting/oracle system
+  Voting,
+
   // sidechain console route
   Console,
 
@@ -183,6 +189,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
         category: 'Navigation',
         onSelected: () {
           AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.TruthcoinHomepage.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Markets',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Markets.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Voting',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Voting.index);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -429,6 +451,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             ParentChainRoute(),
             // truthcoin configurable homepage
             TruthcoinHomepageRoute(),
+            // prediction markets
+            MarketExplorerRoute(),
+            // voting/oracle system
+            VotingDashboardRoute(),
             // sidechain console route
             ConsoleTabRoute(),
             // trailing common routes
@@ -454,6 +480,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         optionalKey: Tabs.TruthcoinHomepage.index,
                         onTap: () {
                           tabsRouter.setActiveIndex(Tabs.TruthcoinHomepage.index);
+                        },
+                      ),
+                      TopNavRoute(
+                        label: 'Markets',
+                        optionalKey: Tabs.Markets.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.Markets.index);
+                        },
+                      ),
+                      TopNavRoute(
+                        label: 'Voting',
+                        optionalKey: Tabs.Voting.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.Voting.index);
                         },
                       ),
                       TopNavRoute(

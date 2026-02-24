@@ -1,11 +1,16 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/material.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:truthcoin/pages/market_creation_page.dart';
+import 'package:truthcoin/pages/market_detail_page.dart';
+import 'package:truthcoin/pages/market_explorer_page.dart';
 import 'package:truthcoin/pages/tabs/home_page.dart';
 import 'package:truthcoin/pages/tabs/settings_page.dart';
 import 'package:truthcoin/pages/tabs/truthcoin_configure_homepage_page.dart';
 import 'package:truthcoin/pages/tabs/truthcoin_homepage.dart';
 import 'package:truthcoin/pages/truthcoin_conf_editor_page.dart';
+import 'package:truthcoin/pages/voting_dashboard_page.dart';
 
 part 'router.gr.dart';
 
@@ -84,6 +89,22 @@ class AppRouter extends RootStackRouter {
     ),
     AutoRoute(
       page: TruthcoinConfEditorRoute.page,
+    ),
+
+    // Market pages
+    AutoRoute(
+      page: MarketExplorerRoute.page,
+    ),
+    AutoRoute(
+      page: MarketDetailRoute.page,
+    ),
+    AutoRoute(
+      page: MarketCreationRoute.page,
+    ),
+
+    // Voting pages
+    AutoRoute(
+      page: VotingDashboardRoute.page,
     ),
 
     /// This route is used in tests so that we can pump a widget into a route

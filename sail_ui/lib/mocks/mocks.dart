@@ -795,6 +795,19 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
+  Future<Map<String, dynamic>> marketSell({
+    required String marketId,
+    required int outcomeIndex,
+    required int sharesAmount,
+    required String sellerAddress,
+    bool? dryRun,
+    int? feeSats,
+    int? minProceeds,
+  }) {
+    return Future.value({'txid': 'market_sell_1234'});
+  }
+
+  @override
   Future<Map<String, dynamic>> marketPositions({String? address, String? marketId}) {
     return Future.value({});
   }

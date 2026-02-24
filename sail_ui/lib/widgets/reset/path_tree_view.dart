@@ -32,7 +32,7 @@ class TreeNode {
         if (!current.children.containsKey(part)) {
           var nodeIsDirectory = !isLast;
           if (isLast) {
-            nodeIsDirectory = await FileSystemEntity.isDirectory(partialPath);
+            nodeIsDirectory = await Directory(partialPath).exists();
           }
 
           current.children[part] = TreeNode(

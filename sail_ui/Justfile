@@ -18,4 +18,5 @@ gen-enforcer:
 
 gen: gen-enforcer
     buf generate --template ../buf.dart.gen.yaml ../bitwindow/server
+    buf generate --template ../buf.dart.gen.yaml ../truthcoin/server
     buf generate --template ../buf.dart.gen.yaml https://github.com/barebitcoin/btc-buf.git

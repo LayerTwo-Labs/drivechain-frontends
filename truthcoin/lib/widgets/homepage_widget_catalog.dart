@@ -3,6 +3,10 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart';
 import 'package:stacked/stacked.dart';
+import 'package:truthcoin/models/voting.dart';
+import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/providers/voting_provider.dart';
+import 'package:truthcoin/routing/router.dart';
 
 class TruthcoinWidgetCatalog {
   static final Map<String, HomepageWidgetInfo> _widgets = {
@@ -149,6 +153,33 @@ class TruthcoinWidgetCatalog {
         height: 400, // Fixed height to prevent layout issues
         child: const UTXOsTab(),
       ),
+    ),
+
+    'market_summary': HomepageWidgetInfo(
+      id: 'market_summary',
+      name: 'Top Markets',
+      description: 'Shows top prediction markets by volume',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconHome,
+      builder: (_) => const _MarketSummaryWidget(),
+    ),
+
+    'positions_summary': HomepageWidgetInfo(
+      id: 'positions_summary',
+      name: 'Your Positions',
+      description: 'Shows your market positions summary',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconWallet,
+      builder: (_) => const _PositionsSummaryWidget(),
+    ),
+
+    'voting_status': HomepageWidgetInfo(
+      id: 'voting_status',
+      name: 'Voting Status',
+      description: 'Shows current voting period and your status',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconPen,
+      builder: (_) => const _VotingStatusWidget(),
     ),
   };
 
@@ -379,6 +410,317 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   void dispose() {
     _txProvider.removeListener(_onChange);
+    super.dispose();
+  }
+}
+
+/// Market summary widget for homepage
+class _MarketSummaryWidget extends StatelessWidget {
+  const _MarketSummaryWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<_MarketSummaryViewModel>.reactive(
+      viewModelBuilder: () => _MarketSummaryViewModel(),
+      onViewModelReady: (model) => model.init(),
+      builder: (context, model, child) {
+        final formatter = GetIt.I<FormatterProvider>();
+
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, _) => SailCard(
+            title: 'Top Markets',
+            child: model.isLoading
+                ? SailSkeletonizer(
+                    enabled: true,
+                    description: 'Loading markets...',
+                    child: SailText.primary15('Loading...'),
+                  )
+                : model.topMarkets.isEmpty
+                ? SailColumn(
+                    children: [
+                      SailText.secondary15('No markets yet'),
+                      const SizedBox(height: 8),
+                      SailButton(
+                        label: 'Create Market',
+                        small: true,
+                        onPressed: () async {
+                          await GetIt.I.get<AppRouter>().push(const MarketCreationRoute());
+                        },
+                      ),
+                    ],
+                  )
+                : SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      ...model.topMarkets
+                          .take(3)
+                          .map(
+                            (market) => GestureDetector(
+                              onTap: () => GetIt.I.get<AppRouter>().push(MarketDetailRoute(marketId: market.marketId)),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                child: SailRow(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: SailText.primary13(
+                                        market.title.length > 30 ? '${market.title.substring(0, 30)}...' : market.title,
+                                      ),
+                                    ),
+                                    SailText.secondary12(formatter.formatSats(market.volumeSats)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      const Divider(),
+                      SailButton(
+                        label: 'View All Markets',
+                        small: true,
+                        onPressed: () async {
+                          await GetIt.I.get<AppRouter>().push(const MarketExplorerRoute());
+                        },
+                      ),
+                    ],
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MarketSummaryViewModel extends BaseViewModel {
+  final MarketProvider _marketProvider = GetIt.I.get<MarketProvider>();
+
+  List<MarketSummary> get topMarkets =>
+      _marketProvider.markets.where((m) => m.isTrading).toList()..sort((a, b) => b.volumeSats.compareTo(a.volumeSats));
+
+  bool get isLoading => _marketProvider.isLoading;
+
+  void init() {
+    _marketProvider.addListener(notifyListeners);
+    _marketProvider.loadMarkets();
+  }
+
+  @override
+  void dispose() {
+    _marketProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+/// Positions summary widget for homepage
+class _PositionsSummaryWidget extends StatelessWidget {
+  const _PositionsSummaryWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<_PositionsSummaryViewModel>.reactive(
+      viewModelBuilder: () => _PositionsSummaryViewModel(),
+      onViewModelReady: (model) => model.init(),
+      builder: (context, model, child) {
+        final theme = SailTheme.of(context);
+        final formatter = GetIt.I<FormatterProvider>();
+
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, _) => SailCard(
+            title: 'Your Positions',
+            child: model.isLoading
+                ? SailSkeletonizer(
+                    enabled: true,
+                    description: 'Loading positions...',
+                    child: SailText.primary15('Loading...'),
+                  )
+                : model.holdings == null || model.holdings!.positions.isEmpty
+                ? SailText.secondary15('No positions yet')
+                : SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.secondary13('Active Markets'),
+                          SailText.primary15(model.holdings!.activeMarkets.toString(), bold: true),
+                        ],
+                      ),
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.secondary13('Total Value'),
+                          SailText.primary15(
+                            formatter.formatBTC(model.holdings!.totalValue),
+                            bold: true,
+                          ),
+                        ],
+                      ),
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.secondary13('Unrealized P&L'),
+                          SailText.primary15(
+                            '${model.holdings!.totalUnrealizedPnl >= 0 ? '+' : ''}${model.holdings!.totalPnlPercent.toStringAsFixed(1)}%',
+                            bold: true,
+                            color: model.holdings!.hasProfits ? theme.colors.success : theme.colors.error,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PositionsSummaryViewModel extends BaseViewModel {
+  final MarketProvider _marketProvider = GetIt.I.get<MarketProvider>();
+  final TruthcoinRPC _rpc = GetIt.I.get<TruthcoinRPC>();
+
+  UserHoldings? get holdings => _marketProvider.userPositions;
+  bool isLoading = false;
+
+  void init() {
+    _marketProvider.addListener(notifyListeners);
+    loadPositions();
+  }
+
+  Future<void> loadPositions() async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final addresses = await _rpc.getWalletAddresses();
+      if (addresses.isNotEmpty) {
+        await _marketProvider.loadUserPositions(addresses.first);
+      }
+    } catch (e) {
+      // Ignore
+    }
+
+    isLoading = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _marketProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+/// Voting status widget for homepage
+class _VotingStatusWidget extends StatelessWidget {
+  const _VotingStatusWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<_VotingStatusViewModel>.reactive(
+      viewModelBuilder: () => _VotingStatusViewModel(),
+      onViewModelReady: (model) => model.init(),
+      builder: (context, model, child) {
+        final theme = SailTheme.of(context);
+
+        return SailCard(
+          title: 'Voting Status',
+          child: model.isLoading
+              ? SailSkeletonizer(
+                  enabled: true,
+                  description: 'Loading voting info...',
+                  child: SailText.primary15('Loading...'),
+                )
+              : SailColumn(
+                  spacing: SailStyleValues.padding08,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (model.slotStatus != null) ...[
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.secondary13('Current Period'),
+                          SailText.primary15(model.slotStatus!.currentPeriodName, bold: true),
+                        ],
+                      ),
+                    ],
+                    if (model.currentPeriod != null) ...[
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.secondary13('Status'),
+                          SailText.primary13(
+                            model.currentPeriod!.status.toUpperCase(),
+                            color: model.currentPeriod!.isActive ? theme.colors.success : theme.colors.text,
+                          ),
+                        ],
+                      ),
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.secondary13('Decisions'),
+                          SailText.primary13(model.currentPeriod!.decisions.length.toString()),
+                        ],
+                      ),
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.secondary13('Participation'),
+                          SailText.primary13(model.currentPeriod!.stats.participationPercent),
+                        ],
+                      ),
+                    ],
+                    if (model.pendingVotesCount > 0)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: SailText.primary13(
+                          '${model.pendingVotesCount} pending votes',
+                          bold: true,
+                        ),
+                      ),
+                    const Divider(),
+                    SailButton(
+                      label: 'Go to Voting',
+                      small: true,
+                      onPressed: () async {
+                        await GetIt.I.get<AppRouter>().push(const VotingDashboardRoute());
+                      },
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _VotingStatusViewModel extends BaseViewModel {
+  final VotingProvider _votingProvider = GetIt.I.get<VotingProvider>();
+
+  SlotStatus? get slotStatus => _votingProvider.slotStatus;
+  VotingPeriodFull? get currentPeriod => _votingProvider.currentPeriod;
+  int get pendingVotesCount => _votingProvider.pendingVotes.length;
+  bool get isLoading => _votingProvider.isLoading;
+
+  void init() {
+    _votingProvider.addListener(notifyListeners);
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    await _votingProvider.loadSlotStatus();
+    await _votingProvider.loadCurrentPeriod();
+  }
+
+  @override
+  void dispose() {
+    _votingProvider.removeListener(notifyListeners);
     super.dispose();
   }
 }
