@@ -105,6 +105,17 @@ abstract class TruthcoinRPC extends SidechainRPC {
     int? maxCost,
   });
 
+  /// Sell shares in a market (with dry_run support for proceeds calculation)
+  Future<Map<String, dynamic>> marketSell({
+    required String marketId,
+    required int outcomeIndex,
+    required int sharesAmount,
+    required String sellerAddress,
+    bool? dryRun,
+    int? feeSats,
+    int? minProceeds,
+  });
+
   /// Get positions in a market
   Future<Map<String, dynamic>> marketPositions({String? address, String? marketId});
 
@@ -583,6 +594,29 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
+  Future<Map<String, dynamic>> marketSell({
+    required String marketId,
+    required int outcomeIndex,
+    required int sharesAmount,
+    required String sellerAddress,
+    bool? dryRun,
+    int? feeSats,
+    int? minProceeds,
+  }) async {
+    final params = <String, dynamic>{
+      'market_id': marketId,
+      'outcome_index': outcomeIndex,
+      'shares_amount': sharesAmount,
+      'seller_address': sellerAddress,
+    };
+    if (dryRun != null) params['dry_run'] = dryRun;
+    if (feeSats != null) params['fee_sats'] = feeSats;
+    if (minProceeds != null) params['min_proceeds'] = minProceeds;
+    final response = await _client().call('market_sell', params);
+    return response as Map<String, dynamic>;
+  }
+
+  @override
   Future<Map<String, dynamic>> marketPositions({String? address, String? marketId}) async {
     final params = <String, dynamic>{};
     if (address != null) params['address'] = address;
@@ -837,6 +871,7 @@ final truthcoinRPCMethods = [
   'market_get',
   'market_list',
   'market_positions',
+  'market_sell',
   'mine',
   'my_unconfirmed_utxos',
   'my_utxos',

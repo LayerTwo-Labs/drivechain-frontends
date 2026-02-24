@@ -56,3 +56,4 @@ mycert.pfx
 mycert.pem
 ed25519
 ed25519.priv
+vendor/

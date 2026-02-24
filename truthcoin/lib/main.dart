@@ -12,8 +12,10 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/config/runtime_args.dart';
+import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/truthcoin_conf_provider.dart';
 import 'package:truthcoin/providers/truthcoin_homepage_provider.dart';
+import 'package:truthcoin/providers/voting_provider.dart';
 import 'package:truthcoin/routing/router.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -96,6 +98,14 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<TruthcoinHomepageProvider>(() => truthcoinHomepageProvider);
   // Register the abstract HomepageProvider as an alias to the concrete implementation
   GetIt.I.registerLazySingleton<HomepageProvider>(() => truthcoinHomepageProvider);
+
+  // Register market provider
+  final marketProvider = MarketProvider();
+  GetIt.I.registerLazySingleton<MarketProvider>(() => marketProvider);
+
+  // Register voting provider
+  final votingProvider = VotingProvider();
+  GetIt.I.registerLazySingleton<VotingProvider>(() => votingProvider);
 
   return (applicationDir, logFile, log);
 }

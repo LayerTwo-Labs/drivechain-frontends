@@ -54,7 +54,7 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     for (final binary in widget.binariesToReset) {
       final binPaths = await binary.getBinaryPaths(binDir(widget.appDir.path));
       for (final binPath in binPaths) {
-        if (await FileSystemEntity.isDirectory(binPath)) {
+        if (await Directory(binPath).exists()) {
           try {
             await for (final entity in Directory(binPath).list(recursive: true, followLinks: false)) {
               allDatadirPaths.add(entity.path);
@@ -106,13 +106,10 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
 
       try {
         final filePath = item.path;
-        if (await FileSystemEntity.isDirectory(filePath)) {
+        if (await Directory(filePath).exists()) {
           await Directory(filePath).delete(recursive: true);
-        } else {
-          final f = File(filePath);
-          if (await f.exists()) {
-            await f.delete();
-          }
+        } else if (await File(filePath).exists()) {
+          await File(filePath).delete();
         }
         if (mounted) {
           setState(() => item.status = DeleteItemStatus.success);

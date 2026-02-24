@@ -6,8 +6,11 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:truthcoin/providers/market_provider.dart';
+import 'package:truthcoin/providers/voting_provider.dart';
 import 'package:truthcoin/routing/router.dart';
 
+import 'mocks/mock_truthcoin_rpc.dart';
 import 'mocks/storage_mock.dart';
 
 Future<void> _setDeviceSize() async {
@@ -90,5 +93,72 @@ Future<void> registerTestDependencies() async {
     GetIt.I.registerLazySingleton<BinaryProvider>(
       () => MockBinaryProvider(),
     );
+  }
+
+  if (!GetIt.I.isRegistered<FormatterProvider>()) {
+    final settings = GetIt.I.get<SettingsProvider>();
+    GetIt.I.registerLazySingleton<FormatterProvider>(
+      () => FormatterProvider(settings),
+    );
+  }
+}
+
+/// Setup for market and voting tests with controllable mock RPC.
+/// Returns the mock RPC so tests can configure responses.
+Future<TestTruthcoinRPC> setupMarketVotingTests() async {
+  await resetGetIt();
+
+  // Register Logger first - many providers depend on it
+  final log = Logger(level: Level.off);
+  GetIt.I.registerLazySingleton<Logger>(() => log);
+
+  final mockRpc = TestTruthcoinRPC();
+
+  GetIt.I.registerLazySingleton<TruthcoinRPC>(() => mockRpc);
+  GetIt.I.registerLazySingleton<SidechainRPC>(() => mockRpc);
+
+  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
+
+  // Register ClientSettings before SettingsProvider
+  GetIt.I.registerLazySingleton<ClientSettings>(
+    () => ClientSettings(store: MockStore(), log: log),
+  );
+
+  GetIt.I.registerLazySingleton<BitwindowClientSettings>(
+    () => BitwindowClientSettings(store: MockStore(), log: log),
+  );
+
+  // Create settings provider
+  final settingsProvider = await SettingsProvider.create();
+  GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
+
+  final formatter = FormatterProvider(settingsProvider);
+  GetIt.I.registerLazySingleton<FormatterProvider>(() => formatter);
+
+  // Now register providers that depend on RPC and Logger
+  final marketProvider = MarketProvider();
+  GetIt.I.registerLazySingleton<MarketProvider>(() => marketProvider);
+
+  final votingProvider = VotingProvider();
+  GetIt.I.registerLazySingleton<VotingProvider>(() => votingProvider);
+
+  return mockRpc;
+}
+
+/// Reset GetIt for clean test state
+Future<void> resetGetIt() async {
+  await GetIt.I.reset();
+}
+
+/// Helper to wait for provider to finish loading
+Future<void> waitForProvider(ChangeNotifier provider, {Duration timeout = const Duration(seconds: 5)}) async {
+  final stopwatch = Stopwatch()..start();
+  while (stopwatch.elapsed < timeout) {
+    await Future.delayed(const Duration(milliseconds: 50));
+    // Check if the provider has stopped loading (implementation specific)
+    // For now, just a small delay
+    if (stopwatch.elapsed > const Duration(milliseconds: 100)) {
+      break;
+    }
   }
 }
