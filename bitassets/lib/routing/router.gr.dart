@@ -27,6 +27,38 @@ class AmmTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [AssetExplorerTabPage]
+class AssetExplorerTabRoute extends PageRouteInfo<void> {
+  const AssetExplorerTabRoute({List<PageRouteInfo>? children})
+    : super(AssetExplorerTabRoute.name, initialChildren: children);
+
+  static const String name = 'AssetExplorerTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const AssetExplorerTabPage();
+    },
+  );
+}
+
+/// generated route for
+/// [AuctionBrowserTabPage]
+class AuctionBrowserTabRoute extends PageRouteInfo<void> {
+  const AuctionBrowserTabRoute({List<PageRouteInfo>? children})
+    : super(AuctionBrowserTabRoute.name, initialChildren: children);
+
+  static const String name = 'AuctionBrowserTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const AuctionBrowserTabPage();
+    },
+  );
+}
+
+/// generated route for
 /// [BitAssetsConfigureHomepagePage]
 class BitAssetsConfigureHomepageRoute extends PageRouteInfo<void> {
   const BitAssetsConfigureHomepageRoute({List<PageRouteInfo>? children})
