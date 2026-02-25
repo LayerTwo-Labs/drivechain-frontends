@@ -7,7 +7,10 @@ import 'package:bitassets/config/runtime_args.dart';
 import 'package:bitassets/gen/version.dart';
 import 'package:bitassets/providers/bitassets_conf_provider.dart';
 import 'package:bitassets/providers/bitassets_homepage_provider.dart';
+import 'package:bitassets/providers/asset_analytics_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
+import 'package:bitassets/providers/favorites_provider.dart';
+import 'package:bitassets/providers/price_alert_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
@@ -94,6 +97,21 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   GetIt.I.registerLazySingleton<BitAssetsProvider>(
     () => BitAssetsProvider(),
+  );
+
+  // Register asset analytics provider
+  GetIt.I.registerLazySingleton<AssetAnalyticsProvider>(
+    () => AssetAnalyticsProvider(),
+  );
+
+  // Register favorites provider
+  GetIt.I.registerLazySingleton<FavoritesProvider>(
+    () => FavoritesProvider(),
+  );
+
+  // Register price alert provider
+  GetIt.I.registerLazySingleton<PriceAlertProvider>(
+    () => PriceAlertProvider(),
   );
 
   // Register homepage provider
