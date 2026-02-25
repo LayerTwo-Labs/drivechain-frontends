@@ -105,7 +105,11 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       await _copyConfigDownstream();
 
-      await _promptForDatadirIfNeeded();
+      // Only prompt for datadir after initial startup - during first load the router
+      // isn't ready yet. The DatadirGuard handles the initial case.
+      if (!isFirst) {
+        await _promptForDatadirIfNeeded();
+      }
     } catch (e) {
       log.e('Failed to load config: $e');
     } finally {
@@ -457,6 +461,13 @@ class BitcoinConfProvider extends ChangeNotifier {
       // Bitcoin Core config files don't use shell-style escaping
       final cleanDataDir = dataDir.replaceAll(r'\ ', ' ');
       currentConfig!.setSetting('datadir', cleanDataDir, section: section);
+    }
+
+    // If updating datadir for a DIFFERENT mainnet/forknet network, save [main] section
+    // directly to that network's config file. This ensures the datadir persists when
+    // the network switch happens and _loadMainSectionForNetwork is called.
+    if (_isMainnetOrForknet(targetNetwork) && targetNetwork != network) {
+      await _saveMainSectionForNetwork(targetNetwork);
     }
 
     await _saveConfig();
