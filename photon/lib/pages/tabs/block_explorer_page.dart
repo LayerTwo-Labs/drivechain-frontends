@@ -26,8 +26,8 @@ class BlockExplorerPage extends StatelessWidget {
                 _BlockNavigationControls(model: model),
                 const Divider(),
                 // Block details
-                if (model.error != null)
-                  SailText.primary13(model.error!, color: theme.colors.error)
+                if (model.errorMessage != null)
+                  SailText.primary13(model.errorMessage!, color: theme.colors.error)
                 else if (model.block == null)
                   const Center(child: SailCircularProgressIndicator())
                 else
@@ -227,7 +227,7 @@ class BlockExplorerViewModel extends BaseViewModel {
   int currentHeight = 0;
   int? maxHeight;
   Map<String, dynamic>? block;
-  String? error;
+  String? errorMessage;
 
   bool get canGoBack => currentHeight > 0;
   bool get canGoForward => maxHeight != null && currentHeight < maxHeight!;
@@ -243,20 +243,20 @@ class BlockExplorerViewModel extends BaseViewModel {
       heightController.text = currentHeight.toString();
       await _fetchBlock();
     } catch (e) {
-      error = e.toString();
+      errorMessage = e.toString();
       notifyListeners();
     }
   }
 
   Future<void> _fetchBlock() async {
-    error = null;
+    errorMessage = null;
     block = null;
     notifyListeners();
 
     try {
       final bestHash = await _rpc.getBestSidechainBlockHash();
       if (bestHash == null) {
-        error = 'Could not get best hash';
+        errorMessage = 'Could not get best hash';
         notifyListeners();
         return;
       }
@@ -270,12 +270,12 @@ class BlockExplorerViewModel extends BaseViewModel {
         // Try to get block by constructing from the response
         // This is a limitation - we may need additional RPC methods
         block = await _rpc.getBlock(bestHash);
-        error = 'Note: Block navigation by height requires additional RPC support. Showing best block.';
+        errorMessage = 'Note: Block navigation by height requires additional RPC support. Showing best block.';
       }
 
       notifyListeners();
     } catch (e) {
-      error = e.toString();
+      errorMessage = e.toString();
       notifyListeners();
     }
   }
@@ -303,7 +303,7 @@ class BlockExplorerViewModel extends BaseViewModel {
       heightController.text = currentHeight.toString();
       await _fetchBlock();
     } catch (e) {
-      error = e.toString();
+      errorMessage = e.toString();
       notifyListeners();
     }
   }
