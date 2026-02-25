@@ -1,0 +1,6 @@
+[submodule "vendors/plain-bitassets"]
+	path = vendors/plain-bitassets
+	url = https://github.com/LayerTwo-Labs/plain-bitassets.git
+[submodule "vendors/photon"]
+	path = vendors/photon
+	url = https://github.com/LayerTwo-Labs/photon
