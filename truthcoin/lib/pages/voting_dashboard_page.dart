@@ -41,8 +41,8 @@ class VotingDashboardPage extends StatelessWidget {
                       child: SailColumn(
                         spacing: SailStyleValues.padding16,
                         children: [
-                          _buildVoterStatusCard(context, model),
-                          _buildPeriodStatsCard(context, model),
+                          _VoterStatusCard(model: model),
+                          _PeriodStatsCard(model: model),
                         ],
                       ),
                     ),
@@ -50,7 +50,7 @@ class VotingDashboardPage extends StatelessWidget {
                     // Right: Decisions to vote on
                     Expanded(
                       flex: 3,
-                      child: _buildDecisionsCard(context, model),
+                      child: _DecisionsCard(model: model),
                     ),
                   ],
                 ),
@@ -61,8 +61,15 @@ class VotingDashboardPage extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildVoterStatusCard(BuildContext context, VotingDashboardViewModel model) {
+class _VoterStatusCard extends StatelessWidget {
+  final VotingDashboardViewModel model;
+
+  const _VoterStatusCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailCard(
@@ -126,8 +133,15 @@ class VotingDashboardPage extends StatelessWidget {
             ),
     );
   }
+}
 
-  Widget _buildPeriodStatsCard(BuildContext context, VotingDashboardViewModel model) {
+class _PeriodStatsCard extends StatelessWidget {
+  final VotingDashboardViewModel model;
+
+  const _PeriodStatsCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailCard(
@@ -171,8 +185,15 @@ class VotingDashboardPage extends StatelessWidget {
             ),
     );
   }
+}
 
-  Widget _buildDecisionsCard(BuildContext context, VotingDashboardViewModel model) {
+class _DecisionsCard extends StatelessWidget {
+  final VotingDashboardViewModel model;
+
+  const _DecisionsCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailCard(
@@ -196,7 +217,7 @@ class VotingDashboardPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colors.primary.withOpacity(0.1),
+                      color: theme.colors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: SailRow(
@@ -278,7 +299,7 @@ class _DecisionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: hasVote ? theme.colors.primary.withOpacity(0.05) : theme.colors.backgroundSecondary,
+        color: hasVote ? theme.colors.primary.withValues(alpha: 0.05) : theme.colors.backgroundSecondary,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: hasVote ? theme.colors.primary : Colors.transparent,
@@ -301,8 +322,8 @@ class _DecisionCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: decision.isScaled
-                          ? theme.colors.info.withOpacity(0.2)
-                          : theme.colors.success.withOpacity(0.2),
+                          ? theme.colors.info.withValues(alpha: 0.2)
+                          : theme.colors.success.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: SailText.secondary12(decision.isScaled ? 'Scaled' : 'Binary'),
@@ -469,10 +490,10 @@ class _VoteButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? color : color.withOpacity(0.3),
+            color: isSelected ? color : color.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
         ),
