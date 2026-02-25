@@ -36,7 +36,7 @@ class MarketCreationPage extends StatelessWidget {
 
               // Stepper
               Expanded(
-                child: _buildStepper(context, model),
+                child: _StepperContent(model: model),
               ),
             ],
           ),
@@ -44,8 +44,15 @@ class MarketCreationPage extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildStepper(BuildContext context, MarketCreationViewModel model) {
+class _StepperContent extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _StepperContent({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     return SailCard(
       child: Stepper(
         currentStep: model.currentStep,
@@ -76,35 +83,35 @@ class MarketCreationPage extends StatelessWidget {
           Step(
             title: const Text('Basic Info'),
             subtitle: const Text('Title and description'),
-            content: _buildBasicInfoStep(context, model),
+            content: _BasicInfoStep(model: model),
             isActive: model.currentStep >= 0,
             state: model.currentStep > 0 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Dimensions'),
             subtitle: const Text('Market outcomes'),
-            content: _buildDimensionsStep(context, model),
+            content: _DimensionsStep(model: model),
             isActive: model.currentStep >= 1,
             state: model.currentStep > 1 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Liquidity'),
             subtitle: const Text('LMSR parameters'),
-            content: _buildLiquidityStep(context, model),
+            content: _LiquidityStep(model: model),
             isActive: model.currentStep >= 2,
             state: model.currentStep > 2 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Trading Fee'),
             subtitle: const Text('Fee percentage'),
-            content: _buildTradingFeeStep(context, model),
+            content: _TradingFeeStep(model: model),
             isActive: model.currentStep >= 3,
             state: model.currentStep > 3 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Review'),
             subtitle: const Text('Confirm and create'),
-            content: _buildReviewStep(context, model),
+            content: _ReviewStep(model: model),
             isActive: model.currentStep >= 4,
             state: StepState.indexed,
           ),
@@ -112,8 +119,15 @@ class MarketCreationPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildBasicInfoStep(BuildContext context, MarketCreationViewModel model) {
+class _BasicInfoStep extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _BasicInfoStep({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     return SailColumn(
       spacing: SailStyleValues.padding12,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,8 +154,15 @@ class MarketCreationPage extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildDimensionsStep(BuildContext context, MarketCreationViewModel model) {
+class _DimensionsStep extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _DimensionsStep({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailColumn(
@@ -218,8 +239,15 @@ class MarketCreationPage extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildLiquidityStep(BuildContext context, MarketCreationViewModel model) {
+class _LiquidityStep extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _LiquidityStep({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final formatter = GetIt.I<FormatterProvider>();
 
@@ -278,7 +306,7 @@ class MarketCreationPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colors.success.withOpacity(0.1),
+                color: theme.colors.success.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: SailColumn(
@@ -307,8 +335,15 @@ class MarketCreationPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTradingFeeStep(BuildContext context, MarketCreationViewModel model) {
+class _TradingFeeStep extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _TradingFeeStep({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     return SailColumn(
       spacing: SailStyleValues.padding12,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,8 +382,15 @@ class MarketCreationPage extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildReviewStep(BuildContext context, MarketCreationViewModel model) {
+class _ReviewStep extends StatelessWidget {
+  final MarketCreationViewModel model;
+
+  const _ReviewStep({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return SailColumn(
@@ -419,7 +461,7 @@ class _TypeButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isSelected ? theme.colors.primary.withOpacity(0.1) : theme.colors.backgroundSecondary,
+            color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected ? theme.colors.primary : Colors.transparent,
@@ -460,7 +502,7 @@ class _MethodButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colors.primary.withOpacity(0.1) : theme.colors.backgroundSecondary,
+          color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? theme.colors.primary : Colors.transparent,
@@ -498,7 +540,7 @@ class _FeePreset extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colors.primary.withOpacity(0.2) : theme.colors.backgroundSecondary,
+          color: isSelected ? theme.colors.primary.withValues(alpha: 0.2) : theme.colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? theme.colors.primary : Colors.transparent,
@@ -659,7 +701,7 @@ class MarketCreationViewModel extends BaseViewModel {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Market created: ${txid.substring(0, 16)}...')),
         );
-        AutoRouter.of(context).maybePop();
+        await AutoRouter.of(context).maybePop();
       }
     } else {
       createError = _marketProvider.error ?? 'Failed to create market';
