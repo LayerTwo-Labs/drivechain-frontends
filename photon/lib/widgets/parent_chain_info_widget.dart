@@ -22,8 +22,8 @@ class ParentChainInfoWidget extends StatelessWidget {
             onPressed: model.refresh,
             loading: model.isRefreshing,
           ),
-          child: model.error != null
-              ? SailText.primary13(model.error!, color: theme.colors.error)
+          child: model.errorMessage != null
+              ? SailText.primary13(model.errorMessage!, color: theme.colors.error)
               : SailColumn(
                   spacing: SailStyleValues.padding08,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +98,7 @@ class ParentChainInfoViewModel extends BaseViewModel {
   String? mainchainTipHash;
   int? mainchainTipHeight;
   double? sidechainWealth;
-  String? error;
+  String? errorMessage;
   bool isRefreshing = false;
 
   String get sidechainWealthFormatted {
@@ -112,7 +112,7 @@ class ParentChainInfoViewModel extends BaseViewModel {
 
   Future<void> _fetchInfo() async {
     try {
-      error = null;
+      errorMessage = null;
 
       final hashFuture = _rpc.getBestMainchainBlockHash();
       final wealthFuture = _rpc.getSidechainWealth();
@@ -126,7 +126,7 @@ class ParentChainInfoViewModel extends BaseViewModel {
 
       notifyListeners();
     } catch (e) {
-      error = e.toString();
+      errorMessage = e.toString();
       notifyListeners();
     }
   }

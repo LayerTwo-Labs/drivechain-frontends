@@ -73,8 +73,8 @@ class MempoolExplorerPage extends StatelessWidget {
                 child: SailCard(
                   title: 'All UTXOs',
                   bottomPadding: false,
-                  child: model.error != null
-                      ? Center(child: SailText.primary13(model.error!, color: theme.colors.error))
+                  child: model.errorMessage != null
+                      ? Center(child: SailText.primary13(model.errorMessage!, color: theme.colors.error))
                       : ListenableBuilder(
                           listenable: formatter,
                           builder: (context, child) => SailTable(
@@ -172,7 +172,7 @@ class MempoolExplorerViewModel extends BaseViewModel {
   PhotonRPC get _rpc => GetIt.I.get<PhotonRPC>();
 
   List<SidechainUTXO> utxos = [];
-  String? error;
+  String? errorMessage;
   bool isLoading = true;
   bool isRefreshing = false;
   Timer? _refreshTimer;
@@ -186,11 +186,11 @@ class MempoolExplorerViewModel extends BaseViewModel {
 
   Future<void> _fetchData() async {
     try {
-      error = null;
+      errorMessage = null;
       final newUtxos = await _rpc.listAllUTXOs();
       utxos = newUtxos;
     } catch (e) {
-      error = e.toString();
+      errorMessage = e.toString();
     } finally {
       isLoading = false;
       notifyListeners();
