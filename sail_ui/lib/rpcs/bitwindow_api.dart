@@ -299,8 +299,11 @@ class BitwindowRPCLive extends BitwindowRPC {
     // Cancel any existing subscription first
     _healthStreamSubscription?.cancel();
 
-    _healthStreamSubscription =
-        health.watch().listen(
+    // Don't start if we're stopping
+    if (stoppingBinary) return;
+
+    try {
+      _healthStreamSubscription = health.watch().listen(
           (response) {
             // Broadcast to health stream listeners
             _healthStreamController.add(response);
@@ -323,33 +326,44 @@ class BitwindowRPCLive extends BitwindowRPC {
             _previousHealthResponse = null;
             notifyListeners();
 
-            // If we're still connected, try to restart the stream after a delay
-            if (connected) {
+            // If we're still connected and not stopping, try to restart the stream after a delay
+            if (connected && !stoppingBinary) {
               log.i('Health stream dropped, but still connected, restarting health stream in 5 seconds...');
               Future.delayed(const Duration(seconds: 5), () {
-                startHealthStream();
+                if (connected && !stoppingBinary) {
+                  startHealthStream();
+                }
               });
             }
           },
           cancelOnError: false,
         )..onDone(() {
           log.i('Health stream completed');
-          // If we're still connected, restart the stream
-          if (connected) {
+          // If we're still connected and not stopping, restart the stream
+          if (connected && !stoppingBinary) {
             log.i('Stream completed but still connected, restarting health stream in 5 seconds...');
             Future.delayed(const Duration(seconds: 5), () {
-              startHealthStream();
+              if (connected && !stoppingBinary) {
+                startHealthStream();
+              }
             });
           }
         });
+    } catch (e) {
+      log.e('Failed to start health stream: $e');
+      // Connection is probably dead, don't crash - just log it
+    }
   }
 
   void startNotificationStream() {
     // Cancel any existing subscription first
     _notificationStreamSubscription?.cancel();
 
-    _notificationStreamSubscription =
-        notifications.watch().listen(
+    // Don't start if we're stopping
+    if (stoppingBinary) return;
+
+    try {
+      _notificationStreamSubscription = notifications.watch().listen(
           (event) {
             // Broadcast to notification stream listeners
             _notificationStreamController.add(event);
@@ -360,25 +374,33 @@ class BitwindowRPCLive extends BitwindowRPC {
               log.e('Error details: ${error.toString()}');
             }
 
-            // If we're still connected, try to restart the stream after a delay
-            if (connected) {
+            // If we're still connected and not stopping, try to restart the stream after a delay
+            if (connected && !stoppingBinary) {
               log.i('Notification stream dropped, but still connected, restarting in 5 seconds...');
               Future.delayed(const Duration(seconds: 5), () {
-                startNotificationStream();
+                if (connected && !stoppingBinary) {
+                  startNotificationStream();
+                }
               });
             }
           },
           cancelOnError: false,
         )..onDone(() {
           log.i('Notification stream completed');
-          // If we're still connected, restart the stream
-          if (connected) {
+          // If we're still connected and not stopping, restart the stream
+          if (connected && !stoppingBinary) {
             log.i('Stream completed but still connected, restarting notification stream in 5 seconds...');
             Future.delayed(const Duration(seconds: 5), () {
-              startNotificationStream();
+              if (connected && !stoppingBinary) {
+                startNotificationStream();
+              }
             });
           }
         });
+    } catch (e) {
+      log.e('Failed to start notification stream: $e');
+      // Connection is probably dead, don't crash - just log it
+    }
   }
 
   @override
