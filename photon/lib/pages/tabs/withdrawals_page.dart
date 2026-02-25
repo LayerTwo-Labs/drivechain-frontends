@@ -127,20 +127,21 @@ class WithdrawalsPage extends StatelessWidget {
                     child: ListenableBuilder(
                       listenable: formatter,
                       builder: (context, child) => SailTable(
-                        getRowId: (index) => model.bundle!.spendUtxos[index].outpoint,
+                        getRowId: (index) => _formatOutPoint(model.bundle!.spendUtxos[index].outPoint),
                         headerBuilder: (context) => [
                           SailTableHeaderCell(name: 'Outpoint'),
                           SailTableHeaderCell(name: 'Value'),
                         ],
                         rowBuilder: (context, row, selected) {
                           final utxo = model.bundle!.spendUtxos[row];
+                          final outpointStr = _formatOutPoint(utxo.outPoint);
                           final value = utxo.output.content.type == OutputContentType.value
                               ? formatter.formatSats(utxo.output.content.value!)
                               : '-';
                           return [
                             SailTableCell(
-                              value: _truncateOutpoint(utxo.outpoint),
-                              copyValue: utxo.outpoint,
+                              value: _truncateOutpoint(outpointStr),
+                              copyValue: outpointStr,
                               monospace: true,
                             ),
                             SailTableCell(value: value, monospace: true),
@@ -164,6 +165,20 @@ class WithdrawalsPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _formatOutPoint(PWBOutPoint outPoint) {
+    switch (outPoint.type) {
+      case OutPointType.regular:
+        final regular = outPoint.regular!;
+        return '${regular.txid}:${regular.vout}';
+      case OutPointType.coinbase:
+        final coinbase = outPoint.coinbase!;
+        return 'coinbase:${coinbase.merkleRoot}:${coinbase.vout}';
+      case OutPointType.deposit:
+        final deposit = outPoint.deposit!;
+        return 'deposit:${deposit.txid}:${deposit.vout}';
+    }
   }
 
   String _truncateOutpoint(String outpoint) {
