@@ -22,8 +22,8 @@ class MarketExplorerPage extends StatelessWidget {
           child: SailColumn(
             spacing: SailStyleValues.padding16,
             children: [
-              _HeaderSection(model: model),
-              _StatsSection(model: model),
+              HeaderSection(model: model),
+              StatsSection(model: model),
               Expanded(child: _MarketListSection(model: model)),
             ],
           ),
@@ -33,10 +33,10 @@ class MarketExplorerPage extends StatelessWidget {
   }
 }
 
-class _HeaderSection extends StatelessWidget {
+class HeaderSection extends StatelessWidget {
   final MarketExplorerViewModel model;
 
-  const _HeaderSection({required this.model});
+  const HeaderSection({super.key, required this.model});
 
   @override
   Widget build(BuildContext context) {
@@ -105,10 +105,10 @@ class _HeaderSection extends StatelessWidget {
   }
 }
 
-class _StatsSection extends StatelessWidget {
+class StatsSection extends StatelessWidget {
   final MarketExplorerViewModel model;
 
-  const _StatsSection({required this.model});
+  const StatsSection({super.key, required this.model});
 
   @override
   Widget build(BuildContext context) {
