@@ -303,52 +303,53 @@ class BitwindowRPCLive extends BitwindowRPC {
     if (stoppingBinary) return;
 
     try {
-      _healthStreamSubscription = health.watch().listen(
-          (response) {
-            // Broadcast to health stream listeners
-            _healthStreamController.add(response);
+      _healthStreamSubscription =
+          health.watch().listen(
+            (response) {
+              // Broadcast to health stream listeners
+              _healthStreamController.add(response);
 
-            // Only notify if the health status has changed
-            if (_previousHealthResponse == null) {
-              _previousHealthResponse = response;
+              // Only notify if the health status has changed
+              if (_previousHealthResponse == null) {
+                _previousHealthResponse = response;
+                notifyListeners();
+              } else if (!_areHealthResponsesEqual(_previousHealthResponse!, response)) {
+                _previousHealthResponse = response;
+                notifyListeners();
+              }
+            },
+            onError: (error) {
+              log.e('Health stream error: $error');
+              if (error is Exception) {
+                log.e('Error details: ${error.toString()}');
+              }
+              // Reset previous response on error since state is uncertain
+              _previousHealthResponse = null;
               notifyListeners();
-            } else if (!_areHealthResponsesEqual(_previousHealthResponse!, response)) {
-              _previousHealthResponse = response;
-              notifyListeners();
-            }
-          },
-          onError: (error) {
-            log.e('Health stream error: $error');
-            if (error is Exception) {
-              log.e('Error details: ${error.toString()}');
-            }
-            // Reset previous response on error since state is uncertain
-            _previousHealthResponse = null;
-            notifyListeners();
 
-            // If we're still connected and not stopping, try to restart the stream after a delay
+              // If we're still connected and not stopping, try to restart the stream after a delay
+              if (connected && !stoppingBinary) {
+                log.i('Health stream dropped, but still connected, restarting health stream in 5 seconds...');
+                Future.delayed(const Duration(seconds: 5), () {
+                  if (connected && !stoppingBinary) {
+                    startHealthStream();
+                  }
+                });
+              }
+            },
+            cancelOnError: false,
+          )..onDone(() {
+            log.i('Health stream completed');
+            // If we're still connected and not stopping, restart the stream
             if (connected && !stoppingBinary) {
-              log.i('Health stream dropped, but still connected, restarting health stream in 5 seconds...');
+              log.i('Stream completed but still connected, restarting health stream in 5 seconds...');
               Future.delayed(const Duration(seconds: 5), () {
                 if (connected && !stoppingBinary) {
                   startHealthStream();
                 }
               });
             }
-          },
-          cancelOnError: false,
-        )..onDone(() {
-          log.i('Health stream completed');
-          // If we're still connected and not stopping, restart the stream
-          if (connected && !stoppingBinary) {
-            log.i('Stream completed but still connected, restarting health stream in 5 seconds...');
-            Future.delayed(const Duration(seconds: 5), () {
-              if (connected && !stoppingBinary) {
-                startHealthStream();
-              }
-            });
-          }
-        });
+          });
     } catch (e) {
       log.e('Failed to start health stream: $e');
       // Connection is probably dead, don't crash - just log it
@@ -363,40 +364,41 @@ class BitwindowRPCLive extends BitwindowRPC {
     if (stoppingBinary) return;
 
     try {
-      _notificationStreamSubscription = notifications.watch().listen(
-          (event) {
-            // Broadcast to notification stream listeners
-            _notificationStreamController.add(event);
-          },
-          onError: (error) {
-            log.e('Notification stream error: $error');
-            if (error is Exception) {
-              log.e('Error details: ${error.toString()}');
-            }
+      _notificationStreamSubscription =
+          notifications.watch().listen(
+            (event) {
+              // Broadcast to notification stream listeners
+              _notificationStreamController.add(event);
+            },
+            onError: (error) {
+              log.e('Notification stream error: $error');
+              if (error is Exception) {
+                log.e('Error details: ${error.toString()}');
+              }
 
-            // If we're still connected and not stopping, try to restart the stream after a delay
+              // If we're still connected and not stopping, try to restart the stream after a delay
+              if (connected && !stoppingBinary) {
+                log.i('Notification stream dropped, but still connected, restarting in 5 seconds...');
+                Future.delayed(const Duration(seconds: 5), () {
+                  if (connected && !stoppingBinary) {
+                    startNotificationStream();
+                  }
+                });
+              }
+            },
+            cancelOnError: false,
+          )..onDone(() {
+            log.i('Notification stream completed');
+            // If we're still connected and not stopping, restart the stream
             if (connected && !stoppingBinary) {
-              log.i('Notification stream dropped, but still connected, restarting in 5 seconds...');
+              log.i('Stream completed but still connected, restarting notification stream in 5 seconds...');
               Future.delayed(const Duration(seconds: 5), () {
                 if (connected && !stoppingBinary) {
                   startNotificationStream();
                 }
               });
             }
-          },
-          cancelOnError: false,
-        )..onDone(() {
-          log.i('Notification stream completed');
-          // If we're still connected and not stopping, restart the stream
-          if (connected && !stoppingBinary) {
-            log.i('Stream completed but still connected, restarting notification stream in 5 seconds...');
-            Future.delayed(const Duration(seconds: 5), () {
-              if (connected && !stoppingBinary) {
-                startNotificationStream();
-              }
-            });
-          }
-        });
+          });
     } catch (e) {
       log.e('Failed to start notification stream: $e');
       // Connection is probably dead, don't crash - just log it
