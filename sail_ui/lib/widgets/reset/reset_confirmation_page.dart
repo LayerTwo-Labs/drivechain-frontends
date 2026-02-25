@@ -243,7 +243,7 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(SailStyleValues.padding12),
                               child: _isDeleting
-                                  ? _buildDeletionProgress(theme)
+                                  ? _DeletionProgress(filesToDelete: widget.filesToDelete)
                                   : PathTreeView(paths: widget.filesToDelete.map((f) => f.path).toList()),
                             ),
                           ),
@@ -334,16 +334,26 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     );
   }
 
-  Widget _buildDeletionProgress(SailThemeData theme) {
+}
+
+class _DeletionProgress extends StatelessWidget {
+  final List<DeleteItem> filesToDelete;
+
+  const _DeletionProgress({required this.filesToDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: widget.filesToDelete.map((item) {
+      children: filesToDelete.map((item) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              _buildStatusIcon(theme, item.status),
+              _StatusIcon(status: item.status),
               Expanded(
                 child: SailText.secondary12(
                   item.path,
@@ -357,8 +367,17 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       }).toList(),
     );
   }
+}
 
-  Widget _buildStatusIcon(SailThemeData theme, DeleteItemStatus status) {
+class _StatusIcon extends StatelessWidget {
+  final DeleteItemStatus status;
+
+  const _StatusIcon({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     switch (status) {
       case DeleteItemStatus.pending:
         return SizedBox(
