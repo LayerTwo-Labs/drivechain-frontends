@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
+import 'package:bitassets/settings/amm_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -106,15 +107,87 @@ class AmmTabPage extends StatelessWidget {
                               color: context.sailTheme.colors.backgroundSecondary,
                               borderRadius: SailStyleValues.borderRadius,
                             ),
-                            child: SailRow(
+                            child: SailColumn(
                               spacing: SailStyleValues.padding08,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                SailText.secondary13('Rate'),
-                                SailText.primary13(model.priceInfo!, monospace: true),
+                                SailRow(
+                                  spacing: SailStyleValues.padding08,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SailText.secondary13('Rate'),
+                                    SailText.primary13(model.priceInfo!, monospace: true),
+                                  ],
+                                ),
+                                if (model.feeEstimate != null)
+                                  SailRow(
+                                    spacing: SailStyleValues.padding08,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      SailText.secondary13('Swap Fee (0.3%)'),
+                                      SailText.primary13('~${model.feeEstimate} sats', monospace: true),
+                                    ],
+                                  ),
+                                if (model.minimumReceived != null)
+                                  SailRow(
+                                    spacing: SailStyleValues.padding08,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      SailText.secondary13('Min. received (${model.slippageTolerance}% slippage)'),
+                                      SailText.primary13('~${model.minimumReceived}', monospace: true),
+                                    ],
+                                  ),
                               ],
                             ),
                           ),
+
+                        // Advanced settings
+                        ExpansionTile(
+                          title: SailText.secondary13('Advanced Settings'),
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: const EdgeInsets.only(bottom: 8),
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: context.sailTheme.colors.backgroundSecondary,
+                                borderRadius: SailStyleValues.borderRadius,
+                              ),
+                              child: SailColumn(
+                                spacing: SailStyleValues.padding08,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailText.secondary12('Slippage Tolerance'),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _SlippageButton(
+                                        value: 0.1,
+                                        selected: model.slippageTolerance == 0.1,
+                                        onTap: () => model.setSlippage(0.1),
+                                      ),
+                                      _SlippageButton(
+                                        value: 0.5,
+                                        selected: model.slippageTolerance == 0.5,
+                                        onTap: () => model.setSlippage(0.5),
+                                      ),
+                                      _SlippageButton(
+                                        value: 1.0,
+                                        selected: model.slippageTolerance == 1.0,
+                                        onTap: () => model.setSlippage(1.0),
+                                      ),
+                                      _SlippageButton(
+                                        value: 2.0,
+                                        selected: model.slippageTolerance == 2.0,
+                                        onTap: () => model.setSlippage(2.0),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
 
@@ -184,10 +257,47 @@ class AmmTabPage extends StatelessWidget {
   }
 }
 
+class _SlippageButton extends StatelessWidget {
+  final double value;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SlippageButton({
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: SailStyleValues.borderRadius,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? theme.colors.primary : theme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadius,
+          border: Border.all(
+            color: selected ? theme.colors.primary : theme.colors.divider,
+          ),
+        ),
+        child: SailText.primary12(
+          '$value%',
+          color: selected ? Colors.white : null,
+        ),
+      ),
+    );
+  }
+}
+
 class AmmSwapViewModel extends BaseViewModel {
   final BitAssetsRPC rpc = GetIt.I.get<BitAssetsRPC>();
   final BitAssetsProvider bitAssetsProvider = GetIt.I.get<BitAssetsProvider>();
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
+  final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
   final TextEditingController amountSpendController = TextEditingController();
   final TextEditingController amountReceiveController = TextEditingController();
@@ -197,11 +307,38 @@ class AmmSwapViewModel extends BaseViewModel {
   String? swapError;
   String? priceInfo;
   bool swapLoading = false;
+  double slippageTolerance = 0.5;
 
   AmmSwapViewModel() {
     bitAssetsProvider.addListener(notifyListeners);
     bitAssetsProvider.fetch();
     amountSpendController.addListener(_onAmountChanged);
+    _loadSlippage();
+  }
+
+  Future<void> _loadSlippage() async {
+    final setting = await _settings.getValue(SlippageToleranceSetting());
+    slippageTolerance = setting.value;
+    notifyListeners();
+  }
+
+  void setSlippage(double value) {
+    slippageTolerance = value;
+    _settings.setValue(SlippageToleranceSetting(newValue: value));
+    notifyListeners();
+  }
+
+  int? get feeEstimate {
+    final amount = int.tryParse(amountSpendController.text);
+    if (amount == null || amount <= 0) return null;
+    return (amount * 0.003).round();
+  }
+
+  String? get minimumReceived {
+    final receiveAmount = int.tryParse(amountReceiveController.text);
+    if (receiveAmount == null || receiveAmount <= 0) return null;
+    final minAmount = (receiveAmount * (1 - slippageTolerance / 100)).round();
+    return minAmount.toString();
   }
 
   List<SailDropdownItem<String>> get assetOptions {
