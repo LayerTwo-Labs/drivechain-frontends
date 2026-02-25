@@ -333,7 +333,6 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       ),
     );
   }
-
 }
 
 class _DeletionProgress extends StatelessWidget {
