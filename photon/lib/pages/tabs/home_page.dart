@@ -30,6 +30,12 @@ enum Tabs {
   // photon configurable homepage
   PhotonHomepage,
 
+  // explorer routes
+  BlockExplorer,
+  MempoolExplorer,
+  Withdrawals,
+  TransactionBuilder,
+
   // sidechain console route
   Console,
 
@@ -183,6 +189,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
         category: 'Navigation',
         onSelected: () {
           AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.PhotonHomepage.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Block Explorer',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.BlockExplorer.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Mempool Explorer',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.MempoolExplorer.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Withdrawals',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Withdrawals.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Transaction Builder',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.TransactionBuilder.index);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -429,6 +467,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             ParentChainRoute(),
             // photon configurable homepage
             PhotonHomepageRoute(),
+            // explorer routes
+            BlockExplorerRoute(),
+            MempoolExplorerRoute(),
+            WithdrawalsRoute(),
+            TransactionBuilderRoute(),
             // sidechain console route
             ConsoleTabRoute(),
             // trailing common routes
@@ -454,6 +497,34 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         optionalKey: Tabs.PhotonHomepage.index,
                         onTap: () {
                           tabsRouter.setActiveIndex(Tabs.PhotonHomepage.index);
+                        },
+                      ),
+                      TopNavRoute(
+                        label: 'Block Explorer',
+                        optionalKey: Tabs.BlockExplorer.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.BlockExplorer.index);
+                        },
+                      ),
+                      TopNavRoute(
+                        label: 'Mempool',
+                        optionalKey: Tabs.MempoolExplorer.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.MempoolExplorer.index);
+                        },
+                      ),
+                      TopNavRoute(
+                        label: 'Withdrawals',
+                        optionalKey: Tabs.Withdrawals.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.Withdrawals.index);
+                        },
+                      ),
+                      TopNavRoute(
+                        label: 'Tx Builder',
+                        optionalKey: Tabs.TransactionBuilder.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.TransactionBuilder.index);
                         },
                       ),
                       TopNavRoute(

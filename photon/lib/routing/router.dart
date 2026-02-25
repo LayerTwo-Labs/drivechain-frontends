@@ -5,6 +5,10 @@ import 'package:photon/pages/tabs/home_page.dart';
 import 'package:photon/pages/tabs/settings_page.dart';
 import 'package:photon/pages/tabs/photon_configure_homepage_page.dart';
 import 'package:photon/pages/tabs/photon_homepage.dart';
+import 'package:photon/pages/tabs/block_explorer_page.dart';
+import 'package:photon/pages/tabs/mempool_explorer_page.dart';
+import 'package:photon/pages/tabs/withdrawals_page.dart';
+import 'package:photon/pages/tabs/transaction_builder_page.dart';
 import 'package:photon/pages/photon_conf_editor_page.dart';
 
 part 'router.gr.dart';
@@ -48,10 +52,22 @@ class AppRouter extends RootStackRouter {
           initial: true,
         ),
         AutoRoute(
-          page: SettingsTabRoute.page,
+          page: BlockExplorerRoute.page,
+        ),
+        AutoRoute(
+          page: MempoolExplorerRoute.page,
+        ),
+        AutoRoute(
+          page: WithdrawalsRoute.page,
+        ),
+        AutoRoute(
+          page: TransactionBuilderRoute.page,
         ),
         AutoRoute(
           page: ConsoleTabRoute.page,
+        ),
+        AutoRoute(
+          page: SettingsTabRoute.page,
         ),
       ],
     ),
