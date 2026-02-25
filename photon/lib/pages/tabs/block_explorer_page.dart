@@ -62,7 +62,6 @@ class _BlockNavigationControls extends StatelessWidget {
           child: SailTextField(
             controller: model.heightController,
             hintText: 'Height',
-            textAlign: TextAlign.center,
             onSubmitted: (_) => model.goToHeight(),
           ),
         ),
