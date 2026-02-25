@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart';
 import 'package:stacked/stacked.dart';
+import 'package:photon/widgets/miner_widget.dart';
+import 'package:photon/widgets/parent_chain_info_widget.dart';
 
 class PhotonWidgetCatalog {
   static final Map<String, HomepageWidgetInfo> _widgets = {
@@ -149,6 +151,24 @@ class PhotonWidgetCatalog {
         height: 400, // Fixed height to prevent layout issues
         child: const UTXOsTab(),
       ),
+    ),
+
+    'miner': HomepageWidgetInfo(
+      id: 'miner',
+      name: 'Miner',
+      description: 'Mine blocks and view chain info',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconTools,
+      builder: (_) => const MinerWidget(),
+    ),
+
+    'parent_chain_info': HomepageWidgetInfo(
+      id: 'parent_chain_info',
+      name: 'Parent Chain Info',
+      description: 'Shows mainchain and sidechain status',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconInfo,
+      builder: (_) => const ParentChainInfoWidget(),
     ),
   };
 
