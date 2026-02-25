@@ -189,6 +189,27 @@ class DutchAuctionTabPage extends StatelessWidget {
                           Expanded(child: Container()), // Spacer
                         ],
                       ),
+
+                      // Fee estimate
+                      Container(
+                        padding: const EdgeInsets.all(SailStyleValues.padding12),
+                        decoration: BoxDecoration(
+                          color: context.sailTheme.colors.backgroundSecondary,
+                          borderRadius: SailStyleValues.borderRadius,
+                        ),
+                        child: SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            SailSVG.icon(SailSVGAsset.iconInfo, width: 16),
+                            Expanded(
+                              child: SailText.secondary12(
+                                'Estimated creation fee: ~1,000 sats (network fee)',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       SailButton(
                         label: 'Create Auction',
                         onPressed: model.createLoading ? null : () => model.createDutchAuction(context),
