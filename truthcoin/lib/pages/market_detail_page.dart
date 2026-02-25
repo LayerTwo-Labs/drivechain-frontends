@@ -98,12 +98,12 @@ class MarketDetailPage extends StatelessWidget {
                     // Left: Outcomes
                     Expanded(
                       flex: 3,
-                      child: _buildOutcomesSection(context, model, market),
+                      child: _OutcomesSection(model: model, market: market),
                     ),
                     // Right: Trading panel
                     Expanded(
                       flex: 2,
-                      child: _buildTradingPanel(context, model, market),
+                      child: _TradingPanel(model: model, market: market),
                     ),
                   ],
                 ),
@@ -114,8 +114,16 @@ class MarketDetailPage extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildOutcomesSection(BuildContext context, MarketDetailViewModel model, MarketData market) {
+class _OutcomesSection extends StatelessWidget {
+  final MarketDetailViewModel model;
+  final MarketData market;
+
+  const _OutcomesSection({required this.model, required this.market});
+
+  @override
+  Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
 
     return SailCard(
@@ -160,8 +168,16 @@ class MarketDetailPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTradingPanel(BuildContext context, MarketDetailViewModel model, MarketData market) {
+class _TradingPanel extends StatelessWidget {
+  final MarketDetailViewModel model;
+  final MarketData market;
+
+  const _TradingPanel({required this.model, required this.market});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final formatter = GetIt.I<FormatterProvider>();
 
@@ -307,12 +323,12 @@ class _StateChip extends StatelessWidget {
     Color bgColor;
     switch (state) {
       case MarketState.trading:
-        bgColor = theme.colors.success.withOpacity(0.2);
+        bgColor = theme.colors.success.withValues(alpha: 0.2);
       case MarketState.ossified:
-        bgColor = theme.colors.info.withOpacity(0.2);
+        bgColor = theme.colors.info.withValues(alpha: 0.2);
       case MarketState.cancelled:
       case MarketState.invalid:
-        bgColor = theme.colors.error.withOpacity(0.2);
+        bgColor = theme.colors.error.withValues(alpha: 0.2);
     }
 
     return Container(
@@ -338,7 +354,7 @@ class _TagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: theme.colors.primary.withOpacity(0.1),
+        color: theme.colors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: SailText.secondary12(tag),
@@ -367,7 +383,7 @@ class _OutcomeBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colors.primary.withOpacity(0.1) : theme.colors.backgroundSecondary,
+          color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? theme.colors.primary : Colors.transparent,

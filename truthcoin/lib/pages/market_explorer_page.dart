@@ -22,17 +22,24 @@ class MarketExplorerPage extends StatelessWidget {
           child: SailColumn(
             spacing: SailStyleValues.padding16,
             children: [
-              _buildHeader(context, model),
-              _buildStats(context, model),
-              Expanded(child: _buildMarketList(context, model)),
+              _HeaderSection(model: model),
+              _StatsSection(model: model),
+              Expanded(child: _MarketListSection(model: model)),
             ],
           ),
         );
       },
     );
   }
+}
 
-  Widget _buildHeader(BuildContext context, MarketExplorerViewModel model) {
+class _HeaderSection extends StatelessWidget {
+  final MarketExplorerViewModel model;
+
+  const _HeaderSection({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     return SailRow(
       spacing: SailStyleValues.padding12,
       children: [
@@ -96,8 +103,15 @@ class MarketExplorerPage extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildStats(BuildContext context, MarketExplorerViewModel model) {
+class _StatsSection extends StatelessWidget {
+  final MarketExplorerViewModel model;
+
+  const _StatsSection({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
 
     return ListenableBuilder(
@@ -121,8 +135,15 @@ class MarketExplorerPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildMarketList(BuildContext context, MarketExplorerViewModel model) {
+class _MarketListSection extends StatelessWidget {
+  final MarketExplorerViewModel model;
+
+  const _MarketListSection({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
 
     if (model.isLoading) {
@@ -267,12 +288,12 @@ class _StateChip extends StatelessWidget {
     Color bgColor;
     switch (state) {
       case MarketState.trading:
-        bgColor = theme.colors.success.withOpacity(0.2);
+        bgColor = theme.colors.success.withValues(alpha: 0.2);
       case MarketState.ossified:
-        bgColor = theme.colors.info.withOpacity(0.2);
+        bgColor = theme.colors.info.withValues(alpha: 0.2);
       case MarketState.cancelled:
       case MarketState.invalid:
-        bgColor = theme.colors.error.withOpacity(0.2);
+        bgColor = theme.colors.error.withValues(alpha: 0.2);
     }
 
     return Container(

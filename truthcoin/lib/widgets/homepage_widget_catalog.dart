@@ -676,7 +676,7 @@ class _VotingStatusWidget extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: theme.colors.primary.withOpacity(0.1),
+                          color: theme.colors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: SailText.primary13(
