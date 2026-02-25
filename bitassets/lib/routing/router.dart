@@ -1,5 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/pages/tabs/amm_page.dart';
+import 'package:bitassets/pages/tabs/asset_explorer_page.dart';
+import 'package:bitassets/pages/tabs/auction_browser_page.dart';
 import 'package:bitassets/pages/tabs/bitassets_configure_homepage_page.dart';
 import 'package:bitassets/pages/tabs/bitassets_homepage.dart';
 import 'package:bitassets/pages/tabs/dutch_auction_page.dart';
@@ -60,6 +62,12 @@ class AppRouter extends RootStackRouter {
         ),
         AutoRoute(
           page: AmmTabRoute.page,
+        ),
+        AutoRoute(
+          page: AssetExplorerTabRoute.page,
+        ),
+        AutoRoute(
+          page: AuctionBrowserTabRoute.page,
         ),
         AutoRoute(
           page: SettingsTabRoute.page,

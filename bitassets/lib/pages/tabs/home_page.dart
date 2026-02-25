@@ -42,7 +42,13 @@ enum Tabs {
   // AMM swap route
   Amm,
 
-  // sidechain balance/transfer route
+  // asset explorer route
+  AssetExplorer,
+
+  // auction browser route
+  AuctionBrowser,
+
+  // sidechain console route
   Console,
 
   // trailing common routes
@@ -227,6 +233,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
         category: 'Navigation',
         onSelected: () {
           AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.Amm.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Asset Explorer',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.AssetExplorer.index);
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+      CommandItem(
+        label: 'Auction Browser',
+        category: 'Navigation',
+        onSelected: () {
+          AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.AuctionBrowser.index);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -434,6 +456,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 DutchAuctionTabRoute(),
                 // AMM swap route
                 AmmTabRoute(),
+                // asset explorer route
+                AssetExplorerTabRoute(),
+                // auction browser route
+                AuctionBrowserTabRoute(),
                 // sidechain console route
                 ConsoleTabRoute(),
                 // trailing common routes
@@ -487,6 +513,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             optionalKey: Tabs.Amm.index,
                             onTap: () {
                               tabsRouter.setActiveIndex(Tabs.Amm.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Explorer',
+                            optionalKey: Tabs.AssetExplorer.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.AssetExplorer.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Auctions',
+                            optionalKey: Tabs.AuctionBrowser.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.AuctionBrowser.index);
                             },
                           ),
                           TopNavRoute(
