@@ -103,7 +103,6 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
     return Scaffold(
       backgroundColor: theme.colors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         backgroundColor: theme.colors.background,
         foregroundColor: theme.colors.text,
       ),
