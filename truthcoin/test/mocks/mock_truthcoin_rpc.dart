@@ -341,28 +341,6 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     return 'transfer_votecoin_txid';
   }
 
-  // Crypto utilities
-  @override
-  Future<String> sha256d(String data) async => 'sha256d_hash';
-
-  @override
-  Future<String> hmacSha256(String key, String data) async => 'hmac_hash';
-
-  @override
-  Future<Map<String, dynamic>> getPublicKey({String? account, int? index}) async {
-    return {'public_key': 'test_public_key'};
-  }
-
-  @override
-  Future<Map<String, dynamic>> sign({required String message, String? account, int? index}) async {
-    return {'signature': 'test_signature'};
-  }
-
-  @override
-  Future<bool> verify({required String message, required String signature, required String publicKey}) async {
-    return true;
-  }
-
   // Additional required methods
   @override
   Future<void> refreshWallet() async {}
