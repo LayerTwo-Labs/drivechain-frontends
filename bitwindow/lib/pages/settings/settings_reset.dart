@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:bitwindow/main.dart' show bootBinaries;
+import 'package:bitwindow/pages/root_page.dart' show setRootPageNavigatingAway;
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -218,6 +219,8 @@ class _SettingsResetState extends State<SettingsReset> {
       final needsWalletCreation = _deleteWalletFiles || _obliterateEverything;
 
       if (needsWalletCreation) {
+        // Prevent RootPage.dispose() from triggering app shutdown during navigation
+        setRootPageNavigatingAway(true);
         await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
       }
     }

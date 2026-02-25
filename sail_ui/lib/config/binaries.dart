@@ -334,6 +334,7 @@ abstract class Binary {
         final network = GetIt.I.get<BitcoinConfProvider>().network;
         return _getExistingFilesInDir(rootdir, [
           'validator',
+          'bitwindow-enforcer.conf',
           network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
         ]);
 
