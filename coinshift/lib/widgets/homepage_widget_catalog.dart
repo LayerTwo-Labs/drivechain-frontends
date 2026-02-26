@@ -6,6 +6,9 @@ import 'package:stacked/stacked.dart';
 import 'package:coinshift/providers/swap_provider.dart';
 import 'package:coinshift/widgets/swap/swap_card.dart';
 import 'package:coinshift/widgets/swap/swap_status_badge.dart';
+import 'package:coinshift/widgets/swap_scheduler_widget.dart';
+import 'package:coinshift/widgets/liquidity_monitor_widget.dart';
+import 'package:coinshift/widgets/swap_failure_recovery.dart';
 
 class CoinShiftWidgetCatalog {
   static final Map<String, HomepageWidgetInfo> _widgets = {
@@ -172,6 +175,42 @@ class CoinShiftWidgetCatalog {
       builder: (_) => const SizedBox(
         height: 400,
         child: UTXOsTab(),
+      ),
+    ),
+
+    'swap_scheduler': HomepageWidgetInfo(
+      id: 'swap_scheduler',
+      name: 'Swap Scheduler',
+      description: 'Schedule and create new swaps with advanced options',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.iconCalendar,
+      builder: (_) => const SizedBox(
+        height: 450,
+        child: SwapSchedulerWidget(),
+      ),
+    ),
+
+    'liquidity_monitor': HomepageWidgetInfo(
+      id: 'liquidity_monitor',
+      name: 'Liquidity Monitor',
+      description: 'Monitor chain health and liquidity across all chains',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.iconNetwork,
+      builder: (_) => const SizedBox(
+        height: 350,
+        child: LiquidityMonitorWidget(),
+      ),
+    ),
+
+    'swap_recovery': HomepageWidgetInfo(
+      id: 'swap_recovery',
+      name: 'Swap Recovery',
+      description: 'Recover and retry failed swaps',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.iconRestart,
+      builder: (_) => const SizedBox(
+        height: 400,
+        child: SwapFailureRecoveryWidget(),
       ),
     ),
   };

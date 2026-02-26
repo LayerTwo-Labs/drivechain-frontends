@@ -12,6 +12,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:coinshift/config/runtime_args.dart';
+import 'package:coinshift/providers/analytics_provider.dart';
 import 'package:coinshift/providers/coinshift_conf_provider.dart';
 import 'package:coinshift/providers/coinshift_homepage_provider.dart';
 import 'package:coinshift/providers/swap_provider.dart';
@@ -101,6 +102,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // Register swap provider
   final swapProvider = SwapProvider();
   GetIt.I.registerLazySingleton<SwapProvider>(() => swapProvider);
+
+  // Register analytics provider (depends on SwapProvider)
+  final analyticsProvider = AnalyticsProvider();
+  GetIt.I.registerLazySingleton<AnalyticsProvider>(() => analyticsProvider);
 
   return (applicationDir, logFile, log);
 }

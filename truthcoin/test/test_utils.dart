@@ -1,14 +1,11 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/pages/router.gr.dart';
+import 'package:sail_ui/pages/sail_test_page.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
-import 'package:truthcoin/routing/router.dart';
 
 import 'mocks/mock_truthcoin_rpc.dart';
 import 'mocks/storage_mock.dart';
@@ -18,53 +15,30 @@ Future<void> _setDeviceSize() async {
   await binding.setSurfaceSize(const Size(1200, 720));
 }
 
-Future<void> loadFonts() async {
-  final inter = rootBundle.load('./assets/fonts/Inter-Regular.ttf');
-  final fontLoader = FontLoader('Inter')..addFont(inter);
-  await fontLoader.load();
-}
-
 extension TestExtension on WidgetTester {
   Future<void> pumpSailPage(
     Widget child,
   ) async {
     await _setDeviceSize();
-    await loadFonts();
     await registerTestDependencies();
 
     await pumpWidget(
       SailApp(
         dense: false,
         builder: (context) {
-          final appRouter = GetIt.I.get<AppRouter>();
-
-          return MaterialApp.router(
-            routerDelegate: appRouter.delegate(
-              // ignore: deprecated_member_use
-              deepLinkBuilder: (_) => DeepLink([SailTestRoute(child: child)]),
-            ),
-            routeInformationParser: appRouter.defaultRouteParser(),
-            title: 'Truthcoin',
-            theme: ThemeData(
-              fontFamily: 'Inter',
-            ),
-          );
+          return MaterialApp(home: SailTestPage(child: child));
         },
         initMethod: (_) async => (),
         accentColor: SailColorScheme.black,
         log: GetIt.I.get<Logger>(),
       ),
+      duration: const Duration(seconds: 10),
     );
-    await pumpAndSettle();
+    await pump();
   }
 }
 
 Future<void> registerTestDependencies() async {
-  if (!GetIt.I.isRegistered<AppRouter>()) {
-    GetIt.I.registerLazySingleton<AppRouter>(
-      () => AppRouter(),
-    );
-  }
   final log = Logger();
   if (!GetIt.I.isRegistered<Logger>()) {
     GetIt.I.registerLazySingleton<Logger>(() => log);
@@ -89,16 +63,15 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<BinaryProvider>()) {
-    GetIt.I.registerLazySingleton<BinaryProvider>(
-      () => MockBinaryProvider(),
+  if (!GetIt.I.isRegistered<FormatterProvider>()) {
+    GetIt.I.registerLazySingleton<FormatterProvider>(
+      () => FormatterProvider(GetIt.I.get<SettingsProvider>()),
     );
   }
 
-  if (!GetIt.I.isRegistered<FormatterProvider>()) {
-    final settings = GetIt.I.get<SettingsProvider>();
-    GetIt.I.registerLazySingleton<FormatterProvider>(
-      () => FormatterProvider(settings),
+  if (!GetIt.I.isRegistered<BinaryProvider>()) {
+    GetIt.I.registerLazySingleton<BinaryProvider>(
+      () => MockBinaryProvider(),
     );
   }
 }
@@ -116,8 +89,6 @@ Future<TestTruthcoinRPC> setupMarketVotingTests() async {
 
   GetIt.I.registerLazySingleton<TruthcoinRPC>(() => mockRpc);
   GetIt.I.registerLazySingleton<SidechainRPC>(() => mockRpc);
-
-  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
 
   // Register ClientSettings before SettingsProvider
   GetIt.I.registerLazySingleton<ClientSettings>(

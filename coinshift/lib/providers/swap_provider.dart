@@ -135,6 +135,33 @@ class SwapProvider extends ChangeNotifier {
     }
   }
 
+  /// Update swap with L1 transaction information
+  Future<void> updateSwapL1Txid({
+    required String swapId,
+    required String l1TxidHex,
+    required int confirmations,
+  }) async {
+    try {
+      isLoading = true;
+      error = null;
+      notifyListeners();
+
+      await _rpc.updateSwapL1Txid(
+        swapId: swapId,
+        l1TxidHex: l1TxidHex,
+        confirmations: confirmations,
+      );
+
+      // Refresh the swaps list
+      await fetchSwaps();
+    } catch (e) {
+      log.e('Failed to update swap L1 txid: $e');
+      error = e.toString();
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Manually refresh swaps
   Future<void> refresh() async {
     await fetchSwaps();
