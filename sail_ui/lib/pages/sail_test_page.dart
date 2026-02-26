@@ -8,6 +8,6 @@ class SailTestPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(child: child);
+    return Scaffold(body: child);
   }
 }

@@ -7,6 +7,7 @@ import 'package:coinshift/pages/tabs/coinshift_configure_homepage_page.dart';
 import 'package:coinshift/pages/tabs/coinshift_homepage.dart';
 import 'package:coinshift/pages/tabs/swaps_page.dart';
 import 'package:coinshift/pages/coinshift_conf_editor_page.dart';
+import 'package:coinshift/pages/swap_analytics_page.dart';
 
 part 'router.gr.dart';
 
@@ -50,6 +51,9 @@ class AppRouter extends RootStackRouter {
         ),
         AutoRoute(
           page: SwapsTabRoute.page,
+        ),
+        AutoRoute(
+          page: SwapAnalyticsRoute.page,
         ),
         AutoRoute(
           page: SettingsTabRoute.page,
