@@ -65,7 +65,7 @@ dependencies:
   blockchain_utils: ^5.4.0
   bech32: ^0.2.2
   archive: ^4.0.7
-  csv: ^6.0.0
+  csv: ^7.1.0
   uuid: ^4.5.2
 
 dev_dependencies:
