@@ -106,10 +106,16 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
 
       try {
         final filePath = item.path;
-        if (await Directory(filePath).exists()) {
+        // Try to delete as directory first (recursive handles files inside)
+        // If that fails, try as a file
+        try {
           await Directory(filePath).delete(recursive: true);
-        } else if (await File(filePath).exists()) {
-          await File(filePath).delete();
+        } on FileSystemException {
+          // Not a directory or doesn't exist as directory, try as file
+          final file = File(filePath);
+          if (await file.exists()) {
+            await file.delete();
+          }
         }
         if (mounted) {
           setState(() => item.status = DeleteItemStatus.success);

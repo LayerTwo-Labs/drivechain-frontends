@@ -118,6 +118,18 @@ class EnforcerLive extends EnforcerRPC {
       // Signet uses the enforcer's built-in default
     }
 
+    // ZMQ sequence address (read from bitcoin.conf, fallback to default)
+    var zmqSequence = 'tcp://127.0.0.1:29000';
+    try {
+      final bitcoinConf = GetIt.I.get<BitcoinConfProvider>();
+      final fromConf = bitcoinConf.currentConfig?.getEffectiveSetting(
+        'zmqpubsequence',
+        bitcoinConf.network.toCoreNetwork(),
+      );
+      if (fromConf != null && fromConf.isNotEmpty) zmqSequence = fromConf;
+    } catch (_) {}
+    args.add('--node-zmq-addr-sequence=$zmqSequence');
+
     // Default flags
     args.add('--enable-wallet');
     args.add('--enable-mempool');

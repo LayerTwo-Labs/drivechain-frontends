@@ -213,6 +213,11 @@ class _SettingsResetState extends State<SettingsReset> {
 
     // If deletion happened, restart binaries
     if (confirmed == true) {
+      // Clear in-memory wallet state so the create wallet page sees a fresh state
+      if (_deleteWalletFiles || _obliterateEverything) {
+        GetIt.I.get<WalletReaderProvider>().clearState();
+      }
+
       unawaited(bootBinaries(log));
 
       final router = GetIt.I.get<AppRouter>();

@@ -70,6 +70,7 @@ class EnforcerConfProvider extends ChangeNotifier {
   /// Get expected node-rpc settings from BitcoinConfProvider
   Map<String, String> getExpectedNodeRpcSettings() {
     const host = '127.0.0.1';
+    const defaultZmqSequence = 'tcp://127.0.0.1:29000';
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
     final port = bitcoinConfProvider.rpcPort;
 
@@ -78,6 +79,7 @@ class EnforcerConfProvider extends ChangeNotifier {
         'node-rpc-user': 'user',
         'node-rpc-pass': 'password',
         'node-rpc-addr': '$host:$port',
+        'node-zmq-addr-sequence': defaultZmqSequence,
       };
     }
 
@@ -86,11 +88,13 @@ class EnforcerConfProvider extends ChangeNotifier {
 
     final username = config.getEffectiveSetting('rpcuser', networkSection) ?? 'user';
     final password = config.getEffectiveSetting('rpcpassword', networkSection) ?? 'password';
+    final zmqSequence = config.getEffectiveSetting('zmqpubsequence', networkSection) ?? defaultZmqSequence;
 
     return {
       'node-rpc-user': username,
       'node-rpc-pass': password,
       'node-rpc-addr': '$host:$port',
+      'node-zmq-addr-sequence': zmqSequence,
     };
   }
 
@@ -102,6 +106,7 @@ class EnforcerConfProvider extends ChangeNotifier {
     currentConfig!.setSetting('node-rpc-user', expected['node-rpc-user']!);
     currentConfig!.setSetting('node-rpc-pass', expected['node-rpc-pass']!);
     currentConfig!.setSetting('node-rpc-addr', expected['node-rpc-addr']!);
+    currentConfig!.setSetting('node-zmq-addr-sequence', expected['node-zmq-addr-sequence']!);
 
     // Sync esplora URL based on current network
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
@@ -132,10 +137,10 @@ class EnforcerConfProvider extends ChangeNotifier {
   }
 
   /// Current config version. Bump when adding a migration and add to [_enforcerConfMigrations].
-  static const int _kEnforcerConfVersion = 1;
+  static const int _kEnforcerConfVersion = 2;
 
   static final List<ConfigMigration<EnforcerConfig>> _enforcerConfMigrations = [
-    // Add migrations here, e.g. EnforcerConfMigration_2(),
+    _EnforcerMigration2AddZmqSequence(),
   ];
 
   /// Load config from file, or create default if not exists.
@@ -207,6 +212,9 @@ enable-mempool=true
 node-rpc-user=${nodeRpc['node-rpc-user']}
 node-rpc-pass=${nodeRpc['node-rpc-pass']}
 node-rpc-addr=${nodeRpc['node-rpc-addr']}
+
+# Node ZMQ sequence address (must match zmqpubsequence in bitcoin.conf)
+node-zmq-addr-sequence=tcp://127.0.0.1:29000
 
 # Network-specific esplora URL
 ${esploraUrl != null ? 'wallet-esplora-url=$esploraUrl' : '# wallet-esplora-url='}
@@ -342,6 +350,19 @@ ${esploraUrl != null ? 'wallet-esplora-url=$esploraUrl' : '# wallet-esplora-url=
       }
     } catch (e) {
       log.e('Failed to reload enforcer config from file system: $e');
+    }
+  }
+}
+
+/// Migration: add node-zmq-addr-sequence (now a required enforcer arg).
+class _EnforcerMigration2AddZmqSequence implements ConfigMigration<EnforcerConfig> {
+  @override
+  int get version => 2;
+
+  @override
+  void apply(EnforcerConfig config) {
+    if (!config.hasSetting('node-zmq-addr-sequence')) {
+      config.setSetting('node-zmq-addr-sequence', 'tcp://127.0.0.1:29000');
     }
   }
 }

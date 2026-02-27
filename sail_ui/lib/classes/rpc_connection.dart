@@ -63,6 +63,12 @@ abstract class RPCConnection extends ChangeNotifier {
   bool _testing = false;
   bool _shouldNotify = false;
 
+  // Incremented in stop() so in-flight pings started before the stop are discarded.
+  int _pingEpoch = 0;
+  // After a willful stop, the timer enters connect-mode-only: it keeps pinging
+  // to detect externally started processes, but suppresses errors silently.
+  bool connectModeOnly = false;
+
   bool _completedStartup = false;
 
   // values for tracking connection state, and error (if any)
@@ -81,7 +87,17 @@ abstract class RPCConnection extends ChangeNotifier {
       _testing = true;
       _shouldNotify = false;
 
+      final epochBeforePing = _pingEpoch;
       final newBlockCount = await ping();
+
+      // stop() was called while ping() was in-flight — discard stale result
+      if (_pingEpoch != epochBeforePing) {
+        return (connected, connectionError);
+      }
+
+      // Successful ping: we found a running process, exit connect-mode-only
+      connectModeOnly = false;
+
       if (!connected || connectionError != null) {
         // We were previously disconnected, or had an error. Wipe that,
         // set the correct new state, and notify listeners
@@ -100,6 +116,13 @@ abstract class RPCConnection extends ChangeNotifier {
         _shouldNotify = true;
       }
     } catch (error) {
+      // In connect-mode-only (after willful stop), just stay clean disconnected.
+      // Don't accumulate errors — we're only waiting for a new connection.
+      if (connectModeOnly) {
+        connected = false;
+        return (connected, connectionError);
+      }
+
       String? newError = error.toString();
 
       if (error is ConnectException) {
@@ -333,11 +356,12 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<void> stop() async {
     try {
       log.i('stopping rpc');
+      _pingEpoch++; // invalidate any in-flight ping
+      connectModeOnly = true; // timer keeps running, but only looks for new connections
       stoppingBinary = true;
+      restartTimer?.cancel();
       notifyListeners();
       await stopRPC();
-      restartTimer?.cancel();
-      connectionTimer?.cancel();
     } catch (e) {
       log.e('could not stop rpc: $e');
       connectionError = 'could not stop nor kill rpc, process might still be running: $e';
@@ -356,6 +380,19 @@ abstract class RPCConnection extends ChangeNotifier {
 
       notifyListeners();
     }
+  }
+
+  /// Marks the connection as stopped without sending a stop command.
+  /// Use this when the binary has already been stopped externally.
+  void markDisconnected() {
+    log.i('marking rpc as disconnected');
+    connected = false;
+    stoppingBinary = false;
+    connectModeOnly = true; // keep timer running, only look for new connections
+    connectionError = null;
+    startupError = null;
+    restartTimer?.cancel();
+    notifyListeners();
   }
 
   String? extractStartupError(String? newError) {

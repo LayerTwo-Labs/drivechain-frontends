@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -17,11 +16,9 @@ class IntegratedConsoleView extends StatefulWidget {
 }
 
 class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
-  // set up a terminal
   final terminal = Terminal(maxLines: 1000);
   final terminalController = TerminalController();
-  // using flutter_pty to start a shell session
-  late final Pty pty;
+  Pty? pty;
 
   @override
   void initState() {
@@ -33,40 +30,56 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
   }
 
   void _startPty() async {
-    // Display welcome message BEFORE starting the shell
-    final environment = await _setupTerminal();
+    try {
+      final environment = await _setupTerminal();
 
-    pty = Pty.start(
-      _getShell(),
-      columns: terminal.viewWidth,
-      rows: terminal.viewHeight,
-      environment: environment,
-    );
+      final started = Pty.start(
+        _getShell(),
+        columns: terminal.viewWidth,
+        rows: terminal.viewHeight,
+        environment: environment,
+      );
+      pty = started;
 
-    pty.output.cast<List<int>>().transform(Utf8Decoder()).listen(terminal.write);
+      // Use systemEncoding so Windows codepages (CP437, CP1252 etc.) decode
+      // correctly instead of crashing on non-UTF8 bytes.
+      started.output
+          .cast<List<int>>()
+          .transform(systemEncoding.decoder)
+          .listen(
+            terminal.write,
+            onError: (error) {
+              terminal.write('\r\n[terminal output error: $error]\r\n');
+            },
+          );
 
-    unawaited(
-      pty.exitCode.then((code) {
-        terminal.write('the process exited with exit code $code');
-      }),
-    );
+      unawaited(
+        started.exitCode.then((code) {
+          terminal.write('\r\nthe process exited with exit code $code');
+        }),
+      );
 
-    // Create enforcer-cli alias after shell starts
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _createEnforcerAlias();
-    });
+      // Create enforcer-cli alias after shell starts
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _createEnforcerAlias();
+      });
 
-    terminal.onOutput = (data) {
-      pty.write(const Utf8Encoder().convert(data));
-    };
+      terminal.onOutput = (data) {
+        pty?.write(Uint8List.fromList(systemEncoding.encode(data)));
+      };
 
-    terminal.onResize = (w, h, pw, ph) {
-      pty.resize(h, w);
-    };
+      terminal.onResize = (w, h, pw, ph) {
+        pty?.resize(h, w);
+      };
+    } catch (e) {
+      terminal.write('\r\n[failed to start terminal: $e]\r\n');
+    }
   }
 
   void _createEnforcerAlias() {
-    // Create aliases for enforcer-cli and conditionally bitcoin-cli
+    final p = pty;
+    if (p == null) return;
+
     final shell = _getShell();
     final confFile = BitcoinCore().confFile();
     String aliasCommands;
@@ -94,18 +107,16 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       }
     }
 
-    // Send the alias commands to the shell
-    pty.write(const Utf8Encoder().convert(aliasCommands));
+    p.write(Uint8List.fromList(systemEncoding.encode(aliasCommands)));
   }
 
   Future<Map<String, String>> _setupTerminal() async {
     final env = Map<String, String>.from(Platform.environment);
-    // Setup the PATH variable, adding any binaries we found in frontend-folders
     final currentPath = env['PATH'] ?? '';
     final extraBinaryPaths = await _getFrontendBinaryPaths();
-    final newPath = extraBinaryPaths.isEmpty ? currentPath : '${extraBinaryPaths.join(':')}:$currentPath';
+    final separator = Platform.isWindows ? ';' : ':';
+    final newPath = extraBinaryPaths.isEmpty ? currentPath : '${extraBinaryPaths.join(separator)}$separator$currentPath';
 
-    // Set up shell prompt to show we're in console mode
     env['PATH'] = newPath;
     env['PS1'] = r'Console> ';
 
@@ -237,7 +248,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
 
   @override
   void dispose() {
-    pty.kill();
+    pty?.kill();
     super.dispose();
   }
 
