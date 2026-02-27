@@ -266,7 +266,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
       // Settings sections
       CommandItem(
-        label: 'General Settings',
+        label: 'Appearance Settings',
         category: 'Settings',
         onSelected: () {
           AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
@@ -306,7 +306,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
         },
       ),
       CommandItem(
-        label: 'App Info / About',
+        label: 'About',
         category: 'Settings',
         onSelected: () {
           AutoRouterX(context).tabsRouter.setActiveIndex(Tabs.SettingsHome.index);

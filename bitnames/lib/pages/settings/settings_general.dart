@@ -31,14 +31,14 @@ class _SettingsGeneralState extends State<SettingsGeneral> {
   @override
   Widget build(BuildContext context) {
     return SailColumn(
-      spacing: SailStyleValues.padding20,
+      spacing: SailStyleValues.padding32,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.primary20('General'),
-            SailText.secondary13('Enable or disable various settings'),
+            SailText.primary20('Appearance'),
+            SailText.secondary13('Customize the look and feel of the application'),
           ],
         ),
         Column(
@@ -47,6 +47,8 @@ class _SettingsGeneralState extends State<SettingsGeneral> {
             SailText.primary15('Theme'),
             const SailSpacing(SailStyleValues.padding08),
             ToggleThemeButton(),
+            const SailSpacing(4),
+            SailText.secondary12('Switch between light and dark modes'),
           ],
         ),
         Column(
@@ -77,7 +79,7 @@ class _SettingsGeneralState extends State<SettingsGeneral> {
               },
             ),
             const SailSpacing(4),
-            SailText.secondary12('Changes the application font immediately.'),
+            SailText.secondary12('Choose your preferred font style'),
           ],
         ),
         Column(
@@ -87,7 +89,7 @@ class _SettingsGeneralState extends State<SettingsGeneral> {
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<BitcoinUnit>(
               value: _settingsProvider.bitcoinUnit,
-              items: const [
+              items: [
                 SailDropdownItem<BitcoinUnit>(
                   value: BitcoinUnit.btc,
                   label: 'BTC',
@@ -107,6 +109,7 @@ class _SettingsGeneralState extends State<SettingsGeneral> {
             SailText.secondary12('Choose how Bitcoin amounts are displayed'),
           ],
         ),
+        SailSpacing(SailStyleValues.padding64),
       ],
     );
   }
