@@ -5,20 +5,23 @@
 #include "flutter/generated_plugin_registrant.h"
 #include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "url_launcher_windows/url_launcher_windows.h"
+#include "window_manager/window_manager_plugin.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
 FlutterWindow::~FlutterWindow() {}
 
-// Register only essential plugins for sub-windows.
-// Some plugins (auto_updater, window_manager) have global state that crashes
-// when registered multiple times in the same process.
+// Register plugins needed for sub-windows.
+// Each engine gets its own registrar, so plugins are isolated per-window.
+// auto_updater is excluded as sub-windows don't need update functionality.
 void RegisterPluginsForSubWindow(flutter::PluginRegistry* registry) {
   DesktopMultiWindowPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("DesktopMultiWindowPlugin"));
   UrlLauncherWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("UrlLauncherWindows"));
+  WindowManagerPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("WindowManagerPlugin"));
 }
 
 bool FlutterWindow::OnCreate() {
