@@ -514,6 +514,7 @@ class BinaryProvider extends ChangeNotifier {
 
       if (died) {
         log.i('${binary.name} shut down gracefully');
+        _markRpcDisconnected(binary);
         return;
       }
 
@@ -522,12 +523,14 @@ class BinaryProvider extends ChangeNotifier {
       await _processManager.killPid(pidToWaitFor);
       // wait for 2 seconds to just... give it some time
       await Future.delayed(const Duration(seconds: 3));
+      _markRpcDisconnected(binary);
       return;
     }
 
     // Step 4: No PID available, check if process already exited
     if (exited(binary) != null) {
       log.i('${binary.name} already exited');
+      _markRpcDisconnected(binary);
       return;
     }
 
@@ -537,6 +540,7 @@ class BinaryProvider extends ChangeNotifier {
     while (DateTime.now().difference(startTime) < const Duration(seconds: 5)) {
       if (exited(binary) != null) {
         log.i('${binary.name} shutdown confirmed');
+        _markRpcDisconnected(binary);
         return;
       }
       await Future.delayed(const Duration(milliseconds: 100));
@@ -545,6 +549,34 @@ class BinaryProvider extends ChangeNotifier {
     // Final Step: Still not exited, force kill via process manager
     log.w('${binary.name} did not exit within 5s, force killing');
     await _processManager.kill(binary);
+    _markRpcDisconnected(binary);
+  }
+
+  /// Marks the RPC connection for a binary as disconnected.
+  /// Called after the binary process has stopped to update connection state.
+  void _markRpcDisconnected(Binary binary) {
+    switch (binary) {
+      case BitcoinCore():
+        mainchainRPC?.markDisconnected();
+      case Enforcer():
+        enforcerRPC?.markDisconnected();
+      case BitWindow():
+        bitwindowRPC?.markDisconnected();
+      case Thunder():
+        thunderRPC?.markDisconnected();
+      case Truthcoin():
+        truthcoinRPC?.markDisconnected();
+      case Photon():
+        photonRPC?.markDisconnected();
+      case BitNames():
+        bitnamesRPC?.markDisconnected();
+      case BitAssets():
+        bitassetsRPC?.markDisconnected();
+      case ZSide():
+        zsideRPC?.markDisconnected();
+      case CoinShift():
+        coinshiftRPC?.markDisconnected();
+    }
   }
 
   /// Download a binary using the DownloadProvider
@@ -713,6 +745,14 @@ class BinaryProvider extends ChangeNotifier {
       await Future.delayed(const Duration(seconds: 1));
     }
     log.i('[T+${getElapsed()}ms] STARTUP: Wallet is unlocked, proceeding with enforcer start');
+
+    // Wait for IBD to complete before starting enforcer
+    // The enforcer needs a fully synced chain to function properly
+    if (mainchainRPC != null) {
+      log.i('[T+${getElapsed()}ms] STARTUP: Waiting for IBD to complete before starting enforcer');
+      await mainchainRPC!.waitForIBD();
+      log.i('[T+${getElapsed()}ms] STARTUP: IBD complete, starting enforcer');
+    }
 
     if (bootEnforcerWithoutAwait) {
       unawaited(start(enforcer));

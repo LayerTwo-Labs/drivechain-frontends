@@ -579,6 +579,24 @@ class WalletWriterProvider extends ChangeNotifier {
 
     onStatusUpdate?.call('Deleting wallet files');
 
+    // Delete wallet.json and wallet_encryption.json from bitwindowAppDir.
+    // These live in the Flutter app's data dir, NOT in the binary's datadirNetwork(),
+    // so binary.getWalletPaths() won't find them.
+    try {
+      final walletFile = _walletReader.getWalletFile();
+      if (await walletFile.exists()) {
+        await walletFile.delete();
+        _logger.i('deleted ${walletFile.path}');
+      }
+      final encryptionFile = File(path.join(bitwindowAppDir.path, 'wallet_encryption.json'));
+      if (await encryptionFile.exists()) {
+        await encryptionFile.delete();
+        _logger.i('deleted ${encryptionFile.path}');
+      }
+    } catch (e) {
+      _logger.e('could not delete wallet.json / wallet_encryption.json: $e');
+    }
+
     try {
       for (final binary in binaryProvider.binaries) {
         // wipe all wallets, for the enforcer, bitnames, bitassets, thunder etc..

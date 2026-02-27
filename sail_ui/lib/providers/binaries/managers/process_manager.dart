@@ -89,6 +89,10 @@ class ProcessManager extends ChangeNotifier {
     final stdoutController = StreamController<String>();
     final stderrController = StreamController<String>();
 
+    // Track when streams are fully drained so the exit handler can read all output
+    final stdoutDone = Completer<void>();
+    final stderrDone = Completer<void>();
+
     // Add startup marker to LogProvider
     logProvider.addStartupMarker(binary.type, binary.name);
 
@@ -116,6 +120,7 @@ class ProcessManager extends ChangeNotifier {
           onDone: () {
             log.d('stdout stream done for ${file.path}');
             stdoutController.close();
+            stdoutDone.complete();
           },
         );
 
@@ -152,6 +157,7 @@ class ProcessManager extends ChangeNotifier {
           onDone: () {
             log.d('stderr stream done for ${file.path}');
             stderrController.close();
+            stderrDone.complete();
           },
         );
 
@@ -167,6 +173,18 @@ class ProcessManager extends ChangeNotifier {
       process.exitCode.then((code) async {
         try {
           log.i('process exit handler for code=$code binary=$binary pid=${process.pid} triggered');
+
+          // Wait for stdout and stderr to fully drain before reading error output.
+          // Without this, there's a race where the exit handler fires before
+          // the streams have delivered all their data.
+          await Future.wait([
+            stdoutDone.future,
+            stderrDone.future,
+          ]).timeout(const Duration(seconds: 2), onTimeout: () {
+            log.w('timed out waiting for streams to drain for ${binary.name}');
+            return [];
+          });
+
           runningProcesses.remove(binary.name);
           await pidFileManager.deletePidFile(binary);
 
@@ -174,16 +192,18 @@ class ProcessManager extends ChangeNotifier {
           var message = '';
           if (code != 0) {
             // exit code bad, it crashed!
-            final finalErr = _finalErr[binary.name];
-            final outLogs = await (_stdoutStreams[binary.name] ?? const Stream<String>.empty()).take(1).toList();
-            if (finalErr != null) {
-              log.i('finalerr present, using last message from stderr: $finalErr');
-              message = finalErr;
-            } else if (outLogs.isNotEmpty) {
-              log.i('no errlogs present, using last message from stdout: ${outLogs.last}');
-              message = outLogs.last;
+            // Prefer stderr (where error messages belong), fall back to stdout
+            final stderrBuffer = _stderrLogs[binary.name];
+            final finalStdout = _finalErr[binary.name];
+            if (stderrBuffer != null && stderrBuffer.isNotEmpty) {
+              final raw = stderrBuffer.join('\n').replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
+              log.i('using buffered stderr for error message (${stderrBuffer.length} chunks)');
+              message = raw;
+            } else if (finalStdout != null) {
+              log.i('no stderr, using last stdout message: $finalStdout');
+              message = finalStdout;
             } else {
-              log.i('no errlogs or stdout logs present');
+              log.i('no stderr or stdout logs present');
               message = 'Process exited with code $code';
             }
           }

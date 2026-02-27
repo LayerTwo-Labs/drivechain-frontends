@@ -399,7 +399,7 @@ class WalletReaderProvider extends ChangeNotifier {
 
         final tempFile = File('${walletFile.path}.tmp');
         await tempFile.writeAsString(encryptedData);
-        await tempFile.rename(walletFile.path);
+        await _replaceWalletFile(tempFile, walletFile);
 
         final metadata = EncryptionMetadata(
           salt: base64.encode(salt),
@@ -452,7 +452,7 @@ class WalletReaderProvider extends ChangeNotifier {
         final walletFile = getWalletFile();
         final tempFile = File('${walletFile.path}.tmp');
         await tempFile.writeAsString(newEncryptedData);
-        await tempFile.rename(walletFile.path);
+        await _replaceWalletFile(tempFile, walletFile);
 
         final newMetadata = EncryptionMetadata(
           salt: base64.encode(newSalt),
@@ -521,6 +521,18 @@ class WalletReaderProvider extends ChangeNotifier {
     });
   }
 
+  /// Rename [tempFile] over [target], pausing the file watcher so it doesn't
+  /// hold a handle that blocks the rename.
+  Future<void> _replaceWalletFile(File tempFile, File target) async {
+    await _walletDirWatcher?.cancel();
+    _walletDirWatcher = null;
+    try {
+      await tempFile.rename(target.path);
+    } finally {
+      _startWatchingWalletsDirectory();
+    }
+  }
+
   /// Save all wallets to file
   Future<void> _saveWalletsToFile() async {
     final fileJson = {
@@ -539,19 +551,19 @@ class WalletReaderProvider extends ChangeNotifier {
     }
 
     final isEncrypted = await _isWalletEncrypted();
+    final String data;
     if (isEncrypted) {
       if (_encryptionKey == null) {
         throw Exception('Wallets are locked');
       }
-      final encryptedData = EncryptionService.encrypt(jsonString, _encryptionKey!);
-      final tempFile = File('${walletFile.path}.tmp');
-      await tempFile.writeAsString(encryptedData);
-      await tempFile.rename(walletFile.path);
+      data = EncryptionService.encrypt(jsonString, _encryptionKey!);
     } else {
-      final tempFile = File('${walletFile.path}.tmp');
-      await tempFile.writeAsString(jsonString);
-      await tempFile.rename(walletFile.path);
+      data = jsonString;
     }
+
+    final tempFile = File('${walletFile.path}.tmp');
+    await tempFile.writeAsString(data);
+    await _replaceWalletFile(tempFile, walletFile);
   }
 
   /// Update wallet and save to file

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
 class TreeNode {
@@ -20,19 +21,23 @@ class TreeNode {
     final pathsSet = paths.toSet();
     final defaultCollapsed = <String>{};
 
-    for (final path in paths) {
-      final parts = path.split(Platform.pathSeparator).where((p) => p.isNotEmpty).toList();
+    for (final filePath in paths) {
+      final parts = path.split(filePath);
       var current = root;
 
       for (var i = 0; i < parts.length; i++) {
         final part = parts[i];
         final isLast = i == parts.length - 1;
-        final partialPath = Platform.pathSeparator + parts.sublist(0, i + 1).join(Platform.pathSeparator);
+        final partialPath = path.joinAll(parts.sublist(0, i + 1));
 
         if (!current.children.containsKey(part)) {
           var nodeIsDirectory = !isLast;
           if (isLast) {
-            nodeIsDirectory = await Directory(partialPath).exists();
+            try {
+              nodeIsDirectory = await Directory(partialPath).exists();
+            } catch (_) {
+              // Ignore errors checking individual paths
+            }
           }
 
           current.children[part] = TreeNode(

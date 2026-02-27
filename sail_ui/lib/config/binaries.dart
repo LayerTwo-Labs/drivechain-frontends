@@ -237,19 +237,26 @@ abstract class Binary {
 
         for (var attempt = 1; attempt <= 5; attempt++) {
           try {
-            if (await FileSystemEntity.isDirectory(filePath)) {
-              _log('Deleting directory: $filePath (attempt $attempt/5)');
+            // Try to delete as directory first (handles both dirs and their contents)
+            // If that fails, try as a file
+            try {
+              _log('Deleting (as directory): $filePath (attempt $attempt/5)');
               await Directory(filePath).delete(recursive: true);
               _log('Deleted directory: $filePath');
               return;
-            } else {
+            } on FileSystemException catch (dirError) {
+              // Not a directory or doesn't exist as directory, try as file
               final f = File(filePath);
               if (await f.exists()) {
-                _log('Deleting file: $filePath (attempt $attempt/5)');
+                _log('Deleting (as file): $filePath (attempt $attempt/5)');
                 await f.delete();
                 _log('Deleted file: $filePath');
+                return;
+              } else {
+                // Neither directory nor file exists - might have been deleted already
+                _log('Path does not exist (may have been deleted): $filePath - $dirError');
+                return;
               }
-              return;
             }
           } catch (e) {
             _log('Failed to delete $filePath (attempt $attempt/5): $e');
@@ -269,19 +276,26 @@ abstract class Binary {
     for (final filePath in paths) {
       for (var attempt = 1; attempt <= 5; attempt++) {
         try {
-          if (await FileSystemEntity.isDirectory(filePath)) {
-            _log('Deleting directory: $filePath (attempt $attempt/5)');
+          // Try to delete as directory first (handles both dirs and their contents)
+          // If that fails, try as a file
+          try {
+            _log('Deleting (as directory): $filePath (attempt $attempt/5)');
             await Directory(filePath).delete(recursive: true);
             _log('Deleted directory: $filePath');
             break;
-          } else {
+          } on FileSystemException catch (dirError) {
+            // Not a directory or doesn't exist as directory, try as file
             final f = File(filePath);
             if (await f.exists()) {
-              _log('Deleting file: $filePath (attempt $attempt/5)');
+              _log('Deleting (as file): $filePath (attempt $attempt/5)');
               await f.delete();
               _log('Deleted file: $filePath');
+              break;
+            } else {
+              // Neither directory nor file exists - might have been deleted already
+              _log('Path does not exist (may have been deleted): $filePath - $dirError');
+              break;
             }
-            break;
           }
         } catch (e) {
           _log('Failed to delete $filePath (attempt $attempt/5): $e');
@@ -295,21 +309,28 @@ abstract class Binary {
 
   /// Returns list of existing file/directory paths that would be deleted
   Future<List<String>> _getExistingFilesInDir(String dir, List<String> files) async {
+    _log('_getExistingFilesInDir: checking $dir for ${files.length} items: $files');
     final existing = <String>[];
     for (final file in files) {
       final filePath = path.join(dir, file);
-      if (await FileSystemEntity.isDirectory(filePath)) {
+      // Check directory first, then file - use exists() which is more reliable on Windows
+      final isDir = await Directory(filePath).exists();
+      final isFile = await File(filePath).exists();
+      _log('  $filePath: isDir=$isDir, isFile=$isFile');
+      if (isDir) {
         existing.add(filePath);
-      } else if (await File(filePath).exists()) {
+      } else if (isFile) {
         existing.add(filePath);
       }
     }
+    _log('_getExistingFilesInDir: found ${existing.length} existing paths');
     return existing;
   }
 
   /// Get list of blockchain data paths that exist and would be deleted
   Future<List<String>> getBlockchainDataPaths() async {
     final networkDir = datadirNetwork();
+    _log('getBlockchainDataPaths for $name: networkDir=$networkDir');
 
     switch (type) {
       case BinaryType.bitcoinCore:
@@ -357,19 +378,31 @@ abstract class Binary {
 
   /// Get list of settings paths that exist and would be deleted
   Future<List<String>> getSettingsPaths() async {
+    final paths = <String>[];
+
+    // Also include Flutter frontend app directory (getApplicationSupportDirectory())
+    final flutterDir = flutterFrontendDir();
+    if (flutterDir != null) {
+      paths.addAll(await _getExistingFilesInDir(flutterDir, ['settings.json', 'debug.log']));
+    }
+
     switch (type) {
       case BinaryType.bitcoinCore:
         final network = GetIt.I<BitcoinConfProvider>().network;
-        final paths = <String>[];
         paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['settings.json']));
-        paths.addAll(await _getExistingFilesInDir(rootDirNetwork(network), [kBitwindowBitcoinConfFilename]));
+        paths.addAll(
+          await _getExistingFilesInDir(rootDirNetwork(network), [
+            kBitwindowBitcoinConfFilename,
+            'bitcoin.conf',
+            'drivechain.conf',
+          ]),
+        );
         return paths;
 
       case BinaryType.enforcer:
         return [];
 
       case BinaryType.bitWindow:
-        final paths = <String>[];
         paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['server.log']));
         paths.addAll(
           await _getExistingFilesInDir(BitWindow().rootDir(), [
@@ -390,10 +423,12 @@ abstract class Binary {
       case BinaryType.zSide:
       case BinaryType.truthcoin:
       case BinaryType.photon:
-        return _getExistingFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']);
+        paths.addAll(
+          await _getExistingFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']),
+        );
+        return paths;
 
       case BinaryType.thunder:
-        final paths = <String>[];
         paths.addAll(
           await _getExistingFilesInDir(rootDir(), ['start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']),
         );
@@ -403,7 +438,8 @@ abstract class Binary {
         return paths;
 
       case BinaryType.coinShift:
-        return _getExistingFilesInDir(datadirNetwork(), ['debug.log', 'settings.json']);
+        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['debug.log', 'settings.json']));
+        return paths;
 
       case BinaryType.grpcurl:
         return [];
@@ -414,6 +450,7 @@ abstract class Binary {
   Future<List<String>> getWalletPaths() async {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
     final networkDir = datadirNetwork();
+    final paths = <String>[];
 
     switch (type) {
       case BinaryType.enforcer:
@@ -424,12 +461,11 @@ abstract class Binary {
           network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
         );
         if (await Directory(walletNetworkDir).exists()) {
-          return [walletNetworkDir];
+          paths.add(walletNetworkDir);
         }
-        return [];
 
       case BinaryType.bitcoinCore:
-        return _getBitcoinCoreWalletPaths(networkDir);
+        paths.addAll(await _getBitcoinCoreWalletPaths(networkDir));
 
       case BinaryType.bitnames:
       case BinaryType.bitassets:
@@ -438,14 +474,22 @@ abstract class Binary {
       case BinaryType.truthcoin:
       case BinaryType.photon:
       case BinaryType.coinShift:
-        return _getExistingFilesInDir(networkDir, ['wallet.mdb']);
+        paths.addAll(await _getExistingFilesInDir(networkDir, ['wallet.mdb']));
 
       case BinaryType.bitWindow:
-        return _getExistingFilesInDir(networkDir, ['wallet.json', 'wallet_encryption.json']);
+        paths.addAll(await _getExistingFilesInDir(networkDir, ['wallet.json', 'wallet_encryption.json']));
 
       case BinaryType.grpcurl:
         return [];
     }
+
+    // Also include Flutter frontend app directory (getApplicationSupportDirectory())
+    final flutterDir = flutterFrontendDir();
+    if (flutterDir != null) {
+      paths.addAll(await _getExistingFilesInDir(flutterDir, ['wallet.json', 'wallet_encryption.json']));
+    }
+
+    return paths;
   }
 
   /// Get Bitcoin Core wallet paths (wallets directory and named wallets)
@@ -1170,6 +1214,58 @@ class GRPCurl extends Binary {
 }
 
 extension BinaryPaths on Binary {
+  /// Returns the Flutter frontend's getApplicationSupportDirectory() path.
+  /// This is where the Flutter app stores settings.json, wallet.json, debug.log, etc.
+  /// Returns null for binaries that don't have a Flutter frontend.
+  String? flutterFrontendDir() {
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    if (home == null) return null;
+
+    return switch (type) {
+      BinaryType.bitWindow => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'bitwindow'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitWindow'),
+        OS.linux => path.join(home, '.local', 'share', 'bitwindow'),
+      },
+      BinaryType.thunder => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.thunder'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Thunder'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.thunder'),
+      },
+      BinaryType.zSide => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.zside'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'ZSide'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.zside'),
+      },
+      BinaryType.bitnames => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitnames'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'BitNames'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitnames'),
+      },
+      BinaryType.bitassets => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitassets'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'BitAssets'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitassets'),
+      },
+      BinaryType.truthcoin => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.truthcoin'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Truthcoin'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.truthcoin'),
+      },
+      BinaryType.photon => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.photon'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Photon'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.photon'),
+      },
+      BinaryType.coinShift => switch (OS.current) {
+        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.coinshift'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Coinshift'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
+      },
+      BinaryType.bitcoinCore || BinaryType.enforcer || BinaryType.grpcurl => null,
+    };
+  }
+
   String confFile() {
     return switch (type) {
       BinaryType.bitcoinCore => () {
