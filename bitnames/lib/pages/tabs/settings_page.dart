@@ -87,9 +87,9 @@ class SettingsTabPageState extends State<SettingsTabPage> {
                 children: [
                   SideNav(
                     items: const [
-                      SideNavItem(label: 'General'),
+                      SideNavItem(label: 'Appearance'),
                       SideNavItem(label: 'Reset'),
-                      SideNavItem(label: 'Info'),
+                      SideNavItem(label: 'About'),
                     ],
                     selectedIndex: _selectedIndex,
                     onItemSelected: (index) {

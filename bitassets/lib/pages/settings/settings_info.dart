@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitassets/gen/version.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SettingsInfo extends StatefulWidget {
@@ -13,30 +14,58 @@ class SettingsInfo extends StatefulWidget {
 }
 
 class _SettingsInfoState extends State<SettingsInfo> {
-  bool _isCheckingForUpdates = false;
-  String? _updateMessage;
+  UpdateProvider get _updateProvider => GetIt.I.get<UpdateProvider>();
+
+  @override
+  void initState() {
+    super.initState();
+    _updateProvider.addListener(_onUpdateProviderChanged);
+  }
+
+  @override
+  void dispose() {
+    _updateProvider.removeListener(_onUpdateProviderChanged);
+    super.dispose();
+  }
+
+  void _onUpdateProviderChanged() {
+    setState(() {});
+  }
 
   Future<void> _checkForUpdates() async {
-    if (Platform.isLinux) return;
+    if (Platform.isLinux) {
+      await _updateProvider.checkNow();
+    } else {
+      await autoUpdater.checkForUpdates();
+    }
+  }
 
-    setState(() {
-      _isCheckingForUpdates = true;
-      _updateMessage = null;
-    });
+  Future<void> _performUpdate() async {
+    if (!Platform.isLinux) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Update BitAssets?',
+        subtitle:
+            'The application will download and install version ${_updateProvider.latestVersion}, then restart automatically.',
+        onConfirm: () async => Navigator.of(context).pop(true),
+      ),
+    );
+
+    if (confirmed != true) return;
 
     try {
-      await autoUpdater.checkForUpdates();
-      setState(() {
-        _updateMessage = 'Check complete. If an update is available, you will be notified.';
-      });
+      await _updateProvider.performUpdate();
     } catch (e) {
-      setState(() {
-        _updateMessage = 'Error checking for updates: $e';
-      });
-    } finally {
-      setState(() {
-        _isCheckingForUpdates = false;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update failed: $e'),
+            backgroundColor: SailTheme.of(context).colors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -46,13 +75,8 @@ class _SettingsInfoState extends State<SettingsInfo> {
       spacing: SailStyleValues.padding20,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary20('Info'),
-            SailText.secondary13('Application version and build information'),
-          ],
-        ),
+        SailText.primary20('About'),
+        SailText.secondary13('Application version and build information'),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -85,23 +109,42 @@ class _SettingsInfoState extends State<SettingsInfo> {
             SailText.secondary13(AppVersion.appName),
           ],
         ),
-        if (!Platform.isLinux)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary15('Updates'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailButton(
-                label: 'Check for Updates',
-                loading: _isCheckingForUpdates,
-                onPressed: () async => await _checkForUpdates(),
-              ),
-              if (_updateMessage != null) ...[
-                const SailSpacing(4),
-                SailText.secondary12(_updateMessage!),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Updates'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailButton(
+                  label: 'Check for Updates',
+                  loading: _updateProvider.checking || _updateProvider.updating,
+                  onPressed: () async => await _checkForUpdates(),
+                ),
+                if (_updateProvider.updateAvailable && Platform.isLinux)
+                  SailButton(
+                    label: 'Install Update',
+                    variant: ButtonVariant.primary,
+                    onPressed: () async => await _performUpdate(),
+                  ),
               ],
+            ),
+            if (_updateProvider.errorMessage != null) ...[
+              const SailSpacing(4),
+              SailText.secondary12(
+                _updateProvider.errorMessage!,
+                color: SailTheme.of(context).colors.error,
+              ),
+            ] else if (_updateProvider.updateAvailable) ...[
+              const SailSpacing(4),
+              SailText.secondary12(
+                'Update available: v${_updateProvider.latestVersion}',
+                color: SailTheme.of(context).colors.primary,
+              ),
             ],
-          ),
+          ],
+        ),
       ],
     );
   }
