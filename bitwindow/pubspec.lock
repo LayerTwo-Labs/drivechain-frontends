@@ -221,10 +221,10 @@ packages:
     dependency: "direct dev"
     description:
       name: build_runner
-      sha256: "110c56ef29b5eb367b4d17fc79375fa8c18a6cd7acd92c05bb3986c17a079057"
+      sha256: "39ad4ca8a2876779737c60e4228b4bcd35d4352ef7e14e47514093edc012c734"
       url: "https://pub.dev"
     source: hosted
-    version: "2.10.4"
+    version: "2.11.1"
   built_collection:
     dependency: transitive
     description:
@@ -1471,4 +1471,4 @@ packages:
     version: "0.0.6"
 sdks:
   dart: "3.11.0"
-  flutter: "3.41.2"
+  flutter: ">=3.41.2"
