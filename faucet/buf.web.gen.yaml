@@ -1,0 +1,16 @@
+version: v2
+
+plugins:
+  - local: ./node_modules/.bin/protoc-gen-es
+    out: gen
+    # With target=ts, we generate TypeScript files.
+    # Use target=js+dts to generate JavaScript and TypeScript declaration files
+    include_imports: true
+    # like remote generation does.
+    opt:
+      - target=js+dts
+      - json_types=true
+
+  - local: ./node_modules/.bin/protoc-gen-connect-query
+    out: gen
+    opt: target=js+dts

@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": []
+    "includes": ["faucet/**", "!faucet/gen/**"]
   },
   "formatter": {
     "enabled": false
