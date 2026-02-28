@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package orchestrator.v1;
+
+service OrchestratorService {
+  // List all configured binaries and their status.
+  rpc ListBinaries(ListBinariesRequest) returns (ListBinariesResponse);
+
+  // Get the status of a single binary.
+  rpc GetBinaryStatus(GetBinaryStatusRequest) returns (GetBinaryStatusResponse);
+
+  // Download a binary with streaming progress.
+  rpc DownloadBinary(DownloadBinaryRequest) returns (stream DownloadBinaryResponse);
+
+  // Start a binary.
+  rpc StartBinary(StartBinaryRequest) returns (StartBinaryResponse);
+
+  // Stop a binary.
+  rpc StopBinary(StopBinaryRequest) returns (StopBinaryResponse);
+
+  // Stream live status updates for all binaries.
+  rpc WatchBinaries(WatchBinariesRequest) returns (stream WatchBinariesResponse);
+
+  // Stream stdout/stderr from a binary.
+  rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
+
+  // Start a binary with its full dependency chain (Core -> Enforcer -> target).
+  rpc StartWithDeps(StartWithDepsRequest) returns (stream StartWithDepsResponse);
+
+  // Shutdown all running binaries.
+  rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
+}
+
+message BinaryStatusMsg {
+  string name = 1;
+  string display_name = 2;
+  bool running = 3;
+  bool healthy = 4;
+  int32 pid = 5;
+  int64 uptime_seconds = 6;
+  int32 chain_layer = 7;
+  int32 port = 8;
+  string error = 9;
+}
+
+// ListBinaries
+
+message ListBinariesRequest {}
+
+message ListBinariesResponse {
+  repeated BinaryStatusMsg binaries = 1;
+}
+
+// GetBinaryStatus
+
+message GetBinaryStatusRequest {
+  string name = 1;
+}
+
+message GetBinaryStatusResponse {
+  BinaryStatusMsg status = 1;
+}
+
+// DownloadBinary
+
+message DownloadBinaryRequest {
+  string name = 1;
+  bool force = 2;
+}
+
+message DownloadBinaryResponse {
+  int64 bytes_downloaded = 1;
+  int64 total_bytes = 2;
+  string message = 3;
+  bool done = 4;
+  string error = 5;
+}
+
+// StartBinary
+
+message StartBinaryRequest {
+  string name = 1;
+  repeated string extra_args = 2;
+  map<string, string> env = 3;
+}
+
+message StartBinaryResponse {
+  int32 pid = 1;
+}
+
+// StopBinary
+
+message StopBinaryRequest {
+  string name = 1;
+  bool force = 2;
+}
+
+message StopBinaryResponse {}
+
+// WatchBinaries
+
+message WatchBinariesRequest {}
+
+message WatchBinariesResponse {
+  repeated BinaryStatusMsg binaries = 1;
+}
+
+// StreamLogs
+
+message StreamLogsRequest {
+  string name = 1;
+  int32 tail = 2; // number of recent lines to include
+}
+
+message StreamLogsResponse {
+  string stream = 1; // "stdout" or "stderr"
+  string line = 2;
+  int64 timestamp_unix = 3;
+}
+
+// StartWithDeps
+
+message StartWithDepsRequest {
+  string target = 1;
+  repeated string target_args = 2;
+  map<string, string> target_env = 3;
+  repeated string core_args = 4;
+  repeated string enforcer_args = 5;
+  bool immediate = 6;
+}
+
+message StartWithDepsResponse {
+  string stage = 1;
+  string message = 2;
+  bool done = 3;
+  string error = 4;
+}
+
+// ShutdownAll
+
+message ShutdownAllRequest {
+  bool force = 1;
+}
+
+message ShutdownAllResponse {
+  int32 total_count = 1;
+  int32 completed_count = 2;
+  string current_binary = 3;
+  bool done = 4;
+  string error = 5;
+}

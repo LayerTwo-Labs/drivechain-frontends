@@ -1,0 +1,15 @@
+version: v2
+
+modules:
+  - path: proto
+    name: buf.build/layertwo-labs/orchestratord
+
+lint:
+  use:
+    - STANDARD
+  except:
+    - RPC_REQUEST_RESPONSE_UNIQUE
+
+breaking:
+  use:
+    - FILE
