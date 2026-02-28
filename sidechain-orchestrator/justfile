@@ -1,0 +1,19 @@
+build:
+    go build -o ./bin/orchestratord ./cmd/orchestratord
+    go build -o ./bin/orchestratorctl ./cmd/orchestratorctl
+
+run *args:
+    go run -v ./cmd/orchestratord {{args}}
+
+test *args:
+    go test -v ./... {{args}}
+
+lint:
+    go vet ./...
+
+gen:
+    buf generate --template buf.go.gen.yaml .
+
+clean:
+    rm -rf ./bin
+    go clean
