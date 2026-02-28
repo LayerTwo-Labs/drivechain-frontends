@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
@@ -161,6 +162,14 @@ class MainchainRPCLive extends MainchainRPC {
     try {
       // if we can find a conf-file, add it as a -conf arg
       confFile = BitcoinCore().confFile();
+
+      // Ensure the config file exists before starting Bitcoin Core.
+      // It may have been deleted by a reset - recreate it from defaults.
+      if (!File(confFile).existsSync()) {
+        log.w('Config file missing ($confFile), recreating');
+        await GetIt.I.get<BitcoinConfProvider>().loadConfig();
+      }
+
       networkArgs.add('-conf=$confFile');
     } catch (error) {
       log.w('could not read conf file to get core binary args: $error');
