@@ -13,3 +13,5 @@ A collection of various Drivechain-related applications.
 - [Thunder](thunder/README.md)
 
 - [ZSide](zside/README.md)
+
+- [Faucet](faucet/README.md)

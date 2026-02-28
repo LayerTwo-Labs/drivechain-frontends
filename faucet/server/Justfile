@@ -1,0 +1,8 @@
+run: build
+    ./faucetd
+
+build:
+    go build -o ./faucetd .
+
+lint: 
+    golangci-lint run ./...
