@@ -2,7 +2,7 @@ run: build
     ./faucetd
 
 build:
-    go build -o ./faucetd .
+    go build -v -o ./faucetd .
 
 lint: 
     golangci-lint run ./...

@@ -42,4 +42,4 @@ run-server: build-server
     ./server/faucetd
 
 build-server:
-    cd server && go build -o faucetd
+    cd server && just build
