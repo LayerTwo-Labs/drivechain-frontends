@@ -11,6 +11,10 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
     isScrollControlled: true,
     backgroundColor: theme.colors.backgroundSecondary,
     useSafeArea: true,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.of(context).size.height * 0.6,
+      maxWidth: 700,
+    ),
     builder: (context) {
       return SelectionArea(
         child: Column(

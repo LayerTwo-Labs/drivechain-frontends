@@ -7,6 +7,8 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/pagination.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -87,6 +89,8 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   onSort: viewModel.sortEntries,
                   loading: viewModel.loading,
                   allTopics: viewModel.topics,
+                  onArticleSelected: viewModel.selectArticle,
+                  selectedRowId: viewModel.selectedRowId,
                 ),
                 const SizedBox(height: 16),
                 Pagination(
@@ -100,6 +104,13 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
               ],
             ),
           ),
+          if (viewModel.selectedArticle != null)
+            Flexible(
+              child: CoinNewsArticlePanel(
+                news: viewModel.selectedArticle!,
+                onClose: viewModel.clearSelection,
+              ),
+            ),
         ],
       ),
     );
@@ -118,22 +129,23 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: SailStyleValues.padding16,
         children: [
-          Flexible(
+          Expanded(
             child: SailColumn(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.start,
               spacing: 0,
-              mainAxisSize: MainAxisSize.min,
               children: [
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    Expanded(
-                      child: SailColumn(
-                        children: [
-                          SailRow(
-                            children: [
-                              SailText.primary15('Coin News', bold: true),
+                Expanded(
+                  child: SailRow(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      Expanded(
+                        child: SailColumn(
+                          children: [
+                            SailRow(
+                              children: [
+                                SailText.primary15('Coin News', bold: true),
                               Expanded(child: Container()),
                               SailDropdownButton(
                                 items: viewModel.topics
@@ -149,8 +161,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                               ),
                             ],
                           ),
-                          SizedBox(
-                            height: 300,
+                          Expanded(
                             child: CoinNewsTable(
                               entries: viewModel.leftEntries,
                               onSort: viewModel.sortLeftEntries,
@@ -158,68 +169,80 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                               allTopics: viewModel.topics,
                               shrinkWrap: false,
                               condensed: true,
+                              onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: true),
+                              selectedRowId: viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: SailColumn(
-                        children: [
-                          SailRow(
-                            children: [
-                              SailDropdownButton(
-                                items: viewModel.topics
-                                    .map(
-                                      (topic) => SailDropdownItem(
-                                        value: topic.topic,
-                                        label: topic.confirmed ? topic.name : '${topic.name} (pending)',
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) => viewModel.setRightTopic(value),
-                                value: viewModel.rightTopic,
-                              ),
-                              Expanded(child: Container()),
-                              SailButton(
-                                label: 'Broadcast News',
-                                variant: ButtonVariant.primary,
-                                icon: SailSVGAsset.newspaper,
-                                onPressed: () => displayBroadcastNewsDialog(context),
-                                skipLoading: true,
-                              ),
-                              ExtraActionsDropdown(
-                                title: 'Extra Coin News Actions',
-                                items: [
-                                  ExtraActionItem(
-                                    label: 'Manage Topics',
-                                    icon: SailSVGAsset.newspaper,
-                                    onSelect: () => displayCreateTopicDialog(context),
-                                  ),
-                                  ExtraActionItem(
-                                    label: 'Graffiti Explorer',
-                                    icon: SailSVGAsset.sprayCan,
-                                    onSelect: () => displayGraffitiExplorerDialog(context),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          SizedBox(
-                            height: 300,
-                            child: CoinNewsTable(
-                              entries: viewModel.rightEntries,
-                              onSort: viewModel.sortRightEntries,
-                              loading: viewModel.loading,
-                              allTopics: viewModel.topics,
-                              shrinkWrap: false,
-                              condensed: true,
+                    if (viewModel.selectedArticle == null)
+                      Expanded(
+                        child: SailColumn(
+                          children: [
+                            SailRow(
+                              children: [
+                                SailDropdownButton(
+                                  items: viewModel.topics
+                                      .map(
+                                        (topic) => SailDropdownItem(
+                                          value: topic.topic,
+                                          label: topic.confirmed ? topic.name : '${topic.name} (pending)',
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) => viewModel.setRightTopic(value),
+                                  value: viewModel.rightTopic,
+                                ),
+                                Expanded(child: Container()),
+                                SailButton(
+                                  label: 'Broadcast News',
+                                  variant: ButtonVariant.primary,
+                                  icon: SailSVGAsset.newspaper,
+                                  onPressed: () => displayBroadcastNewsDialog(context),
+                                  skipLoading: true,
+                                ),
+                                ExtraActionsDropdown(
+                                  title: 'Extra Coin News Actions',
+                                  items: [
+                                    ExtraActionItem(
+                                      label: 'Manage Topics',
+                                      icon: SailSVGAsset.newspaper,
+                                      onSelect: () => displayCreateTopicDialog(context),
+                                    ),
+                                    ExtraActionItem(
+                                      label: 'Graffiti Explorer',
+                                      icon: SailSVGAsset.sprayCan,
+                                      onSelect: () => displayGraffitiExplorerDialog(context),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              child: CoinNewsTable(
+                                entries: viewModel.rightEntries,
+                                onSort: viewModel.sortRightEntries,
+                                loading: viewModel.loading,
+                                allTopics: viewModel.topics,
+                                shrinkWrap: false,
+                                condensed: true,
+                                onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: false),
+                                selectedRowId: !viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    if (viewModel.selectedArticle != null)
+                      Expanded(
+                        child: CoinNewsArticlePanel(
+                          news: viewModel.selectedArticle!,
+                          onClose: viewModel.clearSelection,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -241,6 +264,26 @@ class CoinNewsLargeViewModel extends BaseViewModel {
   String _sortRightColumn = 'date';
   String leftTopic = 'a1a1a1a1';
   String rightTopic = 'a2a2a2a2';
+
+  // Selected article for side panel
+  CoinNews? selectedArticle;
+  String? selectedRowId;
+  bool selectedFromLeft = true;
+
+  void selectArticle(CoinNews news, {required bool fromLeft}) {
+    final entries = fromLeft ? leftEntries : rightEntries;
+    final index = entries.indexOf(news);
+    selectedRowId = index >= 0 ? index.toString() : null;
+    selectedArticle = news;
+    selectedFromLeft = fromLeft;
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    selectedArticle = null;
+    selectedRowId = null;
+    notifyListeners();
+  }
 
   bool get loading => !_newsProvider.initialized;
   List<Topic> get topics => _newsProvider.topics;
@@ -414,6 +457,24 @@ class CoinNewsViewModel extends BaseViewModel {
   // Sorting state
   bool _sortAscending = false;
   String _sortColumn = 'date';
+
+  // Selected article for side panel
+  CoinNews? selectedArticle;
+  String? selectedRowId;
+
+  void selectArticle(CoinNews news) {
+    // Find the index in paginatedEntries for row highlighting
+    final index = paginatedEntries.indexOf(news);
+    selectedRowId = index >= 0 ? index.toString() : null;
+    selectedArticle = news;
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    selectedArticle = null;
+    selectedRowId = null;
+    notifyListeners();
+  }
 
   bool get loading {
     return !_newsProvider.initialized;
@@ -890,6 +951,8 @@ class CoinNewsTable extends StatelessWidget {
   final List<Topic> allTopics;
   final bool shrinkWrap;
   final bool condensed;
+  final void Function(CoinNews news)? onArticleSelected;
+  final String? selectedRowId;
 
   const CoinNewsTable({
     super.key,
@@ -899,6 +962,8 @@ class CoinNewsTable extends StatelessWidget {
     required this.allTopics,
     this.shrinkWrap = true,
     this.condensed = false,
+    this.onArticleSelected,
+    this.selectedRowId,
   });
 
   @override
@@ -913,6 +978,7 @@ class CoinNewsTable extends StatelessWidget {
         listenable: formatter,
         builder: (context, child) => SailTable(
           shrinkWrap: shrinkWrap,
+          selectedRowId: selectedRowId,
           getRowId: (index) => index.toString(),
           headerBuilder: (context) => [
             if (condensed) ...[
@@ -949,36 +1015,110 @@ class CoinNewsTable extends StatelessWidget {
           onSort: (columnIndex, ascending) {
             onSort(['date', 'topic', 'title', 'readtime'][columnIndex]);
           },
-          onDoubleTap: (rowId) {
-            final news = entries[int.parse(rowId)];
-
-            final article = Article(
-              title: news.headline,
-              markdown: news.content,
-              filename: '',
-            );
-
-            showArticleDetails(context, article, 'Coin News');
+          onSelectedRow: (rowId) {
+            if (rowId == null || onArticleSelected == null) return;
+            final index = int.tryParse(rowId);
+            if (index != null && index < entries.length) {
+              onArticleSelected!(entries[index]);
+            }
           },
           contextMenuItems: (rowId) {
             return [
               SailMenuItem(
                 onSelected: () {
-                  final news = entries[int.parse(rowId)];
-
-                  final article = Article(
-                    title: news.headline,
-                    markdown: news.content,
-                    filename: '',
-                  );
-
-                  showArticleDetails(context, article, 'Coin News');
+                  final index = int.tryParse(rowId);
+                  if (index != null && index < entries.length && onArticleSelected != null) {
+                    onArticleSelected!(entries[index]);
+                  }
                 },
                 child: SailText.primary12('Show Details'),
               ),
             ];
           },
         ),
+      ),
+    );
+  }
+}
+
+class CoinNewsArticlePanel extends StatelessWidget {
+  final CoinNews news;
+  final VoidCallback onClose;
+
+  const CoinNewsArticlePanel({
+    super.key,
+    required this.news,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SailCard(
+      padding: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: SailStyleValues.padding16,
+              vertical: SailStyleValues.padding10,
+            ),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: theme.colors.background, width: 1),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SailText.primary13(news.headline, bold: true),
+                ),
+                SailButton(
+                  label: 'Close',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => onClose(),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SelectionArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(SailStyleValues.padding16),
+                child: MarkdownBody(
+                  data: news.content,
+                  styleSheet: MarkdownStyleSheet(
+                    p: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
+                    h1: SailStyleValues.twenty.copyWith(color: theme.colors.text),
+                    h2: SailStyleValues.twenty.copyWith(color: theme.colors.text),
+                    h3: SailStyleValues.fifteen.copyWith(color: theme.colors.text),
+                    listBullet: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
+                    pPadding: const EdgeInsets.only(bottom: 12),
+                    blockquoteDecoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: SailStyleValues.borderRadius,
+                    ),
+                    codeblockDecoration: BoxDecoration(
+                      color: SailColorScheme.blackLighter,
+                      borderRadius: SailStyleValues.borderRadius,
+                    ),
+                    code: SailStyleValues.thirteen.copyWith(
+                      color: SailColorScheme.white,
+                      fontFamily: 'IBMPlexMono',
+                    ),
+                    codeblockPadding: const EdgeInsets.all(12),
+                  ),
+                  onTapLink: (_, href, _) async {
+                    if (href == null) return;
+                    await launchUrl(Uri.parse(href));
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

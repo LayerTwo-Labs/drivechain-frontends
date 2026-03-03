@@ -700,6 +700,7 @@ rpcthreads=20
 rpcworkqueue=100
 rest=1
 fallbackfee=0.00021
+uacomment=BitWindow-0.2
 chain=$currentNetwork # current network
 
 # [Sections]
