@@ -360,8 +360,6 @@ class BinaryProvider extends ChangeNotifier {
     try {
       await _processManager.start(binary, args, cleanup, environment: environment);
 
-      // Base timeout of 30 seconds, extended if binary is pushing logs
-      var timeout = const Duration(seconds: 30);
       final startTime = DateTime.now();
 
       try {
@@ -390,22 +388,24 @@ class BinaryProvider extends ChangeNotifier {
             return res != null;
           }),
 
-          // Dynamic timeout: extends if binary is pushing logs
+          // Dynamic timeout: keeps waiting as long as the process is alive
           Future.doWhile(() async {
             await Future.delayed(const Duration(milliseconds: 500));
-            final elapsed = DateTime.now().difference(startTime);
 
-            // If binary has recent log activity, keep extending timeout
+            // If binary has recent log activity, always keep waiting
             if (binary.hasRecentStartupLogActivity) {
               return true; // Keep waiting
             }
 
-            // Otherwise check if we've exceeded base timeout
-            if (elapsed >= timeout) {
-              throw "'$binary' connection timed out after ${elapsed.inSeconds}s";
+            // If the process is still running, keep waiting indefinitely
+            // The process-exit case above will handle dead processes
+            if (isRunning(binary)) {
+              return true; // Keep waiting
             }
 
-            return true; // Keep waiting
+            // Process is not running and no recent logs - give up
+            final elapsed = DateTime.now().difference(startTime);
+            throw "'$binary' connection timed out after ${elapsed.inSeconds}s (process not running)";
           }),
         ]);
 
