@@ -573,25 +573,13 @@ class BroadcastNewsView extends StatelessWidget {
                 hintText: 'First 64 chars (or until Enter) is the headline',
                 minLines: 10,
               ),
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: SailTextField(
-                      controller: viewModel.feeController,
-                      hintText: 'Fee (optional)',
-                      suffixWidget: Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: SailText.secondary12(viewModel.useFeeRate ? 'sat/vB' : 'sats'),
-                      ),
-                    ),
-                  ),
-                  SailButton(
-                    label: viewModel.useFeeRate ? 'Rate' : 'Total',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async => viewModel.toggleFeeMode(),
-                  ),
-                ],
+              SailTextField(
+                controller: viewModel.feeController,
+                hintText: 'Fee (optional)',
+                suffixWidget: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: SailText.secondary12(viewModel.feeUnit.symbol),
+                ),
               ),
               SailRow(
                 spacing: SailStyleValues.padding08,
@@ -652,8 +640,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
   final TextEditingController feeController = TextEditingController();
 
-  // Fee mode toggle: true = sat/vB, false = total sats
-  bool useFeeRate = true;
+  BitcoinUnit get feeUnit => GetIt.I.get<SettingsProvider>().bitcoinUnit;
 
   Topic? topic;
 
@@ -683,11 +670,6 @@ class BroadcastNewsViewModel extends BaseViewModel {
     _loadLastUsedTopic();
     messageController.addListener(notifyListeners);
     feeController.addListener(notifyListeners);
-  }
-
-  void toggleFeeMode() {
-    useFeeRate = !useFeeRate;
-    notifyListeners();
   }
 
   Future<void> _loadLastUsedTopic() async {
@@ -731,13 +713,14 @@ class BroadcastNewsViewModel extends BaseViewModel {
     }
 
     try {
-      final feeValue = int.tryParse(feeController.text);
+      // Parse fee in user's preferred unit and convert to sats
+      final feeSats = feeController.text.isNotEmpty ? parseAmountToSatoshis(feeController.text, feeUnit) : null;
+
       await _api.misc.broadcastNews(
         topic!.topic,
         headline,
         content,
-        feeSatPerVbyte: useFeeRate ? feeValue : null,
-        feeSats: !useFeeRate ? feeValue : null,
+        feeSats: feeSats,
       );
       if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');

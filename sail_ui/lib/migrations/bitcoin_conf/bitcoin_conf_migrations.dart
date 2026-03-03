@@ -8,12 +8,14 @@ import 'package:sail_ui/config/config_migration.dart';
 import 'package:sail_ui/migrations/bitcoin_conf/001_new_signet.dart';
 import 'package:sail_ui/migrations/bitcoin_conf/002_revert_signet.dart';
 import 'package:sail_ui/migrations/bitcoin_conf/003_new_signet_again.dart';
+import 'package:sail_ui/migrations/bitcoin_conf/004_uacomment.dart';
 import 'package:sail_ui/models/bitcoin_config.dart';
 
 List<ConfigMigration<BitcoinConfig>> get bitcoinConfMigrations => [
   Migration001NewSignet(),
   Migration002RevertSignet(),
   Migration003NewSignetAgain(),
+  Migration004Uacomment(),
 ];
 
 /// Current config version, derived from the highest migration version.

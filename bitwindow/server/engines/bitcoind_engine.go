@@ -53,19 +53,6 @@ type Parser struct {
 	m4Engine *M4Engine
 }
 
-func (p *Parser) isKnownTopic(data []byte) bool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if len(data) < opreturns.TopicIdLength {
-		return false
-	}
-
-	return lo.ContainsBy(p.topics, func(t opreturns.TopicInfo) bool {
-		return bytes.HasPrefix(data, t.ID[:])
-	})
-}
-
 // Run runs the engine. It checks if a new block has been mined,
 // and if so, handles it!
 //
@@ -609,32 +596,29 @@ func (p *Parser) handleOpReturns(
 			Int("vout", vout).
 			Msgf("bitcoind_engine/parser: found OP_RETURN")
 
-		var fee btcutil.Amount
-
-		// If this is a coin news message, we need to figoure out the fee
-		// paid.
-		if p.isKnownTopic(data) {
-			if rawTx == nil {
-				core, err := p.bitcoind.Get(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("get bitcoind: %w", err)
-				}
-				res, err := core.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-					// needed for fee info the be included
-					Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-					Txid:      txid,
-				}))
-				if err != nil {
-					return nil, fmt.Errorf("get raw transaction %q: %w", txid, err)
-				}
-				rawTx = res.Msg
-			}
-
-			var err error
-			fee, err = btcutil.NewAmount(rawTx.GetFee())
+		// Always fetch fee for OP_RETURN transactions. This avoids a race
+		// condition where blocks are processed in parallel and a topic
+		// created in one block isn't yet registered when a news article
+		// in a later block (same batch) checks isKnownTopic.
+		if rawTx == nil {
+			core, err := p.bitcoind.Get(ctx)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("get bitcoind: %w", err)
 			}
+			res, err := core.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+				// needed for fee info to be included
+				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+				Txid:      txid,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("get raw transaction %q: %w", txid, err)
+			}
+			rawTx = res.Msg
+		}
+
+		fee, err := btcutil.NewAmount(rawTx.GetFee())
+		if err != nil {
+			return nil, err
 		}
 
 		opReturns = append(opReturns, opreturns.OPReturn{
