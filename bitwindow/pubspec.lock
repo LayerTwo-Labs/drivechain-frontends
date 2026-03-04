@@ -333,10 +333,10 @@ packages:
     dependency: "direct main"
     description:
       name: csv
-      sha256: bef2950f7a753eb82f894a2eabc3072e73cf21c17096296a5a992797e50b1d0d
+      sha256: e122a402b966b93a4e98925da241ecb3d58d2e62c0aa6486b0c8de4bd405dad5
       url: "https://pub.dev"
     source: hosted
-    version: "7.1.0"
+    version: "7.2.0"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -1471,4 +1471,4 @@ packages:
     version: "0.0.6"
 sdks:
   dart: "3.11.0"
-  flutter: "3.41.2"
+  flutter: ">=3.41.2"
