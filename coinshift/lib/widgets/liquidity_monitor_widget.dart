@@ -26,10 +26,12 @@ class LiquidityMonitorWidget extends StatelessWidget {
               // Chain-specific health cards
               ...model.chainHealth.entries
                   .where((e) => e.value.activeSwaps > 0 || e.value.pendingVolume > 0)
-                  .map((entry) => _ChainHealthCard(
-                        chain: entry.key,
-                        health: entry.value,
-                      )),
+                  .map(
+                    (entry) => _ChainHealthCard(
+                      chain: entry.key,
+                      health: entry.value,
+                    ),
+                  ),
 
               // Active swaps summary
               if (model.hasActiveSwaps) _ActiveSwapsSummary(model: model),
@@ -57,9 +59,7 @@ class _OverallHealthSummary extends StatelessWidget {
       builder: (context, child) => Container(
         padding: const EdgeInsets.all(SailStyleValues.padding16),
         decoration: BoxDecoration(
-          color: allHealthy
-              ? theme.colors.success.withValues(alpha: 0.1)
-              : theme.colors.orange.withValues(alpha: 0.1),
+          color: allHealthy ? theme.colors.success.withValues(alpha: 0.1) : theme.colors.orange.withValues(alpha: 0.1),
           borderRadius: SailStyleValues.borderRadius,
           border: Border.all(
             color: allHealthy ? theme.colors.success : theme.colors.orange,
@@ -156,9 +156,7 @@ class _ChainHealthCard extends StatelessWidget {
                 _MetricDisplay(
                   label: 'Active Swaps',
                   value: health.activeSwaps.toString(),
-                  color: health.activeSwaps > 5
-                      ? theme.colors.orange
-                      : theme.colors.text,
+                  color: health.activeSwaps > 5 ? theme.colors.orange : theme.colors.text,
                 ),
                 _MetricDisplay(
                   label: 'Pending Volume',
@@ -168,9 +166,7 @@ class _ChainHealthCard extends StatelessWidget {
                 _MetricDisplay(
                   label: 'Success Rate',
                   value: '${(health.successRate * 100).toStringAsFixed(1)}%',
-                  color: health.successRate >= 0.8
-                      ? theme.colors.success
-                      : theme.colors.orange,
+                  color: health.successRate >= 0.8 ? theme.colors.success : theme.colors.orange,
                 ),
               ],
             ),
@@ -301,8 +297,8 @@ class _SuccessRateBar extends StatelessWidget {
                 color: clampedRate >= 0.8
                     ? theme.colors.success
                     : clampedRate >= 0.5
-                        ? theme.colors.orange
-                        : theme.colors.error,
+                    ? theme.colors.orange
+                    : theme.colors.error,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),

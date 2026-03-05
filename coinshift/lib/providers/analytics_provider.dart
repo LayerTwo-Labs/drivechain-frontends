@@ -18,20 +18,20 @@ enum AnalyticsTimeRange {
 
 extension AnalyticsTimeRangeExtension on AnalyticsTimeRange {
   String get displayName => switch (this) {
-        AnalyticsTimeRange.hour1 => '1 Hour',
-        AnalyticsTimeRange.hour24 => '24 Hours',
-        AnalyticsTimeRange.day7 => '7 Days',
-        AnalyticsTimeRange.day30 => '30 Days',
-        AnalyticsTimeRange.all => 'All Time',
-      };
+    AnalyticsTimeRange.hour1 => '1 Hour',
+    AnalyticsTimeRange.hour24 => '24 Hours',
+    AnalyticsTimeRange.day7 => '7 Days',
+    AnalyticsTimeRange.day30 => '30 Days',
+    AnalyticsTimeRange.all => 'All Time',
+  };
 
   Duration get duration => switch (this) {
-        AnalyticsTimeRange.hour1 => const Duration(hours: 1),
-        AnalyticsTimeRange.hour24 => const Duration(hours: 24),
-        AnalyticsTimeRange.day7 => const Duration(days: 7),
-        AnalyticsTimeRange.day30 => const Duration(days: 30),
-        AnalyticsTimeRange.all => const Duration(days: 365 * 10),
-      };
+    AnalyticsTimeRange.hour1 => const Duration(hours: 1),
+    AnalyticsTimeRange.hour24 => const Duration(hours: 24),
+    AnalyticsTimeRange.day7 => const Duration(days: 7),
+    AnalyticsTimeRange.day30 => const Duration(days: 30),
+    AnalyticsTimeRange.all => const Duration(days: 365 * 10),
+  };
 }
 
 /// Aggregated swap statistics.
@@ -65,19 +65,19 @@ class SwapStatistics {
   });
 
   factory SwapStatistics.empty() => SwapStatistics(
-        totalSwaps: 0,
-        completedSwaps: 0,
-        pendingSwaps: 0,
-        cancelledSwaps: 0,
-        waitingConfirmations: 0,
-        l2AmountTotal: 0,
-        l1AmountTotal: 0,
-        successRate: 0,
-        averageL2Amount: 0,
-        averageL1Amount: 0,
-        swapsByChain: {},
-        swapsByDirection: {},
-      );
+    totalSwaps: 0,
+    completedSwaps: 0,
+    pendingSwaps: 0,
+    cancelledSwaps: 0,
+    waitingConfirmations: 0,
+    l2AmountTotal: 0,
+    l1AmountTotal: 0,
+    successRate: 0,
+    averageL2Amount: 0,
+    averageL1Amount: 0,
+    swapsByChain: {},
+    swapsByDirection: {},
+  );
 
   factory SwapStatistics.fromSwaps(List<CoinShiftSwap> swaps) {
     if (swaps.isEmpty) return SwapStatistics.empty();
