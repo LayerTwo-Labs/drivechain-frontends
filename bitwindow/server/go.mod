@@ -6,13 +6,13 @@ require (
 	connectrpc.com/connect v1.19.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/barebitcoin/btc-buf v0.0.0-20251202201854-efb1eb3c5e20
-	github.com/brianvoe/gofakeit/v7 v7.14.0
+	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
 	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.34.0
-	github.com/samber/lo v1.52.0
+	github.com/samber/lo v1.53.0
 	github.com/sourcegraph/conc v0.3.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.51.0
