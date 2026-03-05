@@ -7,6 +7,7 @@ class InlineTabBar extends StatefulWidget {
   final int? selectedIndex;
   final void Function(int)? onTabChanged;
   final Widget? endWidget;
+  final bool secondary;
 
   const InlineTabBar({
     super.key,
@@ -15,6 +16,7 @@ class InlineTabBar extends StatefulWidget {
     this.selectedIndex,
     this.onTabChanged,
     this.endWidget,
+    this.secondary = false,
   });
 
   @override
@@ -71,7 +73,7 @@ class InlineTabBarState extends State<InlineTabBar> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
               decoration: BoxDecoration(
-                color: context.sailTheme.colors.background,
+                color: widget.secondary ? context.sailTheme.colors.backgroundSecondary : context.sailTheme.colors.background,
                 borderRadius: SailStyleValues.borderRadius,
               ),
               child: SingleChildScrollView(
@@ -125,6 +127,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                             index: index,
                             icon: tab.icon,
                             onIconTap: tab.onIconTap,
+                            secondary: widget.secondary,
                             onTap: () {
                               if (controller.isOpen) {
                                 controller.close();
@@ -146,6 +149,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                       index: index,
                       icon: tab.icon,
                       onIconTap: tab.onIconTap,
+                      secondary: widget.secondary,
                       onTap: () {
                         setIndex(index, null);
                         if (tab.onTap != null) {
@@ -185,6 +189,7 @@ class _TabItem extends StatelessWidget {
   final bool isSelected;
   final int index;
   final bool withDropdown;
+  final bool secondary;
 
   const _TabItem({
     required this.label,
@@ -194,6 +199,7 @@ class _TabItem extends StatelessWidget {
     this.icon,
     this.onIconTap,
     this.withDropdown = false,
+    this.secondary = false,
   });
 
   @override
@@ -203,7 +209,7 @@ class _TabItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04, horizontal: SailStyleValues.padding12),
         decoration: BoxDecoration(
-          color: isSelected ? context.sailTheme.colors.backgroundSecondary : Colors.transparent,
+          color: isSelected ? (secondary ? context.sailTheme.colors.background : context.sailTheme.colors.backgroundSecondary) : Colors.transparent,
           borderRadius: SailStyleValues.borderRadius,
         ),
         child: Row(
