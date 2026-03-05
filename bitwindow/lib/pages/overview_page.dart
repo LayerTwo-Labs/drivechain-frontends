@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:fixnum/fixnum.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -637,7 +639,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
   // Single unified controller for headline + content
-  final TextEditingController messageController = TextEditingController();
+  final HeadlineHighlightController messageController = HeadlineHighlightController();
   final TextEditingController feeController = TextEditingController();
 
   BitcoinUnit get feeUnit => GetIt.I.get<SettingsProvider>().bitcoinUnit;
@@ -722,6 +724,18 @@ class BroadcastNewsViewModel extends BaseViewModel {
         content,
         feeSats: feeSats,
       );
+
+      // Optimistically add to the news list so it shows up immediately
+      _newsProvider.addOptimistic(
+        CoinNews(
+          topic: topic!.topic,
+          headline: headline,
+          content: content,
+          feeSats: Int64(feeSats ?? 0),
+          createTime: Timestamp.fromDateTime(DateTime.now()),
+        ),
+      );
+
       if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');
       Navigator.of(context).pop();
@@ -765,6 +779,7 @@ class ManageNewsSubscriptionsView extends StatelessWidget {
         return SizedBox(
           height: 400,
           child: InlineTabBar(
+            secondary: true,
             tabs: [
               SingleTabItem(
                 label: 'Your Topics',
@@ -832,12 +847,12 @@ class _YourTopicsTab extends StatelessWidget {
           children: [
             SailButton(
               label: 'Export',
-              variant: ButtonVariant.secondary,
+              variant: ButtonVariant.outline,
               onPressed: () async => viewModel.exportTopics(context),
             ),
             SailButton(
               label: 'Import',
-              variant: ButtonVariant.secondary,
+              variant: ButtonVariant.outline,
               onPressed: () async => viewModel.importTopics(context),
             ),
             const Spacer(),

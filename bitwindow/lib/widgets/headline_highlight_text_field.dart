@@ -3,10 +3,47 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// A text field that highlights the headline portion (first 64 chars or up to first newline).
-/// Shows a live preview with highlighting above the editable area.
+/// A TextEditingController that highlights the headline portion (first 64 chars
+/// or up to first newline) with a green background.
+class HeadlineHighlightController extends TextEditingController {
+  HeadlineHighlightController({super.text});
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    final text = this.text;
+    if (text.isEmpty) {
+      return TextSpan(style: style, text: text);
+    }
+
+    final headlineEnd = _headlineEndIndex(text);
+    final headlinePart = text.substring(0, headlineEnd);
+    final restPart = text.substring(headlineEnd);
+
+    return TextSpan(
+      style: style,
+      children: [
+        TextSpan(
+          text: headlinePart,
+          style: TextStyle(backgroundColor: SailColorScheme.green.withValues(alpha: 0.3)),
+        ),
+        if (restPart.isNotEmpty) TextSpan(text: restPart),
+      ],
+    );
+  }
+}
+
+int _headlineEndIndex(String text) {
+  final newlineIndex = text.indexOf('\n');
+  if (newlineIndex >= 0 && newlineIndex < 64) {
+    return newlineIndex;
+  }
+  return min(64, text.length);
+}
+
+/// A text field that highlights the headline portion (first 64 chars or up to first newline)
+/// with a green background directly in the text field.
 class HeadlineHighlightTextField extends StatefulWidget {
-  final TextEditingController controller;
+  final HeadlineHighlightController controller;
   final String hintText;
   final int minLines;
   final int? maxLines;
@@ -42,44 +79,23 @@ class _HeadlineHighlightTextFieldState extends State<HeadlineHighlightTextField>
     setState(() {});
   }
 
-  int _getHeadlineEndIndex(String text) {
-    final newlineIndex = text.indexOf('\n');
-    if (newlineIndex >= 0 && newlineIndex < 64) {
-      return newlineIndex;
-    }
-    return min(64, text.length);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
     final text = widget.controller.text;
-    final headlineEndIndex = _getHeadlineEndIndex(text);
+    final headlineEndIndex = _headlineEndIndex(text);
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
       children: [
         if (widget.label != null) SailText.primary13(widget.label!, bold: true),
-        // Text input
         SailTextField(
           controller: widget.controller,
           hintText: widget.hintText,
           minLines: widget.minLines,
           maxLines: widget.maxLines,
         ),
-        // Character counter for headline
-        Row(
-          children: [
-            SailText.secondary12(
-              'Headline: $headlineEndIndex/64 chars',
-              color: headlineEndIndex >= 64 ? theme.colors.success : null,
-            ),
-            if (text.contains('\n') && text.indexOf('\n') < 64)
-              SailText.secondary12(
-                ' (ends at newline)',
-                color: theme.colors.textHint,
-              ),
-          ],
+        SailText.secondary12(
+          'Headline: $headlineEndIndex/64 chars',
         ),
       ],
     );

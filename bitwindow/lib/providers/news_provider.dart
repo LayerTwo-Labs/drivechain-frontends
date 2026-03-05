@@ -91,6 +91,13 @@ class NewsProvider extends ChangeNotifier {
     _isFetching = false;
   }
 
+  /// Add a news entry optimistically so it appears immediately after broadcast,
+  /// without waiting for a block.
+  void addOptimistic(CoinNews entry) {
+    news = [entry, ...news];
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     blockchainProvider.removeListener(fetch);
