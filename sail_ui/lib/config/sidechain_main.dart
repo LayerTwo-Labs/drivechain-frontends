@@ -20,6 +20,7 @@ Future<void> initSidechainDependencies({
   required Logger log,
   required RootStackRouter router,
   required String currentVersion,
+  List<Binary> Function() additionalBinaries = _noAdditionalBinaries,
 }) async {
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
@@ -61,7 +62,7 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerSingleton<LogProvider>(LogProvider());
 
   // Load and register initial binary states
-  final binaries = _initialBinaries(sidechainType.binary);
+  final binaries = _initialBinaries(sidechainType.binary, additionalBinaries());
   final binaryProvider = await BinaryProvider.create(appDir: applicationDir, initialBinaries: binaries);
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
 
@@ -130,11 +131,12 @@ void bootBinaries(Logger log, Binary sidechain) async {
   await binaryProvider.startWithEnforcer(sidechain);
 }
 
-List<Binary> _initialBinaries(Binary sidechain) {
-  // Register all binaries
-  var binaries = [BitcoinCore(), Enforcer(), GRPCurl(), sidechain];
+List<Binary> _noAdditionalBinaries() => [];
 
-  // make sidechain boot in headlessmode
+List<Binary> _initialBinaries(Binary sidechain, List<Binary> additional) {
+  var binaries = [BitcoinCore(), Enforcer(), GRPCurl(), sidechain, ...additional];
+
+  // make sidechain boot in headless mode
   binaries[3].addBootArg('--headless');
 
   return binaries;

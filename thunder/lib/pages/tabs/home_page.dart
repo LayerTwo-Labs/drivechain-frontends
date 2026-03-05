@@ -560,6 +560,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     }
 
     _shutdownInProgress = true;
+    await _shutdownOrchestrator();
     await GetIt.I.get<BinaryProvider>().onShutdown();
     return AppExitResponse.exit;
   }
@@ -586,6 +587,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
       }
 
       _shutdownInProgress = true;
+      await _shutdownOrchestrator();
       await GetIt.I.get<BinaryProvider>().onShutdown(
         shutdownOptions: ShutdownOptions(
           router: GetIt.I.get<AppRouter>(),
@@ -597,6 +599,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
           showShutdownPage: true,
         ),
       );
+    }
+  }
+
+  Future<void> _shutdownOrchestrator() async {
+    try {
+      final orchestrator = GetIt.I.get<OrchestratorRPC>();
+      await for (final progress in orchestrator.shutdownAll()) {
+        if (progress.done) break;
+      }
+    } catch (_) {
+      // Orchestrator may already be down
     }
   }
 

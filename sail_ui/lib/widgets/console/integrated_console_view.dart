@@ -115,7 +115,9 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     final currentPath = env['PATH'] ?? '';
     final extraBinaryPaths = await _getFrontendBinaryPaths();
     final separator = Platform.isWindows ? ';' : ':';
-    final newPath = extraBinaryPaths.isEmpty ? currentPath : '${extraBinaryPaths.join(separator)}$separator$currentPath';
+    final newPath = extraBinaryPaths.isEmpty
+        ? currentPath
+        : '${extraBinaryPaths.join(separator)}$separator$currentPath';
 
     env['PATH'] = newPath;
     env['PS1'] = r'Console> ';

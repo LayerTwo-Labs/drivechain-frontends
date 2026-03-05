@@ -84,7 +84,12 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     log: log,
     router: router,
     currentVersion: AppVersion.version,
+    additionalBinaries: () => [Thunderd()],
   );
+
+  // Register OrchestratorRPC for communicating with thunderd
+  final orchestrator = OrchestratorRPC(host: 'localhost', port: 30302);
+  GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
 
   // Initialize ThunderConfProvider (must be after BitcoinConfProvider)
   final thunderConfProvider = await ThunderConfProvider.create();
@@ -230,12 +235,24 @@ Future<File> getLogFile(Directory datadir) async {
 }
 
 void bootBinaries(Logger log) async {
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final thunder = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.thunder);
+  final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-  await binaryProvider.startWithEnforcer(
-    thunder,
-  );
+  // Start thunderd via BinaryProvider (it's bundled, not downloaded)
+  final thunderd = binaryProvider.binaries.firstWhere((b) => b is Thunderd);
+  await binaryProvider.start(thunderd);
+
+  // Use thunderd's gRPC to start the dependency chain
+  final orchestrator = GetIt.I.get<OrchestratorRPC>();
+  await for (final progress in orchestrator.startWithDeps(
+    'thunder',
+    targetArgs: ['--headless'],
+  )) {
+    log.i('${progress.stage}: ${progress.message}');
+    if (progress.error.isNotEmpty) {
+      log.e('startup error: ${progress.error}');
+      break;
+    }
+  }
 }
 
 Future<void> initAutoUpdater(Logger log) async {
