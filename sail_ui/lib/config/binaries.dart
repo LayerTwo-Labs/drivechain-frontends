@@ -25,6 +25,7 @@ enum BinaryType {
   photon,
   coinShift,
   grpcurl,
+  thunderd,
 }
 
 extension BinaryTypeExtension on BinaryType {
@@ -40,6 +41,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.photon => Photon(),
     BinaryType.coinShift => CoinShift(),
     BinaryType.grpcurl => GRPCurl(),
+    BinaryType.thunderd => Thunderd(),
   };
 }
 
@@ -224,6 +226,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['coinshift-cli']);
 
       case BinaryType.grpcurl:
+      case BinaryType.thunderd:
         break;
     }
   }
@@ -372,6 +375,7 @@ abstract class Binary {
         return _getExistingFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
 
       case BinaryType.grpcurl:
+      case BinaryType.thunderd:
         return [];
     }
   }
@@ -442,6 +446,7 @@ abstract class Binary {
         return paths;
 
       case BinaryType.grpcurl:
+      case BinaryType.thunderd:
         return [];
     }
   }
@@ -480,6 +485,7 @@ abstract class Binary {
         paths.addAll(await _getExistingFilesInDir(networkDir, ['wallet.json', 'wallet_encryption.json']));
 
       case BinaryType.grpcurl:
+      case BinaryType.thunderd:
         return [];
     }
 
@@ -578,6 +584,7 @@ abstract class Binary {
         paths.addAll(await _getExistingFilesInDir(dir, ['coinshift-cli']));
 
       case BinaryType.grpcurl:
+      case BinaryType.thunderd:
         break;
     }
 
@@ -1028,6 +1035,85 @@ class BitWindow extends Binary {
   }
 }
 
+class Thunderd extends Binary {
+  Thunderd({
+    super.name = 'Thunderd',
+    super.version = 'latest',
+    super.description = 'Thunder sidechain orchestrator daemon',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/thunder/server',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    int? port,
+    super.chainLayer = 1,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs,
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: allNetworks({
+                 OS.linux: 'thunder',
+                 OS.macos: 'thunder',
+                 OS.windows: 'thunder',
+               }),
+               flutterFrontend: {
+                 OS.linux: 'thunder',
+                 OS.macos: 'thunder',
+                 OS.windows: 'thunder',
+               },
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 binary: 'thunderd',
+                 baseUrl: '',
+                 files: allNetworks({
+                   OS.linux: '',
+                   OS.macos: '',
+                   OS.windows: '',
+                 }),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+         port: port ?? 30302,
+       );
+
+  @override
+  BinaryType get type => BinaryType.thunderd;
+
+  @override
+  Color get color => SailColorScheme.orange;
+
+  @override
+  Thunderd copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+  }) {
+    return Thunderd(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+    );
+  }
+}
+
 class Enforcer extends Binary {
   Enforcer({
     super.name = 'BIP300301 Enforcer',
@@ -1262,7 +1348,7 @@ extension BinaryPaths on Binary {
         OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Coinshift'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
       },
-      BinaryType.bitcoinCore || BinaryType.enforcer || BinaryType.grpcurl => null,
+      BinaryType.bitcoinCore || BinaryType.enforcer || BinaryType.grpcurl || BinaryType.thunderd => null,
     };
   }
 
@@ -1301,7 +1387,7 @@ extension BinaryPaths on Binary {
       BinaryType.photon ||
       BinaryType.coinShift => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
-      BinaryType.grpcurl => '',
+      BinaryType.grpcurl || BinaryType.thunderd => '',
     };
   }
 
@@ -1481,6 +1567,7 @@ extension BinaryPaths on Binary {
         return rootDir();
 
       case BinaryType.grpcurl:
+      case BinaryType.thunderd:
         return rootDir();
     }
   }
@@ -1509,6 +1596,7 @@ extension BinaryPaths on Binary {
       case BinaryType.photon:
       case BinaryType.coinShift:
       case BinaryType.grpcurl:
+      case BinaryType.thunderd:
         return baseDir;
     }
   }

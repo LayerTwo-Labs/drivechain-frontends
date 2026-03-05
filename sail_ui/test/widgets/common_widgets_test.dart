@@ -63,17 +63,21 @@ void main() {
 
   group('SailText', () {
     testWidgets('renders primary text correctly', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailText.primary15('Test Text'),
-      ));
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailText.primary15('Test Text'),
+        ),
+      );
 
       expect(find.text('Test Text'), findsOneWidget);
     });
 
     testWidgets('renders secondary text correctly', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailText.secondary13('Secondary Text'),
-      ));
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailText.secondary13('Secondary Text'),
+        ),
+      );
 
       expect(find.text('Secondary Text'), findsOneWidget);
     });
@@ -81,16 +85,18 @@ void main() {
 
   group('SailColumn', () {
     testWidgets('renders children vertically', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailColumn(
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.primary15('First'),
-            SailText.primary15('Second'),
-            SailText.primary15('Third'),
-          ],
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailColumn(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailText.primary15('First'),
+              SailText.primary15('Second'),
+              SailText.primary15('Third'),
+            ],
+          ),
         ),
-      ));
+      );
 
       expect(find.text('First'), findsOneWidget);
       expect(find.text('Second'), findsOneWidget);
@@ -100,16 +106,18 @@ void main() {
 
   group('SailRow', () {
     testWidgets('renders children horizontally', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.primary15('Left'),
-            SailText.primary15('Center'),
-            SailText.primary15('Right'),
-          ],
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailText.primary15('Left'),
+              SailText.primary15('Center'),
+              SailText.primary15('Right'),
+            ],
+          ),
         ),
-      ));
+      );
 
       expect(find.text('Left'), findsOneWidget);
       expect(find.text('Center'), findsOneWidget);
@@ -132,25 +140,29 @@ void main() {
 
   group('SailCard', () {
     testWidgets('renders with title', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailCard(
-          title: 'Card Title',
-          child: SailText.primary15('Content'),
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailCard(
+            title: 'Card Title',
+            child: SailText.primary15('Content'),
+          ),
         ),
-      ));
+      );
 
       expect(find.text('Card Title'), findsOneWidget);
       expect(find.text('Content'), findsOneWidget);
     });
 
     testWidgets('renders with subtitle', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailCard(
-          title: 'Title',
-          subtitle: 'Subtitle',
-          child: SailText.primary15('Content'),
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailCard(
+            title: 'Title',
+            subtitle: 'Subtitle',
+            child: SailText.primary15('Content'),
+          ),
         ),
-      ));
+      );
 
       expect(find.text('Title'), findsOneWidget);
       expect(find.text('Subtitle'), findsOneWidget);
@@ -159,25 +171,29 @@ void main() {
 
   group('SailButton', () {
     testWidgets('renders with label', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailButton(
-          label: 'Click Me',
-          onPressed: () async {},
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailButton(
+            label: 'Click Me',
+            onPressed: () async {},
+          ),
         ),
-      ));
+      );
 
       // SailButton renders internally with its own structure
       expect(find.byType(SailButton), findsOneWidget);
     });
 
     testWidgets('shows loading state', (tester) async {
-      await tester.pumpWidget(buildTestableWidget(
-        SailButton(
-          label: 'Loading',
-          loading: true,
-          onPressed: () async {},
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailButton(
+            label: 'Loading',
+            loading: true,
+            onPressed: () async {},
+          ),
         ),
-      ));
+      );
 
       // Loading SailButton shows progress indicator(s)
       expect(find.byType(SailButton), findsOneWidget);

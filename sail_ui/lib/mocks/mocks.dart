@@ -2029,6 +2029,8 @@ String _binaryTypeName(BinaryType type) {
       return 'Truthcoin';
     case BinaryType.coinShift:
       return 'CoinShift';
+    case BinaryType.thunderd:
+      return 'Thunderd';
   }
 }
 

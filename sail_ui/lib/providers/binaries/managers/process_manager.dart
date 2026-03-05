@@ -180,10 +180,13 @@ class ProcessManager extends ChangeNotifier {
           await Future.wait([
             stdoutDone.future,
             stderrDone.future,
-          ]).timeout(const Duration(seconds: 2), onTimeout: () {
-            log.w('timed out waiting for streams to drain for ${binary.name}');
-            return [];
-          });
+          ]).timeout(
+            const Duration(seconds: 2),
+            onTimeout: () {
+              log.w('timed out waiting for streams to drain for ${binary.name}');
+              return [];
+            },
+          );
 
           runningProcesses.remove(binary.name);
           await pidFileManager.deletePidFile(binary);

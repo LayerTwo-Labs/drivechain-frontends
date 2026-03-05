@@ -64,6 +64,35 @@ export 'gen/google/protobuf/empty.pb.dart';
 export 'gen/google/protobuf/empty.pbenum.dart';
 export 'gen/google/protobuf/empty.pbjson.dart';
 export 'gen/google/protobuf/empty.pbserver.dart';
+export 'gen/orchestrator/v1/orchestrator.connect.client.dart';
+export 'gen/orchestrator/v1/orchestrator.connect.spec.dart';
+export 'gen/orchestrator/v1/orchestrator.pb.dart';
+export 'gen/orchestrator/v1/orchestrator.pbenum.dart';
+export 'gen/orchestrator/v1/orchestrator.pbjson.dart';
+export 'gen/orchestrator/v1/orchestrator.pbserver.dart';
+export 'gen/thunder/v1/thunder.connect.client.dart';
+export 'gen/thunder/v1/thunder.connect.spec.dart';
+export 'gen/thunder/v1/thunder.pb.dart'
+    hide GetBalanceRequest, GetBalanceResponse, GetBlockRequest, GetBlockResponse, GetNewAddressRequest, StopRequest, StopResponse;
+export 'gen/thunder/v1/thunder.pbenum.dart';
+export 'gen/thunder/v1/thunder.pbjson.dart'
+    hide
+        GetBalanceRequest$json,
+        GetBalanceResponse$json,
+        GetBlockRequest$json,
+        GetBlockResponse$json,
+        GetNewAddressRequest$json,
+        StopRequest$json,
+        StopResponse$json,
+        getBalanceRequestDescriptor,
+        getBalanceResponseDescriptor,
+        getBlockRequestDescriptor,
+        getBlockResponseDescriptor,
+        getNewAddressRequestDescriptor,
+        stopRequestDescriptor,
+        stopResponseDescriptor;
+export 'gen/thunder/v1/thunder.pbserver.dart'
+    hide GetBalanceRequest, GetBalanceResponse, GetBlockRequest, GetBlockResponse, GetNewAddressRequest, StopRequest, StopResponse;
 export 'gen/health/v1/health.connect.client.dart';
 export 'gen/health/v1/health.connect.spec.dart';
 export 'gen/health/v1/health.pb.dart';
@@ -125,6 +154,7 @@ export 'rpcs/bitnames_rpc.dart';
 export 'rpcs/bitwindow_api.dart';
 export 'rpcs/coinshift_rpc.dart';
 export 'rpcs/enforcer_rpc.dart';
+export 'rpcs/orchestrator_rpc.dart';
 export 'rpcs/mainchain_rpc.dart';
 export 'rpcs/rpc_sidechain.dart';
 export 'rpcs/thunder_rpc.dart';

@@ -1,0 +1,11 @@
+build:
+    go build -o ./bin/thunderd .
+
+run *args:
+    go run -v . {{args}}
+
+lint:
+    go vet ./...
+
+gen:
+    buf generate --template buf.go.gen.yaml .
