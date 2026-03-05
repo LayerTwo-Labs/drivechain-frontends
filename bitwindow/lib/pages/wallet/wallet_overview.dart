@@ -642,7 +642,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       ]);
     }
 
-    return const ListToCsvConverter().convert(rows);
+    return csv.encode(rows);
   }
 
   @override
