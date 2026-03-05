@@ -65,6 +65,7 @@ Future<T?> widgetDialog<T>({
   required Widget child,
   String? subtitle,
   double maxWidth = 740,
+  Color? color,
 }) async {
   final theme = SailTheme.of(context);
 
@@ -74,7 +75,7 @@ Future<T?> widgetDialog<T>({
       backgroundColor: theme.colors.backgroundSecondary,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SailCard(title: title, subtitle: subtitle, withCloseButton: true, child: child),
+        child: SailCard(title: title, subtitle: subtitle, withCloseButton: true, color: color, child: child),
       ),
     ),
   );
