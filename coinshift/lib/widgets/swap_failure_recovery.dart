@@ -187,8 +187,7 @@ class _SwapRecoveryCard extends StatelessWidget {
               spacing: SailStyleValues.padding16,
               children: [
                 _SwapDetail(label: 'L2 Amount', value: formatter.formatSats(swap.l2Amount)),
-                if (swap.l1Amount != null)
-                  _SwapDetail(label: 'L1 Amount', value: formatter.formatSats(swap.l1Amount!)),
+                if (swap.l1Amount != null) _SwapDetail(label: 'L1 Amount', value: formatter.formatSats(swap.l1Amount!)),
                 _SwapDetail(label: 'State', value: swap.state.state),
               ],
             ),
@@ -310,8 +309,8 @@ class _ConfirmationProgress extends StatelessWidget {
                 color: progress >= 1.0
                     ? theme.colors.success
                     : progress >= 0.5
-                        ? theme.colors.info
-                        : theme.colors.orange,
+                    ? theme.colors.info
+                    : theme.colors.orange,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),

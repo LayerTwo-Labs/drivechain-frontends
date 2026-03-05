@@ -205,49 +205,51 @@ class _ChainBreakdownCard extends StatelessWidget {
           if (chainHealth.isEmpty)
             SailText.secondary13('No swap data available')
           else
-            ...chainHealth.entries.where((e) => e.value.activeSwaps > 0 || model.statistics.swapsByChain[e.key] != null).map(
-              (entry) {
-                final chain = entry.key;
-                final health = entry.value;
-                final swapCount = model.statistics.swapsByChain[chain] ?? 0;
+            ...chainHealth.entries
+                .where((e) => e.value.activeSwaps > 0 || model.statistics.swapsByChain[e.key] != null)
+                .map(
+                  (entry) {
+                    final chain = entry.key;
+                    final health = entry.value;
+                    final swapCount = model.statistics.swapsByChain[chain] ?? 0;
 
-                return Container(
-                  padding: const EdgeInsets.all(SailStyleValues.padding12),
-                  decoration: BoxDecoration(
-                    color: theme.colors.backgroundSecondary,
-                    borderRadius: SailStyleValues.borderRadius,
-                    border: Border.all(
-                      color: health.isHealthy ? theme.colors.divider : theme.colors.orange,
-                    ),
-                  ),
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding08,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailRow(
-                        spacing: SailStyleValues.padding08,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          SailText.primary15(chain.value, bold: true),
-                          _HealthBadge(isHealthy: health.isHealthy),
-                        ],
+                    return Container(
+                      padding: const EdgeInsets.all(SailStyleValues.padding12),
+                      decoration: BoxDecoration(
+                        color: theme.colors.backgroundSecondary,
+                        borderRadius: SailStyleValues.borderRadius,
+                        border: Border.all(
+                          color: health.isHealthy ? theme.colors.divider : theme.colors.orange,
+                        ),
                       ),
-                      SailRow(
-                        spacing: SailStyleValues.padding16,
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding08,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _ChainStat(label: 'Total', value: swapCount.toString()),
-                          _ChainStat(label: 'Active', value: health.activeSwaps.toString()),
-                          _ChainStat(
-                            label: 'Success',
-                            value: '${(health.successRate * 100).toStringAsFixed(0)}%',
+                          SailRow(
+                            spacing: SailStyleValues.padding08,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              SailText.primary15(chain.value, bold: true),
+                              _HealthBadge(isHealthy: health.isHealthy),
+                            ],
+                          ),
+                          SailRow(
+                            spacing: SailStyleValues.padding16,
+                            children: [
+                              _ChainStat(label: 'Total', value: swapCount.toString()),
+                              _ChainStat(label: 'Active', value: health.activeSwaps.toString()),
+                              _ChainStat(
+                                label: 'Success',
+                                value: '${(health.successRate * 100).toStringAsFixed(0)}%',
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
         ],
       ),
     );
