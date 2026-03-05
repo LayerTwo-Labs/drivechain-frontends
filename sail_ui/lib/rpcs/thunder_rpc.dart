@@ -63,10 +63,10 @@ class ThunderLive extends ThunderRPC {
   late ThunderServiceClient _client;
 
   ThunderLive()
-      : super(
-          binaryType: BinaryType.thunder,
-          restartOnFailure: false,
-        ) {
+    : super(
+        binaryType: BinaryType.thunder,
+        restartOnFailure: false,
+      ) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30302',
       codec: const ProtoCodec(),
@@ -299,8 +299,9 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response =
-        await _client.getLatestFailedWithdrawalBundleHeight(GetLatestFailedWithdrawalBundleHeightRequest());
+    final response = await _client.getLatestFailedWithdrawalBundleHeight(
+      GetLatestFailedWithdrawalBundleHeightRequest(),
+    );
     if (response.height == 0) return null;
     return response.height.toInt();
   }
