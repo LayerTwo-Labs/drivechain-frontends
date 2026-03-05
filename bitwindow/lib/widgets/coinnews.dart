@@ -124,129 +124,123 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
 
   @override
   Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
-    return SailCard(
+    return SizedBox(
+      height: 500,
       child: SailRow(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: SailStyleValues.padding16,
         children: [
           Expanded(
-            child: SailColumn(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              spacing: 0,
-              children: [
-                Expanded(
-                  child: SailRow(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      Expanded(
-                        child: SailColumn(
-                          children: [
-                            SailRow(
-                              children: [
-                                SailText.primary15('Coin News', bold: true),
-                              Expanded(child: Container()),
-                              SailDropdownButton(
-                                items: viewModel.topics
-                                    .map(
-                                      (topic) => SailDropdownItem(
-                                        value: topic.topic,
-                                        label: topic.confirmed ? topic.name : '${topic.name} (pending)',
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) => viewModel.setLeftTopic(value),
-                                value: viewModel.leftTopic,
+            child: SailCard(
+              child: SailColumn(
+                children: [
+                  SizedBox(
+                    height: 36,
+                    child: SailRow(
+                      children: [
+                        SailText.primary15('Coin News', bold: true),
+                        Expanded(child: Container()),
+                        SailDropdownButton(
+                          items: viewModel.topics
+                              .map(
+                                (topic) => SailDropdownItem(
+                                  value: topic.topic,
+                                  label: topic.confirmed ? topic.name : '${topic.name} (pending)',
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) => viewModel.setLeftTopic(value),
+                          value: viewModel.leftTopic,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: CoinNewsTable(
+                      entries: viewModel.leftEntries,
+                      onSort: viewModel.sortLeftEntries,
+                      loading: viewModel.loading,
+                      allTopics: viewModel.topics,
+                      shrinkWrap: false,
+                      condensed: true,
+                      onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: true),
+                      selectedRowId: viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (viewModel.selectedArticle == null)
+            Expanded(
+              child: SailCard(
+                child: SailColumn(
+                  children: [
+                    SizedBox(
+                      height: 36,
+                      child: SailRow(
+                        children: [
+                          SailDropdownButton(
+                            items: viewModel.topics
+                                .map(
+                                  (topic) => SailDropdownItem(
+                                    value: topic.topic,
+                                    label: topic.confirmed ? topic.name : '${topic.name} (pending)',
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) => viewModel.setRightTopic(value),
+                            value: viewModel.rightTopic,
+                          ),
+                          Expanded(child: Container()),
+                          SailButton(
+                            label: 'Broadcast News',
+                            variant: ButtonVariant.primary,
+                            icon: SailSVGAsset.newspaper,
+                            onPressed: () => displayBroadcastNewsDialog(context),
+                            skipLoading: true,
+                          ),
+                          ExtraActionsDropdown(
+                            title: 'Extra Coin News Actions',
+                            items: [
+                              ExtraActionItem(
+                                label: 'Manage Topics',
+                                icon: SailSVGAsset.newspaper,
+                                onSelect: () => displayCreateTopicDialog(context),
+                              ),
+                              ExtraActionItem(
+                                label: 'Graffiti Explorer',
+                                icon: SailSVGAsset.sprayCan,
+                                onSelect: () => displayGraffitiExplorerDialog(context),
                               ),
                             ],
-                          ),
-                          Expanded(
-                            child: CoinNewsTable(
-                              entries: viewModel.leftEntries,
-                              onSort: viewModel.sortLeftEntries,
-                              loading: viewModel.loading,
-                              allTopics: viewModel.topics,
-                              shrinkWrap: false,
-                              condensed: true,
-                              onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: true),
-                              selectedRowId: viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
-                            ),
                           ),
                         ],
                       ),
                     ),
-                    if (viewModel.selectedArticle == null)
-                      Expanded(
-                        child: SailColumn(
-                          children: [
-                            SailRow(
-                              children: [
-                                SailDropdownButton(
-                                  items: viewModel.topics
-                                      .map(
-                                        (topic) => SailDropdownItem(
-                                          value: topic.topic,
-                                          label: topic.confirmed ? topic.name : '${topic.name} (pending)',
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (value) => viewModel.setRightTopic(value),
-                                  value: viewModel.rightTopic,
-                                ),
-                                Expanded(child: Container()),
-                                SailButton(
-                                  label: 'Broadcast News',
-                                  variant: ButtonVariant.primary,
-                                  icon: SailSVGAsset.newspaper,
-                                  onPressed: () => displayBroadcastNewsDialog(context),
-                                  skipLoading: true,
-                                ),
-                                ExtraActionsDropdown(
-                                  title: 'Extra Coin News Actions',
-                                  items: [
-                                    ExtraActionItem(
-                                      label: 'Manage Topics',
-                                      icon: SailSVGAsset.newspaper,
-                                      onSelect: () => displayCreateTopicDialog(context),
-                                    ),
-                                    ExtraActionItem(
-                                      label: 'Graffiti Explorer',
-                                      icon: SailSVGAsset.sprayCan,
-                                      onSelect: () => displayGraffitiExplorerDialog(context),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Expanded(
-                              child: CoinNewsTable(
-                                entries: viewModel.rightEntries,
-                                onSort: viewModel.sortRightEntries,
-                                loading: viewModel.loading,
-                                allTopics: viewModel.topics,
-                                shrinkWrap: false,
-                                condensed: true,
-                                onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: false),
-                                selectedRowId: !viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
-                              ),
-                            ),
-                          ],
-                        ),
+                    Expanded(
+                      child: CoinNewsTable(
+                        entries: viewModel.rightEntries,
+                        onSort: viewModel.sortRightEntries,
+                        loading: viewModel.loading,
+                        allTopics: viewModel.topics,
+                        shrinkWrap: false,
+                        condensed: true,
+                        onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: false),
+                        selectedRowId: !viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
                       ),
-                    if (viewModel.selectedArticle != null)
-                      Expanded(
-                        child: CoinNewsArticlePanel(
-                          news: viewModel.selectedArticle!,
-                          onClose: viewModel.clearSelection,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          if (viewModel.selectedArticle != null)
+            Expanded(
+              child: CoinNewsArticlePanel(
+                news: viewModel.selectedArticle!,
+                onClose: viewModel.clearSelection,
+              ),
+            ),
         ],
       ),
     );
