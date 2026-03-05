@@ -713,9 +713,7 @@ class _OutputsTab extends StatelessWidget {
             monospace: true,
           ),
           SailTableCell(
-            value: output.address.isEmpty
-                ? (isOpReturn ? 'OP_RETURN: $decodedData' : 'Unknown')
-                : output.address,
+            value: output.address.isEmpty ? (isOpReturn ? 'OP_RETURN: $decodedData' : 'Unknown') : output.address,
             monospace: true,
             copyValue: isOpReturn ? decodedData : (output.address.isNotEmpty ? output.address : null),
           ),

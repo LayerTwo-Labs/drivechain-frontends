@@ -73,7 +73,14 @@ export 'gen/orchestrator/v1/orchestrator.pbserver.dart';
 export 'gen/thunder/v1/thunder.connect.client.dart';
 export 'gen/thunder/v1/thunder.connect.spec.dart';
 export 'gen/thunder/v1/thunder.pb.dart'
-    hide GetBalanceRequest, GetBalanceResponse, GetBlockRequest, GetBlockResponse, GetNewAddressRequest, StopRequest, StopResponse;
+    hide
+        GetBalanceRequest,
+        GetBalanceResponse,
+        GetBlockRequest,
+        GetBlockResponse,
+        GetNewAddressRequest,
+        StopRequest,
+        StopResponse;
 export 'gen/thunder/v1/thunder.pbenum.dart';
 export 'gen/thunder/v1/thunder.pbjson.dart'
     hide
@@ -92,7 +99,14 @@ export 'gen/thunder/v1/thunder.pbjson.dart'
         stopRequestDescriptor,
         stopResponseDescriptor;
 export 'gen/thunder/v1/thunder.pbserver.dart'
-    hide GetBalanceRequest, GetBalanceResponse, GetBlockRequest, GetBlockResponse, GetNewAddressRequest, StopRequest, StopResponse;
+    hide
+        GetBalanceRequest,
+        GetBalanceResponse,
+        GetBlockRequest,
+        GetBlockResponse,
+        GetNewAddressRequest,
+        StopRequest,
+        StopResponse;
 export 'gen/health/v1/health.connect.client.dart';
 export 'gen/health/v1/health.connect.spec.dart';
 export 'gen/health/v1/health.pb.dart';

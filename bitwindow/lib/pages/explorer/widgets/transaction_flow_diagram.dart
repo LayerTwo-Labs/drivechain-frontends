@@ -404,8 +404,7 @@ class _TooltipContent extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ],
-          ]
-          else ...[
+          ] else ...[
             SailText.secondary12('Value: ${formatter.formatSats(output.valueSats.toInt())}'),
             const SizedBox(height: 2),
             SailText.secondary12(

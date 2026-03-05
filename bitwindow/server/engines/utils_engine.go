@@ -392,7 +392,7 @@ func formatMerkleTree(levels [][]string, rcbLevels [][]string) string {
 	for levelNum := len(levels) - 1; levelNum >= 0; levelNum-- {
 		level := levels[levelNum]
 
-		sb.WriteString(fmt.Sprintf("Level %d", levelNum))
+		fmt.Fprintf(&sb, "Level %d", levelNum)
 		switch {
 		case levelNum == len(levels)-1:
 			sb.WriteString(" Merkle Root:\n")
