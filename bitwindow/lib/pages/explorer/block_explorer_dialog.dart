@@ -659,6 +659,36 @@ class _OutputsTab extends StatelessWidget {
 
   const _OutputsTab({required this.outputs});
 
+  String _decodeOpReturnData(String scriptPubkeyHex) {
+    // scriptPubkeyHex for OP_RETURN: "6a" (OP_RETURN) + push opcode + data
+    // Skip the OP_RETURN byte (6a) and the push length byte
+    if (scriptPubkeyHex.length < 4) return '';
+    try {
+      // Skip 6a (OP_RETURN), then read push opcode
+      var hex = scriptPubkeyHex.substring(2);
+      // Skip the push length byte(s)
+      final pushByte = int.parse(hex.substring(0, 2), radix: 16);
+      if (pushByte <= 0x4b) {
+        // Direct push: 1 byte length
+        hex = hex.substring(2);
+      } else if (pushByte == 0x4c) {
+        // OP_PUSHDATA1: next byte is length
+        hex = hex.substring(4);
+      } else if (pushByte == 0x4d) {
+        // OP_PUSHDATA2: next 2 bytes are length
+        hex = hex.substring(6);
+      }
+      // Decode hex to UTF-8 string
+      final bytes = <int>[];
+      for (var j = 0; j < hex.length - 1; j += 2) {
+        bytes.add(int.parse(hex.substring(j, j + 2), radix: 16));
+      }
+      return String.fromCharCodes(bytes);
+    } catch (_) {
+      return scriptPubkeyHex;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
@@ -673,6 +703,9 @@ class _OutputsTab extends StatelessWidget {
       ],
       rowBuilder: (_, i, _) {
         final output = outputs[i];
+        final isOpReturn = output.scriptType == 'nulldata';
+        final decodedData = isOpReturn ? _decodeOpReturnData(output.scriptPubkeyHex) : '';
+
         return [
           SailTableCell(value: '${output.index}'),
           SailTableCell(
@@ -681,10 +714,10 @@ class _OutputsTab extends StatelessWidget {
           ),
           SailTableCell(
             value: output.address.isEmpty
-                ? (output.scriptType == 'nulldata' ? 'OP_RETURN' : 'Unknown')
+                ? (isOpReturn ? 'OP_RETURN: $decodedData' : 'Unknown')
                 : output.address,
             monospace: true,
-            copyValue: output.address.isNotEmpty ? output.address : null,
+            copyValue: isOpReturn ? decodedData : (output.address.isNotEmpty ? output.address : null),
           ),
           SailTableCell(value: output.scriptType),
         ];

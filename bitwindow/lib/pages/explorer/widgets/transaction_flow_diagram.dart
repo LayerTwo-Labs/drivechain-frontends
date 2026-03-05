@@ -334,6 +334,27 @@ class _TooltipContent extends StatelessWidget {
     return '${address.substring(0, 8)}...${address.substring(address.length - 6)}';
   }
 
+  String _decodeOpReturn(String scriptPubkeyHex) {
+    try {
+      var hex = scriptPubkeyHex.substring(2); // skip 6a (OP_RETURN)
+      final pushByte = int.parse(hex.substring(0, 2), radix: 16);
+      if (pushByte <= 0x4b) {
+        hex = hex.substring(2);
+      } else if (pushByte == 0x4c) {
+        hex = hex.substring(4);
+      } else if (pushByte == 0x4d) {
+        hex = hex.substring(6);
+      }
+      final bytes = <int>[];
+      for (var j = 0; j < hex.length - 1; j += 2) {
+        bytes.add(int.parse(hex.substring(j, j + 2), radix: 16));
+      }
+      return String.fromCharCodes(bytes);
+    } catch (_) {
+      return scriptPubkeyHex;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
@@ -373,8 +394,17 @@ class _TooltipContent extends StatelessWidget {
         children: [
           SailText.primary12('Output #${hoveredOutputIndex! + 1}', bold: true),
           const SizedBox(height: 4),
-          if (isOpReturn)
-            SailText.secondary12('OP_RETURN (data carrier)')
+          if (isOpReturn) ...[
+            SailText.secondary12('OP_RETURN (data carrier)'),
+            if (output.scriptPubkeyHex.length > 4) ...[
+              const SizedBox(height: 2),
+              SailText.secondary12(
+                _decodeOpReturn(output.scriptPubkeyHex),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ]
           else ...[
             SailText.secondary12('Value: ${formatter.formatSats(output.valueSats.toInt())}'),
             const SizedBox(height: 2),
