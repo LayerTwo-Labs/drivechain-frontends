@@ -400,7 +400,7 @@ class BitDriveViewModel extends BaseViewModel {
 
   Future<void> _initBitdriveDir() async {
     final appDir = await Environment.datadir();
-    _bitdriveDir = path.join(appDir.path, 'bitdrive');
+    _bitdriveDir = path.join(appDir.path, env(Environment.network), 'bitdrive');
     await _loadDownloadedFiles();
     notifyListeners();
   }
