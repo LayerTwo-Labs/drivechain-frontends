@@ -564,7 +564,11 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(String name, {String? customMnemonic, String? passphrase}) async {
+  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(
+    String name, {
+    String? customMnemonic,
+    String? passphrase,
+  }) async {
     return wmpb.GenerateWalletResponse(walletId: 'mock-wallet-id', mnemonic: 'mock mnemonic words');
   }
 

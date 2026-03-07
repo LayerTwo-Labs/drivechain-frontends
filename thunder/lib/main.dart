@@ -85,11 +85,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     router: router,
     currentVersion: AppVersion.version,
     additionalBinaries: () => [Thunderd()],
+    backendManagesBinaries: true,
   );
+
+  // Register ThunderdRPC — wires thunderd into the connection polling system
+  final thunderdRPC = ThunderdLive(host: 'localhost', port: 30302);
+  GetIt.I.registerSingleton<ThunderdRPC>(thunderdRPC);
 
   // Register OrchestratorRPC for communicating with thunderd
   final orchestrator = OrchestratorRPC(host: 'localhost', port: 30302);
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+
+  // Start thunderd (Go backend), which orchestrates all binary lifecycle
+  bootBinaries(log);
 
   // Initialize ThunderConfProvider (must be after BitcoinConfProvider)
   final thunderConfProvider = await ThunderConfProvider.create();

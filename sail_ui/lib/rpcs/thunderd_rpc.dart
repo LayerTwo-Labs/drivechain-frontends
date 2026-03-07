@@ -19,7 +19,7 @@ class ThunderdLive extends ThunderdRPC {
   final int port;
 
   ThunderdLive({this.host = 'localhost', this.port = 30302})
-      : super(binaryType: BinaryType.thunderd, restartOnFailure: false) {
+    : super(binaryType: BinaryType.thunderd, restartOnFailure: false) {
     _initializeConnection();
     startConnectionTimer();
   }
