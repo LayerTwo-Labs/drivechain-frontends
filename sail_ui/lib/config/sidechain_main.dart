@@ -21,6 +21,7 @@ Future<void> initSidechainDependencies({
   required RootStackRouter router,
   required String currentVersion,
   List<Binary> Function() additionalBinaries = _noAdditionalBinaries,
+  bool backendManagesBinaries = false,
 }) async {
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
@@ -75,8 +76,14 @@ Future<void> initSidechainDependencies({
   final sidechainConnection = createSidechainConnection(binary);
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
-  // Boot binaries
-  bootBinaries(log, binary);
+  // Boot binaries (skip if a backend server like thunderd manages them)
+  if (!backendManagesBinaries) {
+    bootBinaries(log, binary);
+  } else {
+    // Backend manages binaries — just start connection timers so the UI
+    // can detect when the backend brings services online.
+    startConnectionTimersOnly(log);
+  }
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
@@ -129,6 +136,18 @@ void bootBinaries(Logger log, Binary sidechain) async {
   }());
 
   await binaryProvider.startWithEnforcer(sidechain);
+}
+
+void startConnectionTimersOnly(Logger log) {
+  final mainchainRPC = GetIt.I.get<MainchainRPC>();
+  final enforcerRPC = GetIt.I.get<EnforcerRPC>();
+  final sidechainRPC = GetIt.I.get<SidechainRPC>();
+
+  log.i('Backend manages binaries — starting connection timers only (no process boot)');
+
+  mainchainRPC.startConnectionTimer();
+  enforcerRPC.startConnectionTimer();
+  sidechainRPC.startConnectionTimer();
 }
 
 List<Binary> _noAdditionalBinaries() => [];
