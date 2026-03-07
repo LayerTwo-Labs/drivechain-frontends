@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
@@ -554,6 +555,50 @@ class MockThunderRPC extends ThunderRPC {
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     return;
   }
+
+  // Wallet Manager RPCs
+
+  @override
+  Future<wmpb.GetWalletStatusResponse> getWalletStatus() async {
+    return wmpb.GetWalletStatusResponse();
+  }
+
+  @override
+  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(String name, {String? customMnemonic, String? passphrase}) async {
+    return wmpb.GenerateWalletResponse(walletId: 'mock-wallet-id', mnemonic: 'mock mnemonic words');
+  }
+
+  @override
+  Future<void> walletUnlock(String password) async {}
+
+  @override
+  Future<void> walletLock() async {}
+
+  @override
+  Future<void> walletEncrypt(String password) async {}
+
+  @override
+  Future<void> walletChangePassword(String oldPassword, String newPassword) async {}
+
+  @override
+  Future<void> walletRemoveEncryption(String password) async {}
+
+  @override
+  Future<wmpb.ListWalletsResponse> walletList() async {
+    return wmpb.ListWalletsResponse();
+  }
+
+  @override
+  Future<void> walletSwitch(String walletId) async {}
+
+  @override
+  Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson) async {}
+
+  @override
+  Future<void> walletDelete(String walletId) async {}
+
+  @override
+  Future<void> walletDeleteAll() async {}
 }
 
 class MockTruthcoinRPC extends TruthcoinRPC {
