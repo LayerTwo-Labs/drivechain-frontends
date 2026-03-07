@@ -173,6 +173,7 @@ export 'rpcs/mainchain_rpc.dart';
 export 'rpcs/rpc_sidechain.dart';
 export 'rpcs/thunder_rpc.dart';
 export 'rpcs/thunder_utxo.dart';
+export 'rpcs/thunderd_rpc.dart';
 export 'rpcs/truthcoin_rpc.dart';
 export 'rpcs/photon_rpc.dart';
 export 'rpcs/zside_rpc.dart';
