@@ -11,6 +11,8 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/thunder/v1/thunder.connect.client.dart';
 import 'package:sail_ui/gen/thunder/v1/thunder.pb.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -54,6 +56,21 @@ abstract class ThunderRPC extends SidechainRPC {
 
   /// Set seed from mnemonic
   Future<void> setSeedFromMnemonic(String mnemonic);
+
+  // Wallet Manager RPCs
+
+  Future<wmpb.GetWalletStatusResponse> getWalletStatus();
+  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(String name, {String? customMnemonic, String? passphrase});
+  Future<void> walletUnlock(String password);
+  Future<void> walletLock();
+  Future<void> walletEncrypt(String password);
+  Future<void> walletChangePassword(String oldPassword, String newPassword);
+  Future<void> walletRemoveEncryption(String password);
+  Future<wmpb.ListWalletsResponse> walletList();
+  Future<void> walletSwitch(String walletId);
+  Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson);
+  Future<void> walletDelete(String walletId);
+  Future<void> walletDeleteAll();
 }
 
 class ThunderLive extends ThunderRPC {
@@ -61,6 +78,7 @@ class ThunderLive extends ThunderRPC {
   final log = GetIt.I.get<Logger>();
 
   late ThunderServiceClient _client;
+  late WalletManagerServiceClient _walletClient;
 
   ThunderLive()
     : super(
@@ -73,6 +91,7 @@ class ThunderLive extends ThunderRPC {
       httpClient: createHttpClient(),
     );
     _client = ThunderServiceClient(transport);
+    _walletClient = WalletManagerServiceClient(transport);
     startConnectionTimer();
   }
 
@@ -315,6 +334,82 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     await _client.setSeedFromMnemonic(SetSeedFromMnemonicRequest(mnemonic: mnemonic));
+  }
+
+  // Wallet Manager RPCs
+
+  @override
+  Future<wmpb.GetWalletStatusResponse> getWalletStatus() async {
+    return await _walletClient.getWalletStatus(wmpb.GetWalletStatusRequest());
+  }
+
+  @override
+  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(
+    String name, {
+    String? customMnemonic,
+    String? passphrase,
+  }) async {
+    return await _walletClient.generateWallet(
+      wmpb.GenerateWalletRequest(
+        name: name,
+        customMnemonic: customMnemonic ?? '',
+        passphrase: passphrase ?? '',
+      ),
+    );
+  }
+
+  @override
+  Future<void> walletUnlock(String password) async {
+    await _walletClient.unlockWallet(wmpb.UnlockWalletRequest(password: password));
+  }
+
+  @override
+  Future<void> walletLock() async {
+    await _walletClient.lockWallet(wmpb.LockWalletRequest());
+  }
+
+  @override
+  Future<void> walletEncrypt(String password) async {
+    await _walletClient.encryptWallet(wmpb.EncryptWalletRequest(password: password));
+  }
+
+  @override
+  Future<void> walletChangePassword(String oldPassword, String newPassword) async {
+    await _walletClient.changePassword(
+      wmpb.ChangePasswordRequest(oldPassword: oldPassword, newPassword: newPassword),
+    );
+  }
+
+  @override
+  Future<void> walletRemoveEncryption(String password) async {
+    await _walletClient.removeEncryption(wmpb.RemoveEncryptionRequest(password: password));
+  }
+
+  @override
+  Future<wmpb.ListWalletsResponse> walletList() async {
+    return await _walletClient.listWallets(wmpb.ListWalletsRequest());
+  }
+
+  @override
+  Future<void> walletSwitch(String walletId) async {
+    await _walletClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
+  }
+
+  @override
+  Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson) async {
+    await _walletClient.updateWalletMetadata(
+      wmpb.UpdateWalletMetadataRequest(walletId: walletId, name: name, gradientJson: gradientJson),
+    );
+  }
+
+  @override
+  Future<void> walletDelete(String walletId) async {
+    await _walletClient.deleteWallet(wmpb.DeleteWalletRequest(walletId: walletId));
+  }
+
+  @override
+  Future<void> walletDeleteAll() async {
+    await _walletClient.deleteAllWallets(wmpb.DeleteAllWalletsRequest());
   }
 }
 
