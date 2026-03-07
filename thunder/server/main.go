@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"connectrpc.com/connect"
@@ -17,9 +18,11 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	orchapi "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 
 	thunderapi "github.com/LayerTwo-Labs/sidesail/thunder/server/api"
 	thunderrpc "github.com/LayerTwo-Labs/sidesail/thunder/server/gen/thunder/v1/thunderv1connect"
+	walletrpc "github.com/LayerTwo-Labs/sidesail/thunder/server/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/thunder/server/rpc"
 )
 
@@ -51,6 +54,12 @@ func main() {
 				Usage:   "log level (debug, info, warn, error)",
 				Value:   "info",
 				EnvVars: []string{"THUNDERD_LOGLEVEL"},
+			},
+			&cli.StringFlag{
+				Name:    "bitwindow-dir",
+				Usage:   "path to bitwindow data directory (for wallet.json)",
+				Value:   defaultBitwindowDir(),
+				EnvVars: []string{"THUNDERD_BITWINDOW_DIR"},
 			},
 		},
 		Action: run,
@@ -98,16 +107,28 @@ func run(cctx *cli.Context) error {
 		log.Warn().Err(err).Msg("adopt orphans")
 	}
 
+	// Initialize wallet service
+	bitwindowDir := cctx.String("bitwindow-dir")
+	walletSvc := wallet.NewService(bitwindowDir, log)
+	if err := walletSvc.Init(); err != nil {
+		log.Warn().Err(err).Msg("wallet service init")
+	}
+
 	orchHandler := orchapi.NewHandler(orch)
+	orchWrapper := thunderapi.NewOrchestratorWrapper(orchHandler, walletSvc, log)
 	mux := http.NewServeMux()
 
-	orchPath, orchH := orchrpc.NewOrchestratorServiceHandler(orchHandler, connect.WithInterceptors())
+	orchPath, orchH := orchrpc.NewOrchestratorServiceHandler(orchWrapper, connect.WithInterceptors())
 	mux.Handle(orchPath, orchH)
 
 	thunderRPC := rpc.New("127.0.0.1", 6009)
 	thunderHandler := thunderapi.NewThunderHandler(thunderRPC)
 	thunderPath, thunderH := thunderrpc.NewThunderServiceHandler(thunderHandler)
 	mux.Handle(thunderPath, thunderH)
+
+	walletHandler := thunderapi.NewWalletHandler(walletSvc, log)
+	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler)
+	mux.Handle(walletPath, walletH)
 
 	srv := &http.Server{
 		Addr:    listenAddr,
@@ -130,6 +151,8 @@ func run(cctx *cli.Context) error {
 		cancel()
 	}
 
+	walletSvc.Close()
+
 	log.Info().Msg("shutting down managed binaries...")
 	shutdownCh, err := orch.ShutdownAll(context.Background(), false)
 	if err != nil {
@@ -149,4 +172,12 @@ func run(cctx *cli.Context) error {
 
 	log.Info().Msg("thunderd shutdown complete")
 	return nil
+}
+
+func defaultBitwindowDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(".", ".drivechain", "bitwindow")
+	}
+	return filepath.Join(home, ".drivechain", "bitwindow")
 }
