@@ -2068,7 +2068,7 @@ class MockBinaryProvider extends BinaryProvider {
   bool get bitwindowConnected => true;
 
   @override
-  bool get thunderConnected => false;
+  bool get thunderdConnected => false;
 
   @override
   bool get bitnamesConnected => false;
@@ -2098,7 +2098,7 @@ class MockBinaryProvider extends BinaryProvider {
   bool get bitwindowInitializing => false;
 
   @override
-  bool get thunderInitializing => false;
+  bool get thunderdInitializing => false;
 
   @override
   bool get bitnamesInitializing => false;
@@ -2128,7 +2128,7 @@ class MockBinaryProvider extends BinaryProvider {
   bool get bitwindowStopping => false;
 
   @override
-  bool get thunderStopping => false;
+  bool get thunderdStopping => false;
 
   @override
   bool get bitnamesStopping => false;
@@ -2158,7 +2158,7 @@ class MockBinaryProvider extends BinaryProvider {
   String? get bitwindowError => null;
 
   @override
-  String? get thunderError => null;
+  String? get thunderdError => null;
 
   @override
   String? get bitnamesError => null;

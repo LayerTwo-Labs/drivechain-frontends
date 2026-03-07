@@ -681,7 +681,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitcoinCore => _binaryProvider.mainchainRPC,
       var b when b is Enforcer => _binaryProvider.enforcerRPC,
       var b when b is BitWindow => _binaryProvider.bitwindowRPC,
-      var b when b is Thunder => _binaryProvider.thunderRPC,
+      var b when b is Thunder => _binaryProvider.thunderdRPC,
       var b when b is BitNames => _binaryProvider.bitnamesRPC,
       var b when b is BitAssets => _binaryProvider.bitassetsRPC,
       var b when b is ZSide => _binaryProvider.zsideRPC,
@@ -701,7 +701,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     return switch (sidechain) {
-      var b when b is Thunder => _binaryProvider.thunderConnected,
+      var b when b is Thunder => _binaryProvider.thunderdConnected,
       var b when b is BitNames => _binaryProvider.bitnamesConnected,
       var b when b is BitAssets => _binaryProvider.bitassetsConnected,
       var b when b is ZSide => _binaryProvider.zsideConnected,
@@ -734,7 +734,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitcoinCore => _binaryProvider.mainchainConnected,
       var b when b is Enforcer => _binaryProvider.enforcerConnected,
       var b when b is BitWindow => _binaryProvider.bitwindowConnected,
-      var b when b is Thunder => _binaryProvider.thunderConnected,
+      var b when b is Thunder => _binaryProvider.thunderdConnected,
       var b when b is BitNames => _binaryProvider.bitnamesConnected,
       var b when b is BitAssets => _binaryProvider.bitassetsConnected,
       var b when b is ZSide => _binaryProvider.zsideConnected,
@@ -749,7 +749,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitcoinCore => _binaryProvider.mainchainInitializing,
       var b when b is Enforcer => _binaryProvider.enforcerInitializing,
       var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
-      var b when b is Thunder => _binaryProvider.thunderInitializing,
+      var b when b is Thunder => _binaryProvider.thunderdInitializing,
       var b when b is BitNames => _binaryProvider.bitnamesInitializing,
       var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
       var b when b is ZSide => _binaryProvider.zsideInitializing,
@@ -763,7 +763,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       var b when b is BitcoinCore => _binaryProvider.mainchainStopping,
       var b when b is Enforcer => _binaryProvider.enforcerStopping,
       var b when b is BitWindow => _binaryProvider.bitwindowStopping,
-      var b when b is Thunder => _binaryProvider.thunderStopping,
+      var b when b is Thunder => _binaryProvider.thunderdStopping,
       var b when b is BitNames => _binaryProvider.bitnamesStopping,
       var b when b is BitAssets => _binaryProvider.bitassetsStopping,
       var b when b is ZSide => _binaryProvider.zsideStopping,
@@ -1144,7 +1144,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'mainchainConnected': _binaryProvider.mainchainConnected,
       'enforcerConnected': _binaryProvider.enforcerConnected,
       'bitwindowConnected': _binaryProvider.bitwindowConnected,
-      'thunderConnected': _binaryProvider.thunderConnected,
+      'thunderdConnected': _binaryProvider.thunderdConnected,
       'bitnamesConnected': _binaryProvider.bitnamesConnected,
       'bitassetsConnected': _binaryProvider.bitassetsConnected,
       'truthcoinConnected': _binaryProvider.truthcoinConnected,
@@ -1153,7 +1153,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'mainchainInitializing': _binaryProvider.mainchainInitializing,
       'enforcerInitializing': _binaryProvider.enforcerInitializing,
       'bitwindowInitializing': _binaryProvider.bitwindowInitializing,
-      'thunderInitializing': _binaryProvider.thunderInitializing,
+      'thunderdInitializing': _binaryProvider.thunderdInitializing,
       'bitnamesInitializing': _binaryProvider.bitnamesInitializing,
       'bitassetsInitializing': _binaryProvider.bitassetsInitializing,
       'truthcoinInitializing': _binaryProvider.truthcoinInitializing,
@@ -1162,7 +1162,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       'mainchainStopping': _binaryProvider.mainchainStopping,
       'enforcerStopping': _binaryProvider.enforcerStopping,
       'bitwindowStopping': _binaryProvider.bitwindowStopping,
-      'thunderStopping': _binaryProvider.thunderStopping,
+      'thunderdStopping': _binaryProvider.thunderdStopping,
       'bitnamesStopping': _binaryProvider.bitnamesStopping,
       'bitassetsStopping': _binaryProvider.bitassetsStopping,
       'truthcoinStopping': _binaryProvider.truthcoinStopping,
@@ -1501,8 +1501,8 @@ class _DepositModalState extends State<DepositModal> {
     if (sidechain == null) return null;
 
     // Get the RPC for this sidechain type
+    // Thunder goes through thunderd, so no direct SidechainRPC available here
     final rpc = switch (sidechain) {
-      Thunder() => binaryProvider.thunderRPC,
       Truthcoin() => binaryProvider.truthcoinRPC,
       Photon() => binaryProvider.photonRPC,
       BitNames() => binaryProvider.bitnamesRPC,
