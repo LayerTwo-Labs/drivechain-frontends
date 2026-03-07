@@ -70,7 +70,7 @@ func (c *Client) Call(ctx context.Context, method string, params any, out any) e
 	if err != nil {
 		return fmt.Errorf("http post: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	var resp response
 	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
@@ -114,7 +114,7 @@ func (c *Client) CallRaw(ctx context.Context, method string, params any) (json.R
 	if err != nil {
 		return nil, fmt.Errorf("http post: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	var resp response
 	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {

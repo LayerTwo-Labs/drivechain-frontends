@@ -26,7 +26,9 @@ func fakeThunderNode(t *testing.T, handler func(method string, params json.RawMe
 			Params json.RawMessage `json:"params"`
 			ID     int64           `json:"id"`
 		}
-		json.NewDecoder(r.Body).Decode(&req)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
 
 		result, err := handler(req.Method, req.Params)
 		resp := map[string]any{"jsonrpc": "2.0", "id": req.ID}
@@ -36,7 +38,9 @@ func fakeThunderNode(t *testing.T, handler func(method string, params json.RawMe
 			resp["result"] = result
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("encode response: %v", err)
+		}
 	}))
 	t.Cleanup(srv.Close)
 
