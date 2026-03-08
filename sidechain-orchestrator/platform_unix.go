@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/rs/zerolog"
 )
 
 // chmod makes a file executable.
@@ -71,6 +73,43 @@ func forceKillProcess(pid int) error {
 	}
 
 	return nil
+}
+
+// raiseOpenFilesLimit sets RLIMIT_NOFILE to a finite value that bitcoind can use.
+// When the shell has "unlimited" fds, bitcoind interprets that as -1 and refuses
+// to start. We clamp to a concrete value so child processes get a usable limit.
+func raiseOpenFilesLimit(log zerolog.Logger) {
+	var rLimit syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		log.Warn().Err(err).Msg("getrlimit NOFILE")
+		return
+	}
+
+	const desired uint64 = 4096
+	// RLIM_INFINITY or very large values confuse bitcoind (shows "-1 available").
+	// Treat anything above 1<<60 as infinity and force it down.
+	const infinityThreshold uint64 = 1 << 60
+
+	target := desired
+	if rLimit.Cur >= infinityThreshold {
+		// Current limit is effectively unlimited — set to a sane value
+		log.Debug().Uint64("cur", rLimit.Cur).Msg("fd limit is unlimited, clamping")
+	} else if rLimit.Cur >= target {
+		// Already high enough and finite — nothing to do
+		return
+	}
+
+	if rLimit.Max < target && rLimit.Max > 0 && rLimit.Max < infinityThreshold {
+		target = rLimit.Max
+	}
+
+	rLimit.Cur = target
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		log.Warn().Err(err).Uint64("target", target).Msg("setrlimit NOFILE")
+		return
+	}
+
+	log.Info().Uint64("new_limit", target).Msg("set open files limit")
 }
 
 // gracefulShutdownSignal returns the signal used for graceful shutdown.

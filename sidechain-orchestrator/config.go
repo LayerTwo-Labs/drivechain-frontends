@@ -95,6 +95,15 @@ func DefaultDataDir() string {
 	return filepath.Join(home, ".sail")
 }
 
+// DefaultBitwindowDir returns the default BitWindow data directory.
+func DefaultBitwindowDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(".", ".drivechain", "bitwindow")
+	}
+	return filepath.Join(home, ".drivechain", "bitwindow")
+}
+
 // DefaultBitcoinCore returns the config for Bitcoin Core (patched).
 func DefaultBitcoinCore() BinaryConfig {
 	files := map[string]string{

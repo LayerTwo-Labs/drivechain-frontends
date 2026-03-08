@@ -36,9 +36,11 @@ func (h *TCPHealthCheck) Check(ctx context.Context) error {
 
 // JSONRPCHealthCheck sends a JSON-RPC request to verify the service is responding.
 type JSONRPCHealthCheck struct {
-	URL     string
-	Method  string
-	Timeout time.Duration
+	URL      string
+	Method   string
+	User     string
+	Password string
+	Timeout  time.Duration
 }
 
 func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
@@ -60,6 +62,9 @@ func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
 		return fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if h.User != "" {
+		req.SetBasicAuth(h.User, h.Password)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -75,10 +80,21 @@ func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
 	return nil
 }
 
+// HealthCheckOpts provides optional configuration for health checkers.
+type HealthCheckOpts struct {
+	User     string
+	Password string
+}
+
 // NewHealthChecker creates the appropriate health checker for a binary config.
-func NewHealthChecker(config BinaryConfig) HealthChecker {
+func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecker {
 	timeout := 2 * time.Second
 	host := "localhost"
+
+	var opt HealthCheckOpts
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
 
 	switch config.HealthCheckType {
 	case HealthCheckJSONRPC:
@@ -87,9 +103,11 @@ func NewHealthChecker(config BinaryConfig) HealthChecker {
 			method = "getblockcount"
 		}
 		return &JSONRPCHealthCheck{
-			URL:     fmt.Sprintf("http://%s:%d", host, config.Port),
-			Method:  method,
-			Timeout: timeout,
+			URL:      fmt.Sprintf("http://%s:%d", host, config.Port),
+			Method:   method,
+			User:     opt.User,
+			Password: opt.Password,
+			Timeout:  timeout,
 		}
 	default:
 		return &TCPHealthCheck{

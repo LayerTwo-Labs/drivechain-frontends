@@ -170,9 +170,9 @@ func TestStripPlatformSuffix(t *testing.T) {
 		{"grpcurl_1.9.1_osx_x86_64", "grpcurl"},
 		{"grpcurl_1.9.1_windows_x86_64", "grpcurl"},
 
-		// Direct releases (no version, just platform)
-		{"bip300301-enforcer-latest-x86_64-unknown-linux-gnu", "bip300301-enforcer-latest"},
-		{"L1-bitcoin-patched-latest-x86_64-apple-darwin", "L1-bitcoin-patched-latest"},
+		// Direct releases (no version, just platform) — "-latest" is stripped
+		{"bip300301-enforcer-latest-x86_64-unknown-linux-gnu", "bip300301-enforcer"},
+		{"L1-bitcoin-patched-latest-x86_64-apple-darwin", "L1-bitcoin-patched"},
 
 		// Already clean
 		{"bitcoind", "bitcoind"},

@@ -249,7 +249,8 @@ void bootBinaries(Logger log) async {
   final thunderd = binaryProvider.binaries.firstWhere((b) => b is Thunderd);
   await binaryProvider.start(thunderd);
 
-  // Use thunderd's gRPC to start the dependency chain
+  // Use thunderd's gRPC to start the dependency chain.
+  // No coreArgs or enforcerArgs — the Go orchestrator builds them from config files.
   final orchestrator = GetIt.I.get<OrchestratorRPC>();
   await for (final progress in orchestrator.startWithDeps(
     'thunder',

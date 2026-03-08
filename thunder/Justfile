@@ -13,11 +13,27 @@ lint: format fix analyze
 gen-version:
     cd ../ && bash scripts/generate-version.sh thunder
 
-run:
+clean:
+    rm assets/bin/*
+
+download:
+    bash scripts/download-binaries.sh
+    flutter pub get
+
+run: download
     #!/usr/bin/env bash
     case "$(uname -s)" in
         Darwin*)  flutter run -d macos;;    # macOS
         Linux*)   flutter run -d linux;;    # Linux
         MINGW*|MSYS*|CYGWIN*)  flutter run -d windows;; # Windows
+        *)        echo "Unknown operating system" && exit 1 ;;
+    esac
+
+build:
+    #!/usr/bin/env bash
+    case "$(uname -s)" in
+        Darwin*)  flutter build  macos;;    # macOS
+        Linux*)   flutter build  linux;;    # Linux
+        MINGW*|MSYS*|CYGWIN*)  flutter build windows;; # Windows
         *)        echo "Unknown operating system" && exit 1 ;;
     esac

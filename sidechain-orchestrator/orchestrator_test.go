@@ -29,7 +29,7 @@ func newTestPidManager(t *testing.T) *PidFileManager {
 
 func newTestOrchestrator(t *testing.T) *Orchestrator {
 	t.Helper()
-	return New(t.TempDir(), "signet", AllDefaults(), testLogger(t))
+	return New(t.TempDir(), "signet", t.TempDir(), AllDefaults(), testLogger(t))
 }
 
 func newTestProcessManager(t *testing.T) (*ProcessManager, string) {

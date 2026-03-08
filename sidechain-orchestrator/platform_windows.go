@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 func chmod(_ string) error {
@@ -63,6 +65,9 @@ func forceKillProcess(pid int) error {
 	}
 	return nil
 }
+
+// raiseOpenFilesLimit is a no-op on Windows (no RLIMIT_NOFILE).
+func raiseOpenFilesLimit(_ zerolog.Logger) {}
 
 func gracefulShutdownSignal() os.Signal {
 	return os.Kill

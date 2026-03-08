@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
@@ -51,8 +52,12 @@ type StartOpts struct {
 
 // Orchestrator coordinates binary download, process management, and health checking.
 type Orchestrator struct {
-	DataDir string
-	Network string
+	DataDir      string
+	Network      string
+	BitwindowDir string
+
+	BitcoinConf  *config.BitcoinConfManager
+	EnforcerConf *config.EnforcerConfManager
 
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
@@ -64,17 +69,36 @@ type Orchestrator struct {
 }
 
 // New creates a new Orchestrator.
-func New(dataDir, network string, configs []BinaryConfig, log zerolog.Logger) *Orchestrator {
+func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zerolog.Logger) *Orchestrator {
 	pidMgr := NewPidFileManager(dataDir, log)
-	return &Orchestrator{
-		DataDir:    dataDir,
-		Network:    network,
-		configs:    lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
-		download:   NewDownloadManager(dataDir, log),
-		process:    NewProcessManager(dataDir, pidMgr, log),
-		pidManager: pidMgr,
-		log:        log.With().Str("component", "orchestrator").Logger(),
+
+	orch := &Orchestrator{
+		DataDir:      dataDir,
+		Network:      network,
+		BitwindowDir: bitwindowDir,
+		configs:      lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
+		download:     NewDownloadManager(dataDir, log),
+		process:      NewProcessManager(dataDir, pidMgr, log),
+		pidManager:   pidMgr,
+		log:          log.With().Str("component", "orchestrator").Logger(),
 	}
+
+	// Initialize config managers for auto-building args
+	bitcoinConf, err := config.NewBitcoinConfManager(bitwindowDir, log)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to initialize bitcoin config manager, args must be passed explicitly")
+	} else {
+		orch.BitcoinConf = bitcoinConf
+
+		enforcerConf, err := config.NewEnforcerConfManager(bitcoinConf, log)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to initialize enforcer config manager, args must be passed explicitly")
+		} else {
+			orch.EnforcerConf = enforcerConf
+		}
+	}
+
+	return orch
 }
 
 // Download downloads a binary if missing (or forces re-download).
@@ -173,6 +197,19 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 			return
 		}
 
+		// Auto-build core args if none provided and config manager is available
+		if len(opts.CoreArgs) == 0 && o.BitcoinConf != nil {
+			confPath := o.BitcoinConf.GetConfFilePath()
+			opts.CoreArgs = []string{fmt.Sprintf("-conf=%s", confPath)}
+			o.log.Info().Strs("core_args", opts.CoreArgs).Msg("auto-built core args from config")
+		}
+
+		// Auto-build enforcer args if none provided and config manager is available
+		if len(opts.EnforcerArgs) == 0 && o.EnforcerConf != nil {
+			opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
+			o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
+		}
+
 		// Start Bitcoin Core if needed
 		if !o.process.IsRunning("bitcoind") {
 			ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
@@ -197,7 +234,19 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 
 		// Wait for Bitcoin Core health
 		ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
-		coreChecker := NewHealthChecker(o.configs["bitcoind"])
+		coreCfg := o.configs["bitcoind"]
+		var coreHealthOpts HealthCheckOpts
+		if o.BitcoinConf != nil {
+			if coreCfg.Port == 0 {
+				coreCfg.Port = o.BitcoinConf.GetRPCPort()
+			}
+			if o.BitcoinConf.Config != nil {
+				section := o.BitcoinConf.Network.CoreSection()
+				coreHealthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+				coreHealthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+			}
+		}
+		coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
 		if err := WaitForHealthy(ctx, coreChecker, 2*time.Second); err != nil {
 			ch <- StartupProgress{Error: fmt.Errorf("wait for bitcoind: %w", err)}
 			return

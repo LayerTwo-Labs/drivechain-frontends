@@ -116,7 +116,7 @@ func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.L
 }
 
 // Start launches a binary and returns its PID.
-func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args []string, env map[string]string) (int, error) {
+func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []string, env map[string]string) (int, error) {
 	pm.mu.Lock()
 	if _, exists := pm.processes[config.Name]; exists {
 		pm.mu.Unlock()
@@ -133,7 +133,12 @@ func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args [
 		pm.log.Warn().Err(err).Str("binary", config.Name).Msg("chmod")
 	}
 
-	cmd := exec.CommandContext(ctx, binPath, args...)
+	// Raise file descriptor limit for child processes (bitcoind needs many)
+	raiseOpenFilesLimit(pm.log)
+
+	// Use background context so child processes survive beyond the RPC request.
+	// The orchestrator manages process lifecycle via Stop/StopAll, not via context.
+	cmd := exec.Command(binPath, args...)
 	cmd.Dir = pm.dataDir
 
 	// Set environment
