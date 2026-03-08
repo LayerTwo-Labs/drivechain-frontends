@@ -644,6 +644,8 @@ abstract class Binary {
 
     if (kDebugMode) {
       paths.addAll([path.join(binDir(Directory.current.path).path, subfolder, baseBinary)]);
+      // Also check server/bin/ for Go backends (e.g. thunderd) built locally
+      paths.add(path.join(Directory.current.path, 'server', 'bin', baseBinary));
     }
 
     paths.addAll([path.join(binDir(appDir.path).path, subfolder, baseBinary)]);

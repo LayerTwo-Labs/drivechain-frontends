@@ -101,14 +101,14 @@ func run(cctx *cli.Context) error {
 		orchestrator.DefaultEnforcer(),
 		orchestrator.DefaultThunder(),
 	}
-	orch := orchestrator.New(dataDir, network, configs, log)
+	bitwindowDir := cctx.String("bitwindow-dir")
+	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
 
 	if err := orch.AdoptOrphans(ctx); err != nil {
 		log.Warn().Err(err).Msg("adopt orphans")
 	}
 
 	// Initialize wallet service
-	bitwindowDir := cctx.String("bitwindow-dir")
 	walletSvc := wallet.NewService(bitwindowDir, log)
 	if err := walletSvc.Init(); err != nil {
 		log.Warn().Err(err).Msg("wallet service init")

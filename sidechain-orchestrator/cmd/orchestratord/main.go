@@ -48,6 +48,12 @@ func main() {
 				Value:   "info",
 				EnvVars: []string{"ORCHESTRATOR_LOGLEVEL"},
 			},
+			&cli.StringFlag{
+				Name:    "bitwindow-dir",
+				Usage:   "path to bitwindow data directory",
+				Value:   orchestrator.DefaultBitwindowDir(),
+				EnvVars: []string{"ORCHESTRATOR_BITWINDOW_DIR"},
+			},
 		},
 		Action: run,
 	}
@@ -84,7 +90,8 @@ func run(cctx *cli.Context) error {
 		Msg("starting orchestratord")
 
 	// Create orchestrator with all default configs
-	orch := orchestrator.New(dataDir, network, orchestrator.AllDefaults(), log)
+	bitwindowDir := cctx.String("bitwindow-dir")
+	orch := orchestrator.New(dataDir, network, bitwindowDir, orchestrator.AllDefaults(), log)
 
 	// Adopt orphaned processes from previous session
 	if err := orch.AdoptOrphans(ctx); err != nil {

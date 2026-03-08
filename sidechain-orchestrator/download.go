@@ -466,6 +466,9 @@ func StripPlatformSuffix(name string) string {
 	// Strip version numbers (e.g. -0.1.0- or -v1.2.3)
 	result = versionPattern.ReplaceAllString(result, "-")
 
+	// Strip "-latest" placeholder version tag
+	result = strings.TrimSuffix(result, "-latest")
+
 	// Clean up trailing/leading/double dashes
 	result = strings.TrimRight(result, "-_")
 	result = strings.TrimLeft(result, "-_")
