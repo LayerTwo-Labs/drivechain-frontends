@@ -69,4 +69,20 @@ class OrchestratorRPC {
   Stream<ShutdownAllResponse> shutdownAll({bool force = false}) {
     return _client.shutdownAll(ShutdownAllRequest(force: force));
   }
+
+  Future<GetBTCPriceResponse> getBTCPrice() {
+    return _client.getBTCPrice(GetBTCPriceRequest());
+  }
+
+  Future<GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo() {
+    return _client.getMainchainBlockchainInfo(GetMainchainBlockchainInfoRequest());
+  }
+
+  Future<GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo() {
+    return _client.getEnforcerBlockchainInfo(GetEnforcerBlockchainInfoRequest());
+  }
+
+  Future<GetMainchainBalanceResponse> getMainchainBalance() {
+    return _client.getMainchainBalance(GetMainchainBalanceRequest());
+  }
 }

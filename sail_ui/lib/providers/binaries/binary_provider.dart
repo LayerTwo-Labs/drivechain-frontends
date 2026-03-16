@@ -595,6 +595,18 @@ class BinaryProvider extends ChangeNotifier {
     }
   }
 
+  /// Add a startup log entry for a binary and notify listeners.
+  /// Used by backends that manage binaries externally (e.g. Go orchestrator).
+  void addStartupLogForBinary(BinaryType type, String message) {
+    for (final binary in binaries) {
+      if (binary.type == type) {
+        binary.addStartupLog(DateTime.now(), message);
+        break;
+      }
+    }
+    notifyListeners();
+  }
+
   /// Download a binary using the DownloadProvider
   Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
     await _downloadManager.downloadIfMissing(binary, shouldUpdate: shouldUpdate);

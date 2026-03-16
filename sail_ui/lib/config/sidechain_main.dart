@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -23,6 +24,8 @@ Future<void> initSidechainDependencies({
   List<Binary> Function() additionalBinaries = _noAdditionalBinaries,
   bool backendManagesBinaries = false,
 }) async {
+  Environment.backendManagesBinaries = backendManagesBinaries;
+
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
   final store = await KeyValueStore.create(dir: applicationDir);
@@ -35,12 +38,12 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => bitwindowClientSettings);
 
   // Register WalletReaderProvider pointing to bitwindow directory
-  final walletReader = WalletReaderProvider(bitwindowDir);
+  final walletReader = WalletReaderProvider.create(bitwindowDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   await walletReader.init();
 
   // Register WalletWriterProvider (same code as BitWindow) for chain-agnostic wallet creation
-  final walletWriter = WalletWriterProvider(bitwindowAppDir: bitwindowDir);
+  final walletWriter = WalletWriterProvider.create(bitwindowAppDir: bitwindowDir);
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
 
