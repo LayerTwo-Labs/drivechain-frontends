@@ -23,6 +23,7 @@ type WalletData struct {
 	Gradient   json.RawMessage   `json:"gradient"`
 	CreatedAt  time.Time         `json:"-"`
 	WalletType string            `json:"wallet_type"`
+	WatchOnly  json.RawMessage   `json:"watch_only,omitempty"`
 }
 
 // Custom JSON marshal/unmarshal for WalletData to handle time format
@@ -48,12 +49,21 @@ func (w *WalletData) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
-	t, err := time.Parse(time.RFC3339Nano, aux.CreatedAt)
-	if err != nil {
-		// Try ISO 8601 without timezone
-		t, err = time.Parse("2006-01-02T15:04:05.000", aux.CreatedAt)
-		if err != nil {
-			return err
+	// Dart's DateTime.now().toIso8601String() produces formats like:
+	// "2026-03-12T07:53:06.465089" (6 fractional digits, no timezone)
+	// "2026-03-12T07:53:06.465" (3 fractional digits)
+	// Try multiple formats to handle all cases
+	var t time.Time
+	var err error
+	for _, layout := range []string{
+		time.RFC3339Nano,
+		"2006-01-02T15:04:05.000000", // Dart microseconds (6 digits)
+		"2006-01-02T15:04:05.000",    // milliseconds (3 digits)
+		"2006-01-02T15:04:05",        // no fractional
+	} {
+		t, err = time.Parse(layout, aux.CreatedAt)
+		if err == nil {
+			break
 		}
 	}
 	w.CreatedAt = t
