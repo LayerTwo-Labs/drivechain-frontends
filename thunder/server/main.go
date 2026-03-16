@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"connectrpc.com/connect"
@@ -17,6 +16,7 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	orchapi "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
+	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 
@@ -108,11 +108,119 @@ func run(cctx *cli.Context) error {
 		log.Warn().Err(err).Msg("adopt orphans")
 	}
 
+	// Set up config file watching and network-change callback
+	if orch.BitcoinConf != nil {
+		orch.BitcoinConf.OnNetworkChanged = func() {
+			// Dart: _onBitcoinConfChanged → syncNodeRpcFromBitcoinConf
+			if orch.EnforcerConf != nil {
+				if err := orch.EnforcerConf.SyncFromBitcoinConf(); err != nil {
+					log.Warn().Err(err).Msg("sync enforcer conf after network change")
+				}
+			}
+
+			log.Info().Msg("network changed, stopping all binaries")
+			shutdownCh, err := orch.ShutdownAll(ctx, false)
+			if err != nil {
+				log.Error().Err(err).Msg("shutdown on network change")
+				return
+			}
+			for p := range shutdownCh {
+				if p.CurrentBinary != "" {
+					log.Info().Str("binary", p.CurrentBinary).Msg("stopping for network change")
+				}
+			}
+
+			// Restart the dependency chain: Core → Enforcer → Thunder
+			log.Info().Msg("restarting binaries for new network")
+			startCh, err := orch.StartWithDeps(ctx, "thunder", orchestrator.StartOpts{
+				TargetArgs: []string{"--headless"},
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("start with deps after network change")
+				return
+			}
+			for p := range startCh {
+				if p.Error != nil {
+					log.Error().Err(p.Error).Msg("restart after network change")
+					break
+				}
+				log.Info().Str("stage", p.Stage).Str("msg", p.Message).Msg("restarting")
+			}
+		}
+		if err := orch.BitcoinConf.StartWatching(); err != nil {
+			log.Warn().Err(err).Msg("start config file watching")
+		}
+	}
+
 	// Initialize wallet service
 	walletSvc := wallet.NewService(bitwindowDir, log)
 	if err := walletSvc.Init(); err != nil {
 		log.Warn().Err(err).Msg("wallet service init")
 	}
+
+	// Set wallet service on orchestrator for seed injection
+	// Dart: BinaryProvider.start L314-326 + enforcer_rpc.dart L66-69
+	orch.WalletSvc = walletSvc
+
+	// Wire up wallet callbacks — matches Dart WalletWriterProvider behavior
+	walletNetwork := orchconfig.NetworkFromString(network)
+
+	walletSvc.OnWalletGenerated = func() {
+		// Dart L115-132: restartEnforcer — stop enforcer, wait 3s, restart
+		log.Info().Msg("wallet generated, restarting enforcer via orchestrator")
+		shutdownCh, err := orch.ShutdownAll(ctx, false)
+		if err != nil {
+			log.Warn().Err(err).Msg("stop binaries after wallet gen")
+			return
+		}
+		for p := range shutdownCh {
+			if p.CurrentBinary != "" {
+				log.Info().Str("binary", p.CurrentBinary).Msg("stopping after wallet gen")
+			}
+		}
+		// Restart the dependency chain
+		startCh, err := orch.StartWithDeps(ctx, "thunder", orchestrator.StartOpts{
+			TargetArgs: []string{"--headless"},
+		})
+		if err != nil {
+			log.Warn().Err(err).Msg("restart after wallet gen")
+			return
+		}
+		for p := range startCh {
+			if p.Error != nil {
+				log.Error().Err(p.Error).Msg("restart after wallet gen")
+				break
+			}
+		}
+	}
+	walletSvc.OnStopAllBinaries = func() error {
+		// Dart L562-575: stop all binaries
+		shutdownCh, err := orch.ShutdownAll(ctx, false)
+		if err != nil {
+			return err
+		}
+		for p := range shutdownCh {
+			if p.CurrentBinary != "" {
+				log.Info().Str("binary", p.CurrentBinary).Msg("stopping for wallet wipe")
+			}
+		}
+		return nil
+	}
+	walletSvc.GetBinaryWalletPaths = func() []string {
+		// Dart L600-608: collect wallet paths from all binaries
+		var allPaths []string
+		for _, dirs := range []orchconfig.BinaryDirConfig{
+			orchconfig.BitcoinCoreDirs,
+			orchconfig.EnforcerDirs,
+			orchconfig.BitWindowDirs,
+			orchconfig.ThunderDirs,
+		} {
+			paths := dirs.GetWalletPaths(dirs.RootDirNetwork(walletNetwork), walletNetwork, log)
+			allPaths = append(allPaths, paths...)
+		}
+		return allPaths
+	}
+	walletSvc.CoreDataDir = orchconfig.BitcoinCoreDirs.RootDirNetwork(walletNetwork)
 
 	orchHandler := orchapi.NewHandler(orch)
 	orchWrapper := thunderapi.NewOrchestratorWrapper(orchHandler, walletSvc, log)
@@ -120,6 +228,38 @@ func run(cctx *cli.Context) error {
 
 	orchPath, orchH := orchrpc.NewOrchestratorServiceHandler(orchWrapper, connect.WithInterceptors())
 	mux.Handle(orchPath, orchH)
+
+	// Mount BitcoinConfService so the Flutter frontend can read/write bitcoin config via RPC
+	if orch.BitcoinConf != nil {
+		btcConfHandler := orchapi.NewBitcoinConfHandler(orch.BitcoinConf)
+		btcConfPath, btcConfH := orchrpc.NewBitcoinConfServiceHandler(btcConfHandler)
+		mux.Handle(btcConfPath, btcConfH)
+	}
+
+	// Mount EnforcerConfService and set up bitcoin conf → enforcer conf sync
+	if orch.EnforcerConf != nil {
+		enforcerConfHandler := orchapi.NewEnforcerConfHandler(orch.EnforcerConf)
+		enforcerConfPath, enforcerConfH := orchrpc.NewEnforcerConfServiceHandler(enforcerConfHandler)
+		mux.Handle(enforcerConfPath, enforcerConfH)
+
+		if err := orch.EnforcerConf.StartWatching(); err != nil {
+			log.Warn().Err(err).Msg("start enforcer config file watching")
+		}
+	}
+
+	// Mount ThunderConfService
+	thunderConfMgr, err := orchconfig.NewThunderConfManager(orch.BitcoinConf, log)
+	if err != nil {
+		log.Warn().Err(err).Msg("thunder conf manager init")
+	} else {
+		thunderConfHandler := orchapi.NewThunderConfHandler(thunderConfMgr)
+		thunderConfPath, thunderConfH := orchrpc.NewThunderConfServiceHandler(thunderConfHandler)
+		mux.Handle(thunderConfPath, thunderConfH)
+
+		if err := thunderConfMgr.StartWatching(); err != nil {
+			log.Warn().Err(err).Msg("start thunder config file watching")
+		}
+	}
 
 	thunderRPC := rpc.New("127.0.0.1", 6009)
 	thunderHandler := thunderapi.NewThunderHandler(thunderRPC)
@@ -152,6 +292,12 @@ func run(cctx *cli.Context) error {
 	}
 
 	walletSvc.Close()
+	if orch.BitcoinConf != nil {
+		orch.BitcoinConf.StopWatching()
+	}
+	if orch.EnforcerConf != nil {
+		orch.EnforcerConf.StopWatching()
+	}
 
 	log.Info().Msg("shutting down managed binaries...")
 	shutdownCh, err := orch.ShutdownAll(context.Background(), false)
@@ -175,9 +321,5 @@ func run(cctx *cli.Context) error {
 }
 
 func defaultBitwindowDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return filepath.Join(".", ".drivechain", "bitwindow")
-	}
-	return filepath.Join(home, ".drivechain", "bitwindow")
+	return orchconfig.BitWindowDirs.RootDir()
 }

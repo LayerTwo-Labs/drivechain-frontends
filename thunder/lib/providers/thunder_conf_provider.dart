@@ -1,11 +1,19 @@
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:thunder/providers/backend_thunder_conf_provider.dart';
 
 /// Provider for Thunder configuration settings.
+/// In backend mode, uses BackendThunderConfProvider (RPC-backed).
+/// In frontend mode, uses the file-based implementation directly.
 class ThunderConfProvider extends GenericSidechainConfProvider {
   ThunderConfProvider._create();
+  ThunderConfProvider.protected();
 
   static Future<ThunderConfProvider> create() async {
+    if (Environment.backendManagesBinaries) {
+      return BackendThunderConfProvider.create();
+    }
     final instance = ThunderConfProvider._create();
     await instance.initialize();
     return instance;
