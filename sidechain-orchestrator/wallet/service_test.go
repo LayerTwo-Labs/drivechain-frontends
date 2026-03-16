@@ -261,7 +261,7 @@ func TestServiceDeleteAllWallets(t *testing.T) {
 	_, err = svc.GenerateWallet("B", "", "", testSlots)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.DeleteAllWallets())
+	require.NoError(t, svc.DeleteAllWallets(nil, nil))
 	assert.False(t, svc.HasWallet())
 	assert.False(t, svc.IsUnlocked())
 	assert.Empty(t, svc.ActiveWalletID())

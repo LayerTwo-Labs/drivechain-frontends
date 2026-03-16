@@ -2,11 +2,15 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
+	"net/http"
 	"sync"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
@@ -26,10 +30,12 @@ type BinaryStatus struct {
 
 // StartupProgress reports progress during StartWithDeps.
 type StartupProgress struct {
-	Stage   string // e.g. "downloading-bitcoind", "starting-bitcoind", "waiting-ibd"
-	Message string
-	Done    bool
-	Error   error
+	Stage           string // e.g. "downloading-bitcoind", "starting-bitcoind", "waiting-ibd"
+	Message         string
+	Done            bool
+	Error           error
+	BytesDownloaded int64
+	TotalBytes      int64
 }
 
 // ShutdownProgress reports progress during ShutdownAll.
@@ -58,6 +64,7 @@ type Orchestrator struct {
 
 	BitcoinConf  *config.BitcoinConfManager
 	EnforcerConf *config.EnforcerConfManager
+	WalletSvc    *wallet.Service // for seed injection into sidechain/enforcer args
 
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
@@ -66,6 +73,10 @@ type Orchestrator struct {
 	log        zerolog.Logger
 
 	mu sync.RWMutex
+
+	cachedBTCPrice    float64
+	cachedPriceTime   time.Time
+	priceMu           sync.Mutex
 }
 
 // New creates a new Orchestrator.
@@ -210,6 +221,44 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 			o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
 		}
 
+		// Dart enforcer_rpc.dart L66-69: inject L1 seed for enforcer
+		// Dart: always tries, no HasWallet/IsUnlocked guard — fails gracefully
+		if o.WalletSvc != nil {
+			// Dart L66: strip old --wallet-seed-file args before adding new
+			filtered := make([]string, 0, len(opts.EnforcerArgs))
+			for _, arg := range opts.EnforcerArgs {
+				if !strings.HasPrefix(arg, "--wallet-seed-file") {
+					filtered = append(filtered, arg)
+				}
+			}
+			opts.EnforcerArgs = filtered
+
+			l1Path, err := o.WalletSvc.WriteL1Starter()
+			if err != nil {
+				o.log.Warn().Err(err).Msg("failed to write L1 starter, continuing without")
+			} else {
+				opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--wallet-seed-file=%s", l1Path))
+				o.log.Info().Str("path", l1Path).Msg("injected L1 starter for enforcer")
+			}
+		}
+
+		// Dart binary_provider.dart L314-326: inject sidechain seed for chainLayer==2 targets
+		// Dart: always tries for any chainLayer==2, no HasWallet/IsUnlocked guard
+		if config.ChainLayer == 2 && config.Slot > 0 && o.WalletSvc != nil {
+			// Dart L321: walletWriter.getSidechainStarter(slot) — ensure exists
+			if _, err := o.WalletSvc.GetOrDeriveSidechainStarter(config.Slot, config.DisplayName); err != nil {
+				o.log.Warn().Err(err).Int("slot", config.Slot).Msg("could not ensure sidechain starter")
+			}
+			// Dart L322: walletReader.writeSidechainStarter(slot) — write to temp file
+			scPath, err := o.WalletSvc.WriteSidechainStarter(config.Slot)
+			if err != nil {
+				o.log.Warn().Err(err).Int("slot", config.Slot).Msg("failed to write sidechain starter")
+			} else {
+				opts.TargetArgs = append(opts.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
+				o.log.Info().Str("path", scPath).Int("slot", config.Slot).Msg("injected sidechain starter")
+			}
+		}
+
 		// Start Bitcoin Core if needed
 		if !o.process.IsRunning("bitcoind") {
 			ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
@@ -219,11 +268,9 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 				ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", err)}
 				return
 			}
-			for p := range downloadCh {
-				if p.Error != nil {
-					ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", p.Error)}
-					return
-				}
+			if err := forwardDownload(downloadCh, ch, "downloading-bitcoind"); err != nil {
+				ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", err)}
+				return
 			}
 
 			if _, err := o.process.Start(ctx, o.configs["bitcoind"], opts.CoreArgs, nil); err != nil {
@@ -261,11 +308,9 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 				ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
 				return
 			}
-			for p := range downloadCh {
-				if p.Error != nil {
-					ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", p.Error)}
-					return
-				}
+			if err := forwardDownload(downloadCh, ch, "downloading-enforcer"); err != nil {
+				ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
+				return
 			}
 
 			if _, err := o.process.Start(ctx, o.configs["enforcer"], opts.EnforcerArgs, nil); err != nil {
@@ -296,11 +341,9 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
 		return
 	}
-	for p := range downloadCh {
-		if p.Error != nil {
-			ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, p.Error)}
-			return
-		}
+	if err := forwardDownload(downloadCh, ch, "downloading-"+config.Name); err != nil {
+		ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+		return
 	}
 
 	ch <- StartupProgress{Stage: "starting-" + config.Name, Message: fmt.Sprintf("starting %s...", config.DisplayName)}
@@ -311,6 +354,25 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+}
+
+// forwardDownload forwards DownloadProgress events to the StartupProgress channel,
+// mapping download fields and returning an error if the download fails.
+func forwardDownload(downloadCh <-chan DownloadProgress, startupCh chan<- StartupProgress, stage string) error {
+	for p := range downloadCh {
+		if p.Error != nil {
+			return p.Error
+		}
+		if p.BytesDownloaded > 0 || p.Message != "" {
+			startupCh <- StartupProgress{
+				Stage:           stage,
+				Message:         p.Message,
+				BytesDownloaded: p.BytesDownloaded,
+				TotalBytes:      p.TotalBytes,
+			}
+		}
+	}
+	return nil
 }
 
 // ShutdownAll stops all running binaries in reverse dependency order.
@@ -387,6 +449,160 @@ func (o *Orchestrator) Configs() map[string]BinaryConfig {
 	defer o.mu.RUnlock()
 	return o.configs
 }
+
+// GetBTCPrice returns the current BTC/USD price, caching for 10 seconds.
+func (o *Orchestrator) GetBTCPrice() (float64, time.Time, error) {
+	o.priceMu.Lock()
+	defer o.priceMu.Unlock()
+
+	if time.Since(o.cachedPriceTime) < 10*time.Second && o.cachedBTCPrice > 0 {
+		return o.cachedBTCPrice, o.cachedPriceTime, nil
+	}
+
+	resp, err := http.Get("https://blockchain.info/ticker")
+	if err != nil {
+		return o.cachedBTCPrice, o.cachedPriceTime, fmt.Errorf("fetch BTC price: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return o.cachedBTCPrice, o.cachedPriceTime, fmt.Errorf("fetch BTC price: HTTP %d", resp.StatusCode)
+	}
+
+	var ticker map[string]struct {
+		Last float64 `json:"last"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&ticker); err != nil {
+		return o.cachedBTCPrice, o.cachedPriceTime, fmt.Errorf("decode BTC price: %w", err)
+	}
+
+	usd, ok := ticker["USD"]
+	if !ok {
+		return o.cachedBTCPrice, o.cachedPriceTime, fmt.Errorf("USD not found in ticker response")
+	}
+
+	o.cachedBTCPrice = usd.Last
+	o.cachedPriceTime = time.Now()
+
+	return o.cachedBTCPrice, o.cachedPriceTime, nil
+}
+
+// MainchainBlockchainInfo holds the result of bitcoind's getblockchaininfo.
+type MainchainBlockchainInfo struct {
+	Chain                 string  `json:"chain"`
+	Blocks                int     `json:"blocks"`
+	Headers               int     `json:"headers"`
+	BestBlockHash         string  `json:"bestblockhash"`
+	Difficulty            float64 `json:"difficulty"`
+	Time                  int64   `json:"time"`
+	MedianTime            int64   `json:"mediantime"`
+	VerificationProgress  float64 `json:"verificationprogress"`
+	InitialBlockDownload  bool    `json:"initialblockdownload"`
+	ChainWork             string  `json:"chainwork"`
+	SizeOnDisk            int64   `json:"size_on_disk"`
+	Pruned                bool    `json:"pruned"`
+}
+
+// EnforcerBlockchainInfo holds minimal chain tip info from the enforcer.
+type EnforcerBlockchainInfo struct {
+	Blocks  int
+	Headers int
+	Time    int64
+}
+
+// MainchainBalance holds confirmed + unconfirmed balances from bitcoind.
+type MainchainBalance struct {
+	Confirmed   float64
+	Unconfirmed float64
+}
+
+// GetMainchainBlockchainInfo proxies getblockchaininfo from bitcoind.
+func (o *Orchestrator) GetMainchainBlockchainInfo(ctx context.Context) (*MainchainBlockchainInfo, error) {
+	client, err := o.coreStatusClient()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.call(ctx, "getblockchaininfo")
+	if err != nil {
+		return nil, fmt.Errorf("getblockchaininfo: %w", err)
+	}
+
+	var info MainchainBlockchainInfo
+	if err := json.Unmarshal(result, &info); err != nil {
+		return nil, fmt.Errorf("decode getblockchaininfo: %w", err)
+	}
+
+	return &info, nil
+}
+
+// GetEnforcerBlockchainInfo returns chain tip info for the enforcer.
+// The enforcer mirrors mainchain blocks, so when running we proxy the mainchain
+// block count. This avoids needing cusf proto stubs in the orchestrator.
+func (o *Orchestrator) GetEnforcerBlockchainInfo(ctx context.Context) (*EnforcerBlockchainInfo, error) {
+	if !o.process.IsRunning("enforcer") {
+		return &EnforcerBlockchainInfo{}, nil
+	}
+
+	// The enforcer tracks mainchain blocks, so use mainchain block count as a proxy.
+	mainInfo, err := o.GetMainchainBlockchainInfo(ctx)
+	if err != nil {
+		// Enforcer is running but we can't reach bitcoind — return zeros
+		return &EnforcerBlockchainInfo{}, nil
+	}
+
+	return &EnforcerBlockchainInfo{
+		Blocks:  mainInfo.Blocks,
+		Headers: mainInfo.Headers,
+		Time:    mainInfo.Time,
+	}, nil
+}
+
+// GetMainchainBalance proxies getbalance + getunconfirmedbalance from bitcoind.
+func (o *Orchestrator) GetMainchainBalance(ctx context.Context) (*MainchainBalance, error) {
+	client, err := o.coreStatusClient()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.call(ctx, "getbalance")
+	if err != nil {
+		return nil, fmt.Errorf("getbalance: %w", err)
+	}
+	var confirmed float64
+	if err := json.Unmarshal(result, &confirmed); err != nil {
+		return nil, fmt.Errorf("decode getbalance: %w", err)
+	}
+
+	result, err = client.call(ctx, "getunconfirmedbalance")
+	if err != nil {
+		return nil, fmt.Errorf("getunconfirmedbalance: %w", err)
+	}
+	var unconfirmed float64
+	if err := json.Unmarshal(result, &unconfirmed); err != nil {
+		return nil, fmt.Errorf("decode getunconfirmedbalance: %w", err)
+	}
+
+	return &MainchainBalance{Confirmed: confirmed, Unconfirmed: unconfirmed}, nil
+}
+
+// coreStatusClient builds a CoreStatusClient from the current config.
+func (o *Orchestrator) coreStatusClient() (*CoreStatusClient, error) {
+	if o.BitcoinConf == nil {
+		return nil, fmt.Errorf("bitcoin config not available")
+	}
+
+	port := o.BitcoinConf.GetRPCPort()
+	var user, password string
+	if o.BitcoinConf.Config != nil {
+		section := o.BitcoinConf.Network.CoreSection()
+		user = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+		password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+	}
+
+	return NewCoreStatusClient("localhost", port, user, password), nil
+}
+
 
 func (o *Orchestrator) getConfig(name string) (BinaryConfig, error) {
 	o.mu.RLock()

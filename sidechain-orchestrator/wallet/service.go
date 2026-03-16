@@ -14,6 +14,8 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
+	"github.com/tyler-smith/go-bip32"
+	"github.com/tyler-smith/go-bip39"
 )
 
 // Service manages wallet lifecycle: load, save, encrypt, decrypt, generate, starters.
@@ -28,6 +30,17 @@ type Service struct {
 	activeWalletID string
 	encryptionKey  []byte
 	unlockedPass   string
+
+	// Callbacks
+	// Dart: restartEnforcer (WalletWriterProvider L115) — called after wallet generation
+	OnWalletGenerated func()
+	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
+	OnStopAllBinaries func() error
+	// Dart: deleteAllWallets deletes per-binary wallet paths (L600-608)
+	// Returns list of wallet file paths for all managed binaries
+	GetBinaryWalletPaths func() []string
+	// Dart: _deleteCoreMultisigWallets (L534) — path to Bitcoin Core datadir
+	CoreDataDir string
 
 	// File watcher
 	watcher   *fsnotify.Watcher
@@ -75,7 +88,7 @@ func (s *Service) Close() {
 		s.log.Info().Msg("closing wallet service")
 		close(s.done)
 		if s.watcher != nil {
-			s.watcher.Close()
+			_ = s.watcher.Close()
 		}
 		s.CleanupStarterFiles()
 	})
@@ -125,6 +138,285 @@ func (s *Service) ActiveWalletName() string {
 	}
 	s.log.Debug().Msg("ActiveWalletName: no active wallet found")
 	return ""
+}
+
+// ActiveWallet returns the currently active wallet, or nil.
+// Dart: WalletReaderProvider.activeWallet (L27-29)
+func (s *Service) ActiveWallet() *WalletData {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.activeWallet()
+}
+
+// EnforcerWallet returns the wallet with type "enforcer", or nil.
+// Dart: WalletReaderProvider.enforcerWallet (L31-33)
+func (s *Service) EnforcerWallet() *WalletData {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for i := range s.wallets {
+		if s.wallets[i].WalletType == "enforcer" {
+			return &s.wallets[i]
+		}
+	}
+	return nil
+}
+
+// ClearState clears all in-memory wallet state (used after reset/wipe).
+// Dart: WalletReaderProvider.clearState (L69-76)
+func (s *Service) ClearState() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.log.Info().Msg("clearState: clearing all wallet state")
+	s.wallets = nil
+	s.encryptionKey = nil
+	s.unlockedPass = ""
+	s.activeWalletID = ""
+}
+
+// GetL1Mnemonic returns the L1 mnemonic from the active wallet.
+// Dart: WalletReaderProvider.getL1Mnemonic (L594-596)
+func (s *Service) GetL1Mnemonic() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	w := s.activeWallet()
+	if w == nil {
+		return ""
+	}
+	return w.L1.Mnemonic
+}
+
+// GetSidechainMnemonic returns the sidechain mnemonic from the active wallet.
+// Dart: WalletReaderProvider.getSidechainMnemonic (L599-605)
+func (s *Service) GetSidechainMnemonic(slot int) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	w := s.activeWallet()
+	if w == nil {
+		return ""
+	}
+	for _, sc := range w.Sidechains {
+		if sc.Slot == slot {
+			return sc.Mnemonic
+		}
+	}
+	return ""
+}
+
+// GetOrDeriveSidechainStarter returns the sidechain mnemonic, deriving on-demand if missing.
+// Dart: WalletWriterProvider.getSidechainStarter (L476-531)
+func (s *Service) GetOrDeriveSidechainStarter(slot int, slotName string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	w := s.activeWallet()
+	if w == nil {
+		return "", fmt.Errorf("no active wallet")
+	}
+
+	// Check if sidechain wallet already exists
+	for _, sc := range w.Sidechains {
+		if sc.Slot == slot {
+			return sc.Mnemonic, nil
+		}
+	}
+
+	// Sidechain doesn't exist yet — generate it
+	s.log.Info().Int("slot", slot).Msg("getSidechainStarter: sidechain not found, generating")
+
+	scMnemonic, err := DeriveStarter(w.Master.SeedHex, fmt.Sprintf("m/44'/0'/%d'", slot))
+	if err != nil {
+		return "", fmt.Errorf("derive sidechain starter: %w", err)
+	}
+
+	newSidechain := SidechainWallet{
+		Slot:     slot,
+		Name:     slotName,
+		Mnemonic: scMnemonic,
+	}
+
+	// Update wallet with the new sidechain
+	w.Sidechains = append(w.Sidechains, newSidechain)
+
+	// Save updated wallet
+	if err := s.saveWalletFile(); err != nil {
+		return "", fmt.Errorf("save wallet after sidechain derivation: %w", err)
+	}
+
+	s.log.Info().Int("slot", slot).Msg("getSidechainStarter: generated and saved sidechain wallet")
+	return scMnemonic, nil
+}
+
+// GenerateWalletFromEntropy creates a wallet from specific entropy bytes.
+// Dart: WalletWriterProvider.generateWalletFromEntropy (L241-280)
+func (s *Service) GenerateWalletFromEntropy(entropy []byte, passphrase string, doNotSave bool, slots []SidechainSlot) (*WalletData, error) {
+	// Create mnemonic from entropy
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	if err != nil {
+		return nil, fmt.Errorf("create mnemonic from entropy: %w", err)
+	}
+
+	// Generate seed (bip39 library uses PBKDF2-HMAC-SHA512 internally)
+	seed := bip39.NewSeed(mnemonic, passphrase)
+	seedHex := hex.EncodeToString(seed)
+
+	// Create master key
+	masterKey, err := bip32.NewMasterKey(seed)
+	if err != nil {
+		return nil, fmt.Errorf("create master key: %w", err)
+	}
+
+	bip39Binary := bytesToBinary(entropy)
+	bip39Checksum := calculateChecksumBits(entropy)
+	checksumByte := byte(0)
+	for _, c := range bip39Checksum {
+		checksumByte = checksumByte<<1 | byte(c-'0')
+	}
+	bip39ChecksumHex := hex.EncodeToString([]byte{checksumByte})
+
+	wallet := &WalletData{
+		Version: 1,
+		Master: MasterWallet{
+			Mnemonic:         mnemonic,
+			SeedHex:          seedHex,
+			MasterKey:        serializedPrivateKeyHex(masterKey.Key),
+			ChainCode:        hex.EncodeToString(masterKey.ChainCode),
+			BIP39Binary:      bip39Binary,
+			BIP39Checksum:    bip39Checksum,
+			BIP39ChecksumHex: bip39ChecksumHex,
+			Name:             "Master",
+		},
+	}
+
+	if !doNotSave {
+		// Derive L1 + sidechains and save
+		fullWallet, err := s.GenerateWallet("Enforcer Wallet", mnemonic, passphrase, slots)
+		if err != nil {
+			return nil, err
+		}
+		return fullWallet, nil
+	}
+
+	return wallet, nil
+}
+
+// LoadMasterStarter returns the active wallet's master data.
+// Dart: WalletWriterProvider.loadMasterStarter (L454-469)
+func (s *Service) LoadMasterStarter() map[string]interface{} {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	w := s.activeWallet()
+	if w == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"mnemonic":          w.Master.Mnemonic,
+		"seed_hex":          w.Master.SeedHex,
+		"master_key":        w.Master.MasterKey,
+		"chain_code":        w.Master.ChainCode,
+		"bip39_binary":      w.Master.BIP39Binary,
+		"bip39_checksum":    w.Master.BIP39Checksum,
+		"bip39_checksum_hex": w.Master.BIP39ChecksumHex,
+		"name":              w.Master.Name,
+	}
+}
+
+// DeleteCoreMultisigWallets deletes multisig_* directories from Bitcoin Core datadir.
+// Dart: WalletWriterProvider._deleteCoreMultisigWallets (L533-552)
+func DeleteCoreMultisigWallets(coreDataDir string, log zerolog.Logger) {
+	entries, err := os.ReadDir(coreDataDir)
+	if err != nil {
+		log.Error().Err(err).Msg("error reading core data dir for multisig cleanup")
+		return
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), "multisig_") {
+			path := filepath.Join(coreDataDir, entry.Name())
+			if err := os.RemoveAll(path); err != nil {
+				log.Warn().Err(err).Str("path", path).Msg("could not delete multisig wallet")
+			} else {
+				log.Info().Str("path", path).Msg("deleted multisig wallet")
+			}
+		}
+	}
+}
+
+// CreateBitcoinCoreWallet creates a new Bitcoin Core wallet (subsequent, not first enforcer).
+// Dart: WalletWriterProvider.createBitcoinCoreWallet (L134-153)
+func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMessage, slots []SidechainSlot) error {
+	wallet, err := s.GenerateWallet(name, "", "", slots)
+	if err != nil {
+		return err
+	}
+	// Update with user-selected gradient
+	return s.UpdateWalletMetadata(wallet.ID, name, gradientJSON)
+}
+
+// CreateWatchOnlyWallet creates a watch-only wallet from an xpub or descriptor.
+// Dart: WalletWriterProvider.createWatchOnlyWallet (L156-214)
+func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.log.Info().Str("name", name).Msg("creating watch-only wallet")
+
+	walletID := generateWalletID()
+
+	// Detect if descriptor (contains '(' and ')')
+	isDescriptor := strings.Contains(xpubOrDescriptor, "(") && strings.Contains(xpubOrDescriptor, ")")
+
+	watchOnly := map[string]string{}
+	if isDescriptor {
+		watchOnly["descriptor"] = xpubOrDescriptor
+	} else {
+		watchOnly["xpub"] = xpubOrDescriptor
+	}
+	watchOnlyJSON, _ := json.Marshal(watchOnly)
+
+	wallet := WalletData{
+		Version:    1,
+		Master:     MasterWallet{SeedHex: ""},
+		L1:         L1Wallet{Mnemonic: ""},
+		Sidechains: []SidechainWallet{},
+		ID:         walletID,
+		Name:       name,
+		Gradient:   json.RawMessage(gradientJSON),
+		CreatedAt:  time.Now(),
+		WalletType: "watchOnly",
+		WatchOnly:  json.RawMessage(watchOnlyJSON),
+	}
+
+	s.wallets = append(s.wallets, wallet)
+	s.activeWalletID = walletID
+
+	if err := s.saveWalletFile(); err != nil {
+		return fmt.Errorf("save watch-only wallet: %w", err)
+	}
+
+	s.log.Info().Str("id", walletID).Msg("watch-only wallet created")
+	return nil
+}
+
+// UpdateWallet updates or adds a wallet and saves to file.
+// Dart: WalletReaderProvider.updateWallet (L570-591)
+func (s *Service) UpdateWallet(wallet WalletData) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	found := false
+	for i, w := range s.wallets {
+		if w.ID == wallet.ID {
+			s.wallets[i] = wallet
+			found = true
+			s.log.Info().Str("id", wallet.ID).Str("name", wallet.Name).Msg("updated existing wallet")
+			break
+		}
+	}
+	if !found {
+		s.wallets = append(s.wallets, wallet)
+		s.log.Info().Str("id", wallet.ID).Str("name", wallet.Name).Msg("added new wallet")
+	}
+
+	return s.saveWalletFile()
 }
 
 // --- Generate ---
@@ -178,6 +470,12 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 		Str("type", walletType).
 		Str("file", s.walletFilePath()).
 		Msg("wallet generated and saved successfully")
+
+	// Dart L88-89: restart enforcer to pick up the new wallet
+	if s.OnWalletGenerated != nil {
+		go s.OnWalletGenerated()
+	}
+
 	return wallet, nil
 }
 
@@ -428,7 +726,7 @@ func (s *Service) RemoveEncryption(password string) error {
 	}
 
 	// Remove metadata file
-	os.Remove(s.metadataFilePath())
+	_ = os.Remove(s.metadataFilePath())
 
 	s.encryptionKey = nil
 	s.unlockedPass = ""
@@ -531,22 +829,92 @@ func (s *Service) DeleteWallet(walletID string) error {
 	return s.saveWalletFile()
 }
 
-func (s *Service) DeleteAllWallets() error {
+// DeleteAllWallets performs a full wallet wipe matching Dart's deleteAllWallets (L554-653).
+// Stops binaries, deletes all wallet files, clears multisig wallets, clears state.
+func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func() error) error {
+	// Dart L560: onStatusUpdate?.call('Stopping binaries')
+	if onStatusUpdate != nil {
+		onStatusUpdate("Stopping binaries")
+	}
+
+	// Dart L562-575: stop all binaries
+	if s.OnStopAllBinaries != nil {
+		if err := s.OnStopAllBinaries(); err != nil {
+			s.log.Error().Err(err).Msg("could not stop binaries")
+		}
+	}
+
+	// Dart L577-578: wait for processes to stop
+	if onStatusUpdate != nil {
+		onStatusUpdate("Waiting for processes to stop")
+	}
+	time.Sleep(5 * time.Second)
+
+	// Dart L580: onStatusUpdate?.call('Deleting wallet files')
+	if onStatusUpdate != nil {
+		onStatusUpdate("Deleting wallet files")
+	}
+
+	// Dart L585-598: delete wallet.json and wallet_encryption.json
+	if err := os.Remove(s.walletFilePath()); err != nil && !os.IsNotExist(err) {
+		s.log.Error().Err(err).Msg("could not delete wallet.json")
+	} else {
+		s.log.Info().Str("path", s.walletFilePath()).Msg("deleted wallet file")
+	}
+	if err := os.Remove(s.metadataFilePath()); err != nil && !os.IsNotExist(err) {
+		s.log.Error().Err(err).Msg("could not delete wallet_encryption.json")
+	} else {
+		s.log.Info().Str("path", s.metadataFilePath()).Msg("deleted encryption metadata")
+	}
+
+	// Dart L600-608: delete per-binary wallet paths
+	if s.GetBinaryWalletPaths != nil {
+		paths := s.GetBinaryWalletPaths()
+		for _, p := range paths {
+			if err := os.RemoveAll(p); err != nil {
+				s.log.Warn().Err(err).Str("path", p).Msg("could not delete binary wallet path")
+			} else {
+				s.log.Info().Str("path", p).Msg("deleted binary wallet path")
+			}
+		}
+	}
+
+	// Dart L610: onStatusUpdate?.call('Cleaning multisig wallets')
+	if onStatusUpdate != nil {
+		onStatusUpdate("Cleaning multisig wallets")
+	}
+
+	// Dart L618: _deleteCoreMultisigWallets
+	if s.CoreDataDir != "" {
+		DeleteCoreMultisigWallets(s.CoreDataDir, s.log)
+	}
+
+	// Dart L623: onStatusUpdate?.call('Clearing wallet state')
+	if onStatusUpdate != nil {
+		onStatusUpdate("Clearing wallet state")
+	}
+
+	// Dart L626: _walletReader.clearState()
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.log.Info().Int("wallet_count", len(s.wallets)).Msg("deleting all wallets")
-
 	s.wallets = nil
 	s.activeWalletID = ""
 	s.encryptionKey = nil
 	s.unlockedPass = ""
+	s.mu.Unlock()
 
-	// Delete files
-	os.Remove(s.walletFilePath())
-	os.Remove(s.metadataFilePath())
+	// Dart L642-648: beforeBoot callback
+	if beforeBoot != nil {
+		if err := beforeBoot(); err != nil {
+			s.log.Error().Err(err).Msg("could not run beforeBoot")
+		}
+	}
 
-	s.log.Info().Msg("all wallets deleted, files removed")
+	// Dart L650
+	if onStatusUpdate != nil {
+		onStatusUpdate("Reset complete")
+	}
+
+	s.log.Info().Msg("all wallets deleted")
 	return nil
 }
 
@@ -629,7 +997,7 @@ func (s *Service) WriteSidechainStarter(slot int) (string, error) {
 // CleanupStarterFiles removes all temporary starter files.
 func (s *Service) CleanupStarterFiles() {
 	dir := s.starterDir()
-	os.RemoveAll(dir)
+	_ = os.RemoveAll(dir)
 }
 
 // --- Internal helpers ---
@@ -817,7 +1185,7 @@ func atomicWrite(path string, data []byte) error {
 // generateWalletID creates a new wallet ID matching Dart's UUID format.
 func generateWalletID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return strings.ToUpper(hex.EncodeToString(b))
 }
 

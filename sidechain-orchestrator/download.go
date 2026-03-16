@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/rs/zerolog"
 )
@@ -29,6 +30,7 @@ type DownloadManager struct {
 	dataDir    string
 	httpClient *http.Client
 	log        zerolog.Logger
+	inFlight   sync.Map
 }
 
 func NewDownloadManager(dataDir string, log zerolog.Logger) *DownloadManager {
@@ -63,9 +65,14 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, for
 		return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentOS())
 	}
 
+	if _, loaded := d.inFlight.LoadOrStore(config.Name, true); loaded {
+		return nil, fmt.Errorf("%s is already being downloaded", config.Name)
+	}
+
 	ch := make(chan DownloadProgress, 100)
 
 	go func() {
+		defer d.inFlight.Delete(config.Name)
 		defer close(ch)
 
 		var downloadURL string
@@ -182,6 +189,9 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 
 	total := resp.ContentLength
 	var downloaded int64
+	var lastPermille int64 = -1 // tracks 0.1% increments (0-1000)
+	const unknownChunkSize int64 = 1024 * 1024 // report every ~1MB when total unknown
+	var lastUnknownReport int64
 
 	buf := make([]byte, 32*1024)
 	for {
@@ -191,9 +201,31 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 				return fmt.Errorf("write: %w", err)
 			}
 			downloaded += int64(n)
-			progress <- DownloadProgress{
-				BytesDownloaded: downloaded,
-				TotalBytes:      total,
+
+			shouldSend := false
+			var msg string
+			if total > 0 {
+				permille := downloaded * 1000 / total
+				if permille != lastPermille {
+					lastPermille = permille
+					shouldSend = true
+					msg = fmt.Sprintf("Downloaded %.2f MB / %.2f MB (%.1f%%)",
+						float64(downloaded)/1e6, float64(total)/1e6, float64(permille)/10.0)
+				}
+			} else {
+				if downloaded-lastUnknownReport >= unknownChunkSize {
+					lastUnknownReport = downloaded
+					shouldSend = true
+					msg = fmt.Sprintf("Downloaded %.2f MB", float64(downloaded)/1e6)
+				}
+			}
+
+			if shouldSend {
+				progress <- DownloadProgress{
+					BytesDownloaded: downloaded,
+					TotalBytes:      total,
+					Message:         msg,
+				}
 			}
 		}
 		if readErr != nil {
