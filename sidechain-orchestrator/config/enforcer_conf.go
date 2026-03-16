@@ -4,53 +4,124 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
+	"strings"
+	"sync"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
 )
 
 const bitwindowEnforcerConfFilename = "bitwindow-enforcer.conf"
 
+// ---------------------------------------------------------------------------
+// Migration system (Dart: _kEnforcerConfVersion, _enforcerConfMigrations)
+// ---------------------------------------------------------------------------
+
+const enforcerConfMigrationsVersion = 2
+
+// EnforcerConfMigration represents a versioned enforcer config migration.
+type EnforcerConfMigration struct {
+	Version int
+	Apply   func(config *EnforcerConfig)
+}
+
+// Migration 2: add node-zmq-addr-sequence (now a required enforcer arg).
+// Dart: _EnforcerMigration2AddZmqSequence (L358)
+var enforcerConfMigrations = []EnforcerConfMigration{
+	{
+		Version: 2,
+		Apply: func(config *EnforcerConfig) {
+			if !config.HasSetting("node-zmq-addr-sequence") {
+				config.SetSetting("node-zmq-addr-sequence", "tcp://127.0.0.1:29000")
+			}
+		},
+	},
+}
+
+// RunEnforcerConfMigrations applies pending migrations to an EnforcerConfig.
+// Returns true if any migration was applied.
+func RunEnforcerConfMigrations(config *EnforcerConfig) bool {
+	migrated := false
+	for _, m := range enforcerConfMigrations {
+		if m.Version <= config.ConfigVersion {
+			continue
+		}
+		m.Apply(config)
+		config.ConfigVersion = m.Version
+		migrated = true
+	}
+	return migrated
+}
+
+// ---------------------------------------------------------------------------
+// EnforcerConfManager
+// ---------------------------------------------------------------------------
+
 // EnforcerConfManager manages Enforcer daemon configuration.
-// Port of the data/config logic from sail_ui/lib/providers/enforcer_conf_provider.dart.
+// 1:1 port of sail_ui/lib/providers/enforcer_conf_provider.dart.
 type EnforcerConfManager struct {
 	Config      *EnforcerConfig
 	ConfigPath  string
+	ConfigDir   string // override for testing; empty = use EnforcerDirs.RootDir()
 	bitcoinConf *BitcoinConfManager
 	log         zerolog.Logger
+
+	// OnBitcoinConfChanged is called when bitcoin config changes.
+	// Set externally; triggers SyncFromBitcoinConf.
+	OnBitcoinConfChanged func()
+
+	// File watching (managed by StartWatching/StopWatching)
+	watcher   *fsnotify.Watcher
+	watchDone chan struct{}
 }
 
 // NewEnforcerConfManager creates a new EnforcerConfManager and loads config.
+// Dart: EnforcerConfProvider.create() (L25)
 func NewEnforcerConfManager(bitcoinConf *BitcoinConfManager, log zerolog.Logger) (*EnforcerConfManager, error) {
 	m := &EnforcerConfManager{
 		bitcoinConf: bitcoinConf,
 		log:         log.With().Str("component", "enforcer-conf").Logger(),
 	}
+	// Dart: await instance.loadConfig();
 	if err := m.LoadConfig(); err != nil {
 		return nil, fmt.Errorf("load enforcer config: %w", err)
 	}
-	// Sync node-rpc settings from bitcoin config
+	// Dart: instance._setupFileWatching();
+	// (caller should call StartWatching after construction)
+
+	// Dart: instance._listenToBitcoinConf();
+	// (handled via OnBitcoinConfChanged callback set by caller)
+
+	// Dart: await instance.syncNodeRpcFromBitcoinConf();
 	if err := m.SyncFromBitcoinConf(); err != nil {
 		m.log.Warn().Err(err).Msg("failed to sync enforcer config from bitcoin conf")
 	}
 	return m, nil
 }
 
-// LoadConfig loads or creates the enforcer configuration file.
+// LoadConfig loads config from file, or creates default if not exists.
+// Runs versioned migrations on load when stored version < current.
+// Dart: loadConfig (L148)
 func (m *EnforcerConfManager) LoadConfig() error {
 	m.ConfigPath = m.getConfigPath()
 
 	data, err := os.ReadFile(m.ConfigPath)
 	if err == nil {
-		m.Config = ParseEnforcerConfig(string(data))
+		content := string(data)
+		config := ParseEnforcerConfig(content)
 
-		// Run migration: add zmq-sequence if missing
-		if !m.Config.HasSetting("node-zmq-addr-sequence") {
-			m.Config.SetSetting("node-zmq-addr-sequence", "tcp://127.0.0.1:29000")
-			if writeErr := m.SaveConfig(); writeErr != nil {
-				m.log.Warn().Err(writeErr).Msg("failed to save migrated enforcer config")
+		// Dart: runConfigMigrations<EnforcerConfig>(config, _kEnforcerConfVersion, ...)
+		if RunEnforcerConfMigrations(config) {
+			content = config.Serialize()
+			if writeErr := os.WriteFile(m.ConfigPath, []byte(content), 0644); writeErr != nil {
+				m.log.Error().Err(writeErr).Msg("failed to write migrated enforcer config")
+			} else {
+				m.log.Info().Int("version", config.ConfigVersion).Msg("migrated bitwindow-enforcer.conf")
 			}
 		}
+
+		m.Config = ParseEnforcerConfig(content)
 		return nil
 	}
 
@@ -58,7 +129,7 @@ func (m *EnforcerConfManager) LoadConfig() error {
 		return fmt.Errorf("read enforcer config: %w", err)
 	}
 
-	// Create default config
+	// Dart: content = getDefaultConfig(); file.writeAsString(content);
 	content := m.GetDefaultConfig()
 	m.Config = ParseEnforcerConfig(content)
 
@@ -67,13 +138,114 @@ func (m *EnforcerConfManager) LoadConfig() error {
 	} else if wErr := os.WriteFile(m.ConfigPath, []byte(content), 0644); wErr != nil {
 		m.log.Error().Err(wErr).Str("path", m.ConfigPath).Msg("failed to write default enforcer config")
 	} else {
-		m.log.Info().Str("path", m.ConfigPath).Msg("created default enforcer config")
+		m.log.Info().Str("path", m.ConfigPath).Msg("created default enforcer config file")
 	}
 
 	return nil
 }
 
+// SaveConfig writes the current config to disk.
+// Dart: _saveConfig (L44)
+func (m *EnforcerConfManager) SaveConfig() error {
+	if m.Config == nil {
+		return nil
+	}
+	confPath := m.getConfigPath()
+	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(confPath, []byte(m.Config.Serialize()), 0644); err != nil {
+		return fmt.Errorf("save enforcer config: %w", err)
+	}
+	m.log.Info().Str("path", confPath).Msg("saved enforcer config")
+	return nil
+}
+
+// NodeRpcDiffers checks if local node-rpc settings differ from BitcoinConfProvider.
+// Dart: nodeRpcDiffers (L57)
+func (m *EnforcerConfManager) NodeRpcDiffers() bool {
+	if m.Config == nil {
+		return false
+	}
+
+	expected := m.GetExpectedNodeRpcSettings()
+	localUser := m.Config.GetSetting("node-rpc-user")
+	localPass := m.Config.GetSetting("node-rpc-pass")
+	localAddr := m.Config.GetSetting("node-rpc-addr")
+
+	return localUser != expected["node-rpc-user"] ||
+		localPass != expected["node-rpc-pass"] ||
+		localAddr != expected["node-rpc-addr"]
+}
+
+// GetExpectedNodeRpcSettings derives RPC credentials from bitcoin config.
+// Dart: getExpectedNodeRpcSettings (L71)
+func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
+	const host = "127.0.0.1"
+	const defaultZmqSequence = "tcp://127.0.0.1:29000"
+
+	port := m.bitcoinConf.GetRPCPort()
+
+	if m.bitcoinConf.Config == nil {
+		return map[string]string{
+			"node-rpc-user":          "user",
+			"node-rpc-pass":          "password",
+			"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
+			"node-zmq-addr-sequence": defaultZmqSequence,
+		}
+	}
+
+	networkSection := CoreSectionForNetwork(m.bitcoinConf.Network)
+
+	username := m.bitcoinConf.Config.GetEffectiveSetting("rpcuser", networkSection)
+	if username == "" {
+		username = "user"
+	}
+
+	password := m.bitcoinConf.Config.GetEffectiveSetting("rpcpassword", networkSection)
+	if password == "" {
+		password = "password"
+	}
+
+	zmqSequence := m.bitcoinConf.Config.GetEffectiveSetting("zmqpubsequence", networkSection)
+	if zmqSequence == "" {
+		zmqSequence = defaultZmqSequence
+	}
+
+	return map[string]string{
+		"node-rpc-user":          username,
+		"node-rpc-pass":          password,
+		"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
+		"node-zmq-addr-sequence": zmqSequence,
+	}
+}
+
+// SyncFromBitcoinConf syncs node-rpc settings from the bitcoin config and saves.
+// Dart: syncNodeRpcFromBitcoinConf (L102)
+func (m *EnforcerConfManager) SyncFromBitcoinConf() error {
+	if m.Config == nil {
+		return nil
+	}
+
+	expected := m.GetExpectedNodeRpcSettings()
+	m.Config.SetSetting("node-rpc-user", expected["node-rpc-user"])
+	m.Config.SetSetting("node-rpc-pass", expected["node-rpc-pass"])
+	m.Config.SetSetting("node-rpc-addr", expected["node-rpc-addr"])
+	m.Config.SetSetting("node-zmq-addr-sequence", expected["node-zmq-addr-sequence"])
+
+	// Sync esplora URL based on current network
+	esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
+	if esploraURL != "" {
+		m.Config.SetSetting("wallet-esplora-url", esploraURL)
+	} else {
+		m.Config.RemoveSetting("wallet-esplora-url")
+	}
+
+	return m.SaveConfig()
+}
+
 // GetDefaultConfig generates the default enforcer config content.
+// Dart: getDefaultConfig (L194)
 func (m *EnforcerConfManager) GetDefaultConfig() string {
 	nodeRpc := m.GetExpectedNodeRpcSettings()
 	esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
@@ -83,7 +255,8 @@ func (m *EnforcerConfManager) GetDefaultConfig() string {
 		esploraLine = fmt.Sprintf("wallet-esplora-url=%s", esploraURL)
 	}
 
-	return fmt.Sprintf(`# bitwindow-enforcer-conf-version=2
+	// Dart: '$kEnforcerConfVersionCommentPrefix$_kEnforcerConfVersion'
+	return fmt.Sprintf(`%s%d
 
 # Enforcer Configuration - Generated by BitWindow
 # These settings are converted to CLI arguments when the Enforcer starts.
@@ -104,11 +277,40 @@ node-zmq-addr-sequence=tcp://127.0.0.1:29000
 
 # Network-specific esplora URL
 %s
-`, nodeRpc["node-rpc-user"], nodeRpc["node-rpc-pass"], nodeRpc["node-rpc-addr"], esploraLine)
+`, enforcerConfVersionCommentPrefix, enforcerConfMigrationsVersion,
+		nodeRpc["node-rpc-user"], nodeRpc["node-rpc-pass"], nodeRpc["node-rpc-addr"],
+		esploraLine)
+}
+
+// GetCurrentConfigContent returns the current configuration content as string.
+// Dart: getCurrentConfigContent (L225)
+func (m *EnforcerConfManager) GetCurrentConfigContent() string {
+	if m.Config == nil {
+		return m.GetDefaultConfig()
+	}
+	return m.Config.Serialize()
+}
+
+// WriteConfig writes raw configuration content to the file.
+// Dart: writeConfig (L233)
+func (m *EnforcerConfManager) WriteConfig(content string) error {
+	config := ParseEnforcerConfig(content)
+	m.Config = config
+
+	confPath := m.getConfigPath()
+	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
+		return fmt.Errorf("create dir: %w", err)
+	}
+	if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("write config: %w", err)
+	}
+
+	m.log.Info().Str("path", confPath).Msg("saved enforcer config")
+	return nil
 }
 
 // GetCliArgs converts current config settings to CLI arguments for the enforcer.
-// Port of getCliArgs() from enforcer_conf_provider.dart.
+// Dart: getCliArgs (L275)
 func (m *EnforcerConfManager) GetCliArgs() []string {
 	var args []string
 
@@ -140,95 +342,120 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 	return args
 }
 
-// GetExpectedNodeRpcSettings derives RPC credentials from bitcoin config.
-func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
-	const host = "127.0.0.1"
-	const defaultZmqSequence = "tcp://127.0.0.1:29000"
+// ---------------------------------------------------------------------------
+// File watching
+// Dart: _setupFileWatching (L303), _handleFileSystemEvent (L325),
+//       _reloadConfigFromFileSystem (L335)
+// ---------------------------------------------------------------------------
 
-	port := m.bitcoinConf.GetRPCPort()
+// StartWatching watches the enforcer config directory for changes.
+// On change, it reloads config if content differs.
+func (m *EnforcerConfManager) StartWatching() error {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("create watcher: %w", err)
+	}
 
-	if m.bitcoinConf.Config == nil {
-		return map[string]string{
-			"node-rpc-user":           "user",
-			"node-rpc-pass":           "password",
-			"node-rpc-addr":           fmt.Sprintf("%s:%d", host, port),
-			"node-zmq-addr-sequence":  defaultZmqSequence,
+	confDir := filepath.Dir(m.getConfigPath())
+	if err := os.MkdirAll(confDir, 0755); err != nil {
+		_ = watcher.Close()
+		return fmt.Errorf("create watch dir: %w", err)
+	}
+
+	if err := watcher.Add(confDir); err != nil {
+		_ = watcher.Close()
+		return fmt.Errorf("watch dir: %w", err)
+	}
+
+	m.watcher = watcher
+	m.watchDone = make(chan struct{})
+
+	go m.watchLoop()
+
+	m.log.Debug().Str("dir", confDir).Msg("enforcer config file watching enabled")
+	return nil
+}
+
+// StopWatching stops the file watcher.
+func (m *EnforcerConfManager) StopWatching() {
+	if m.watcher != nil {
+		_ = m.watcher.Close()
+	}
+	if m.watchDone != nil {
+		<-m.watchDone
+	}
+}
+
+func (m *EnforcerConfManager) watchLoop() {
+	defer close(m.watchDone)
+
+	var debounce *time.Timer
+	var mu sync.Mutex
+
+	for {
+		select {
+		case event, ok := <-m.watcher.Events:
+			if !ok {
+				return
+			}
+			// Dart: .where((event) => event.path.endsWith('bitwindow-enforcer.conf'))
+			if !strings.HasSuffix(event.Name, bitwindowEnforcerConfFilename) {
+				continue
+			}
+			if event.Op&(fsnotify.Write|fsnotify.Create) == 0 {
+				continue
+			}
+
+			// Dart: Timer(Duration(milliseconds: 500), () { _reloadConfigFromFileSystem() })
+			mu.Lock()
+			if debounce != nil {
+				debounce.Stop()
+			}
+			debounce = time.AfterFunc(500*time.Millisecond, func() {
+				m.reloadConfigFromFileSystem()
+			})
+			mu.Unlock()
+
+		case err, ok := <-m.watcher.Errors:
+			if !ok {
+				return
+			}
+			m.log.Error().Err(err).Msg("enforcer config watcher error")
 		}
 	}
-
-	networkSection := CoreSectionForNetwork(m.bitcoinConf.Network)
-
-	username := m.bitcoinConf.Config.GetEffectiveSetting("rpcuser", networkSection)
-	if username == "" {
-		username = "user"
-	}
-
-	password := m.bitcoinConf.Config.GetEffectiveSetting("rpcpassword", networkSection)
-	if password == "" {
-		password = "password"
-	}
-
-	zmqSequence := m.bitcoinConf.Config.GetEffectiveSetting("zmqpubsequence", networkSection)
-	if zmqSequence == "" {
-		zmqSequence = defaultZmqSequence
-	}
-
-	return map[string]string{
-		"node-rpc-user":          username,
-		"node-rpc-pass":          password,
-		"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
-		"node-zmq-addr-sequence": zmqSequence,
-	}
 }
 
-// SyncFromBitcoinConf syncs node-rpc settings from the bitcoin config.
-func (m *EnforcerConfManager) SyncFromBitcoinConf() error {
-	if m.Config == nil {
-		return nil
-	}
+// reloadConfigFromFileSystem reloads config if file content changed.
+// Dart: _reloadConfigFromFileSystem (L335)
+func (m *EnforcerConfManager) reloadConfigFromFileSystem() {
+	m.log.Info().Msg("reloading enforcer config due to file system change")
 
-	expected := m.GetExpectedNodeRpcSettings()
-	m.Config.SetSetting("node-rpc-user", expected["node-rpc-user"])
-	m.Config.SetSetting("node-rpc-pass", expected["node-rpc-pass"])
-	m.Config.SetSetting("node-rpc-addr", expected["node-rpc-addr"])
-	m.Config.SetSetting("node-zmq-addr-sequence", expected["node-zmq-addr-sequence"])
-
-	// Sync esplora URL
-	esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
-	if esploraURL != "" {
-		m.Config.SetSetting("wallet-esplora-url", esploraURL)
-	} else {
-		m.Config.RemoveSetting("wallet-esplora-url")
-	}
-
-	return m.SaveConfig()
-}
-
-// SaveConfig writes the current config to disk.
-func (m *EnforcerConfManager) SaveConfig() error {
-	if m.Config == nil {
-		return nil
-	}
 	confPath := m.getConfigPath()
-	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
-		return err
+	data, err := os.ReadFile(confPath)
+	if err != nil {
+		m.log.Error().Err(err).Msg("failed to read enforcer config from file system")
+		return
 	}
-	return os.WriteFile(confPath, []byte(m.Config.Serialize()), 0644)
+
+	newConfig := ParseEnforcerConfig(string(data))
+
+	// Dart: if (newConfig != currentConfig)
+	if m.Config != nil && m.Config.Serialize() == newConfig.Serialize() {
+		return // unchanged
+	}
+
+	m.Config = newConfig
 }
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+// getConfigPath returns the path to the enforcer config file.
+// Dart: _getConfigPath (L135) = path.join(Enforcer().rootDir(), 'bitwindow-enforcer.conf')
 func (m *EnforcerConfManager) getConfigPath() string {
-	return filepath.Join(enforcerRootDir(), bitwindowEnforcerConfFilename)
-}
-
-// enforcerRootDir returns the enforcer's root data directory.
-func enforcerRootDir() string {
-	home, _ := os.UserHomeDir()
-	switch runtime.GOOS {
-	case "darwin":
-		return filepath.Join(home, "Library", "Application Support", "com.layertwolabs.enforcer")
-	case "windows":
-		return filepath.Join(home, "AppData", "Roaming", "LayerTwoLabs", "Enforcer")
-	default: // linux
-		return filepath.Join(home, ".local", "share", "com.layertwolabs.enforcer")
+	if m.ConfigDir != "" {
+		return filepath.Join(m.ConfigDir, bitwindowEnforcerConfFilename)
 	}
+	return filepath.Join(EnforcerDirs.RootDir(), bitwindowEnforcerConfFilename)
 }

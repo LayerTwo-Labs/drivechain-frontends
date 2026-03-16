@@ -105,6 +105,20 @@ func run(cctx *cli.Context) error {
 	path, h := rpc.NewOrchestratorServiceHandler(handler, connect.WithInterceptors())
 	mux.Handle(path, h)
 
+	// Bitcoin config service
+	if orch.BitcoinConf != nil {
+		confHandler := api.NewBitcoinConfHandler(orch.BitcoinConf)
+		confPath, confH := rpc.NewBitcoinConfServiceHandler(confHandler, connect.WithInterceptors())
+		mux.Handle(confPath, confH)
+	}
+
+	// Enforcer config service
+	if orch.EnforcerConf != nil {
+		enforcerHandler := api.NewEnforcerConfHandler(orch.EnforcerConf)
+		enforcerPath, enforcerH := rpc.NewEnforcerConfServiceHandler(enforcerHandler, connect.WithInterceptors())
+		mux.Handle(enforcerPath, enforcerH)
+	}
+
 	srv := &http.Server{
 		Addr:    listenAddr,
 		Handler: h2c.NewHandler(mux, &http2.Server{}),

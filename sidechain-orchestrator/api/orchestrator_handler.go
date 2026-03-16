@@ -164,9 +164,11 @@ func (h *Handler) StartWithDeps(ctx context.Context, req *connect.Request[pb.Sta
 
 	for p := range ch {
 		msg := &pb.StartWithDepsResponse{
-			Stage:   p.Stage,
-			Message: p.Message,
-			Done:    p.Done,
+			Stage:           p.Stage,
+			Message:         p.Message,
+			Done:            p.Done,
+			BytesDownloaded: p.BytesDownloaded,
+			TotalBytes:      p.TotalBytes,
 		}
 		if p.Error != nil {
 			msg.Error = p.Error.Error()
@@ -201,6 +203,61 @@ func (h *Handler) ShutdownAll(ctx context.Context, req *connect.Request[pb.Shutd
 	}
 
 	return nil
+}
+
+func (h *Handler) GetBTCPrice(ctx context.Context, req *connect.Request[pb.GetBTCPriceRequest]) (*connect.Response[pb.GetBTCPriceResponse], error) {
+	price, updatedAt, err := h.orch.GetBTCPrice()
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetBTCPriceResponse{
+		Btcusd:          price,
+		LastUpdatedUnix: updatedAt.Unix(),
+	}), nil
+}
+
+func (h *Handler) GetMainchainBlockchainInfo(ctx context.Context, req *connect.Request[pb.GetMainchainBlockchainInfoRequest]) (*connect.Response[pb.GetMainchainBlockchainInfoResponse], error) {
+	info, err := h.orch.GetMainchainBlockchainInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetMainchainBlockchainInfoResponse{
+		Chain:                info.Chain,
+		Blocks:               int32(info.Blocks),
+		Headers:              int32(info.Headers),
+		BestBlockHash:        info.BestBlockHash,
+		Difficulty:           info.Difficulty,
+		Time:                 info.Time,
+		MedianTime:           info.MedianTime,
+		VerificationProgress: info.VerificationProgress,
+		InitialBlockDownload: info.InitialBlockDownload,
+		ChainWork:            info.ChainWork,
+		SizeOnDisk:           info.SizeOnDisk,
+		Pruned:               info.Pruned,
+	}), nil
+}
+
+func (h *Handler) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[pb.GetEnforcerBlockchainInfoRequest]) (*connect.Response[pb.GetEnforcerBlockchainInfoResponse], error) {
+	info, err := h.orch.GetEnforcerBlockchainInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetEnforcerBlockchainInfoResponse{
+		Blocks:  int32(info.Blocks),
+		Headers: int32(info.Headers),
+		Time:    info.Time,
+	}), nil
+}
+
+func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[pb.GetMainchainBalanceRequest]) (*connect.Response[pb.GetMainchainBalanceResponse], error) {
+	bal, err := h.orch.GetMainchainBalance(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetMainchainBalanceResponse{
+		Confirmed:   bal.Confirmed,
+		Unconfirmed: bal.Unconfirmed,
+	}), nil
 }
 
 func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {

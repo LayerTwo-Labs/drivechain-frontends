@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
+	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
 )
 
@@ -23,6 +24,15 @@ type BitcoinConfManager struct {
 	DetectedDataDir string
 	HasPrivateConf bool
 	log            zerolog.Logger
+
+	// OnNetworkChanged is called after a network switch completes.
+	// Set by the server to restart services (orchestrator binaries).
+	OnNetworkChanged func()
+
+	// File watching (managed by StartWatching/StopWatching)
+	watcher   *fsnotify.Watcher
+	watchDone chan struct{}
+
 }
 
 // NewBitcoinConfManager creates a new BitcoinConfManager and loads config.
@@ -32,36 +42,36 @@ func NewBitcoinConfManager(bitwindowDir string, log zerolog.Logger) (*BitcoinCon
 		Network:      NetworkSignet, // default before config is loaded
 		log:          log.With().Str("component", "bitcoin-conf").Logger(),
 	}
-	if err := m.LoadConfig(); err != nil {
+	if err := m.LoadConfig(true); err != nil {
 		return nil, fmt.Errorf("load bitcoin config: %w", err)
 	}
 	return m, nil
 }
 
 // LoadConfig loads or creates the Bitcoin configuration file.
-func (m *BitcoinConfManager) LoadConfig() error {
+// 1:1 port of Dart loadConfig (frontend_bitcoin_conf_provider.dart L103).
+func (m *BitcoinConfManager) LoadConfig(isFirst bool) error {
+	oldNetwork := m.Network
+
 	content, err := m.loadOrCreateConfigContent()
 	if err != nil {
+		m.log.Error().Err(err).Msg("failed to load config")
 		return err
 	}
 
-	m.Config = ParseBitcoinConfig(content)
-	m.Network = NetworkFromConfig(m.Config)
-	m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
+	m.parseAndApplyConfig(content)
 
-	// Check for user's private bitcoin.conf
-	confInfo := m.getConfigFileInfo()
-	m.HasPrivateConf = confInfo.hasPrivateConf
-	m.ConfigPath = confInfo.path
-
-	if m.HasPrivateConf {
-		privateContent, err := os.ReadFile(confInfo.path)
-		if err == nil {
-			m.Config = ParseBitcoinConfig(string(privateContent))
-			m.Network = NetworkFromConfig(m.Config)
-			m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
-		}
+	if m.tryLoadPrivateConfig() {
+		return nil // Private config loaded, we're done, just use that
 	}
+
+	m.handleNetworkChangeIfNeeded(oldNetwork, isFirst)
+
+	if err := m.CopyConfigDownstream(); err != nil {
+		m.log.Warn().Err(err).Msg("copy downstream on load")
+	}
+
+	// _promptForDatadirIfNeeded — UI-only, skipped in Go backend
 
 	return nil
 }
@@ -133,7 +143,9 @@ drivechain=1
 `
 	}
 
-	return fmt.Sprintf(`# Generated code. Any changes to this file *will* get overwritten.
+	return fmt.Sprintf(`%s%d
+
+# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
 # Common settings for all networks
@@ -172,7 +184,7 @@ acceptnonstdtxn=1
 
 # Regtest-specific settings
 [regtest]
-`, currentNetwork, mainSection)
+`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, currentNetwork, mainSection)
 }
 
 // SaveConfig writes the current config to disk.
@@ -187,9 +199,14 @@ func (m *BitcoinConfManager) SaveConfig() error {
 	return os.WriteFile(confPath, []byte(m.Config.Serialize()), 0644)
 }
 
-// UpdateNetwork updates the network setting in the config.
+// UpdateNetwork writes the new network to the config file.
+// 1:1 port of Dart updateNetwork (frontend_bitcoin_conf_provider.dart L290).
 func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
-	if m.HasPrivateConf || m.Config == nil {
+	if m.HasPrivateConf {
+		m.log.Warn().Msg("cannot update network - controlled by your bitcoin.conf")
+		return nil
+	}
+	if m.Config == nil {
 		return nil
 	}
 
@@ -208,27 +225,51 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 	}
 	m.Config.SetSetting("chain", chainValue)
 
-	if n == NetworkForknet {
+	switch n {
+	case NetworkForknet:
 		m.Config.SetSetting("drivechain", "1", "main")
-	} else if n == NetworkMainnet {
+	case NetworkMainnet:
 		m.Config.RemoveSetting("drivechain", "main")
+	default:
 	}
 
-	m.Network = n
-	return m.SaveConfig()
+	return m.saveConfig()
 }
 
-// loadOrCreateConfigContent loads existing config or creates default.
+// loadOrCreateConfigContent loads config content from BitWindow config file, or creates default if missing.
+// Runs versioned migrations on load when stored version < current.
+// First migrates bitwindow-forknet.conf, then checks network to apply forknet data.
+// 1:1 port of Dart _loadOrCreateConfigContent (frontend_bitcoin_conf_provider.dart L132).
 func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 	confPath := m.getBitWindowConfigPath()
 
-	data, err := os.ReadFile(confPath)
-	if err == nil {
-		return string(data), nil
+	// Always migrate forknet and mainnet configs first (if they exist or have pending migrations)
+	if err := m.migrateForknetConfig(); err != nil {
+		m.log.Warn().Err(err).Msg("migrate forknet config")
+	}
+	if err := m.migrateMainnetConfig(); err != nil {
+		m.log.Warn().Err(err).Msg("migrate mainnet config")
 	}
 
-	if !os.IsNotExist(err) {
-		return "", fmt.Errorf("read config: %w", err)
+	if data, err := os.ReadFile(confPath); err == nil {
+		content := string(data)
+		config := ParseBitcoinConfig(content)
+
+		// Determine if current config is forknet (chain=main + drivechain=1)
+		chainSetting := strings.ToLower(config.GetSetting("chain"))
+		drivechainSetting := config.GetEffectiveSetting("drivechain", "main")
+		isForknet := (chainSetting == "main" || chainSetting == "mainnet") && drivechainSetting == "1"
+
+		// Run migrations — forknet data only applies to [main] if currently on forknet
+		if RunBitcoinConfMigrations(config, isForknet) {
+			content = config.Serialize()
+			if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
+				m.log.Error().Err(err).Msg("failed to write migrated config")
+			} else {
+				m.log.Info().Int("version", config.ConfigVersion).Bool("isForknet", isForknet).Msg("migrated bitwindow-bitcoin.conf")
+			}
+		}
+		return content, nil
 	}
 
 	// Create default config
@@ -238,7 +279,7 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 	} else if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
 		m.log.Error().Err(err).Str("path", confPath).Msg("failed to write default config")
 	} else {
-		m.log.Info().Str("path", confPath).Msg("created default bitcoin config")
+		m.log.Info().Str("path", confPath).Msg("created default config file")
 	}
 
 	return content, nil
@@ -250,24 +291,18 @@ type configFileInfo struct {
 }
 
 // getConfigFileInfo checks for user's bitcoin.conf vs generated config.
-// Mirrors _getConfigFileInfo() from bitcoin_conf_provider.dart and
-// confFile() from binaries.dart.
+// Dart: _getConfigFileInfo (L529-544)
 func (m *BitcoinConfManager) getConfigFileInfo() configFileInfo {
-	// Determine where to look for bitcoin.conf
-	var confDir string
-	if m.Network == NetworkMainnet {
-		confDir = filepath.Join(bitcoinAppDir(), "Bitcoin")
-	} else {
-		confDir = drivechainDir()
-	}
+	// Dart: For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir
+	confDir := BitcoinCoreDirs.RootDirNetwork(m.Network)
 
-	// Check for user's bitcoin.conf first
+	// Always check for bitcoin.conf first - user config takes priority
 	bitcoinConfPath := filepath.Join(confDir, "bitcoin.conf")
 	if _, err := os.Stat(bitcoinConfPath); err == nil {
 		return configFileInfo{hasPrivateConf: true, path: bitcoinConfPath}
 	}
 
-	// Use master config in BitWindow directory
+	// Use master config file in BitWindow directory (source of truth)
 	return configFileInfo{
 		hasPrivateConf: false,
 		path:           filepath.Join(m.BitwindowDir, bitwindowBitcoinConfFilename),
@@ -279,37 +314,7 @@ func (m *BitcoinConfManager) getBitWindowConfigPath() string {
 }
 
 // rootDirNetwork returns the root data directory for a network.
+// Dart: BitcoinCore().rootDirNetwork(network)
 func (m *BitcoinConfManager) rootDirNetwork(n Network) string {
-	switch n {
-	case NetworkMainnet:
-		return filepath.Join(bitcoinAppDir(), "Bitcoin")
-	default:
-		return drivechainDir()
-	}
-}
-
-// bitcoinAppDir returns the platform-specific Bitcoin application directory.
-func bitcoinAppDir() string {
-	home, _ := os.UserHomeDir()
-	switch runtime.GOOS {
-	case "darwin":
-		return filepath.Join(home, "Library", "Application Support")
-	case "windows":
-		return filepath.Join(home, "AppData", "Roaming")
-	default: // linux
-		return home
-	}
-}
-
-// drivechainDir returns the Drivechain data directory.
-func drivechainDir() string {
-	home, _ := os.UserHomeDir()
-	switch runtime.GOOS {
-	case "darwin":
-		return filepath.Join(home, "Library", "Application Support", "Drivechain")
-	case "windows":
-		return filepath.Join(home, "AppData", "Roaming", "Drivechain")
-	default: // linux
-		return filepath.Join(home, ".drivechain")
-	}
+	return BitcoinCoreDirs.RootDirNetwork(n)
 }

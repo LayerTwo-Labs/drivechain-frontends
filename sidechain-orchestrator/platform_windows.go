@@ -24,6 +24,8 @@ func isPidAlive(pid int) bool {
 	return strings.Contains(string(out), strconv.Itoa(pid))
 }
 
+// getProcessName returns the executable name for a given PID.
+// Dart: getProcessName (L112-151) — parses first quoted value, strips .exe
 func getProcessName(pid int) (string, error) {
 	out, err := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV", "/NH").CombinedOutput()
 	if err != nil {
@@ -41,7 +43,14 @@ func getProcessName(pid int) (string, error) {
 		return "", fmt.Errorf("parse tasklist output for PID %d", pid)
 	}
 
-	return strings.Trim(parts[0], `"`), nil
+	name := strings.Trim(parts[0], `"`)
+
+	// Dart L133-135: Remove .exe suffix for comparison
+	if strings.HasSuffix(strings.ToLower(name), ".exe") {
+		name = name[:len(name)-4]
+	}
+
+	return name, nil
 }
 
 func killProcess(pid int) error {
