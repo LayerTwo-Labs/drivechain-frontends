@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package orchestrator.v1;
+
+service ThunderConfService {
+  // Get current Thunder sidechain configuration state.
+  rpc GetThunderConfig(GetThunderConfigRequest) returns (GetThunderConfigResponse);
+
+  // Write Thunder configuration content.
+  rpc WriteThunderConfig(WriteThunderConfigRequest) returns (WriteThunderConfigResponse);
+
+  // Sync network from Bitcoin Core config.
+  rpc SyncNetworkFromBitcoinConf(SyncNetworkFromBitcoinConfRequest) returns (SyncNetworkFromBitcoinConfResponse);
+}
+
+// GetThunderConfig
+
+message GetThunderConfigRequest {}
+
+message GetThunderConfigResponse {
+  string config_content = 1;
+  string config_path = 2;
+  string default_config = 3;
+  repeated string cli_args = 4;
+  string network = 5;
+}
+
+// WriteThunderConfig
+
+message WriteThunderConfigRequest {
+  string config_content = 1;
+}
+
+message WriteThunderConfigResponse {}
+
+// SyncNetworkFromBitcoinConf
+
+message SyncNetworkFromBitcoinConfRequest {}
+
+message SyncNetworkFromBitcoinConfResponse {}

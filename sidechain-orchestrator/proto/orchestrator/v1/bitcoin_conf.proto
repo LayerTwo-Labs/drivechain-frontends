@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package orchestrator.v1;
+
+service BitcoinConfService {
+  // Get current Bitcoin Core configuration state.
+  rpc GetBitcoinConfig(GetBitcoinConfigRequest) returns (GetBitcoinConfigResponse);
+
+  // Set the Bitcoin Core network (signet, mainnet, forknet, testnet, regtest).
+  rpc SetBitcoinConfigNetwork(SetBitcoinConfigNetworkRequest) returns (SetBitcoinConfigNetworkResponse);
+
+  // Set the Bitcoin Core datadir for a specific network.
+  rpc SetBitcoinConfigDataDir(SetBitcoinConfigDataDirRequest) returns (SetBitcoinConfigDataDirResponse);
+
+  // Write raw Bitcoin Core configuration content.
+  rpc WriteBitcoinConfig(WriteBitcoinConfigRequest) returns (WriteBitcoinConfigResponse);
+}
+
+// GetBitcoinConfig
+
+message GetBitcoinConfigRequest {}
+
+message GetBitcoinConfigResponse {
+  string network = 1; // signet, mainnet, forknet, testnet, regtest
+  int32 rpc_port = 2;
+  bool has_private_conf = 3; // true if user has their own bitcoin.conf
+  string config_path = 4; // path to the active config file
+  string detected_data_dir = 5; // datadir from config (if set)
+  string config_content = 6; // raw config file content
+  bool network_supports_sidechains = 7;
+  bool is_demo_mode = 8; // true on mainnet
+}
+
+// SetBitcoinConfigNetwork
+
+message SetBitcoinConfigNetworkRequest {
+  string network = 1; // signet, mainnet, forknet, testnet, regtest
+}
+
+message SetBitcoinConfigNetworkResponse {}
+
+// SetBitcoinConfigDataDir
+
+message SetBitcoinConfigDataDirRequest {
+  string data_dir = 1; // absolute path, empty to clear
+  string network = 2; // target network (defaults to current if empty)
+}
+
+message SetBitcoinConfigDataDirResponse {}
+
+// WriteBitcoinConfig
+
+message WriteBitcoinConfigRequest {
+  string config_content = 1;
+}
+
+message WriteBitcoinConfigResponse {}

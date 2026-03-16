@@ -272,6 +272,8 @@ const StartWithDepsResponse$json = {
     {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
     {'1': 'done', '3': 3, '4': 1, '5': 8, '10': 'done'},
     {'1': 'error', '3': 4, '4': 1, '5': 9, '10': 'error'},
+    {'1': 'bytes_downloaded', '3': 5, '4': 1, '5': 3, '10': 'bytesDownloaded'},
+    {'1': 'total_bytes', '3': 6, '4': 1, '5': 3, '10': 'totalBytes'},
   ],
 };
 
@@ -279,7 +281,8 @@ const StartWithDepsResponse$json = {
 final $typed_data.Uint8List startWithDepsResponseDescriptor = $convert.base64Decode(
     'ChVTdGFydFdpdGhEZXBzUmVzcG9uc2USFAoFc3RhZ2UYASABKAlSBXN0YWdlEhgKB21lc3NhZ2'
     'UYAiABKAlSB21lc3NhZ2USEgoEZG9uZRgDIAEoCFIEZG9uZRIUCgVlcnJvchgEIAEoCVIFZXJy'
-    'b3I=');
+    'b3ISKQoQYnl0ZXNfZG93bmxvYWRlZBgFIAEoA1IPYnl0ZXNEb3dubG9hZGVkEh8KC3RvdGFsX2'
+    'J5dGVzGAYgASgDUgp0b3RhbEJ5dGVz');
 
 @$core.Deprecated('Use shutdownAllRequestDescriptor instead')
 const ShutdownAllRequest$json = {
@@ -312,6 +315,115 @@ final $typed_data.Uint8List shutdownAllResponseDescriptor = $convert.base64Decod
     'cnkYAyABKAlSDWN1cnJlbnRCaW5hcnkSEgoEZG9uZRgEIAEoCFIEZG9uZRIUCgVlcnJvchgFIA'
     'EoCVIFZXJyb3I=');
 
+@$core.Deprecated('Use getBTCPriceRequestDescriptor instead')
+const GetBTCPriceRequest$json = {
+  '1': 'GetBTCPriceRequest',
+};
+
+/// Descriptor for `GetBTCPriceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBTCPriceRequestDescriptor = $convert.base64Decode(
+    'ChJHZXRCVENQcmljZVJlcXVlc3Q=');
+
+@$core.Deprecated('Use getBTCPriceResponseDescriptor instead')
+const GetBTCPriceResponse$json = {
+  '1': 'GetBTCPriceResponse',
+  '2': [
+    {'1': 'btcusd', '3': 1, '4': 1, '5': 1, '10': 'btcusd'},
+    {'1': 'last_updated_unix', '3': 2, '4': 1, '5': 3, '10': 'lastUpdatedUnix'},
+  ],
+};
+
+/// Descriptor for `GetBTCPriceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBTCPriceResponseDescriptor = $convert.base64Decode(
+    'ChNHZXRCVENQcmljZVJlc3BvbnNlEhYKBmJ0Y3VzZBgBIAEoAVIGYnRjdXNkEioKEWxhc3RfdX'
+    'BkYXRlZF91bml4GAIgASgDUg9sYXN0VXBkYXRlZFVuaXg=');
+
+@$core.Deprecated('Use getMainchainBlockchainInfoRequestDescriptor instead')
+const GetMainchainBlockchainInfoRequest$json = {
+  '1': 'GetMainchainBlockchainInfoRequest',
+};
+
+/// Descriptor for `GetMainchainBlockchainInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMainchainBlockchainInfoRequestDescriptor = $convert.base64Decode(
+    'CiFHZXRNYWluY2hhaW5CbG9ja2NoYWluSW5mb1JlcXVlc3Q=');
+
+@$core.Deprecated('Use getMainchainBlockchainInfoResponseDescriptor instead')
+const GetMainchainBlockchainInfoResponse$json = {
+  '1': 'GetMainchainBlockchainInfoResponse',
+  '2': [
+    {'1': 'chain', '3': 1, '4': 1, '5': 9, '10': 'chain'},
+    {'1': 'blocks', '3': 2, '4': 1, '5': 5, '10': 'blocks'},
+    {'1': 'headers', '3': 3, '4': 1, '5': 5, '10': 'headers'},
+    {'1': 'best_block_hash', '3': 4, '4': 1, '5': 9, '10': 'bestBlockHash'},
+    {'1': 'difficulty', '3': 5, '4': 1, '5': 1, '10': 'difficulty'},
+    {'1': 'time', '3': 6, '4': 1, '5': 3, '10': 'time'},
+    {'1': 'median_time', '3': 7, '4': 1, '5': 3, '10': 'medianTime'},
+    {'1': 'verification_progress', '3': 8, '4': 1, '5': 1, '10': 'verificationProgress'},
+    {'1': 'initial_block_download', '3': 9, '4': 1, '5': 8, '10': 'initialBlockDownload'},
+    {'1': 'chain_work', '3': 10, '4': 1, '5': 9, '10': 'chainWork'},
+    {'1': 'size_on_disk', '3': 11, '4': 1, '5': 3, '10': 'sizeOnDisk'},
+    {'1': 'pruned', '3': 12, '4': 1, '5': 8, '10': 'pruned'},
+  ],
+};
+
+/// Descriptor for `GetMainchainBlockchainInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMainchainBlockchainInfoResponseDescriptor = $convert.base64Decode(
+    'CiJHZXRNYWluY2hhaW5CbG9ja2NoYWluSW5mb1Jlc3BvbnNlEhQKBWNoYWluGAEgASgJUgVjaG'
+    'FpbhIWCgZibG9ja3MYAiABKAVSBmJsb2NrcxIYCgdoZWFkZXJzGAMgASgFUgdoZWFkZXJzEiYK'
+    'D2Jlc3RfYmxvY2tfaGFzaBgEIAEoCVINYmVzdEJsb2NrSGFzaBIeCgpkaWZmaWN1bHR5GAUgAS'
+    'gBUgpkaWZmaWN1bHR5EhIKBHRpbWUYBiABKANSBHRpbWUSHwoLbWVkaWFuX3RpbWUYByABKANS'
+    'Cm1lZGlhblRpbWUSMwoVdmVyaWZpY2F0aW9uX3Byb2dyZXNzGAggASgBUhR2ZXJpZmljYXRpb2'
+    '5Qcm9ncmVzcxI0ChZpbml0aWFsX2Jsb2NrX2Rvd25sb2FkGAkgASgIUhRpbml0aWFsQmxvY2tE'
+    'b3dubG9hZBIdCgpjaGFpbl93b3JrGAogASgJUgljaGFpbldvcmsSIAoMc2l6ZV9vbl9kaXNrGA'
+    'sgASgDUgpzaXplT25EaXNrEhYKBnBydW5lZBgMIAEoCFIGcHJ1bmVk');
+
+@$core.Deprecated('Use getEnforcerBlockchainInfoRequestDescriptor instead')
+const GetEnforcerBlockchainInfoRequest$json = {
+  '1': 'GetEnforcerBlockchainInfoRequest',
+};
+
+/// Descriptor for `GetEnforcerBlockchainInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getEnforcerBlockchainInfoRequestDescriptor = $convert.base64Decode(
+    'CiBHZXRFbmZvcmNlckJsb2NrY2hhaW5JbmZvUmVxdWVzdA==');
+
+@$core.Deprecated('Use getEnforcerBlockchainInfoResponseDescriptor instead')
+const GetEnforcerBlockchainInfoResponse$json = {
+  '1': 'GetEnforcerBlockchainInfoResponse',
+  '2': [
+    {'1': 'blocks', '3': 1, '4': 1, '5': 5, '10': 'blocks'},
+    {'1': 'headers', '3': 2, '4': 1, '5': 5, '10': 'headers'},
+    {'1': 'time', '3': 3, '4': 1, '5': 3, '10': 'time'},
+  ],
+};
+
+/// Descriptor for `GetEnforcerBlockchainInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getEnforcerBlockchainInfoResponseDescriptor = $convert.base64Decode(
+    'CiFHZXRFbmZvcmNlckJsb2NrY2hhaW5JbmZvUmVzcG9uc2USFgoGYmxvY2tzGAEgASgFUgZibG'
+    '9ja3MSGAoHaGVhZGVycxgCIAEoBVIHaGVhZGVycxISCgR0aW1lGAMgASgDUgR0aW1l');
+
+@$core.Deprecated('Use getMainchainBalanceRequestDescriptor instead')
+const GetMainchainBalanceRequest$json = {
+  '1': 'GetMainchainBalanceRequest',
+};
+
+/// Descriptor for `GetMainchainBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMainchainBalanceRequestDescriptor = $convert.base64Decode(
+    'ChpHZXRNYWluY2hhaW5CYWxhbmNlUmVxdWVzdA==');
+
+@$core.Deprecated('Use getMainchainBalanceResponseDescriptor instead')
+const GetMainchainBalanceResponse$json = {
+  '1': 'GetMainchainBalanceResponse',
+  '2': [
+    {'1': 'confirmed', '3': 1, '4': 1, '5': 1, '10': 'confirmed'},
+    {'1': 'unconfirmed', '3': 2, '4': 1, '5': 1, '10': 'unconfirmed'},
+  ],
+};
+
+/// Descriptor for `GetMainchainBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMainchainBalanceResponseDescriptor = $convert.base64Decode(
+    'ChtHZXRNYWluY2hhaW5CYWxhbmNlUmVzcG9uc2USHAoJY29uZmlybWVkGAEgASgBUgljb25maX'
+    'JtZWQSIAoLdW5jb25maXJtZWQYAiABKAFSC3VuY29uZmlybWVk');
+
 const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
   '1': 'OrchestratorService',
   '2': [
@@ -324,6 +436,10 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'StreamLogs', '2': '.orchestrator.v1.StreamLogsRequest', '3': '.orchestrator.v1.StreamLogsResponse', '6': true},
     {'1': 'StartWithDeps', '2': '.orchestrator.v1.StartWithDepsRequest', '3': '.orchestrator.v1.StartWithDepsResponse', '6': true},
     {'1': 'ShutdownAll', '2': '.orchestrator.v1.ShutdownAllRequest', '3': '.orchestrator.v1.ShutdownAllResponse', '6': true},
+    {'1': 'GetBTCPrice', '2': '.orchestrator.v1.GetBTCPriceRequest', '3': '.orchestrator.v1.GetBTCPriceResponse'},
+    {'1': 'GetMainchainBlockchainInfo', '2': '.orchestrator.v1.GetMainchainBlockchainInfoRequest', '3': '.orchestrator.v1.GetMainchainBlockchainInfoResponse'},
+    {'1': 'GetEnforcerBlockchainInfo', '2': '.orchestrator.v1.GetEnforcerBlockchainInfoRequest', '3': '.orchestrator.v1.GetEnforcerBlockchainInfoResponse'},
+    {'1': 'GetMainchainBalance', '2': '.orchestrator.v1.GetMainchainBalanceRequest', '3': '.orchestrator.v1.GetMainchainBalanceResponse'},
   ],
 };
 
@@ -350,6 +466,14 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.StartWithDepsResponse': StartWithDepsResponse$json,
   '.orchestrator.v1.ShutdownAllRequest': ShutdownAllRequest$json,
   '.orchestrator.v1.ShutdownAllResponse': ShutdownAllResponse$json,
+  '.orchestrator.v1.GetBTCPriceRequest': GetBTCPriceRequest$json,
+  '.orchestrator.v1.GetBTCPriceResponse': GetBTCPriceResponse$json,
+  '.orchestrator.v1.GetMainchainBlockchainInfoRequest': GetMainchainBlockchainInfoRequest$json,
+  '.orchestrator.v1.GetMainchainBlockchainInfoResponse': GetMainchainBlockchainInfoResponse$json,
+  '.orchestrator.v1.GetEnforcerBlockchainInfoRequest': GetEnforcerBlockchainInfoRequest$json,
+  '.orchestrator.v1.GetEnforcerBlockchainInfoResponse': GetEnforcerBlockchainInfoResponse$json,
+  '.orchestrator.v1.GetMainchainBalanceRequest': GetMainchainBalanceRequest$json,
+  '.orchestrator.v1.GetMainchainBalanceResponse': GetMainchainBalanceResponse$json,
 };
 
 /// Descriptor for `OrchestratorService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -369,5 +493,14 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'bUxvZ3NSZXNwb25zZTABEmAKDVN0YXJ0V2l0aERlcHMSJS5vcmNoZXN0cmF0b3IudjEuU3Rhcn'
     'RXaXRoRGVwc1JlcXVlc3QaJi5vcmNoZXN0cmF0b3IudjEuU3RhcnRXaXRoRGVwc1Jlc3BvbnNl'
     'MAESWgoLU2h1dGRvd25BbGwSIy5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25BbGxSZXF1ZXN0Gi'
-    'Qub3JjaGVzdHJhdG9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwAQ==');
+    'Qub3JjaGVzdHJhdG9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwARJYCgtHZXRCVENQcmljZRIj'
+    'Lm9yY2hlc3RyYXRvci52MS5HZXRCVENQcmljZVJlcXVlc3QaJC5vcmNoZXN0cmF0b3IudjEuR2'
+    'V0QlRDUHJpY2VSZXNwb25zZRKFAQoaR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm8SMi5vcmNo'
+    'ZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm9SZXF1ZXN0GjMub3JjaGVzdH'
+    'JhdG9yLnYxLkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVzcG9uc2USggEKGUdldEVuZm9y'
+    'Y2VyQmxvY2tjaGFpbkluZm8SMS5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYW'
+    'luSW5mb1JlcXVlc3QaMi5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5m'
+    'b1Jlc3BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2USKy5vcmNoZXN0cmF0b3IudjEuR2V0TW'
+    'FpbmNoYWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFs'
+    'YW5jZVJlc3BvbnNl');
 
