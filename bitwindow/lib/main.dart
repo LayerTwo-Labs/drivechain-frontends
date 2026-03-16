@@ -169,11 +169,11 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<ZSideRPC>(ZSideLive());
   GetIt.I.registerSingleton<CoinShiftRPC>(CoinShiftLive());
 
-  final walletReader = WalletReaderProvider(applicationDir);
+  final walletReader = WalletReaderProvider.create(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   await walletReader.init();
 
-  final walletWriter = WalletWriterProvider(bitwindowAppDir: applicationDir);
+  final walletWriter = WalletWriterProvider.create(bitwindowAppDir: applicationDir);
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
 
