@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
 
@@ -29,34 +28,10 @@ func NewOrchestratorWrapper(inner orchsvc.OrchestratorServiceHandler, walletSvc 
 	}
 }
 
-// StartWithDeps intercepts the call to inject wallet starter files as binary args.
+// StartWithDeps passes through to the inner handler.
+// Seed injection (L1 + sidechain starters) is now handled by the orchestrator itself
+// in orchestrator.go StartWithDeps, matching Dart's BinaryProvider.start() L314-326.
 func (w *OrchestratorWrapper) StartWithDeps(ctx context.Context, req *connect.Request[orchpb.StartWithDepsRequest], stream *connect.ServerStream[orchpb.StartWithDepsResponse]) error {
-	if !w.walletSvc.IsUnlocked() && !w.walletSvc.HasWallet() {
-		// No wallet yet - pass through without starter injection
-		w.log.Debug().Msg("no wallet available, passing through StartWithDeps")
-		return w.inner.StartWithDeps(ctx, req, stream)
-	}
-
-	if w.walletSvc.HasWallet() && w.walletSvc.IsUnlocked() {
-		// Inject enforcer L1 starter
-		l1Path, err := w.walletSvc.WriteL1Starter()
-		if err != nil {
-			w.log.Warn().Err(err).Msg("failed to write L1 starter, continuing without")
-		} else {
-			req.Msg.EnforcerArgs = append(req.Msg.EnforcerArgs, fmt.Sprintf("--wallet-seed-file=%s", l1Path))
-			w.log.Info().Str("path", l1Path).Msg("injected L1 starter for enforcer")
-		}
-
-		// Inject thunder sidechain starter (slot 9)
-		scPath, err := w.walletSvc.WriteSidechainStarter(9)
-		if err != nil {
-			w.log.Warn().Err(err).Msg("failed to write sidechain starter, continuing without")
-		} else {
-			req.Msg.TargetArgs = append(req.Msg.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
-			w.log.Info().Str("path", scPath).Msg("injected sidechain starter for thunder")
-		}
-	}
-
 	return w.inner.StartWithDeps(ctx, req, stream)
 }
 
@@ -92,4 +67,20 @@ func (w *OrchestratorWrapper) StreamLogs(ctx context.Context, req *connect.Reque
 
 func (w *OrchestratorWrapper) ShutdownAll(ctx context.Context, req *connect.Request[orchpb.ShutdownAllRequest], stream *connect.ServerStream[orchpb.ShutdownAllResponse]) error {
 	return w.inner.ShutdownAll(ctx, req, stream)
+}
+
+func (w *OrchestratorWrapper) GetBTCPrice(ctx context.Context, req *connect.Request[orchpb.GetBTCPriceRequest]) (*connect.Response[orchpb.GetBTCPriceResponse], error) {
+	return w.inner.GetBTCPrice(ctx, req)
+}
+
+func (w *OrchestratorWrapper) GetMainchainBlockchainInfo(ctx context.Context, req *connect.Request[orchpb.GetMainchainBlockchainInfoRequest]) (*connect.Response[orchpb.GetMainchainBlockchainInfoResponse], error) {
+	return w.inner.GetMainchainBlockchainInfo(ctx, req)
+}
+
+func (w *OrchestratorWrapper) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[orchpb.GetEnforcerBlockchainInfoRequest]) (*connect.Response[orchpb.GetEnforcerBlockchainInfoResponse], error) {
+	return w.inner.GetEnforcerBlockchainInfo(ctx, req)
+}
+
+func (w *OrchestratorWrapper) GetMainchainBalance(ctx context.Context, req *connect.Request[orchpb.GetMainchainBalanceRequest]) (*connect.Response[orchpb.GetMainchainBalanceResponse], error) {
+	return w.inner.GetMainchainBalance(ctx, req)
 }

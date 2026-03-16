@@ -174,7 +174,7 @@ func (h *WalletHandler) DeleteWallet(_ context.Context, req *connect.Request[pb.
 
 func (h *WalletHandler) DeleteAllWallets(_ context.Context, _ *connect.Request[pb.DeleteAllWalletsRequest]) (*connect.Response[pb.DeleteAllWalletsResponse], error) {
 	h.log.Info().Msg("RPC DeleteAllWallets")
-	if err := h.svc.DeleteAllWallets(); err != nil {
+	if err := h.svc.DeleteAllWallets(nil, nil); err != nil {
 		h.log.Error().Err(err).Msg("RPC DeleteAllWallets failed")
 		return nil, err
 	}
