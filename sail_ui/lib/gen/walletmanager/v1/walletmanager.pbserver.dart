@@ -15,57 +15,57 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'walletmanager.pb.dart' as $1;
+import 'walletmanager.pb.dart' as $4;
 import 'walletmanager.pbjson.dart';
 
 export 'walletmanager.pb.dart';
 
 abstract class WalletManagerServiceBase extends $pb.GeneratedService {
-  $async.Future<$1.GetWalletStatusResponse> getWalletStatus($pb.ServerContext ctx, $1.GetWalletStatusRequest request);
-  $async.Future<$1.GenerateWalletResponse> generateWallet($pb.ServerContext ctx, $1.GenerateWalletRequest request);
-  $async.Future<$1.UnlockWalletResponse> unlockWallet($pb.ServerContext ctx, $1.UnlockWalletRequest request);
-  $async.Future<$1.LockWalletResponse> lockWallet($pb.ServerContext ctx, $1.LockWalletRequest request);
-  $async.Future<$1.EncryptWalletResponse> encryptWallet($pb.ServerContext ctx, $1.EncryptWalletRequest request);
-  $async.Future<$1.ChangePasswordResponse> changePassword($pb.ServerContext ctx, $1.ChangePasswordRequest request);
-  $async.Future<$1.RemoveEncryptionResponse> removeEncryption($pb.ServerContext ctx, $1.RemoveEncryptionRequest request);
-  $async.Future<$1.ListWalletsResponse> listWallets($pb.ServerContext ctx, $1.ListWalletsRequest request);
-  $async.Future<$1.SwitchWalletResponse> switchWallet($pb.ServerContext ctx, $1.SwitchWalletRequest request);
-  $async.Future<$1.UpdateWalletMetadataResponse> updateWalletMetadata($pb.ServerContext ctx, $1.UpdateWalletMetadataRequest request);
-  $async.Future<$1.DeleteWalletResponse> deleteWallet($pb.ServerContext ctx, $1.DeleteWalletRequest request);
-  $async.Future<$1.DeleteAllWalletsResponse> deleteAllWallets($pb.ServerContext ctx, $1.DeleteAllWalletsRequest request);
+  $async.Future<$4.GetWalletStatusResponse> getWalletStatus($pb.ServerContext ctx, $4.GetWalletStatusRequest request);
+  $async.Future<$4.GenerateWalletResponse> generateWallet($pb.ServerContext ctx, $4.GenerateWalletRequest request);
+  $async.Future<$4.UnlockWalletResponse> unlockWallet($pb.ServerContext ctx, $4.UnlockWalletRequest request);
+  $async.Future<$4.LockWalletResponse> lockWallet($pb.ServerContext ctx, $4.LockWalletRequest request);
+  $async.Future<$4.EncryptWalletResponse> encryptWallet($pb.ServerContext ctx, $4.EncryptWalletRequest request);
+  $async.Future<$4.ChangePasswordResponse> changePassword($pb.ServerContext ctx, $4.ChangePasswordRequest request);
+  $async.Future<$4.RemoveEncryptionResponse> removeEncryption($pb.ServerContext ctx, $4.RemoveEncryptionRequest request);
+  $async.Future<$4.ListWalletsResponse> listWallets($pb.ServerContext ctx, $4.ListWalletsRequest request);
+  $async.Future<$4.SwitchWalletResponse> switchWallet($pb.ServerContext ctx, $4.SwitchWalletRequest request);
+  $async.Future<$4.UpdateWalletMetadataResponse> updateWalletMetadata($pb.ServerContext ctx, $4.UpdateWalletMetadataRequest request);
+  $async.Future<$4.DeleteWalletResponse> deleteWallet($pb.ServerContext ctx, $4.DeleteWalletRequest request);
+  $async.Future<$4.DeleteAllWalletsResponse> deleteAllWallets($pb.ServerContext ctx, $4.DeleteAllWalletsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetWalletStatus': return $1.GetWalletStatusRequest();
-      case 'GenerateWallet': return $1.GenerateWalletRequest();
-      case 'UnlockWallet': return $1.UnlockWalletRequest();
-      case 'LockWallet': return $1.LockWalletRequest();
-      case 'EncryptWallet': return $1.EncryptWalletRequest();
-      case 'ChangePassword': return $1.ChangePasswordRequest();
-      case 'RemoveEncryption': return $1.RemoveEncryptionRequest();
-      case 'ListWallets': return $1.ListWalletsRequest();
-      case 'SwitchWallet': return $1.SwitchWalletRequest();
-      case 'UpdateWalletMetadata': return $1.UpdateWalletMetadataRequest();
-      case 'DeleteWallet': return $1.DeleteWalletRequest();
-      case 'DeleteAllWallets': return $1.DeleteAllWalletsRequest();
+      case 'GetWalletStatus': return $4.GetWalletStatusRequest();
+      case 'GenerateWallet': return $4.GenerateWalletRequest();
+      case 'UnlockWallet': return $4.UnlockWalletRequest();
+      case 'LockWallet': return $4.LockWalletRequest();
+      case 'EncryptWallet': return $4.EncryptWalletRequest();
+      case 'ChangePassword': return $4.ChangePasswordRequest();
+      case 'RemoveEncryption': return $4.RemoveEncryptionRequest();
+      case 'ListWallets': return $4.ListWalletsRequest();
+      case 'SwitchWallet': return $4.SwitchWalletRequest();
+      case 'UpdateWalletMetadata': return $4.UpdateWalletMetadataRequest();
+      case 'DeleteWallet': return $4.DeleteWalletRequest();
+      case 'DeleteAllWallets': return $4.DeleteAllWalletsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetWalletStatus': return this.getWalletStatus(ctx, request as $1.GetWalletStatusRequest);
-      case 'GenerateWallet': return this.generateWallet(ctx, request as $1.GenerateWalletRequest);
-      case 'UnlockWallet': return this.unlockWallet(ctx, request as $1.UnlockWalletRequest);
-      case 'LockWallet': return this.lockWallet(ctx, request as $1.LockWalletRequest);
-      case 'EncryptWallet': return this.encryptWallet(ctx, request as $1.EncryptWalletRequest);
-      case 'ChangePassword': return this.changePassword(ctx, request as $1.ChangePasswordRequest);
-      case 'RemoveEncryption': return this.removeEncryption(ctx, request as $1.RemoveEncryptionRequest);
-      case 'ListWallets': return this.listWallets(ctx, request as $1.ListWalletsRequest);
-      case 'SwitchWallet': return this.switchWallet(ctx, request as $1.SwitchWalletRequest);
-      case 'UpdateWalletMetadata': return this.updateWalletMetadata(ctx, request as $1.UpdateWalletMetadataRequest);
-      case 'DeleteWallet': return this.deleteWallet(ctx, request as $1.DeleteWalletRequest);
-      case 'DeleteAllWallets': return this.deleteAllWallets(ctx, request as $1.DeleteAllWalletsRequest);
+      case 'GetWalletStatus': return this.getWalletStatus(ctx, request as $4.GetWalletStatusRequest);
+      case 'GenerateWallet': return this.generateWallet(ctx, request as $4.GenerateWalletRequest);
+      case 'UnlockWallet': return this.unlockWallet(ctx, request as $4.UnlockWalletRequest);
+      case 'LockWallet': return this.lockWallet(ctx, request as $4.LockWalletRequest);
+      case 'EncryptWallet': return this.encryptWallet(ctx, request as $4.EncryptWalletRequest);
+      case 'ChangePassword': return this.changePassword(ctx, request as $4.ChangePasswordRequest);
+      case 'RemoveEncryption': return this.removeEncryption(ctx, request as $4.RemoveEncryptionRequest);
+      case 'ListWallets': return this.listWallets(ctx, request as $4.ListWalletsRequest);
+      case 'SwitchWallet': return this.switchWallet(ctx, request as $4.SwitchWalletRequest);
+      case 'UpdateWalletMetadata': return this.updateWalletMetadata(ctx, request as $4.UpdateWalletMetadataRequest);
+      case 'DeleteWallet': return this.deleteWallet(ctx, request as $4.DeleteWalletRequest);
+      case 'DeleteAllWallets': return this.deleteAllWallets(ctx, request as $4.DeleteAllWalletsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

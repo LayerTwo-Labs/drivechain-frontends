@@ -60,6 +60,18 @@ const (
 	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
+	// OrchestratorServiceGetBTCPriceProcedure is the fully-qualified name of the OrchestratorService's
+	// GetBTCPrice RPC.
+	OrchestratorServiceGetBTCPriceProcedure = "/orchestrator.v1.OrchestratorService/GetBTCPrice"
+	// OrchestratorServiceGetMainchainBlockchainInfoProcedure is the fully-qualified name of the
+	// OrchestratorService's GetMainchainBlockchainInfo RPC.
+	OrchestratorServiceGetMainchainBlockchainInfoProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBlockchainInfo"
+	// OrchestratorServiceGetEnforcerBlockchainInfoProcedure is the fully-qualified name of the
+	// OrchestratorService's GetEnforcerBlockchainInfo RPC.
+	OrchestratorServiceGetEnforcerBlockchainInfoProcedure = "/orchestrator.v1.OrchestratorService/GetEnforcerBlockchainInfo"
+	// OrchestratorServiceGetMainchainBalanceProcedure is the fully-qualified name of the
+	// OrchestratorService's GetMainchainBalance RPC.
+	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
 )
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
@@ -82,6 +94,14 @@ type OrchestratorServiceClient interface {
 	StartWithDeps(context.Context, *connect.Request[v1.StartWithDepsRequest]) (*connect.ServerStreamForClient[v1.StartWithDepsResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
+	// Get the current BTC/USD exchange rate.
+	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
+	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
+	GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error)
+	// Get blockchain info from the enforcer (proxied via orchestrator).
+	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
+	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
+	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
 }
 
 // NewOrchestratorServiceClient constructs a client for the orchestrator.v1.OrchestratorService
@@ -149,20 +169,48 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("ShutdownAll")),
 			connect.WithClientOptions(opts...),
 		),
+		getBTCPrice: connect.NewClient[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetBTCPriceProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetBTCPrice")),
+			connect.WithClientOptions(opts...),
+		),
+		getMainchainBlockchainInfo: connect.NewClient[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetMainchainBlockchainInfoProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBlockchainInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		getEnforcerBlockchainInfo: connect.NewClient[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetEnforcerBlockchainInfoProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetEnforcerBlockchainInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		getMainchainBalance: connect.NewClient[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetMainchainBalanceProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // orchestratorServiceClient implements OrchestratorServiceClient.
 type orchestratorServiceClient struct {
-	listBinaries    *connect.Client[v1.ListBinariesRequest, v1.ListBinariesResponse]
-	getBinaryStatus *connect.Client[v1.GetBinaryStatusRequest, v1.GetBinaryStatusResponse]
-	downloadBinary  *connect.Client[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse]
-	startBinary     *connect.Client[v1.StartBinaryRequest, v1.StartBinaryResponse]
-	stopBinary      *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
-	watchBinaries   *connect.Client[v1.WatchBinariesRequest, v1.WatchBinariesResponse]
-	streamLogs      *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
-	startWithDeps   *connect.Client[v1.StartWithDepsRequest, v1.StartWithDepsResponse]
-	shutdownAll     *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
+	listBinaries               *connect.Client[v1.ListBinariesRequest, v1.ListBinariesResponse]
+	getBinaryStatus            *connect.Client[v1.GetBinaryStatusRequest, v1.GetBinaryStatusResponse]
+	downloadBinary             *connect.Client[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse]
+	startBinary                *connect.Client[v1.StartBinaryRequest, v1.StartBinaryResponse]
+	stopBinary                 *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
+	watchBinaries              *connect.Client[v1.WatchBinariesRequest, v1.WatchBinariesResponse]
+	streamLogs                 *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
+	startWithDeps              *connect.Client[v1.StartWithDepsRequest, v1.StartWithDepsResponse]
+	shutdownAll                *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
+	getBTCPrice                *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
+	getMainchainBlockchainInfo *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
+	getEnforcerBlockchainInfo  *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
+	getMainchainBalance        *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
 }
 
 // ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
@@ -210,6 +258,26 @@ func (c *orchestratorServiceClient) ShutdownAll(ctx context.Context, req *connec
 	return c.shutdownAll.CallServerStream(ctx, req)
 }
 
+// GetBTCPrice calls orchestrator.v1.OrchestratorService.GetBTCPrice.
+func (c *orchestratorServiceClient) GetBTCPrice(ctx context.Context, req *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error) {
+	return c.getBTCPrice.CallUnary(ctx, req)
+}
+
+// GetMainchainBlockchainInfo calls orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo.
+func (c *orchestratorServiceClient) GetMainchainBlockchainInfo(ctx context.Context, req *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error) {
+	return c.getMainchainBlockchainInfo.CallUnary(ctx, req)
+}
+
+// GetEnforcerBlockchainInfo calls orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo.
+func (c *orchestratorServiceClient) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error) {
+	return c.getEnforcerBlockchainInfo.CallUnary(ctx, req)
+}
+
+// GetMainchainBalance calls orchestrator.v1.OrchestratorService.GetMainchainBalance.
+func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {
+	return c.getMainchainBalance.CallUnary(ctx, req)
+}
+
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
@@ -231,6 +299,14 @@ type OrchestratorServiceHandler interface {
 	StartWithDeps(context.Context, *connect.Request[v1.StartWithDepsRequest], *connect.ServerStream[v1.StartWithDepsResponse]) error
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
+	// Get the current BTC/USD exchange rate.
+	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
+	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
+	GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error)
+	// Get blockchain info from the enforcer (proxied via orchestrator).
+	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
+	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
+	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
 }
 
 // NewOrchestratorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -294,6 +370,30 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("ShutdownAll")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetBTCPriceHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetBTCPriceProcedure,
+		svc.GetBTCPrice,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetBTCPrice")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceGetMainchainBlockchainInfoHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetMainchainBlockchainInfoProcedure,
+		svc.GetMainchainBlockchainInfo,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBlockchainInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceGetEnforcerBlockchainInfoHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetEnforcerBlockchainInfoProcedure,
+		svc.GetEnforcerBlockchainInfo,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetEnforcerBlockchainInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceGetMainchainBalanceHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetMainchainBalanceProcedure,
+		svc.GetMainchainBalance,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/orchestrator.v1.OrchestratorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrchestratorServiceListBinariesProcedure:
@@ -314,6 +414,14 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceStartWithDepsHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownAllProcedure:
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetBTCPriceProcedure:
+			orchestratorServiceGetBTCPriceHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetMainchainBlockchainInfoProcedure:
+			orchestratorServiceGetMainchainBlockchainInfoHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetEnforcerBlockchainInfoProcedure:
+			orchestratorServiceGetEnforcerBlockchainInfoHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetMainchainBalanceProcedure:
+			orchestratorServiceGetMainchainBalanceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -357,4 +465,20 @@ func (UnimplementedOrchestratorServiceHandler) StartWithDeps(context.Context, *c
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ShutdownAll is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBTCPrice is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetMainchainBalance is not implemented"))
 }

@@ -81,4 +81,36 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.ShutdownAllRequest.new,
     orchestratorv1orchestrator.ShutdownAllResponse.new,
   );
+
+  /// Get the current BTC/USD exchange rate.
+  static const getBTCPrice = connect.Spec(
+    '/$name/GetBTCPrice',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetBTCPriceRequest.new,
+    orchestratorv1orchestrator.GetBTCPriceResponse.new,
+  );
+
+  /// Get blockchain info from Bitcoin Core (proxied via orchestrator).
+  static const getMainchainBlockchainInfo = connect.Spec(
+    '/$name/GetMainchainBlockchainInfo',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetMainchainBlockchainInfoRequest.new,
+    orchestratorv1orchestrator.GetMainchainBlockchainInfoResponse.new,
+  );
+
+  /// Get blockchain info from the enforcer (proxied via orchestrator).
+  static const getEnforcerBlockchainInfo = connect.Spec(
+    '/$name/GetEnforcerBlockchainInfo',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetEnforcerBlockchainInfoRequest.new,
+    orchestratorv1orchestrator.GetEnforcerBlockchainInfoResponse.new,
+  );
+
+  /// Get wallet balance from Bitcoin Core (proxied via orchestrator).
+  static const getMainchainBalance = connect.Spec(
+    '/$name/GetMainchainBalance',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetMainchainBalanceRequest.new,
+    orchestratorv1orchestrator.GetMainchainBalanceResponse.new,
+  );
 }

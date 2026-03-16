@@ -1057,6 +1057,8 @@ class StartWithDepsResponse extends $pb.GeneratedMessage {
     $core.String? message,
     $core.bool? done,
     $core.String? error,
+    $fixnum.Int64? bytesDownloaded,
+    $fixnum.Int64? totalBytes,
   }) {
     final $result = create();
     if (stage != null) {
@@ -1071,6 +1073,12 @@ class StartWithDepsResponse extends $pb.GeneratedMessage {
     if (error != null) {
       $result.error = error;
     }
+    if (bytesDownloaded != null) {
+      $result.bytesDownloaded = bytesDownloaded;
+    }
+    if (totalBytes != null) {
+      $result.totalBytes = totalBytes;
+    }
     return $result;
   }
   StartWithDepsResponse._() : super();
@@ -1082,6 +1090,8 @@ class StartWithDepsResponse extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'message')
     ..aOB(3, _omitFieldNames ? '' : 'done')
     ..aOS(4, _omitFieldNames ? '' : 'error')
+    ..aInt64(5, _omitFieldNames ? '' : 'bytesDownloaded')
+    ..aInt64(6, _omitFieldNames ? '' : 'totalBytes')
     ..hasRequiredFields = false
   ;
 
@@ -1141,6 +1151,24 @@ class StartWithDepsResponse extends $pb.GeneratedMessage {
   $core.bool hasError() => $_has(3);
   @$pb.TagNumber(4)
   void clearError() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get bytesDownloaded => $_getI64(4);
+  @$pb.TagNumber(5)
+  set bytesDownloaded($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBytesDownloaded() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBytesDownloaded() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get totalBytes => $_getI64(5);
+  @$pb.TagNumber(6)
+  set totalBytes($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasTotalBytes() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTotalBytes() => clearField(6);
 }
 
 class ShutdownAllRequest extends $pb.GeneratedMessage {
@@ -1299,6 +1327,544 @@ class ShutdownAllResponse extends $pb.GeneratedMessage {
   void clearError() => clearField(5);
 }
 
+class GetBTCPriceRequest extends $pb.GeneratedMessage {
+  factory GetBTCPriceRequest() => create();
+  GetBTCPriceRequest._() : super();
+  factory GetBTCPriceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBTCPriceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBTCPriceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBTCPriceRequest clone() => GetBTCPriceRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBTCPriceRequest copyWith(void Function(GetBTCPriceRequest) updates) => super.copyWith((message) => updates(message as GetBTCPriceRequest)) as GetBTCPriceRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBTCPriceRequest create() => GetBTCPriceRequest._();
+  GetBTCPriceRequest createEmptyInstance() => create();
+  static $pb.PbList<GetBTCPriceRequest> createRepeated() => $pb.PbList<GetBTCPriceRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetBTCPriceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBTCPriceRequest>(create);
+  static GetBTCPriceRequest? _defaultInstance;
+}
+
+class GetBTCPriceResponse extends $pb.GeneratedMessage {
+  factory GetBTCPriceResponse({
+    $core.double? btcusd,
+    $fixnum.Int64? lastUpdatedUnix,
+  }) {
+    final $result = create();
+    if (btcusd != null) {
+      $result.btcusd = btcusd;
+    }
+    if (lastUpdatedUnix != null) {
+      $result.lastUpdatedUnix = lastUpdatedUnix;
+    }
+    return $result;
+  }
+  GetBTCPriceResponse._() : super();
+  factory GetBTCPriceResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBTCPriceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBTCPriceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'btcusd', $pb.PbFieldType.OD)
+    ..aInt64(2, _omitFieldNames ? '' : 'lastUpdatedUnix')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBTCPriceResponse clone() => GetBTCPriceResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBTCPriceResponse copyWith(void Function(GetBTCPriceResponse) updates) => super.copyWith((message) => updates(message as GetBTCPriceResponse)) as GetBTCPriceResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBTCPriceResponse create() => GetBTCPriceResponse._();
+  GetBTCPriceResponse createEmptyInstance() => create();
+  static $pb.PbList<GetBTCPriceResponse> createRepeated() => $pb.PbList<GetBTCPriceResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetBTCPriceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBTCPriceResponse>(create);
+  static GetBTCPriceResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get btcusd => $_getN(0);
+  @$pb.TagNumber(1)
+  set btcusd($core.double v) { $_setDouble(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBtcusd() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBtcusd() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get lastUpdatedUnix => $_getI64(1);
+  @$pb.TagNumber(2)
+  set lastUpdatedUnix($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasLastUpdatedUnix() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLastUpdatedUnix() => clearField(2);
+}
+
+class GetMainchainBlockchainInfoRequest extends $pb.GeneratedMessage {
+  factory GetMainchainBlockchainInfoRequest() => create();
+  GetMainchainBlockchainInfoRequest._() : super();
+  factory GetMainchainBlockchainInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetMainchainBlockchainInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetMainchainBlockchainInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetMainchainBlockchainInfoRequest clone() => GetMainchainBlockchainInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetMainchainBlockchainInfoRequest copyWith(void Function(GetMainchainBlockchainInfoRequest) updates) => super.copyWith((message) => updates(message as GetMainchainBlockchainInfoRequest)) as GetMainchainBlockchainInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBlockchainInfoRequest create() => GetMainchainBlockchainInfoRequest._();
+  GetMainchainBlockchainInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetMainchainBlockchainInfoRequest> createRepeated() => $pb.PbList<GetMainchainBlockchainInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBlockchainInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetMainchainBlockchainInfoRequest>(create);
+  static GetMainchainBlockchainInfoRequest? _defaultInstance;
+}
+
+class GetMainchainBlockchainInfoResponse extends $pb.GeneratedMessage {
+  factory GetMainchainBlockchainInfoResponse({
+    $core.String? chain,
+    $core.int? blocks,
+    $core.int? headers,
+    $core.String? bestBlockHash,
+    $core.double? difficulty,
+    $fixnum.Int64? time,
+    $fixnum.Int64? medianTime,
+    $core.double? verificationProgress,
+    $core.bool? initialBlockDownload,
+    $core.String? chainWork,
+    $fixnum.Int64? sizeOnDisk,
+    $core.bool? pruned,
+  }) {
+    final $result = create();
+    if (chain != null) {
+      $result.chain = chain;
+    }
+    if (blocks != null) {
+      $result.blocks = blocks;
+    }
+    if (headers != null) {
+      $result.headers = headers;
+    }
+    if (bestBlockHash != null) {
+      $result.bestBlockHash = bestBlockHash;
+    }
+    if (difficulty != null) {
+      $result.difficulty = difficulty;
+    }
+    if (time != null) {
+      $result.time = time;
+    }
+    if (medianTime != null) {
+      $result.medianTime = medianTime;
+    }
+    if (verificationProgress != null) {
+      $result.verificationProgress = verificationProgress;
+    }
+    if (initialBlockDownload != null) {
+      $result.initialBlockDownload = initialBlockDownload;
+    }
+    if (chainWork != null) {
+      $result.chainWork = chainWork;
+    }
+    if (sizeOnDisk != null) {
+      $result.sizeOnDisk = sizeOnDisk;
+    }
+    if (pruned != null) {
+      $result.pruned = pruned;
+    }
+    return $result;
+  }
+  GetMainchainBlockchainInfoResponse._() : super();
+  factory GetMainchainBlockchainInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetMainchainBlockchainInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetMainchainBlockchainInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chain')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.O3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.O3)
+    ..aOS(4, _omitFieldNames ? '' : 'bestBlockHash')
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'difficulty', $pb.PbFieldType.OD)
+    ..aInt64(6, _omitFieldNames ? '' : 'time')
+    ..aInt64(7, _omitFieldNames ? '' : 'medianTime')
+    ..a<$core.double>(8, _omitFieldNames ? '' : 'verificationProgress', $pb.PbFieldType.OD)
+    ..aOB(9, _omitFieldNames ? '' : 'initialBlockDownload')
+    ..aOS(10, _omitFieldNames ? '' : 'chainWork')
+    ..aInt64(11, _omitFieldNames ? '' : 'sizeOnDisk')
+    ..aOB(12, _omitFieldNames ? '' : 'pruned')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetMainchainBlockchainInfoResponse clone() => GetMainchainBlockchainInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetMainchainBlockchainInfoResponse copyWith(void Function(GetMainchainBlockchainInfoResponse) updates) => super.copyWith((message) => updates(message as GetMainchainBlockchainInfoResponse)) as GetMainchainBlockchainInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBlockchainInfoResponse create() => GetMainchainBlockchainInfoResponse._();
+  GetMainchainBlockchainInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetMainchainBlockchainInfoResponse> createRepeated() => $pb.PbList<GetMainchainBlockchainInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBlockchainInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetMainchainBlockchainInfoResponse>(create);
+  static GetMainchainBlockchainInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get chain => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set chain($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasChain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChain() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get blocks => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set blocks($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBlocks() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBlocks() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get headers => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set headers($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasHeaders() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHeaders() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get bestBlockHash => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set bestBlockHash($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasBestBlockHash() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBestBlockHash() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get difficulty => $_getN(4);
+  @$pb.TagNumber(5)
+  set difficulty($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDifficulty() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDifficulty() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get time => $_getI64(5);
+  @$pb.TagNumber(6)
+  set time($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasTime() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTime() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get medianTime => $_getI64(6);
+  @$pb.TagNumber(7)
+  set medianTime($fixnum.Int64 v) { $_setInt64(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasMedianTime() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearMedianTime() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.double get verificationProgress => $_getN(7);
+  @$pb.TagNumber(8)
+  set verificationProgress($core.double v) { $_setDouble(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasVerificationProgress() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearVerificationProgress() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get initialBlockDownload => $_getBF(8);
+  @$pb.TagNumber(9)
+  set initialBlockDownload($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasInitialBlockDownload() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearInitialBlockDownload() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get chainWork => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set chainWork($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasChainWork() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearChainWork() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $fixnum.Int64 get sizeOnDisk => $_getI64(10);
+  @$pb.TagNumber(11)
+  set sizeOnDisk($fixnum.Int64 v) { $_setInt64(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasSizeOnDisk() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearSizeOnDisk() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.bool get pruned => $_getBF(11);
+  @$pb.TagNumber(12)
+  set pruned($core.bool v) { $_setBool(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasPruned() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearPruned() => clearField(12);
+}
+
+class GetEnforcerBlockchainInfoRequest extends $pb.GeneratedMessage {
+  factory GetEnforcerBlockchainInfoRequest() => create();
+  GetEnforcerBlockchainInfoRequest._() : super();
+  factory GetEnforcerBlockchainInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetEnforcerBlockchainInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetEnforcerBlockchainInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetEnforcerBlockchainInfoRequest clone() => GetEnforcerBlockchainInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetEnforcerBlockchainInfoRequest copyWith(void Function(GetEnforcerBlockchainInfoRequest) updates) => super.copyWith((message) => updates(message as GetEnforcerBlockchainInfoRequest)) as GetEnforcerBlockchainInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetEnforcerBlockchainInfoRequest create() => GetEnforcerBlockchainInfoRequest._();
+  GetEnforcerBlockchainInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetEnforcerBlockchainInfoRequest> createRepeated() => $pb.PbList<GetEnforcerBlockchainInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetEnforcerBlockchainInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetEnforcerBlockchainInfoRequest>(create);
+  static GetEnforcerBlockchainInfoRequest? _defaultInstance;
+}
+
+class GetEnforcerBlockchainInfoResponse extends $pb.GeneratedMessage {
+  factory GetEnforcerBlockchainInfoResponse({
+    $core.int? blocks,
+    $core.int? headers,
+    $fixnum.Int64? time,
+  }) {
+    final $result = create();
+    if (blocks != null) {
+      $result.blocks = blocks;
+    }
+    if (headers != null) {
+      $result.headers = headers;
+    }
+    if (time != null) {
+      $result.time = time;
+    }
+    return $result;
+  }
+  GetEnforcerBlockchainInfoResponse._() : super();
+  factory GetEnforcerBlockchainInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetEnforcerBlockchainInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetEnforcerBlockchainInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.O3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.O3)
+    ..aInt64(3, _omitFieldNames ? '' : 'time')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetEnforcerBlockchainInfoResponse clone() => GetEnforcerBlockchainInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetEnforcerBlockchainInfoResponse copyWith(void Function(GetEnforcerBlockchainInfoResponse) updates) => super.copyWith((message) => updates(message as GetEnforcerBlockchainInfoResponse)) as GetEnforcerBlockchainInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetEnforcerBlockchainInfoResponse create() => GetEnforcerBlockchainInfoResponse._();
+  GetEnforcerBlockchainInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetEnforcerBlockchainInfoResponse> createRepeated() => $pb.PbList<GetEnforcerBlockchainInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetEnforcerBlockchainInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetEnforcerBlockchainInfoResponse>(create);
+  static GetEnforcerBlockchainInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get blocks => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set blocks($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBlocks() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBlocks() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get headers => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set headers($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasHeaders() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeaders() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get time => $_getI64(2);
+  @$pb.TagNumber(3)
+  set time($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTime() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTime() => clearField(3);
+}
+
+class GetMainchainBalanceRequest extends $pb.GeneratedMessage {
+  factory GetMainchainBalanceRequest() => create();
+  GetMainchainBalanceRequest._() : super();
+  factory GetMainchainBalanceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetMainchainBalanceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetMainchainBalanceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetMainchainBalanceRequest clone() => GetMainchainBalanceRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetMainchainBalanceRequest copyWith(void Function(GetMainchainBalanceRequest) updates) => super.copyWith((message) => updates(message as GetMainchainBalanceRequest)) as GetMainchainBalanceRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBalanceRequest create() => GetMainchainBalanceRequest._();
+  GetMainchainBalanceRequest createEmptyInstance() => create();
+  static $pb.PbList<GetMainchainBalanceRequest> createRepeated() => $pb.PbList<GetMainchainBalanceRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBalanceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetMainchainBalanceRequest>(create);
+  static GetMainchainBalanceRequest? _defaultInstance;
+}
+
+class GetMainchainBalanceResponse extends $pb.GeneratedMessage {
+  factory GetMainchainBalanceResponse({
+    $core.double? confirmed,
+    $core.double? unconfirmed,
+  }) {
+    final $result = create();
+    if (confirmed != null) {
+      $result.confirmed = confirmed;
+    }
+    if (unconfirmed != null) {
+      $result.unconfirmed = unconfirmed;
+    }
+    return $result;
+  }
+  GetMainchainBalanceResponse._() : super();
+  factory GetMainchainBalanceResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetMainchainBalanceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetMainchainBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'confirmed', $pb.PbFieldType.OD)
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'unconfirmed', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetMainchainBalanceResponse clone() => GetMainchainBalanceResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetMainchainBalanceResponse copyWith(void Function(GetMainchainBalanceResponse) updates) => super.copyWith((message) => updates(message as GetMainchainBalanceResponse)) as GetMainchainBalanceResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBalanceResponse create() => GetMainchainBalanceResponse._();
+  GetMainchainBalanceResponse createEmptyInstance() => create();
+  static $pb.PbList<GetMainchainBalanceResponse> createRepeated() => $pb.PbList<GetMainchainBalanceResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetMainchainBalanceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetMainchainBalanceResponse>(create);
+  static GetMainchainBalanceResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get confirmed => $_getN(0);
+  @$pb.TagNumber(1)
+  set confirmed($core.double v) { $_setDouble(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasConfirmed() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfirmed() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get unconfirmed => $_getN(1);
+  @$pb.TagNumber(2)
+  set unconfirmed($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasUnconfirmed() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUnconfirmed() => clearField(2);
+}
+
 class OrchestratorServiceApi {
   $pb.RpcClient _client;
   OrchestratorServiceApi(this._client);
@@ -1329,6 +1895,18 @@ class OrchestratorServiceApi {
   ;
   $async.Future<ShutdownAllResponse> shutdownAll($pb.ClientContext? ctx, ShutdownAllRequest request) =>
     _client.invoke<ShutdownAllResponse>(ctx, 'OrchestratorService', 'ShutdownAll', request, ShutdownAllResponse())
+  ;
+  $async.Future<GetBTCPriceResponse> getBTCPrice($pb.ClientContext? ctx, GetBTCPriceRequest request) =>
+    _client.invoke<GetBTCPriceResponse>(ctx, 'OrchestratorService', 'GetBTCPrice', request, GetBTCPriceResponse())
+  ;
+  $async.Future<GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo($pb.ClientContext? ctx, GetMainchainBlockchainInfoRequest request) =>
+    _client.invoke<GetMainchainBlockchainInfoResponse>(ctx, 'OrchestratorService', 'GetMainchainBlockchainInfo', request, GetMainchainBlockchainInfoResponse())
+  ;
+  $async.Future<GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo($pb.ClientContext? ctx, GetEnforcerBlockchainInfoRequest request) =>
+    _client.invoke<GetEnforcerBlockchainInfoResponse>(ctx, 'OrchestratorService', 'GetEnforcerBlockchainInfo', request, GetEnforcerBlockchainInfoResponse())
+  ;
+  $async.Future<GetMainchainBalanceResponse> getMainchainBalance($pb.ClientContext? ctx, GetMainchainBalanceRequest request) =>
+    _client.invoke<GetMainchainBalanceResponse>(ctx, 'OrchestratorService', 'GetMainchainBalance', request, GetMainchainBalanceResponse())
   ;
 }
 

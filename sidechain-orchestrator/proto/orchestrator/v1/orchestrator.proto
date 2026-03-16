@@ -29,6 +29,18 @@ service OrchestratorService {
 
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
+
+  // Get the current BTC/USD exchange rate.
+  rpc GetBTCPrice(GetBTCPriceRequest) returns (GetBTCPriceResponse);
+
+  // Get blockchain info from Bitcoin Core (proxied via orchestrator).
+  rpc GetMainchainBlockchainInfo(GetMainchainBlockchainInfoRequest) returns (GetMainchainBlockchainInfoResponse);
+
+  // Get blockchain info from the enforcer (proxied via orchestrator).
+  rpc GetEnforcerBlockchainInfo(GetEnforcerBlockchainInfoRequest) returns (GetEnforcerBlockchainInfoResponse);
+
+  // Get wallet balance from Bitcoin Core (proxied via orchestrator).
+  rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
 }
 
 message BinaryStatusMsg {
@@ -134,6 +146,8 @@ message StartWithDepsResponse {
   string message = 2;
   bool done = 3;
   string error = 4;
+  int64 bytes_downloaded = 5;
+  int64 total_bytes = 6;
 }
 
 // ShutdownAll
@@ -148,4 +162,51 @@ message ShutdownAllResponse {
   string current_binary = 3;
   bool done = 4;
   string error = 5;
+}
+
+// GetBTCPrice
+
+message GetBTCPriceRequest {}
+
+message GetBTCPriceResponse {
+  double btcusd = 1;
+  int64 last_updated_unix = 2;
+}
+
+// GetMainchainBlockchainInfo
+
+message GetMainchainBlockchainInfoRequest {}
+
+message GetMainchainBlockchainInfoResponse {
+  string chain = 1;
+  int32 blocks = 2;
+  int32 headers = 3;
+  string best_block_hash = 4;
+  double difficulty = 5;
+  int64 time = 6;
+  int64 median_time = 7;
+  double verification_progress = 8;
+  bool initial_block_download = 9;
+  string chain_work = 10;
+  int64 size_on_disk = 11;
+  bool pruned = 12;
+}
+
+// GetEnforcerBlockchainInfo
+
+message GetEnforcerBlockchainInfoRequest {}
+
+message GetEnforcerBlockchainInfoResponse {
+  int32 blocks = 1;
+  int32 headers = 2;
+  int64 time = 3;
+}
+
+// GetMainchainBalance
+
+message GetMainchainBalanceRequest {}
+
+message GetMainchainBalanceResponse {
+  double confirmed = 1;
+  double unconfirmed = 2;
 }

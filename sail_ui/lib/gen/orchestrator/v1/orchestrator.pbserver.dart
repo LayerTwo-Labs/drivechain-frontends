@@ -15,48 +15,60 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'orchestrator.pb.dart' as $0;
+import 'orchestrator.pb.dart' as $2;
 import 'orchestrator.pbjson.dart';
 
 export 'orchestrator.pb.dart';
 
 abstract class OrchestratorServiceBase extends $pb.GeneratedService {
-  $async.Future<$0.ListBinariesResponse> listBinaries($pb.ServerContext ctx, $0.ListBinariesRequest request);
-  $async.Future<$0.GetBinaryStatusResponse> getBinaryStatus($pb.ServerContext ctx, $0.GetBinaryStatusRequest request);
-  $async.Future<$0.DownloadBinaryResponse> downloadBinary($pb.ServerContext ctx, $0.DownloadBinaryRequest request);
-  $async.Future<$0.StartBinaryResponse> startBinary($pb.ServerContext ctx, $0.StartBinaryRequest request);
-  $async.Future<$0.StopBinaryResponse> stopBinary($pb.ServerContext ctx, $0.StopBinaryRequest request);
-  $async.Future<$0.WatchBinariesResponse> watchBinaries($pb.ServerContext ctx, $0.WatchBinariesRequest request);
-  $async.Future<$0.StreamLogsResponse> streamLogs($pb.ServerContext ctx, $0.StreamLogsRequest request);
-  $async.Future<$0.StartWithDepsResponse> startWithDeps($pb.ServerContext ctx, $0.StartWithDepsRequest request);
-  $async.Future<$0.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $0.ShutdownAllRequest request);
+  $async.Future<$2.ListBinariesResponse> listBinaries($pb.ServerContext ctx, $2.ListBinariesRequest request);
+  $async.Future<$2.GetBinaryStatusResponse> getBinaryStatus($pb.ServerContext ctx, $2.GetBinaryStatusRequest request);
+  $async.Future<$2.DownloadBinaryResponse> downloadBinary($pb.ServerContext ctx, $2.DownloadBinaryRequest request);
+  $async.Future<$2.StartBinaryResponse> startBinary($pb.ServerContext ctx, $2.StartBinaryRequest request);
+  $async.Future<$2.StopBinaryResponse> stopBinary($pb.ServerContext ctx, $2.StopBinaryRequest request);
+  $async.Future<$2.WatchBinariesResponse> watchBinaries($pb.ServerContext ctx, $2.WatchBinariesRequest request);
+  $async.Future<$2.StreamLogsResponse> streamLogs($pb.ServerContext ctx, $2.StreamLogsRequest request);
+  $async.Future<$2.StartWithDepsResponse> startWithDeps($pb.ServerContext ctx, $2.StartWithDepsRequest request);
+  $async.Future<$2.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $2.ShutdownAllRequest request);
+  $async.Future<$2.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $2.GetBTCPriceRequest request);
+  $async.Future<$2.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo($pb.ServerContext ctx, $2.GetMainchainBlockchainInfoRequest request);
+  $async.Future<$2.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo($pb.ServerContext ctx, $2.GetEnforcerBlockchainInfoRequest request);
+  $async.Future<$2.GetMainchainBalanceResponse> getMainchainBalance($pb.ServerContext ctx, $2.GetMainchainBalanceRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListBinaries': return $0.ListBinariesRequest();
-      case 'GetBinaryStatus': return $0.GetBinaryStatusRequest();
-      case 'DownloadBinary': return $0.DownloadBinaryRequest();
-      case 'StartBinary': return $0.StartBinaryRequest();
-      case 'StopBinary': return $0.StopBinaryRequest();
-      case 'WatchBinaries': return $0.WatchBinariesRequest();
-      case 'StreamLogs': return $0.StreamLogsRequest();
-      case 'StartWithDeps': return $0.StartWithDepsRequest();
-      case 'ShutdownAll': return $0.ShutdownAllRequest();
+      case 'ListBinaries': return $2.ListBinariesRequest();
+      case 'GetBinaryStatus': return $2.GetBinaryStatusRequest();
+      case 'DownloadBinary': return $2.DownloadBinaryRequest();
+      case 'StartBinary': return $2.StartBinaryRequest();
+      case 'StopBinary': return $2.StopBinaryRequest();
+      case 'WatchBinaries': return $2.WatchBinariesRequest();
+      case 'StreamLogs': return $2.StreamLogsRequest();
+      case 'StartWithDeps': return $2.StartWithDepsRequest();
+      case 'ShutdownAll': return $2.ShutdownAllRequest();
+      case 'GetBTCPrice': return $2.GetBTCPriceRequest();
+      case 'GetMainchainBlockchainInfo': return $2.GetMainchainBlockchainInfoRequest();
+      case 'GetEnforcerBlockchainInfo': return $2.GetEnforcerBlockchainInfoRequest();
+      case 'GetMainchainBalance': return $2.GetMainchainBalanceRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListBinaries': return this.listBinaries(ctx, request as $0.ListBinariesRequest);
-      case 'GetBinaryStatus': return this.getBinaryStatus(ctx, request as $0.GetBinaryStatusRequest);
-      case 'DownloadBinary': return this.downloadBinary(ctx, request as $0.DownloadBinaryRequest);
-      case 'StartBinary': return this.startBinary(ctx, request as $0.StartBinaryRequest);
-      case 'StopBinary': return this.stopBinary(ctx, request as $0.StopBinaryRequest);
-      case 'WatchBinaries': return this.watchBinaries(ctx, request as $0.WatchBinariesRequest);
-      case 'StreamLogs': return this.streamLogs(ctx, request as $0.StreamLogsRequest);
-      case 'StartWithDeps': return this.startWithDeps(ctx, request as $0.StartWithDepsRequest);
-      case 'ShutdownAll': return this.shutdownAll(ctx, request as $0.ShutdownAllRequest);
+      case 'ListBinaries': return this.listBinaries(ctx, request as $2.ListBinariesRequest);
+      case 'GetBinaryStatus': return this.getBinaryStatus(ctx, request as $2.GetBinaryStatusRequest);
+      case 'DownloadBinary': return this.downloadBinary(ctx, request as $2.DownloadBinaryRequest);
+      case 'StartBinary': return this.startBinary(ctx, request as $2.StartBinaryRequest);
+      case 'StopBinary': return this.stopBinary(ctx, request as $2.StopBinaryRequest);
+      case 'WatchBinaries': return this.watchBinaries(ctx, request as $2.WatchBinariesRequest);
+      case 'StreamLogs': return this.streamLogs(ctx, request as $2.StreamLogsRequest);
+      case 'StartWithDeps': return this.startWithDeps(ctx, request as $2.StartWithDepsRequest);
+      case 'ShutdownAll': return this.shutdownAll(ctx, request as $2.ShutdownAllRequest);
+      case 'GetBTCPrice': return this.getBTCPrice(ctx, request as $2.GetBTCPriceRequest);
+      case 'GetMainchainBlockchainInfo': return this.getMainchainBlockchainInfo(ctx, request as $2.GetMainchainBlockchainInfoRequest);
+      case 'GetEnforcerBlockchainInfo': return this.getEnforcerBlockchainInfo(ctx, request as $2.GetEnforcerBlockchainInfoRequest);
+      case 'GetMainchainBalance': return this.getMainchainBalance(ctx, request as $2.GetMainchainBalanceRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

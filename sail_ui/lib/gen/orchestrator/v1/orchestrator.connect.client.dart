@@ -169,4 +169,76 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Get the current BTC/USD exchange rate.
+  Future<orchestratorv1orchestrator.GetBTCPriceResponse> getBTCPrice(
+    orchestratorv1orchestrator.GetBTCPriceRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getBTCPrice,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get blockchain info from Bitcoin Core (proxied via orchestrator).
+  Future<orchestratorv1orchestrator.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo(
+    orchestratorv1orchestrator.GetMainchainBlockchainInfoRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getMainchainBlockchainInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get blockchain info from the enforcer (proxied via orchestrator).
+  Future<orchestratorv1orchestrator.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo(
+    orchestratorv1orchestrator.GetEnforcerBlockchainInfoRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getEnforcerBlockchainInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get wallet balance from Bitcoin Core (proxied via orchestrator).
+  Future<orchestratorv1orchestrator.GetMainchainBalanceResponse> getMainchainBalance(
+    orchestratorv1orchestrator.GetMainchainBalanceRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getMainchainBalance,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

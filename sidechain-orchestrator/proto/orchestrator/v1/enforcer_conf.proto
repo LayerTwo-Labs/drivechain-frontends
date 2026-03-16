@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package orchestrator.v1;
+
+service EnforcerConfService {
+  // Get current Enforcer configuration state.
+  rpc GetEnforcerConfig(GetEnforcerConfigRequest) returns (GetEnforcerConfigResponse);
+
+  // Write Enforcer configuration content.
+  rpc WriteEnforcerConfig(WriteEnforcerConfigRequest) returns (WriteEnforcerConfigResponse);
+
+  // Sync node-rpc settings from Bitcoin Core config.
+  rpc SyncNodeRpcFromBitcoinConf(SyncNodeRpcFromBitcoinConfRequest) returns (SyncNodeRpcFromBitcoinConfResponse);
+}
+
+// GetEnforcerConfig
+
+message GetEnforcerConfigRequest {}
+
+message GetEnforcerConfigResponse {
+  string config_content = 1;
+  string config_path = 2;
+  bool node_rpc_differs = 3;
+  string default_config = 4;
+  repeated string cli_args = 5;
+  map<string, string> expected_node_rpc_settings = 6;
+}
+
+// WriteEnforcerConfig
+
+message WriteEnforcerConfigRequest {
+  string config_content = 1;
+}
+
+message WriteEnforcerConfigResponse {}
+
+// SyncNodeRpcFromBitcoinConf
+
+message SyncNodeRpcFromBitcoinConfRequest {}
+
+message SyncNodeRpcFromBitcoinConfResponse {}
