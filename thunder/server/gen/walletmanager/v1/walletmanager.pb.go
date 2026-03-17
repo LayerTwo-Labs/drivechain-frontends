@@ -1324,8 +1324,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x14UpdateWalletMetadata\x12-.walletmanager.v1.UpdateWalletMetadataRequest\x1a..walletmanager.v1.UpdateWalletMetadataResponse\x12]\n" +
 	"\fDeleteWallet\x12%.walletmanager.v1.DeleteWalletRequest\x1a&.walletmanager.v1.DeleteWalletResponse\x12i\n" +
 	"\x10DeleteAllWallets\x12).walletmanager.v1.DeleteAllWalletsRequest\x1a*.walletmanager.v1.DeleteAllWalletsResponse\x12x\n" +
-	"\x15CreateWatchOnlyWallet\x12..walletmanager.v1.CreateWatchOnlyWalletRequest\x1a/.walletmanager.v1.CreateWatchOnlyWalletResponseB\xea\x01\n" +
-	"\x14com.walletmanager.v1B\x12WalletmanagerProtoP\x01Z]github.com/LayerTwo-Labs/sidesail/thunder/server/gen/walletmanager/v1;walletmanagerv1\xa2\x02\x03WXX\xaa\x02\x10Walletmanager.V1\xca\x02\x10Walletmanager\\V1\xe2\x02\x1cWalletmanager\\V1\\GPBMetadata\xea\x02\x11Walletmanager::V1b\x06proto3"
+	"\x15CreateWatchOnlyWallet\x12..walletmanager.v1.CreateWatchOnlyWalletRequest\x1a/.walletmanager.v1.CreateWatchOnlyWalletResponseB\xe2\x01\n" +
+	"\x14com.walletmanager.v1B\x12WalletmanagerProtoP\x01ZUgithub.com/LayerTwo-Labs/sidesail/thunder/server/gen/walletmanager/v1;walletmanagerv1\xa2\x02\x03WXX\xaa\x02\x10Walletmanager.V1\xca\x02\x10Walletmanager\\V1\xe2\x02\x1cWalletmanager\\V1\\GPBMetadata\xea\x02\x11Walletmanager::V1b\x06proto3"
 
 var (
 	file_walletmanager_v1_walletmanager_proto_rawDescOnce sync.Once
