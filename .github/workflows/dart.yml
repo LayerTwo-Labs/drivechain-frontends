@@ -12,24 +12,30 @@ on:
       - "bitassets/**"
       - "zside/**"
       - "bitwindow/**"
-      - ".github/workflows/**"
+      - "coinshift/**"
+      - ".github/workflows/dart.yml"
+
+env:
+  FLUTTER_VERSION: "3.41.2"
+  DART_VERSION: "3.11.0"
 
 jobs:
   format-lint-test:
+    name: ${{ matrix.package }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         package:
-          [
-            sail_ui,
-            thunder,
-            truthcoin,
-            photon,
-            bitnames,
-            bitassets,
-            zside,
-            bitwindow,
-          ]
+          - sail_ui
+          - thunder
+          - truthcoin
+          - photon
+          - bitnames
+          - bitassets
+          - zside
+          - bitwindow
+          - coinshift
 
     defaults:
       run:
@@ -45,13 +51,13 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.41.2
+          flutter-version: ${{ env.FLUTTER_VERSION }}
 
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: 3.11.0
+          sdk: ${{ env.DART_VERSION }}
 
-      - name: Install dependencies for ${{ matrix.package }}
+      - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
       - name: Create necessary directories
@@ -59,15 +65,14 @@ jobs:
           rm -rf assets/bin
           mkdir -p assets/bin
 
-      - name: Verify formatting for ${{ matrix.package }}
-        run:
-          # prettier-ignore
-          find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format --set-exit-if-changed
+      - name: Verify formatting
+        # prettier-ignore
+        run: find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format --set-exit-if-changed
 
-      - name: Analyze project source for ${{ matrix.package }}
+      - name: Analyze
         run: dart analyze
 
-      - name: Look for fixable lint issues for ${{ matrix.package }}
+      - name: Check for fixable issues
         run: |
           FIXES=$(dart fix --dry-run)
           if [[ "$FIXES" != *"Nothing to fix!"* ]]; then
@@ -76,14 +81,14 @@ jobs:
             exit 1
           fi
 
-      - name: Run tests for ${{ matrix.package }}
+      - name: Test
         run: |
           if [ -d "test" ]; then
             flutter test
           else
-            echo "Test directory not found. Skipping tests."
+            echo "No test directory, skipping."
           fi
 
-      - name: Build Flutter app
-        run: |
-          flutter build
+      - name: Build
+        run: flutter build linux
+        if: matrix.package != 'sail_ui'
