@@ -262,10 +262,8 @@ func (m *ThunderConfManager) SyncNetworkFromBitcoinConf() error {
 		return nil
 	}
 
-	sidechainNetwork := "signet"
+	var sidechainNetwork string
 	switch m.bitcoinConf.Network {
-	case NetworkSignet:
-		sidechainNetwork = "signet"
 	case NetworkRegtest:
 		sidechainNetwork = "regtest"
 	case NetworkForknet:

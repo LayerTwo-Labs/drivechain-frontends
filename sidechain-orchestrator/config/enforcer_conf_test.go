@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestEnforcerManager(t *testing.T) (*EnforcerConfManager, string) {
@@ -102,8 +103,8 @@ func TestEnforcerLoadConfigWithMigration(t *testing.T) {
 
 	// Write a v1 config without zmq setting
 	confPath := m.getConfigPath()
-	os.MkdirAll(filepath.Dir(confPath), 0755)
-	os.WriteFile(confPath, []byte("# bitwindow-enforcer-conf-version=1\nenable-wallet=true\n"), 0644)
+	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0755))
+	require.NoError(t, os.WriteFile(confPath, []byte("# bitwindow-enforcer-conf-version=1\nenable-wallet=true\n"), 0644))
 
 	if err := m.LoadConfig(); err != nil {
 		t.Fatal(err)
@@ -150,10 +151,10 @@ func TestEnforcerLoadConfigIdempotent(t *testing.T) {
 
 func TestNodeRpcDiffers(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
-	m.LoadConfig()
+	require.NoError(t, m.LoadConfig())
 
 	// After sync, should not differ
-	m.SyncFromBitcoinConf()
+	require.NoError(t, m.SyncFromBitcoinConf())
 	if m.NodeRpcDiffers() {
 		t.Error("should not differ after sync")
 	}
@@ -171,7 +172,7 @@ func TestNodeRpcDiffers(t *testing.T) {
 
 func TestSyncFromBitcoinConf(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
-	m.LoadConfig()
+	require.NoError(t, m.LoadConfig())
 
 	// Set bitcoin conf to have specific values
 	m.bitcoinConf.Config.GlobalSettings["rpcuser"] = "myuser"
@@ -191,18 +192,18 @@ func TestSyncFromBitcoinConf(t *testing.T) {
 
 func TestSyncFromBitcoinConfSetsEsplora(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
-	m.LoadConfig()
+	require.NoError(t, m.LoadConfig())
 
 	// Signet should have esplora URL
 	m.bitcoinConf.Network = NetworkSignet
-	m.SyncFromBitcoinConf()
+	require.NoError(t, m.SyncFromBitcoinConf())
 	if m.Config.GetSetting("wallet-esplora-url") != "https://explorer.signet.drivechain.info/api" {
 		t.Errorf("esplora = %q", m.Config.GetSetting("wallet-esplora-url"))
 	}
 
 	// Testnet should have no esplora URL (removed)
 	m.bitcoinConf.Network = NetworkTestnet
-	m.SyncFromBitcoinConf()
+	require.NoError(t, m.SyncFromBitcoinConf())
 	if m.Config.HasSetting("wallet-esplora-url") {
 		t.Error("testnet should not have esplora URL")
 	}
@@ -214,7 +215,7 @@ func TestSyncFromBitcoinConfSetsEsplora(t *testing.T) {
 
 func TestGetCurrentConfigContent(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
-	m.LoadConfig()
+	require.NoError(t, m.LoadConfig())
 
 	content := m.GetCurrentConfigContent()
 	if content == "" {
@@ -233,7 +234,7 @@ func TestGetCurrentConfigContentNilConfig(t *testing.T) {
 
 func TestWriteConfig(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
-	m.LoadConfig()
+	require.NoError(t, m.LoadConfig())
 
 	newContent := "# bitwindow-enforcer-conf-version=2\nenable-wallet=true\ncustom-setting=hello\n"
 	if err := m.WriteConfig(newContent); err != nil {
@@ -261,7 +262,7 @@ func TestWriteConfig(t *testing.T) {
 
 func TestGetCliArgs(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
-	m.LoadConfig()
+	require.NoError(t, m.LoadConfig())
 
 	args := m.GetCliArgs()
 	if len(args) == 0 {
@@ -286,7 +287,7 @@ func TestGetCliArgs(t *testing.T) {
 
 func TestEnforcerFileWatchingTriggersReload(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
-	m.LoadConfig()
+	require.NoError(t, m.LoadConfig())
 
 	if err := m.StartWatching(); err != nil {
 		t.Fatal(err)
@@ -299,7 +300,7 @@ func TestEnforcerFileWatchingTriggersReload(t *testing.T) {
 	newConfig.ConfigVersion = enforcerConfMigrationsVersion
 	newConfig.SetSetting("enable-wallet", "true")
 	newConfig.SetSetting("custom-watched-setting", "detected")
-	os.WriteFile(confPath, []byte(newConfig.Serialize()), 0644)
+	require.NoError(t, os.WriteFile(confPath, []byte(newConfig.Serialize()), 0644))
 
 	// Wait for debounce (500ms) + processing
 	time.Sleep(700 * time.Millisecond)

@@ -463,7 +463,7 @@ func (o *Orchestrator) GetBTCPrice() (float64, time.Time, error) {
 	if err != nil {
 		return o.cachedBTCPrice, o.cachedPriceTime, fmt.Errorf("fetch BTC price: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // cleanup
 
 	if resp.StatusCode != http.StatusOK {
 		return o.cachedBTCPrice, o.cachedPriceTime, fmt.Errorf("fetch BTC price: HTTP %d", resp.StatusCode)

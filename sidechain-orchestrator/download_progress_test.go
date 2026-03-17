@@ -20,7 +20,7 @@ func TestDownloadFile_ThrottlesProgress(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
-		w.Write(payload)
+		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
 
@@ -63,7 +63,7 @@ func TestDownloadFile_ThrottlesProgress_UnknownTotal(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Don't set Content-Length so ContentLength = -1
-		w.Write(payload)
+		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
 
@@ -98,7 +98,7 @@ func TestDownloadFile_ProgressMessages(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
-		w.Write(payload)
+		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
 
@@ -305,7 +305,7 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
-		w.Write(payload)
+		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
 
@@ -315,7 +315,7 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 	zipContent := makeZipBytes(t, map[string][]byte{"test-binary": []byte("data")})
 	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(zipContent)))
-		w.Write(zipContent)
+		_, _ = w.Write(zipContent)
 	}))
 	defer srv2.Close()
 	dm.httpClient = srv2.Client()
@@ -347,7 +347,7 @@ func TestDownloadFile_ProgressMessagesUnknownTotal(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// No Content-Length
-		w.Write(payload)
+		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
 

@@ -115,7 +115,7 @@ func serializedPrivateKeyHex(key []byte) string {
 func bytesToBinary(data []byte) string {
 	var sb strings.Builder
 	for _, b := range data {
-		sb.WriteString(fmt.Sprintf("%08b", b))
+		fmt.Fprintf(&sb, "%08b", b)
 	}
 	return sb.String()
 }

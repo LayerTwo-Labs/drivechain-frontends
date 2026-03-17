@@ -4,7 +4,6 @@ package orchestrator
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -77,7 +76,3 @@ func forceKillProcess(pid int) error {
 
 // raiseOpenFilesLimit is a no-op on Windows (no RLIMIT_NOFILE).
 func raiseOpenFilesLimit(_ zerolog.Logger) {}
-
-func gracefulShutdownSignal() os.Signal {
-	return os.Kill
-}

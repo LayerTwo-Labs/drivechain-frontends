@@ -70,7 +70,7 @@ func TestDownload_Direct(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(zipContent)))
-		w.Write(zipContent)
+		_, _ = w.Write(zipContent)
 	}))
 	defer srv.Close()
 	dm.httpClient = srv.Client()
@@ -97,7 +97,7 @@ func TestDownload_GitHub(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/releases/latest":
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"assets": []map[string]any{
 					{"name": "grpcurl_1.9.1_linux_x86_64.zip", "browser_download_url": "http://" + r.Host + "/dl/grpcurl.zip"},
 					{"name": "grpcurl_1.9.1_osx_x86_64.zip", "browser_download_url": "http://" + r.Host + "/dl/grpcurl.zip"},
@@ -106,7 +106,7 @@ func TestDownload_GitHub(t *testing.T) {
 			})
 		default:
 			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(zipContent)))
-			w.Write(zipContent)
+			_, _ = w.Write(zipContent)
 		}
 	}))
 	defer srv.Close()
