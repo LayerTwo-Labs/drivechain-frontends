@@ -69,6 +69,9 @@ const (
 	// WalletManagerServiceDeleteAllWalletsProcedure is the fully-qualified name of the
 	// WalletManagerService's DeleteAllWallets RPC.
 	WalletManagerServiceDeleteAllWalletsProcedure = "/walletmanager.v1.WalletManagerService/DeleteAllWallets"
+	// WalletManagerServiceCreateWatchOnlyWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's CreateWatchOnlyWallet RPC.
+	WalletManagerServiceCreateWatchOnlyWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateWatchOnlyWallet"
 )
 
 // WalletManagerServiceClient is a client for the walletmanager.v1.WalletManagerService service.
@@ -85,6 +88,7 @@ type WalletManagerServiceClient interface {
 	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
 	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
 	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
+	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
 }
 
 // NewWalletManagerServiceClient constructs a client for the walletmanager.v1.WalletManagerService
@@ -170,23 +174,30 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("DeleteAllWallets")),
 			connect.WithClientOptions(opts...),
 		),
+		createWatchOnlyWallet: connect.NewClient[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCreateWatchOnlyWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // walletManagerServiceClient implements WalletManagerServiceClient.
 type walletManagerServiceClient struct {
-	getWalletStatus      *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
-	generateWallet       *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
-	unlockWallet         *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
-	lockWallet           *connect.Client[v1.LockWalletRequest, v1.LockWalletResponse]
-	encryptWallet        *connect.Client[v1.EncryptWalletRequest, v1.EncryptWalletResponse]
-	changePassword       *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
-	removeEncryption     *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
-	listWallets          *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
-	switchWallet         *connect.Client[v1.SwitchWalletRequest, v1.SwitchWalletResponse]
-	updateWalletMetadata *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
-	deleteWallet         *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
-	deleteAllWallets     *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
+	getWalletStatus       *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
+	generateWallet        *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
+	unlockWallet          *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
+	lockWallet            *connect.Client[v1.LockWalletRequest, v1.LockWalletResponse]
+	encryptWallet         *connect.Client[v1.EncryptWalletRequest, v1.EncryptWalletResponse]
+	changePassword        *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	removeEncryption      *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
+	listWallets           *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
+	switchWallet          *connect.Client[v1.SwitchWalletRequest, v1.SwitchWalletResponse]
+	updateWalletMetadata  *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
+	deleteWallet          *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
+	deleteAllWallets      *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
+	createWatchOnlyWallet *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
 }
 
 // GetWalletStatus calls walletmanager.v1.WalletManagerService.GetWalletStatus.
@@ -249,6 +260,11 @@ func (c *walletManagerServiceClient) DeleteAllWallets(ctx context.Context, req *
 	return c.deleteAllWallets.CallUnary(ctx, req)
 }
 
+// CreateWatchOnlyWallet calls walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet.
+func (c *walletManagerServiceClient) CreateWatchOnlyWallet(ctx context.Context, req *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {
+	return c.createWatchOnlyWallet.CallUnary(ctx, req)
+}
+
 // WalletManagerServiceHandler is an implementation of the walletmanager.v1.WalletManagerService
 // service.
 type WalletManagerServiceHandler interface {
@@ -264,6 +280,7 @@ type WalletManagerServiceHandler interface {
 	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
 	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
 	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
+	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
 }
 
 // NewWalletManagerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -345,6 +362,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("DeleteAllWallets")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceCreateWatchOnlyWalletHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCreateWatchOnlyWalletProcedure,
+		svc.CreateWatchOnlyWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/walletmanager.v1.WalletManagerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletManagerServiceGetWalletStatusProcedure:
@@ -371,6 +394,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceDeleteWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceDeleteAllWalletsProcedure:
 			walletManagerServiceDeleteAllWalletsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCreateWatchOnlyWalletProcedure:
+			walletManagerServiceCreateWatchOnlyWalletHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -426,4 +451,8 @@ func (UnimplementedWalletManagerServiceHandler) DeleteWallet(context.Context, *c
 
 func (UnimplementedWalletManagerServiceHandler) DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeleteAllWallets is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet is not implemented"))
 }

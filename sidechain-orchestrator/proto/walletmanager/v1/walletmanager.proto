@@ -15,6 +15,7 @@ service WalletManagerService {
   rpc UpdateWalletMetadata(UpdateWalletMetadataRequest) returns (UpdateWalletMetadataResponse);
   rpc DeleteWallet(DeleteWalletRequest) returns (DeleteWalletResponse);
   rpc DeleteAllWallets(DeleteAllWalletsRequest) returns (DeleteAllWalletsResponse);
+  rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
 }
 
 // Status
@@ -127,3 +128,15 @@ message DeleteWalletResponse {}
 message DeleteAllWalletsRequest {}
 
 message DeleteAllWalletsResponse {}
+
+// Create Watch-Only Wallet
+
+message CreateWatchOnlyWalletRequest {
+  string name = 1;
+  string xpub_or_descriptor = 2;
+  string gradient_json = 3;
+}
+
+message CreateWatchOnlyWalletResponse {
+  string wallet_id = 1;
+}
