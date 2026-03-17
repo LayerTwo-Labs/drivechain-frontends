@@ -93,4 +93,11 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.DeleteAllWalletsRequest.new,
     walletmanagerv1walletmanager.DeleteAllWalletsResponse.new,
   );
+
+  static const createWatchOnlyWallet = connect.Spec(
+    '/$name/CreateWatchOnlyWallet',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CreateWatchOnlyWalletRequest.new,
+    walletmanagerv1walletmanager.CreateWatchOnlyWalletResponse.new,
+  );
 }

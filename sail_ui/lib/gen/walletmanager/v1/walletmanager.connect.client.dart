@@ -211,4 +211,21 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  Future<walletmanagerv1walletmanager.CreateWatchOnlyWalletResponse> createWatchOnlyWallet(
+    walletmanagerv1walletmanager.CreateWatchOnlyWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.createWatchOnlyWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

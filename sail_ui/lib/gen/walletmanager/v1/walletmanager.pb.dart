@@ -1234,6 +1234,134 @@ class DeleteAllWalletsResponse extends $pb.GeneratedMessage {
   static DeleteAllWalletsResponse? _defaultInstance;
 }
 
+class CreateWatchOnlyWalletRequest extends $pb.GeneratedMessage {
+  factory CreateWatchOnlyWalletRequest({
+    $core.String? name,
+    $core.String? xpubOrDescriptor,
+    $core.String? gradientJson,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (xpubOrDescriptor != null) {
+      $result.xpubOrDescriptor = xpubOrDescriptor;
+    }
+    if (gradientJson != null) {
+      $result.gradientJson = gradientJson;
+    }
+    return $result;
+  }
+  CreateWatchOnlyWalletRequest._() : super();
+  factory CreateWatchOnlyWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateWatchOnlyWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateWatchOnlyWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'xpubOrDescriptor')
+    ..aOS(3, _omitFieldNames ? '' : 'gradientJson')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateWatchOnlyWalletRequest clone() => CreateWatchOnlyWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateWatchOnlyWalletRequest copyWith(void Function(CreateWatchOnlyWalletRequest) updates) => super.copyWith((message) => updates(message as CreateWatchOnlyWalletRequest)) as CreateWatchOnlyWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateWatchOnlyWalletRequest create() => CreateWatchOnlyWalletRequest._();
+  CreateWatchOnlyWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateWatchOnlyWalletRequest> createRepeated() => $pb.PbList<CreateWatchOnlyWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateWatchOnlyWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateWatchOnlyWalletRequest>(create);
+  static CreateWatchOnlyWalletRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get xpubOrDescriptor => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set xpubOrDescriptor($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasXpubOrDescriptor() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearXpubOrDescriptor() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get gradientJson => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set gradientJson($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasGradientJson() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearGradientJson() => clearField(3);
+}
+
+class CreateWatchOnlyWalletResponse extends $pb.GeneratedMessage {
+  factory CreateWatchOnlyWalletResponse({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  CreateWatchOnlyWalletResponse._() : super();
+  factory CreateWatchOnlyWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateWatchOnlyWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateWatchOnlyWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateWatchOnlyWalletResponse clone() => CreateWatchOnlyWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateWatchOnlyWalletResponse copyWith(void Function(CreateWatchOnlyWalletResponse) updates) => super.copyWith((message) => updates(message as CreateWatchOnlyWalletResponse)) as CreateWatchOnlyWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateWatchOnlyWalletResponse create() => CreateWatchOnlyWalletResponse._();
+  CreateWatchOnlyWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateWatchOnlyWalletResponse> createRepeated() => $pb.PbList<CreateWatchOnlyWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateWatchOnlyWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateWatchOnlyWalletResponse>(create);
+  static CreateWatchOnlyWalletResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
 class WalletManagerServiceApi {
   $pb.RpcClient _client;
   WalletManagerServiceApi(this._client);
@@ -1273,6 +1401,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<DeleteAllWalletsResponse> deleteAllWallets($pb.ClientContext? ctx, DeleteAllWalletsRequest request) =>
     _client.invoke<DeleteAllWalletsResponse>(ctx, 'WalletManagerService', 'DeleteAllWallets', request, DeleteAllWalletsResponse())
+  ;
+  $async.Future<CreateWatchOnlyWalletResponse> createWatchOnlyWallet($pb.ClientContext? ctx, CreateWatchOnlyWalletRequest request) =>
+    _client.invoke<CreateWatchOnlyWalletResponse>(ctx, 'WalletManagerService', 'CreateWatchOnlyWallet', request, CreateWatchOnlyWalletResponse())
   ;
 }
 
