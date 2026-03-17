@@ -133,6 +133,7 @@ class EnforcerLive extends EnforcerRPC {
     // Default flags
     args.add('--enable-wallet');
     args.add('--enable-mempool');
+    args.add('--wallet-skip-periodic-sync');
 
     return args;
   }
