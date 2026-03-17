@@ -181,3 +181,16 @@ func (h *WalletHandler) DeleteAllWallets(_ context.Context, _ *connect.Request[p
 	h.log.Info().Msg("RPC DeleteAllWallets success")
 	return connect.NewResponse(&pb.DeleteAllWalletsResponse{}), nil
 }
+
+func (h *WalletHandler) CreateWatchOnlyWallet(_ context.Context, req *connect.Request[pb.CreateWatchOnlyWalletRequest]) (*connect.Response[pb.CreateWatchOnlyWalletResponse], error) {
+	h.log.Info().Str("name", req.Msg.Name).Msg("RPC CreateWatchOnlyWallet")
+	if err := h.svc.CreateWatchOnlyWallet(req.Msg.Name, req.Msg.XpubOrDescriptor, req.Msg.GradientJson); err != nil {
+		h.log.Error().Err(err).Msg("RPC CreateWatchOnlyWallet failed")
+		return nil, err
+	}
+	walletID := h.svc.ActiveWalletID()
+	h.log.Info().Str("wallet_id", walletID).Msg("RPC CreateWatchOnlyWallet success")
+	return connect.NewResponse(&pb.CreateWatchOnlyWalletResponse{
+		WalletId: walletID,
+	}), nil
+}

@@ -101,8 +101,23 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
     required String xpubOrDescriptor,
     required WalletGradient gradient,
   }) async {
-    // TODO: Add CreateWatchOnlyWallet RPC when needed
-    _logger.w('createWatchOnlyWallet: not yet implemented in backend mode');
+    try {
+      final resp = await _client.createWatchOnlyWallet(
+        wmpb.CreateWatchOnlyWalletRequest(
+          name: name,
+          xpubOrDescriptor: xpubOrDescriptor,
+          gradientJson: gradient.toJsonString(),
+        ),
+      );
+
+      _logger.i('createWatchOnlyWallet: created via backend, id=${resp.walletId}');
+
+      await _walletReader.init();
+      notifyListeners();
+    } catch (e) {
+      _logger.e('createWatchOnlyWallet: failed: $e');
+      rethrow;
+    }
   }
 
   @override
