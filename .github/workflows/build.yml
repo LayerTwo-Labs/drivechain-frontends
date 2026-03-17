@@ -15,22 +15,7 @@ on:
       - "bitassets/**"
       - "zside/**"
       - "coinshift/**"
-      - ".github/workflows/**"
-  pull_request:
-    branches: [master]
-    paths:
-      - "scripts/**"
-      - "sail_ui/**"
-      - "drivechain_lints/**"
-      - "bitwindow/**"
-      - "thunder/**"
-      - "truthcoin/**"
-      - "photon/**"
-      - "bitnames/**"
-      - "bitassets/**"
-      - "zside/**"
-      - "coinshift/**"
-      - ".github/workflows/**"
+      - ".github/workflows/build.yml"
 
 jobs:
   check-changes:
