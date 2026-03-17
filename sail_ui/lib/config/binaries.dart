@@ -516,6 +516,45 @@ abstract class Binary {
     return paths;
   }
 
+  /// Get list of log file paths that exist and would be deleted
+  Future<List<String>> getLogPaths() async {
+    final paths = <String>[];
+
+    switch (type) {
+      case BinaryType.bitcoinCore:
+        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['debug.log']));
+
+      case BinaryType.enforcer:
+        // Individual log file + entire logs directory
+        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['bip300301_enforcer.log', 'logs']));
+
+      case BinaryType.bitWindow:
+        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['server.log']));
+        paths.addAll(await _getExistingFilesInDir(rootDir(), ['debug.log']));
+
+      case BinaryType.thunder:
+      case BinaryType.bitnames:
+      case BinaryType.bitassets:
+      case BinaryType.zSide:
+      case BinaryType.truthcoin:
+      case BinaryType.photon:
+      case BinaryType.coinShift:
+        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['logs']));
+
+      case BinaryType.grpcurl:
+      case BinaryType.thunderd:
+        break;
+    }
+
+    // Also include Flutter frontend debug.log
+    final flutterDir = flutterFrontendDir();
+    if (flutterDir != null) {
+      paths.addAll(await _getExistingFilesInDir(flutterDir, ['debug.log']));
+    }
+
+    return paths;
+  }
+
   /// Get list of binary paths that exist and would be deleted
   Future<List<String>> getBinaryPaths(Directory assetsDir) async {
     final dir = assetsDir.path;

@@ -18,14 +18,16 @@ class _SettingsResetState extends State<SettingsReset> {
   Directory get appDir => GetIt.I.get<BinaryProvider>().appDir;
 
   bool _deleteBlockchainData = false;
+  bool _deleteLogs = false;
   bool _deleteSettings = false;
   bool _deleteWalletFiles = false;
   bool _obliterateEverything = false;
 
-  bool get _hasSelection => _deleteBlockchainData || _deleteSettings || _deleteWalletFiles || _obliterateEverything;
+  bool get _hasSelection =>
+      _deleteBlockchainData || _deleteLogs || _deleteSettings || _deleteWalletFiles || _obliterateEverything;
 
   void _updateObliterate() {
-    _obliterateEverything = _deleteBlockchainData && _deleteSettings && _deleteWalletFiles;
+    _obliterateEverything = _deleteBlockchainData && _deleteLogs && _deleteSettings && _deleteWalletFiles;
   }
 
   @override
@@ -49,6 +51,16 @@ class _SettingsResetState extends State<SettingsReset> {
                 }),
                 title: 'Delete Blockchain Data',
                 subtitle: 'Resyncs the blockchain from scratch',
+                isDestructive: false,
+              ),
+              ResetOptionTile(
+                value: _deleteLogs,
+                onChanged: (v) => setState(() {
+                  _deleteLogs = v;
+                  _updateObliterate();
+                }),
+                title: 'Delete Log Files',
+                subtitle: 'Removes all debug and server log files',
                 isDestructive: false,
               ),
               ResetOptionTile(
@@ -76,6 +88,7 @@ class _SettingsResetState extends State<SettingsReset> {
                 onChanged: (v) => setState(() {
                   _obliterateEverything = v;
                   _deleteBlockchainData = v;
+                  _deleteLogs = v;
                   _deleteSettings = v;
                   _deleteWalletFiles = v;
                 }),
@@ -122,6 +135,10 @@ class _SettingsResetState extends State<SettingsReset> {
     }
     if (_deleteWalletFiles) {
       final paths = await binary.getWalletPaths();
+      filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
+    }
+    if (_deleteLogs) {
+      final paths = await binary.getLogPaths();
       filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
     }
 

@@ -23,17 +23,28 @@ class _SettingsResetState extends State<SettingsReset> {
 
   bool _deleteNodeSoftware = false;
   bool _deleteBlockchainData = false;
+  bool _deleteLogs = false;
   bool _deleteWalletFiles = false;
   bool _deleteSettings = false;
   bool _alsoResetSidechains = false;
   bool _obliterateEverything = false;
 
   bool get _hasSelection =>
-      _deleteNodeSoftware || _deleteBlockchainData || _deleteWalletFiles || _deleteSettings || _obliterateEverything;
+      _deleteNodeSoftware ||
+      _deleteBlockchainData ||
+      _deleteLogs ||
+      _deleteWalletFiles ||
+      _deleteSettings ||
+      _obliterateEverything;
 
   void _updateObliterate() {
     _obliterateEverything =
-        _deleteNodeSoftware && _deleteBlockchainData && _deleteWalletFiles && _deleteSettings && _alsoResetSidechains;
+        _deleteNodeSoftware &&
+        _deleteBlockchainData &&
+        _deleteLogs &&
+        _deleteWalletFiles &&
+        _deleteSettings &&
+        _alsoResetSidechains;
   }
 
   @override
@@ -56,7 +67,7 @@ class _SettingsResetState extends State<SettingsReset> {
                   _updateObliterate();
                 }),
                 title: 'Delete Node Software and Data',
-                subtitle: 'Deletes all binaries for re-downloading, including logs',
+                subtitle: 'Deletes all binaries for re-downloading',
                 isDestructive: false,
               ),
               ResetOptionTile(
@@ -67,6 +78,16 @@ class _SettingsResetState extends State<SettingsReset> {
                 }),
                 title: 'Delete Blockchain Data',
                 subtitle: 'Resyncs the blockchain from scratch',
+                isDestructive: false,
+              ),
+              ResetOptionTile(
+                value: _deleteLogs,
+                onChanged: (v) => setState(() {
+                  _deleteLogs = v;
+                  _updateObliterate();
+                }),
+                title: 'Delete Log Files',
+                subtitle: 'Removes all debug and server log files',
                 isDestructive: false,
               ),
               ResetOptionTile(
@@ -105,6 +126,7 @@ class _SettingsResetState extends State<SettingsReset> {
                   _obliterateEverything = v;
                   _deleteNodeSoftware = v;
                   _deleteBlockchainData = v;
+                  _deleteLogs = v;
                   _deleteWalletFiles = v;
                   _deleteSettings = v;
                   _alsoResetSidechains = v;
@@ -176,6 +198,10 @@ class _SettingsResetState extends State<SettingsReset> {
       }
       if (_deleteWalletFiles) {
         final paths = await binary.getWalletPaths();
+        filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
+      }
+      if (_deleteLogs) {
+        final paths = await binary.getLogPaths();
         filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
       }
     }
