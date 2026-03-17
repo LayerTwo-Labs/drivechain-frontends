@@ -625,6 +625,143 @@ func TestServiceEncryptDecryptPreservesAllData(t *testing.T) {
 	assert.Equal(t, sc1Mnemonic, wallet.Sidechains[1].Mnemonic)
 }
 
+func TestServiceCreateWatchOnlyWalletWithXpub(t *testing.T) {
+	svc := newTestService(t)
+
+	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+	gradientJSON := `{"background_svg":"test"}`
+
+	err := svc.CreateWatchOnlyWallet("Watch Only Test", xpub, gradientJSON)
+	require.NoError(t, err)
+
+	assert.True(t, svc.HasWallet())
+	assert.True(t, svc.IsUnlocked())
+
+	wallets := svc.ListWallets()
+	require.Len(t, wallets, 1)
+	assert.Equal(t, "Watch Only Test", wallets[0].Name)
+	assert.Equal(t, "watchOnly", wallets[0].WalletType)
+
+	// Verify active wallet is set
+	assert.NotEmpty(t, svc.ActiveWalletID())
+	assert.Equal(t, "Watch Only Test", svc.ActiveWalletName())
+
+	// Verify wallet.json was written with correct structure
+	data, err := os.ReadFile(filepath.Join(svc.bitwindowDir, "wallet.json"))
+	require.NoError(t, err)
+
+	var wf WalletFile
+	require.NoError(t, json.Unmarshal(data, &wf))
+	require.Len(t, wf.Wallets, 1)
+
+	wallet := wf.Wallets[0]
+	assert.Equal(t, "watchOnly", wallet.WalletType)
+	assert.Equal(t, 1, wallet.Version)
+	assert.Empty(t, wallet.Master.SeedHex)
+	assert.Empty(t, wallet.L1.Mnemonic)
+	assert.Empty(t, wallet.Sidechains)
+	assert.False(t, wallet.CreatedAt.IsZero())
+	assert.JSONEq(t, gradientJSON, string(wallet.Gradient))
+
+	// Verify watch_only contains xpub (not descriptor)
+	var watchOnly map[string]string
+	require.NoError(t, json.Unmarshal(wallet.WatchOnly, &watchOnly))
+	assert.Equal(t, xpub, watchOnly["xpub"])
+	assert.Empty(t, watchOnly["descriptor"])
+}
+
+func TestServiceCreateWatchOnlyWalletWithDescriptor(t *testing.T) {
+	svc := newTestService(t)
+
+	descriptor := "wpkh(xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz/0/*)"
+	gradientJSON := `{"background_svg":"desc_test"}`
+
+	err := svc.CreateWatchOnlyWallet("Descriptor Wallet", descriptor, gradientJSON)
+	require.NoError(t, err)
+
+	// Verify watch_only contains descriptor (not xpub)
+	data, err := os.ReadFile(filepath.Join(svc.bitwindowDir, "wallet.json"))
+	require.NoError(t, err)
+
+	var wf WalletFile
+	require.NoError(t, json.Unmarshal(data, &wf))
+	require.Len(t, wf.Wallets, 1)
+
+	var watchOnly map[string]string
+	require.NoError(t, json.Unmarshal(wf.Wallets[0].WatchOnly, &watchOnly))
+	assert.Equal(t, descriptor, watchOnly["descriptor"])
+	assert.Empty(t, watchOnly["xpub"])
+}
+
+func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
+	svc := newTestService(t)
+
+	// Create a regular wallet first
+	w1, err := svc.GenerateWallet("Regular Wallet", "", "", testSlots)
+	require.NoError(t, err)
+	assert.Equal(t, "enforcer", w1.WalletType)
+
+	// Create a watch-only wallet
+	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+	err = svc.CreateWatchOnlyWallet("Watch Only", xpub, `{"background_svg":""}`)
+	require.NoError(t, err)
+
+	wallets := svc.ListWallets()
+	require.Len(t, wallets, 2)
+	assert.Equal(t, "enforcer", wallets[0].WalletType)
+	assert.Equal(t, "watchOnly", wallets[1].WalletType)
+
+	// Watch-only should now be active
+	assert.Equal(t, wallets[1].ID, svc.ActiveWalletID())
+}
+
+func TestServiceCreateWatchOnlyWalletPersistence(t *testing.T) {
+	dir := t.TempDir()
+	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+
+	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+
+	// Create watch-only wallet, then close
+	svc1 := NewService(dir, log)
+	require.NoError(t, svc1.Init())
+	require.NoError(t, svc1.CreateWatchOnlyWallet("Persist WO", xpub, `{"background_svg":""}`))
+	walletID := svc1.ActiveWalletID()
+	svc1.Close()
+
+	// Reload from disk
+	svc2 := NewService(dir, log)
+	require.NoError(t, svc2.Init())
+	defer svc2.Close()
+
+	assert.True(t, svc2.HasWallet())
+	assert.Equal(t, walletID, svc2.ActiveWalletID())
+	assert.Equal(t, "Persist WO", svc2.ActiveWalletName())
+
+	wallets := svc2.ListWallets()
+	require.Len(t, wallets, 1)
+	assert.Equal(t, "watchOnly", wallets[0].WalletType)
+}
+
+func TestServiceDeleteWatchOnlyWallet(t *testing.T) {
+	svc := newTestService(t)
+
+	// Create regular + watch-only
+	w1, err := svc.GenerateWallet("Regular", "", "", testSlots)
+	require.NoError(t, err)
+
+	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+	require.NoError(t, svc.CreateWatchOnlyWallet("Watch Only", xpub, `{"background_svg":""}`))
+	woID := svc.ActiveWalletID()
+
+	// Delete watch-only
+	require.NoError(t, svc.DeleteWallet(woID))
+
+	wallets := svc.ListWallets()
+	require.Len(t, wallets, 1)
+	assert.Equal(t, w1.ID, wallets[0].ID)
+	assert.Equal(t, w1.ID, svc.ActiveWalletID())
+}
+
 func TestServiceEncryptedPersistence(t *testing.T) {
 	dir := t.TempDir()
 	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
