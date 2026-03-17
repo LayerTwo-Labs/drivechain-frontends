@@ -138,6 +138,20 @@ if [ -z "$ICON_PATH" ] || [ ! -f "$ICON_PATH" ]; then
     rm -rf "$temp_dir"
 fi
 
+# Check for FUSE support
+has_fuse=false
+if ldconfig -p 2>/dev/null | grep -q libfuse.so.2 || [ -f /usr/lib/libfuse.so.2 ] || [ -f /usr/lib/x86_64-linux-gnu/libfuse.so.2 ]; then
+    has_fuse=true
+fi
+
+# Set exec command based on FUSE availability
+if [ "$has_fuse" = true ]; then
+    EXEC_CMD="$APPIMAGE_PATH"
+else
+    EXEC_CMD="$APPIMAGE_PATH --appimage-extract-and-run"
+    print_warning "libfuse2 not found, using extract-and-run mode"
+fi
+
 # Create desktop entry
 DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME_LOWER.desktop"
 
@@ -147,7 +161,7 @@ Type=Application
 Name=BitWindow
 GenericName=Drivechain Node Manager
 Comment=Manage Bitcoin and Drivechain nodes
-Exec=$APPIMAGE_PATH %U
+Exec=$EXEC_CMD %U
 Terminal=false
 Categories=Network;P2P;Finance;
 StartupWMClass=bitwindow
@@ -171,7 +185,15 @@ if command -v gtk-update-icon-cache &> /dev/null; then
 fi
 
 # Create command line shortcut
-ln -sf "$APPIMAGE_PATH" "$INSTALL_DIR/bitwindow"
+if [ "$has_fuse" = true ]; then
+    ln -sf "$APPIMAGE_PATH" "$INSTALL_DIR/bitwindow"
+else
+    cat > "$INSTALL_DIR/bitwindow" << WRAPPER
+#!/usr/bin/env bash
+exec "$APPIMAGE_PATH" --appimage-extract-and-run "\$@"
+WRAPPER
+    chmod +x "$INSTALL_DIR/bitwindow"
+fi
 print_success "Created command line shortcut"
 
 # Check PATH
