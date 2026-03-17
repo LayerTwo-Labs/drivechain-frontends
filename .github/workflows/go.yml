@@ -1,0 +1,116 @@
+name: Go
+
+on:
+  pull_request:
+    paths:
+      - "bitwindow/server/**"
+      - "thunder/server/**"
+      - "sidechain-orchestrator/**"
+      - "faucet/server/**"
+      - ".github/workflows/go.yml"
+
+env:
+  GO_VERSION: "1.25"
+
+jobs:
+  golangci-lint:
+    name: lint (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - bitwindow/server
+          - thunder/server
+          - sidechain-orchestrator
+          - faucet/server
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - id: go-cache-dirs
+        run: |
+          echo "mod=$(go env GOMODCACHE)" >> ${GITHUB_OUTPUT}
+          echo "build=$(go env GOCACHE)" >> ${GITHUB_OUTPUT}
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: |-
+            ${{ steps.go-cache-dirs.outputs.mod }}/cache/download
+            ${{ steps.go-cache-dirs.outputs.build }}
+          key: ${{ runner.os }}-go-${{ matrix.module }}-${{ hashFiles(format('{0}/go.sum', matrix.module)) }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.module }}-
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          working-directory: ${{ matrix.module }}
+          version: latest
+          args: --verbose
+
+  go-test:
+    name: test (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - bitwindow/server
+          - thunder/server
+          - sidechain-orchestrator
+          - faucet/server
+        include:
+          - module: bitwindow/server
+            install-sqlite: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install SQLite
+        if: matrix.install-sqlite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Test
+        working-directory: ${{ matrix.module }}
+        run: go test -timeout=5m ./...
+
+  go-build:
+    name: build (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - bitwindow/server
+          - thunder/server
+          - sidechain-orchestrator
+          - faucet/server
+        include:
+          - module: bitwindow/server
+            install-sqlite: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install SQLite
+        if: matrix.install-sqlite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Build
+        working-directory: ${{ matrix.module }}
+        run: go build ./...
