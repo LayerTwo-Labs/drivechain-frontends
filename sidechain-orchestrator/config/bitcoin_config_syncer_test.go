@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------
@@ -315,8 +316,8 @@ func TestSaveMainSectionPreservesVersion(t *testing.T) {
 	fc.Version = 2
 	fc.Settings["port"] = "8300"
 	confPath := m.getMainSectionPath(NetworkForknet)
-	os.MkdirAll(filepath.Dir(confPath), 0755)
-	os.WriteFile(confPath, []byte(fc.Serialize()), 0644)
+	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0755))
+	require.NoError(t, os.WriteFile(confPath, []byte(fc.Serialize()), 0644))
 
 	// Save new settings — should preserve version 2
 	m.Config.NetworkSettings["main"]["port"] = "9999"
@@ -347,8 +348,8 @@ func TestCopyConfigDownstream(t *testing.T) {
 
 	// Write a master config
 	masterPath := m.getBitWindowConfigPath()
-	os.MkdirAll(filepath.Dir(masterPath), 0755)
-	os.WriteFile(masterPath, []byte("chain=signet\n"), 0644)
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte("chain=signet\n"), 0644))
 
 	if err := m.CopyConfigDownstream(); err != nil {
 		t.Fatal(err)
@@ -391,7 +392,7 @@ func TestHasDatadirForNetwork(t *testing.T) {
 	fc := NewForknetConfig()
 	fc.Settings["datadir"] = "/some/path"
 	confPath := m.getMainSectionPath(NetworkForknet)
-	os.WriteFile(confPath, []byte(fc.Serialize()), 0644)
+	require.NoError(t, os.WriteFile(confPath, []byte(fc.Serialize()), 0644))
 
 	if !m.HasDatadirForNetwork(NetworkForknet) {
 		t.Error("should be true when datadir is set")
@@ -399,7 +400,7 @@ func TestHasDatadirForNetwork(t *testing.T) {
 
 	// Create file without datadir
 	fc2 := NewForknetConfig()
-	os.WriteFile(confPath, []byte(fc2.Serialize()), 0644)
+	require.NoError(t, os.WriteFile(confPath, []byte(fc2.Serialize()), 0644))
 
 	if m.HasDatadirForNetwork(NetworkForknet) {
 		t.Error("should be false when datadir is empty")
@@ -423,8 +424,8 @@ func TestUpdateNetworkSwapsMainSections(t *testing.T) {
 
 	// Write master config so SaveConfig works
 	masterPath := m.getBitWindowConfigPath()
-	os.MkdirAll(filepath.Dir(masterPath), 0755)
-	os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644)
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
 
 	// Switch to signet
 	if err := m.UpdateNetwork(NetworkSignet); err != nil {
@@ -462,8 +463,8 @@ func TestUpdateNetworkCallsCallback(t *testing.T) {
 
 	// Write master config
 	masterPath := m.getBitWindowConfigPath()
-	os.MkdirAll(filepath.Dir(masterPath), 0755)
-	os.WriteFile(masterPath, []byte("chain=signet\n"), 0644)
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte("chain=signet\n"), 0644))
 
 	called := false
 	m.OnNetworkChanged = func() { called = true }
@@ -483,8 +484,8 @@ func TestUpdateNetworkNoCallbackWhenSameNetwork(t *testing.T) {
 	m.Network = NetworkSignet
 
 	masterPath := m.getBitWindowConfigPath()
-	os.MkdirAll(filepath.Dir(masterPath), 0755)
-	os.WriteFile(masterPath, []byte("chain=signet\n"), 0644)
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte("chain=signet\n"), 0644))
 
 	called := false
 	m.OnNetworkChanged = func() { called = true }

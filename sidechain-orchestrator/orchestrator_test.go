@@ -85,7 +85,7 @@ func makeTarGzFile(t *testing.T, path string, files map[string][]byte) {
 	t.Helper()
 	f, err := os.Create(path)
 	require.NoError(t, err)
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // cleanup
 
 	gz := gzip.NewWriter(f)
 	tw := tar.NewWriter(gz)

@@ -109,8 +109,3 @@ func raiseOpenFilesLimit(log zerolog.Logger) {
 
 	log.Info().Uint64("new_limit", target).Msg("set open files limit")
 }
-
-// gracefulShutdownSignal returns the signal used for graceful shutdown.
-func gracefulShutdownSignal() os.Signal {
-	return syscall.SIGTERM
-}

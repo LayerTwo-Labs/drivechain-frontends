@@ -95,7 +95,7 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, for
 			ch <- DownloadProgress{Error: fmt.Errorf("create temp dir: %w", err)}
 			return
 		}
-		defer os.RemoveAll(tmpDir)
+		defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
 
 		savePath := filepath.Join(tmpDir, filepath.Base(downloadURL))
 
@@ -131,7 +131,7 @@ func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern 
 	if err != nil {
 		return "", fmt.Errorf("fetch releases: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // cleanup
 
 	if resp.StatusCode == http.StatusForbidden {
 		return "", fmt.Errorf("GitHub API rate limited")
@@ -175,7 +175,7 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 	if err != nil {
 		return fmt.Errorf("download: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // cleanup
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download returned HTTP %d", resp.StatusCode)
@@ -185,7 +185,7 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 	if err != nil {
 		return fmt.Errorf("create file: %w", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // cleanup
 
 	total := resp.ContentLength
 	var downloaded int64
@@ -261,13 +261,13 @@ func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) er
 	if err != nil {
 		return fmt.Errorf("open zip: %w", err)
 	}
-	defer r.Close()
+	defer r.Close() //nolint:errcheck // cleanup
 
 	tmpDir, err := os.MkdirTemp("", "orchestrator-extract-*")
 	if err != nil {
 		return fmt.Errorf("create temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
 
 	for _, f := range r.File {
 		if f.FileInfo().IsDir() {
@@ -292,13 +292,13 @@ func extractZipFile(f *zip.File, dest string) error {
 	if err != nil {
 		return fmt.Errorf("open zip entry %s: %w", f.Name, err)
 	}
-	defer rc.Close()
+	defer rc.Close() //nolint:errcheck // cleanup
 
 	outFile, err := os.Create(dest)
 	if err != nil {
 		return fmt.Errorf("create %s: %w", dest, err)
 	}
-	defer outFile.Close()
+	defer outFile.Close() //nolint:errcheck // cleanup
 
 	if _, err := io.Copy(outFile, rc); err != nil {
 		return fmt.Errorf("extract %s: %w", f.Name, err)
@@ -313,19 +313,19 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 	if err != nil {
 		return fmt.Errorf("open archive: %w", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // cleanup
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		return fmt.Errorf("gzip reader: %w", err)
 	}
-	defer gz.Close()
+	defer gz.Close() //nolint:errcheck // cleanup
 
 	tmpDir, err := os.MkdirTemp("", "orchestrator-extract-*")
 	if err != nil {
 		return fmt.Errorf("create temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
 
 	tr := tar.NewReader(gz)
 	for {
@@ -354,10 +354,10 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 		}
 
 		if _, err := io.Copy(outFile, tr); err != nil {
-			outFile.Close()
+			_ = outFile.Close()
 			return fmt.Errorf("extract %s: %w", header.Name, err)
 		}
-		outFile.Close()
+		_ = outFile.Close()
 	}
 
 	return d.moveExtractedBinaries(tmpDir, destDir, binaryName)
@@ -371,13 +371,13 @@ func (d *DownloadManager) processRawBinary(srcPath, destDir, binaryName string) 
 	if err != nil {
 		return fmt.Errorf("open source: %w", err)
 	}
-	defer src.Close()
+	defer src.Close() //nolint:errcheck // cleanup
 
 	dst, err := os.Create(destPath)
 	if err != nil {
 		return fmt.Errorf("create dest: %w", err)
 	}
-	defer dst.Close()
+	defer dst.Close() //nolint:errcheck // cleanup
 
 	if _, err := io.Copy(dst, src); err != nil {
 		return fmt.Errorf("copy: %w", err)
@@ -444,19 +444,19 @@ func moveFile(src, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer srcFile.Close() //nolint:errcheck // cleanup
 
 	destFile, err := os.Create(dest)
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	defer destFile.Close() //nolint:errcheck // cleanup
 
 	if _, err := io.Copy(destFile, srcFile); err != nil {
 		return err
 	}
 
-	srcFile.Close()
+	_ = srcFile.Close()
 	return os.Remove(src)
 }
 

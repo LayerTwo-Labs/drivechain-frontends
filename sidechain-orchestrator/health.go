@@ -30,7 +30,7 @@ func (h *TCPHealthCheck) Check(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("TCP connect to %s: %w", addr, err)
 	}
-	conn.Close()
+	_ = conn.Close()
 	return nil
 }
 
@@ -70,8 +70,8 @@ func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("JSON-RPC %s: %w", h.Method, err)
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	defer resp.Body.Close() //nolint:errcheck // cleanup
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("JSON-RPC %s returned HTTP %d", h.Method, resp.StatusCode)
@@ -196,7 +196,7 @@ func (c *CoreStatusClient) call(ctx context.Context, method string, params ...in
 	if err != nil {
 		return nil, fmt.Errorf("%s call: %w", method, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // cleanup
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
