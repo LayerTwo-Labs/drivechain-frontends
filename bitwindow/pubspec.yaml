@@ -32,7 +32,7 @@ dependencies:
   path_provider: ^2.1.5
   sail_ui:
     path: ../sail_ui
-  logger: ^2.6.2
+  logger: ^2.7.0
   google_fonts: ^8.0.0
   auto_route: ^11.1.0
   fixnum: ^1.1.1
