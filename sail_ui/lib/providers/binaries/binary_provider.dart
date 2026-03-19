@@ -9,7 +9,6 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.gr.dart';
-import 'package:sail_ui/providers/binaries/bitcoin_core_pid_tracker.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -129,9 +128,6 @@ class BinaryProvider extends ChangeNotifier {
 
   // Per-binary locks to ensure sequential processing
   final Map<BinaryType, Lock> _updateLocks = {};
-
-  // BitcoinCore has it's very own bitcoin.pid we can track to check aliveness!
-  final BitcoinCorePidTracker _bitcoinCorePidTracker = BitcoinCorePidTracker();
 
   // Connection status getters
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
@@ -281,8 +277,6 @@ class BinaryProvider extends ChangeNotifier {
 
     // Set up periodic release date checks
     _releaseCheckTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkReleaseDates());
-
-    _bitcoinCorePidTracker.startWatching();
 
     try {
       _setupDirectoryWatcher();
@@ -439,7 +433,7 @@ class BinaryProvider extends ChangeNotifier {
             log.e('$binary: $line');
           }
 
-          var lastLine = _stripFromString(logs?.last ?? '', ': ');
+          var lastLine = (logs != null && logs.isNotEmpty) ? _stripFromString(logs.last, ': ') : 'process exited with no error output';
           error = lastLine;
 
           // Check if this is a Bitcoin Core reindex error by searching through ALL logs
@@ -515,7 +509,7 @@ class BinaryProvider extends ChangeNotifier {
 
     if (binary.type == BinaryType.bitcoinCore) {
       // For Bitcoin Core, fallback to PID tracker if process manager doesn't have it
-      pidToWaitFor ??= _bitcoinCorePidTracker.currentPid;
+      pidToWaitFor ??= _processManager.pidFileManager.bitcoinCorePid;
       timeout = const Duration(seconds: 30);
       log.i('Waiting for Bitcoin Core PID ${pidToWaitFor ?? "unknown"} to exit (30s timeout)');
     } else {
@@ -1010,7 +1004,7 @@ class BinaryProvider extends ChangeNotifier {
   @override
   void dispose() {
     _releaseCheckTimer?.cancel();
-    _bitcoinCorePidTracker.dispose();
+    _processManager.pidFileManager.dispose();
     _dirWatcher?.cancel();
     _downloadManager.removeListener(notifyListeners);
     mainchainRPC?.removeListener(notifyListeners);

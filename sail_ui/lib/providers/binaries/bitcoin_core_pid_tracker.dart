@@ -19,10 +19,9 @@ class BitcoinCorePidTracker {
   final Logger log = GetIt.I.get<Logger>();
 
   Timer? _watcher;
-  int? _currentPid;
 
   /// Get the currently tracked PID (may be null if not running or not yet discovered)
-  int? get currentPid => _currentPid;
+  int? currentPid;
 
   /// Start watching the bitcoin.pid file
   void startWatching() {
@@ -42,7 +41,7 @@ class BitcoinCorePidTracker {
   void stopWatching() {
     _watcher?.cancel();
     _watcher = null;
-    _currentPid = null;
+    currentPid = null;
     log.d('Stopped Bitcoin Core PID file watcher');
   }
 
@@ -56,15 +55,15 @@ class BitcoinCorePidTracker {
         final pidString = await pidFile.readAsString();
         final pid = int.tryParse(pidString.trim());
 
-        if (pid != null && pid != _currentPid) {
+        if (pid != null && pid != currentPid) {
           log.i('Bitcoin Core PID updated from bitcoin.pid (${pidFile.path}): $pid');
-          _currentPid = pid;
+          currentPid = pid;
         }
       } else {
         // PID file doesnt or no longer, clear our cached PID
-        if (_currentPid != null) {
+        if (currentPid != null) {
           log.d('bitcoin.pid file no longer exists at ${pidFile.path}, clearing cached PID');
-          _currentPid = null;
+          currentPid = null;
         }
       }
     } catch (e) {

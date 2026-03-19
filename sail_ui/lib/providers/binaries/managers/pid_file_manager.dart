@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/binaries/bitcoin_core_pid_tracker.dart';
 
 /// Manages PID files for binary processes to detect orphaned processes after a crash or hot restart.
 ///
@@ -13,6 +14,7 @@ class PidFileManager {
   Logger get log => GetIt.I.get<Logger>();
 
   final Directory pidDir;
+  final BitcoinCorePidTracker _bitcoinCorePidTracker = BitcoinCorePidTracker();
 
   PidFileManager({
     required this.pidDir,
@@ -22,7 +24,15 @@ class PidFileManager {
       pidDir.createSync(recursive: true);
       log.d('Created PID directory: ${pidDir.path}');
     }
+
+    _bitcoinCorePidTracker.startWatching();
   }
+
+  /// Current Bitcoin Core PID from its native bitcoind.pid file
+  int? get bitcoinCorePid => _bitcoinCorePidTracker.currentPid;
+
+  /// Dispose of resources
+  void dispose() => _bitcoinCorePidTracker.dispose();
 
   /// Get the PID file path for a binary
   File _pidFile(Binary binary) {
@@ -47,25 +57,34 @@ class PidFileManager {
     }
   }
 
-  /// Read PID from file (returns null if file doesn't exist or is invalid)
+  /// Read PID from file (returns null if file doesn't exist or is invalid).
+  /// For Bitcoin Core, also checks the native bitcoind.pid as a fallback.
   Future<int?> readPidFile(Binary binary) async {
     try {
       final file = _pidFile(binary);
 
-      if (!await file.exists()) {
-        return null;
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final pid = int.tryParse(content.trim());
+
+        if (pid == null) {
+          log.w('Invalid PID file content for ${binary.name}: "$content"');
+          await deletePidFile(binary);
+        } else {
+          return pid;
+        }
       }
 
-      final content = await file.readAsString();
-      final pid = int.tryParse(content.trim());
-
-      if (pid == null) {
-        log.w('Invalid PID file content for ${binary.name}: "$content"');
-        await deletePidFile(binary);
-        return null;
+      // Fallback: check Bitcoin Core's native PID file
+      if (binary is BitcoinCore) {
+        final nativePid = _bitcoinCorePidTracker.currentPid;
+        if (nativePid != null) {
+          log.i('Found Bitcoin Core PID $nativePid from native bitcoind.pid');
+          return nativePid;
+        }
       }
 
-      return pid;
+      return null;
     } catch (e) {
       log.e('Failed to read PID file for ${binary.name}: $e');
       return null;
