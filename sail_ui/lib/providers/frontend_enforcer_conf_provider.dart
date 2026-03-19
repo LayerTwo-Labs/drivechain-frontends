@@ -273,8 +273,6 @@ ${esploraUrl != null ? 'wallet-esplora-url=$esploraUrl' : '# wallet-esplora-url=
       }
     }
 
-    args.add('--wallet-skip-periodic-sync');
-
     if (!currentConfig!.hasSetting('wallet-esplora-url')) {
       final esploraUrl = getEsploraUrlForNetwork(network);
       if (esploraUrl != null && esploraUrl.isNotEmpty) {
