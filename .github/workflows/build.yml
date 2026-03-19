@@ -171,6 +171,10 @@ jobs:
           cp -r scripts "$BUILD_DIR/"
           cp -r sail_ui "$BUILD_DIR/"
           cp -r drivechain_lints "$BUILD_DIR/"
+          # Copy sidechain-orchestrator for Go module replace directives
+          if [ -d "sidechain-orchestrator" ]; then
+            cp -r sidechain-orchestrator "$BUILD_DIR/"
+          fi
           # Recreate assets/bin directory
           mkdir -p "$BUILD_DIR/${{ matrix.client }}/assets/bin"
           echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
