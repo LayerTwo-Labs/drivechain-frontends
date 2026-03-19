@@ -40,7 +40,7 @@ class BinaryProvider extends ChangeNotifier {
 
   BitwindowRPC? _bitwindowRPC;
   ThunderdRPC? _thunderdRPC;
-  ThunderRPC? _thunderRPC;
+  ThunderdRPC? _thunderRPC;
   TruthcoinRPC? _truthcoinRPC;
   PhotonRPC? _photonRPC;
   BitnamesRPC? _bitnamesRPC;
@@ -64,9 +64,9 @@ class BinaryProvider extends ChangeNotifier {
     return _thunderdRPC;
   }
 
-  ThunderRPC? get thunderRPC {
-    if (_thunderRPC == null && GetIt.I.isRegistered<ThunderRPC>()) {
-      _thunderRPC = GetIt.I.get<ThunderRPC>();
+  ThunderdRPC? get thunderRPC {
+    if (_thunderRPC == null && GetIt.I.isRegistered<ThunderdRPC>()) {
+      _thunderRPC = GetIt.I.get<ThunderdRPC>();
       _thunderRPC!.addListener(notifyListeners);
     }
     return _thunderRPC;
@@ -433,7 +433,9 @@ class BinaryProvider extends ChangeNotifier {
             log.e('$binary: $line');
           }
 
-          var lastLine = (logs != null && logs.isNotEmpty) ? _stripFromString(logs.last, ': ') : 'process exited with no error output';
+          var lastLine = (logs != null && logs.isNotEmpty)
+              ? _stripFromString(logs.last, ': ')
+              : 'process exited with no error output';
           error = lastLine;
 
           // Check if this is a Bitcoin Core reindex error by searching through ALL logs
