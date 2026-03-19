@@ -89,7 +89,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
 
   // Register ThunderdRPC — wires thunderd into the connection polling system
-  final thunderdRPC = ThunderdLive(host: 'localhost', port: 30302);
+  final thunderdRPC = ThunderdLive();
   GetIt.I.registerSingleton<ThunderdRPC>(thunderdRPC);
 
   // Register OrchestratorRPC for communicating with thunderd
