@@ -9,6 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/gen/thunder/v1/thunder.connect.client.dart';
 import 'package:sail_ui/gen/thunder/v1/thunder.pb.dart';
 import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';

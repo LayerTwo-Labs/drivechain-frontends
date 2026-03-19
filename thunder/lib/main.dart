@@ -71,8 +71,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
   SidechainRPC createSidechainConnection(Binary binary) {
-    final thunder = ThunderLive();
-    GetIt.I.registerSingleton<ThunderRPC>(thunder);
+    final thunder = ThunderdLive();
+    GetIt.I.registerSingleton<ThunderdRPC>(thunder);
 
     return thunder;
   }
@@ -125,7 +125,7 @@ Future<void> runMultiWindow(
     child: SailText.primary15('no window type provided, the programmers messed up'),
   );
 
-  final thunder = GetIt.I.get<ThunderRPC>();
+  final thunder = GetIt.I.get<ThunderdRPC>();
 
   switch (arguments['window_type']) {
     case SubWindowTypes.debugId:
@@ -177,7 +177,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   await initAutoUpdater(log);
 
   log.i('starting thunder');
-  final thunder = GetIt.I.get<ThunderRPC>();
+  final thunder = GetIt.I.get<ThunderdRPC>();
   final router = GetIt.I.get<AppRouter>();
 
   runApp(
@@ -197,7 +197,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
 class _ThunderAppContent extends StatelessWidget {
   final AppRouter router;
-  final ThunderRPC thunder;
+  final ThunderdRPC thunder;
 
   const _ThunderAppContent({
     required this.router,

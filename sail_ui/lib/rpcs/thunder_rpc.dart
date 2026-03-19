@@ -1,18 +1,10 @@
-import 'dart:convert';
-
-import 'package:connectrpc/http2.dart';
-import 'package:connectrpc/protobuf.dart';
-import 'package:connectrpc/protocol/connect.dart' as connect;
-import 'package:fixnum/fixnum.dart';
+import 'package:dart_coin_rpc/dart_coin_rpc.dart';
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/thunder/v1/thunder.connect.client.dart';
-import 'package:sail_ui/gen/thunder/v1/thunder.pb.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -56,42 +48,30 @@ abstract class ThunderRPC extends SidechainRPC {
 
   /// Set seed from mnemonic
   Future<void> setSeedFromMnemonic(String mnemonic);
-
-  // Wallet Manager RPCs
-
-  Future<wmpb.GetWalletStatusResponse> getWalletStatus();
-  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(String name, {String? customMnemonic, String? passphrase});
-  Future<void> walletUnlock(String password);
-  Future<void> walletLock();
-  Future<void> walletEncrypt(String password);
-  Future<void> walletChangePassword(String oldPassword, String newPassword);
-  Future<void> walletRemoveEncryption(String password);
-  Future<wmpb.ListWalletsResponse> walletList();
-  Future<void> walletSwitch(String walletId);
-  Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson);
-  Future<void> walletDelete(String walletId);
-  Future<void> walletDeleteAll();
 }
 
 class ThunderLive extends ThunderRPC {
   @override
   final log = GetIt.I.get<Logger>();
 
-  late ThunderServiceClient _client;
-  late WalletManagerServiceClient _walletClient;
+  RPCClient _client() {
+    final client = RPCClient(
+      host: '127.0.0.1',
+      port: binary.port,
+      username: 'N/A',
+      password: 'N/A',
+      useSSL: false,
+    );
+
+    client.dioClient = Dio();
+    return client;
+  }
 
   ThunderLive()
     : super(
         binaryType: BinaryType.thunder,
         restartOnFailure: false,
       ) {
-    final transport = connect.Transport(
-      baseUrl: 'http://localhost:30302',
-      codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
-    );
-    _client = ThunderServiceClient(transport);
-    _walletClient = WalletManagerServiceClient(transport);
     startConnectionTimer();
   }
 
@@ -112,27 +92,30 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<(double, double)> balance() async {
-    final response = await _client.getBalance(GetBalanceRequest());
-    final confirmed = satoshiToBTC(response.availableSats.toInt());
-    final unconfirmed = satoshiToBTC((response.totalSats - response.availableSats).toInt());
+    final response = await _client().call('balance') as Map<String, dynamic>;
+    final totalSats = response['total_sats'] as int;
+    final availableSats = response['available_sats'] as int;
+
+    // Convert from sats to BTC
+    final confirmed = satoshiToBTC(availableSats);
+    final unconfirmed = satoshiToBTC(totalSats - availableSats);
+
     return (confirmed, unconfirmed);
   }
 
   @override
   Future<int> getBlockCount() async {
-    final response = await _client.getBlockCount(GetBlockCountRequest());
-    return response.count.toInt();
+    return await _client().call('getblockcount') as int;
   }
 
   @override
   Future<void> stopRPC() async {
-    await _client.stop(StopRequest());
+    await _client().call('stop');
   }
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final response = await _client.getBlockCount(GetBlockCountRequest());
-    final blocks = response.count.toInt();
+    final blocks = await _client().call('getblockcount') as int;
 
     // There's no endpoint to get headers for thunder, so we get the height
     // from the public explorer service, assuming it is fully synced
@@ -164,27 +147,22 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<dynamic> callRAW(String method, [dynamic params]) async {
-    try {
-      final paramsJson = params != null ? jsonEncode(params) : '';
-      final response = await _client.callRaw(CallRawRequest(method: method, paramsJson: paramsJson));
-      if (response.resultJson.isEmpty) return null;
-      return jsonDecode(response.resultJson);
-    } catch (err) {
+    return await _client().call(method, params).catchError((err) {
       log.t('rpc: $method threw exception: $err');
-      rethrow;
-    }
+      throw err;
+    });
   }
 
   @override
   Future<String> getDepositAddress() async {
-    final response = await _client.getNewAddress(GetNewAddressRequest());
-    return formatDepositAddress(response.address, chain.slot);
+    final response = await _client().call('get_new_address') as String;
+    return formatDepositAddress(response, chain.slot);
   }
 
   @override
   Future<String> getSideAddress() async {
-    final response = await _client.getNewAddress(GetNewAddressRequest());
-    return response.address;
+    final response = await _client().call('get_new_address');
+    return response as String;
   }
 
   @override
@@ -194,222 +172,138 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client.withdraw(
-      WithdrawRequest(
-        address: address,
-        amountSats: Int64(amountSats),
-        sideFeeSats: Int64(sidechainFeeSats),
-        mainFeeSats: Int64(mainchainFeeSats),
-      ),
-    );
-    return response.txid;
+    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
+    return response as String;
   }
 
   @override
   Future<double> sideEstimateFee() async {
+    // Thunder has fixed fees for now
     return 0.00001;
   }
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final response = await _client.transfer(
-      TransferRequest(
-        address: address,
-        amountSats: Int64(btcToSatoshi(amount).toInt()),
-        feeSats: Int64(btcToSatoshi(0.00001).toInt()),
-      ),
-    );
-    return response.txid;
+    final response = await _client().call('transfer', [
+      address,
+      btcToSatoshi(amount).toInt(),
+      btcToSatoshi(0.00001).toInt(),
+    ]);
+    return response as String;
   }
 
+  /// Get total sidechain wealth in BTC
   @override
   Future<double> getSidechainWealth() async {
-    final response = await _client.getSidechainWealth(GetSidechainWealthRequest());
-    return satoshiToBTC(response.sats.toInt());
+    final wealthSats = await _client().call('sidechain_wealth_sats') as int;
+    return satoshiToBTC(wealthSats);
   }
 
+  /// Create a deposit transaction
   @override
   Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client.createDeposit(
-      CreateDepositRequest(
-        address: address,
-        valueSats: Int64(btcToSatoshi(amount).toInt()),
-        feeSats: Int64(btcToSatoshi(fee).toInt()),
-      ),
-    );
-    return response.txid;
+    final response = await _client().call('create_deposit', {
+      'address': address,
+      'value_sats': btcToSatoshi(amount),
+      'fee_sats': btcToSatoshi(fee),
+    });
+    return response as String;
   }
 
+  /// Get pending withdrawal bundle
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
-    final response = await _client.getPendingWithdrawalBundle(GetPendingWithdrawalBundleRequest());
-    if (response.bundleJson.isEmpty) return null;
-    final json = jsonDecode(response.bundleJson) as Map<String, dynamic>;
-    return PendingWithdrawalBundle.fromJson(json);
+    final response = await _client().call('pending_withdrawal_bundle');
+
+    return PendingWithdrawalBundle.fromMap(response);
   }
 
+  /// Connect to a peer
   @override
   Future<void> connectPeer(String peerAddress) async {
-    await _client.connectPeer(ConnectPeerRequest(address: peerAddress));
+    await _client().call('connect_peer', peerAddress);
   }
 
+  /// List connected peers
   @override
   Future<List<Map<String, dynamic>>> listPeers() async {
-    final response = await _client.listPeers(ListPeersRequest());
-    if (response.peersJson.isEmpty) return [];
-    final decoded = jsonDecode(response.peersJson) as List<dynamic>;
-    return decoded.cast<Map<String, dynamic>>();
+    final response = await _client().call('list_peers') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
   }
 
+  /// Mine a block with optional coinbase value
   @override
   Future<BmmResult> mine(int feeSats) async {
-    final response = await _client.mine(MineRequest(feeSats: Int64(feeSats)));
-    final json = jsonDecode(response.bmmResultJson) as Map<String, dynamic>;
-    return BmmResult.fromJson(json);
+    final response = await _client().call('mine', [feeSats]);
+    return BmmResult.fromMap(response);
   }
 
+  /// Get block by hash
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
-    final response = await _client.getBlock(GetBlockRequest(hash: hash));
-    if (response.blockJson.isEmpty) return null;
-    return jsonDecode(response.blockJson) as Map<String, dynamic>?;
+    final response = await _client().call('get_block', hash);
+    return response as Map<String, dynamic>?;
   }
 
+  /// Get best mainchain block hash
   @override
   Future<String?> getBestMainchainBlockHash() async {
-    final response = await _client.getBestMainchainBlockHash(GetBestMainchainBlockHashRequest());
-    if (response.hash.isEmpty) return null;
-    return response.hash;
+    final response = await _client().call('get_best_mainchain_block_hash');
+    return response as String?;
   }
 
+  /// Get best sidechain block hash
   @override
   Future<String?> getBestSidechainBlockHash() async {
-    final response = await _client.getBestSidechainBlockHash(GetBestSidechainBlockHashRequest());
-    if (response.hash.isEmpty) return null;
-    return response.hash;
+    final response = await _client().call('get_best_sidechain_block_hash');
+    return response as String?;
   }
 
+  /// Get BMM inclusions
   @override
   Future<String> getBMMInclusions(String blockHash) async {
-    final response = await _client.getBmmInclusions(GetBmmInclusionsRequest(blockHash: blockHash));
-    return response.inclusions;
+    final response = await _client().call('get_bmm_inclusions', blockHash);
+    return response as String;
   }
 
+  /// List wallet UTXOs
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
-    final response = await _client.getWalletUtxos(GetWalletUtxosRequest());
-    if (response.utxosJson.isEmpty) return [];
-    final decoded = jsonDecode(response.utxosJson) as List<dynamic>;
-    return SidechainUTXO.fromJsonList(decoded);
+    final response = await _client().call('get_wallet_utxos') as List<dynamic>;
+    return SidechainUTXO.fromJsonList(response);
   }
 
+  /// List all UTXOs (not just wallet UTXOs)
   @override
   Future<List<SidechainUTXO>> listAllUTXOs() async {
-    final response = await _client.listUtxos(ListUtxosRequest());
-    if (response.utxosJson.isEmpty) return [];
-    final decoded = jsonDecode(response.utxosJson) as List<dynamic>;
-    return SidechainUTXO.fromJsonList(decoded);
+    final response = await _client().call('list_utxos') as List<dynamic>;
+    return SidechainUTXO.fromJsonList(response);
   }
 
+  /// Remove transaction from mempool
   @override
   Future<void> removeFromMempool(String txid) async {
-    await _client.removeFromMempool(RemoveFromMempoolRequest(txid: txid));
+    await _client().call('remove_from_mempool', txid);
   }
 
+  /// Get latest failed withdrawal bundle height
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response = await _client.getLatestFailedWithdrawalBundleHeight(
-      GetLatestFailedWithdrawalBundleHeightRequest(),
-    );
-    if (response.height == 0) return null;
-    return response.height.toInt();
+    final response = await _client().call('latest_failed_withdrawal_bundle_height');
+    return response as int?;
   }
 
+  /// Generate new mnemonic
   @override
   Future<String> generateMnemonic() async {
-    final response = await _client.generateMnemonic(GenerateMnemonicRequest());
-    return response.mnemonic;
+    final response = await _client().call('generate_mnemonic');
+    return response as String;
   }
 
+  /// Set seed from mnemonic
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
-    await _client.setSeedFromMnemonic(SetSeedFromMnemonicRequest(mnemonic: mnemonic));
-  }
-
-  // Wallet Manager RPCs
-
-  @override
-  Future<wmpb.GetWalletStatusResponse> getWalletStatus() async {
-    return await _walletClient.getWalletStatus(wmpb.GetWalletStatusRequest());
-  }
-
-  @override
-  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(
-    String name, {
-    String? customMnemonic,
-    String? passphrase,
-  }) async {
-    return await _walletClient.generateWallet(
-      wmpb.GenerateWalletRequest(
-        name: name,
-        customMnemonic: customMnemonic ?? '',
-        passphrase: passphrase ?? '',
-      ),
-    );
-  }
-
-  @override
-  Future<void> walletUnlock(String password) async {
-    await _walletClient.unlockWallet(wmpb.UnlockWalletRequest(password: password));
-  }
-
-  @override
-  Future<void> walletLock() async {
-    await _walletClient.lockWallet(wmpb.LockWalletRequest());
-  }
-
-  @override
-  Future<void> walletEncrypt(String password) async {
-    await _walletClient.encryptWallet(wmpb.EncryptWalletRequest(password: password));
-  }
-
-  @override
-  Future<void> walletChangePassword(String oldPassword, String newPassword) async {
-    await _walletClient.changePassword(
-      wmpb.ChangePasswordRequest(oldPassword: oldPassword, newPassword: newPassword),
-    );
-  }
-
-  @override
-  Future<void> walletRemoveEncryption(String password) async {
-    await _walletClient.removeEncryption(wmpb.RemoveEncryptionRequest(password: password));
-  }
-
-  @override
-  Future<wmpb.ListWalletsResponse> walletList() async {
-    return await _walletClient.listWallets(wmpb.ListWalletsRequest());
-  }
-
-  @override
-  Future<void> walletSwitch(String walletId) async {
-    await _walletClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
-  }
-
-  @override
-  Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson) async {
-    await _walletClient.updateWalletMetadata(
-      wmpb.UpdateWalletMetadataRequest(walletId: walletId, name: name, gradientJson: gradientJson),
-    );
-  }
-
-  @override
-  Future<void> walletDelete(String walletId) async {
-    await _walletClient.deleteWallet(wmpb.DeleteWalletRequest(walletId: walletId));
-  }
-
-  @override
-  Future<void> walletDeleteAll() async {
-    await _walletClient.deleteAllWallets(wmpb.DeleteAllWalletsRequest());
+    await _client().call('set_seed_from_mnemonic', mnemonic);
   }
 }
 

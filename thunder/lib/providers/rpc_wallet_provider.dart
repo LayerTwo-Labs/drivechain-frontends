@@ -11,7 +11,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// RPC-backed wallet reader that delegates to the Go wallet service via ThunderRPC.
 /// Used by Thunder instead of the filesystem-based WalletReaderProvider.
 class RpcWalletReaderProvider extends ChangeNotifier {
-  final ThunderRPC _thunderRPC;
+  final ThunderdRPC _thunderRPC;
   final Directory bitwindowAppDir;
   final _logger = GetIt.I.get<Logger>();
 
