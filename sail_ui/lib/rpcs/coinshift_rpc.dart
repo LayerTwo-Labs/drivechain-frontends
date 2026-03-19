@@ -2,7 +2,7 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/bitcoin.dart';
+import 'package:sail_ui/bitcoin.dart' as bitcoin;
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
@@ -144,8 +144,8 @@ class CoinShiftLive extends CoinShiftRPC {
     final availableSats = response['available_sats'] as int;
 
     // Convert from sats to BTC
-    final confirmed = satoshiToBTC(availableSats);
-    final unconfirmed = satoshiToBTC(totalSats - availableSats);
+    final confirmed = bitcoin.satoshiToBTC(availableSats);
+    final unconfirmed = bitcoin.satoshiToBTC(totalSats - availableSats);
 
     return (confirmed, unconfirmed);
   }
@@ -203,7 +203,7 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<String> getDepositAddress() async {
     final response = await _client().call('get_new_address') as String;
-    return await formatDepositAddress(response);
+    return bitcoin.formatDepositAddress(response, chain.slot);
   }
 
   @override
@@ -233,8 +233,8 @@ class CoinShiftLive extends CoinShiftRPC {
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
     final response = await _client().call('transfer', [
       address,
-      btcToSatoshi(amount).toInt(),
-      btcToSatoshi(0.00001).toInt(),
+      bitcoin.btcToSatoshi(amount).toInt(),
+      bitcoin.btcToSatoshi(0.00001).toInt(),
     ]);
     return response as String;
   }
@@ -243,7 +243,7 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<double> getSidechainWealth() async {
     final wealthSats = await _client().call('sidechain_wealth_sats') as int;
-    return satoshiToBTC(wealthSats);
+    return bitcoin.satoshiToBTC(wealthSats);
   }
 
   /// Create a deposit transaction
@@ -251,8 +251,8 @@ class CoinShiftLive extends CoinShiftRPC {
   Future<String> createDeposit(String address, double amount, double fee) async {
     final response = await _client().call('create_deposit', [
       address,
-      btcToSatoshi(amount).toInt(),
-      btcToSatoshi(fee).toInt(),
+      bitcoin.btcToSatoshi(amount).toInt(),
+      bitcoin.btcToSatoshi(fee).toInt(),
     ]);
     return response as String;
   }
