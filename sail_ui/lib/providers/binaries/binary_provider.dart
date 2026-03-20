@@ -40,7 +40,7 @@ class BinaryProvider extends ChangeNotifier {
 
   BitwindowRPC? _bitwindowRPC;
   ThunderdRPC? _thunderdRPC;
-  ThunderdRPC? _thunderRPC;
+  ThunderRPC? _thunderRPC;
   TruthcoinRPC? _truthcoinRPC;
   PhotonRPC? _photonRPC;
   BitnamesRPC? _bitnamesRPC;
@@ -64,9 +64,9 @@ class BinaryProvider extends ChangeNotifier {
     return _thunderdRPC;
   }
 
-  ThunderdRPC? get thunderRPC {
-    if (_thunderRPC == null && GetIt.I.isRegistered<ThunderdRPC>()) {
-      _thunderRPC = GetIt.I.get<ThunderdRPC>();
+  ThunderRPC? get thunderRPC {
+    if (_thunderRPC == null && GetIt.I.isRegistered<ThunderRPC>()) {
+      _thunderRPC = GetIt.I.get<ThunderRPC>();
       _thunderRPC!.addListener(notifyListeners);
     }
     return _thunderRPC;
@@ -482,8 +482,10 @@ class BinaryProvider extends ChangeNotifier {
           await enforcerRPC?.stop();
         case BitWindow():
           await bitwindowRPC?.bitwindowd.stop(skipDownstream: skipDownstream);
-        case Thunder():
+        case Thunderd():
           await thunderdRPC?.stop();
+        case Thunder():
+          await thunderRPC?.stop();
         case Truthcoin():
           await truthcoinRPC?.stop();
         case Photon():
@@ -573,8 +575,9 @@ class BinaryProvider extends ChangeNotifier {
         enforcerRPC?.markDisconnected();
       case BitWindow():
         bitwindowRPC?.markDisconnected();
-      case Thunder():
+      case Thunderd():
         thunderdRPC?.markDisconnected();
+      case Thunder():
         thunderRPC?.markDisconnected();
       case Truthcoin():
         truthcoinRPC?.markDisconnected();
