@@ -26,6 +26,7 @@ enum BinaryType {
   coinShift,
   grpcurl,
   thunderd,
+  zSided,
 }
 
 extension BinaryTypeExtension on BinaryType {
@@ -42,6 +43,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.coinShift => CoinShift(),
     BinaryType.grpcurl => GRPCurl(),
     BinaryType.thunderd => Thunderd(),
+    BinaryType.zSided => ZSided(),
   };
 }
 
@@ -227,6 +229,7 @@ abstract class Binary {
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         break;
     }
   }
@@ -376,6 +379,7 @@ abstract class Binary {
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         return [];
     }
   }
@@ -447,6 +451,7 @@ abstract class Binary {
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         return [];
     }
   }
@@ -486,6 +491,7 @@ abstract class Binary {
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         return [];
     }
 
@@ -543,6 +549,7 @@ abstract class Binary {
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         break;
     }
 
@@ -624,6 +631,7 @@ abstract class Binary {
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         break;
     }
 
@@ -1153,6 +1161,85 @@ class Thunderd extends Binary {
   }
 }
 
+class ZSided extends Binary {
+  ZSided({
+    super.name = 'ZSided',
+    super.version = 'latest',
+    super.description = 'ZSide sidechain orchestrator daemon',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/zside/server',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    int? port,
+    super.chainLayer = 1,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs,
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: allNetworks({
+                 OS.linux: 'zside',
+                 OS.macos: 'zside',
+                 OS.windows: 'zside',
+               }),
+               flutterFrontend: {
+                 OS.linux: 'zside',
+                 OS.macos: 'zside',
+                 OS.windows: 'zside',
+               },
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 binary: 'zsided',
+                 baseUrl: '',
+                 files: allNetworks({
+                   OS.linux: '',
+                   OS.macos: '',
+                   OS.windows: '',
+                 }),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+         port: port ?? 30303,
+       );
+
+  @override
+  BinaryType get type => BinaryType.zSided;
+
+  @override
+  Color get color => SailColorScheme.blue;
+
+  @override
+  ZSided copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+  }) {
+    return ZSided(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+    );
+  }
+}
+
 class Enforcer extends Binary {
   Enforcer({
     super.name = 'BIP300301 Enforcer',
@@ -1387,7 +1474,7 @@ extension BinaryPaths on Binary {
         OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Coinshift'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
       },
-      BinaryType.bitcoinCore || BinaryType.enforcer || BinaryType.grpcurl || BinaryType.thunderd => null,
+      BinaryType.bitcoinCore || BinaryType.enforcer || BinaryType.grpcurl || BinaryType.thunderd || BinaryType.zSided => null,
     };
   }
 
@@ -1426,7 +1513,7 @@ extension BinaryPaths on Binary {
       BinaryType.photon ||
       BinaryType.coinShift => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
-      BinaryType.grpcurl || BinaryType.thunderd => '',
+      BinaryType.grpcurl || BinaryType.thunderd || BinaryType.zSided => '',
     };
   }
 
@@ -1607,6 +1694,7 @@ extension BinaryPaths on Binary {
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         return rootDir();
     }
   }
@@ -1636,6 +1724,7 @@ extension BinaryPaths on Binary {
       case BinaryType.coinShift:
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
+      case BinaryType.zSided:
         return baseDir;
     }
   }
