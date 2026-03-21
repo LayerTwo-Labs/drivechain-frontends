@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package orchestrator.v1;
+
+service ZSideConfService {
+  // Get current ZSide sidechain configuration state.
+  rpc GetZSideConfig(GetZSideConfigRequest) returns (GetZSideConfigResponse);
+
+  // Write ZSide configuration content.
+  rpc WriteZSideConfig(WriteZSideConfigRequest) returns (WriteZSideConfigResponse);
+
+  // Sync network from Bitcoin Core config.
+  rpc SyncNetworkFromBitcoinConf(ZSideSyncNetworkFromBitcoinConfRequest) returns (ZSideSyncNetworkFromBitcoinConfResponse);
+}
+
+// GetZSideConfig
+
+message GetZSideConfigRequest {}
+
+message GetZSideConfigResponse {
+  string config_content = 1;
+  string config_path = 2;
+  string default_config = 3;
+  repeated string cli_args = 4;
+  string network = 5;
+}
+
+// WriteZSideConfig
+
+message WriteZSideConfigRequest {
+  string config_content = 1;
+}
+
+message WriteZSideConfigResponse {}
+
+// SyncNetworkFromBitcoinConf
+
+message ZSideSyncNetworkFromBitcoinConfRequest {}
+
+message ZSideSyncNetworkFromBitcoinConfResponse {}
