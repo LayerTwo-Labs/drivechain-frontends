@@ -10,57 +10,52 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
-import 'package:sail_ui/gen/thunder/v1/thunder.connect.client.dart';
-import 'package:sail_ui/gen/thunder/v1/thunder.pb.dart';
+import 'package:sail_ui/rpcs/zside_rpc.dart';
+import 'package:sail_ui/gen/zside/v1/zside.connect.client.dart';
+import 'package:sail_ui/gen/zside/v1/zside.pb.dart';
 import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';
 import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
-/// API to the thunder server.
-abstract class ThunderdRPC extends SidechainRPC {
-  ThunderdRPC({
+/// API to the zsided server (ConnectRPC backend).
+abstract class ZSidedRPC extends SidechainRPC {
+  ZSidedRPC({
     required super.binaryType,
     required super.restartOnFailure,
   });
 
-  /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
-
-  /// Create a deposit transaction
   Future<String> createDeposit(String address, double amount, double fee);
-
-  /// Connect to a peer
   Future<void> connectPeer(String peerAddress);
-
-  /// List connected peers
   Future<List<Map<String, dynamic>>> listPeers();
-
-  /// Get block by hash
   Future<Map<String, dynamic>?> getBlock(String hash);
-
-  /// Get best mainchain block hash
   Future<String?> getBestMainchainBlockHash();
-
-  /// Get best sidechain block hash
   Future<String?> getBestSidechainBlockHash();
-
-  /// Get BMM inclusions
   Future<String> getBMMInclusions(String blockHash);
-
-  /// Remove transaction from mempool
   Future<void> removeFromMempool(String txid);
-
-  /// Generate new mnemonic
   Future<String> generateMnemonic();
-
-  /// Set seed from mnemonic
   Future<void> setSeedFromMnemonic(String mnemonic);
 
-  // Wallet Manager RPCs
+  // ZSide-specific
+  Future<String> getNewShieldedAddress();
+  Future<String> getNewTransparentAddress();
+  Future<List<String>> getShieldedWalletAddresses();
+  Future<List<String>> getTransparentWalletAddresses();
+  Future<String> shield(UnshieldedUTXO utxo, double amount);
+  Future<String> sendShielded(String dest, double valueSats, double feeSats);
+  Future<String> sendTransparent(String dest, double valueSats, double feeSats);
+  Future<String> deshield(ShieldedUTXO utxo, double amount);
+  Future<ZSideBalanceBreakdown> getBalanceBreakdown();
 
+  // Future rpcs needed to restore functionality 1-1
+  Future<List<ShieldedUTXO>> listPrivateTransactions();
+  Future<List<UnshieldedUTXO>> listTransparentTransactions();
+  Future<List<ShieldedUTXO>> listShieldedUTXOs();
+  Future<List<UnshieldedUTXO>> listUnshieldedUTXOs();
+
+  // Wallet Manager RPCs
   Future<wmpb.GetWalletStatusResponse> getWalletStatus();
   Future<wmpb.GenerateWalletResponse> walletGenerateWallet(String name, {String? customMnemonic, String? passphrase});
   Future<void> walletUnlock(String password);
@@ -73,18 +68,21 @@ abstract class ThunderdRPC extends SidechainRPC {
   Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson);
   Future<void> walletDelete(String walletId);
   Future<void> walletDeleteAll();
+
+  // how many UTXOs each cast will be split into when deshielding them
+  double numUTXOsPerCast = 4;
 }
 
-class ThunderdLive extends ThunderdRPC {
+class ZSidedLive extends ZSidedRPC {
   @override
   final log = GetIt.I.get<Logger>();
 
-  late ThunderServiceClient _client;
+  late ZSideServiceClient _client;
   late WalletManagerServiceClient _walletClient;
 
-  ThunderdLive()
+  ZSidedLive()
     : super(
-        binaryType: BinaryType.thunderd,
+        binaryType: BinaryType.zSided,
         restartOnFailure: false,
       ) {
     final transport = connect.Transport(
@@ -92,14 +90,14 @@ class ThunderdLive extends ThunderdRPC {
       codec: const ProtoCodec(),
       httpClient: createHttpClient(),
     );
-    _client = ThunderServiceClient(transport);
+    _client = ZSideServiceClient(transport);
     _walletClient = WalletManagerServiceClient(transport);
     startConnectionTimer();
   }
 
-  // Thunderd is the daemon, not the sidechain — return Thunder sidechain
+  // ZSided is the daemon, not the sidechain — return ZSide sidechain
   @override
-  Sidechain get chain => Thunder();
+  Sidechain get chain => ZSide();
 
   @override
   Future<List<String>> binaryArgs() async {
@@ -108,7 +106,7 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<int> ping() async {
-    // Use wallet status to check if thunderd is responsive.
+    // Use wallet status to check if zsided is responsive.
     // getBlockCount() proxies to the sidechain binary which may not be running yet.
     await _walletClient.getWalletStatus(wmpb.GetWalletStatusRequest());
     return 1;
@@ -128,6 +126,17 @@ class ThunderdLive extends ThunderdRPC {
   }
 
   @override
+  Future<ZSideBalanceBreakdown> getBalanceBreakdown() async {
+    final response = await _client.getBalanceBreakdown(GetBalanceBreakdownRequest());
+    return ZSideBalanceBreakdown(
+      availableShieldedSats: response.availableShieldedSats.toInt(),
+      availableTransparentSats: response.availableTransparentSats.toInt(),
+      totalShieldedSats: response.totalShieldedSats.toInt(),
+      totalTransparentSats: response.totalTransparentSats.toInt(),
+    );
+  }
+
+  @override
   Future<int> getBlockCount() async {
     final response = await _client.getBlockCount(GetBlockCountRequest());
     return response.count.toInt();
@@ -143,8 +152,6 @@ class ThunderdLive extends ThunderdRPC {
     final response = await _client.getBlockCount(GetBlockCountRequest());
     final blocks = response.count.toInt();
 
-    // There's no endpoint to get headers for thunder, so we get the height
-    // from the public explorer service, assuming it is fully synced
     final explorerHeaders = await fetchExplorerHeaders();
     final headers = explorerHeaders ?? blocks;
     final bestBlockHash = await getBestSidechainBlockHash();
@@ -168,7 +175,7 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   List<String> getMethods() {
-    return thunderRPCMethods;
+    return zsideRPCMethods;
   }
 
   @override
@@ -186,13 +193,13 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<String> getDepositAddress() async {
-    final response = await _client.getNewAddress(GetNewAddressRequest());
+    final response = await _client.getNewTransparentAddress(GetNewTransparentAddressRequest());
     return formatDepositAddress(response.address, chain.slot);
   }
 
   @override
   Future<String> getSideAddress() async {
-    final response = await _client.getNewAddress(GetNewAddressRequest());
+    final response = await _client.getNewTransparentAddress(GetNewTransparentAddressRequest());
     return response.address;
   }
 
@@ -221,8 +228,8 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final response = await _client.transfer(
-      TransferRequest(
+    final response = await _client.transparentTransfer(
+      TransparentTransferRequest(
         address: address,
         amountSats: Int64(btcToSatoshi(amount).toInt()),
         feeSats: Int64(btcToSatoshi(0.00001).toInt()),
@@ -343,6 +350,92 @@ class ThunderdLive extends ThunderdRPC {
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     await _client.setSeedFromMnemonic(SetSeedFromMnemonicRequest(mnemonic: mnemonic));
+  }
+
+  // ZSide-specific methods
+
+  @override
+  Future<String> getNewShieldedAddress() async {
+    final response = await _client.getNewShieldedAddress(GetNewShieldedAddressRequest());
+    return response.address;
+  }
+
+  @override
+  Future<String> getNewTransparentAddress() async {
+    final response = await _client.getNewTransparentAddress(GetNewTransparentAddressRequest());
+    return response.address;
+  }
+
+  @override
+  Future<List<String>> getShieldedWalletAddresses() async {
+    final response = await _client.getShieldedWalletAddresses(GetShieldedWalletAddressesRequest());
+    return response.addresses;
+  }
+
+  @override
+  Future<List<String>> getTransparentWalletAddresses() async {
+    final response = await _client.getTransparentWalletAddresses(GetTransparentWalletAddressesRequest());
+    return response.addresses;
+  }
+
+  @override
+  Future<String> shield(UnshieldedUTXO utxo, double amount) async {
+    final response = await _client.shield(ShieldRequest(
+      amountSats: Int64(utxo.amount.toInt()),
+      feeSats: Int64(btcToSatoshi(zsideFee).toInt()),
+    ));
+    return response.txid;
+  }
+
+  @override
+  Future<String> deshield(ShieldedUTXO utxo, double amount) async {
+    final response = await _client.unshield(UnshieldRequest(
+      amountSats: Int64(utxo.amount.toInt()),
+      feeSats: Int64(btcToSatoshi(zsideFee).toInt()),
+    ));
+    return response.txid;
+  }
+
+  @override
+  Future<String> sendShielded(String dest, double valueSats, double feeSats) async {
+    final response = await _client.shieldedTransfer(ShieldedTransferRequest(
+      address: dest,
+      amountSats: Int64(valueSats.toInt()),
+      feeSats: Int64(feeSats.toInt()),
+    ));
+    return response.txid;
+  }
+
+  @override
+  Future<String> sendTransparent(String dest, double valueSats, double feeSats) async {
+    final response = await _client.transparentTransfer(TransparentTransferRequest(
+      address: dest,
+      amountSats: Int64(valueSats.toInt()),
+      feeSats: Int64(feeSats.toInt()),
+    ));
+    return response.txid;
+  }
+
+  // Stub implementations for future RPCs
+
+  @override
+  Future<List<ShieldedUTXO>> listPrivateTransactions() async {
+    return [];
+  }
+
+  @override
+  Future<List<UnshieldedUTXO>> listTransparentTransactions() async {
+    return [];
+  }
+
+  @override
+  Future<List<ShieldedUTXO>> listShieldedUTXOs() async {
+    return [];
+  }
+
+  @override
+  Future<List<UnshieldedUTXO>> listUnshieldedUTXOs() async {
+    return [];
   }
 
   // Wallet Manager RPCs
