@@ -246,7 +246,7 @@ class BinaryProvider extends ChangeNotifier {
     // Skip GetIt registration for tests
   }
 
-  // Async factory
+  // Async factory — returns BackendBinaryProvider in backend mode
   static Future<BinaryProvider> create({
     required Directory appDir,
     required List<Binary> initialBinaries,
@@ -260,6 +260,14 @@ class BinaryProvider extends ChangeNotifier {
     final pidDir = Directory(path.join(appDir.path, 'pids'));
     final pidFileManager = PidFileManager(pidDir: pidDir);
     final processManager = ProcessManager(appDir: appDir, pidFileManager: pidFileManager);
+
+    if (Environment.backendManagesBinaries) {
+      return BackendBinaryProvider._create(
+        appDir: appDir,
+        downloadManager: downloadManager,
+        processManager: processManager,
+      );
+    }
 
     final provider = BinaryProvider._create(
       appDir: appDir,
@@ -1082,3 +1090,166 @@ Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Director
 }
 
 Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));
+
+/// Backend-mode BinaryProvider that delegates lifecycle operations to the
+/// Go orchestrator daemon (thunderd/zsided) via gRPC.
+///
+/// State flows ONE WAY: backend streams → local state → UI.
+///
+/// Inherits all state getters (connection, download, error) from BinaryProvider
+/// since those read from RPCConnections which are synced by BackendStateProvider.
+/// Only overrides lifecycle methods: start, stop, download, shutdown.
+class BackendBinaryProvider extends BinaryProvider {
+  BackendBinaryProvider._create({
+    required Directory appDir,
+    required DownloadManager downloadManager,
+    required ProcessManager processManager,
+  }) : super._create(
+         appDir: appDir,
+         downloadManager: downloadManager,
+         processManager: processManager,
+       );
+
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
+
+  BackendStateProvider? get _backendState =>
+      GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
+
+  /// Start a binary via the backend orchestrator.
+  /// Delegates to startWithDeps which handles download + dependency chain.
+  @override
+  Future<void> start(Binary binary) async {
+    final name = _orchestratorName(binary);
+    if (name == null) {
+      // Fall back to frontend for daemon binaries (Thunderd/ZSided)
+      return super.start(binary);
+    }
+
+    log.i('BackendBinaryProvider: starting $name via orchestrator');
+
+    final backendState = _backendState;
+    if (backendState != null) {
+      await backendState.trackStartup(
+        _orchestrator.startWithDeps(name, targetArgs: ['--headless']),
+      );
+    } else {
+      await for (final progress in _orchestrator.startWithDeps(name, targetArgs: ['--headless'])) {
+        log.i('${progress.stage}: ${progress.message}');
+        if (progress.error.isNotEmpty) {
+          log.e('startup error: ${progress.error}');
+          break;
+        }
+        if (progress.done) break;
+      }
+    }
+  }
+
+  /// Stop a binary via the backend orchestrator.
+  @override
+  Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
+    final name = _orchestratorName(binary);
+    if (name == null) {
+      return super.stop(binary, skipDownstream: skipDownstream);
+    }
+
+    log.i('BackendBinaryProvider: stopping $name via orchestrator');
+
+    try {
+      await _orchestrator.stopBinary(name);
+    } catch (e) {
+      log.e('BackendBinaryProvider: failed to stop $name: $e');
+    }
+
+    _markRpcAsDisconnected(binary);
+  }
+
+  /// Download a binary via the backend orchestrator.
+  @override
+  Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
+    final name = _orchestratorName(binary);
+    if (name == null) {
+      return super.download(binary, shouldUpdate: shouldUpdate);
+    }
+
+    log.i('BackendBinaryProvider: downloading $name via orchestrator');
+
+    await for (final progress in _orchestrator.downloadBinary(name, force: shouldUpdate)) {
+      if (progress.totalBytes > 0) {
+        updateBinary(binary.type, (b) {
+          return b.copyWith(
+            downloadInfo: DownloadInfo(
+              progress: progress.bytesDownloaded.toDouble(),
+              total: progress.totalBytes.toDouble(),
+              message: progress.message,
+              isDownloading: !progress.done,
+            ),
+          );
+        });
+        notifyListeners();
+      }
+
+      if (progress.error.isNotEmpty) {
+        log.e('BackendBinaryProvider: download error for $name: ${progress.error}');
+        break;
+      }
+      if (progress.done) break;
+    }
+  }
+
+  /// Shutdown all binaries via the backend orchestrator.
+  @override
+  Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
+    log.i('BackendBinaryProvider: shutting down all via orchestrator');
+
+    try {
+      await for (final progress in _orchestrator.shutdownAll()) {
+        if (progress.currentBinary.isNotEmpty) {
+          log.i('BackendBinaryProvider: stopping ${progress.currentBinary}');
+        }
+        if (progress.done) break;
+      }
+    } catch (e) {
+      log.e('BackendBinaryProvider: shutdown error: $e');
+    }
+
+    // Also stop the daemon itself via frontend mechanism
+    return super.onShutdown(shutdownOptions: shutdownOptions);
+  }
+
+  /// Map Binary type to orchestrator binary name.
+  String? _orchestratorName(Binary binary) {
+    return switch (binary) {
+      BitcoinCore() => 'bitcoind',
+      Enforcer() => 'enforcer',
+      Thunder() => 'thunder',
+      ZSide() => 'zside',
+      BitWindow() => 'bitwindowd',
+      BitNames() => 'bitnames',
+      BitAssets() => 'bitassets',
+      Truthcoin() => 'truthcoin',
+      Photon() => 'photon',
+      CoinShift() => 'coinshift',
+      _ => null,
+    };
+  }
+
+  /// Mark the RPC connection as disconnected after stopping.
+  void _markRpcAsDisconnected(Binary binary) {
+    final rpc = switch (binary) {
+      var b when b is BitcoinCore => mainchainRPC,
+      var b when b is Enforcer => enforcerRPC,
+      var b when b is BitWindow => bitwindowRPC,
+      var b when b is Thunderd => thunderdRPC,
+      var b when b is Thunder => thunderRPC,
+      var b when b is Truthcoin => truthcoinRPC,
+      var b when b is Photon => photonRPC,
+      var b when b is BitNames => bitnamesRPC,
+      var b when b is BitAssets => bitassetsRPC,
+      var b when b is ZSide => zsideRPC,
+      var b when b is CoinShift => coinshiftRPC,
+      _ => null,
+    };
+    rpc?.markDisconnected();
+    notifyListeners();
+  }
+}
