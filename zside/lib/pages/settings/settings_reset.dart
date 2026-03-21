@@ -177,7 +177,7 @@ class _SettingsResetState extends State<SettingsReset> {
     if (confirmed == true) {
       bootBinaries(log);
 
-      final zsideRPC = GetIt.I.get<ZSideRPC>();
+      final zsideRPC = GetIt.I.get<ZSidedRPC>();
       while (!zsideRPC.connected) {
         await Future.delayed(const Duration(seconds: 1));
       }

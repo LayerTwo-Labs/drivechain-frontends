@@ -52,7 +52,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
-  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
@@ -600,7 +600,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
