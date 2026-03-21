@@ -7,11 +7,11 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ZSideProvider extends ChangeNotifier {
-  ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
+  ZSidedRPC get rpc => GetIt.I.get<ZSidedRPC>();
   Logger get log => GetIt.I.get<Logger>();
 
   MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
-  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
 
   String zsideAddress = '';
   List<ShieldedUTXO> shieldedUTXOs = [];

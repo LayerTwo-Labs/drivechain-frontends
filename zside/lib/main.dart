@@ -15,6 +15,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:zside/config/runtime_args.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/transactions_provider.dart';
+import 'package:zside/providers/zside_conf_provider.dart';
 import 'package:zside/providers/zside_homepage_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
@@ -88,21 +89,38 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final router = AppRouter();
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  SidechainRPC createSidechainConnection(Binary binary) {
-    final zside = ZSideLive();
-    GetIt.I.registerSingleton<ZSideRPC>(zside);
-
-    return zside;
-  }
+  late ZSidedLive zsidedRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.zSide,
-    createSidechainConnection: createSidechainConnection,
+    createSidechainConnection: (_) {
+      zsidedRPC = ZSidedLive();
+      GetIt.I.registerSingleton<ZSidedRPC>(zsidedRPC);
+      return zsidedRPC;
+    },
     applicationDir: applicationDir,
     log: log,
     router: router,
     currentVersion: AppVersion.version,
+    additionalBinaries: () => [ZSided()],
+    backendManagesBinaries: true,
   );
+
+  // Register OrchestratorRPC for communicating with zsided
+  final orchestrator = OrchestratorRPC(host: 'localhost', port: 30303);
+  GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+
+  // Register BackendStateProvider for streaming binary status
+  final backendState = BackendStateProvider(orchestrator);
+  GetIt.I.registerSingleton<BackendStateProvider>(backendState);
+
+  // Start zsided (Go backend), which orchestrates all binary lifecycle
+  bootBinaries(log);
+
+  // Initialize ZSideConfProvider (must be after BitcoinConfProvider)
+  final zsideConfProvider = await ZSideConfProvider.create();
+  GetIt.I.registerLazySingleton<ZSideConfProvider>(() => zsideConfProvider);
+  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => zsideConfProvider);
 
   GetIt.I.registerLazySingleton<ZSideProvider>(
     () => ZSideProvider(),
@@ -135,7 +153,7 @@ Future<void> runMultiWindow(
     child: SailText.primary15('no window type provided, the programmers messed up'),
   );
 
-  final zside = GetIt.I.get<ZSideRPC>();
+  final zside = GetIt.I.get<ZSidedRPC>();
 
   switch (arguments['window_type']) {
     case SubWindowTypes.debugId:
@@ -187,7 +205,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   await initAutoUpdater(log);
 
   log.i('starting zside');
-  final zside = GetIt.I.get<ZSideRPC>();
+  final zside = GetIt.I.get<ZSidedRPC>();
   final router = GetIt.I.get<AppRouter>();
 
   runApp(
@@ -207,7 +225,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
 class _ZSideAppContent extends StatelessWidget {
   final AppRouter router;
-  final ZSideRPC zside;
+  final ZSidedRPC zside;
 
   const _ZSideAppContent({
     required this.router,
@@ -253,12 +271,43 @@ Future<File> getLogFile(Directory datadir) async {
 }
 
 void bootBinaries(Logger log) async {
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final zside = binaryProvider.binaries.firstWhere((b) => b is ZSide);
+  try {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-  await binaryProvider.startWithEnforcer(
-    zside,
-  );
+    // Start zsided via BinaryProvider (it's bundled, not downloaded)
+    final zsided = binaryProvider.binaries.firstWhere((b) => b is ZSided);
+    await binaryProvider.start(zsided);
+
+    // Wait for zsided to be ready before calling startWithDeps
+    final orchestrator = GetIt.I.get<OrchestratorRPC>();
+    for (var i = 0; i < 30; i++) {
+      try {
+        await orchestrator.listBinaries();
+        log.i('bootBinaries: zsided is ready');
+        break;
+      } catch (_) {
+        if (i == 29) {
+          log.e('bootBinaries: zsided did not become ready after 15s');
+          return;
+        }
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+    }
+
+    // Start watching binary status stream
+    final backendState = GetIt.I.get<BackendStateProvider>();
+    backendState.startWatching();
+
+    // Use zsided's gRPC to start the dependency chain.
+    // BackendStateProvider tracks progress and updates download bars in the UI.
+    log.i('bootBinaries: calling startWithDeps');
+    await backendState.trackStartup(
+      orchestrator.startWithDeps('zside', targetArgs: ['--headless']),
+    );
+    log.i('bootBinaries: startWithDeps completed');
+  } catch (e, st) {
+    log.e('bootBinaries failed: $e\n$st');
+  }
 }
 
 Future<void> initAutoUpdater(Logger log) async {

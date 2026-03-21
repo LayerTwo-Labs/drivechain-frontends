@@ -238,7 +238,7 @@ class ZSideWidgetCatalog {
 class OverviewTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
-  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
   final bitcoinAddressController = TextEditingController();

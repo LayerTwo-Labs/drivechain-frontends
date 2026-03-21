@@ -6,7 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class TransactionsProvider extends ChangeNotifier {
-  ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
+  ZSidedRPC get rpc => GetIt.I.get<ZSidedRPC>();
   Logger get log => GetIt.I.get<Logger>();
 
   // because the class extends ChangeNotifier, any subscribers
