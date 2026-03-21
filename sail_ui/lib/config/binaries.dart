@@ -1474,7 +1474,11 @@ extension BinaryPaths on Binary {
         OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Coinshift'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
       },
-      BinaryType.bitcoinCore || BinaryType.enforcer || BinaryType.grpcurl || BinaryType.thunderd || BinaryType.zSided => null,
+      BinaryType.bitcoinCore ||
+      BinaryType.enforcer ||
+      BinaryType.grpcurl ||
+      BinaryType.thunderd ||
+      BinaryType.zSided => null,
     };
   }
 

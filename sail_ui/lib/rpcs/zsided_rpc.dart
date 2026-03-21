@@ -380,39 +380,47 @@ class ZSidedLive extends ZSidedRPC {
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
-    final response = await _client.shield(ShieldRequest(
-      amountSats: Int64(utxo.amount.toInt()),
-      feeSats: Int64(btcToSatoshi(zsideFee).toInt()),
-    ));
+    final response = await _client.shield(
+      ShieldRequest(
+        amountSats: Int64(utxo.amount.toInt()),
+        feeSats: Int64(btcToSatoshi(zsideFee).toInt()),
+      ),
+    );
     return response.txid;
   }
 
   @override
   Future<String> deshield(ShieldedUTXO utxo, double amount) async {
-    final response = await _client.unshield(UnshieldRequest(
-      amountSats: Int64(utxo.amount.toInt()),
-      feeSats: Int64(btcToSatoshi(zsideFee).toInt()),
-    ));
+    final response = await _client.unshield(
+      UnshieldRequest(
+        amountSats: Int64(utxo.amount.toInt()),
+        feeSats: Int64(btcToSatoshi(zsideFee).toInt()),
+      ),
+    );
     return response.txid;
   }
 
   @override
   Future<String> sendShielded(String dest, double valueSats, double feeSats) async {
-    final response = await _client.shieldedTransfer(ShieldedTransferRequest(
-      address: dest,
-      amountSats: Int64(valueSats.toInt()),
-      feeSats: Int64(feeSats.toInt()),
-    ));
+    final response = await _client.shieldedTransfer(
+      ShieldedTransferRequest(
+        address: dest,
+        amountSats: Int64(valueSats.toInt()),
+        feeSats: Int64(feeSats.toInt()),
+      ),
+    );
     return response.txid;
   }
 
   @override
   Future<String> sendTransparent(String dest, double valueSats, double feeSats) async {
-    final response = await _client.transparentTransfer(TransparentTransferRequest(
-      address: dest,
-      amountSats: Int64(valueSats.toInt()),
-      feeSats: Int64(feeSats.toInt()),
-    ));
+    final response = await _client.transparentTransfer(
+      TransparentTransferRequest(
+        address: dest,
+        amountSats: Int64(valueSats.toInt()),
+        feeSats: Int64(feeSats.toInt()),
+      ),
+    );
     return response.txid;
   }
 

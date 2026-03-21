@@ -1101,14 +1101,10 @@ Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'))
 /// Only overrides lifecycle methods: start, stop, download, shutdown.
 class BackendBinaryProvider extends BinaryProvider {
   BackendBinaryProvider._create({
-    required Directory appDir,
-    required DownloadManager downloadManager,
-    required ProcessManager processManager,
-  }) : super._create(
-         appDir: appDir,
-         downloadManager: downloadManager,
-         processManager: processManager,
-       );
+    required super.appDir,
+    required super.downloadManager,
+    required super.processManager,
+  }) : super._create();
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
 
