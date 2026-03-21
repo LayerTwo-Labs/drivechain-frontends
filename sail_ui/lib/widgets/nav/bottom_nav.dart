@@ -752,3 +752,4 @@ class UpdateIndicator extends StatelessWidget {
     );
   }
 }
+
