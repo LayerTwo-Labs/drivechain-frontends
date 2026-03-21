@@ -70,16 +70,15 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final router = AppRouter();
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  SidechainRPC createSidechainConnection(Binary binary) {
-    final thunder = ThunderdLive();
-    GetIt.I.registerSingleton<ThunderdRPC>(thunder);
-
-    return thunder;
-  }
+  late ThunderdLive thunderdRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.thunder,
-    createSidechainConnection: createSidechainConnection,
+    createSidechainConnection: (_) {
+      thunderdRPC = ThunderdLive();
+      GetIt.I.registerSingleton<ThunderdRPC>(thunderdRPC);
+      return thunderdRPC;
+    },
     applicationDir: applicationDir,
     log: log,
     router: router,
@@ -88,13 +87,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     backendManagesBinaries: true,
   );
 
-  // Register ThunderdRPC — wires thunderd into the connection polling system
-  final thunderdRPC = ThunderdLive();
-  GetIt.I.registerSingleton<ThunderdRPC>(thunderdRPC);
-
   // Register OrchestratorRPC for communicating with thunderd
   final orchestrator = OrchestratorRPC(host: 'localhost', port: 30302);
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+
+  // Register BackendStateProvider for streaming binary status
+  final backendState = BackendStateProvider(orchestrator);
+  GetIt.I.registerSingleton<BackendStateProvider>(backendState);
 
   // Start thunderd (Go backend), which orchestrates all binary lifecycle
   bootBinaries(log);
@@ -243,24 +242,44 @@ Future<File> getLogFile(Directory datadir) async {
 }
 
 void bootBinaries(Logger log) async {
-  final binaryProvider = GetIt.I.get<BinaryProvider>();
+  try {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-  // Start thunderd via BinaryProvider (it's bundled, not downloaded)
-  final thunderd = binaryProvider.binaries.firstWhere((b) => b is Thunderd);
-  await binaryProvider.start(thunderd);
+    // Start thunderd via BinaryProvider
+    final thunderd = binaryProvider.binaries.firstWhere((b) => b is Thunderd);
+    log.i('bootBinaries: starting thunderd');
+    await binaryProvider.start(thunderd);
+    log.i('bootBinaries: thunderd started');
 
-  // Use thunderd's gRPC to start the dependency chain.
-  // No coreArgs or enforcerArgs — the Go orchestrator builds them from config files.
-  final orchestrator = GetIt.I.get<OrchestratorRPC>();
-  await for (final progress in orchestrator.startWithDeps(
-    'thunder',
-    targetArgs: ['--headless'],
-  )) {
-    log.i('${progress.stage}: ${progress.message}');
-    if (progress.error.isNotEmpty) {
-      log.e('startup error: ${progress.error}');
-      break;
+    // Wait for thunderd to be ready before calling startWithDeps
+    final orchestrator = GetIt.I.get<OrchestratorRPC>();
+    for (var i = 0; i < 30; i++) {
+      try {
+        await orchestrator.listBinaries();
+        log.i('bootBinaries: thunderd is ready');
+        break;
+      } catch (_) {
+        if (i == 29) {
+          log.e('bootBinaries: thunderd did not become ready after 15s');
+          return;
+        }
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
     }
+
+    // Start watching binary status stream
+    final backendState = GetIt.I.get<BackendStateProvider>();
+    backendState.startWatching();
+
+    // Use thunderd's gRPC to start the dependency chain.
+    // BackendStateProvider tracks progress and updates download bars in the UI.
+    log.i('bootBinaries: calling startWithDeps');
+    await backendState.trackStartup(
+      orchestrator.startWithDeps('thunder', targetArgs: ['--headless']),
+    );
+    log.i('bootBinaries: startWithDeps completed');
+  } catch (e, st) {
+    log.e('bootBinaries failed: $e\n$st');
   }
 }
 
