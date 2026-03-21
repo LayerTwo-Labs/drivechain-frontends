@@ -302,6 +302,35 @@ const DeleteAllWalletsResponse$json = {
 final $typed_data.Uint8List deleteAllWalletsResponseDescriptor = $convert.base64Decode(
     'ChhEZWxldGVBbGxXYWxsZXRzUmVzcG9uc2U=');
 
+@$core.Deprecated('Use createWatchOnlyWalletRequestDescriptor instead')
+const CreateWatchOnlyWalletRequest$json = {
+  '1': 'CreateWatchOnlyWalletRequest',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'xpub_or_descriptor', '3': 2, '4': 1, '5': 9, '10': 'xpubOrDescriptor'},
+    {'1': 'gradient_json', '3': 3, '4': 1, '5': 9, '10': 'gradientJson'},
+  ],
+};
+
+/// Descriptor for `CreateWatchOnlyWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createWatchOnlyWalletRequestDescriptor = $convert.base64Decode(
+    'ChxDcmVhdGVXYXRjaE9ubHlXYWxsZXRSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSLAoSeH'
+    'B1Yl9vcl9kZXNjcmlwdG9yGAIgASgJUhB4cHViT3JEZXNjcmlwdG9yEiMKDWdyYWRpZW50X2pz'
+    'b24YAyABKAlSDGdyYWRpZW50SnNvbg==');
+
+@$core.Deprecated('Use createWatchOnlyWalletResponseDescriptor instead')
+const CreateWatchOnlyWalletResponse$json = {
+  '1': 'CreateWatchOnlyWalletResponse',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `CreateWatchOnlyWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createWatchOnlyWalletResponseDescriptor = $convert.base64Decode(
+    'Ch1DcmVhdGVXYXRjaE9ubHlXYWxsZXRSZXNwb25zZRIbCgl3YWxsZXRfaWQYASABKAlSCHdhbG'
+    'xldElk');
+
 const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
   '1': 'WalletManagerService',
   '2': [
@@ -317,6 +346,7 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'UpdateWalletMetadata', '2': '.walletmanager.v1.UpdateWalletMetadataRequest', '3': '.walletmanager.v1.UpdateWalletMetadataResponse'},
     {'1': 'DeleteWallet', '2': '.walletmanager.v1.DeleteWalletRequest', '3': '.walletmanager.v1.DeleteWalletResponse'},
     {'1': 'DeleteAllWallets', '2': '.walletmanager.v1.DeleteAllWalletsRequest', '3': '.walletmanager.v1.DeleteAllWalletsResponse'},
+    {'1': 'CreateWatchOnlyWallet', '2': '.walletmanager.v1.CreateWatchOnlyWalletRequest', '3': '.walletmanager.v1.CreateWatchOnlyWalletResponse'},
   ],
 };
 
@@ -347,6 +377,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.DeleteWalletResponse': DeleteWalletResponse$json,
   '.walletmanager.v1.DeleteAllWalletsRequest': DeleteAllWalletsRequest$json,
   '.walletmanager.v1.DeleteAllWalletsResponse': DeleteAllWalletsResponse$json,
+  '.walletmanager.v1.CreateWatchOnlyWalletRequest': CreateWatchOnlyWalletRequest$json,
+  '.walletmanager.v1.CreateWatchOnlyWalletResponse': CreateWatchOnlyWalletResponse$json,
 };
 
 /// Descriptor for `WalletManagerService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -373,5 +405,7 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'IudjEuRGVsZXRlV2FsbGV0UmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuRGVsZXRlV2FsbGV0'
     'UmVzcG9uc2USaQoQRGVsZXRlQWxsV2FsbGV0cxIpLndhbGxldG1hbmFnZXIudjEuRGVsZXRlQW'
     'xsV2FsbGV0c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkRlbGV0ZUFsbFdhbGxldHNSZXNw'
-    'b25zZQ==');
+    'b25zZRJ4ChVDcmVhdGVXYXRjaE9ubHlXYWxsZXQSLi53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZV'
+    'dhdGNoT25seVdhbGxldFJlcXVlc3QaLy53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZVdhdGNoT25s'
+    'eVdhbGxldFJlc3BvbnNl');
 
