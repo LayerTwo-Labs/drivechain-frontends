@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package walletmanager.v1;
+
+service WalletManagerService {
+  rpc GetWalletStatus(GetWalletStatusRequest) returns (GetWalletStatusResponse);
+  rpc GenerateWallet(GenerateWalletRequest) returns (GenerateWalletResponse);
+  rpc UnlockWallet(UnlockWalletRequest) returns (UnlockWalletResponse);
+  rpc LockWallet(LockWalletRequest) returns (LockWalletResponse);
+  rpc EncryptWallet(EncryptWalletRequest) returns (EncryptWalletResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc RemoveEncryption(RemoveEncryptionRequest) returns (RemoveEncryptionResponse);
+  rpc ListWallets(ListWalletsRequest) returns (ListWalletsResponse);
+  rpc SwitchWallet(SwitchWalletRequest) returns (SwitchWalletResponse);
+  rpc UpdateWalletMetadata(UpdateWalletMetadataRequest) returns (UpdateWalletMetadataResponse);
+  rpc DeleteWallet(DeleteWalletRequest) returns (DeleteWalletResponse);
+  rpc DeleteAllWallets(DeleteAllWalletsRequest) returns (DeleteAllWalletsResponse);
+  rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
+}
+
+// Status
+
+message GetWalletStatusRequest {}
+
+message GetWalletStatusResponse {
+  bool has_wallet = 1;
+  bool encrypted = 2;
+  bool unlocked = 3;
+  string active_wallet_id = 4;
+  string active_wallet_name = 5;
+}
+
+// Generate
+
+message GenerateWalletRequest {
+  string name = 1;
+  string custom_mnemonic = 2; // optional
+  string passphrase = 3; // optional
+}
+
+message GenerateWalletResponse {
+  string wallet_id = 1;
+  string mnemonic = 2; // master mnemonic for display to user
+}
+
+// Unlock/Lock
+
+message UnlockWalletRequest {
+  string password = 1;
+}
+
+message UnlockWalletResponse {}
+
+message LockWalletRequest {}
+
+message LockWalletResponse {}
+
+// Encrypt
+
+message EncryptWalletRequest {
+  string password = 1;
+}
+
+message EncryptWalletResponse {}
+
+// Change Password
+
+message ChangePasswordRequest {
+  string old_password = 1;
+  string new_password = 2;
+}
+
+message ChangePasswordResponse {}
+
+// Remove Encryption
+
+message RemoveEncryptionRequest {
+  string password = 1;
+}
+
+message RemoveEncryptionResponse {}
+
+// List Wallets
+
+message WalletMetadata {
+  string id = 1;
+  string name = 2;
+  string wallet_type = 3;
+  string gradient_json = 4;
+  string created_at = 5; // ISO 8601
+}
+
+message ListWalletsRequest {}
+
+message ListWalletsResponse {
+  repeated WalletMetadata wallets = 1;
+  string active_wallet_id = 2;
+}
+
+// Switch Wallet
+
+message SwitchWalletRequest {
+  string wallet_id = 1;
+}
+
+message SwitchWalletResponse {}
+
+// Update Wallet Metadata
+
+message UpdateWalletMetadataRequest {
+  string wallet_id = 1;
+  string name = 2;
+  string gradient_json = 3;
+}
+
+message UpdateWalletMetadataResponse {}
+
+// Delete Wallet
+
+message DeleteWalletRequest {
+  string wallet_id = 1;
+}
+
+message DeleteWalletResponse {}
+
+// Delete All Wallets
+
+message DeleteAllWalletsRequest {}
+
+message DeleteAllWalletsResponse {}
+
+// Create Watch-Only Wallet
+
+message CreateWatchOnlyWalletRequest {
+  string name = 1;
+  string xpub_or_descriptor = 2;
+  string gradient_json = 3;
+}
+
+message CreateWatchOnlyWalletResponse {
+  string wallet_id = 1;
+}
