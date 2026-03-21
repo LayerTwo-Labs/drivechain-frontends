@@ -1,0 +1,35 @@
+module github.com/LayerTwo-Labs/sidesail/zside/server
+
+go 1.25.0
+
+replace github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator => ../../sidechain-orchestrator
+
+require (
+	connectrpc.com/connect v1.19.1
+	github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator v0.0.0-00010101000000-000000000000
+	github.com/rs/zerolog v1.34.0
+	github.com/stretchr/testify v1.11.1
+	github.com/urfave/cli/v2 v2.27.7
+	golang.org/x/net v0.52.0
+	google.golang.org/protobuf v1.36.11
+)
+
+require (
+	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
+	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/samber/lo v1.52.0 // indirect
+	github.com/tyler-smith/go-bip32 v1.0.0 // indirect
+	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
