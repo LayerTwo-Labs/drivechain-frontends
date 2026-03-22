@@ -172,6 +172,7 @@ class _SettingsResetState extends State<SettingsReset> {
       Photon(),
       BitNames(),
       BitAssets(),
+      CoinShift(),
       ZSide(),
     ];
 

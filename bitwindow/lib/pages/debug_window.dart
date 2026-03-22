@@ -1,5 +1,6 @@
 import 'package:bitwindow/pages/bitwindow_console_tab.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -49,6 +50,11 @@ class _DebugWindowState extends State<DebugWindow> {
             label: 'Peers',
             icon: SailSVGAsset.iconPeers,
             child: PeersTab(),
+          ),
+          TabItem(
+            label: 'Binaries',
+            icon: SailSVGAsset.iconDownload,
+            child: BinariesTab(),
           ),
         ],
         initialIndex: 0,
@@ -565,5 +571,94 @@ class ProcessesTab extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class BinariesTab extends StatelessWidget {
+  const BinariesTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final theme = context.sailTheme;
+
+    return ListenableBuilder(
+      listenable: binaryProvider,
+      builder: (context, _) {
+        final allBinaries = binaryProvider.binaries;
+
+        return SailCard(
+          title: 'Binary Hashes',
+          subtitle: 'SHA256 hashes of downloaded binaries for verification',
+          child: SailTable(
+            backgroundColor: theme.colors.backgroundSecondary,
+            getRowId: (index) => allBinaries[index].name,
+            headerBuilder: (context) => [
+              const SailTableHeaderCell(name: 'Name'),
+              const SailTableHeaderCell(name: 'Version'),
+              const SailTableHeaderCell(name: 'Status'),
+              const SailTableHeaderCell(name: 'SHA256 Hash'),
+              const SailTableHeaderCell(name: 'Verified'),
+            ],
+            rowBuilder: (context, row, selected) {
+              final binary = allBinaries[row];
+              final downloadInfo = binaryProvider.downloadProgress(binary.type);
+              final hash = downloadInfo.hash;
+              final hashMatch = downloadInfo.hashMatch;
+              final status = binary.isDownloaded ? 'Downloaded' : 'Not downloaded';
+
+              final verifiedText = switch (hashMatch) {
+                true => 'OK',
+                false => 'MISMATCH',
+                null => '-',
+              };
+
+              return [
+                SailTableCell(value: binary.name),
+                SailTableCell(value: binary.version),
+                SailTableCell(value: status),
+                SailTableCell(value: hash ?? '-'),
+                SailTableCell(
+                  value: verifiedText,
+                  child: _HashVerificationIcon(hashMatch: hashMatch),
+                ),
+              ];
+            },
+            rowCount: allBinaries.length,
+            emptyPlaceholder: 'No binaries configured',
+            onDoubleTap: (index) {
+              final binary = allBinaries[int.parse(index)];
+              final hash = binaryProvider.downloadProgress(binary.type).hash;
+              if (hash != null) {
+                Clipboard.setData(ClipboardData(text: hash));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('SHA256 hash copied to clipboard'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HashVerificationIcon extends StatelessWidget {
+  final bool? hashMatch;
+
+  const _HashVerificationIcon({required this.hashMatch});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+
+    return switch (hashMatch) {
+      true => Icon(Icons.check_circle, color: theme.colors.success, size: 18),
+      false => Icon(Icons.cancel, color: theme.colors.error, size: 24),
+      null => SailText.secondary13('-'),
+    };
   }
 }

@@ -161,13 +161,6 @@ class SidechainProposalViewModel extends BaseViewModel {
       return 'Slot must be between 0 and 255';
     }
 
-    // Check if slot is taken by active sidechain
-    for (final sidechain in sidechainProvider.sidechains) {
-      if (sidechain != null && sidechain.info.slot == intValue) {
-        return 'Slot $intValue already taken by ${sidechain.info.title}';
-      }
-    }
-
     // Check if slot is taken by pending proposal
     for (final proposal in sidechainProvider.sidechainProposals) {
       if (proposal.slot == intValue) {

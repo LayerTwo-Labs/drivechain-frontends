@@ -953,6 +953,7 @@ class BinaryProvider extends ChangeNotifier {
       Photon(),
       BitNames(),
       BitAssets(),
+      CoinShift(),
       ZSide(),
     ];
 
