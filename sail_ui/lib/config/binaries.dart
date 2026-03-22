@@ -2103,7 +2103,9 @@ class DownloadInfo {
   final double total;
   final String? error;
   final String? message;
-  final String? hash; // SHA256 of the binary
+  final String? hash; // SHA256 of the downloaded archive
+  final String? expectedHash; // SHA256 from hashes.json
+  final bool? hashMatch; // null=unknown, true=verified, false=MISMATCH
   final DateTime? downloadedAt;
   final bool isDownloading;
 
@@ -2115,6 +2117,8 @@ class DownloadInfo {
     this.error,
     this.message,
     this.hash,
+    this.expectedHash,
+    this.hashMatch,
     this.downloadedAt,
     this.isDownloading = false,
   });
@@ -2126,6 +2130,8 @@ class DownloadInfo {
     String? error,
     String? message,
     String? hash,
+    String? expectedHash,
+    bool? hashMatch,
     DateTime? downloadedAt,
     bool? isDownloading,
   }) {
@@ -2135,6 +2141,8 @@ class DownloadInfo {
       error: error ?? this.error,
       message: message ?? this.message,
       hash: hash ?? this.hash,
+      expectedHash: expectedHash ?? this.expectedHash,
+      hashMatch: hashMatch ?? this.hashMatch,
       downloadedAt: downloadedAt ?? this.downloadedAt,
       isDownloading: isDownloading ?? this.isDownloading,
     );
@@ -2149,11 +2157,14 @@ class DownloadInfo {
           error == other.error &&
           message == other.message &&
           hash == other.hash &&
+          expectedHash == other.expectedHash &&
+          hashMatch == other.hashMatch &&
           downloadedAt == other.downloadedAt &&
           isDownloading == other.isDownloading;
 
   @override
-  int get hashCode => Object.hash(progress, total, error, hash, downloadedAt, isDownloading);
+  @override
+  int get hashCode => Object.hash(progress, total, error, hash, expectedHash, hashMatch, downloadedAt, isDownloading);
 }
 
 class ProcessLogEntry {

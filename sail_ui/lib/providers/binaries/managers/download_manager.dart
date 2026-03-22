@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:archive/archive_io.dart';
@@ -39,7 +40,37 @@ class DownloadManager extends ChangeNotifier {
   }) async {
     final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, appDir);
 
-    return DownloadManager._create(appDir: appDir, binaries: binariesWithTimestamps);
+    // Fetch expected hashes for already-downloaded binaries
+    Map<String, dynamic>? remoteHashes;
+    try {
+      final response = await http.get(Uri.parse('https://releases.drivechain.info/hashes.json'));
+      if (response.statusCode == 200) {
+        remoteHashes = json.decode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      // hashes.json not available yet, that's fine
+    }
+
+    final binariesWithHashes = <Binary>[];
+    for (final binary in binariesWithTimestamps) {
+      if (binary.isDownloaded && remoteHashes != null) {
+        final fileName = binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]?[OS.current];
+        String? expectedHash;
+        if (fileName != null) {
+          final entry = remoteHashes[fileName] as Map<String, dynamic>?;
+          expectedHash = entry?['sha256'] as String?;
+        }
+        binariesWithHashes.add(
+          binary.copyWith(
+            downloadInfo: binary.downloadInfo.copyWith(expectedHash: expectedHash),
+          ),
+        );
+      } else {
+        binariesWithHashes.add(binary);
+      }
+    }
+
+    return DownloadManager._create(appDir: appDir, binaries: binariesWithHashes);
   }
 
   // Test constructor (visible for mocking)
@@ -186,6 +217,8 @@ class DownloadManager extends ChangeNotifier {
     }
 
     String filePath;
+    String? localHash;
+    String? expectedHash;
     try {
       if (binary.metadata.downloadConfig.baseUrl.contains('github.com')) {
         filePath = await _downloadGithubBinary(binary, downloadsDir);
@@ -198,12 +231,46 @@ class DownloadManager extends ChangeNotifier {
             downloadInfo: b.downloadInfo.copyWith(
               progress: 0.0,
               message:
-                  'Programmers messed up. Did not find download strategy for ${binary.metadata.downloadConfig.baseUrl}',
+                  'Developers messed up. Did not find download strategy for ${binary.metadata.downloadConfig.baseUrl}',
               isDownloading: false,
             ),
           ),
         );
         return;
+      }
+
+      // Verify hash before extraction
+      updateBinary(
+        binary.type,
+        (b) => b.copyWith(
+          downloadInfo: b.downloadInfo.copyWith(message: 'Verifying hash...'),
+        ),
+      );
+
+      final archiveBytes = await File(filePath).readAsBytes();
+      localHash = sha256.convert(archiveBytes).toString();
+
+      // Verify hash against release server
+      log.i('Verifying hash for ${binary.name}: local=$localHash');
+
+      expectedHash = await _fetchExpectedHash(binary);
+      log.i('Release server hash for ${binary.name}: ${expectedHash ?? 'not available'}');
+
+      if (expectedHash != null && expectedHash != localHash) {
+        await File(filePath).delete();
+        updateBinary(
+          binary.type,
+          (b) => b.copyWith(
+            downloadInfo: DownloadInfo(
+              error: 'Hash mismatch! Expected: $expectedHash, Got: $localHash',
+              isDownloading: false,
+              hash: localHash,
+              expectedHash: expectedHash,
+              hashMatch: false,
+            ),
+          ),
+        );
+        throw Exception('Binary hash verification failed for ${binary.name}');
       }
 
       // Extract the binary
@@ -231,7 +298,6 @@ class DownloadManager extends ChangeNotifier {
     }
 
     try {
-      // Try to clean up (fine if we fail!)
       await File(filePath).delete();
     } catch (e) {
       log.e('could not delete zip file: $e');
@@ -246,6 +312,9 @@ class DownloadManager extends ChangeNotifier {
           downloadedAt: DateTime.now(),
           progress: 1.0,
           total: 1.0,
+          hash: localHash,
+          expectedHash: expectedHash,
+          hashMatch: expectedHash != null ? true : null,
         ),
       ),
     );
@@ -393,6 +462,22 @@ class DownloadManager extends ChangeNotifier {
         (b) => b.copyWith(downloadInfo: DownloadInfo(progress: 0.0, message: error, isDownloading: false)),
       );
       rethrow;
+    }
+  }
+
+  /// Fetch the expected SHA256 hash from releases.drivechain.info/hashes.json
+  Future<String?> _fetchExpectedHash(Binary binary) async {
+    final fileName = binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]?[OS.current];
+    if (fileName == null) return null;
+
+    try {
+      final response = await http.get(Uri.parse('https://releases.drivechain.info/hashes.json'));
+      if (response.statusCode != 200) return null;
+      final hashes = json.decode(response.body) as Map<String, dynamic>;
+      return (hashes[fileName] as Map<String, dynamic>?)?['sha256'] as String?;
+    } catch (e) {
+      log.w('Could not fetch hashes.json: $e');
+      return null;
     }
   }
 
