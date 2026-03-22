@@ -976,6 +976,38 @@ jobs:
           echo "Final versions.json:"
           cat versions.json | jq . || echo "Failed to parse versions.json"
 
+      - name: Generate hashes.json from final artifacts
+        continue-on-error: true
+        run: |
+          # Download existing hashes.json from server to preserve hashes for unchanged binaries
+          if curl -s -f "https://releases.drivechain.info/hashes.json" -o hashes.json 2>/dev/null; then
+            echo "Downloaded existing hashes.json"
+          else
+            echo "No existing hashes.json found, creating new one"
+            echo '{}' > hashes.json
+          fi
+
+          # Hash all final renamed artifacts (test-* and BitWindow-*)
+          for file in test-*.zip test-*.exe test-*.AppImage BitWindow-*.zip BitWindow-*.exe BitWindow-*.AppImage BitWindow-*.dmg; do
+            if [ -f "$file" ]; then
+              hash=$(sha256sum "$file" | awk '{print $1}')
+              size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+              jq --arg file "$file" --arg hash "$hash" --arg size "$size" \
+                '.[$file] = {"sha256": $hash, "size": ($size | tonumber)}' \
+                hashes.json > tmp_hashes.json && mv tmp_hashes.json hashes.json
+              echo "Hashed $file: $hash ($size bytes)"
+            fi
+          done
+
+          echo "Final hashes.json:"
+          cat hashes.json | jq .
+
+      - name: Upload hashes.json as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hashes
+          path: hashes.json
+
       - name: Generate appcast for auto-updater
         continue-on-error: true
         run: |
@@ -1046,6 +1078,7 @@ jobs:
             'test-*.exe' => '/var/www/html/'
             'test-*.AppImage' => '/var/www/html/'
             'versions.json' => '/var/www/html/'
+            'hashes.json' => '/var/www/html/'
             'appcast-bitwindow.xml' => '/var/www/html/'
             'appcast-bitnames.xml' => '/var/www/html/'
             'appcast-bitassets.xml' => '/var/www/html/'

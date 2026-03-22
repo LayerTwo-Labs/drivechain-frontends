@@ -178,6 +178,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     copyable: true,
                   ),
                   if (downloadFile != null) viewModel.buildInfoRow(context, 'Download File', downloadFile),
+                  _HashVerificationSection(downloadInfo: viewModel.binary.downloadInfo),
                   StaticField(
                     label: 'Latest Release At',
                     value: viewModel.binary.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
@@ -210,6 +211,105 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
           ),
         );
       },
+    );
+  }
+}
+
+class _HashVerificationSection extends StatelessWidget {
+  final DownloadInfo downloadInfo;
+
+  const _HashVerificationSection({required this.downloadInfo});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final localHash = downloadInfo.hash;
+    final releaseHash = downloadInfo.expectedHash;
+    final isMismatch = downloadInfo.hashMatch == false;
+
+    if (localHash == null && releaseHash == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: SailText.secondary12('No hash data available (re-download to verify)'),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        SailText.primary13('Hash Verification', color: theme.colors.textTertiary),
+        const SizedBox(height: 8),
+        if (localHash != null) _HashRow(label: 'Local SHA256', hash: localHash),
+        if (releaseHash != null)
+          _HashRow(
+            label: 'Release Server',
+            hash: releaseHash,
+            isMismatch: localHash != null && releaseHash != localHash,
+          ),
+        if (isMismatch)
+          Tooltip(
+            message:
+                'The downloaded binary does not match the expected hash from the release server. '
+                'This could indicate the binary was tampered with or the download was corrupted.',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colors.error.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: theme.colors.error.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: theme.colors.error, size: 14),
+                  const SizedBox(width: 4),
+                  SailText.secondary12('HASH MISMATCH — binary may be compromised', color: theme.colors.error),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _HashRow extends StatelessWidget {
+  final String label;
+  final String hash;
+  final bool isMismatch;
+
+  const _HashRow({required this.label, required this.hash, this.isMismatch = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return Tooltip(
+      message: hash,
+      child: Container(
+        padding: const EdgeInsets.only(bottom: 4),
+        decoration: isMismatch ? BoxDecoration(color: theme.colors.error.withValues(alpha: 0.1)) : null,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 110,
+              child: SailText.secondary12(label, color: isMismatch ? theme.colors.error : null),
+            ),
+            Expanded(
+              child: SelectableText(
+                '${hash.substring(0, 16)}...${hash.substring(hash.length - 16)}',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: isMismatch ? theme.colors.error : theme.colors.text,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
