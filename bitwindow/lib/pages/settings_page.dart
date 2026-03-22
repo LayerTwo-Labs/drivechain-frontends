@@ -2375,6 +2375,7 @@ Future<void> _resetEverything(BuildContext context) async {
               Photon(),
               BitNames(),
               BitAssets(),
+              CoinShift(),
               ZSide(),
             ];
 

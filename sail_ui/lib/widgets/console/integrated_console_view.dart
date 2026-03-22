@@ -129,13 +129,26 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
     final paths = <String>[];
     final Map<String, bool> availableCLIs = {};
 
-    final allBinaries = [BitWindow(), Thunder(), BitNames(), BitAssets(), ZSide(), GRPCurl()];
+    final allBinaries = [
+      BitWindow(),
+      Thunder(),
+      Truthcoin(),
+      Photon(),
+      BitNames(),
+      BitAssets(),
+      CoinShift(),
+      ZSide(),
+      GRPCurl(),
+    ];
     final binaryToCLI = {
       'BitcoinCore': 'bitcoin-cli',
       'BitWindow': 'bitwindow-cli',
       'Thunder': 'thunder-cli',
+      'Truthcoin': 'truthcoin-cli',
+      'Photon': 'photon-cli',
       'BitNames': 'bitnames-cli',
       'BitAssets': 'bitassets-cli',
+      'CoinShift': 'coinshift-cli',
       'ZSide': 'zside-cli',
       'GRPCurl': 'grpcurl',
     };

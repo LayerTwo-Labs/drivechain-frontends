@@ -1047,72 +1047,91 @@ class CoinNewsArticlePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
+    final currentTheme = SailTheme.of(context);
 
-    return SailCard(
-      padding: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: SailStyleValues.padding16,
-              vertical: SailStyleValues.padding10,
-            ),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: theme.colors.background, width: 1),
-              ),
-            ),
-            child: Row(
+    // Use the opposite theme for the article panel
+    final oppositeThemeData = currentTheme.isLightMode()
+        ? SailThemeData.darkTheme(currentTheme.colors.primary, currentTheme.dense, currentTheme.font)
+        : SailThemeData.lightTheme(currentTheme.colors.primary, currentTheme.dense, currentTheme.font);
+
+    return SailTheme(
+      data: oppositeThemeData,
+      child: Builder(
+        builder: (context) {
+          final theme = SailTheme.of(context);
+
+          return SailCard(
+            padding: false,
+            color: theme.colors.background,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: SailText.primary13(news.headline, bold: true),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SailStyleValues.padding16,
+                    vertical: SailStyleValues.padding10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colors.background,
+                    border: Border(
+                      bottom: BorderSide(color: theme.colors.divider, width: 1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SailText.primary13(news.headline, bold: true),
+                      ),
+                      SailButton(
+                        label: 'Close',
+                        variant: ButtonVariant.ghost,
+                        onPressed: () async => onClose(),
+                      ),
+                    ],
+                  ),
                 ),
-                SailButton(
-                  label: 'Close',
-                  variant: ButtonVariant.ghost,
-                  onPressed: () async => onClose(),
+                Expanded(
+                  child: Container(
+                    color: theme.colors.background,
+                    child: SelectionArea(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(SailStyleValues.padding16),
+                        child: MarkdownBody(
+                          data: news.content,
+                          styleSheet: MarkdownStyleSheet(
+                            p: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
+                            h1: SailStyleValues.twenty.copyWith(color: theme.colors.text),
+                            h2: SailStyleValues.twenty.copyWith(color: theme.colors.text),
+                            h3: SailStyleValues.fifteen.copyWith(color: theme.colors.text),
+                            listBullet: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
+                            pPadding: const EdgeInsets.only(bottom: 12),
+                            blockquoteDecoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: SailStyleValues.borderRadius,
+                            ),
+                            codeblockDecoration: BoxDecoration(
+                              color: SailColorScheme.blackLighter,
+                              borderRadius: SailStyleValues.borderRadius,
+                            ),
+                            code: SailStyleValues.thirteen.copyWith(
+                              color: SailColorScheme.white,
+                              fontFamily: 'IBMPlexMono',
+                            ),
+                            codeblockPadding: const EdgeInsets.all(12),
+                          ),
+                          onTapLink: (_, href, _) async {
+                            if (href == null) return;
+                            await launchUrl(Uri.parse(href));
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-          Expanded(
-            child: SelectionArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(SailStyleValues.padding16),
-                child: MarkdownBody(
-                  data: news.content,
-                  styleSheet: MarkdownStyleSheet(
-                    p: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
-                    h1: SailStyleValues.twenty.copyWith(color: theme.colors.text),
-                    h2: SailStyleValues.twenty.copyWith(color: theme.colors.text),
-                    h3: SailStyleValues.fifteen.copyWith(color: theme.colors.text),
-                    listBullet: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
-                    pPadding: const EdgeInsets.only(bottom: 12),
-                    blockquoteDecoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: SailStyleValues.borderRadius,
-                    ),
-                    codeblockDecoration: BoxDecoration(
-                      color: SailColorScheme.blackLighter,
-                      borderRadius: SailStyleValues.borderRadius,
-                    ),
-                    code: SailStyleValues.thirteen.copyWith(
-                      color: SailColorScheme.white,
-                      fontFamily: 'IBMPlexMono',
-                    ),
-                    codeblockPadding: const EdgeInsets.all(12),
-                  ),
-                  onTapLink: (_, href, _) async {
-                    if (href == null) return;
-                    await launchUrl(Uri.parse(href));
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

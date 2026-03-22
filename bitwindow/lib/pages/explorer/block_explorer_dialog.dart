@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -432,6 +433,7 @@ class TransactionDetailsDialog extends StatefulWidget {
 
 class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> with SingleTickerProviderStateMixin {
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
+  Logger get log => GetIt.I.get<Logger>();
 
   late TabController _tabController;
   GetTransactionDetailsResponse? _details;
@@ -469,10 +471,11 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> wit
         _isLoading = false;
       });
     } catch (e) {
+      log.e('failed to load transaction details for txid=${widget.txid}: $e');
       if (!mounted) return;
       setState(() {
         _details = null;
-        error = 'Failed to load transaction: ${e.toString()}';
+        error = 'failed to load transaction ${widget.txid}: $e';
         _isLoading = false;
       });
     }
