@@ -84,6 +84,8 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final isDemoMode = GetIt.I.get<BitcoinConfProvider>().isDemoMode;
 
+    final hashWarning = viewModel.hashMismatchWarning;
+
     final mainContent = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -101,13 +103,24 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
       ],
     );
 
-    if (!isDemoMode) {
+    if (!isDemoMode && hashWarning == null) {
       return mainContent;
+    }
+
+    if (!isDemoMode) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (hashWarning != null) _HashMismatchBanner(names: hashWarning),
+          Expanded(child: mainContent),
+        ],
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (hashWarning != null) _HashMismatchBanner(names: hashWarning),
         Expanded(child: mainContent),
         const SizedBox(height: SailStyleValues.padding16),
         ViewModelBuilder<RecentActionsViewModel>.reactive(
@@ -121,6 +134,45 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
           },
         ),
       ],
+    );
+  }
+}
+
+class _HashMismatchBanner extends StatelessWidget {
+  final String names;
+
+  const _HashMismatchBanner({required this.names});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return Tooltip(
+      message:
+          'The downloaded binaries do not match the expected hashes from the release server.\n'
+          'This could indicate the binaries were tampered with or the download was corrupted.\n'
+          'Re-download these sidechains to resolve.',
+      child: Container(
+        padding: const EdgeInsets.all(SailStyleValues.padding12),
+        margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+        decoration: BoxDecoration(
+          color: theme.colors.error.withValues(alpha: 0.1),
+          borderRadius: SailStyleValues.borderRadius,
+          border: Border.all(color: theme.colors.error.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: theme.colors.error, size: 18),
+            const SizedBox(width: SailStyleValues.padding08),
+            Expanded(
+              child: SailText.primary13(
+                'Hash mismatch detected for $names',
+                color: theme.colors.error,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -275,6 +327,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
           final sidechain = viewModel.sidechains[slot];
           final textColor = context.sailTheme.colors.text;
           final buttonWidget = viewModel.sidechainWidget(slot);
+          final statusIcon = viewModel.sidechainStatusIcon(context, slot);
           final updateAvailable = viewModel.updateAvailable(slot);
           final binary = viewModel.sidechainForSlot(slot);
 
@@ -288,7 +341,16 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             SailTableCell(
               key: buttonWidget?.key,
               value: '                    ',
-              child: buttonWidget,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (statusIcon != null) ...[
+                    statusIcon,
+                    const SizedBox(width: SailStyleValues.padding08),
+                  ],
+                  if (buttonWidget != null) Flexible(child: buttonWidget),
+                ],
+              ),
             ),
             SailTableCell(
               value: '        ',
@@ -363,7 +425,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
             return;
           }
 
-          showTransactionDetails(context, rowId);
+          showTransactionDetails(context, sidechain.info.chaintipTxid);
         },
         contextMenuItems: (rowId) {
           final sidechain = viewModel.sidechains[int.parse(rowId)];
@@ -473,6 +535,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
           final sidechain = viewModel.sidechains[slot];
           final textColor = sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
           final buttonWidget = viewModel.sidechainWidget(slot);
+          final statusIcon = viewModel.sidechainStatusIcon(context, slot);
           final updateAvailable = viewModel.updateAvailable(slot);
           final binary = viewModel.sidechainForSlot(slot);
 
@@ -486,7 +549,16 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             SailTableCell(
               key: buttonWidget?.key,
               value: buttonWidget?.toString() ?? '',
-              child: buttonWidget,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (statusIcon != null) ...[
+                    statusIcon,
+                    const SizedBox(width: SailStyleValues.padding08),
+                  ],
+                  if (buttonWidget != null) Flexible(child: buttonWidget),
+                ],
+              ),
             ),
             SailTableCell(
               value: '        ',
@@ -545,7 +617,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
             return;
           }
 
-          showTransactionDetails(context, rowId);
+          showTransactionDetails(context, sidechain.info.chaintipTxid);
         },
         contextMenuItems: (rowId) {
           final sidechain = viewModel.sidechains[int.parse(rowId)];
@@ -694,6 +766,20 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return rpc;
   }
 
+  /// Returns names of sidechains with hash mismatches, formatted for display.
+  String? get hashMismatchWarning {
+    final mismatched = <String>[];
+    for (final binary in _binaryProvider.binaries) {
+      if (binary.downloadInfo.hashMatch == false) {
+        mismatched.add(binary.name);
+      }
+    }
+    if (mismatched.isEmpty) return null;
+    if (mismatched.length == 1) return mismatched.first;
+    final last = mismatched.removeLast();
+    return '${mismatched.join(', ')} and $last';
+  }
+
   bool isSidechainRunning(int slot) {
     final sidechain = sidechainForSlot(slot);
     if (sidechain == null) {
@@ -724,73 +810,19 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailButton(
         key: ValueKey('disabled_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Disabled',
+        variant: ButtonVariant.outline,
         onPressed: null,
         insideTable: true,
       );
     }
 
-    // Check if binary is running
-    final isRunning = switch (sidechain) {
-      var b when b is BitcoinCore => _binaryProvider.mainchainConnected,
-      var b when b is Enforcer => _binaryProvider.enforcerConnected,
-      var b when b is BitWindow => _binaryProvider.bitwindowConnected,
-      var b when b is Thunder => _binaryProvider.thunderConnected,
-      var b when b is BitNames => _binaryProvider.bitnamesConnected,
-      var b when b is BitAssets => _binaryProvider.bitassetsConnected,
-      var b when b is ZSide => _binaryProvider.zsideConnected,
-      var b when b is Truthcoin => _binaryProvider.truthcoinConnected,
-      var b when b is Photon => _binaryProvider.photonConnected,
-      var b when b is CoinShift => _binaryProvider.coinshiftConnected,
-      _ => false,
-    };
-
-    // Check if binary is initializing
-    final isInitializing = switch (sidechain) {
-      var b when b is BitcoinCore => _binaryProvider.mainchainInitializing,
-      var b when b is Enforcer => _binaryProvider.enforcerInitializing,
-      var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
-      var b when b is Thunder => _binaryProvider.thunderInitializing,
-      var b when b is BitNames => _binaryProvider.bitnamesInitializing,
-      var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
-      var b when b is ZSide => _binaryProvider.zsideInitializing,
-      var b when b is Truthcoin => _binaryProvider.truthcoinInitializing,
-      var b when b is Photon => _binaryProvider.photonInitializing,
-      var b when b is CoinShift => _binaryProvider.coinshiftInitializing,
-      _ => false,
-    };
-
-    final stopping = switch (sidechain) {
-      var b when b is BitcoinCore => _binaryProvider.mainchainStopping,
-      var b when b is Enforcer => _binaryProvider.enforcerStopping,
-      var b when b is BitWindow => _binaryProvider.bitwindowStopping,
-      var b when b is Thunder => _binaryProvider.thunderStopping,
-      var b when b is BitNames => _binaryProvider.bitnamesStopping,
-      var b when b is BitAssets => _binaryProvider.bitassetsStopping,
-      var b when b is ZSide => _binaryProvider.zsideStopping,
-      var b when b is Truthcoin => _binaryProvider.truthcoinStopping,
-      var b when b is Photon => _binaryProvider.photonStopping,
-      var b when b is CoinShift => _binaryProvider.coinshiftStopping,
-      _ => false,
-    };
-
-    final downloading = switch (sidechain) {
-      var b when b is BitcoinCore => _binaryProvider.mainchainDownloadState.isDownloading,
-      var b when b is Enforcer => _binaryProvider.enforcerDownloadState.isDownloading,
-      var b when b is BitWindow => _binaryProvider.bitwindowDownloadState.isDownloading,
-      var b when b is Thunder => _binaryProvider.thunderDownloadState.isDownloading,
-      var b when b is BitNames => _binaryProvider.bitnamesDownloadState.isDownloading,
-      var b when b is BitAssets => _binaryProvider.bitassetsDownloadState.isDownloading,
-      var b when b is ZSide => _binaryProvider.zsideDownloadState.isDownloading,
-      var b when b is Truthcoin => _binaryProvider.truthcoinDownloadState.isDownloading,
-      var b when b is Photon => _binaryProvider.photonDownloadState.isDownloading,
-      var b when b is CoinShift => _binaryProvider.coinshiftDownloadState.isDownloading,
-      _ => false,
-    };
-
+    final isRunning = _binaryProvider.isConnected(sidechain);
+    final isInitializing = _binaryProvider.isInitializing(sidechain);
+    final stopping = _binaryProvider.isStopping(sidechain);
+    final downloading = _binaryProvider.downloadProgress(sidechain.type).isDownloading;
     final isProcessRunning = _binaryProvider.isRunning(sidechain);
 
     if (downloading) {
-      // Use the combined state getter for consistency
       final downloadInfo = _binaryProvider.downloadProgress(sidechain.type);
 
       final syncInfo = SyncInfo(
@@ -812,6 +844,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailButton(
         key: ValueKey('stopping_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Stopping...',
+        variant: ButtonVariant.outline,
         onPressed: null,
         insideTable: true,
         loading: true,
@@ -822,6 +855,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailButton(
         key: ValueKey('stop_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Stop',
+        variant: ButtonVariant.outline,
         onPressed: () async => _binaryProvider.stop(sidechain),
         insideTable: true,
       );
@@ -831,6 +865,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailButton(
         key: ValueKey('launching_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Launching...',
+        variant: ButtonVariant.outline,
         onPressed: null,
         insideTable: true,
         loading: true,
@@ -841,7 +876,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailButton(
         key: ValueKey('kill_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Kill',
-        onPressed: () => _binaryProvider.stop(sidechain),
+        variant: ButtonVariant.outline,
+        onPressed: () async => _binaryProvider.stop(sidechain),
         insideTable: true,
       );
     }
@@ -850,6 +886,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailButton(
         key: ValueKey('download_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Download',
+        variant: ButtonVariant.primary,
         onPressed: () async => await _binaryProvider.download(sidechain),
         insideTable: true,
       );
@@ -861,7 +898,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         return SailButton(
           key: ValueKey('preview_slot_${sidechain.slot}_${sidechain.name}'),
           label: 'Preview',
-          variant: ButtonVariant.primary,
+          variant: ButtonVariant.outline,
           onPressed: () async {
             final router = GetIt.I.get<AppRouter>();
             await router.push(
@@ -879,6 +916,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailButton(
         key: ValueKey('start_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Start',
+        variant: ButtonVariant.primary,
         onPressed: () async => await _binaryProvider.start(sidechain),
         insideTable: true,
       );
@@ -887,8 +925,55 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return SailButton(
       key: ValueKey('error_slot_${sidechain.slot}_${sidechain.name}'),
       label: 'Devs did you wrong...',
-      onPressed: () => throw Exception('Send them this error'),
+      variant: ButtonVariant.outline,
+      onPressed: () async => throw Exception('Send them this error'),
       insideTable: true,
+    );
+  }
+
+  /// Connection status icon matching the Daemon Status card style.
+  /// Shows green/orange/red icon with error tooltip on hover.
+  Widget? sidechainStatusIcon(BuildContext context, int slot) {
+    final sidechain = sidechainForSlot(slot);
+    if (sidechain == null) return null;
+
+    final theme = SailTheme.of(context);
+    final rpc = rpcForSlot(slot);
+    if (rpc == null) return null;
+
+    final isRunning = _binaryProvider.isConnected(sidechain);
+    final isInitializing = _binaryProvider.isInitializing(sidechain);
+    final downloading = _binaryProvider.downloadProgress(sidechain.type).isDownloading;
+    final error = _binaryProvider.connectionError(sidechain);
+    final startupErr = rpc.startupError;
+    final isProcessRunning = _binaryProvider.isRunning(sidechain);
+
+    // Don't show icon if binary is not active at all
+    if (!isRunning && !isInitializing && !downloading && !isProcessRunning && error == null) {
+      return null;
+    }
+
+    final Color color;
+    if (downloading || isInitializing) {
+      color = theme.colors.orangeLight;
+    } else if (isRunning) {
+      color = theme.colors.success;
+    } else {
+      color = theme.colors.error;
+    }
+
+    final tooltipMessage =
+        error ??
+        startupErr ??
+        (isRunning
+            ? 'Connected'
+            : isInitializing
+            ? 'Connecting...'
+            : '');
+
+    return Tooltip(
+      message: tooltipMessage,
+      child: SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: color, width: 16, height: 13),
     );
   }
 
@@ -1124,61 +1209,43 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('addressController', addressController.text);
     track('fee', feeController.text);
 
-    // Binary states that affect sidechainWidget() rendering
-    track('binaryStates', _getBinaryStates());
+    // Binary states that affect sidechainWidget() rendering - notify immediately
+    // so sidechain list buttons update instantly when binaries connect/disconnect.
+    final binaryChanged = track('binaryStates', _getBinaryStates());
 
     // Loading and error states
     track('loading', loading);
     // Error handling
-    final hasChanges = track('error', _sidechainProvider.error);
-    if (hasChanges) {
+    final errorChanged = track('error', _sidechainProvider.error);
+    if (errorChanged) {
       setErrorForObject('sidechain', _sidechainProvider.error);
     }
 
-    notifyIfChanged();
+    if (binaryChanged) {
+      // Binary state changes (connect/disconnect/start/stop) must rebuild
+      // immediately - bypass the ChangeTrackingMixin debounce.
+      notifyListeners();
+    } else {
+      notifyIfChanged();
+    }
   }
 
-  // Helper method to track binary states efficiently
+  // Helper method to track binary states efficiently.
+  // Uses per-binary helper methods for connected/initializing/stopping,
+  // and tracks errors + download state for status icon tooltips.
   Map<String, dynamic> _getBinaryStates() {
-    final states = {
-      'mainchainConnected': _binaryProvider.mainchainConnected,
-      'enforcerConnected': _binaryProvider.enforcerConnected,
-      'bitwindowConnected': _binaryProvider.bitwindowConnected,
-      'thunderConnected': _binaryProvider.thunderConnected,
-      'bitnamesConnected': _binaryProvider.bitnamesConnected,
-      'bitassetsConnected': _binaryProvider.bitassetsConnected,
-      'truthcoinConnected': _binaryProvider.truthcoinConnected,
-      'photonConnected': _binaryProvider.photonConnected,
-      'coinshiftConnected': _binaryProvider.coinshiftConnected,
-      'mainchainInitializing': _binaryProvider.mainchainInitializing,
-      'enforcerInitializing': _binaryProvider.enforcerInitializing,
-      'bitwindowInitializing': _binaryProvider.bitwindowInitializing,
-      'thunderInitializing': _binaryProvider.thunderInitializing,
-      'bitnamesInitializing': _binaryProvider.bitnamesInitializing,
-      'bitassetsInitializing': _binaryProvider.bitassetsInitializing,
-      'truthcoinInitializing': _binaryProvider.truthcoinInitializing,
-      'photonInitializing': _binaryProvider.photonInitializing,
-      'coinshiftInitializing': _binaryProvider.coinshiftInitializing,
-      'mainchainStopping': _binaryProvider.mainchainStopping,
-      'enforcerStopping': _binaryProvider.enforcerStopping,
-      'bitwindowStopping': _binaryProvider.bitwindowStopping,
-      'thunderStopping': _binaryProvider.thunderStopping,
-      'bitnamesStopping': _binaryProvider.bitnamesStopping,
-      'bitassetsStopping': _binaryProvider.bitassetsStopping,
-      'truthcoinStopping': _binaryProvider.truthcoinStopping,
-      'photonStopping': _binaryProvider.photonStopping,
-      'coinshiftStopping': _binaryProvider.coinshiftStopping,
-      // Track complete download states for better change detection
-      'bitnamesDownloadState': _binaryProvider.bitnamesDownloadState,
-      'bitassetsDownloadState': _binaryProvider.bitassetsDownloadState,
-      'mainchainDownloadState': _binaryProvider.mainchainDownloadState,
-      'enforcerDownloadState': _binaryProvider.enforcerDownloadState,
-      'bitwindowDownloadState': _binaryProvider.bitwindowDownloadState,
-      'thunderDownloadState': _binaryProvider.thunderDownloadState,
-      'truthcoinDownloadState': _binaryProvider.truthcoinDownloadState,
-      'photonDownloadState': _binaryProvider.photonDownloadState,
-      'coinshiftDownloadState': _binaryProvider.coinshiftDownloadState,
-    };
+    final states = <String, dynamic>{};
+
+    for (final binary in _binaryProvider.binaries) {
+      final key = binary.name;
+      states['${key}_connected'] = _binaryProvider.isConnected(binary);
+      states['${key}_initializing'] = _binaryProvider.isInitializing(binary);
+      states['${key}_stopping'] = _binaryProvider.isStopping(binary);
+      states['${key}_running'] = _binaryProvider.isRunning(binary);
+      states['${key}_downloading'] = _binaryProvider.downloadProgress(binary.type).isDownloading;
+      states['${key}_error'] = _binaryProvider.connectionError(binary);
+      states['${key}_downloaded'] = binary.isDownloaded;
+    }
 
     return states;
   }
