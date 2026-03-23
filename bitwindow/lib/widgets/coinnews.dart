@@ -89,8 +89,7 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   onSort: viewModel.sortEntries,
                   loading: viewModel.loading,
                   allTopics: viewModel.topics,
-                  onArticleSelected: viewModel.selectArticle,
-                  selectedRowId: viewModel.selectedRowId,
+                  onArticleSelected: (news) => showCoinNewsArticle(context, news),
                 ),
                 const SizedBox(height: 16),
                 Pagination(
@@ -104,13 +103,6 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
               ],
             ),
           ),
-          if (viewModel.selectedArticle != null)
-            Flexible(
-              child: CoinNewsArticlePanel(
-                news: viewModel.selectedArticle!,
-                onClose: viewModel.clearSelection,
-              ),
-            ),
         ],
       ),
     );
@@ -163,16 +155,14 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                       allTopics: viewModel.topics,
                       shrinkWrap: false,
                       condensed: true,
-                      onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: true),
-                      selectedRowId: viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
+                      onArticleSelected: (news) => showCoinNewsArticle(context, news),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          if (viewModel.selectedArticle == null)
-            Expanded(
+          Expanded(
               child: SailCard(
                 child: SailColumn(
                   children: [
@@ -226,19 +216,11 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                         allTopics: viewModel.topics,
                         shrinkWrap: false,
                         condensed: true,
-                        onArticleSelected: (news) => viewModel.selectArticle(news, fromLeft: false),
-                        selectedRowId: !viewModel.selectedFromLeft ? viewModel.selectedRowId : null,
+                        onArticleSelected: (news) => showCoinNewsArticle(context, news),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-          if (viewModel.selectedArticle != null)
-            Expanded(
-              child: CoinNewsArticlePanel(
-                news: viewModel.selectedArticle!,
-                onClose: viewModel.clearSelection,
               ),
             ),
         ],
@@ -1033,6 +1015,27 @@ class CoinNewsTable extends StatelessWidget {
       ),
     );
   }
+}
+
+void showCoinNewsArticle(BuildContext context, CoinNews news) {
+  final theme = SailTheme.of(context);
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: theme.colors.backgroundSecondary,
+    useSafeArea: true,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.of(context).size.height * 0.9,
+      maxWidth: 700,
+    ),
+    builder: (context) {
+      return CoinNewsArticlePanel(
+        news: news,
+        onClose: () => Navigator.of(context).pop(),
+      );
+    },
+  );
 }
 
 class CoinNewsArticlePanel extends StatelessWidget {
