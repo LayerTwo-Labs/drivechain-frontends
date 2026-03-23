@@ -1916,7 +1916,7 @@ type Cheque struct {
 	Address            string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	ExpectedAmountSats uint64                 `protobuf:"varint,4,opt,name=expected_amount_sats,json=expectedAmountSats,proto3" json:"expected_amount_sats,omitempty"`
 	Funded             bool                   `protobuf:"varint,5,opt,name=funded,proto3" json:"funded,omitempty"`
-	FundedTxid         *string                `protobuf:"bytes,6,opt,name=funded_txid,json=fundedTxid,proto3,oneof" json:"funded_txid,omitempty"`
+	FundedTxids        []string               `protobuf:"bytes,6,rep,name=funded_txids,json=fundedTxids,proto3" json:"funded_txids,omitempty"`
 	ActualAmountSats   *uint64                `protobuf:"varint,7,opt,name=actual_amount_sats,json=actualAmountSats,proto3,oneof" json:"actual_amount_sats,omitempty"`
 	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	FundedAt           *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=funded_at,json=fundedAt,proto3,oneof" json:"funded_at,omitempty"`
@@ -1992,11 +1992,11 @@ func (x *Cheque) GetFunded() bool {
 	return false
 }
 
-func (x *Cheque) GetFundedTxid() string {
-	if x != nil && x.FundedTxid != nil {
-		return *x.FundedTxid
+func (x *Cheque) GetFundedTxids() []string {
+	if x != nil {
+		return x.FundedTxids
 	}
-	return ""
+	return nil
 }
 
 func (x *Cheque) GetActualAmountSats() uint64 {
@@ -2185,7 +2185,7 @@ type CheckChequeFundingResponse struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Funded           bool                   `protobuf:"varint,1,opt,name=funded,proto3" json:"funded,omitempty"`
 	ActualAmountSats uint64                 `protobuf:"varint,2,opt,name=actual_amount_sats,json=actualAmountSats,proto3" json:"actual_amount_sats,omitempty"`
-	FundedTxid       string                 `protobuf:"bytes,3,opt,name=funded_txid,json=fundedTxid,proto3" json:"funded_txid,omitempty"`
+	FundedTxids      []string               `protobuf:"bytes,3,rep,name=funded_txids,json=fundedTxids,proto3" json:"funded_txids,omitempty"`
 	FundedAt         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=funded_at,json=fundedAt,proto3,oneof" json:"funded_at,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
@@ -2235,11 +2235,11 @@ func (x *CheckChequeFundingResponse) GetActualAmountSats() uint64 {
 	return 0
 }
 
-func (x *CheckChequeFundingResponse) GetFundedTxid() string {
+func (x *CheckChequeFundingResponse) GetFundedTxids() []string {
 	if x != nil {
-		return x.FundedTxid
+		return x.FundedTxids
 	}
-	return ""
+	return nil
 }
 
 func (x *CheckChequeFundingResponse) GetFundedAt() *timestamppb.Timestamp {
@@ -3881,25 +3881,23 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\"E\n" +
 	"\x1bGetChequePrivateKeyResponse\x12&\n" +
-	"\x0fprivate_key_wif\x18\x01 \x01(\tR\rprivateKeyWif\"\xeb\x04\n" +
+	"\x0fprivate_key_wif\x18\x01 \x01(\tR\rprivateKeyWif\"\xd8\x04\n" +
 	"\x06Cheque\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12)\n" +
 	"\x10derivation_index\x18\x02 \x01(\rR\x0fderivationIndex\x12\x18\n" +
 	"\aaddress\x18\x03 \x01(\tR\aaddress\x120\n" +
 	"\x14expected_amount_sats\x18\x04 \x01(\x04R\x12expectedAmountSats\x12\x16\n" +
-	"\x06funded\x18\x05 \x01(\bR\x06funded\x12$\n" +
-	"\vfunded_txid\x18\x06 \x01(\tH\x00R\n" +
-	"fundedTxid\x88\x01\x01\x121\n" +
-	"\x12actual_amount_sats\x18\a \x01(\x04H\x01R\x10actualAmountSats\x88\x01\x01\x129\n" +
+	"\x06funded\x18\x05 \x01(\bR\x06funded\x12!\n" +
+	"\ffunded_txids\x18\x06 \x03(\tR\vfundedTxids\x121\n" +
+	"\x12actual_amount_sats\x18\a \x01(\x04H\x00R\x10actualAmountSats\x88\x01\x01\x129\n" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
-	"\tfunded_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampH\x02R\bfundedAt\x88\x01\x01\x12+\n" +
+	"\tfunded_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bfundedAt\x88\x01\x01\x12+\n" +
 	"\x0fprivate_key_wif\x18\n" +
-	" \x01(\tH\x03R\rprivateKeyWif\x88\x01\x01\x12\"\n" +
+	" \x01(\tH\x02R\rprivateKeyWif\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"swept_txid\x18\v \x01(\tH\x04R\tsweptTxid\x88\x01\x01\x12:\n" +
-	"\bswept_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampH\x05R\asweptAt\x88\x01\x01B\x0e\n" +
-	"\f_funded_txidB\x15\n" +
+	"swept_txid\x18\v \x01(\tH\x03R\tsweptTxid\x88\x01\x01\x12:\n" +
+	"\bswept_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampH\x04R\asweptAt\x88\x01\x01B\x15\n" +
 	"\x13_actual_amount_satsB\f\n" +
 	"\n" +
 	"_funded_atB\x12\n" +
@@ -3912,12 +3910,11 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\acheques\x18\x01 \x03(\v2\x11.wallet.v1.ChequeR\acheques\"H\n" +
 	"\x19CheckChequeFundingRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\x03R\x02id\"\xcf\x01\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\"\xd1\x01\n" +
 	"\x1aCheckChequeFundingResponse\x12\x16\n" +
 	"\x06funded\x18\x01 \x01(\bR\x06funded\x12,\n" +
-	"\x12actual_amount_sats\x18\x02 \x01(\x04R\x10actualAmountSats\x12\x1f\n" +
-	"\vfunded_txid\x18\x03 \x01(\tR\n" +
-	"fundedTxid\x12<\n" +
+	"\x12actual_amount_sats\x18\x02 \x01(\x04R\x10actualAmountSats\x12!\n" +
+	"\ffunded_txids\x18\x03 \x03(\tR\vfundedTxids\x12<\n" +
 	"\tfunded_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\bfundedAt\x88\x01\x01B\f\n" +
 	"\n" +
 	"_funded_at\"\xb5\x01\n" +

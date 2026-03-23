@@ -560,16 +560,15 @@ const Cheque$json = {
     {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
     {'1': 'expected_amount_sats', '3': 4, '4': 1, '5': 4, '10': 'expectedAmountSats'},
     {'1': 'funded', '3': 5, '4': 1, '5': 8, '10': 'funded'},
-    {'1': 'funded_txid', '3': 6, '4': 1, '5': 9, '9': 0, '10': 'fundedTxid', '17': true},
-    {'1': 'actual_amount_sats', '3': 7, '4': 1, '5': 4, '9': 1, '10': 'actualAmountSats', '17': true},
+    {'1': 'funded_txids', '3': 6, '4': 3, '5': 9, '10': 'fundedTxids'},
+    {'1': 'actual_amount_sats', '3': 7, '4': 1, '5': 4, '9': 0, '10': 'actualAmountSats', '17': true},
     {'1': 'created_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'funded_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 2, '10': 'fundedAt', '17': true},
-    {'1': 'private_key_wif', '3': 10, '4': 1, '5': 9, '9': 3, '10': 'privateKeyWif', '17': true},
-    {'1': 'swept_txid', '3': 11, '4': 1, '5': 9, '9': 4, '10': 'sweptTxid', '17': true},
-    {'1': 'swept_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 5, '10': 'sweptAt', '17': true},
+    {'1': 'funded_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 1, '10': 'fundedAt', '17': true},
+    {'1': 'private_key_wif', '3': 10, '4': 1, '5': 9, '9': 2, '10': 'privateKeyWif', '17': true},
+    {'1': 'swept_txid', '3': 11, '4': 1, '5': 9, '9': 3, '10': 'sweptTxid', '17': true},
+    {'1': 'swept_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 4, '10': 'sweptAt', '17': true},
   ],
   '8': [
-    {'1': '_funded_txid'},
     {'1': '_actual_amount_sats'},
     {'1': '_funded_at'},
     {'1': '_private_key_wif'},
@@ -583,15 +582,14 @@ final $typed_data.Uint8List chequeDescriptor = $convert.base64Decode(
     'CgZDaGVxdWUSDgoCaWQYASABKANSAmlkEikKEGRlcml2YXRpb25faW5kZXgYAiABKA1SD2Rlcm'
     'l2YXRpb25JbmRleBIYCgdhZGRyZXNzGAMgASgJUgdhZGRyZXNzEjAKFGV4cGVjdGVkX2Ftb3Vu'
     'dF9zYXRzGAQgASgEUhJleHBlY3RlZEFtb3VudFNhdHMSFgoGZnVuZGVkGAUgASgIUgZmdW5kZW'
-    'QSJAoLZnVuZGVkX3R4aWQYBiABKAlIAFIKZnVuZGVkVHhpZIgBARIxChJhY3R1YWxfYW1vdW50'
-    'X3NhdHMYByABKARIAVIQYWN0dWFsQW1vdW50U2F0c4gBARI5CgpjcmVhdGVkX2F0GAggASgLMh'
-    'ouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjwKCWZ1bmRlZF9hdBgJIAEo'
-    'CzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAlIIZnVuZGVkQXSIAQESKwoPcHJpdmF0ZV'
-    '9rZXlfd2lmGAogASgJSANSDXByaXZhdGVLZXlXaWaIAQESIgoKc3dlcHRfdHhpZBgLIAEoCUgE'
-    'Uglzd2VwdFR4aWSIAQESOgoIc3dlcHRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZX'
-    'N0YW1wSAVSB3N3ZXB0QXSIAQFCDgoMX2Z1bmRlZF90eGlkQhUKE19hY3R1YWxfYW1vdW50X3Nh'
-    'dHNCDAoKX2Z1bmRlZF9hdEISChBfcHJpdmF0ZV9rZXlfd2lmQg0KC19zd2VwdF90eGlkQgsKCV'
-    '9zd2VwdF9hdA==');
+    'QSIQoMZnVuZGVkX3R4aWRzGAYgAygJUgtmdW5kZWRUeGlkcxIxChJhY3R1YWxfYW1vdW50X3Nh'
+    'dHMYByABKARIAFIQYWN0dWFsQW1vdW50U2F0c4gBARI5CgpjcmVhdGVkX2F0GAggASgLMhouZ2'
+    '9vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjwKCWZ1bmRlZF9hdBgJIAEoCzIa'
+    'Lmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAVIIZnVuZGVkQXSIAQESKwoPcHJpdmF0ZV9rZX'
+    'lfd2lmGAogASgJSAJSDXByaXZhdGVLZXlXaWaIAQESIgoKc3dlcHRfdHhpZBgLIAEoCUgDUglz'
+    'd2VwdFR4aWSIAQESOgoIc3dlcHRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW'
+    '1wSARSB3N3ZXB0QXSIAQFCFQoTX2FjdHVhbF9hbW91bnRfc2F0c0IMCgpfZnVuZGVkX2F0QhIK'
+    'EF9wcml2YXRlX2tleV93aWZCDQoLX3N3ZXB0X3R4aWRCCwoJX3N3ZXB0X2F0');
 
 @$core.Deprecated('Use listChequesRequestDescriptor instead')
 const ListChequesRequest$json = {
@@ -638,7 +636,7 @@ const CheckChequeFundingResponse$json = {
   '2': [
     {'1': 'funded', '3': 1, '4': 1, '5': 8, '10': 'funded'},
     {'1': 'actual_amount_sats', '3': 2, '4': 1, '5': 4, '10': 'actualAmountSats'},
-    {'1': 'funded_txid', '3': 3, '4': 1, '5': 9, '10': 'fundedTxid'},
+    {'1': 'funded_txids', '3': 3, '4': 3, '5': 9, '10': 'fundedTxids'},
     {'1': 'funded_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'fundedAt', '17': true},
   ],
   '8': [
@@ -649,9 +647,9 @@ const CheckChequeFundingResponse$json = {
 /// Descriptor for `CheckChequeFundingResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List checkChequeFundingResponseDescriptor = $convert.base64Decode(
     'ChpDaGVja0NoZXF1ZUZ1bmRpbmdSZXNwb25zZRIWCgZmdW5kZWQYASABKAhSBmZ1bmRlZBIsCh'
-    'JhY3R1YWxfYW1vdW50X3NhdHMYAiABKARSEGFjdHVhbEFtb3VudFNhdHMSHwoLZnVuZGVkX3R4'
-    'aWQYAyABKAlSCmZ1bmRlZFR4aWQSPAoJZnVuZGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYn'
-    'VmLlRpbWVzdGFtcEgAUghmdW5kZWRBdIgBAUIMCgpfZnVuZGVkX2F0');
+    'JhY3R1YWxfYW1vdW50X3NhdHMYAiABKARSEGFjdHVhbEFtb3VudFNhdHMSIQoMZnVuZGVkX3R4'
+    'aWRzGAMgAygJUgtmdW5kZWRUeGlkcxI8CglmdW5kZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG'
+    '9idWYuVGltZXN0YW1wSABSCGZ1bmRlZEF0iAEBQgwKCl9mdW5kZWRfYXQ=');
 
 @$core.Deprecated('Use sweepChequeRequestDescriptor instead')
 const SweepChequeRequest$json = {

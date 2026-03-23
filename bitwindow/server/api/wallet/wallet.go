@@ -2009,42 +2009,40 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		Msg("CheckChequeFunding: UTXOs found")
 
 	if len(utxos.Msg.Unspent) > 0 {
-		// Calculate total amount
+		// Collect ALL txids and sum total amount
 		var totalAmount float64
-		var txid string
+		var txids []string
 		for _, utxo := range utxos.Msg.Unspent {
 			totalAmount += utxo.Amount
-			txid = utxo.Txid
+			txids = append(txids, utxo.Txid)
 		}
 
 		// Convert BTC to satoshis
 		amountSats := uint64(totalAmount * 100000000)
 
-		// Update DB if not already funded
-		if cheque.FundedTxid == nil {
-			if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txid, amountSats); err != nil {
-				log.Error().Err(err).Msg("failed to update cheque funding")
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
-			}
+		// Always update — handles new fundings arriving after first one
+		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, amountSats); err != nil {
+			log.Error().Err(err).Msg("failed to update cheque funding")
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
+		}
 
-			log.Info().
-				Int64("id", c.Msg.Id).
-				Str("address", cheque.Address).
-				Uint64("amount_sats", amountSats).
-				Str("txid", txid).
-				Msg("cheque funded")
+		log.Info().
+			Int64("id", c.Msg.Id).
+			Str("address", cheque.Address).
+			Uint64("amount_sats", amountSats).
+			Int("utxo_count", len(txids)).
+			Msg("cheque funded")
 
-			// Re-fetch to get updated funded_at timestamp
-			cheque, err = cheques.Get(ctx, s.database, walletId, c.Msg.Id)
-			if err != nil {
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch cheque: %w", err))
-			}
+		// Re-fetch to get updated funded_at timestamp
+		cheque, err = cheques.Get(ctx, s.database, walletId, c.Msg.Id)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch cheque: %w", err))
 		}
 
 		resp := &pb.CheckChequeFundingResponse{
-			Funded:           true,
+			Funded:           cheque.IsFunded(),
 			ActualAmountSats: amountSats,
-			FundedTxid:       txid,
+			FundedTxids:      txids,
 		}
 		if cheque.FundedAt != nil {
 			resp.FundedAt = timestamppb.New(*cheque.FundedAt)
@@ -2053,7 +2051,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 	}
 
 	// No UTXOs found - if cheque was funded, it means it was swept
-	if cheque.FundedTxid != nil && cheque.SweptTxid == nil {
+	if cheque.IsFunded() && cheque.SweptTxid == nil {
 		log.Warn().
 			Str("address", cheque.Address).
 			Int64("id", c.Msg.Id).
@@ -2205,7 +2203,7 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 
 	// Only allow deletion of unfunded or swept cheques
 	// Funded but not swept = still has money, can't delete
-	if cheque.FundedTxid != nil && cheque.SweptTxid == nil {
+	if cheque.IsFunded() && cheque.SweptTxid == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot delete funded cheque"))
 	}
 
@@ -2230,13 +2228,11 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 		DerivationIndex:    c.DerivationIndex,
 		Address:            c.Address,
 		ExpectedAmountSats: c.ExpectedAmountSats,
-		Funded:             c.FundedTxid != nil,
+		Funded:             c.IsFunded(),
+		FundedTxids:        c.FundedTxids,
 		CreatedAt:          timestamppb.New(c.CreatedAt),
 	}
 
-	if c.FundedTxid != nil {
-		pbCheque.FundedTxid = c.FundedTxid
-	}
 	if c.ActualAmountSats != nil {
 		pbCheque.ActualAmountSats = c.ActualAmountSats
 	}
@@ -2251,7 +2247,7 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	}
 
 	// Only include private key if cheque is funded and wallet is unlocked
-	if c.FundedTxid != nil && s.walletEngine.IsUnlocked() {
+	if c.IsFunded() && s.walletEngine.IsUnlocked() {
 		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(c.WalletID, c.DerivationIndex)
 		if err == nil {
 			pbCheque.PrivateKeyWif = &privateKeyWIF

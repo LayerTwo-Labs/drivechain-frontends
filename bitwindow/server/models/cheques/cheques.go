@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -14,12 +15,22 @@ type Cheque struct {
 	DerivationIndex    uint32
 	ExpectedAmountSats uint64
 	Address            string
-	FundedTxid         *string
+	FundedTxids        []string
 	ActualAmountSats   *uint64
 	CreatedAt          time.Time
 	FundedAt           *time.Time
 	SweptTxid          *string
 	SweptAt            *time.Time
+}
+
+// IsFunded returns true if actual funds meet or exceed the expected amount
+func (c *Cheque) IsFunded() bool {
+	return c.ActualAmountSats != nil && *c.ActualAmountSats >= c.ExpectedAmountSats
+}
+
+// IsPartiallyFunded returns true if some funds arrived but less than expected
+func (c *Cheque) IsPartiallyFunded() bool {
+	return len(c.FundedTxids) > 0 && !c.IsFunded()
 }
 
 // Create creates a new cheque in the database
@@ -75,8 +86,8 @@ func scanCheque(scanner interface {
 		return nil, err
 	}
 
-	if fundedTxid.Valid {
-		cheque.FundedTxid = &fundedTxid.String
+	if fundedTxid.Valid && fundedTxid.String != "" {
+		cheque.FundedTxids = strings.Split(fundedTxid.String, ",")
 	}
 	if actualAmountSats.Valid {
 		amt := uint64(actualAmountSats.Int64)
@@ -159,15 +170,16 @@ func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
 	return cheques, rows.Err()
 }
 
-// UpdateFunding updates a cheque as funded
-func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, txid string, actualAmount uint64) error {
+// UpdateFunding updates a cheque's funding txids and amount
+func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, txids []string, actualAmount uint64) error {
 	now := time.Now()
+	joined := strings.Join(txids, ",")
 
 	result, err := db.ExecContext(ctx, `
 		UPDATE cheques
-		SET funded_txid = ?, actual_amount_sats = ?, funded_at = ?
+		SET funded_txid = ?, actual_amount_sats = ?, funded_at = COALESCE(funded_at, ?)
 		WHERE wallet_id = ? AND id = ?
-	`, txid, actualAmount, now, walletID, id)
+	`, joined, actualAmount, now, walletID, id)
 
 	if err != nil {
 		return fmt.Errorf("failed to update funding: %w", err)
@@ -254,7 +266,7 @@ func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 }
 
 // CreateOrUpdateFromRecovery creates or updates a cheque from recovery scan
-func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, txid string, amount uint64) error {
+func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, txids []string, amount uint64) error {
 	// Check if cheque already exists
 	existing, err := GetByAddress(ctx, db, walletID, address)
 	if err != nil && err != sql.ErrNoRows {
@@ -263,15 +275,16 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 
 	if existing != nil {
 		// Update existing cheque
-		return UpdateFunding(ctx, db, walletID, existing.ID, txid, amount)
+		return UpdateFunding(ctx, db, walletID, existing.ID, txids, amount)
 	}
 
 	// Create new cheque as already funded
 	now := time.Now()
+	joined := strings.Join(txids, ",")
 	_, err = db.ExecContext(ctx, `
 		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address, funded_txid, actual_amount_sats, funded_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, walletID, index, amount, address, txid, amount, now)
+	`, walletID, index, amount, address, joined, amount, now)
 
 	if err != nil {
 		return fmt.Errorf("failed to create recovered cheque: %w", err)
