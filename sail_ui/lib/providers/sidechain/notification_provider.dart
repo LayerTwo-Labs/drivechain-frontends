@@ -20,7 +20,10 @@ class NotificationProvider extends ChangeNotifier {
     final notification = SailNotification(
       title: title,
       content: content,
-      removeNotification: (content) => notifications.removeWhere((element) => element.key == Key(content)),
+      removeNotification: (content) {
+        notifications.removeWhere((element) => element.key == Key(content));
+        notifyListeners();
+      },
       dialogType: dialogType,
       onPressed: onPressed,
     );
