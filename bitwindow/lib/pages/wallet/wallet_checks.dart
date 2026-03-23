@@ -180,17 +180,17 @@ class ChecksTable extends StatelessWidget {
               value: check.hasSweptTxid() && check.sweptTxid.isNotEmpty
                   ? 'Swept'
                   : check.funded
-                      ? 'Funded'
-                      : check.fundedTxids.isNotEmpty
-                          ? 'Partially Funded'
-                          : 'Unfunded',
+                  ? 'Funded'
+                  : check.fundedTxids.isNotEmpty
+                  ? 'Partially Funded'
+                  : 'Unfunded',
               textColor: check.hasSweptTxid() && check.sweptTxid.isNotEmpty
                   ? context.sailTheme.colors.text.withValues(alpha: 0.5)
                   : check.funded
-                      ? context.sailTheme.colors.success
-                      : check.fundedTxids.isNotEmpty
-                          ? context.sailTheme.colors.orange
-                          : context.sailTheme.colors.orange,
+                  ? context.sailTheme.colors.success
+                  : check.fundedTxids.isNotEmpty
+                  ? context.sailTheme.colors.orange
+                  : context.sailTheme.colors.orange,
             ),
             SailTableCell(
               value: check.fundedTxids.isNotEmpty && check.hasActualAmountSats()
