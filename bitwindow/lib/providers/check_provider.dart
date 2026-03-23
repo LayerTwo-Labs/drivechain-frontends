@@ -24,6 +24,7 @@ class CheckProvider extends ChangeNotifier {
 
   Timer? _pollTimer;
   int? _pollingCheckId;
+  Timer? _unfundedPollTimer;
 
   CheckProvider() {
     _syncProvider.addListener(_onNewBlock);
@@ -33,6 +34,23 @@ class CheckProvider extends ChangeNotifier {
 
   Future<void> _init() async {
     await fetch();
+    _startUnfundedPolling();
+  }
+
+  void _startUnfundedPolling() {
+    _unfundedPollTimer?.cancel();
+    _unfundedPollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      final hasUnfunded = _checks.any((c) => !c.funded);
+      if (!hasUnfunded) return;
+      await _checkUnfundedChecks();
+    });
+  }
+
+  Future<void> _checkUnfundedChecks() async {
+    final unfunded = _checks.where((c) => !c.funded).toList();
+    for (final check in unfunded) {
+      await checkCheckFunding(check.id.toInt());
+    }
   }
 
   void _onNewBlock() {
@@ -64,6 +82,8 @@ class CheckProvider extends ChangeNotifier {
     try {
       _checks = await _bitwindowRPC.wallet.listCheques(walletId);
       modelError = null;
+      // Also check funding for unfunded checks (detects mempool txs)
+      await _checkUnfundedChecks();
     } catch (e) {
       log.e('Failed to fetch checks: $e');
       modelError = e.toString();
@@ -107,7 +127,7 @@ class CheckProvider extends ChangeNotifier {
       if (walletId == null) throw Exception('No active wallet');
       final resp = await _bitwindowRPC.wallet.checkChequeFunding(walletId, id);
 
-      if (resp.funded) {
+      if (resp.fundedTxids.isNotEmpty) {
         final index = _checks.indexWhere((c) => c.id == id);
         if (index != -1) {
           _checks[index] = Cheque(
@@ -115,7 +135,8 @@ class CheckProvider extends ChangeNotifier {
             derivationIndex: _checks[index].derivationIndex,
             address: _checks[index].address,
             expectedAmountSats: _checks[index].expectedAmountSats,
-            fundedTxid: resp.fundedTxid,
+            funded: resp.funded,
+            fundedTxids: resp.fundedTxids,
             actualAmountSats: resp.actualAmountSats,
             createdAt: _checks[index].createdAt,
             fundedAt: resp.hasFundedAt() ? resp.fundedAt : null,
@@ -191,6 +212,7 @@ class CheckProvider extends ChangeNotifier {
     _syncProvider.removeListener(_onNewBlock);
     _walletReader.removeListener(_onWalletChanged);
     stopPolling();
+    _unfundedPollTimer?.cancel();
     super.dispose();
   }
 }
