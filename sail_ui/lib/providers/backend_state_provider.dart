@@ -165,19 +165,6 @@ class BackendStateProvider extends ChangeNotifier {
     return rpcs;
   }
 
-  /// Map a backend binary name to its RPCConnection.
-  RPCConnection? _getRpcForBinaryName(String name) {
-    switch (name) {
-      case 'bitcoind':
-        return GetIt.I.isRegistered<MainchainRPC>() ? GetIt.I.get<MainchainRPC>() : null;
-      case 'enforcer':
-        return GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null;
-      default:
-        // Any sidechain name (thunder, zside, etc.)
-        return GetIt.I.isRegistered<SidechainRPC>() ? GetIt.I.get<SidechainRPC>() : null;
-    }
-  }
-
   /// Map backend binary name to BinaryType for updating download progress.
   void _updateDownloadProgress(String binaryName, int bytesDownloaded, int totalBytes, String message) {
     if (!GetIt.I.isRegistered<BinaryProvider>()) return;
