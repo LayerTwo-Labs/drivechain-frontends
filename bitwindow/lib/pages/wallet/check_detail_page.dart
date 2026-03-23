@@ -41,7 +41,7 @@ class CheckDetailViewModel extends BaseViewModel {
     _check = await _checkProvider.getCheck(checkId);
     if (_check == null) {
       modelError = 'Check not found';
-    } else if (!_check!.hasFundedTxid()) {
+    } else if (!_check!.funded) {
       _checkProvider.startPolling(checkId);
     }
 
@@ -103,7 +103,7 @@ class CheckDetailViewModel extends BaseViewModel {
   }
 
   Future<void> sweepCheck(BuildContext context) async {
-    if (_check == null || !_check!.hasFundedTxid()) return;
+    if (_check == null || _check!.fundedTxids.isEmpty) return;
 
     final destinationAddress = _transactionProvider.address;
     if (destinationAddress.isEmpty) {
@@ -288,7 +288,7 @@ class CheckDetailPage extends StatelessWidget {
                                       height: 32,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: check.hasFundedTxid()
+                                        color: check.funded
                                             ? context.sailTheme.colors.success.withValues(alpha: 0.2)
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.2),
                                       ),
@@ -298,7 +298,7 @@ class CheckDetailPage extends StatelessWidget {
                                       height: 20,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: check.hasFundedTxid()
+                                        color: check.funded
                                             ? context.sailTheme.colors.success.withValues(alpha: 0.5)
                                             : context.sailTheme.colors.orange.withValues(alpha: 0.5),
                                       ),
@@ -308,7 +308,7 @@ class CheckDetailPage extends StatelessWidget {
                                       height: 12,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: check.hasFundedTxid()
+                                        color: check.funded
                                             ? context.sailTheme.colors.success
                                             : context.sailTheme.colors.orange,
                                       ),
@@ -318,11 +318,15 @@ class CheckDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(width: SailStyleValues.padding12),
                               SailText.primary13(
-                                check.hasFundedTxid() ? 'Funded' : 'Awaiting funding',
+                                check.funded
+                                    ? 'Funded'
+                                    : check.fundedTxids.isNotEmpty
+                                        ? 'Partially Funded'
+                                        : 'Awaiting funding',
                               ),
                             ],
                           ),
-                          if (!check.hasFundedTxid())
+                          if (check.fundedTxids.isEmpty)
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding20),
                               decoration: BoxDecoration(
@@ -336,7 +340,7 @@ class CheckDetailPage extends StatelessWidget {
                                 backgroundColor: context.sailTheme.colors.backgroundSecondary,
                               ),
                             ),
-                          if (!check.hasFundedTxid())
+                          if (check.fundedTxids.isEmpty)
                             SailRow(
                               spacing: SailStyleValues.padding08,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -350,7 +354,7 @@ class CheckDetailPage extends StatelessWidget {
                                 CopyButton(text: check.address),
                               ],
                             ),
-                          if (check.hasFundedTxid() && check.hasPrivateKeyWif() && check.privateKeyWif.isNotEmpty)
+                          if (check.fundedTxids.isNotEmpty && check.hasPrivateKeyWif() && check.privateKeyWif.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding16),
                               decoration: BoxDecoration(
@@ -397,7 +401,7 @@ class CheckDetailPage extends StatelessWidget {
                                 ],
                               ),
                             ),
-                          if (!check.hasFundedTxid())
+                          if (check.fundedTxids.isEmpty)
                             SizedBox(
                               width: 400,
                               height: 64,
@@ -435,7 +439,7 @@ class CheckDetailPage extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          if (check.hasFundedTxid())
+                          if (check.fundedTxids.isNotEmpty)
                             SizedBox(
                               width: 400,
                               height: 64,

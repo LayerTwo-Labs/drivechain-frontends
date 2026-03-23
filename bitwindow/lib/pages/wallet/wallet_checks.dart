@@ -179,17 +179,21 @@ class ChecksTable extends StatelessWidget {
             SailTableCell(
               value: check.hasSweptTxid() && check.sweptTxid.isNotEmpty
                   ? 'Swept'
-                  : check.hasFundedTxid()
-                  ? 'Funded'
-                  : 'Unfunded',
+                  : check.funded
+                      ? 'Funded'
+                      : check.fundedTxids.isNotEmpty
+                          ? 'Partially Funded'
+                          : 'Unfunded',
               textColor: check.hasSweptTxid() && check.sweptTxid.isNotEmpty
                   ? context.sailTheme.colors.text.withValues(alpha: 0.5)
-                  : check.hasFundedTxid()
-                  ? context.sailTheme.colors.success
-                  : context.sailTheme.colors.orange,
+                  : check.funded
+                      ? context.sailTheme.colors.success
+                      : check.fundedTxids.isNotEmpty
+                          ? context.sailTheme.colors.orange
+                          : context.sailTheme.colors.orange,
             ),
             SailTableCell(
-              value: check.hasFundedTxid() && check.hasActualAmountSats()
+              value: check.fundedTxids.isNotEmpty && check.hasActualAmountSats()
                   ? _formatSats(check.actualAmountSats.toInt())
                   : '-',
             ),
@@ -208,9 +212,9 @@ class ChecksTable extends StatelessWidget {
                     )
                   else
                     SailButton(
-                      label: check.hasFundedTxid() ? 'View Details' : 'Fund Check',
+                      label: check.fundedTxids.isNotEmpty ? 'View Details' : 'Fund Check',
                       onPressed: () async => _viewCheck(context, check),
-                      variant: check.hasFundedTxid() ? ButtonVariant.secondary : ButtonVariant.primary,
+                      variant: check.fundedTxids.isNotEmpty ? ButtonVariant.secondary : ButtonVariant.primary,
                       insideTable: true,
                     ),
                   const SizedBox(width: SailStyleValues.padding08),
@@ -261,7 +265,7 @@ class ChecksTable extends StatelessWidget {
   }
 
   Future<void> _deleteCheck(BuildContext context, Cheque check) async {
-    if (check.hasFundedTxid() && !check.hasSweptTxid()) {
+    if (check.fundedTxids.isNotEmpty && !check.hasSweptTxid()) {
       showSnackBar(context, 'Cannot delete funded check. Sweep the funds first.');
       return;
     }
@@ -277,7 +281,7 @@ class ChecksTable extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailText.secondary13('Are you sure you want to delete this check?'),
-            if (!check.hasFundedTxid() || check.hasSweptTxid())
+            if (check.fundedTxids.isEmpty || check.hasSweptTxid())
               Container(
                 padding: const EdgeInsets.all(SailStyleValues.padding12),
                 decoration: BoxDecoration(
