@@ -431,15 +431,30 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 		}
 	}
 
-	log.Info().Msg("bitcoind connected, recovering cheques for all wallets")
+	log.Info().Msg("bitcoind connected, waiting for RPC to be reachable")
 
+	// The service may report "connected" before the RPC port accepts connections.
+	// Wait until we can actually reach Bitcoin Core.
 	bitcoind, err := e.bitcoind.Get(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get bitcoind client for recovery")
 		return
 	}
 
-	// Get all wallets and scan each one
+	for {
+		_, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+		if err == nil {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second):
+		}
+	}
+
+	log.Info().Msg("bitcoind RPC reachable, recovering cheques for all wallets")
+
 	wallets, err := e.walletEngine.GetAllWallets(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get wallets for cheque recovery")

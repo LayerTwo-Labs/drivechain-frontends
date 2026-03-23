@@ -163,66 +163,66 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
             ),
           ),
           Expanded(
-              child: SailCard(
-                child: SailColumn(
-                  children: [
-                    SizedBox(
-                      height: 36,
-                      child: SailRow(
-                        children: [
-                          SailDropdownButton(
-                            items: viewModel.topics
-                                .map(
-                                  (topic) => SailDropdownItem(
-                                    value: topic.topic,
-                                    label: topic.confirmed ? topic.name : '${topic.name} (pending)',
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) => viewModel.setRightTopic(value),
-                            value: viewModel.rightTopic,
-                          ),
-                          Expanded(child: Container()),
-                          SailButton(
-                            label: 'Broadcast News',
-                            variant: ButtonVariant.primary,
-                            icon: SailSVGAsset.newspaper,
-                            onPressed: () => displayBroadcastNewsDialog(context),
-                            skipLoading: true,
-                          ),
-                          ExtraActionsDropdown(
-                            title: 'Extra Coin News Actions',
-                            items: [
-                              ExtraActionItem(
-                                label: 'Manage Topics',
-                                icon: SailSVGAsset.newspaper,
-                                onSelect: () => displayCreateTopicDialog(context),
-                              ),
-                              ExtraActionItem(
-                                label: 'Graffiti Explorer',
-                                icon: SailSVGAsset.sprayCan,
-                                onSelect: () => displayGraffitiExplorerDialog(context),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+            child: SailCard(
+              child: SailColumn(
+                children: [
+                  SizedBox(
+                    height: 36,
+                    child: SailRow(
+                      children: [
+                        SailDropdownButton(
+                          items: viewModel.topics
+                              .map(
+                                (topic) => SailDropdownItem(
+                                  value: topic.topic,
+                                  label: topic.confirmed ? topic.name : '${topic.name} (pending)',
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) => viewModel.setRightTopic(value),
+                          value: viewModel.rightTopic,
+                        ),
+                        Expanded(child: Container()),
+                        SailButton(
+                          label: 'Broadcast News',
+                          variant: ButtonVariant.primary,
+                          icon: SailSVGAsset.newspaper,
+                          onPressed: () => displayBroadcastNewsDialog(context),
+                          skipLoading: true,
+                        ),
+                        ExtraActionsDropdown(
+                          title: 'Extra Coin News Actions',
+                          items: [
+                            ExtraActionItem(
+                              label: 'Manage Topics',
+                              icon: SailSVGAsset.newspaper,
+                              onSelect: () => displayCreateTopicDialog(context),
+                            ),
+                            ExtraActionItem(
+                              label: 'Graffiti Explorer',
+                              icon: SailSVGAsset.sprayCan,
+                              onSelect: () => displayGraffitiExplorerDialog(context),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      child: CoinNewsTable(
-                        entries: viewModel.rightEntries,
-                        onSort: viewModel.sortRightEntries,
-                        loading: viewModel.loading,
-                        allTopics: viewModel.topics,
-                        shrinkWrap: false,
-                        condensed: true,
-                        onArticleSelected: (news) => showCoinNewsArticle(context, news),
-                      ),
+                  ),
+                  Expanded(
+                    child: CoinNewsTable(
+                      entries: viewModel.rightEntries,
+                      onSort: viewModel.sortRightEntries,
+                      loading: viewModel.loading,
+                      allTopics: viewModel.topics,
+                      shrinkWrap: false,
+                      condensed: true,
+                      onArticleSelected: (news) => showCoinNewsArticle(context, news),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+          ),
         ],
       ),
     );

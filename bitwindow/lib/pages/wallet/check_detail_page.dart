@@ -321,8 +321,8 @@ class CheckDetailPage extends StatelessWidget {
                                 check.funded
                                     ? 'Funded'
                                     : check.fundedTxids.isNotEmpty
-                                        ? 'Partially Funded'
-                                        : 'Awaiting funding',
+                                    ? 'Partially Funded'
+                                    : 'Awaiting funding',
                               ),
                             ],
                           ),
@@ -354,7 +354,9 @@ class CheckDetailPage extends StatelessWidget {
                                 CopyButton(text: check.address),
                               ],
                             ),
-                          if (check.fundedTxids.isNotEmpty && check.hasPrivateKeyWif() && check.privateKeyWif.isNotEmpty)
+                          if (check.fundedTxids.isNotEmpty &&
+                              check.hasPrivateKeyWif() &&
+                              check.privateKeyWif.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.all(SailStyleValues.padding16),
                               decoration: BoxDecoration(
