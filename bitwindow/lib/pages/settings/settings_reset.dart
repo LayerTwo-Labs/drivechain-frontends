@@ -160,22 +160,6 @@ class _SettingsResetState extends State<SettingsReset> {
   Future<void> _executeReset(BuildContext context) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-    final coreBinaries = [
-      BitcoinCore(),
-      Enforcer(),
-      BitWindow(),
-    ];
-
-    final sidechainBinaries = [
-      Thunder(),
-      Truthcoin(),
-      Photon(),
-      BitNames(),
-      BitAssets(),
-      CoinShift(),
-      ZSide(),
-    ];
-
     final binariesToReset = [
       ...coreBinaries,
       if (_alsoResetSidechains) ...sidechainBinaries,
