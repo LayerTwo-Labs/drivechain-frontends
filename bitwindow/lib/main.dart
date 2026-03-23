@@ -808,16 +808,8 @@ class SubWindowTypes {
 
 List<Binary> initalBinaries() {
   return [
-    BitcoinCore(),
-    Enforcer(),
-    BitWindow(),
-    BitAssets(),
-    BitNames(),
-    Thunder(),
-    Truthcoin(),
-    Photon(),
-    ZSide(),
-    CoinShift(),
+    ...coreBinaries,
+    ...sidechainBinaries,
     GRPCurl(),
   ];
 }

@@ -2366,19 +2366,6 @@ Future<void> _resetEverything(BuildContext context) async {
           beforeBoot: () async {
             log.i('resetting blockchain data');
 
-            final allBinaries = [
-              BitcoinCore(),
-              Enforcer(),
-              BitWindow(),
-              Thunder(),
-              Truthcoin(),
-              Photon(),
-              BitNames(),
-              BitAssets(),
-              CoinShift(),
-              ZSide(),
-            ];
-
             updateStatus('Wiping blockchain data');
 
             // wipe all chain data - don't swallow errors

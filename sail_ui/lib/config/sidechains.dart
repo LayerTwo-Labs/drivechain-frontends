@@ -47,13 +47,7 @@ abstract class Sidechain extends Binary {
   }
 
   static final List<Sidechain> all = [
-    ZSide(),
-    Thunder(),
-    BitNames(),
-    BitAssets(),
-    Truthcoin(),
-    Photon(),
-    CoinShift(),
+    ...sidechainBinaries,
   ];
 
   static Sidechain? fromSlot(int slot) {

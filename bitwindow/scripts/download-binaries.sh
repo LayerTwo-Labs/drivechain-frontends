@@ -12,9 +12,6 @@ server_cwd=$(pwd)
 # Build bdk-cli and bitwindowd
 echo "Building bitwindowd in $server_cwd"
 
-# Build bitwindowd
-echo "Building bitwindowd"
-
 # force building for x86_64 on macOS, so both new and old macs 
 # work
 if [[ "$OSTYPE" == "darwin"* ]]; then

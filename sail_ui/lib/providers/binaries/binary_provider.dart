@@ -944,19 +944,6 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   void _setupDirectoryWatcher() {
-    final allBinaries = [
-      BitcoinCore(),
-      Enforcer(),
-      BitWindow(),
-      Thunder(),
-      Truthcoin(),
-      Photon(),
-      BitNames(),
-      BitAssets(),
-      CoinShift(),
-      ZSide(),
-    ];
-
     // Watch the assets directory for changes
     _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) {
       // Find which binary changed
