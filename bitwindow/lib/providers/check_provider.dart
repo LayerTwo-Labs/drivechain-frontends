@@ -40,6 +40,10 @@ class CheckProvider extends ChangeNotifier {
   void _startUnfundedPolling() {
     _unfundedPollTimer?.cancel();
     _unfundedPollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (_checks.isEmpty) {
+        await fetch();
+        return;
+      }
       final hasUnfunded = _checks.any((c) => !c.funded);
       if (!hasUnfunded) return;
       await _checkUnfundedChecks();
