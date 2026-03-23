@@ -1394,7 +1394,12 @@ class _StatusBarState extends State<StatusBar> {
     } else if (difference.inHours > 0) {
       return '${formatTimeDifference(difference.inHours, 'hour')} ago';
     } else if (difference.inMinutes > 0) {
-      return '${formatTimeDifference(difference.inMinutes, 'minute')} ago';
+      final minutes = difference.inMinutes;
+      final seconds = difference.inSeconds % 60;
+      if (seconds > 0) {
+        return '${formatTimeDifference(minutes, 'minute')} ${formatTimeDifference(seconds, 'second')} ago';
+      }
+      return '${formatTimeDifference(minutes, 'minute')} ago';
     } else {
       return '${formatTimeDifference(difference.inSeconds, 'second')} ago';
     }
