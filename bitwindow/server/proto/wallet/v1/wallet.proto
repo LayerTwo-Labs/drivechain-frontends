@@ -277,7 +277,7 @@ message Cheque {
   string address = 3;
   uint64 expected_amount_sats = 4;
   bool funded = 5;
-  optional string funded_txid = 6;
+  repeated string funded_txids = 6;
   optional uint64 actual_amount_sats = 7;
   google.protobuf.Timestamp created_at = 8;
   optional google.protobuf.Timestamp funded_at = 9;
@@ -302,7 +302,7 @@ message CheckChequeFundingRequest {
 message CheckChequeFundingResponse {
   bool funded = 1;
   uint64 actual_amount_sats = 2;
-  string funded_txid = 3;
+  repeated string funded_txids = 3;
   optional google.protobuf.Timestamp funded_at = 4;
 }
 

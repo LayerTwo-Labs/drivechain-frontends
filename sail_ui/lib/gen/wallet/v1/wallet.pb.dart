@@ -2397,7 +2397,7 @@ class Cheque extends $pb.GeneratedMessage {
     $core.String? address,
     $fixnum.Int64? expectedAmountSats,
     $core.bool? funded,
-    $core.String? fundedTxid,
+    $core.Iterable<$core.String>? fundedTxids,
     $fixnum.Int64? actualAmountSats,
     $0.Timestamp? createdAt,
     $0.Timestamp? fundedAt,
@@ -2421,8 +2421,8 @@ class Cheque extends $pb.GeneratedMessage {
     if (funded != null) {
       $result.funded = funded;
     }
-    if (fundedTxid != null) {
-      $result.fundedTxid = fundedTxid;
+    if (fundedTxids != null) {
+      $result.fundedTxids.addAll(fundedTxids);
     }
     if (actualAmountSats != null) {
       $result.actualAmountSats = actualAmountSats;
@@ -2454,7 +2454,7 @@ class Cheque extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'address')
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'expectedAmountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(5, _omitFieldNames ? '' : 'funded')
-    ..aOS(6, _omitFieldNames ? '' : 'fundedTxid')
+    ..pPS(6, _omitFieldNames ? '' : 'fundedTxids')
     ..a<$fixnum.Int64>(7, _omitFieldNames ? '' : 'actualAmountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
     ..aOM<$0.Timestamp>(9, _omitFieldNames ? '' : 'fundedAt', subBuilder: $0.Timestamp.create)
@@ -2531,13 +2531,7 @@ class Cheque extends $pb.GeneratedMessage {
   void clearFunded() => clearField(5);
 
   @$pb.TagNumber(6)
-  $core.String get fundedTxid => $_getSZ(5);
-  @$pb.TagNumber(6)
-  set fundedTxid($core.String v) { $_setString(5, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasFundedTxid() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearFundedTxid() => clearField(6);
+  $core.List<$core.String> get fundedTxids => $_getList(5);
 
   @$pb.TagNumber(7)
   $fixnum.Int64 get actualAmountSats => $_getI64(6);
@@ -2762,7 +2756,7 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
   factory CheckChequeFundingResponse({
     $core.bool? funded,
     $fixnum.Int64? actualAmountSats,
-    $core.String? fundedTxid,
+    $core.Iterable<$core.String>? fundedTxids,
     $0.Timestamp? fundedAt,
   }) {
     final $result = create();
@@ -2772,8 +2766,8 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
     if (actualAmountSats != null) {
       $result.actualAmountSats = actualAmountSats;
     }
-    if (fundedTxid != null) {
-      $result.fundedTxid = fundedTxid;
+    if (fundedTxids != null) {
+      $result.fundedTxids.addAll(fundedTxids);
     }
     if (fundedAt != null) {
       $result.fundedAt = fundedAt;
@@ -2787,7 +2781,7 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CheckChequeFundingResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'funded')
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'actualAmountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOS(3, _omitFieldNames ? '' : 'fundedTxid')
+    ..pPS(3, _omitFieldNames ? '' : 'fundedTxids')
     ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'fundedAt', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
@@ -2832,13 +2826,7 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
   void clearActualAmountSats() => clearField(2);
 
   @$pb.TagNumber(3)
-  $core.String get fundedTxid => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set fundedTxid($core.String v) { $_setString(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasFundedTxid() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearFundedTxid() => clearField(3);
+  $core.List<$core.String> get fundedTxids => $_getList(2);
 
   @$pb.TagNumber(4)
   $0.Timestamp get fundedAt => $_getN(3);
