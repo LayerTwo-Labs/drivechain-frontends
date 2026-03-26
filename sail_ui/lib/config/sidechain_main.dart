@@ -59,8 +59,13 @@ Future<void> initSidechainDependencies({
   final enforcerConfProvider = await EnforcerConfProvider.create();
   GetIt.I.registerLazySingleton<EnforcerConfProvider>(() => enforcerConfProvider);
 
+  // Load paranoid mode from bitwindow settings before creating chains config
+  final bitwindowSettingValue = BitwindowSettingValue();
+  final loadedBitwindowSetting = await bitwindowClientSettings.getValue(bitwindowSettingValue);
+  final paranoidMode = loadedBitwindowSetting.value.paranoidMode;
+
   // Load chains config from shared bitwindow directory (single source of truth)
-  final chainsConfigProvider = await ChainsConfigProvider.create(appDir: bitwindowDir);
+  final chainsConfigProvider = await ChainsConfigProvider.create(appDir: bitwindowDir, paranoidMode: paranoidMode);
   GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
 
   // first of all, write all binaries to the assets/bin directory

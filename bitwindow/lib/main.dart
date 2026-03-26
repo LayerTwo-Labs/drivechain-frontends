@@ -143,7 +143,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
   // Load chains config from JSON (copies seed from assets if missing)
-  final chainsConfigProvider = await ChainsConfigProvider.create(appDir: applicationDir);
+  final chainsConfigProvider = await ChainsConfigProvider.create(
+    appDir: applicationDir,
+    paranoidMode: settingsProvider.bitwindowSettings.paranoidMode,
+  );
   GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
 
   await copyBinariesFromAssets(log, applicationDir);

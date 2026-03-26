@@ -61,6 +61,24 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
               ),
             ],
           ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Paranoid Mode'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailToggle(
+              label: 'Lock chains_config.json',
+              value: _settingsProvider.bitwindowSettings.paranoidMode,
+              onChanged: (value) async {
+                await _settingsProvider.updateParanoidMode(value);
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'Prevent automatic updates to chains_config.json. You must manually edit the file to change download URLs or versions. Takes effect on next launch.',
+            ),
+          ],
+        ),
         SailSpacing(SailStyleValues.padding64),
       ],
     );
