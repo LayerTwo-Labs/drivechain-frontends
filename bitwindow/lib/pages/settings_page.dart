@@ -126,17 +126,19 @@ class SettingsPageState extends State<SettingsPage> {
                     },
                   ),
                   const SailSpacing(SailStyleValues.padding40),
-                  // Right content area (fills remaining space with bounded height)
+                  // Right content area (fills remaining space, scrollable)
                   Expanded(
-                    child: switch (_selectedIndex) {
-                      0 => const SettingsNetwork(),
-                      1 => _SecuritySettingsContent(),
-                      2 => const SettingsAppearance(),
-                      3 => const SettingsAdvanced(),
-                      4 => const SettingsReset(),
-                      5 => const SettingsAbout(),
-                      _ => const SettingsNetwork(),
-                    },
+                    child: SingleChildScrollView(
+                      child: switch (_selectedIndex) {
+                        0 => const SettingsNetwork(),
+                        1 => _SecuritySettingsContent(),
+                        2 => const SettingsAppearance(),
+                        3 => const SettingsAdvanced(),
+                        4 => const SettingsReset(),
+                        5 => const SettingsAbout(),
+                        _ => const SettingsNetwork(),
+                      },
+                    ),
                   ),
                 ],
               ),
