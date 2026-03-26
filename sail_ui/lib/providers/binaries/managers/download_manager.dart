@@ -218,6 +218,7 @@ class DownloadManager extends ChangeNotifier {
 
     String filePath;
     String? localHash;
+    int archiveSize = 0;
     String? expectedHash;
     try {
       if (binary.metadata.downloadConfig.baseUrl.contains('github.com')) {
@@ -248,6 +249,7 @@ class DownloadManager extends ChangeNotifier {
       );
 
       final archiveBytes = await File(filePath).readAsBytes();
+      archiveSize = archiveBytes.length;
       localHash = sha256.convert(archiveBytes).toString();
 
       // Verify hash against release server
@@ -318,6 +320,22 @@ class DownloadManager extends ChangeNotifier {
         ),
       ),
     );
+
+    // Write hash/size back to the chains config file
+    if (GetIt.I.isRegistered<ChainsConfigProvider>()) {
+      try {
+        final configProvider = GetIt.I.get<ChainsConfigProvider>();
+        final binaryKey = binaryTypeToJsonKey(binary.type);
+        final osKey = switch (OS.current) {
+          OS.linux => 'linux',
+          OS.macos => 'macos',
+          OS.windows => 'windows',
+        };
+        await configProvider.updateHashes(binaryKey, osKey, localHash, archiveSize);
+      } catch (e) {
+        log.w('Failed to write hash to chains config: $e');
+      }
+    }
 
     log.i('Successfully downloaded and extracted ${binary.name}');
   }

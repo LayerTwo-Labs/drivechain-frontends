@@ -142,6 +142,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
 
+  // Load chains config from JSON (copies seed from assets if missing)
+  final chainsConfigProvider = await ChainsConfigProvider.create(appDir: applicationDir);
+  GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
+
   await copyBinariesFromAssets(log, applicationDir);
 
   // Register LogProvider for process output capture
@@ -810,7 +814,7 @@ List<Binary> initalBinaries() {
   return [
     ...coreBinaries,
     ...sidechainBinaries,
-    GRPCurl(),
+    resolveFromConfig(BinaryType.grpcurl, () => GRPCurl()),
   ];
 }
 

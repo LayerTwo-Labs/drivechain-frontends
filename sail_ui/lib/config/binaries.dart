@@ -2182,3 +2182,291 @@ Map<BitcoinNetwork, Map<OS, String>> allNetworks(Map<OS, String> osFiles) {
     for (final network in BitcoinNetwork.values) network: osFiles,
   };
 }
+
+// JSON serialization helpers for chains_config.json
+
+BitcoinNetwork _networkFromJsonKey(String key) {
+  return switch (key) {
+    'mainnet' => BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
+    'regtest' => BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+    'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+    'testnet' => BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
+    'forknet' => BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+    _ => BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED, // 'default' key handled separately
+  };
+}
+
+OS _osFromJsonKey(String key) {
+  return switch (key) {
+    'linux' => OS.linux,
+    'macos' => OS.macos,
+    'windows' => OS.windows,
+    _ => throw ArgumentError('Unknown OS key: $key'),
+  };
+}
+
+String colorToString(Color color) {
+  if (color == SailColorScheme.green) return 'green';
+  if (color == SailColorScheme.blue) return 'blue';
+  if (color == SailColorScheme.purple) return 'purple';
+  if (color == SailColorScheme.orange) return 'orange';
+  return 'green';
+}
+
+/// Parse a directory map from JSON. The JSON uses "default" for all-networks
+/// and specific network names for overrides.
+Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(Map<String, dynamic> json) {
+  final result = <BitcoinNetwork, Map<OS, String>>{};
+
+  // "default" key spreads to all networks
+  if (json.containsKey('default')) {
+    final defaultMap = _osMapFromJson(json['default'] as Map<String, dynamic>);
+    for (final network in BitcoinNetwork.values) {
+      result[network] = Map.of(defaultMap);
+    }
+  }
+
+  // Override specific networks
+  for (final entry in json.entries) {
+    if (entry.key == 'default') continue;
+    final network = _networkFromJsonKey(entry.key);
+    result[network] = _osMapFromJson(entry.value as Map<String, dynamic>);
+  }
+
+  return result;
+}
+
+Map<OS, String> _osMapFromJson(Map<String, dynamic> json) {
+  return {
+    for (final entry in json.entries) _osFromJsonKey(entry.key): entry.value as String,
+  };
+}
+
+/// Parse files map from JSON - same structure as directory binary map.
+Map<BitcoinNetwork, Map<OS, String>> _filesFromJson(Map<String, dynamic> json) {
+  return _directoryBinaryFromJson(json);
+}
+
+extension DirectoryConfigJson on DirectoryConfig {
+  static DirectoryConfig fromJson(Map<String, dynamic> json) {
+    return DirectoryConfig(
+      binary: _directoryBinaryFromJson(json['binary'] as Map<String, dynamic>),
+      flutterFrontend: _osMapFromJson(json['flutter_frontend'] as Map<String, dynamic>),
+    );
+  }
+}
+
+extension DownloadConfigJson on DownloadConfig {
+  static DownloadConfig fromJson(Map<String, dynamic> json) {
+    return DownloadConfig(
+      baseUrl: json['base_url'] as String,
+      binary: json['binary'] as String,
+      files: _filesFromJson(json['files'] as Map<String, dynamic>),
+      extractSubfolder: json.containsKey('extract_subfolder') && json['extract_subfolder'] != null
+          ? _filesFromJson(json['extract_subfolder'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+BinaryType _binaryTypeFromJsonKey(String key) {
+  return switch (key) {
+    'bitcoincore' => BinaryType.bitcoinCore,
+    'bitwindow' => BinaryType.bitWindow,
+    'enforcer' => BinaryType.enforcer,
+    'grpcurl' => BinaryType.grpcurl,
+    'thunderd' => BinaryType.thunderd,
+    'zsided' => BinaryType.zSided,
+    'thunder' => BinaryType.thunder,
+    'bitnames' => BinaryType.bitnames,
+    'bitassets' => BinaryType.bitassets,
+    'truthcoin' => BinaryType.truthcoin,
+    'photon' => BinaryType.photon,
+    'coinshift' => BinaryType.coinShift,
+    'zside' => BinaryType.zSide,
+    _ => throw ArgumentError('Unknown binary key: $key'),
+  };
+}
+
+String binaryTypeToJsonKey(BinaryType type) {
+  return switch (type) {
+    BinaryType.bitcoinCore => 'bitcoincore',
+    BinaryType.bitWindow => 'bitwindow',
+    BinaryType.enforcer => 'enforcer',
+    BinaryType.grpcurl => 'grpcurl',
+    BinaryType.thunderd => 'thunderd',
+    BinaryType.zSided => 'zsided',
+    BinaryType.thunder => 'thunder',
+    BinaryType.bitnames => 'bitnames',
+    BinaryType.bitassets => 'bitassets',
+    BinaryType.truthcoin => 'truthcoin',
+    BinaryType.photon => 'photon',
+    BinaryType.coinShift => 'coinshift',
+    BinaryType.zSide => 'zside',
+  };
+}
+
+/// Build a Binary from a JSON config entry.
+/// [key] is the JSON key (e.g. "thunder"), [json] is the entry object.
+Binary binaryFromJson(String key, Map<String, dynamic> json) {
+  final binaryType = _binaryTypeFromJsonKey(key);
+
+  final directories = DirectoryConfigJson.fromJson(json['directories'] as Map<String, dynamic>);
+  final downloadJson = json['download'] as Map<String, dynamic>;
+  final downloadConfig = DownloadConfigJson.fromJson(downloadJson);
+
+  DownloadConfig? altDownloadConfig;
+  if (json.containsKey('alternative_download') && json['alternative_download'] != null) {
+    altDownloadConfig = DownloadConfigJson.fromJson(json['alternative_download'] as Map<String, dynamic>);
+  }
+
+  final metadata = MetadataConfig(
+    downloadConfig: downloadConfig,
+    alternativeDownloadConfig: altDownloadConfig,
+    remoteTimestamp: null,
+    downloadedTimestamp: null,
+    binaryPath: null,
+    updateable: false,
+  );
+
+  final name = json['name'] as String;
+  final version = json['version'] as String;
+  final description = json['description'] as String;
+  final repoUrl = json['repo_url'] as String;
+  final port = json['port'] as int;
+  final chainLayer = json['chain_layer'] as int;
+
+  // Dispatch to correct subclass
+  return switch (binaryType) {
+    BinaryType.bitcoinCore => BitcoinCore(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.bitWindow => BitWindow(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.enforcer => Enforcer(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.grpcurl => GRPCurl(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.thunderd => Thunderd(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.zSided => ZSided(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.thunder => Thunder(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.bitnames => BitNames(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.bitassets => BitAssets(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.truthcoin => Truthcoin(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.photon => Photon(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.coinShift => CoinShift(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.zSide => ZSide(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+  };
+}

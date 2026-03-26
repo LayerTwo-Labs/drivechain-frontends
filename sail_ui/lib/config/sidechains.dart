@@ -46,8 +46,8 @@ abstract class Sidechain extends Binary {
     return null;
   }
 
-  static final List<Sidechain> all = [
-    ...sidechainBinaries,
+  static List<Sidechain> get all => [
+    ...sidechainBinaries.cast<Sidechain>(),
   ];
 
   static Sidechain? fromSlot(int slot) {
