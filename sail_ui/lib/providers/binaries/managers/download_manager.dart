@@ -175,7 +175,9 @@ class DownloadManager extends ChangeNotifier {
 
   /// Internal method to handle the actual download and extraction
   Future<void> _downloadAndExtractBinary(Binary binary) async {
-    if (binary.metadata.downloadConfig.baseUrl.isEmpty) {
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    final baseUrl = binary.metadata.downloadConfig.baseUrl(network);
+    if (baseUrl.isEmpty) {
       updateBinary(
         binary.type,
         (b) => b.copyWith(
@@ -203,7 +205,6 @@ class DownloadManager extends ChangeNotifier {
 
     // 1. Setup directories
     final downloadsDir = Directory(path.join(appDir.path, 'downloads'));
-    final network = GetIt.I.get<BitcoinConfProvider>().network;
     final subfolder = binary.metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
     final extractDir = Directory(path.join(binDir(appDir.path).path, subfolder));
     await downloadsDir.create(recursive: true);
@@ -221,18 +222,17 @@ class DownloadManager extends ChangeNotifier {
     int archiveSize = 0;
     String? expectedHash;
     try {
-      if (binary.metadata.downloadConfig.baseUrl.contains('github.com')) {
-        filePath = await _downloadGithubBinary(binary, downloadsDir);
-      } else if (binary.metadata.downloadConfig.baseUrl.contains('releases.drivechain.info')) {
-        filePath = await _downloadReleasesBinary(binary, downloadsDir);
+      if (baseUrl.contains('api.github.com')) {
+        filePath = await _downloadGithubBinary(binary, downloadsDir, network);
+      } else if (baseUrl.isNotEmpty) {
+        filePath = await _downloadReleasesBinary(binary, downloadsDir, network);
       } else {
         updateBinary(
           binary.type,
           (b) => b.copyWith(
             downloadInfo: b.downloadInfo.copyWith(
               progress: 0.0,
-              message:
-                  'Developers messed up. Did not find download strategy for ${binary.metadata.downloadConfig.baseUrl}',
+              message: 'No download URL configured for ${binary.name}',
               isDownloading: false,
             ),
           ),
@@ -340,9 +340,10 @@ class DownloadManager extends ChangeNotifier {
     log.i('Successfully downloaded and extracted ${binary.name}');
   }
 
-  Future<String> _downloadGithubBinary(Binary binary, Directory downloadsDir) async {
+  Future<String> _downloadGithubBinary(Binary binary, Directory downloadsDir, BitcoinNetwork network) async {
+    final baseUrl = binary.metadata.downloadConfig.baseUrl(network);
     final response = await http.get(
-      Uri.parse(binary.metadata.downloadConfig.baseUrl),
+      Uri.parse(baseUrl),
       headers: {
         'User-Agent': 'Drivechain-Frontends',
         'Accept': 'application/vnd.github.v3+json',
@@ -351,7 +352,7 @@ class DownloadManager extends ChangeNotifier {
 
     if (response.statusCode == 403) {
       throw Exception(
-        'GitHub API rate limit exceeded. Please wait a few minutes and try again, or download manually from ${binary.metadata.downloadConfig.baseUrl}',
+        'GitHub API rate limit exceeded. Please wait a few minutes and try again, or download manually from $baseUrl',
       );
     }
 
@@ -392,11 +393,12 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
-  Future<String> _downloadReleasesBinary(Binary binary, Directory downloadsDir) async {
+  Future<String> _downloadReleasesBinary(Binary binary, Directory downloadsDir, BitcoinNetwork network) async {
     // 2. Download the binary
-    final zipName = binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![OS.current]!;
+    var zipName = binary.metadata.downloadConfig.files[network]![OS.current]!;
     final zipPath = path.join(downloadsDir.path, zipName);
-    final downloadUrl = Uri.parse(binary.metadata.downloadConfig.baseUrl).resolve(zipName).toString();
+    final baseUrl = binary.metadata.downloadConfig.baseUrl(network);
+    final downloadUrl = Uri.parse(baseUrl).resolve(zipName).toString();
     await _downloadFile(downloadUrl, zipPath, binary.type);
     return zipPath;
   }
@@ -632,21 +634,14 @@ class DownloadManager extends ChangeNotifier {
         final baseName = path.basename(entity.path);
         final targetPath = path.join(extractDir.path, baseName);
 
-        // Handle nested directory structure
-        if (entity is Directory &&
-            baseName == path.basenameWithoutExtension(path.basenameWithoutExtension(tarGzPath))) {
-          await for (final innerEntity in entity.list()) {
-            final innerBaseName = path.basename(innerEntity.path);
-
-            // Only extract the binary itself, skip LICENSE and other files
-            if (innerBaseName == binary.binary ||
-                innerBaseName == '${binary.binary}.exe' ||
-                innerBaseName == path.basenameWithoutExtension(binary.binary)) {
+        if (entity is Directory) {
+          // Flatten: move all files from nested dirs into extractDir
+          await for (final innerEntity in entity.list(recursive: true)) {
+            if (innerEntity is File) {
+              final innerBaseName = path.basename(innerEntity.path);
               final targetFile = path.join(extractDir.path, innerBaseName);
               await safeMove(innerEntity, targetFile);
-
-              // Make binary executable on Unix-like systems
-              if (!Platform.isWindows && innerEntity is File) {
+              if (!Platform.isWindows) {
                 await Process.run('chmod', ['+x', targetFile]);
               }
             }

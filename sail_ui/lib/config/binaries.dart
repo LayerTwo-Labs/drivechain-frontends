@@ -727,7 +727,8 @@ abstract class Binary {
   Future<DateTime?> _checkReleaseDate() async {
     try {
       // Handle GitHub API URLs differently
-      if (metadata.downloadConfig.baseUrl.contains('github.com')) {
+      final network = GetIt.I.get<BitcoinConfProvider>().network;
+      if (metadata.downloadConfig.baseUrl(network).contains('github.com')) {
         return await _checkGithubReleaseDate();
       } else {
         return await _checkDirectReleaseDate();
@@ -739,7 +740,7 @@ abstract class Binary {
   }
 
   Future<DateTime?> _checkGithubReleaseDate() async {
-    final url = metadata.downloadConfig.baseUrl;
+    final url = metadata.downloadConfig.baseUrl(GetIt.I.get<BitcoinConfProvider>().network);
 
     // Check cache first
     final cached = _GitHubCache.get(url);
@@ -788,11 +789,12 @@ abstract class Binary {
     try {
       final os = getOS();
       final fileName = metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![os];
-      if (fileName == null || fileName.isEmpty || metadata.downloadConfig.baseUrl.isEmpty) {
+      final baseUrl = metadata.downloadConfig.baseUrl(GetIt.I.get<BitcoinConfProvider>().network);
+      if (fileName == null || fileName.isEmpty || baseUrl.isEmpty) {
         return null;
       }
 
-      final downloadUrl = Uri.parse(metadata.downloadConfig.baseUrl).resolve(fileName).toString();
+      final downloadUrl = Uri.parse(baseUrl).resolve(fileName).toString();
 
       final client = HttpClient();
 
@@ -889,10 +891,10 @@ class _CacheEntry {
 
 class BitcoinCore extends Binary {
   BitcoinCore({
-    super.name = 'Bitcoin Core (Patched)',
-    super.version = 'latest',
-    super.description = 'Modified Bitcoin implementation for drivechain support',
-    super.repoUrl = 'https://github.com/LayerTwo-Labs/bitcoin-patched',
+    super.name = 'Bitcoin Core',
+    super.version = '30.2',
+    super.description = 'Bitcoin Core',
+    super.repoUrl = 'https://github.com/bitcoin/bitcoin',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -925,13 +927,16 @@ class BitcoinCore extends Binary {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: {
+                   ...allNetworksUrl('https://bitcoincore.org/bin/bitcoin-core-30.2/'),
+                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: 'https://releases.drivechain.info/',
+                 },
                  binary: 'bitcoind',
                  files: {
                    ...allNetworks({
-                     OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
-                     OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
-                     OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
+                     OS.linux: 'bitcoin-30.2-x86_64-linux-gnu.tar.gz',
+                     OS.macos: 'bitcoin-30.2-x86_64-apple-darwin.tar.gz',
+                     OS.windows: 'bitcoin-30.2-win64.zip',
                    }),
                    BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
                      OS.linux: 'L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip',
@@ -1034,7 +1039,7 @@ class BitWindow extends Binary {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  binary: 'bitwindowd',
-                 baseUrl: '',
+                 baseUrls: allNetworksUrl(''),
                  // should not be downloaded from any platform
                  files: allNetworks({
                    OS.linux: '',
@@ -1114,7 +1119,7 @@ class Thunderd extends Binary {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  binary: 'thunderd',
-                 baseUrl: '',
+                 baseUrls: allNetworksUrl(''),
                  files: allNetworks({
                    OS.linux: '',
                    OS.macos: '',
@@ -1193,7 +1198,7 @@ class ZSided extends Binary {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  binary: 'zsided',
-                 baseUrl: '',
+                 baseUrls: allNetworksUrl(''),
                  files: allNetworks({
                    OS.linux: '',
                    OS.macos: '',
@@ -1271,7 +1276,7 @@ class Enforcer extends Binary {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
                  binary: 'bip300301-enforcer',
                  files: allNetworks({
                    OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
@@ -1377,7 +1382,7 @@ class GRPCurl extends Binary {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://api.github.com/repos/fullstorydev/grpcurl/releases/latest',
+                 baseUrls: allNetworksUrl('https://api.github.com/repos/fullstorydev/grpcurl/releases/latest'),
                  binary: 'grpcurl',
                  files: allNetworks({
                    OS.linux: r'grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz',
@@ -1975,17 +1980,23 @@ class DirectoryConfig {
 }
 
 class DownloadConfig {
-  final String baseUrl;
   final String binary;
   final Map<BitcoinNetwork, Map<OS, String>> files;
   final Map<BitcoinNetwork, Map<OS, String>>? extractSubfolder;
+  final Map<BitcoinNetwork, String> _baseUrls;
 
   const DownloadConfig({
-    required this.baseUrl,
     required this.binary,
     required this.files,
     this.extractSubfolder,
-  });
+    Map<BitcoinNetwork, String> baseUrls = const {},
+  }) : _baseUrls = baseUrls;
+
+  /// Get the base URL for a network. Falls back to first available URL.
+  String baseUrl([BitcoinNetwork? network]) {
+    if (network != null && _baseUrls.containsKey(network)) return _baseUrls[network]!;
+    return _baseUrls.isNotEmpty ? _baseUrls.values.first : '';
+  }
 }
 
 /// Configuration for binary downloads
@@ -2183,6 +2194,17 @@ Map<BitcoinNetwork, Map<OS, String>> allNetworks(Map<OS, String> osFiles) {
   };
 }
 
+Map<BitcoinNetwork, String> allNetworksUrl(String url) {
+  return {
+    for (final network in BitcoinNetwork.values) network: url,
+  };
+}
+
+/// Same value for all networks and all OS platforms.
+Map<BitcoinNetwork, Map<OS, String>> allPlatforms(String value) {
+  return allNetworks({OS.linux: value, OS.macos: value, OS.windows: value});
+}
+
 // JSON serialization helpers for chains_config.json
 
 BitcoinNetwork _networkFromJsonKey(String key) {
@@ -2238,7 +2260,9 @@ Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(Map<String, dynami
 
 Map<OS, String> _osMapFromJson(Map<String, dynamic> json) {
   return {
-    for (final entry in json.entries) _osFromJsonKey(entry.key): entry.value as String,
+    for (final entry in json.entries)
+      if (entry.key == 'linux' || entry.key == 'macos' || entry.key == 'windows')
+        _osFromJsonKey(entry.key): entry.value as String,
   };
 }
 
@@ -2258,15 +2282,43 @@ extension DirectoryConfigJson on DirectoryConfig {
 
 extension DownloadConfigJson on DownloadConfig {
   static DownloadConfig fromJson(Map<String, dynamic> json) {
+    final filesJson = json['files'] as Map<String, dynamic>;
+
+    // Extract per-network base_url from files entries, or fall back to top-level base_url
+    final topLevelBaseUrl = json['base_url'] as String?;
+    final baseUrls = _baseUrlsFromFilesJson(filesJson, topLevelBaseUrl ?? '');
+
     return DownloadConfig(
-      baseUrl: json['base_url'] as String,
+      baseUrls: baseUrls,
       binary: json['binary'] as String,
-      files: _filesFromJson(json['files'] as Map<String, dynamic>),
+      files: _filesFromJson(filesJson),
       extractSubfolder: json.containsKey('extract_subfolder') && json['extract_subfolder'] != null
           ? _filesFromJson(json['extract_subfolder'] as Map<String, dynamic>)
           : null,
     );
   }
+}
+
+/// Extract base_url from each network entry in files JSON.
+/// Each network entry can have its own "base_url" key.
+/// Falls back to [defaultBaseUrl] if not present.
+Map<BitcoinNetwork, String> _baseUrlsFromFilesJson(Map<String, dynamic> filesJson, String defaultBaseUrl) {
+  final result = <BitcoinNetwork, String>{};
+
+  for (final entry in filesJson.entries) {
+    final networkMap = entry.value as Map<String, dynamic>;
+    final url = networkMap['base_url'] as String? ?? defaultBaseUrl;
+
+    if (entry.key == 'default') {
+      for (final network in BitcoinNetwork.values) {
+        result[network] = url;
+      }
+    } else {
+      result[_networkFromJsonKey(entry.key)] = url;
+    }
+  }
+
+  return result;
 }
 
 BinaryType _binaryTypeFromJsonKey(String key) {
