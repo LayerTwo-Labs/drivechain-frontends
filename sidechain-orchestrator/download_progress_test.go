@@ -148,16 +148,16 @@ func TestDownload_ConcurrentProtection(t *testing.T) {
 		Name:           "test-concurrent",
 		BinaryName:     "test-binary",
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    srv.URL + "/",
+		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
 		Files:          map[string]string{currentOS(): "test-binary.zip"},
 	}
 
 	// First download should succeed (start)
-	_, err := dm.Download(context.Background(), config, true)
+	_, err := dm.Download(context.Background(), config, "default", true)
 	require.NoError(t, err)
 
 	// Second download of the same binary should fail
-	_, err = dm.Download(context.Background(), config, true)
+	_, err = dm.Download(context.Background(), config, "default", true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already being downloaded")
 }
@@ -177,22 +177,22 @@ func TestDownload_ConcurrentProtection_DifferentBinaries(t *testing.T) {
 		Name:           "binary-a",
 		BinaryName:     "binary-a",
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    srv.URL + "/",
+		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
 		Files:          map[string]string{currentOS(): "binary-a.zip"},
 	}
 	config2 := BinaryConfig{
 		Name:           "binary-b",
 		BinaryName:     "binary-b",
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    srv.URL + "/",
+		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
 		Files:          map[string]string{currentOS(): "binary-b.zip"},
 	}
 
 	// Different binaries should be downloadable concurrently
-	_, err := dm.Download(context.Background(), config1, true)
+	_, err := dm.Download(context.Background(), config1, "default", true)
 	require.NoError(t, err)
 
-	_, err = dm.Download(context.Background(), config2, true)
+	_, err = dm.Download(context.Background(), config2, "default", true)
 	require.NoError(t, err)
 }
 
@@ -324,19 +324,19 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 		Name:           "test-clear",
 		BinaryName:     "test-binary",
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    srv2.URL + "/",
+		DownloadURLs:   map[string]string{"default": srv2.URL + "/"},
 		Files:          map[string]string{currentOS(): "test-binary.zip"},
 	}
 
 	// First download
-	ch, err := dm.Download(context.Background(), config, true)
+	ch, err := dm.Download(context.Background(), config, "default", true)
 	require.NoError(t, err)
 	drainProgress(t, ch)
 
 	// Should be able to download again (inFlight cleared)
 	// Need to remove the binary first since force=true still checks the goroutine
 	_ = dir // suppress unused warning
-	ch, err = dm.Download(context.Background(), config, true)
+	ch, err = dm.Download(context.Background(), config, "default", true)
 	require.NoError(t, err)
 	drainProgress(t, ch)
 }

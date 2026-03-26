@@ -88,7 +88,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		Network:      network,
 		BitwindowDir: bitwindowDir,
 		configs:      lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
-		download:     NewDownloadManager(dataDir, log),
+		download:     NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log),
 		process:      NewProcessManager(dataDir, pidMgr, log),
 		pidManager:   pidMgr,
 		log:          log.With().Str("component", "orchestrator").Logger(),
@@ -112,13 +112,23 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	return orch
 }
 
+// UpdateConfigs replaces the binary configs with new ones (e.g. from a reloaded JSON file).
+// Preserves Go-specific runtime state (running processes, health checks).
+func (o *Orchestrator) UpdateConfigs(configs []BinaryConfig) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	for _, c := range configs {
+		o.configs[c.Name] = c
+	}
+}
+
 // Download downloads a binary if missing (or forces re-download).
 func (o *Orchestrator) Download(ctx context.Context, name string, force bool) (<-chan DownloadProgress, error) {
 	config, err := o.getConfig(name)
 	if err != nil {
 		return nil, err
 	}
-	return o.download.Download(ctx, config, force)
+	return o.download.Download(ctx, config, o.Network, force)
 }
 
 // Start starts a binary with the given args and env.
@@ -263,7 +273,7 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 		if !o.process.IsRunning("bitcoind") {
 			ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
 
-			downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], false)
+			downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], o.Network, false)
 			if err != nil {
 				ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", err)}
 				return
@@ -303,7 +313,7 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 		if config.ChainLayer == 2 && !o.process.IsRunning("enforcer") {
 			ch <- StartupProgress{Stage: "starting-enforcer", Message: "starting BIP300301 enforcer..."}
 
-			downloadCh, err := o.download.Download(ctx, o.configs["enforcer"], false)
+			downloadCh, err := o.download.Download(ctx, o.configs["enforcer"], o.Network, false)
 			if err != nil {
 				ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
 				return
@@ -336,7 +346,7 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress) {
 	ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
 
-	downloadCh, err := o.download.Download(ctx, config, false)
+	downloadCh, err := o.download.Download(ctx, config, o.Network, false)
 	if err != nil {
 		ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
 		return

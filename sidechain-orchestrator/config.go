@@ -47,18 +47,18 @@ type BinaryConfig struct {
 	FlutterFrontendDir map[string]string
 
 	// Primary download configuration — Dart: MetadataConfig.downloadConfig
-	DownloadSource DownloadSource
-	DownloadURL    string            // Dart: DownloadConfig.baseUrl
-	Files          map[string]string // os -> filename or regex pattern
-	ForknetFiles   map[string]string // os -> forknet-specific filename (BitcoinCore only)
+	DownloadSource   DownloadSource
+	DownloadURLs     map[string]string // network -> base URL ("default", "forknet", etc.)
+	Files            map[string]string // os -> filename or regex pattern
+	ForknetFiles     map[string]string // os -> forknet-specific filename (BitcoinCore only)
 	ExtractSubfolder map[string]string // os -> subfolder to extract from zip (empty = root)
 
 	// Alternative download configuration — Dart: MetadataConfig.alternativeDownloadConfig
 	// Used for test chain builds when SettingsProvider selects it.
-	AltDownloadURL       string            // Dart: alternativeDownloadConfig.baseUrl
-	AltBinaryName        string            // Dart: alternativeDownloadConfig.binary
-	AltFiles             map[string]string // os -> filename
-	AltExtractSubfolder  map[string]string // os -> subfolder
+	AltDownloadURLs     map[string]string // network -> base URL
+	AltBinaryName       string            // Dart: alternativeDownloadConfig.binary
+	AltFiles            map[string]string // os -> filename
+	AltExtractSubfolder map[string]string // os -> subfolder
 
 	// Dart: MetadataConfig.updateable
 	Updateable bool
@@ -95,6 +95,35 @@ func (c BinaryConfig) FileForOS() (string, error) {
 		return "", fmt.Errorf("no download file for %s on %s", c.Name, currentOS())
 	}
 	return f, nil
+}
+
+// BaseURL returns the download base URL for a given network.
+// Falls back to "default", then to the first available URL.
+func (c BinaryConfig) BaseURL(network string) string {
+	if url, ok := c.DownloadURLs[network]; ok && url != "" {
+		return url
+	}
+	if url, ok := c.DownloadURLs["default"]; ok {
+		return url
+	}
+	for _, url := range c.DownloadURLs {
+		return url
+	}
+	return ""
+}
+
+// AltBaseURL returns the alternative download base URL for a given network.
+func (c BinaryConfig) AltBaseURL(network string) string {
+	if url, ok := c.AltDownloadURLs[network]; ok && url != "" {
+		return url
+	}
+	if url, ok := c.AltDownloadURLs["default"]; ok {
+		return url
+	}
+	for _, url := range c.AltDownloadURLs {
+		return url
+	}
+	return ""
 }
 
 // BinDir returns the directory where binaries are stored.
@@ -141,35 +170,35 @@ func DefaultBitwindowDir() string {
 func DefaultBitcoinCore() BinaryConfig {
 	return BinaryConfig{
 		Name:        "bitcoind",
-		DisplayName: "Bitcoin Core (Patched)",
+		DisplayName: "Bitcoin Core",
 		BinaryName:  "bitcoind",
-		Version:     "latest",
-		Description: "Modified Bitcoin implementation for drivechain support",
-		RepoURL:     "https://github.com/LayerTwo-Labs/bitcoin-patched",
+		Version:     "30.2",
+		Description: "Bitcoin Core",
+		RepoURL:     "https://github.com/bitcoin/bitcoin",
 		Port:        0, // determined by network at runtime
 		ChainLayer:  1,
 		Slot:        0,
 
-		// Dart L860-869
 		DataDir:        map[string]string{"linux": ".drivechain", "macos": "Drivechain", "windows": "Drivechain"},
 		DataDirMainnet: map[string]string{"linux": ".bitcoin", "macos": "Bitcoin", "windows": "Bitcoin"},
 		IsBitcoinCore:  true,
 
-		// Dart L880-901
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
-		Files: map[string]string{
-			"linux":   "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
-			"macos":   "L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
-			"windows": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip",
+		DownloadURLs: map[string]string{
+			"default": "https://bitcoincore.org/bin/bitcoin-core-30.2/",
+			"forknet": "https://releases.drivechain.info/",
 		},
-		// Dart L889-893: forknet-specific files
+		Files: map[string]string{
+			"linux":   "bitcoin-30.2-x86_64-linux-gnu.tar.gz",
+			"macos":   "bitcoin-30.2-x86_64-apple-darwin.tar.gz",
+			"windows": "bitcoin-30.2-win64.zip",
+		},
 		ForknetFiles: map[string]string{
 			"linux":   "L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip",
 			"macos":   "L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip",
 			"windows": "L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip",
 		},
-		// Dart L896-901: extractSubfolder for forknet
+		// extractSubfolder only for forknet (default extracts to root, recursive extraction finds binaries)
 		ExtractSubfolder: map[string]string{
 			"linux": "forknet", "macos": "forknet", "windows": "forknet",
 		},
@@ -210,7 +239,7 @@ func DefaultEnforcer() BinaryConfig {
 		DataDir: map[string]string{"linux": "bip300301_enforcer", "macos": "bip300301_enforcer", "windows": "bip300301_enforcer"},
 
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
+		DownloadURLs:   map[string]string{"default": "https://releases.drivechain.info/"},
 		Files: map[string]string{
 			"linux":   "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
 			"macos":   "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
@@ -274,7 +303,7 @@ func DefaultBitWindow() BinaryConfig {
 		},
 
 		DownloadSource:  DownloadSourceDirect,
-		DownloadURL:     "", // not downloadable
+		DownloadURLs:    map[string]string{}, // not downloadable
 		Files:           map[string]string{},
 		HealthCheckType: HealthCheckTCP,
 		Dependencies:    []string{"bitcoind", "enforcer"},
@@ -302,14 +331,14 @@ func DefaultThunder() BinaryConfig {
 
 		// Dart L291-298: primary download
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
+		DownloadURLs:   map[string]string{"default": "https://releases.drivechain.info/"},
 		Files: map[string]string{
 			"linux":   "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
 			"macos":   "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
 			"windows": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip",
 		},
 		// Dart L300-312: alternative download (test builds)
-		AltDownloadURL: "https://releases.drivechain.info/",
+		AltDownloadURLs: map[string]string{"default": "https://releases.drivechain.info/"},
 		AltBinaryName:  "thunder",
 		AltFiles: map[string]string{
 			"linux":   "test-thunder-x86_64-unknown-linux-gnu.zip",
@@ -343,13 +372,13 @@ func DefaultBitNames() BinaryConfig {
 		},
 
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
+		DownloadURLs:   map[string]string{"default": "https://releases.drivechain.info/"},
 		Files: map[string]string{
 			"linux":   "L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
 			"macos":   "L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
 			"windows": "L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip",
 		},
-		AltDownloadURL: "https://releases.drivechain.info/",
+		AltDownloadURLs: map[string]string{"default": "https://releases.drivechain.info/"},
 		AltBinaryName:  "bitnames",
 		AltFiles: map[string]string{
 			"linux": "test-bitnames-x86_64-unknown-linux-gnu.zip", "macos": "test-bitnames-x86_64-apple-darwin.zip", "windows": "test-bitnames-x86_64-windows.exe",
@@ -381,13 +410,13 @@ func DefaultBitAssets() BinaryConfig {
 		},
 
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
+		DownloadURLs:   map[string]string{"default": "https://releases.drivechain.info/"},
 		Files: map[string]string{
 			"linux":   "L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip",
 			"macos":   "L2-S4-BitAssets-latest-x86_64-apple-darwin.zip",
 			"windows": "L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip",
 		},
-		AltDownloadURL: "https://releases.drivechain.info/",
+		AltDownloadURLs: map[string]string{"default": "https://releases.drivechain.info/"},
 		AltBinaryName:  "bitassets",
 		AltFiles: map[string]string{
 			"linux": "test-bitassets-x86_64-unknown-linux-gnu.zip", "macos": "test-bitassets-x86_64-apple-darwin.zip", "windows": "test-bitassets-x86_64-windows.exe",
@@ -420,14 +449,14 @@ func DefaultZSide() BinaryConfig {
 
 		// Dart L194-201: primary download (GitHub)
 		DownloadSource: DownloadSourceGitHub,
-		DownloadURL:    "https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest",
+		DownloadURLs:   map[string]string{"default": "https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest"},
 		Files: map[string]string{
 			"linux":   `thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu`,
 			"macos":   `thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin`,
 			"windows": "",
 		},
 		// Dart L203-215: alternative download (test builds)
-		AltDownloadURL: "https://releases.drivechain.info/",
+		AltDownloadURLs: map[string]string{"default": "https://releases.drivechain.info/"},
 		AltBinaryName:  "zside",
 		AltFiles: map[string]string{
 			"linux":   "test-zside-x86_64-unknown-linux-gnu.zip",
@@ -461,13 +490,13 @@ func DefaultTruthcoin() BinaryConfig {
 		},
 
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
+		DownloadURLs:   map[string]string{"default": "https://releases.drivechain.info/"},
 		Files: map[string]string{
 			"linux":   "L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip",
 			"macos":   "L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip",
 			"windows": "L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip",
 		},
-		AltDownloadURL: "https://releases.drivechain.info/",
+		AltDownloadURLs: map[string]string{"default": "https://releases.drivechain.info/"},
 		AltBinaryName:  "truthcoin",
 		AltFiles: map[string]string{
 			"linux": "test-truthcoin-x86_64-unknown-linux-gnu.zip", "macos": "test-truthcoin-x86_64-apple-darwin.zip", "windows": "test-truthcoin-x86_64-windows.exe",
@@ -499,13 +528,13 @@ func DefaultPhoton() BinaryConfig {
 		},
 
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
+		DownloadURLs:   map[string]string{"default": "https://releases.drivechain.info/"},
 		Files: map[string]string{
 			"linux":   "L2-S99-Photon-latest-x86_64-unknown-linux-gnu.zip",
 			"macos":   "L2-S99-Photon-latest-x86_64-apple-darwin.zip",
 			"windows": "L2-S99-Photon-latest-x86_64-pc-windows-gnu.zip",
 		},
-		AltDownloadURL: "https://releases.drivechain.info/",
+		AltDownloadURLs: map[string]string{"default": "https://releases.drivechain.info/"},
 		AltBinaryName:  "photon",
 		AltFiles: map[string]string{
 			"linux": "test-photon-x86_64-unknown-linux-gnu.zip", "macos": "test-photon-x86_64-apple-darwin.zip", "windows": "test-photon-x86_64-windows.exe",
@@ -537,13 +566,13 @@ func DefaultCoinShift() BinaryConfig {
 		},
 
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "https://releases.drivechain.info/",
+		DownloadURLs:   map[string]string{"default": "https://releases.drivechain.info/"},
 		Files: map[string]string{
 			"linux":   "L2-S255-Coinshift-latest-x86_64-unknown-linux-gnu.zip",
 			"macos":   "L2-S255-Coinshift-latest-x86_64-apple-darwin.zip",
 			"windows": "L2-S255-Coinshift-latest-x86_64-pc-windows-gnu.zip",
 		},
-		AltDownloadURL: "https://releases.drivechain.info/",
+		AltDownloadURLs: map[string]string{"default": "https://releases.drivechain.info/"},
 		AltBinaryName:  "coinshift",
 		AltFiles: map[string]string{
 			"linux": "test-coinshift-x86_64-unknown-linux-gnu.zip", "macos": "test-coinshift-x86_64-apple-darwin.zip", "windows": "test-coinshift-x86_64-windows.exe",
@@ -572,7 +601,7 @@ func DefaultGRPCurl() BinaryConfig {
 		DataDir: map[string]string{"linux": "grpcurl", "macos": "grpcurl", "windows": "grpcurl"},
 
 		DownloadSource: DownloadSourceGitHub,
-		DownloadURL:    "https://api.github.com/repos/fullstorydev/grpcurl/releases/latest",
+		DownloadURLs:   map[string]string{"default": "https://api.github.com/repos/fullstorydev/grpcurl/releases/latest"},
 		Files: map[string]string{
 			"linux":   `grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz`,
 			"macos":   `grpcurl_\d+\.\d+\.\d+_osx_x86_64\.tar\.gz`,
@@ -603,7 +632,7 @@ func DefaultThunderd() BinaryConfig {
 		FlutterFrontendDir: map[string]string{"linux": "thunder", "macos": "thunder", "windows": "thunder"},
 
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    "", // not downloadable (bundled)
+		DownloadURLs:   map[string]string{}, // not downloadable (bundled)
 		Files:          map[string]string{},
 
 		HealthCheckType: HealthCheckTCP,

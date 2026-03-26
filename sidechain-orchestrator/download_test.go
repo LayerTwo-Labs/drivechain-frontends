@@ -79,9 +79,9 @@ func TestDownload_Direct(t *testing.T) {
 		Name:           "test",
 		BinaryName:     "test-binary",
 		DownloadSource: DownloadSourceDirect,
-		DownloadURL:    srv.URL + "/",
+		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
 		Files:          map[string]string{currentOS(): "test-binary.zip"},
-	}, true)
+	}, "default", true)
 	require.NoError(t, err)
 
 	last := drainProgress(t, ch)
@@ -120,9 +120,9 @@ func TestDownload_GitHub(t *testing.T) {
 		Name:           "grpcurl",
 		BinaryName:     "grpcurl",
 		DownloadSource: DownloadSourceGitHub,
-		DownloadURL:    srv.URL + "/releases/latest",
+		DownloadURLs:   map[string]string{"default": srv.URL + "/releases/latest"},
 		Files:          map[string]string{currentOS(): `grpcurl_\d+\.\d+\.\d+_` + osPattern + `_x86_64\.zip`},
-	}, true)
+	}, "default", true)
 	require.NoError(t, err)
 
 	last := drainProgress(t, ch)
@@ -136,7 +136,7 @@ func TestDownload_SkipsWhenExists(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(binPath), 0o755))
 	require.NoError(t, os.WriteFile(binPath, []byte("existing"), 0o755))
 
-	ch, err := dm.Download(context.Background(), DefaultThunder(), false)
+	ch, err := dm.Download(context.Background(), DefaultThunder(), "default", false)
 	require.NoError(t, err)
 
 	last := drainProgress(t, ch)
