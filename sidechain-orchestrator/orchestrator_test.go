@@ -43,7 +43,7 @@ func newTestProcessManager(t *testing.T) (*ProcessManager, string) {
 func newTestDownloadManager(t *testing.T) (*DownloadManager, string) {
 	t.Helper()
 	dir := t.TempDir()
-	return NewDownloadManager(dir, testLogger(t)), dir
+	return NewDownloadManager(dir, "", testLogger(t)), dir
 }
 
 // symlinkSystemBinary makes a system binary available in the test data dir.

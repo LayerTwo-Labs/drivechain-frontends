@@ -89,9 +89,21 @@ func run(cctx *cli.Context) error {
 		Str("rpclisten", listenAddr).
 		Msg("starting orchestratord")
 
-	// Create orchestrator with all default configs
+	// Load binary configs from JSON (in bitwindow dir), falling back to hardcoded defaults
 	bitwindowDir := cctx.String("bitwindow-dir")
-	orch := orchestrator.New(dataDir, network, bitwindowDir, orchestrator.AllDefaults(), log)
+	configPath := orchestrator.ConfigFilePath(bitwindowDir)
+	configs := orchestrator.LoadConfigFile(configPath, log)
+	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
+
+	// Watch config file for changes
+	stopWatch, err := orchestrator.WatchConfigFile(configPath, func(newConfigs []orchestrator.BinaryConfig) {
+		orch.UpdateConfigs(newConfigs)
+	}, log)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to watch config file")
+	} else {
+		defer stopWatch()
+	}
 
 	// Adopt orphaned processes from previous session
 	if err := orch.AdoptOrphans(ctx); err != nil {

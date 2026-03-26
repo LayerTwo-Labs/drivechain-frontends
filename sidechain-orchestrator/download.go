@@ -5,6 +5,8 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,24 +29,26 @@ type DownloadProgress struct {
 }
 
 type DownloadManager struct {
-	dataDir    string
-	httpClient *http.Client
-	log        zerolog.Logger
-	inFlight   sync.Map
+	dataDir        string
+	configFilePath string // path to chains_config.json for hash write-back
+	httpClient     *http.Client
+	log            zerolog.Logger
+	inFlight       sync.Map
 }
 
-func NewDownloadManager(dataDir string, log zerolog.Logger) *DownloadManager {
+func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *DownloadManager {
 	_ = os.MkdirAll(BinDir(dataDir), 0o755)
 	return &DownloadManager{
-		dataDir:    dataDir,
-		httpClient: &http.Client{},
-		log:        log.With().Str("component", "download").Logger(),
+		dataDir:        dataDir,
+		configFilePath: configFilePath,
+		httpClient:     &http.Client{},
+		log:            log.With().Str("component", "download").Logger(),
 	}
 }
 
 // Download downloads a binary to the bin directory with progress reporting.
 // It determines the download strategy based on config (GitHub vs direct).
-func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, force bool) (<-chan DownloadProgress, error) {
+func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, network string, force bool) (<-chan DownloadProgress, error) {
 	binPath := BinaryPath(d.dataDir, config.BinaryName)
 
 	if !force {
@@ -61,7 +65,8 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, for
 		return nil, err
 	}
 
-	if fileName == "" || config.DownloadURL == "" {
+	baseURL := config.BaseURL(network)
+	if fileName == "" || baseURL == "" {
 		return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentOS())
 	}
 
@@ -78,14 +83,14 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, for
 		var downloadURL string
 		switch config.DownloadSource {
 		case DownloadSourceGitHub:
-			url, err := d.resolveGitHubURL(ctx, config.DownloadURL, fileName)
+			url, err := d.resolveGitHubURL(ctx, baseURL, fileName)
 			if err != nil {
 				ch <- DownloadProgress{Error: fmt.Errorf("resolve GitHub URL: %w", err)}
 				return
 			}
 			downloadURL = url
 		case DownloadSourceDirect:
-			downloadURL = config.DownloadURL + fileName
+			downloadURL = baseURL + fileName
 		}
 
 		d.log.Info().Str("url", downloadURL).Str("binary", config.Name).Msg("downloading")
@@ -104,9 +109,23 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, for
 			return
 		}
 
+		// Compute SHA256 hash and write back to config
+		ch <- DownloadProgress{Message: "verifying hash..."}
+		archiveHash, archiveSize, err := hashFile(savePath)
+		if err != nil {
+			d.log.Warn().Err(err).Msg("failed to hash archive")
+		} else {
+			d.log.Info().Str("hash", archiveHash).Int64("size", archiveSize).Str("binary", config.Name).Msg("archive hash")
+			if d.configFilePath != "" {
+				if err := writeHashToConfig(d.configFilePath, config.Name, currentOS(), archiveHash, archiveSize); err != nil {
+					d.log.Warn().Err(err).Msg("failed to write hash to config")
+				}
+			}
+		}
+
 		ch <- DownloadProgress{Message: "extracting..."}
 
-		if err := d.extractBinary(savePath, config, d.dataDir); err != nil {
+		if err := d.extractBinary(savePath, config, d.dataDir, network); err != nil {
 			ch <- DownloadProgress{Error: fmt.Errorf("extract: %w", err)}
 			return
 		}
@@ -240,18 +259,28 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 }
 
 // extractBinary extracts a downloaded archive to the bin directory.
-func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir string) error {
-	binDir := BinDir(dataDir)
-	_ = os.MkdirAll(binDir, 0o755)
+func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string) error {
+	destDir := BinDir(dataDir)
+
+	// Apply extract subfolder for the current network + OS (matches Dart behavior)
+	if subfolder, ok := config.ExtractSubfolder[currentOS()]; ok && subfolder != "" {
+		// Only use subfolder if this is the network that has forknet files
+		// Check if we're on forknet and have forknet-specific files
+		if network == "forknet" && len(config.ForknetFiles) > 0 {
+			destDir = filepath.Join(destDir, subfolder)
+		}
+	}
+
+	_ = os.MkdirAll(destDir, 0o755)
 
 	lower := strings.ToLower(archivePath)
 	switch {
 	case strings.HasSuffix(lower, ".zip"):
-		return d.extractZip(archivePath, binDir, config.BinaryName)
+		return d.extractZip(archivePath, destDir, config.BinaryName)
 	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
-		return d.extractTarGz(archivePath, binDir, config.BinaryName)
+		return d.extractTarGz(archivePath, destDir, config.BinaryName)
 	default:
-		return d.processRawBinary(archivePath, binDir, config.BinaryName)
+		return d.processRawBinary(archivePath, destDir, config.BinaryName)
 	}
 }
 
@@ -389,33 +418,27 @@ func (d *DownloadManager) processRawBinary(srcPath, destDir, binaryName string) 
 // moveExtractedBinaries moves files from a temp extraction dir to the bin dir,
 // applying rename logic and chmod.
 func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName string) error {
-	entries, err := os.ReadDir(tmpDir)
-	if err != nil {
-		return fmt.Errorf("read extracted dir: %w", err)
-	}
-
-	// If extraction produced a single directory, look inside it
-	if len(entries) == 1 && entries[0].IsDir() {
-		tmpDir = filepath.Join(tmpDir, entries[0].Name())
-		entries, err = os.ReadDir(tmpDir)
-		if err != nil {
-			return fmt.Errorf("read nested dir: %w", err)
-		}
-	}
-
 	moved := 0
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+
+	// Walk recursively to find all files, flatten them into destDir
+	err := filepath.WalkDir(tmpDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil || entry.IsDir() {
+			return err
 		}
 
-		srcPath := filepath.Join(tmpDir, entry.Name())
-		cleanName := StripPlatformSuffix(entry.Name())
+		// Skip non-binary files
+		name := entry.Name()
+		lower := strings.ToLower(name)
+		if lower == "license" || strings.HasPrefix(lower, "readme") {
+			return nil
+		}
+
+		cleanName := StripPlatformSuffix(name)
 		destPath := filepath.Join(destDir, cleanName)
 
-		if err := moveFile(srcPath, destPath); err != nil {
-			d.log.Warn().Err(err).Str("file", entry.Name()).Msg("move extracted file")
-			continue
+		if err := moveFile(path, destPath); err != nil {
+			d.log.Warn().Err(err).Str("file", name).Msg("move extracted file")
+			return nil
 		}
 
 		if err := chmod(destPath); err != nil {
@@ -424,6 +447,10 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 
 		moved++
 		d.log.Debug().Str("file", cleanName).Msg("extracted")
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("walk extracted dir: %w", err)
 	}
 
 	if moved == 0 {
@@ -458,6 +485,73 @@ func moveFile(src, dest string) error {
 
 	_ = srcFile.Close()
 	return os.Remove(src)
+}
+
+// hashFile computes the SHA256 hash and size of a file.
+func hashFile(path string) (string, int64, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", 0, err
+	}
+	defer f.Close() //nolint:errcheck // cleanup
+
+	h := sha256.New()
+	size, err := io.Copy(h, f)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), size, nil
+}
+
+// writeHashToConfig reads chains_config.json, updates the hash for a binary,
+// and writes it back. The file watcher will pick up the change.
+func writeHashToConfig(configPath, binaryName, osName, hash string, size int64) error {
+	// Map internal binary names to JSON keys
+	jsonKey := ""
+	for k, v := range jsonKeyToName {
+		if v == binaryName {
+			jsonKey = k
+			break
+		}
+	}
+	if jsonKey == "" {
+		jsonKey = binaryName
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("read config: %w", err)
+	}
+
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("unmarshal config: %w", err)
+	}
+
+	binaries, ok := raw["binaries"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("binaries not found in config")
+	}
+
+	binaryConf, ok := binaries[jsonKey].(map[string]any)
+	if !ok {
+		return fmt.Errorf("binary %s not found in config", jsonKey)
+	}
+
+	hashes, ok := binaryConf["hashes"].(map[string]any)
+	if !ok {
+		hashes = make(map[string]any)
+	}
+	hashes[osName] = map[string]any{"sha256": hash, "size": size}
+	binaryConf["hashes"] = hashes
+
+	out, err := json.MarshalIndent(raw, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal config: %w", err)
+	}
+
+	return os.WriteFile(configPath, out, 0o644)
 }
 
 // Platform/architecture suffixes to strip from extracted filenames.
