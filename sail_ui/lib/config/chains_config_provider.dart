@@ -40,6 +40,7 @@ class ChainsConfigProvider extends ChangeNotifier {
   /// load the JSON, and start the file watcher.
   static Future<ChainsConfigProvider> create({
     required Directory appDir,
+    bool paranoidMode = false,
   }) async {
     final configFile = File(path.join(appDir.path, _configFileName));
 
@@ -55,8 +56,12 @@ class ChainsConfigProvider extends ChangeNotifier {
       }
     }
 
-    // Run migrations before loading
-    await _runMigrations(configFile);
+    // Run migrations before loading (skip in paranoid mode)
+    if (!paranoidMode) {
+      await _runMigrations(configFile);
+    } else {
+      Logger(level: Level.info).i('Paranoid mode: skipping chains_config.json migrations');
+    }
 
     final provider = ChainsConfigProvider._(configFile: configFile);
     await provider._loadConfig();

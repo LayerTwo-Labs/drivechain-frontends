@@ -173,4 +173,24 @@ class SettingsProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  /// Update paranoid mode setting (locks chains_config.json from auto-updates)
+  Future<void> updateParanoidMode(bool value) async {
+    if (bitwindowSettings.paranoidMode == value) {
+      return;
+    }
+
+    final old = bitwindowSettings;
+    try {
+      bitwindowSettings = bitwindowSettings.copyWith(paranoidMode: value);
+      notifyListeners();
+      final setting = BitwindowSettingValue(newValue: bitwindowSettings);
+      await bitwindowClientSettings.setValue(setting);
+    } catch (e) {
+      bitwindowSettings = old;
+      notifyListeners();
+      log.e('Failed to update paranoid mode', error: e);
+      rethrow;
+    }
+  }
 }

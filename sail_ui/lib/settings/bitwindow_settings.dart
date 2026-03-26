@@ -8,16 +8,20 @@ import 'package:sail_ui/sail_ui.dart';
 // settings that can be accessed by bitwindow (duh), but also all sidechains!
 // magic
 class BitwindowSettings {
-  // Add more settings fields here as needed in the future
+  final bool paranoidMode;
 
-  BitwindowSettings();
+  BitwindowSettings({this.paranoidMode = false});
 
   Map<String, dynamic> toMap() {
-    return {};
+    return {
+      'paranoidMode': paranoidMode,
+    };
   }
 
   factory BitwindowSettings.fromMap(Map<String, dynamic> map) {
-    return BitwindowSettings();
+    return BitwindowSettings(
+      paranoidMode: map['paranoidMode'] ?? false,
+    );
   }
 
   String toJson() => json.encode(toMap());
@@ -31,8 +35,10 @@ class BitwindowSettings {
     }
   }
 
-  BitwindowSettings copyWith() {
-    return BitwindowSettings();
+  BitwindowSettings copyWith({bool? paranoidMode}) {
+    return BitwindowSettings(
+      paranoidMode: paranoidMode ?? this.paranoidMode,
+    );
   }
 }
 
