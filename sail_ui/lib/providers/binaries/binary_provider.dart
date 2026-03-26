@@ -283,6 +283,11 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
+    // Listen to chains config file changes for reactive updates
+    if (GetIt.I.isRegistered<ChainsConfigProvider>()) {
+      GetIt.I.get<ChainsConfigProvider>().addListener(_onChainsConfigChanged);
+    }
+
     // Set up periodic release date checks
     _releaseCheckTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkReleaseDates());
 
@@ -307,6 +312,42 @@ class BinaryProvider extends ChangeNotifier {
         }
       }),
     );
+  }
+
+  /// Called when the chains_config.json file changes.
+  /// Rebuilds binaries from the new config while preserving runtime state.
+  void _onChainsConfigChanged() {
+    if (!GetIt.I.isRegistered<ChainsConfigProvider>()) return;
+
+    final configProvider = GetIt.I.get<ChainsConfigProvider>();
+    final newBinaries = configProvider.buildBinaries();
+
+    for (final newBinary in newBinaries) {
+      _downloadManager.updateBinary(
+        newBinary.type,
+        (currentBinary) {
+          // Merge: take new static config, preserve runtime state
+          final merged = newBinary.copyWith(
+            metadata: newBinary.metadata.copyWith(
+              remoteTimestamp: currentBinary.metadata.remoteTimestamp,
+              downloadedTimestamp: currentBinary.metadata.downloadedTimestamp,
+              binaryPath: currentBinary.metadata.binaryPath,
+              updateable: currentBinary.metadata.updateable,
+            ),
+            downloadInfo: currentBinary.downloadInfo,
+          );
+          // Preserve runtime startup logs
+          merged.startupLogs = currentBinary.startupLogs;
+          // Merge boot args: keep runtime-added args not in new config
+          for (final arg in currentBinary.extraBootArgs) {
+            if (!merged.extraBootArgs.contains(arg)) {
+              merged.extraBootArgs = [...merged.extraBootArgs, arg];
+            }
+          }
+          return merged;
+        },
+      );
+    }
   }
 
   // Start a binary, and set starter seeds (if set)

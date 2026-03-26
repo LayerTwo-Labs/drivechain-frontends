@@ -67,3 +67,5 @@ flutter:
   assets:
     - assets/svgs/
     - assets/pngs/
+    - assets/chains_config.json
+    - assets/migrations/

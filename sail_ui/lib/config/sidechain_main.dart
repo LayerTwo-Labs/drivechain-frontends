@@ -59,6 +59,10 @@ Future<void> initSidechainDependencies({
   final enforcerConfProvider = await EnforcerConfProvider.create();
   GetIt.I.registerLazySingleton<EnforcerConfProvider>(() => enforcerConfProvider);
 
+  // Load chains config from shared bitwindow directory (single source of truth)
+  final chainsConfigProvider = await ChainsConfigProvider.create(appDir: bitwindowDir);
+  GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
+
   // first of all, write all binaries to the assets/bin directory
   await copyBinariesFromAssets(log, applicationDir);
 
@@ -66,7 +70,7 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerSingleton<LogProvider>(LogProvider());
 
   // Load and register initial binary states
-  final binaries = _initialBinaries(sidechainType.binary, additionalBinaries());
+  final binaries = _initialBinaries(sidechainType, additionalBinaries(), chainsConfigProvider);
   final binaryProvider = await BinaryProvider.create(appDir: applicationDir, initialBinaries: binaries);
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
 
@@ -155,8 +159,24 @@ void startConnectionTimersOnly(Logger log) {
 
 List<Binary> _noAdditionalBinaries() => [];
 
-List<Binary> _initialBinaries(Binary sidechain, List<Binary> additional) {
-  var binaries = [BitcoinCore(), Enforcer(), GRPCurl(), sidechain, ...additional];
+List<Binary> _initialBinaries(BinaryType sidechainType, List<Binary> additional, ChainsConfigProvider configProvider) {
+  final configBinaries = configProvider.buildBinaries();
+
+  Binary resolve(BinaryType type) {
+    return configBinaries.firstWhere(
+      (b) => b.type == type,
+      orElse: () => type.binary, // fall back to hardcoded defaults
+    );
+  }
+
+  final sidechain = resolve(sidechainType);
+  var binaries = [
+    resolve(BinaryType.bitcoinCore),
+    resolve(BinaryType.enforcer),
+    resolve(BinaryType.grpcurl),
+    sidechain,
+    ...additional,
+  ];
 
   // make sidechain boot in headless mode
   binaries[3].addBootArg('--headless');
@@ -191,25 +211,35 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
   log.d('Finished copying all available binaries to assets/bin');
 }
 
-final allBinaries = [
+/// Build the full list of binaries, preferring JSON config if available.
+List<Binary> get allBinaries => [
   ...coreBinaries,
   ...sidechainBinaries,
-  Thunderd(),
-  ZSided(),
+  resolveFromConfig(BinaryType.thunderd, () => Thunderd()),
+  resolveFromConfig(BinaryType.zSided, () => ZSided()),
 ];
 
-final coreBinaries = [
-  BitcoinCore(),
-  Enforcer(),
-  BitWindow(),
+List<Binary> get coreBinaries => [
+  resolveFromConfig(BinaryType.bitcoinCore, () => BitcoinCore()),
+  resolveFromConfig(BinaryType.enforcer, () => Enforcer()),
+  resolveFromConfig(BinaryType.bitWindow, () => BitWindow()),
 ];
 
-final sidechainBinaries = [
-  Thunder(),
-  Truthcoin(),
-  Photon(),
-  BitNames(),
-  BitAssets(),
-  CoinShift(),
-  ZSide(),
+List<Binary> get sidechainBinaries => [
+  resolveFromConfig(BinaryType.thunder, () => Thunder()),
+  resolveFromConfig(BinaryType.truthcoin, () => Truthcoin()),
+  resolveFromConfig(BinaryType.photon, () => Photon()),
+  resolveFromConfig(BinaryType.bitnames, () => BitNames()),
+  resolveFromConfig(BinaryType.bitassets, () => BitAssets()),
+  resolveFromConfig(BinaryType.coinShift, () => CoinShift()),
+  resolveFromConfig(BinaryType.zSide, () => ZSide()),
 ];
+
+Binary resolveFromConfig(BinaryType type, Binary Function() fallback) {
+  if (GetIt.I.isRegistered<ChainsConfigProvider>()) {
+    final configProvider = GetIt.I.get<ChainsConfigProvider>();
+    final binary = configProvider.buildBinaryByType(type);
+    if (binary != null) return binary;
+  }
+  return fallback();
+}
