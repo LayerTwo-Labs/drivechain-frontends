@@ -187,7 +187,8 @@ class ZSide extends Sidechain {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  binary: 'thunder-orchard',
-                 baseUrl: 'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
+                 baseUrls: allNetworksUrl('https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest'),
+
                  files: allNetworks({
                    OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',
                    OS.macos: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-apple-darwin',
@@ -195,7 +196,8 @@ class ZSide extends Sidechain {
                  }),
                ),
                alternativeDownloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'zside',
                  files: allNetworks({
                    OS.linux: 'test-zside-x86_64-unknown-linux-gnu.zip',
@@ -283,7 +285,8 @@ class Thunder extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'thunder',
                  files: allNetworks({
                    OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
@@ -292,7 +295,8 @@ class Thunder extends Sidechain {
                  }),
                ),
                alternativeDownloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'thunder',
                  files: allNetworks({
                    OS.linux: 'test-thunder-x86_64-unknown-linux-gnu.zip',
@@ -380,7 +384,8 @@ class BitNames extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'bitnames',
                  files: allNetworks({
                    OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
@@ -389,7 +394,8 @@ class BitNames extends Sidechain {
                  }),
                ),
                alternativeDownloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'bitnames',
                  files: allNetworks({
                    OS.linux: 'test-bitnames-x86_64-unknown-linux-gnu.zip',
@@ -477,7 +483,8 @@ class BitAssets extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'bitassets',
                  files: allNetworks({
                    OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
@@ -486,7 +493,8 @@ class BitAssets extends Sidechain {
                  }),
                ),
                alternativeDownloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'bitassets',
                  files: allNetworks({
                    OS.linux: 'test-bitassets-x86_64-unknown-linux-gnu.zip',
@@ -574,7 +582,8 @@ class Truthcoin extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'truthcoin',
                  files: allNetworks({
                    OS.linux: 'L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip',
@@ -583,7 +592,8 @@ class Truthcoin extends Sidechain {
                  }),
                ),
                alternativeDownloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'truthcoin',
                  files: allNetworks({
                    OS.linux: 'test-truthcoin-x86_64-unknown-linux-gnu.zip',
@@ -671,7 +681,8 @@ class Photon extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'photon',
                  files: allNetworks({
                    OS.linux: 'L2-S99-Photon-latest-x86_64-unknown-linux-gnu.zip',
@@ -680,7 +691,8 @@ class Photon extends Sidechain {
                  }),
                ),
                alternativeDownloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'photon',
                  files: allNetworks({
                    OS.linux: 'test-photon-x86_64-unknown-linux-gnu.zip',
@@ -768,7 +780,8 @@ class CoinShift extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'coinshift',
                  files: allNetworks({
                    OS.linux: 'L2-S255-Coinshift-latest-x86_64-unknown-linux-gnu.zip',
@@ -777,7 +790,8 @@ class CoinShift extends Sidechain {
                  }),
                ),
                alternativeDownloadConfig: DownloadConfig(
-                 baseUrl: 'https://releases.drivechain.info/',
+                 baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
+
                  binary: 'coinshift',
                  files: allNetworks({
                    OS.linux: 'test-coinshift-x86_64-unknown-linux-gnu.zip',

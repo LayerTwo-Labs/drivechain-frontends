@@ -26,7 +26,7 @@ class MockBinary extends Binary {
         metadata: MetadataConfig(
           downloadConfig: DownloadConfig(
             binary: 'mock',
-            baseUrl: '',
+            baseUrls: allNetworksUrl(''),
             files: allNetworks({
               OS.linux: 'mock',
               OS.macos: 'mock',
