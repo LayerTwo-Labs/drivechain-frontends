@@ -39,6 +39,18 @@ type ManagedProcess struct {
 	exitErr  string
 }
 
+// ExitCh returns a channel that is closed when the process exits.
+func (p *ManagedProcess) ExitCh() <-chan struct{} {
+	return p.exitCh
+}
+
+// ExitCode returns the process exit code (only valid after exitCh is closed).
+func (p *ManagedProcess) ExitCode() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.exitCode
+}
+
 const maxLogEntries = 5000
 
 func (p *ManagedProcess) addLog(entry LogEntry) {
@@ -374,6 +386,22 @@ func (pm *ProcessManager) AdoptProcess(config BinaryConfig, pid int) {
 	}
 
 	pm.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
+}
+
+// IsAdopted returns true if the named process was adopted (not started by us).
+func (pm *ProcessManager) IsAdopted(name string) bool {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	p, exists := pm.processes[name]
+	return exists && p.Adopted
+}
+
+// Remove removes a process from tracking without stopping it.
+// Used for adopted processes that we don't own.
+func (pm *ProcessManager) Remove(name string) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	delete(pm.processes, name)
 }
 
 // Spam filter patterns (ported from Dart isSpam function)

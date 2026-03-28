@@ -38,6 +38,30 @@ func getProcessName(pid int) (string, error) {
 	return name, nil
 }
 
+// findPidByName returns the PID of a running process by name.
+// Dart equivalent: pgrep approach used when PID files aren't available.
+// Uses pgrep which is available on macOS and Linux.
+func findPidByName(binaryName string) (int, error) {
+	out, err := exec.Command("pgrep", "-x", binaryName).CombinedOutput()
+	if err != nil {
+		// pgrep returns exit code 1 when no process found
+		return 0, fmt.Errorf("no process found for %s", binaryName)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(lines) == 0 || lines[0] == "" {
+		return 0, fmt.Errorf("no process found for %s", binaryName)
+	}
+
+	// Return the first match
+	pid, err := strconv.Atoi(strings.TrimSpace(lines[0]))
+	if err != nil {
+		return 0, fmt.Errorf("parse pid for %s: %w", binaryName, err)
+	}
+
+	return pid, nil
+}
+
 // killProcess sends SIGTERM, then SIGKILL if the process doesn't exit.
 func killProcess(pid int) error {
 	proc, err := os.FindProcess(pid)
