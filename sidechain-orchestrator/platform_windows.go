@@ -52,6 +52,33 @@ func getProcessName(pid int) (string, error) {
 	return name, nil
 }
 
+// findPidByName returns the PID of a running process by name on Windows.
+func findPidByName(binaryName string) (int, error) {
+	out, err := exec.Command("tasklist", "/FI", fmt.Sprintf("IMAGENAME eq %s.exe", binaryName), "/FO", "CSV", "/NH").CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("tasklist for %s: %w", binaryName, err)
+	}
+
+	line := strings.TrimSpace(string(out))
+	if line == "" || strings.Contains(line, "No tasks") {
+		return 0, fmt.Errorf("no process found for %s", binaryName)
+	}
+
+	// CSV: "image_name","pid","session","session#","mem_usage"
+	parts := strings.SplitN(line, ",", 3)
+	if len(parts) < 2 {
+		return 0, fmt.Errorf("parse tasklist output for %s", binaryName)
+	}
+
+	pidStr := strings.Trim(parts[1], `"`)
+	pid, err := strconv.Atoi(strings.TrimSpace(pidStr))
+	if err != nil {
+		return 0, fmt.Errorf("parse pid for %s: %w", binaryName, err)
+	}
+
+	return pid, nil
+}
+
 func killProcess(pid int) error {
 	cmd := exec.Command("taskkill", "/PID", strconv.Itoa(pid))
 	if err := cmd.Run(); err != nil {

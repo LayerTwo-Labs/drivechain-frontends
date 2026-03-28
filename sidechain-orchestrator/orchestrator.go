@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -72,6 +74,10 @@ type Orchestrator struct {
 	pidManager *PidFileManager
 	log        zerolog.Logger
 
+	// Dart: RPCConnection instances — one per binary, for persistent health monitoring
+	monitors   map[string]*ConnectionMonitor
+	monitorsMu sync.Mutex
+
 	mu sync.RWMutex
 
 	cachedBTCPrice    float64
@@ -91,6 +97,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		download:     NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log),
 		process:      NewProcessManager(dataDir, pidMgr, log),
 		pidManager:   pidMgr,
+		monitors:     make(map[string]*ConnectionMonitor),
 		log:          log.With().Str("component", "orchestrator").Logger(),
 	}
 
@@ -110,6 +117,88 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	}
 
 	return orch
+}
+
+// getOrCreateMonitor returns the ConnectionMonitor for a binary, creating one if needed.
+// Dart: each RPCConnection has its own connection timer + state.
+func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, startupPatterns []string) *ConnectionMonitor {
+	o.monitorsMu.Lock()
+	defer o.monitorsMu.Unlock()
+
+	if mon, ok := o.monitors[name]; ok {
+		return mon
+	}
+
+	mon := NewConnectionMonitor(name, checker, startupPatterns, o.log)
+	o.monitors[name] = mon
+	return mon
+}
+
+// StopAllMonitors stops all connection monitor timers.
+func (o *Orchestrator) StopAllMonitors() {
+	o.monitorsMu.Lock()
+	defer o.monitorsMu.Unlock()
+
+	for _, mon := range o.monitors {
+		mon.StopAllTimers()
+	}
+}
+
+// discoverPid attempts to find the real PID of an externally-running process.
+// Dart: PidFileManager.readPidFile with fallback to BitcoinCorePidTracker/pgrep.
+//
+// Strategy:
+//  1. Check bitwindow's PID directory (the primary app may have written it)
+//  2. Check the native bitcoind.pid in Bitcoin Core's datadir
+//  3. Fall back to pgrep by binary name
+func (o *Orchestrator) discoverPid(cfg BinaryConfig) int {
+	// 1. Check bitwindow's PID directory
+	// Dart: PidFileManager stores at {appDir}/pids/{binaryName}.pid
+	if o.BitwindowDir != "" {
+		bitwindowPidMgr := NewPidFileManager(o.BitwindowDir, o.log)
+		pid, err := bitwindowPidMgr.ReadPidFile(cfg.BinaryName)
+		if err == nil && pid > 0 {
+			if o.pidManager.ValidatePid(pid, cfg.BinaryName) {
+				o.log.Info().Str("binary", cfg.Name).Int("pid", pid).Msg("found PID from bitwindow PID directory")
+				return pid
+			}
+		}
+	}
+
+	// 2. For Bitcoin Core: check native bitcoind.pid in datadir
+	// Dart: BitcoinCorePidTracker watches {datadir}/{network}/bitcoind.pid
+	if cfg.Name == "bitcoind" && o.BitcoinConf != nil {
+		// Build path: {datadir}/{network-subdir}/bitcoind.pid
+		dataDir := o.BitcoinConf.DetectedDataDir
+		if dataDir == "" {
+			dataDir = config.BitcoinCoreDirs.RootDirNetwork(o.BitcoinConf.Network)
+		}
+		networkSubdir := config.CoreSectionForNetwork(o.BitcoinConf.Network)
+		pidPath := ""
+		if networkSubdir == "main" {
+			pidPath = dataDir + "/bitcoind.pid"
+		} else {
+			pidPath = dataDir + "/" + networkSubdir + "/bitcoind.pid"
+		}
+
+		if data, err := os.ReadFile(pidPath); err == nil {
+			if pid, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil && pid > 0 {
+				if isPidAlive(pid) {
+					o.log.Info().Str("binary", cfg.Name).Int("pid", pid).Str("path", pidPath).Msg("found PID from native bitcoind.pid")
+					return pid
+				}
+			}
+		}
+	}
+
+	// 3. Fall back to pgrep
+	pid, err := findPidByName(cfg.BinaryName)
+	if err == nil && pid > 0 {
+		o.log.Info().Str("binary", cfg.Name).Int("pid", pid).Msg("found PID via pgrep")
+		return pid
+	}
+
+	return 0
 }
 
 // UpdateConfigs replaces the binary configs with new ones (e.g. from a reloaded JSON file).
@@ -269,8 +358,95 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 			}
 		}
 
-		// Start Bitcoin Core if needed
-		if !o.process.IsRunning("bitcoind") {
+		// === Bitcoin Core: initBinary pattern (rpc_connection.dart L197-232) ===
+		//
+		// Dart flow:
+		//   1. startConnectionTimer() — pings once, then starts 1s timer
+		//   2. if (connected) → "already running, not booting" → return
+		//   3. else → bootProcess() → wait for connection
+		//
+		// The connection timer keeps running persistently so that after a
+		// stop() the monitor enters connectModeOnly and can detect
+		// externally-restarted processes.
+
+		coreCfg := o.configs["bitcoind"]
+		var coreHealthOpts HealthCheckOpts
+		if o.BitcoinConf != nil {
+			if coreCfg.Port == 0 {
+				coreCfg.Port = o.BitcoinConf.GetRPCPort()
+			}
+			if o.BitcoinConf.Config != nil {
+				section := o.BitcoinConf.Network.CoreSection()
+				coreHealthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+				coreHealthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+			}
+		}
+		coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
+		coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
+
+		// Dart L208: await startConnectionTimer()
+		coreMon.StartConnectionTimer(ctx)
+
+		// Dart L209-213: if (connected) { "already running, not booting"; return }
+		if coreMon.Connected() {
+			o.log.Info().Str("binary", "bitcoind").Msg("already running, not booting")
+			ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "Bitcoin Core already running"}
+
+			// Adopt with real PID if possible (Dart: PidFileManager.readPidFile)
+			if !o.process.IsRunning("bitcoind") {
+				pid := o.discoverPid(coreCfg)
+				o.process.AdoptProcess(coreCfg, pid)
+				o.log.Info().Str("binary", "bitcoind").Int("pid", pid).Msg("adopted externally-running process")
+			}
+		} else {
+			// Dart L216-217: only start restart timer if this process starts the binary!
+			coreArgs := opts.CoreArgs // capture for closure
+			coreMon.StartRestartTimer(ctx,
+				// restartFunc: re-start bitcoind
+				// Dart binary_provider.dart L490-506: detect -reindex need before restart
+				func(restartCtx context.Context) error {
+					// Check stderr logs for reindex marker before restarting
+					// Dart L491-492: logs.any((line) => line.contains('Please restart with -reindex'))
+					proc := o.process.Get("bitcoind")
+					if proc != nil {
+						logs := proc.RecentLogs(100)
+						for _, entry := range logs {
+							if strings.Contains(entry.Line, "Please restart with -reindex") {
+								o.log.Warn().Msg("Bitcoin Core needs reindex, adding -reindex flag for next boot attempt")
+								hasReindex := false
+								for _, arg := range coreArgs {
+									if arg == "-reindex" {
+										hasReindex = true
+										break
+									}
+								}
+								if !hasReindex {
+									coreArgs = append(coreArgs, "-reindex")
+								}
+								break
+							}
+						}
+					}
+
+					_, err := o.process.Start(restartCtx, o.configs["bitcoind"], coreArgs, nil)
+					return err
+				},
+				// exitedFunc: check if bitcoind exited with non-zero code
+				func() (int, bool) {
+					proc := o.process.Get("bitcoind")
+					if proc == nil {
+						return 0, false
+					}
+					select {
+					case <-proc.ExitCh():
+						return proc.ExitCode(), true
+					default:
+						return 0, false
+					}
+				},
+			)
+
+			// Dart L219: log + bootProcess
 			ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
 
 			downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], o.Network, false)
@@ -287,52 +463,78 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 				ch <- StartupProgress{Error: fmt.Errorf("start bitcoind: %w", err)}
 				return
 			}
+
+			// Wait for the connection timer to detect bitcoind is healthy
+			ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
+			if err := coreMon.WaitForConnected(ctx); err != nil {
+				ch <- StartupProgress{Error: fmt.Errorf("wait for bitcoind: %w", err)}
+				return
+			}
 		}
 
-		// Wait for Bitcoin Core health
-		ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
-		coreCfg := o.configs["bitcoind"]
-		var coreHealthOpts HealthCheckOpts
-		if o.BitcoinConf != nil {
-			if coreCfg.Port == 0 {
-				coreCfg.Port = o.BitcoinConf.GetRPCPort()
-			}
-			if o.BitcoinConf.Config != nil {
-				section := o.BitcoinConf.Network.CoreSection()
-				coreHealthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-				coreHealthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
-			}
-		}
-		coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
-		if err := WaitForHealthy(ctx, coreChecker, 2*time.Second); err != nil {
-			ch <- StartupProgress{Error: fmt.Errorf("wait for bitcoind: %w", err)}
-			return
-		}
+		// === Enforcer: same initBinary pattern ===
+		if config.ChainLayer == 2 {
+			enforcerCfg := o.configs["enforcer"]
+			enforcerChecker := NewHealthChecker(enforcerCfg)
+			enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
 
-		// Start enforcer if needed
-		if config.ChainLayer == 2 && !o.process.IsRunning("enforcer") {
-			ch <- StartupProgress{Stage: "starting-enforcer", Message: "starting BIP300301 enforcer..."}
+			// Dart L208: await startConnectionTimer()
+			enforcerMon.StartConnectionTimer(ctx)
 
-			downloadCh, err := o.download.Download(ctx, o.configs["enforcer"], o.Network, false)
-			if err != nil {
-				ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
-				return
-			}
-			if err := forwardDownload(downloadCh, ch, "downloading-enforcer"); err != nil {
-				ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
-				return
-			}
+			// Dart L209-213: if (connected) → skip
+			if enforcerMon.Connected() {
+				o.log.Info().Str("binary", "enforcer").Msg("already running, not booting")
+				ch <- StartupProgress{Stage: "waiting-enforcer", Message: "BIP300301 enforcer already running"}
 
-			if _, err := o.process.Start(ctx, o.configs["enforcer"], opts.EnforcerArgs, nil); err != nil {
-				ch <- StartupProgress{Error: fmt.Errorf("start enforcer: %w", err)}
-				return
-			}
+				if !o.process.IsRunning("enforcer") {
+					pid := o.discoverPid(enforcerCfg)
+					o.process.AdoptProcess(enforcerCfg, pid)
+					o.log.Info().Str("binary", "enforcer").Int("pid", pid).Msg("adopted externally-running process")
+				}
+			} else {
+				// Dart L216-217: only start restart timer if this process starts the binary!
+				enfOpts := opts
+				enforcerMon.StartRestartTimer(ctx,
+					func(restartCtx context.Context) error {
+						_, err := o.process.Start(restartCtx, o.configs["enforcer"], enfOpts.EnforcerArgs, nil)
+						return err
+					},
+					func() (int, bool) {
+						proc := o.process.Get("enforcer")
+						if proc == nil {
+							return 0, false
+						}
+						select {
+						case <-proc.ExitCh():
+							return proc.ExitCode(), true
+						default:
+							return 0, false
+						}
+					},
+				)
 
-			ch <- StartupProgress{Stage: "waiting-enforcer", Message: "waiting for enforcer to accept connections..."}
-			enforcerChecker := NewHealthChecker(o.configs["enforcer"])
-			if err := WaitForHealthy(ctx, enforcerChecker, 2*time.Second); err != nil {
-				ch <- StartupProgress{Error: fmt.Errorf("wait for enforcer: %w", err)}
-				return
+				ch <- StartupProgress{Stage: "starting-enforcer", Message: "starting BIP300301 enforcer..."}
+
+				downloadCh, err := o.download.Download(ctx, o.configs["enforcer"], o.Network, false)
+				if err != nil {
+					ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
+					return
+				}
+				if err := forwardDownload(downloadCh, ch, "downloading-enforcer"); err != nil {
+					ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
+					return
+				}
+
+				if _, err := o.process.Start(ctx, o.configs["enforcer"], opts.EnforcerArgs, nil); err != nil {
+					ch <- StartupProgress{Error: fmt.Errorf("start enforcer: %w", err)}
+					return
+				}
+
+				ch <- StartupProgress{Stage: "waiting-enforcer", Message: "waiting for enforcer to accept connections..."}
+				if err := enforcerMon.WaitForConnected(ctx); err != nil {
+					ch <- StartupProgress{Error: fmt.Errorf("wait for enforcer: %w", err)}
+					return
+				}
 			}
 		}
 
@@ -400,6 +602,29 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 		ordered := orderForShutdown(running)
 
 		for _, name := range ordered {
+			// Dart binary_provider.dart pattern: don't shut down processes we
+			// didn't start. If it was adopted (running externally), just
+			// remove it from our tracking — the owning process manages its
+			// lifecycle.
+			if o.process.IsAdopted(name) {
+				// Dart binary_provider.dart pattern: don't shut down processes we
+				// didn't start. The owning process manages its lifecycle.
+				// Dart RPCConnection.markDisconnected() — keep timer in connectModeOnly
+				o.log.Info().Str("binary", name).Msg("adopted process, skipping shutdown (not ours to stop)")
+				o.process.Remove(name)
+
+				// Transition monitor to connect-mode-only so it can detect
+				// if the process comes back (Dart: connectModeOnly = true)
+				o.monitorsMu.Lock()
+				if mon, ok := o.monitors[name]; ok {
+					mon.MarkDisconnected()
+				}
+				o.monitorsMu.Unlock()
+
+				completed++
+				continue
+			}
+
 			ch <- ShutdownProgress{
 				TotalCount:    total,
 				CompletedCount: completed,
@@ -409,6 +634,14 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 			if err := o.process.Stop(ctx, name, force); err != nil {
 				o.log.Warn().Err(err).Str("binary", name).Msg("stop during shutdown")
 			}
+
+			// Dart RPCConnection.stop() — mark as stopped, timer enters connectModeOnly
+			o.monitorsMu.Lock()
+			if mon, ok := o.monitors[name]; ok {
+				mon.MarkStopped()
+			}
+			o.monitorsMu.Unlock()
+
 			completed++
 		}
 
