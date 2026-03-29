@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
@@ -237,7 +238,9 @@ class TruthcoinLive extends TruthcoinRPC {
         binaryType: BinaryType.truthcoin,
         restartOnFailure: false,
       ) {
-    startConnectionTimer();
+    if (!Environment.backendManagesBinaries) {
+      startConnectionTimer();
+    }
   }
 
   @override

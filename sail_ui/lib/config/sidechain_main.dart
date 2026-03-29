@@ -88,13 +88,11 @@ Future<void> initSidechainDependencies({
   final sidechainConnection = createSidechainConnection(binary);
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
-  // Boot binaries (skip if a backend server like thunderd manages them)
+  // Boot binaries (skip if a backend server like thunderd manages them).
+  // When the backend manages binaries, state flows through
+  // BackendStateProvider.startWatching() → watchBinaries stream → RPCConnection.
   if (!backendManagesBinaries) {
     bootBinaries(log, binary);
-  } else {
-    // Backend manages binaries — just start connection timers so the UI
-    // can detect when the backend brings services online.
-    startConnectionTimersOnly(log);
   }
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
@@ -148,18 +146,6 @@ void bootBinaries(Logger log, Binary sidechain) async {
   }());
 
   await binaryProvider.startWithEnforcer(sidechain);
-}
-
-void startConnectionTimersOnly(Logger log) {
-  final mainchainRPC = GetIt.I.get<MainchainRPC>();
-  final enforcerRPC = GetIt.I.get<EnforcerRPC>();
-  final sidechainRPC = GetIt.I.get<SidechainRPC>();
-
-  log.i('Backend manages binaries — starting connection timers only (no process boot)');
-
-  mainchainRPC.startConnectionTimer();
-  enforcerRPC.startConnectionTimer();
-  sidechainRPC.startConnectionTimer();
 }
 
 List<Binary> _noAdditionalBinaries() => [];

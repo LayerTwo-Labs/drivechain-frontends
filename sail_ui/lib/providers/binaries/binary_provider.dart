@@ -1152,24 +1152,29 @@ class BackendBinaryProvider extends BinaryProvider {
 
     log.i('BackendBinaryProvider: starting $name via orchestrator');
 
-    final backendState = _backendState;
-    if (backendState != null) {
-      await backendState.trackStartup(
-        _orchestrator.startWithDeps(name, targetArgs: ['--headless']),
-      );
-    } else {
-      await for (final progress in _orchestrator.startWithDeps(name, targetArgs: ['--headless'])) {
-        log.i('${progress.stage}: ${progress.message}');
-        if (progress.error.isNotEmpty) {
-          log.e('startup error: ${progress.error}');
-          break;
+    try {
+      final backendState = _backendState;
+      if (backendState != null) {
+        await backendState.trackStartup(
+          _orchestrator.startWithDeps(name, targetArgs: ['--headless']),
+        );
+      } else {
+        await for (final progress in _orchestrator.startWithDeps(name, targetArgs: ['--headless'])) {
+          log.i('${progress.stage}: ${progress.message}');
+          if (progress.error.isNotEmpty) {
+            log.e('startup error: ${progress.error}');
+            break;
+          }
+          if (progress.done) break;
         }
-        if (progress.done) break;
       }
+    } catch (e) {
+      log.e('BackendBinaryProvider: backend unreachable for start: $e');
     }
   }
 
   /// Stop a binary via the backend orchestrator.
+  /// State flows back through watchBinaries → BackendStateProvider → UI.
   @override
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
     final name = _orchestratorName(binary);
@@ -1184,11 +1189,10 @@ class BackendBinaryProvider extends BinaryProvider {
     } catch (e) {
       log.e('BackendBinaryProvider: failed to stop $name: $e');
     }
-
-    _markRpcAsDisconnected(binary);
   }
 
   /// Download a binary via the backend orchestrator.
+  /// Falls back to Flutter-side download if the backend is unreachable.
   @override
   Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
     final name = _orchestratorName(binary);
@@ -1198,26 +1202,43 @@ class BackendBinaryProvider extends BinaryProvider {
 
     log.i('BackendBinaryProvider: downloading $name via orchestrator');
 
-    await for (final progress in _orchestrator.downloadBinary(name, force: shouldUpdate)) {
-      if (progress.totalBytes > 0) {
+    try {
+      await for (final progress in _orchestrator.downloadBinary(name, force: shouldUpdate)) {
         updateBinary(binary.type, (b) {
           return b.copyWith(
             downloadInfo: DownloadInfo(
               progress: progress.bytesDownloaded.toDouble(),
               total: progress.totalBytes.toDouble(),
               message: progress.message,
-              isDownloading: !progress.done,
+              isDownloading: !progress.done && progress.error.isEmpty,
             ),
           );
         });
         notifyListeners();
+
+        if (progress.error.isNotEmpty) {
+          log.e('BackendBinaryProvider: download error for $name: ${progress.error}');
+          break;
+        }
+        if (progress.done) break;
       }
 
-      if (progress.error.isNotEmpty) {
-        log.e('BackendBinaryProvider: download error for $name: ${progress.error}');
-        break;
-      }
-      if (progress.done) break;
+      // Clear download state when stream ends (matches Flutter download_manager.dart pattern)
+      updateBinary(binary.type, (b) {
+        return b.copyWith(
+          downloadInfo: const DownloadInfo(progress: 0.0, isDownloading: false),
+        );
+      });
+      notifyListeners();
+    } catch (e) {
+      // Clear download state on error too
+      updateBinary(binary.type, (b) {
+        return b.copyWith(
+          downloadInfo: DownloadInfo(progress: 0.0, message: e.toString(), isDownloading: false),
+        );
+      });
+      notifyListeners();
+      log.e('BackendBinaryProvider: backend unreachable for download: $e');
     }
   }
 
@@ -1256,25 +1277,5 @@ class BackendBinaryProvider extends BinaryProvider {
       CoinShift() => 'coinshift',
       _ => null,
     };
-  }
-
-  /// Mark the RPC connection as disconnected after stopping.
-  void _markRpcAsDisconnected(Binary binary) {
-    final rpc = switch (binary) {
-      var b when b is BitcoinCore => mainchainRPC,
-      var b when b is Enforcer => enforcerRPC,
-      var b when b is BitWindow => bitwindowRPC,
-      var b when b is Thunderd => thunderdRPC,
-      var b when b is Thunder => thunderRPC,
-      var b when b is Truthcoin => truthcoinRPC,
-      var b when b is Photon => photonRPC,
-      var b when b is BitNames => bitnamesRPC,
-      var b when b is BitAssets => bitassetsRPC,
-      var b when b is ZSide => zsideRPC,
-      var b when b is CoinShift => coinshiftRPC,
-      _ => null,
-    };
-    rpc?.markDisconnected();
-    notifyListeners();
   }
 }

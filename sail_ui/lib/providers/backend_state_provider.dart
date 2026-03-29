@@ -7,6 +7,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
@@ -61,12 +62,27 @@ class BackendStateProvider extends ChangeNotifier {
 
   /// Start listening to the watchBinaries stream from the backend.
   /// Call this after the daemon process is running and serving gRPC.
+  ///
+  /// Syncs connection state from the Go ConnectionMonitor to Flutter
+  /// RPCConnections so the UI shows proper connected/startup/error states.
   void startWatching() {
     _watchSub?.cancel();
     _watchSub = _orchestrator.watchBinaries().listen(
       (response) {
+        final changedRpcs = <RPCConnection>{};
         for (final status in response.binaries) {
           binaries[status.name] = status;
+
+          // Sync connection state from Go backend to Flutter RPCConnections.
+          // This is the bridge between Go's ConnectionMonitor and Flutter's
+          // RPCConnection (rpc_connection.dart) so the UI shows proper
+          // connected/startup/error states without Flutter doing its own pings.
+          final rpc = _syncConnectionState(status);
+          if (rpc != null) changedRpcs.add(rpc);
+        }
+        // Batch notifications: one per changed RPC, then one for ourselves
+        for (final rpc in changedRpcs) {
+          rpc.notifyListeners();
         }
         notifyListeners();
       },
@@ -80,14 +96,58 @@ class BackendStateProvider extends ChangeNotifier {
     );
   }
 
+  /// Sync all connection state from the Go backend to the Flutter RPCConnection.
+  /// The Go ConnectionMonitor is the single source of truth — just assign all fields.
+  /// Returns the RPC if state changed (caller batches notifyListeners), null otherwise.
+  RPCConnection? _syncConnectionState(BinaryStatusMsg status) {
+    final rpc = _rpcForBinaryName(status.name);
+    if (rpc == null) return null;
+
+    final startupError = status.startupError.isNotEmpty ? status.startupError : null;
+    final connectionError = status.connectionError.isNotEmpty ? status.connectionError : null;
+
+    // Check if anything actually changed to avoid unnecessary rebuilds
+    if (rpc.connected == status.connected &&
+        rpc.stoppingBinary == status.stopping &&
+        rpc.initializingBinary == status.initializing &&
+        rpc.connectModeOnly == status.connectModeOnly &&
+        rpc.startupError == startupError &&
+        rpc.connectionError == connectionError) {
+      return null;
+    }
+
+    rpc.connected = status.connected;
+    rpc.stoppingBinary = status.stopping;
+    rpc.initializingBinary = status.initializing;
+    rpc.connectModeOnly = status.connectModeOnly;
+    rpc.startupError = startupError;
+    rpc.connectionError = connectionError;
+    return rpc;
+  }
+
+  /// Get the RPCConnection for a backend binary name, or null.
+  RPCConnection? _rpcForBinaryName(String name) {
+    return switch (name) {
+      'bitcoind' => GetIt.I.isRegistered<MainchainRPC>() ? GetIt.I.get<MainchainRPC>() : null,
+      'enforcer' => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null,
+      'bitwindowd' => GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null,
+      'thunder' ||
+      'zside' ||
+      'bitnames' ||
+      'bitassets' ||
+      'truthcoin' ||
+      'photon' ||
+      'coinshift' => GetIt.I.isRegistered<SidechainRPC>() ? GetIt.I.get<SidechainRPC>() : null,
+      _ => null,
+    };
+  }
+
   /// Track startup progress from a startWithDeps stream.
-  /// Updates download progress on BinaryProvider and syncs initializingBinary
-  /// on RPCConnections so the UI shows proper loading states.
+  /// Updates download progress on BinaryProvider so existing progress bars work.
+  /// Connection state (initializingBinary, connected, etc.) is synced via
+  /// watchBinaries → _syncConnectionState, not set here.
   Future<void> trackStartup(Stream<StartWithDepsResponse> stream) async {
     startupComplete = false;
-
-    // Mark all RPCConnections as initializing — the backend is starting everything
-    _setAllInitializing(true);
     notifyListeners();
 
     await for (final progress in stream) {
@@ -117,27 +177,15 @@ class BackendStateProvider extends ChangeNotifier {
 
       if (progress.error.isNotEmpty) {
         _log.e('BackendStateProvider: startup error: ${progress.error}');
-        _setAllInitializing(false);
         break;
       }
 
-      if (progress.done) {
-        _setAllInitializing(false);
-        break;
-      }
+      if (progress.done) break;
     }
 
     startupComplete = true;
     startupProgress = null;
     notifyListeners();
-  }
-
-  /// Set initializingBinary on all registered RPCConnections.
-  void _setAllInitializing(bool value) {
-    for (final rpc in _getAllRpcConnections()) {
-      rpc.initializingBinary = value;
-      rpc.notifyListeners();
-    }
   }
 
   /// Sync the current startup stage message to the relevant RPCConnection
@@ -154,15 +202,6 @@ class BackendStateProvider extends ChangeNotifier {
       final binaryProvider = GetIt.I.get<BinaryProvider>();
       binaryProvider.addStartupLogForBinary(type, message);
     }
-  }
-
-  /// Get all registered RPCConnections.
-  List<RPCConnection> _getAllRpcConnections() {
-    final rpcs = <RPCConnection>[];
-    if (GetIt.I.isRegistered<MainchainRPC>()) rpcs.add(GetIt.I.get<MainchainRPC>());
-    if (GetIt.I.isRegistered<EnforcerRPC>()) rpcs.add(GetIt.I.get<EnforcerRPC>());
-    if (GetIt.I.isRegistered<SidechainRPC>()) rpcs.add(GetIt.I.get<SidechainRPC>());
-    return rpcs;
   }
 
   /// Map backend binary name to BinaryType for updating download progress.

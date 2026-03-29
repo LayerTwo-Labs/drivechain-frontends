@@ -146,6 +146,28 @@ func (m *ConnectionMonitor) StartupError() string {
 	return m.startupError
 }
 
+// StoppingBinary returns whether the binary is currently being stopped.
+func (m *ConnectionMonitor) StoppingBinary() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.stoppingBinary
+}
+
+// InitializingBinary returns whether the binary is currently starting up.
+func (m *ConnectionMonitor) InitializingBinary() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.initializingBinary
+}
+
+// ConnectModeOnly returns whether the monitor is in connect-mode-only
+// (willfully stopped, only watching for external restart).
+func (m *ConnectionMonitor) ConnectModeOnly() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.connectModeOnly
+}
+
 // extractStartupError checks if an error message is a -28 warmup error.
 // Dart: RPCConnection.extractStartupError (rpc_connection.dart L398-415)
 func extractStartupError(errMsg string) string {
