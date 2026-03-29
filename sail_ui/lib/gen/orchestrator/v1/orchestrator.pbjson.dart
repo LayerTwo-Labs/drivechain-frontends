@@ -26,6 +26,12 @@ const BinaryStatusMsg$json = {
     {'1': 'chain_layer', '3': 7, '4': 1, '5': 5, '10': 'chainLayer'},
     {'1': 'port', '3': 8, '4': 1, '5': 5, '10': 'port'},
     {'1': 'error', '3': 9, '4': 1, '5': 9, '10': 'error'},
+    {'1': 'connected', '3': 10, '4': 1, '5': 8, '10': 'connected'},
+    {'1': 'startup_error', '3': 11, '4': 1, '5': 9, '10': 'startupError'},
+    {'1': 'connection_error', '3': 12, '4': 1, '5': 9, '10': 'connectionError'},
+    {'1': 'stopping', '3': 13, '4': 1, '5': 8, '10': 'stopping'},
+    {'1': 'initializing', '3': 14, '4': 1, '5': 8, '10': 'initializing'},
+    {'1': 'connect_mode_only', '3': 15, '4': 1, '5': 8, '10': 'connectModeOnly'},
   ],
 };
 
@@ -35,7 +41,11 @@ final $typed_data.Uint8List binaryStatusMsgDescriptor = $convert.base64Decode(
     'ABKAlSC2Rpc3BsYXlOYW1lEhgKB3J1bm5pbmcYAyABKAhSB3J1bm5pbmcSGAoHaGVhbHRoeRgE'
     'IAEoCFIHaGVhbHRoeRIQCgNwaWQYBSABKAVSA3BpZBIlCg51cHRpbWVfc2Vjb25kcxgGIAEoA1'
     'INdXB0aW1lU2Vjb25kcxIfCgtjaGFpbl9sYXllchgHIAEoBVIKY2hhaW5MYXllchISCgRwb3J0'
-    'GAggASgFUgRwb3J0EhQKBWVycm9yGAkgASgJUgVlcnJvcg==');
+    'GAggASgFUgRwb3J0EhQKBWVycm9yGAkgASgJUgVlcnJvchIcCgljb25uZWN0ZWQYCiABKAhSCW'
+    'Nvbm5lY3RlZBIjCg1zdGFydHVwX2Vycm9yGAsgASgJUgxzdGFydHVwRXJyb3ISKQoQY29ubmVj'
+    'dGlvbl9lcnJvchgMIAEoCVIPY29ubmVjdGlvbkVycm9yEhoKCHN0b3BwaW5nGA0gASgIUghzdG'
+    '9wcGluZxIiCgxpbml0aWFsaXppbmcYDiABKAhSDGluaXRpYWxpemluZxIqChFjb25uZWN0X21v'
+    'ZGVfb25seRgPIAEoCFIPY29ubmVjdE1vZGVPbmx5');
 
 @$core.Deprecated('Use listBinariesRequestDescriptor instead')
 const ListBinariesRequest$json = {

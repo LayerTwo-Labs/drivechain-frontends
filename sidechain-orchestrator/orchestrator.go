@@ -19,15 +19,21 @@ import (
 
 // BinaryStatus represents the current state of a managed binary.
 type BinaryStatus struct {
-	Name        string
-	DisplayName string
-	Running     bool
-	Healthy     bool
-	Pid         int
-	Uptime      time.Duration
-	ChainLayer  int
-	Port        int
-	Error       string
+	Name            string
+	DisplayName     string
+	Running         bool
+	Healthy         bool
+	Pid             int
+	Uptime          time.Duration
+	ChainLayer      int
+	Port            int
+	Error           string
+	Connected       bool   // from ConnectionMonitor
+	StartupError    string // warmup message (e.g. "Loading block index...")
+	ConnectionError string // real connection error
+	Stopping        bool   // binary is being stopped
+	Initializing    bool   // binary is starting up / restarting
+	ConnectModeOnly bool   // willfully stopped, only watching for external restart
 }
 
 // StartupProgress reports progress during StartWithDeps.
@@ -229,9 +235,21 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	return o.process.Start(ctx, config, args, env)
 }
 
-// Stop stops a running binary.
+// Stop stops a running binary and marks its monitor as stopped so
+// the restart timer won't automatically bring it back.
 func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error {
-	return o.process.Stop(ctx, name, force)
+	err := o.process.Stop(ctx, name, force)
+
+	// Always mark the monitor as stopped, even if process.Stop failed
+	// (e.g. "not running"). This ensures the restart timer won't
+	// try to bring it back after a manual stop.
+	o.monitorsMu.Lock()
+	if mon, ok := o.monitors[name]; ok {
+		mon.MarkStopped()
+	}
+	o.monitorsMu.Unlock()
+
+	return err
 }
 
 // Status returns the current status of a binary.
@@ -254,6 +272,19 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 		status.Pid = proc.Pid
 		status.Uptime = time.Since(proc.Started)
 	}
+
+	// Pull connection state from monitor if available
+	o.monitorsMu.Lock()
+	if mon, ok := o.monitors[name]; ok {
+		status.Connected = mon.Connected()
+		status.Healthy = mon.Connected()
+		status.StartupError = mon.StartupError()
+		status.ConnectionError = mon.ConnectionError()
+		status.Stopping = mon.StoppingBinary()
+		status.Initializing = mon.InitializingBinary()
+		status.ConnectModeOnly = mon.ConnectModeOnly()
+	}
+	o.monitorsMu.Unlock()
 
 	return status
 }

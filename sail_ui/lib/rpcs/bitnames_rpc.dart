@@ -5,6 +5,7 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/bitcoin.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
@@ -129,7 +130,9 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   BitnamesLive() : super(binaryType: BinaryType.bitnames, restartOnFailure: true) {
-    startConnectionTimer();
+    if (!Environment.backendManagesBinaries) {
+      startConnectionTimer();
+    }
   }
 
   @override

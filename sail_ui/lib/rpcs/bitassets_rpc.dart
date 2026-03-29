@@ -4,6 +4,7 @@ import 'package:convert/convert.dart' show hex;
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 abstract class BitAssetsRPC extends SidechainRPC {
@@ -188,7 +189,9 @@ class BitAssetsLive extends BitAssetsRPC {
   }
 
   BitAssetsLive() : super(binaryType: BinaryType.bitassets, restartOnFailure: true) {
-    startConnectionTimer();
+    if (!Environment.backendManagesBinaries) {
+      startConnectionTimer();
+    }
   }
 
   @override

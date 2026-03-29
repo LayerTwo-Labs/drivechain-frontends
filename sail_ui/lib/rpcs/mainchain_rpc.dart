@@ -68,6 +68,11 @@ class MainchainRPCLive extends MainchainRPC {
     if (Environment.isInTest) {
       return;
     }
+    // In backend mode, Go ConnectionMonitor is the source of truth.
+    // Don't start local timers that would conflict with BackendStateProvider.
+    if (Environment.backendManagesBinaries) {
+      return;
+    }
     pollIBDStatus();
     // must test connection before moving on, in case it is already running!
     startConnectionTimer();

@@ -53,6 +53,12 @@ message BinaryStatusMsg {
   int32 chain_layer = 7;
   int32 port = 8;
   string error = 9;
+  bool connected = 10;
+  string startup_error = 11;    // warmup message (e.g. "Loading block index...")
+  string connection_error = 12; // real connection error
+  bool stopping = 13;           // binary is being stopped
+  bool initializing = 14;       // binary is starting up / restarting
+  bool connect_mode_only = 15;  // willfully stopped, only watching for external restart
 }
 
 // ListBinaries

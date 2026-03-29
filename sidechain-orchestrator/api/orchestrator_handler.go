@@ -262,14 +262,20 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 
 func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 	return &pb.BinaryStatusMsg{
-		Name:           s.Name,
-		DisplayName:    s.DisplayName,
-		Running:        s.Running,
-		Healthy:        s.Healthy,
-		Pid:            int32(s.Pid),
-		UptimeSeconds:  int64(s.Uptime.Seconds()),
-		ChainLayer:     int32(s.ChainLayer),
-		Port:           int32(s.Port),
-		Error:          s.Error,
+		Name:            s.Name,
+		DisplayName:     s.DisplayName,
+		Running:         s.Running,
+		Healthy:         s.Healthy,
+		Pid:             int32(s.Pid),
+		UptimeSeconds:   int64(s.Uptime.Seconds()),
+		ChainLayer:      int32(s.ChainLayer),
+		Port:            int32(s.Port),
+		Error:           s.Error,
+		Connected:       s.Connected,
+		StartupError:    s.StartupError,
+		ConnectionError: s.ConnectionError,
+		Stopping:        s.Stopping,
+		Initializing:    s.Initializing,
+		ConnectModeOnly: s.ConnectModeOnly,
 	}
 }

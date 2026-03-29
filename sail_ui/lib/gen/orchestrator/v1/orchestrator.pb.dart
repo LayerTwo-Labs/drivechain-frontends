@@ -26,6 +26,12 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $core.int? chainLayer,
     $core.int? port,
     $core.String? error,
+    $core.bool? connected,
+    $core.String? startupError,
+    $core.String? connectionError,
+    $core.bool? stopping,
+    $core.bool? initializing,
+    $core.bool? connectModeOnly,
   }) {
     final $result = create();
     if (name != null) {
@@ -55,6 +61,24 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (error != null) {
       $result.error = error;
     }
+    if (connected != null) {
+      $result.connected = connected;
+    }
+    if (startupError != null) {
+      $result.startupError = startupError;
+    }
+    if (connectionError != null) {
+      $result.connectionError = connectionError;
+    }
+    if (stopping != null) {
+      $result.stopping = stopping;
+    }
+    if (initializing != null) {
+      $result.initializing = initializing;
+    }
+    if (connectModeOnly != null) {
+      $result.connectModeOnly = connectModeOnly;
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -71,6 +95,12 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..a<$core.int>(7, _omitFieldNames ? '' : 'chainLayer', $pb.PbFieldType.O3)
     ..a<$core.int>(8, _omitFieldNames ? '' : 'port', $pb.PbFieldType.O3)
     ..aOS(9, _omitFieldNames ? '' : 'error')
+    ..aOB(10, _omitFieldNames ? '' : 'connected')
+    ..aOS(11, _omitFieldNames ? '' : 'startupError')
+    ..aOS(12, _omitFieldNames ? '' : 'connectionError')
+    ..aOB(13, _omitFieldNames ? '' : 'stopping')
+    ..aOB(14, _omitFieldNames ? '' : 'initializing')
+    ..aOB(15, _omitFieldNames ? '' : 'connectModeOnly')
     ..hasRequiredFields = false
   ;
 
@@ -175,6 +205,60 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasError() => $_has(8);
   @$pb.TagNumber(9)
   void clearError() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.bool get connected => $_getBF(9);
+  @$pb.TagNumber(10)
+  set connected($core.bool v) { $_setBool(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasConnected() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearConnected() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get startupError => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set startupError($core.String v) { $_setString(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasStartupError() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearStartupError() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.String get connectionError => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set connectionError($core.String v) { $_setString(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasConnectionError() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearConnectionError() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.bool get stopping => $_getBF(12);
+  @$pb.TagNumber(13)
+  set stopping($core.bool v) { $_setBool(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasStopping() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearStopping() => clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.bool get initializing => $_getBF(13);
+  @$pb.TagNumber(14)
+  set initializing($core.bool v) { $_setBool(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasInitializing() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearInitializing() => clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.bool get connectModeOnly => $_getBF(14);
+  @$pb.TagNumber(15)
+  set connectModeOnly($core.bool v) { $_setBool(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasConnectModeOnly() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearConnectModeOnly() => clearField(15);
 }
 
 class ListBinariesRequest extends $pb.GeneratedMessage {

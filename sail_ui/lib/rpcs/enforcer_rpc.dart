@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.pb.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server
@@ -37,7 +38,9 @@ class EnforcerLive extends EnforcerRPC {
 
   EnforcerLive() : super(binaryType: BinaryType.enforcer, restartOnFailure: true) {
     _initializeConnection();
-    startConnectionTimer();
+    if (!Environment.backendManagesBinaries) {
+      startConnectionTimer();
+    }
   }
 
   void _initializeConnection() {

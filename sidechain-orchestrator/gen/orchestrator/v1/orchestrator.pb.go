@@ -22,18 +22,24 @@ const (
 )
 
 type BinaryStatusMsg struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Running       bool                   `protobuf:"varint,3,opt,name=running,proto3" json:"running,omitempty"`
-	Healthy       bool                   `protobuf:"varint,4,opt,name=healthy,proto3" json:"healthy,omitempty"`
-	Pid           int32                  `protobuf:"varint,5,opt,name=pid,proto3" json:"pid,omitempty"`
-	UptimeSeconds int64                  `protobuf:"varint,6,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"`
-	ChainLayer    int32                  `protobuf:"varint,7,opt,name=chain_layer,json=chainLayer,proto3" json:"chain_layer,omitempty"`
-	Port          int32                  `protobuf:"varint,8,opt,name=port,proto3" json:"port,omitempty"`
-	Error         string                 `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	DisplayName     string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Running         bool                   `protobuf:"varint,3,opt,name=running,proto3" json:"running,omitempty"`
+	Healthy         bool                   `protobuf:"varint,4,opt,name=healthy,proto3" json:"healthy,omitempty"`
+	Pid             int32                  `protobuf:"varint,5,opt,name=pid,proto3" json:"pid,omitempty"`
+	UptimeSeconds   int64                  `protobuf:"varint,6,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"`
+	ChainLayer      int32                  `protobuf:"varint,7,opt,name=chain_layer,json=chainLayer,proto3" json:"chain_layer,omitempty"`
+	Port            int32                  `protobuf:"varint,8,opt,name=port,proto3" json:"port,omitempty"`
+	Error           string                 `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
+	Connected       bool                   `protobuf:"varint,10,opt,name=connected,proto3" json:"connected,omitempty"`
+	StartupError    string                 `protobuf:"bytes,11,opt,name=startup_error,json=startupError,proto3" json:"startup_error,omitempty"`             // warmup message (e.g. "Loading block index...")
+	ConnectionError string                 `protobuf:"bytes,12,opt,name=connection_error,json=connectionError,proto3" json:"connection_error,omitempty"`    // real connection error
+	Stopping        bool                   `protobuf:"varint,13,opt,name=stopping,proto3" json:"stopping,omitempty"`                                        // binary is being stopped
+	Initializing    bool                   `protobuf:"varint,14,opt,name=initializing,proto3" json:"initializing,omitempty"`                                // binary is starting up / restarting
+	ConnectModeOnly bool                   `protobuf:"varint,15,opt,name=connect_mode_only,json=connectModeOnly,proto3" json:"connect_mode_only,omitempty"` // willfully stopped, only watching for external restart
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *BinaryStatusMsg) Reset() {
@@ -127,6 +133,48 @@ func (x *BinaryStatusMsg) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *BinaryStatusMsg) GetConnected() bool {
+	if x != nil {
+		return x.Connected
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetStartupError() string {
+	if x != nil {
+		return x.StartupError
+	}
+	return ""
+}
+
+func (x *BinaryStatusMsg) GetConnectionError() string {
+	if x != nil {
+		return x.ConnectionError
+	}
+	return ""
+}
+
+func (x *BinaryStatusMsg) GetStopping() bool {
+	if x != nil {
+		return x.Stopping
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetInitializing() bool {
+	if x != nil {
+		return x.Initializing
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetConnectModeOnly() bool {
+	if x != nil {
+		return x.ConnectModeOnly
+	}
+	return false
 }
 
 type ListBinariesRequest struct {
@@ -1541,7 +1589,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
-	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\x80\x02\n" +
+	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\xda\x03\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
@@ -1552,7 +1600,14 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\vchain_layer\x18\a \x01(\x05R\n" +
 	"chainLayer\x12\x12\n" +
 	"\x04port\x18\b \x01(\x05R\x04port\x12\x14\n" +
-	"\x05error\x18\t \x01(\tR\x05error\"\x15\n" +
+	"\x05error\x18\t \x01(\tR\x05error\x12\x1c\n" +
+	"\tconnected\x18\n" +
+	" \x01(\bR\tconnected\x12#\n" +
+	"\rstartup_error\x18\v \x01(\tR\fstartupError\x12)\n" +
+	"\x10connection_error\x18\f \x01(\tR\x0fconnectionError\x12\x1a\n" +
+	"\bstopping\x18\r \x01(\bR\bstopping\x12\"\n" +
+	"\finitializing\x18\x0e \x01(\bR\finitializing\x12*\n" +
+	"\x11connect_mode_only\x18\x0f \x01(\bR\x0fconnectModeOnly\"\x15\n" +
 	"\x13ListBinariesRequest\"T\n" +
 	"\x14ListBinariesResponse\x12<\n" +
 	"\bbinaries\x18\x01 \x03(\v2 .orchestrator.v1.BinaryStatusMsgR\bbinaries\",\n" +
