@@ -54,9 +54,7 @@ abstract class RPCConnection extends ChangeNotifier {
   /// Fetches the latest blockchain info.
   Future<BlockchainInfo> getBlockchainInfo();
 
-  bool _initializingBinary = false;
-  bool get initializingBinary => _initializingBinary || (!connected && binary.hasRecentStartupLogActivity);
-  set initializingBinary(bool value) => _initializingBinary = value;
+  bool initializingBinary = false;
 
   bool stoppingBinary = false;
   bool restartOnInitialFailure = false;
