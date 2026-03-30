@@ -10,10 +10,11 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:     "orchestratorctl",
-		Usage:    "Control the sidechain orchestrator daemon",
-		Flags:    commands.GlobalFlags,
-		Commands: commands.Commands(),
+		Name:                   "orchestratorctl",
+		Usage:                  "Control the sidechain orchestrator daemon",
+		Flags:                  commands.GlobalFlags,
+		Commands:               commands.Commands(),
+		UseShortOptionHandling: true,
 	}
 
 	if err := app.Run(os.Args); err != nil {
