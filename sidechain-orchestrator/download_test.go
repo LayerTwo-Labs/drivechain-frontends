@@ -141,7 +141,7 @@ func TestDownload_SkipsWhenExists(t *testing.T) {
 
 	last := drainProgress(t, ch)
 	assert.True(t, last.Done)
-	assert.Equal(t, "already downloaded", last.Message)
+	assert.Equal(t, binPath, last.Message)
 }
 
 // drainProgress reads all progress from a channel, failing on errors.

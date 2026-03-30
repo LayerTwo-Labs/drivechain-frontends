@@ -88,6 +88,12 @@ func currentOS() string {
 	}
 }
 
+// Downloadable returns true if this binary has download URLs configured.
+func (c BinaryConfig) Downloadable() bool {
+	f, _ := c.FileForOS()
+	return f != "" && c.BaseURL("default") != ""
+}
+
 // FileForOS returns the download filename for the current platform.
 func (c BinaryConfig) FileForOS() (string, error) {
 	f, ok := c.Files[currentOS()]
