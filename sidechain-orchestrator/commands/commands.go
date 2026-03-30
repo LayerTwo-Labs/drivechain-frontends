@@ -6,15 +6,20 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 )
 
@@ -42,11 +47,19 @@ var GlobalFlags = []cli.Flag{
 func Commands() []*cli.Command {
 	return []*cli.Command{
 		downloadCommand,
+		wipeCommand,
 		startCommand,
 		stopCommand,
 		statusCommand,
 		logsCommand,
 		shutdownCommand,
+		infoCommand,
+		balanceCommand,
+		priceCommand,
+		doctorCommand,
+		versionCommand,
+		updateCommand,
+		whichCommand,
 	}
 }
 
@@ -336,6 +349,355 @@ var statusCommand = &cli.Command{
 		}
 		return nil
 	},
+}
+
+var wipeCommand = &cli.Command{
+	Name:      "wipe",
+	Usage:     "Stop a binary and delete its data",
+	ArgsUsage: "<binary>",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "include-wallets",
+			Usage: "also delete wallet files",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		if cctx.NArg() < 1 {
+			return printUsageWithBinaries(cctx, "wipe")
+		}
+
+		name := cctx.Args().First()
+		network := config.Network(cctx.String("network"))
+
+		dirConfig, ok := config.DirConfigByName(name)
+		if !ok {
+			return fmt.Errorf("unknown binary: %s", name)
+		}
+
+		// Stop the binary if possible.
+		client := newClient(cctx)
+		_, _ = client.StopBinary(cctx.Context, connect.NewRequest(&pb.StopBinaryRequest{Name: name, Force: true}))
+
+		// Delete the downloaded binary.
+		dataDir := cctx.String("datadir")
+		if dataDir == "" {
+			dataDir = orchestrator.DefaultDataDir()
+		}
+		binPath := orchestrator.BinaryPath(dataDir, name)
+		if err := os.Remove(binPath); err == nil {
+			fmt.Printf("removed %s\n", binPath)
+		}
+
+		// Delete blockchain data, logs, settings.
+		log := zerolog.Nop()
+		networkDir := dirConfig.RootDirNetwork(network)
+		for _, p := range dirConfig.GetBlockchainDataPaths(networkDir, network, log) {
+			if err := os.RemoveAll(p); err == nil {
+				fmt.Printf("removed %s\n", p)
+			}
+		}
+		for _, p := range dirConfig.GetSettingsPaths(networkDir, network, log) {
+			if err := os.RemoveAll(p); err == nil {
+				fmt.Printf("removed %s\n", p)
+			}
+		}
+
+		if cctx.Bool("include-wallets") {
+			for _, p := range dirConfig.GetWalletPaths(networkDir, network, log) {
+				if err := os.RemoveAll(p); err == nil {
+					fmt.Printf("removed %s\n", p)
+				}
+			}
+		}
+
+		fmt.Printf("\nwiped %s\n", name)
+		return nil
+	},
+}
+
+var infoCommand = &cli.Command{
+	Name:  "info",
+	Usage: "Show blockchain info",
+	Action: func(cctx *cli.Context) error {
+		client := newClient(cctx)
+
+		mainchain, err := client.GetMainchainBlockchainInfo(cctx.Context, connect.NewRequest(&pb.GetMainchainBlockchainInfoRequest{}))
+		if err != nil {
+			fmt.Printf("mainchain: unavailable (%v)\n", err)
+		} else {
+			m := mainchain.Msg
+			fmt.Println("mainchain:")
+			fmt.Printf("  chain:    %s\n", m.Chain)
+			fmt.Printf("  blocks:   %d\n", m.Blocks)
+			fmt.Printf("  headers:  %d\n", m.Headers)
+			fmt.Printf("  progress: %.4f%%\n", m.VerificationProgress*100)
+			fmt.Printf("  ibd:      %v\n", m.InitialBlockDownload)
+			fmt.Printf("  size:     %s\n", formatBytes(m.SizeOnDisk))
+		}
+
+		enforcer, err := client.GetEnforcerBlockchainInfo(cctx.Context, connect.NewRequest(&pb.GetEnforcerBlockchainInfoRequest{}))
+		if err != nil {
+			fmt.Printf("\nenforcer: unavailable (%v)\n", err)
+		} else {
+			e := enforcer.Msg
+			fmt.Println("\nenforcer:")
+			fmt.Printf("  blocks:   %d\n", e.Blocks)
+			fmt.Printf("  headers:  %d\n", e.Headers)
+		}
+
+		return nil
+	},
+}
+
+var balanceCommand = &cli.Command{
+	Name:  "balance",
+	Usage: "Show mainchain wallet balance",
+	Action: func(cctx *cli.Context) error {
+		client := newClient(cctx)
+		resp, err := client.GetMainchainBalance(cctx.Context, connect.NewRequest(&pb.GetMainchainBalanceRequest{}))
+		if err != nil {
+			return err
+		}
+		fmt.Printf("confirmed:   %.8f BTC\n", resp.Msg.Confirmed)
+		fmt.Printf("unconfirmed: %.8f BTC\n", resp.Msg.Unconfirmed)
+		return nil
+	},
+}
+
+var priceCommand = &cli.Command{
+	Name:  "price",
+	Usage: "Show current BTC/USD price",
+	Action: func(cctx *cli.Context) error {
+		client := newClient(cctx)
+		resp, err := client.GetBTCPrice(cctx.Context, connect.NewRequest(&pb.GetBTCPriceRequest{}))
+		if err != nil {
+			return err
+		}
+		t := time.Unix(resp.Msg.LastUpdatedUnix, 0)
+		fmt.Printf("$%.2f (updated %s)\n", resp.Msg.Btcusd, t.Format("15:04:05"))
+		return nil
+	},
+}
+
+var doctorCommand = &cli.Command{
+	Name:  "doctor",
+	Usage: "Check system health and suggest next steps",
+	Action: func(cctx *cli.Context) error {
+		client := newClient(cctx)
+		resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
+		if err != nil {
+			return fmt.Errorf("cannot reach orchestrator daemon: %w", err)
+		}
+
+		var notDownloaded []string
+		var notRunning []string
+		allGood := true
+
+		for _, b := range resp.Msg.Binaries {
+			if !b.Downloadable {
+				continue
+			}
+
+			name := b.Name
+			var parts []string
+
+			if b.Downloaded {
+				parts = append(parts, "downloaded")
+			} else {
+				parts = append(parts, "not downloaded")
+				notDownloaded = append(notDownloaded, name)
+				allGood = false
+			}
+
+			if b.Running {
+				parts = append(parts, fmt.Sprintf("running (PID %d)", b.Pid))
+			} else if b.PortInUse && b.Port > 0 {
+				parts = append(parts, fmt.Sprintf("not running (port %d in use)", b.Port))
+				allGood = false
+			} else {
+				parts = append(parts, "not running")
+				if b.Downloaded {
+					notRunning = append(notRunning, name)
+				}
+			}
+
+			check := "+"
+			if !b.Downloaded || !b.Running {
+				check = "-"
+			}
+			fmt.Printf("  %s %-20s %s\n", check, name, strings.Join(parts, ", "))
+		}
+
+		if allGood && len(notRunning) == 0 {
+			fmt.Println("\nall good!")
+			return nil
+		}
+
+		fmt.Println("\nget started:")
+		for _, name := range notDownloaded {
+			fmt.Printf("  orchestratorctl download %s\n", name)
+		}
+		for _, name := range notRunning {
+			fmt.Printf("  orchestratorctl start %s\n", name)
+		}
+
+		return nil
+	},
+}
+
+var versionCommand = &cli.Command{
+	Name:  "version",
+	Usage: "Show version info for all binaries",
+	Action: func(cctx *cli.Context) error {
+		dataDir := cctx.String("datadir")
+		if dataDir == "" {
+			dataDir = orchestrator.DefaultDataDir()
+		}
+
+		client := newClient(cctx)
+		resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
+		if err != nil {
+			return fmt.Errorf("cannot reach orchestrator daemon: %w", err)
+		}
+
+		for _, b := range resp.Msg.Binaries {
+			if !b.Downloadable {
+				continue
+			}
+
+			ver := "not downloaded"
+			if b.Downloaded {
+				ver = binaryVersion(orchestrator.BinaryPath(dataDir, b.Name))
+			}
+
+			fmt.Printf("  %-20s %-25s %s\n", b.Name, ver, b.RepoUrl)
+		}
+
+		return nil
+	},
+}
+
+// binaryVersion runs a binary with --version and extracts the version string.
+// Ported from Dart: Binary.binaryVersion (binaries.dart L1751-1814)
+func binaryVersion(binPath string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, binPath, "--version")
+	out, err := cmd.Output()
+	if err != nil {
+		return "unknown"
+	}
+
+	output := strings.TrimSpace(string(out))
+	if output == "" {
+		return "unknown"
+	}
+
+	lines := strings.Split(output, "\n")
+
+	// Enforcer: look for bip300301_enforcer_lib line + commit
+	if strings.Contains(binPath, "enforcer") || strings.Contains(binPath, "bip300301") {
+		var versionLine, commitLine string
+		for _, line := range lines {
+			if strings.Contains(line, "bip300301_enforcer_lib") {
+				versionLine = line
+			}
+			if strings.Contains(strings.TrimSpace(line), "commit:") {
+				commitLine = line
+			}
+		}
+		if versionLine != "" {
+			ver := extractVersion(versionLine)
+			commit := extractCommit(commitLine)
+			if ver != "" && commit != "" {
+				return ver + " (" + commit + ")"
+			}
+			if ver != "" {
+				return ver
+			}
+			return versionLine
+		}
+	}
+
+	// Generic: extract semver from output
+	if ver := extractVersion(output); ver != "" {
+		return ver
+	}
+
+	return lines[0]
+}
+
+var updateCommand = &cli.Command{
+	Name:      "update",
+	Usage:     "Re-download the latest version of a binary",
+	ArgsUsage: "<binary>",
+	Action: func(cctx *cli.Context) error {
+		if cctx.NArg() < 1 {
+			return printUsageWithBinaries(cctx, "update")
+		}
+
+		name := cctx.Args().First()
+		client := newClient(cctx)
+
+		// Stop if running.
+		status, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{Name: name}))
+		if err != nil {
+			return err
+		}
+		if status.Msg.Status.Running {
+			fmt.Printf("stopping %s...\n", name)
+			if _, err := client.StopBinary(cctx.Context, connect.NewRequest(&pb.StopBinaryRequest{Name: name})); err != nil {
+				return fmt.Errorf("stop %s: %w", name, err)
+			}
+		}
+
+		return runDownload(cctx.Context, client, name, true)
+	},
+}
+
+var whichCommand = &cli.Command{
+	Name:      "which",
+	Usage:     "Print the path to a binary",
+	ArgsUsage: "<binary>",
+	Action: func(cctx *cli.Context) error {
+		if cctx.NArg() < 1 {
+			return printUsageWithBinaries(cctx, "which")
+		}
+
+		dataDir := cctx.String("datadir")
+		if dataDir == "" {
+			dataDir = orchestrator.DefaultDataDir()
+		}
+
+		name := cctx.Args().First()
+		binPath := orchestrator.BinaryPath(dataDir, name)
+
+		if _, err := os.Stat(binPath); err != nil {
+			fmt.Printf("%s (not downloaded)\n", binPath)
+		} else {
+			fmt.Println(binPath)
+		}
+		return nil
+	},
+}
+
+func extractVersion(s string) string {
+	re := regexp.MustCompile(`v?(\d+\.\d+\.\d+)`)
+	m := re.FindStringSubmatch(s)
+	if len(m) > 1 {
+		return m[1]
+	}
+	return ""
+}
+
+func extractCommit(s string) string {
+	re := regexp.MustCompile(`commit:\s*([a-f0-9]+)`)
+	m := re.FindStringSubmatch(s)
+	if len(m) > 1 {
+		return m[1]
+	}
+	return ""
 }
 
 func formatBytes(b int64) string {
