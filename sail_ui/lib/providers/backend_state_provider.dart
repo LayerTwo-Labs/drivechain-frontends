@@ -88,6 +88,20 @@ class BackendStateProvider extends ChangeNotifier {
       },
       onError: (error) {
         _log.w('BackendStateProvider: watchBinaries error: $error');
+
+        // Backend is gone — mark everything as disconnected.
+        for (final status in binaries.values) {
+          final rpc = _rpcForBinaryName(status.name);
+          if (rpc != null) {
+            rpc.connected = false;
+            rpc.initializingBinary = false;
+            rpc.stoppingBinary = false;
+            rpc.notifyListeners();
+          }
+        }
+        binaries.clear();
+        notifyListeners();
+
         // Stream broke — retry after delay
         Future.delayed(const Duration(seconds: 2), () {
           if (_watchSub != null) startWatching();

@@ -36,7 +36,7 @@ class ProcessManager extends ChangeNotifier {
   List<String>? stderrLogs(Binary binary) => _stderrLogs[binary.name];
   bool running(Binary binary) => runningProcesses.containsKey(binary.name);
 
-  /// Forward a line to the LogProvider for full log capture.
+  /// Forward a line to the LogProvider and Logger for full log capture.
   void _addToLogProvider(Binary binary, String line, {required bool isStderr}) {
     // Strip ANSI color codes for clean storage
     final cleanLine = line.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
@@ -50,6 +50,9 @@ class ProcessManager extends ChangeNotifier {
         binaryType: binary.type,
       ),
     );
+
+    // Also write to debug.log via the logger.
+    log.i('[${binary.name}] $cleanLine');
   }
 
   Future<int> start(

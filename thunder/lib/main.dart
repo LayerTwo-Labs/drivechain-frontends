@@ -271,6 +271,11 @@ void bootBinaries(Logger log) async {
     final backendState = GetIt.I.get<BackendStateProvider>();
     backendState.startWatching();
 
+    // Stream logs from orchestrator-managed binaries into LogProvider
+    _streamBinaryLogs(orchestrator, 'thunder', BinaryType.thunder);
+    _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.bitcoinCore);
+    _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.enforcer);
+
     // Use thunderd's gRPC to start the dependency chain.
     // BackendStateProvider tracks progress and updates download bars in the UI.
     log.i('bootBinaries: calling startWithDeps');
@@ -281,6 +286,29 @@ void bootBinaries(Logger log) async {
   } catch (e, st) {
     log.e('bootBinaries failed: $e\n$st');
   }
+}
+
+void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType) {
+  final logProvider = GetIt.I.get<LogProvider>();
+  final log = GetIt.I.get<Logger>();
+
+  orchestrator.streamLogs(binaryName, tail: 100).listen(
+    (response) {
+      logProvider.addLog(FullProcessLogEntry(
+        timestamp: DateTime.fromMillisecondsSinceEpoch(response.timestampUnix.toInt() * 1000),
+        message: response.line,
+        isStderr: response.stream == 'stderr',
+        binaryType: binaryType,
+      ));
+
+      log.i('[$binaryName] ${response.line}');
+    },
+    onError: (e) {
+      Future.delayed(const Duration(seconds: 5), () {
+        _streamBinaryLogs(orchestrator, binaryName, binaryType);
+      });
+    },
+  );
 }
 
 Future<void> initAutoUpdater(Logger log) async {
