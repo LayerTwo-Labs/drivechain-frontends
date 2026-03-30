@@ -63,6 +63,8 @@ message BinaryStatusMsg {
   string description = 17;      // short description of the binary
   bool downloaded = 18;         // binary file exists on disk
   bool port_in_use = 19;       // port is reachable but not managed by orchestrator
+  string version = 20;         // configured version string
+  string repo_url = 21;        // source code repository URL
 }
 
 // ListBinaries
