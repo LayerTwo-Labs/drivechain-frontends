@@ -234,6 +234,22 @@ var CoinShiftDirs = BinaryDirConfig{
 	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.coinshift", osMacOS: "com.layertwolabs.coinshift", osWindows: "LayerTwoLabs/Coinshift"},
 }
 
+// DirConfigByName returns the BinaryDirConfig for a given binary name.
+func DirConfigByName(name string) (BinaryDirConfig, bool) {
+	all := []BinaryDirConfig{
+		BitcoinCoreDirs, BitWindowDirs, EnforcerDirs, ThunderDirs,
+		BitNamesDirs, BitAssetsDirs, ZSideDirs, TruthcoinDirs,
+		PhotonDirs, CoinShiftDirs,
+	}
+	lower := strings.ToLower(name)
+	for _, d := range all {
+		if strings.ToLower(d.Name) == lower || strings.ToLower(d.BinaryName) == lower {
+			return d, true
+		}
+	}
+	return BinaryDirConfig{}, false
+}
+
 // ---------------------------------------------------------------------------
 // File operations (Dart: Binary methods L169-613)
 // ---------------------------------------------------------------------------

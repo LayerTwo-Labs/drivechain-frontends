@@ -42,6 +42,8 @@ type BinaryStatusMsg struct {
 	Description     string                 `protobuf:"bytes,17,opt,name=description,proto3" json:"description,omitempty"`                                   // short description of the binary
 	Downloaded      bool                   `protobuf:"varint,18,opt,name=downloaded,proto3" json:"downloaded,omitempty"`                                    // binary file exists on disk
 	PortInUse       bool                   `protobuf:"varint,19,opt,name=port_in_use,json=portInUse,proto3" json:"port_in_use,omitempty"`                   // port is reachable but not managed by orchestrator
+	Version         string                 `protobuf:"bytes,20,opt,name=version,proto3" json:"version,omitempty"`                                           // configured version string
+	RepoUrl         string                 `protobuf:"bytes,21,opt,name=repo_url,json=repoUrl,proto3" json:"repo_url,omitempty"`                            // source code repository URL
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -207,6 +209,20 @@ func (x *BinaryStatusMsg) GetPortInUse() bool {
 		return x.PortInUse
 	}
 	return false
+}
+
+func (x *BinaryStatusMsg) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *BinaryStatusMsg) GetRepoUrl() string {
+	if x != nil {
+		return x.RepoUrl
+	}
+	return ""
 }
 
 type ListBinariesRequest struct {
@@ -1621,7 +1637,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
-	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\xe0\x04\n" +
+	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\x95\x05\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
@@ -1645,7 +1661,9 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
 	"downloaded\x18\x12 \x01(\bR\n" +
 	"downloaded\x12\x1e\n" +
-	"\vport_in_use\x18\x13 \x01(\bR\tportInUse\"\x15\n" +
+	"\vport_in_use\x18\x13 \x01(\bR\tportInUse\x12\x18\n" +
+	"\aversion\x18\x14 \x01(\tR\aversion\x12\x19\n" +
+	"\brepo_url\x18\x15 \x01(\tR\arepoUrl\"\x15\n" +
 	"\x13ListBinariesRequest\"T\n" +
 	"\x14ListBinariesResponse\x12<\n" +
 	"\bbinaries\x18\x01 \x03(\v2 .orchestrator.v1.BinaryStatusMsgR\bbinaries\",\n" +

@@ -51,6 +51,13 @@ func (p *ManagedProcess) ExitCode() int {
 	return p.exitCode
 }
 
+// ExitErr returns the exit error string (only valid after exitCh is closed).
+func (p *ManagedProcess) ExitErr() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.exitErr
+}
+
 const maxLogEntries = 5000
 
 func (p *ManagedProcess) addLog(entry LogEntry) {

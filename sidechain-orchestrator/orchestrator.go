@@ -40,6 +40,8 @@ type BinaryStatus struct {
 	Description     string // short description of the binary
 	Downloaded      bool   // binary file exists on disk
 	PortInUse       bool   // port is reachable (something is listening)
+	Version         string // configured version string
+	RepoURL         string // source code repository URL
 }
 
 // StartupProgress reports progress during StartWithDeps.
@@ -275,6 +277,8 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 		Downloadable: config.Downloadable(),
 		Description:  config.Description,
 		Downloaded:   downloaded == nil,
+		Version:      config.Version,
+		RepoURL:      config.RepoURL,
 	}
 
 	if proc != nil {
