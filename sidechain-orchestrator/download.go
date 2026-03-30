@@ -54,7 +54,7 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 	if !force {
 		if _, err := os.Stat(binPath); err == nil {
 			ch := make(chan DownloadProgress, 1)
-			ch <- DownloadProgress{Message: "already downloaded", Done: true}
+			ch <- DownloadProgress{Message: binPath, Done: true}
 			close(ch)
 			return ch, nil
 		}
@@ -130,7 +130,8 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 			return
 		}
 
-		ch <- DownloadProgress{Message: "done", Done: true}
+		binPath := BinaryPath(d.dataDir, config.BinaryName)
+		ch <- DownloadProgress{Message: binPath, Done: true}
 	}()
 
 	return ch, nil
@@ -222,20 +223,17 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 			downloaded += int64(n)
 
 			shouldSend := false
-			var msg string
 			if total > 0 {
-				permille := downloaded * 1000 / total
-				if permille != lastPermille {
-					lastPermille = permille
+				// Report every 1% to avoid flooding clients.
+				pct := downloaded * 100 / total
+				if pct != lastPermille {
+					lastPermille = pct
 					shouldSend = true
-					msg = fmt.Sprintf("Downloaded %.2f MB / %.2f MB (%.1f%%)",
-						float64(downloaded)/1e6, float64(total)/1e6, float64(permille)/10.0)
 				}
 			} else {
 				if downloaded-lastUnknownReport >= unknownChunkSize {
 					lastUnknownReport = downloaded
 					shouldSend = true
-					msg = fmt.Sprintf("Downloaded %.2f MB", float64(downloaded)/1e6)
 				}
 			}
 
@@ -243,7 +241,6 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 				progress <- DownloadProgress{
 					BytesDownloaded: downloaded,
 					TotalBytes:      total,
-					Message:         msg,
 				}
 			}
 		}

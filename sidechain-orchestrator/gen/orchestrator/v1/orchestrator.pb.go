@@ -38,6 +38,10 @@ type BinaryStatusMsg struct {
 	Stopping        bool                   `protobuf:"varint,13,opt,name=stopping,proto3" json:"stopping,omitempty"`                                        // binary is being stopped
 	Initializing    bool                   `protobuf:"varint,14,opt,name=initializing,proto3" json:"initializing,omitempty"`                                // binary is starting up / restarting
 	ConnectModeOnly bool                   `protobuf:"varint,15,opt,name=connect_mode_only,json=connectModeOnly,proto3" json:"connect_mode_only,omitempty"` // willfully stopped, only watching for external restart
+	Downloadable    bool                   `protobuf:"varint,16,opt,name=downloadable,proto3" json:"downloadable,omitempty"`                                // binary has download URLs configured
+	Description     string                 `protobuf:"bytes,17,opt,name=description,proto3" json:"description,omitempty"`                                   // short description of the binary
+	Downloaded      bool                   `protobuf:"varint,18,opt,name=downloaded,proto3" json:"downloaded,omitempty"`                                    // binary file exists on disk
+	PortInUse       bool                   `protobuf:"varint,19,opt,name=port_in_use,json=portInUse,proto3" json:"port_in_use,omitempty"`                   // port is reachable but not managed by orchestrator
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -173,6 +177,34 @@ func (x *BinaryStatusMsg) GetInitializing() bool {
 func (x *BinaryStatusMsg) GetConnectModeOnly() bool {
 	if x != nil {
 		return x.ConnectModeOnly
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetDownloadable() bool {
+	if x != nil {
+		return x.Downloadable
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *BinaryStatusMsg) GetDownloaded() bool {
+	if x != nil {
+		return x.Downloaded
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetPortInUse() bool {
+	if x != nil {
+		return x.PortInUse
 	}
 	return false
 }
@@ -1589,7 +1621,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
-	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\xda\x03\n" +
+	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\xe0\x04\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
@@ -1607,7 +1639,13 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x10connection_error\x18\f \x01(\tR\x0fconnectionError\x12\x1a\n" +
 	"\bstopping\x18\r \x01(\bR\bstopping\x12\"\n" +
 	"\finitializing\x18\x0e \x01(\bR\finitializing\x12*\n" +
-	"\x11connect_mode_only\x18\x0f \x01(\bR\x0fconnectModeOnly\"\x15\n" +
+	"\x11connect_mode_only\x18\x0f \x01(\bR\x0fconnectModeOnly\x12\"\n" +
+	"\fdownloadable\x18\x10 \x01(\bR\fdownloadable\x12 \n" +
+	"\vdescription\x18\x11 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"downloaded\x18\x12 \x01(\bR\n" +
+	"downloaded\x12\x1e\n" +
+	"\vport_in_use\x18\x13 \x01(\bR\tportInUse\"\x15\n" +
 	"\x13ListBinariesRequest\"T\n" +
 	"\x14ListBinariesResponse\x12<\n" +
 	"\bbinaries\x18\x01 \x03(\v2 .orchestrator.v1.BinaryStatusMsgR\bbinaries\",\n" +

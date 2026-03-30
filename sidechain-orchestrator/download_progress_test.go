@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -112,24 +111,24 @@ func TestDownloadFile_ProgressMessages(t *testing.T) {
 	require.NoError(t, err)
 	close(ch)
 
-	var messages []string
+	var updates []DownloadProgress
 	for p := range ch {
-		if p.Message != "" {
-			messages = append(messages, p.Message)
+		if p.TotalBytes > 0 {
+			updates = append(updates, p)
 		}
 	}
 
-	assert.Greater(t, len(messages), 0, "should have progress messages")
+	assert.Greater(t, len(updates), 0, "should have progress updates")
 
-	// All messages should contain "Downloaded" and "MB"
-	for _, msg := range messages {
-		assert.Contains(t, msg, "Downloaded")
-		assert.Contains(t, msg, "MB")
+	// All updates should have correct total
+	for _, u := range updates {
+		assert.Equal(t, int64(totalSize), u.TotalBytes)
+		assert.Greater(t, u.BytesDownloaded, int64(0))
 	}
 
-	// Last message should show 100.0%
-	lastMsg := messages[len(messages)-1]
-	assert.Contains(t, lastMsg, "100.0%")
+	// Last update should have downloaded everything
+	last := updates[len(updates)-1]
+	assert.Equal(t, int64(totalSize), last.BytesDownloaded)
 }
 
 func TestDownload_ConcurrentProtection(t *testing.T) {
@@ -361,19 +360,18 @@ func TestDownloadFile_ProgressMessagesUnknownTotal(t *testing.T) {
 	require.NoError(t, err)
 	close(ch)
 
-	var messages []string
+	var updates []DownloadProgress
 	for p := range ch {
-		if p.Message != "" {
-			messages = append(messages, p.Message)
+		if p.BytesDownloaded > 0 {
+			updates = append(updates, p)
 		}
 	}
 
-	// When total is unknown, messages should be like "Downloaded X.XX MB"
-	// and should NOT contain percentage or total
-	for _, msg := range messages {
-		assert.Contains(t, msg, "Downloaded")
-		assert.True(t, strings.Contains(msg, "MB"))
-		assert.NotContains(t, msg, "%", "unknown total should not show percentage")
-		assert.NotContains(t, msg, "/", "unknown total should not show total size")
+	assert.Greater(t, len(updates), 0, "should have progress updates")
+
+	// When total is unknown, TotalBytes should be -1 or 0
+	for _, u := range updates {
+		assert.LessOrEqual(t, u.TotalBytes, int64(0), "unknown total should be <= 0")
+		assert.Greater(t, u.BytesDownloaded, int64(0))
 	}
 }

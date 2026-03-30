@@ -1,0 +1,484 @@
+{
+  "version": 1,
+  "binaries": {
+    "bitcoincore": {
+      "type": "core",
+      "name": "Bitcoin Core",
+      "version": "30.2",
+      "description": "Bitcoin Core",
+      "repo_url": "https://github.com/bitcoin/bitcoin",
+      "port": 0,
+      "chain_layer": 1,
+      "color": "green",
+      "directories": {
+        "binary": {
+          "default": { "linux": ".drivechain", "macos": "Drivechain", "windows": "Drivechain" },
+          "mainnet": { "linux": ".bitcoin", "macos": "Bitcoin", "windows": "Bitcoin" }
+        },
+        "flutter_frontend": { "linux": "", "macos": "", "windows": "" }
+      },
+      "download": {
+        "binary": "bitcoind",
+        "files": {
+          "default": {
+            "base_url": "https://bitcoincore.org/bin/bitcoin-core-30.2/",
+            "linux": "bitcoin-30.2-x86_64-linux-gnu.tar.gz",
+            "macos": "bitcoin-30.2-x86_64-apple-darwin.tar.gz",
+            "windows": "bitcoin-30.2-win64.zip"
+          },
+          "forknet": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip",
+            "macos": "L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip",
+            "windows": "L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip"
+          }
+        },
+        "extract_subfolder": {
+          "forknet": { "linux": "forknet", "macos": "forknet", "windows": "forknet" }
+        }
+      },
+      "hashes": {}
+    },
+    "bitwindow": {
+      "type": "core",
+      "name": "BitWindow",
+      "version": "latest",
+      "description": "GUI for managing drivechain operations",
+      "repo_url": "https://github.com/LayerTwo-Labs/drivechain-frontends/bitwindow",
+      "port": 30301,
+      "chain_layer": 1,
+      "color": "green",
+      "directories": {
+        "binary": {
+          "default": { "linux": "bitwindow", "macos": "bitwindow", "windows": "bitwindow" }
+        },
+        "flutter_frontend": { "linux": "bitwindow", "macos": "bitwindow", "windows": "bitwindow" }
+      },
+      "download": {
+        "binary": "bitwindowd",
+        "files": {
+          "default": {
+            "base_url": "",
+            "linux": "",
+            "macos": "",
+            "windows": ""
+          }
+        }
+      },
+      "hashes": {}
+    },
+    "enforcer": {
+      "type": "core",
+      "name": "BIP300301 Enforcer",
+      "version": "0.1.0",
+      "description": "Manages drivechain validation rules",
+      "repo_url": "https://github.com/LayerTwo-Labs/bip300301-enforcer",
+      "port": 50051,
+      "chain_layer": 1,
+      "color": "green",
+      "directories": {
+        "binary": {
+          "default": { "linux": "bip300301_enforcer", "macos": "bip300301_enforcer", "windows": "bip300301_enforcer" }
+        },
+        "flutter_frontend": { "linux": "", "macos": "", "windows": "" }
+      },
+      "download": {
+        "binary": "bip300301-enforcer",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
+            "macos": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
+            "windows": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "hashes": {}
+    },
+    "grpcurl": {
+      "type": "utility",
+      "name": "grpcurl",
+      "version": "latest",
+      "description": "Command-line tool for interacting with gRPC servers",
+      "repo_url": "https://github.com/fullstorydev/grpcurl",
+      "port": 0,
+      "chain_layer": 0,
+      "color": "green",
+      "directories": {
+        "binary": {
+          "default": { "linux": "grpcurl", "macos": "grpcurl", "windows": "grpcurl" }
+        },
+        "flutter_frontend": { "linux": "grpcurl", "macos": "grpcurl", "windows": "grpcurl" }
+      },
+      "download": {
+        "binary": "grpcurl",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/fullstorydev/grpcurl/releases/latest",
+            "linux": "grpcurl_\\d+\\.\\d+\\.\\d+_linux_x86_64\\.tar\\.gz",
+            "macos": "grpcurl_\\d+\\.\\d+\\.\\d+_osx_x86_64\\.tar\\.gz",
+            "windows": "grpcurl_\\d+\\.\\d+\\.\\d+_windows_x86_64\\.zip"
+          }
+        }
+      },
+      "hashes": {}
+    },
+    "thunderd": {
+      "type": "orchestrator",
+      "name": "Thunderd",
+      "version": "latest",
+      "description": "Thunder sidechain orchestrator daemon",
+      "repo_url": "https://github.com/LayerTwo-Labs/drivechain-frontends/thunder/server",
+      "port": 30302,
+      "chain_layer": 1,
+      "color": "orange",
+      "directories": {
+        "binary": {
+          "default": { "linux": "thunder", "macos": "thunder", "windows": "thunder" }
+        },
+        "flutter_frontend": { "linux": "thunder", "macos": "thunder", "windows": "thunder" }
+      },
+      "download": {
+        "binary": "thunderd",
+        "files": {
+          "default": {
+            "base_url": "",
+            "linux": "",
+            "macos": "",
+            "windows": ""
+          }
+        }
+      },
+      "hashes": {}
+    },
+    "zsided": {
+      "type": "orchestrator",
+      "name": "ZSided",
+      "version": "latest",
+      "description": "ZSide sidechain orchestrator daemon",
+      "repo_url": "https://github.com/LayerTwo-Labs/drivechain-frontends/zside/server",
+      "port": 30303,
+      "chain_layer": 1,
+      "color": "blue",
+      "directories": {
+        "binary": {
+          "default": { "linux": "zside", "macos": "zside", "windows": "zside" }
+        },
+        "flutter_frontend": { "linux": "zside", "macos": "zside", "windows": "zside" }
+      },
+      "download": {
+        "binary": "zsided",
+        "files": {
+          "default": {
+            "base_url": "",
+            "linux": "",
+            "macos": "",
+            "windows": ""
+          }
+        }
+      },
+      "hashes": {}
+    },
+    "thunder": {
+      "type": "sidechain",
+      "slot": 9,
+      "name": "Thunder",
+      "version": "latest",
+      "description": "Large & growing blocksize, plus fraud proofs",
+      "repo_url": "https://github.com/layerTwo-Labs/thunder-rust",
+      "port": 6009,
+      "chain_layer": 2,
+      "color": "purple",
+      "directories": {
+        "binary": {
+          "default": { "linux": "thunder", "macos": "Thunder", "windows": "thunder" }
+        },
+        "flutter_frontend": { "linux": "com.layertwolabs.thunder", "macos": "com.layertwolabs.thunder", "windows": "com.layertwolabs.thunder" }
+      },
+      "download": {
+        "binary": "thunder",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
+            "macos": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
+            "windows": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "alternative_download": {
+        "binary": "thunder",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "test-thunder-x86_64-unknown-linux-gnu.zip",
+            "macos": "test-thunder-x86_64-apple-darwin.zip",
+            "windows": "test-thunder-x86_64-windows.exe"
+          }
+        },
+        "extract_subfolder": {
+          "default": { "linux": "thunder", "macos": "", "windows": "" }
+        }
+      },
+      "hashes": {}
+    },
+    "bitnames": {
+      "type": "sidechain",
+      "slot": 2,
+      "name": "Bitnames",
+      "version": "latest",
+      "description": "Variant of BitDNS that aims to replace ICANN",
+      "repo_url": "https://github.com/LayerTwo-Labs/plain-bitnames",
+      "port": 6002,
+      "chain_layer": 2,
+      "color": "green",
+      "directories": {
+        "binary": {
+          "default": { "linux": "plain_bitnames", "macos": "plain_bitnames", "windows": "plain_bitnames" }
+        },
+        "flutter_frontend": { "linux": "com.layertwolabs.bitnames", "macos": "com.layertwolabs.bitnames", "windows": "com.layertwolabs.bitnames" }
+      },
+      "download": {
+        "binary": "bitnames",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
+            "macos": "L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
+            "windows": "L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "alternative_download": {
+        "binary": "bitnames",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "test-bitnames-x86_64-unknown-linux-gnu.zip",
+            "macos": "test-bitnames-x86_64-apple-darwin.zip",
+            "windows": "test-bitnames-x86_64-windows.exe"
+          }
+        },
+        "extract_subfolder": {
+          "default": { "linux": "bitnames", "macos": "", "windows": "" }
+        }
+      },
+      "hashes": {}
+    },
+    "bitassets": {
+      "type": "sidechain",
+      "slot": 4,
+      "name": "BitAssets",
+      "version": "latest",
+      "description": "Variant of BitDNS that aims to replace ICANN",
+      "repo_url": "https://github.com/LayerTwo-Labs/plain-bitassets",
+      "port": 6004,
+      "chain_layer": 2,
+      "color": "blue",
+      "directories": {
+        "binary": {
+          "default": { "linux": "plain_bitassets", "macos": "plain_bitassets", "windows": "plain_bitassets" }
+        },
+        "flutter_frontend": { "linux": "com.layertwolabs.bitassets", "macos": "com.layertwolabs.bitassets", "windows": "com.layertwolabs.bitassets" }
+      },
+      "download": {
+        "binary": "bitassets",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip",
+            "macos": "L2-S4-BitAssets-latest-x86_64-apple-darwin.zip",
+            "windows": "L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "alternative_download": {
+        "binary": "bitassets",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "test-bitassets-x86_64-unknown-linux-gnu.zip",
+            "macos": "test-bitassets-x86_64-apple-darwin.zip",
+            "windows": "test-bitassets-x86_64-windows.exe"
+          }
+        },
+        "extract_subfolder": {
+          "default": { "linux": "bitassets", "macos": "", "windows": "" }
+        }
+      },
+      "hashes": {}
+    },
+    "truthcoin": {
+      "type": "sidechain",
+      "slot": 13,
+      "name": "Truthcoin",
+      "version": "latest",
+      "description": "Bitcoin Hivemind prediction market sidechain",
+      "repo_url": "https://github.com/LayerTwo-Labs/truthcoin",
+      "port": 6013,
+      "chain_layer": 2,
+      "color": "orange",
+      "directories": {
+        "binary": {
+          "default": { "linux": "truthcoin", "macos": "truthcoin", "windows": "truthcoin" }
+        },
+        "flutter_frontend": { "linux": "com.layertwolabs.truthcoin", "macos": "com.layertwolabs.truthcoin", "windows": "com.layertwolabs.truthcoin" }
+      },
+      "download": {
+        "binary": "truthcoin",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip",
+            "macos": "L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip",
+            "windows": "L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "alternative_download": {
+        "binary": "truthcoin",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "test-truthcoin-x86_64-unknown-linux-gnu.zip",
+            "macos": "test-truthcoin-x86_64-apple-darwin.zip",
+            "windows": "test-truthcoin-x86_64-windows.exe"
+          }
+        },
+        "extract_subfolder": {
+          "default": { "linux": "truthcoin", "macos": "", "windows": "" }
+        }
+      },
+      "hashes": {}
+    },
+    "photon": {
+      "type": "sidechain",
+      "slot": 99,
+      "name": "Photon",
+      "version": "latest",
+      "description": "Photon sidechain",
+      "repo_url": "https://github.com/LayerTwo-Labs/photon",
+      "port": 6099,
+      "chain_layer": 2,
+      "color": "purple",
+      "directories": {
+        "binary": {
+          "default": { "linux": "photon", "macos": "photon", "windows": "photon" }
+        },
+        "flutter_frontend": { "linux": "com.layertwolabs.photon", "macos": "com.layertwolabs.photon", "windows": "com.layertwolabs.photon" }
+      },
+      "download": {
+        "binary": "photon",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "L2-S99-Photon-latest-x86_64-unknown-linux-gnu.zip",
+            "macos": "L2-S99-Photon-latest-x86_64-apple-darwin.zip",
+            "windows": "L2-S99-Photon-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "alternative_download": {
+        "binary": "photon",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "test-photon-x86_64-unknown-linux-gnu.zip",
+            "macos": "test-photon-x86_64-apple-darwin.zip",
+            "windows": "test-photon-x86_64-windows.exe"
+          }
+        },
+        "extract_subfolder": {
+          "default": { "linux": "photon", "macos": "", "windows": "" }
+        }
+      },
+      "hashes": {}
+    },
+    "coinshift": {
+      "type": "sidechain",
+      "slot": 255,
+      "name": "CoinShift",
+      "version": "latest",
+      "description": "CoinShift sidechain",
+      "repo_url": "https://github.com/LayerTwo-Labs/coinshift",
+      "port": 6255,
+      "chain_layer": 2,
+      "color": "orange",
+      "directories": {
+        "binary": {
+          "default": { "linux": "coinshift", "macos": "coinshift", "windows": "coinshift" }
+        },
+        "flutter_frontend": { "linux": "com.layertwolabs.coinshift", "macos": "com.layertwolabs.coinshift", "windows": "com.layertwolabs.coinshift" }
+      },
+      "download": {
+        "binary": "coinshift",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "L2-S255-Coinshift-latest-x86_64-unknown-linux-gnu.zip",
+            "macos": "L2-S255-Coinshift-latest-x86_64-apple-darwin.zip",
+            "windows": "L2-S255-Coinshift-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "alternative_download": {
+        "binary": "coinshift",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "test-coinshift-x86_64-unknown-linux-gnu.zip",
+            "macos": "test-coinshift-x86_64-apple-darwin.zip",
+            "windows": "test-coinshift-x86_64-windows.exe"
+          }
+        },
+        "extract_subfolder": {
+          "default": { "linux": "coinshift", "macos": "", "windows": "" }
+        }
+      },
+      "hashes": {}
+    },
+    "zside": {
+      "type": "sidechain",
+      "slot": 98,
+      "name": "zSide",
+      "version": "0.1.0",
+      "description": "ZSide Sidechain",
+      "repo_url": "https://github.com/iwakura-rein/thunder-orchard",
+      "port": 6098,
+      "chain_layer": 2,
+      "color": "blue",
+      "directories": {
+        "binary": {
+          "default": { "linux": "thunder-orchard", "macos": "thunder-orchard", "windows": "thunder-orchard" }
+        },
+        "flutter_frontend": { "linux": "com.layertwolabs.zside", "macos": "com.layertwolabs.zside", "windows": "com.layertwolabs.zside" }
+      },
+      "download": {
+        "binary": "thunder-orchard",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest",
+            "linux": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu",
+            "macos": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin",
+            "windows": ""
+          }
+        }
+      },
+      "alternative_download": {
+        "binary": "zside",
+        "files": {
+          "default": {
+            "base_url": "https://releases.drivechain.info/",
+            "linux": "test-zside-x86_64-unknown-linux-gnu.zip",
+            "macos": "test-zside-x86_64-apple-darwin.zip",
+            "windows": ""
+          }
+        },
+        "extract_subfolder": {
+          "default": { "linux": "zside", "macos": "", "windows": "" }
+        }
+      },
+      "hashes": {}
+    }
+  }
+}

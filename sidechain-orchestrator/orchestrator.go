@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,6 +36,10 @@ type BinaryStatus struct {
 	Stopping        bool   // binary is being stopped
 	Initializing    bool   // binary is starting up / restarting
 	ConnectModeOnly bool   // willfully stopped, only watching for external restart
+	Downloadable    bool   // binary has download URLs configured
+	Description     string // short description of the binary
+	Downloaded      bool   // binary file exists on disk
+	PortInUse       bool   // port is reachable (something is listening)
 }
 
 // StartupProgress reports progress during StartWithDeps.
@@ -260,17 +266,30 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	}
 
 	proc := o.process.Get(name)
+	_, downloaded := os.Stat(BinaryPath(o.DataDir, config.BinaryName))
 	status := BinaryStatus{
-		Name:        config.Name,
-		DisplayName: config.DisplayName,
-		ChainLayer:  config.ChainLayer,
-		Port:        config.Port,
+		Name:         config.Name,
+		DisplayName:  config.DisplayName,
+		ChainLayer:   config.ChainLayer,
+		Port:         config.Port,
+		Downloadable: config.Downloadable(),
+		Description:  config.Description,
+		Downloaded:   downloaded == nil,
 	}
 
 	if proc != nil {
 		status.Running = true
 		status.Pid = proc.Pid
 		status.Uptime = time.Since(proc.Started)
+	}
+
+	// Quick port probe if not already known to be running.
+	if config.Port > 0 && !status.Running {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", config.Port), 200*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			status.PortInUse = true
+		}
 	}
 
 	// Pull connection state from monitor if available
@@ -289,7 +308,8 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	return status
 }
 
-// ListAll returns the status of every configured binary.
+// ListAll returns the status of every configured binary,
+// sorted by chain layer (L1 first) then name.
 func (o *Orchestrator) ListAll() []BinaryStatus {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
@@ -298,6 +318,12 @@ func (o *Orchestrator) ListAll() []BinaryStatus {
 	for name := range o.configs {
 		statuses = append(statuses, o.Status(name))
 	}
+	sort.Slice(statuses, func(i, j int) bool {
+		if statuses[i].ChainLayer != statuses[j].ChainLayer {
+			return statuses[i].ChainLayer < statuses[j].ChainLayer
+		}
+		return statuses[i].Name < statuses[j].Name
+	})
 	return statuses
 }
 
@@ -882,11 +908,20 @@ func (o *Orchestrator) getConfig(name string) (BinaryConfig, error) {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 
-	config, ok := o.configs[name]
-	if !ok {
-		return BinaryConfig{}, fmt.Errorf("unknown binary: %s", name)
+	// Exact match first.
+	if config, ok := o.configs[name]; ok {
+		return config, nil
 	}
-	return config, nil
+
+	// Case-insensitive fallback: match against Name or DisplayName.
+	lower := strings.ToLower(name)
+	for _, config := range o.configs {
+		if strings.ToLower(config.Name) == lower || strings.ToLower(config.DisplayName) == lower {
+			return config, nil
+		}
+	}
+
+	return BinaryConfig{}, fmt.Errorf("unknown binary: %s", name)
 }
 
 func (o *Orchestrator) findConfigByBinaryName(binaryName string) (BinaryConfig, bool) {

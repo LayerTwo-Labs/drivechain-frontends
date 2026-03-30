@@ -59,6 +59,10 @@ message BinaryStatusMsg {
   bool stopping = 13;           // binary is being stopped
   bool initializing = 14;       // binary is starting up / restarting
   bool connect_mode_only = 15;  // willfully stopped, only watching for external restart
+  bool downloadable = 16;       // binary has download URLs configured
+  string description = 17;      // short description of the binary
+  bool downloaded = 18;         // binary file exists on disk
+  bool port_in_use = 19;       // port is reachable but not managed by orchestrator
 }
 
 // ListBinaries

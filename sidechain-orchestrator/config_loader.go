@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +13,9 @@ import (
 )
 
 const configFileName = "chains_config.json"
+
+//go:embed chains_config.json
+var embeddedConfig []byte
 
 // jsonConfig is the top-level JSON structure.
 type jsonConfig struct {
@@ -47,21 +51,33 @@ type jsonDownloadConf struct {
 }
 
 // LoadConfigFile loads binary configs from a chains_config.json file.
-// Falls back to AllDefaults() on any error.
+// Falls back to the embedded default config on any error.
 func LoadConfigFile(path string, log zerolog.Logger) []BinaryConfig {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		log.Warn().Err(err).Str("path", path).Msg("failed to read config file, using defaults")
-		return AllDefaults()
+		log.Info().Str("path", path).Msg("config file not found, using embedded default")
+		return loadEmbeddedConfig(log)
 	}
 
 	configs, err := parseConfigJSON(data)
 	if err != nil {
-		log.Warn().Err(err).Str("path", path).Msg("failed to parse config file, using defaults")
-		return AllDefaults()
+		log.Warn().Err(err).Str("path", path).Msg("failed to parse config file, using embedded default")
+		return loadEmbeddedConfig(log)
 	}
 
 	log.Info().Int("count", len(configs)).Str("path", path).Msg("loaded binary configs from file")
+	return configs
+}
+
+// loadEmbeddedConfig parses the embedded chains_config.json.
+// Falls back to AllDefaults() if the embedded config fails to parse.
+func loadEmbeddedConfig(log zerolog.Logger) []BinaryConfig {
+	configs, err := parseConfigJSON(embeddedConfig)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to parse embedded config, using hardcoded defaults")
+		return AllDefaults()
+	}
+	log.Info().Int("count", len(configs)).Msg("loaded binary configs from embedded default")
 	return configs
 }
 
