@@ -113,6 +113,13 @@ export declare type GetChainTipsResponse = Message<"explorer.v1.GetChainTipsResp
    * @generated from field: explorer.v1.ChainTip zside = 5;
    */
   zside?: ChainTip;
+
+  /**
+   * L2-S255
+   *
+   * @generated from field: explorer.v1.ChainTip coinshift = 6;
+   */
+  coinshift?: ChainTip;
 };
 
 /**
@@ -153,6 +160,13 @@ export declare type GetChainTipsResponseJson = {
    * @generated from field: explorer.v1.ChainTip zside = 5;
    */
   zside?: ChainTipJson;
+
+  /**
+   * L2-S255
+   *
+   * @generated from field: explorer.v1.ChainTip coinshift = 6;
+   */
+  coinshift?: ChainTipJson;
 };
 
 /**
