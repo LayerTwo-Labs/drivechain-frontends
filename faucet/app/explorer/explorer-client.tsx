@@ -68,7 +68,7 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <BlockCard
           title="Latest Mainchain Block"
           subtitle="Most recent block on the mainchain"
@@ -93,6 +93,11 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
           title="Latest Zside Block"
           subtitle="Most recent block on the Zside sidechain (L2-S98)"
           block={data?.zside}
+        />
+        <BlockCard
+          title="Latest CoinShift Block"
+          subtitle="Most recent block on the CoinShift sidechain (L2-S255)"
+          block={data?.coinshift}
         />
       </div>
 

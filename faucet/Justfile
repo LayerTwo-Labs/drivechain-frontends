@@ -36,7 +36,7 @@ run:
     kill $SERVER_PID
 
 lint: 
-    golangci-lint run ./server/...
+    cd server && golangci-lint run ./...
 
 run-server: build-server
     ./server/faucetd
