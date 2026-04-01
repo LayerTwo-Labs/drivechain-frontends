@@ -458,7 +458,7 @@ func TestProcessManager_ExitChAndExitCode(t *testing.T) {
 // --- StartWithDeps stream tests ---
 
 // collectProgress drains a StartupProgress channel and returns all messages.
-func collectProgress(ch <-chan StartupProgress) []StartupProgress {
+func collectProgress(ch <-chan StartupProgress) []StartupProgress { //nolint:unused // kept for future tests
 	var results []StartupProgress
 	for p := range ch {
 		results = append(results, p)
