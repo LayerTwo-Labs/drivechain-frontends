@@ -1,22 +1,18 @@
-# bitwindow
+# BitWindow
 
-This package contains a frontend for interacting with a Drivechain-enabled layer
-1 bitcoin network.
+Frontend for interacting with a Drivechain-enabled layer 1 Bitcoin network.
 
-## Local development
+## Prerequisites
 
-To get the app(s) up and running, make sure you have the following dependencies:
+- [Dart](https://dart.dev/get-dart)
+- [Flutter](https://docs.flutter.dev/install)
+- [Go](https://go.dev)
+- [just](https://github.com/casey/just) - command runner for justfiles
 
-- The [Flutter SDK](https://flutter.dev)
-- An instance of [bitwindowd](../../servers/bitwindow) running
-- The `BITWINDOWD_HOST` and `BITWINDOWD_PORT` environment variable pointing to
-  the above instance
-- A BIP 300/301 enabled node running
-
-Running the app is as simple as the following command:
+## Getting Started
 
 ```bash
-flutter run --dart-define BITWINDOWD_HOST=localhost --dart-define BITWINDOWD_PORT=30301
+just run
 ```
 
-The project is set up with launch configurations for Visual Studio Code as well.
+This downloads all required binaries and starts the app.
