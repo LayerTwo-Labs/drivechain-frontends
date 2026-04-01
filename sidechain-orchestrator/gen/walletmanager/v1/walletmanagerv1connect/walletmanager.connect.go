@@ -57,9 +57,9 @@ const (
 	// WalletManagerServiceListWalletsProcedure is the fully-qualified name of the
 	// WalletManagerService's ListWallets RPC.
 	WalletManagerServiceListWalletsProcedure = "/walletmanager.v1.WalletManagerService/ListWallets"
-	// WalletManagerServiceSwitchWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's SwitchWallet RPC.
-	WalletManagerServiceSwitchWalletProcedure = "/walletmanager.v1.WalletManagerService/SwitchWallet"
+	// WalletManagerServiceSetActiveWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's SetActiveWallet RPC.
+	WalletManagerServiceSetActiveWalletProcedure = "/walletmanager.v1.WalletManagerService/SetActiveWallet"
 	// WalletManagerServiceUpdateWalletMetadataProcedure is the fully-qualified name of the
 	// WalletManagerService's UpdateWalletMetadata RPC.
 	WalletManagerServiceUpdateWalletMetadataProcedure = "/walletmanager.v1.WalletManagerService/UpdateWalletMetadata"
@@ -72,6 +72,9 @@ const (
 	// WalletManagerServiceCreateWatchOnlyWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateWatchOnlyWallet RPC.
 	WalletManagerServiceCreateWatchOnlyWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateWatchOnlyWallet"
+	// WalletManagerServiceGetMnemonicProcedure is the fully-qualified name of the
+	// WalletManagerService's GetMnemonic RPC.
+	WalletManagerServiceGetMnemonicProcedure = "/walletmanager.v1.WalletManagerService/GetMnemonic"
 )
 
 // WalletManagerServiceClient is a client for the walletmanager.v1.WalletManagerService service.
@@ -84,11 +87,12 @@ type WalletManagerServiceClient interface {
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
 	RemoveEncryption(context.Context, *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error)
 	ListWallets(context.Context, *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error)
-	SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error)
+	SetActiveWallet(context.Context, *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error)
 	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
 	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
 	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
+	GetMnemonic(context.Context, *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error)
 }
 
 // NewWalletManagerServiceClient constructs a client for the walletmanager.v1.WalletManagerService
@@ -150,10 +154,10 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("ListWallets")),
 			connect.WithClientOptions(opts...),
 		),
-		switchWallet: connect.NewClient[v1.SwitchWalletRequest, v1.SwitchWalletResponse](
+		setActiveWallet: connect.NewClient[v1.SetActiveWalletRequest, v1.SetActiveWalletResponse](
 			httpClient,
-			baseURL+WalletManagerServiceSwitchWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SwitchWallet")),
+			baseURL+WalletManagerServiceSetActiveWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SetActiveWallet")),
 			connect.WithClientOptions(opts...),
 		),
 		updateWalletMetadata: connect.NewClient[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse](
@@ -180,6 +184,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
 			connect.WithClientOptions(opts...),
 		),
+		getMnemonic: connect.NewClient[v1.GetMnemonicRequest, v1.GetMnemonicResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetMnemonicProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetMnemonic")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -193,11 +203,12 @@ type walletManagerServiceClient struct {
 	changePassword        *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
 	removeEncryption      *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
 	listWallets           *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
-	switchWallet          *connect.Client[v1.SwitchWalletRequest, v1.SwitchWalletResponse]
+	setActiveWallet       *connect.Client[v1.SetActiveWalletRequest, v1.SetActiveWalletResponse]
 	updateWalletMetadata  *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
 	deleteWallet          *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
 	deleteAllWallets      *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
 	createWatchOnlyWallet *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
+	getMnemonic           *connect.Client[v1.GetMnemonicRequest, v1.GetMnemonicResponse]
 }
 
 // GetWalletStatus calls walletmanager.v1.WalletManagerService.GetWalletStatus.
@@ -240,9 +251,9 @@ func (c *walletManagerServiceClient) ListWallets(ctx context.Context, req *conne
 	return c.listWallets.CallUnary(ctx, req)
 }
 
-// SwitchWallet calls walletmanager.v1.WalletManagerService.SwitchWallet.
-func (c *walletManagerServiceClient) SwitchWallet(ctx context.Context, req *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error) {
-	return c.switchWallet.CallUnary(ctx, req)
+// SetActiveWallet calls walletmanager.v1.WalletManagerService.SetActiveWallet.
+func (c *walletManagerServiceClient) SetActiveWallet(ctx context.Context, req *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error) {
+	return c.setActiveWallet.CallUnary(ctx, req)
 }
 
 // UpdateWalletMetadata calls walletmanager.v1.WalletManagerService.UpdateWalletMetadata.
@@ -265,6 +276,11 @@ func (c *walletManagerServiceClient) CreateWatchOnlyWallet(ctx context.Context, 
 	return c.createWatchOnlyWallet.CallUnary(ctx, req)
 }
 
+// GetMnemonic calls walletmanager.v1.WalletManagerService.GetMnemonic.
+func (c *walletManagerServiceClient) GetMnemonic(ctx context.Context, req *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error) {
+	return c.getMnemonic.CallUnary(ctx, req)
+}
+
 // WalletManagerServiceHandler is an implementation of the walletmanager.v1.WalletManagerService
 // service.
 type WalletManagerServiceHandler interface {
@@ -276,11 +292,12 @@ type WalletManagerServiceHandler interface {
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
 	RemoveEncryption(context.Context, *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error)
 	ListWallets(context.Context, *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error)
-	SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error)
+	SetActiveWallet(context.Context, *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error)
 	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
 	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
 	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
+	GetMnemonic(context.Context, *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error)
 }
 
 // NewWalletManagerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -338,10 +355,10 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("ListWallets")),
 		connect.WithHandlerOptions(opts...),
 	)
-	walletManagerServiceSwitchWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSwitchWalletProcedure,
-		svc.SwitchWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SwitchWallet")),
+	walletManagerServiceSetActiveWalletHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSetActiveWalletProcedure,
+		svc.SetActiveWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SetActiveWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceUpdateWalletMetadataHandler := connect.NewUnaryHandler(
@@ -368,6 +385,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceGetMnemonicHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetMnemonicProcedure,
+		svc.GetMnemonic,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetMnemonic")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/walletmanager.v1.WalletManagerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletManagerServiceGetWalletStatusProcedure:
@@ -386,8 +409,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceRemoveEncryptionHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListWalletsProcedure:
 			walletManagerServiceListWalletsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSwitchWalletProcedure:
-			walletManagerServiceSwitchWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSetActiveWalletProcedure:
+			walletManagerServiceSetActiveWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceUpdateWalletMetadataProcedure:
 			walletManagerServiceUpdateWalletMetadataHandler.ServeHTTP(w, r)
 		case WalletManagerServiceDeleteWalletProcedure:
@@ -396,6 +419,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceDeleteAllWalletsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateWatchOnlyWalletProcedure:
 			walletManagerServiceCreateWatchOnlyWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetMnemonicProcedure:
+			walletManagerServiceGetMnemonicHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -437,8 +462,8 @@ func (UnimplementedWalletManagerServiceHandler) ListWallets(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListWallets is not implemented"))
 }
 
-func (UnimplementedWalletManagerServiceHandler) SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SwitchWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SetActiveWallet(context.Context, *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetActiveWallet is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error) {
@@ -455,4 +480,8 @@ func (UnimplementedWalletManagerServiceHandler) DeleteAllWallets(context.Context
 
 func (UnimplementedWalletManagerServiceHandler) CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetMnemonic(context.Context, *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetMnemonic is not implemented"))
 }
