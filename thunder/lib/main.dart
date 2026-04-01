@@ -292,23 +292,27 @@ void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryTy
   final logProvider = GetIt.I.get<LogProvider>();
   final log = GetIt.I.get<Logger>();
 
-  orchestrator.streamLogs(binaryName, tail: 100).listen(
-    (response) {
-      logProvider.addLog(FullProcessLogEntry(
-        timestamp: DateTime.fromMillisecondsSinceEpoch(response.timestampUnix.toInt() * 1000),
-        message: response.line,
-        isStderr: response.stream == 'stderr',
-        binaryType: binaryType,
-      ));
+  orchestrator
+      .streamLogs(binaryName, tail: 100)
+      .listen(
+        (response) {
+          logProvider.addLog(
+            FullProcessLogEntry(
+              timestamp: DateTime.fromMillisecondsSinceEpoch(response.timestampUnix.toInt() * 1000),
+              message: response.line,
+              isStderr: response.stream == 'stderr',
+              binaryType: binaryType,
+            ),
+          );
 
-      log.i('[$binaryName] ${response.line}');
-    },
-    onError: (e) {
-      Future.delayed(const Duration(seconds: 5), () {
-        _streamBinaryLogs(orchestrator, binaryName, binaryType);
-      });
-    },
-  );
+          log.i('[$binaryName] ${response.line}');
+        },
+        onError: (e) {
+          Future.delayed(const Duration(seconds: 5), () {
+            _streamBinaryLogs(orchestrator, binaryName, binaryType);
+          });
+        },
+      );
 }
 
 Future<void> initAutoUpdater(Logger log) async {

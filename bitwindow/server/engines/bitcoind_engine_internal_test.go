@@ -92,7 +92,7 @@ func TestOpReturnHandling(t *testing.T) {
 	core.EXPECT().
 		GetRawTransaction(gomock.Any(), tests.Connect(&corepb.GetRawTransactionRequest{
 			Txid:      tx.TxHash().String(),
-			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
+			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
 		})).
 		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{
 			Fee: 0.001,
