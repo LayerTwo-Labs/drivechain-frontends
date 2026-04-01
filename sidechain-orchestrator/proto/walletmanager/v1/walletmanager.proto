@@ -11,11 +11,12 @@ service WalletManagerService {
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   rpc RemoveEncryption(RemoveEncryptionRequest) returns (RemoveEncryptionResponse);
   rpc ListWallets(ListWalletsRequest) returns (ListWalletsResponse);
-  rpc SwitchWallet(SwitchWalletRequest) returns (SwitchWalletResponse);
+  rpc SetActiveWallet(SetActiveWalletRequest) returns (SetActiveWalletResponse);
   rpc UpdateWalletMetadata(UpdateWalletMetadataRequest) returns (UpdateWalletMetadataResponse);
   rpc DeleteWallet(DeleteWalletRequest) returns (DeleteWalletResponse);
   rpc DeleteAllWallets(DeleteAllWalletsRequest) returns (DeleteAllWalletsResponse);
   rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
+  rpc GetMnemonic(GetMnemonicRequest) returns (GetMnemonicResponse);
 }
 
 // Status
@@ -27,7 +28,6 @@ message GetWalletStatusResponse {
   bool encrypted = 2;
   bool unlocked = 3;
   string active_wallet_id = 4;
-  string active_wallet_name = 5;
 }
 
 // Generate
@@ -94,16 +94,15 @@ message ListWalletsRequest {}
 
 message ListWalletsResponse {
   repeated WalletMetadata wallets = 1;
-  string active_wallet_id = 2;
 }
 
-// Switch Wallet
+// Set Active Wallet
 
-message SwitchWalletRequest {
+message SetActiveWalletRequest {
   string wallet_id = 1;
 }
 
-message SwitchWalletResponse {}
+message SetActiveWalletResponse {}
 
 // Update Wallet Metadata
 
@@ -139,4 +138,22 @@ message CreateWatchOnlyWalletRequest {
 
 message CreateWatchOnlyWalletResponse {
   string wallet_id = 1;
+}
+
+// Get Mnemonic
+
+message GetMnemonicRequest {
+  string wallet_id = 1;
+}
+
+message GetMnemonicResponse {
+  string master_mnemonic = 1;
+  string l1_mnemonic = 2;
+  repeated SidechainMnemonic sidechain_mnemonics = 3;
+}
+
+message SidechainMnemonic {
+  int32 slot = 1;
+  string name = 2;
+  string mnemonic = 3;
 }
