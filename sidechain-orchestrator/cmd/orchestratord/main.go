@@ -17,6 +17,8 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 func main() {
@@ -110,12 +112,38 @@ func run(cctx *cli.Context) error {
 		log.Warn().Err(err).Msg("adopt orphans")
 	}
 
+	// Set up wallet service
+	walletSvc := wallet.NewService(bitwindowDir, log)
+	if err := walletSvc.Init(); err != nil {
+		log.Warn().Err(err).Msg("wallet service init")
+	}
+	defer walletSvc.Close()
+
+	// Wire wallet engine for Core wallet management
+	walletEngine := orchestrator.NewWalletEngine(
+		walletSvc,
+		orch.CoreStatusClient,
+		network,
+		log,
+	)
+	orch.WalletEngine = walletEngine
+
+	// Wire callback: when a non-enforcer wallet is created, also create it in Bitcoin Core
+	walletSvc.OnCreateCoreWallet = func(walletName string, seedHex string) error {
+		return orch.CreateCoreWallet(walletName, seedHex)
+	}
+
 	// Set up gRPC/ConnectRPC server
 	handler := api.NewHandler(orch)
 	mux := http.NewServeMux()
 
 	path, h := rpc.NewOrchestratorServiceHandler(handler, connect.WithInterceptors())
 	mux.Handle(path, h)
+
+	// Wallet manager service
+	walletHandler := api.NewWalletHandler(walletSvc)
+	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors())
+	mux.Handle(walletPath, walletH)
 
 	// Bitcoin config service
 	if orch.BitcoinConf != nil {

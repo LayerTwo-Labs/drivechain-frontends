@@ -81,6 +81,7 @@ type Orchestrator struct {
 	BitcoinConf  *config.BitcoinConfManager
 	EnforcerConf *config.EnforcerConfManager
 	WalletSvc    *wallet.Service // for seed injection into sidechain/enforcer args
+	WalletEngine *WalletEngine  // manages wallet→Core mapping, sync, backend routing
 
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
@@ -120,6 +121,17 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to initialize bitcoin config manager, args must be passed explicitly")
 	} else {
+		// Sync the bitcoin conf network with the CLI --network flag
+		cliNetwork := config.Network(network)
+		if bitcoinConf.Network != cliNetwork {
+			log.Info().
+				Str("conf_network", string(bitcoinConf.Network)).
+				Str("cli_network", network).
+				Msg("overriding bitcoin conf network to match CLI flag")
+			if err := bitcoinConf.UpdateNetwork(cliNetwork); err != nil {
+				log.Warn().Err(err).Msg("failed to update bitcoin conf network")
+			}
+		}
 		orch.BitcoinConf = bitcoinConf
 
 		enforcerConf, err := config.NewEnforcerConfManager(bitcoinConf, log)
@@ -291,7 +303,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	if config.Port > 0 && !status.Running {
 		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", config.Port), 200*time.Millisecond)
 		if err == nil {
-			conn.Close()
+			_ = conn.Close()
 			status.PortInUse = true
 		}
 	}
@@ -822,7 +834,7 @@ type MainchainBalance struct {
 
 // GetMainchainBlockchainInfo proxies getblockchaininfo from bitcoind.
 func (o *Orchestrator) GetMainchainBlockchainInfo(ctx context.Context) (*MainchainBlockchainInfo, error) {
-	client, err := o.coreStatusClient()
+	client, err := o.CoreStatusClient()
 	if err != nil {
 		return nil, err
 	}
@@ -864,7 +876,7 @@ func (o *Orchestrator) GetEnforcerBlockchainInfo(ctx context.Context) (*Enforcer
 
 // GetMainchainBalance proxies getbalance + getunconfirmedbalance from bitcoind.
 func (o *Orchestrator) GetMainchainBalance(ctx context.Context) (*MainchainBalance, error) {
-	client, err := o.coreStatusClient()
+	client, err := o.CoreStatusClient()
 	if err != nil {
 		return nil, err
 	}
@@ -890,8 +902,8 @@ func (o *Orchestrator) GetMainchainBalance(ctx context.Context) (*MainchainBalan
 	return &MainchainBalance{Confirmed: confirmed, Unconfirmed: unconfirmed}, nil
 }
 
-// coreStatusClient builds a CoreStatusClient from the current config.
-func (o *Orchestrator) coreStatusClient() (*CoreStatusClient, error) {
+// CoreStatusClient builds a CoreStatusClient from the current config.
+func (o *Orchestrator) CoreStatusClient() (*CoreStatusClient, error) {
 	if o.BitcoinConf == nil {
 		return nil, fmt.Errorf("bitcoin config not available")
 	}
@@ -907,6 +919,83 @@ func (o *Orchestrator) coreStatusClient() (*CoreStatusClient, error) {
 	return NewCoreStatusClient("localhost", port, user, password), nil
 }
 
+
+// CreateCoreWallet creates a Bitcoin Core wallet from a seed via BIP84 descriptor import.
+// Ported from bitwindow/server/engines/wallet_engine.go.
+// This is called for non-enforcer (bitcoinCore type) wallets.
+func (o *Orchestrator) CreateCoreWallet(walletName string, seedHex string) error {
+	client, err := o.CoreStatusClient()
+	if err != nil {
+		return fmt.Errorf("get core client: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Use wallet_<first8chars> naming convention matching bitwindow
+	coreWalletName := fmt.Sprintf("wallet_%s", sanitizeWalletName(walletName))
+
+	o.log.Info().
+		Str("wallet", walletName).
+		Str("core_name", coreWalletName).
+		Msg("creating wallet in Bitcoin Core with BIP84 descriptors")
+
+	if err := client.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex, o.Network); err != nil {
+		return fmt.Errorf("create core wallet: %w", err)
+	}
+
+	o.log.Info().
+		Str("wallet", walletName).
+		Str("core_name", coreWalletName).
+		Msg("Bitcoin Core wallet created with BIP84 descriptors")
+	return nil
+}
+
+// CreateCoreWatchOnlyWallet creates a watch-only wallet in Bitcoin Core.
+func (o *Orchestrator) CreateCoreWatchOnlyWallet(walletName string, descriptorOrXpub string) error {
+	client, err := o.CoreStatusClient()
+	if err != nil {
+		return fmt.Errorf("get core client: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	coreWalletName := fmt.Sprintf("watch_%s", sanitizeWalletName(walletName))
+
+	o.log.Info().
+		Str("wallet", walletName).
+		Str("core_name", coreWalletName).
+		Msg("creating watch-only wallet in Bitcoin Core")
+
+	if err := client.CreateWatchOnlyWalletInCore(ctx, coreWalletName, descriptorOrXpub); err != nil {
+		return fmt.Errorf("create watch-only core wallet: %w", err)
+	}
+
+	o.log.Info().
+		Str("wallet", walletName).
+		Str("core_name", coreWalletName).
+		Msg("Bitcoin Core watch-only wallet created")
+	return nil
+}
+
+// sanitizeWalletName creates a safe wallet name for Bitcoin Core.
+func sanitizeWalletName(name string) string {
+	// Replace spaces/special chars with underscores, truncate to 20 chars
+	var safe []byte
+	for _, c := range []byte(name) {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' {
+			safe = append(safe, c)
+		} else {
+			safe = append(safe, '_')
+		}
+	}
+	s := string(safe)
+	if len(s) > 20 {
+		s = s[:20]
+	}
+	return s
+}
 
 func (o *Orchestrator) getConfig(name string) (BinaryConfig, error) {
 	o.mu.RLock()
