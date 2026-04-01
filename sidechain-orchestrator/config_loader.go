@@ -96,7 +96,7 @@ func WatchConfigFile(path string, onChange func([]BinaryConfig), log zerolog.Log
 	// Watch the directory (more reliable cross-platform than watching a single file)
 	dir := filepath.Dir(path)
 	if err := watcher.Add(dir); err != nil {
-		watcher.Close()
+		_ = watcher.Close()
 		return nil, fmt.Errorf("watch dir %s: %w", dir, err)
 	}
 
@@ -136,7 +136,7 @@ func WatchConfigFile(path string, onChange func([]BinaryConfig), log zerolog.Log
 		}
 	}()
 
-	return func() { watcher.Close() }, nil
+	return func() { _ = watcher.Close() }, nil
 }
 
 func parseConfigJSON(data []byte) ([]BinaryConfig, error) {
