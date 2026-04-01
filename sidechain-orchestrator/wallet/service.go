@@ -34,6 +34,10 @@ type Service struct {
 	// Callbacks
 	// Dart: restartEnforcer (WalletWriterProvider L115) — called after wallet generation
 	OnWalletGenerated func()
+	// Called when a non-enforcer (bitcoinCore) wallet is created.
+	// The orchestrator wires this to create the wallet in Bitcoin Core via RPC.
+	// Receives walletName and the master seedHex for BIP84 descriptor derivation.
+	OnCreateCoreWallet func(walletName string, seedHex string) error
 	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
 	OnStopAllBinaries func() error
 	// Dart: deleteAllWallets deletes per-binary wallet paths (L600-608)
@@ -153,6 +157,11 @@ func (s *Service) ActiveWallet() *WalletData {
 func (s *Service) EnforcerWallet() *WalletData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	return s.enforcerWallet()
+}
+
+// enforcerWallet returns the enforcer wallet without locking. Must be called with mu held.
+func (s *Service) enforcerWallet() *WalletData {
 	for i := range s.wallets {
 		if s.wallets[i].WalletType == "enforcer" {
 			return &s.wallets[i]
@@ -173,24 +182,37 @@ func (s *Service) ClearState() {
 	s.activeWalletID = ""
 }
 
-// GetL1Mnemonic returns the L1 mnemonic from the active wallet.
-// Dart: WalletReaderProvider.getL1Mnemonic (L594-596)
+// GetWalletByID returns a wallet by ID, or the active wallet if id is empty.
+func (s *Service) GetWalletByID(id string) *WalletData {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if id == "" {
+		return s.activeWallet()
+	}
+	for i := range s.wallets {
+		if s.wallets[i].ID == id {
+			return &s.wallets[i]
+		}
+	}
+	return nil
+}
+
+// GetL1Mnemonic returns the L1 mnemonic from the enforcer wallet.
 func (s *Service) GetL1Mnemonic() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	w := s.activeWallet()
+	w := s.enforcerWallet()
 	if w == nil {
 		return ""
 	}
 	return w.L1.Mnemonic
 }
 
-// GetSidechainMnemonic returns the sidechain mnemonic from the active wallet.
-// Dart: WalletReaderProvider.getSidechainMnemonic (L599-605)
+// GetSidechainMnemonic returns the sidechain mnemonic from the enforcer wallet.
 func (s *Service) GetSidechainMnemonic(slot int) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	w := s.activeWallet()
+	w := s.enforcerWallet()
 	if w == nil {
 		return ""
 	}
@@ -208,9 +230,10 @@ func (s *Service) GetOrDeriveSidechainStarter(slot int, slotName string) (string
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	w := s.activeWallet()
+	// Sidechain starters are derived from the enforcer wallet's seed
+	w := s.enforcerWallet()
 	if w == nil {
-		return "", fmt.Errorf("no active wallet")
+		return "", fmt.Errorf("no enforcer wallet")
 	}
 
 	// Check if sidechain wallet already exists
@@ -432,10 +455,23 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 		Int("slot_count", len(slots)).
 		Msg("generating wallet")
 
-	// Determine wallet type: first wallet is enforcer, subsequent are bitcoinCore
+	// Determine wallet type: first wallet is enforcer, subsequent are bitcoinCore.
+	// Constraint: AT MOST 1 enforcer wallet. All extra wallets go through Bitcoin Core.
 	walletType := "bitcoinCore"
 	if len(s.wallets) == 0 {
 		walletType = "enforcer"
+	} else {
+		// Verify there's already an enforcer — if not, this becomes the enforcer
+		hasEnforcer := false
+		for _, w := range s.wallets {
+			if w.WalletType == "enforcer" {
+				hasEnforcer = true
+				break
+			}
+		}
+		if !hasEnforcer {
+			walletType = "enforcer"
+		}
 	}
 	s.log.Debug().Str("wallet_type", walletType).Int("existing_wallets", len(s.wallets)).Msg("determined wallet type")
 
@@ -471,8 +507,26 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 		Str("file", s.walletFilePath()).
 		Msg("wallet generated and saved successfully")
 
+	// For bitcoinCore wallets, create the wallet in Bitcoin Core via RPC
+	if walletType == "bitcoinCore" && s.OnCreateCoreWallet != nil {
+		if err := s.OnCreateCoreWallet(name, wallet.Master.SeedHex); err != nil {
+			// Roll back: remove the wallet we just saved since Core creation failed
+			s.wallets = s.wallets[:len(s.wallets)-1]
+			if s.activeWalletID == wallet.ID {
+				if len(s.wallets) > 0 {
+					s.activeWalletID = s.wallets[len(s.wallets)-1].ID
+				} else {
+					s.activeWalletID = ""
+				}
+			}
+			_ = s.saveWalletFile()
+			return nil, fmt.Errorf("create wallet in Bitcoin Core: %w", err)
+		}
+		s.log.Info().Str("name", name).Msg("created wallet in Bitcoin Core")
+	}
+
 	// Dart L88-89: restart enforcer to pick up the new wallet
-	if s.OnWalletGenerated != nil {
+	if walletType == "enforcer" && s.OnWalletGenerated != nil {
 		go s.OnWalletGenerated()
 	}
 
@@ -962,22 +1016,23 @@ func (s *Service) WriteSidechainStarter(slot int) (string, error) {
 
 	s.log.Info().Int("slot", slot).Msg("writing sidechain starter file")
 
-	active := s.activeWallet()
-	if active == nil {
-		s.log.Warn().Str("active_id", s.activeWalletID).Int("wallet_count", len(s.wallets)).Msg("sidechain starter: no active wallet")
-		return "", fmt.Errorf("no active wallet")
+	// Use the enforcer wallet for sidechain starters (they're derived from the enforcer seed)
+	enforcer := s.enforcerWallet()
+	if enforcer == nil {
+		s.log.Warn().Int("wallet_count", len(s.wallets)).Msg("sidechain starter: no enforcer wallet")
+		return "", fmt.Errorf("no enforcer wallet")
 	}
 
 	var mnemonic string
-	for _, sc := range active.Sidechains {
+	for _, sc := range enforcer.Sidechains {
 		if sc.Slot == slot {
 			mnemonic = sc.Mnemonic
 			break
 		}
 	}
 	if mnemonic == "" {
-		s.log.Warn().Int("slot", slot).Int("sidechain_count", len(active.Sidechains)).Msg("sidechain starter: slot not found in active wallet")
-		return "", fmt.Errorf("sidechain slot %d not found in active wallet", slot)
+		s.log.Warn().Int("slot", slot).Int("sidechain_count", len(enforcer.Sidechains)).Msg("sidechain starter: slot not found in enforcer wallet")
+		return "", fmt.Errorf("sidechain slot %d not found in enforcer wallet", slot)
 	}
 
 	dir := s.starterDir()
