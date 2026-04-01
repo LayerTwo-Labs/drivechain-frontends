@@ -1,37 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DIRS=(bitwindow bitassets bitnames sail_ui thunder zside photon truthcoin coinshift)
 
-# first run fix --apply (and any server lints)
-for dir in bitwindow bitassets bitnames sail_ui thunder zside photon truthcoin coinshift; do
-  if [ -d "$dir" ]; then
-    # Run all three Dart commands in parallel for this dir
-    (cd "$dir" && dart fix --apply) &
+has_cmd() { command -v "$1" &>/dev/null; }
 
-    # If a server directory exists, run golangci-lint inside it
-    if [ -d "$dir/server" ]; then
-      (cd "$dir/server" && golangci-lint run) &
+# Phase 1: dart fix --apply (parallel per dir)
+if has_cmd dart; then
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      (cd "$dir" && dart fix --apply) &
     fi
-  fi
-done
+  done
+  wait
+else
+  echo "warning: dart not found, skipping dart fix" >&2
+fi
 
-wait
+# Phase 2: golangci-lint on Go server dirs (sequential to avoid parallel runner conflicts)
+if has_cmd golangci-lint; then
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir/server" ]; then
+      (cd "$dir/server" && golangci-lint run)
+    fi
+  done
+else
+  echo "warning: golangci-lint not found, skipping Go lints" >&2
+fi
 
-# then run analyze
-for dir in bitwindow bitassets bitnames sail_ui thunder zside photon truthcoin coinshift; do
-  if [ -d "$dir" ]; then
-    # Run all three Dart commands in parallel for this dir
-    (cd "$dir" && dart analyze) &
-  fi
-done
+# Phase 3: dart analyze (parallel per dir)
+if has_cmd dart; then
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      (cd "$dir" && dart analyze) &
+    fi
+  done
+  wait
+fi
 
-wait
-
-# then run format
-for dir in bitwindow bitassets bitnames sail_ui thunder zside photon truthcoin coinshift; do
-  if [ -d "$dir" ]; then
-    (cd "$dir" && just format) &
-  fi
-done
-
-wait
+# Phase 4: dart format via per-project justfile (parallel per dir)
+if has_cmd dart; then
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      (cd "$dir" && just format) &
+    fi
+  done
+  wait
+fi
