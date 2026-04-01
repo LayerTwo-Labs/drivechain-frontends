@@ -60,6 +60,7 @@ func Commands() []*cli.Command {
 		versionCommand,
 		updateCommand,
 		whichCommand,
+		walletCommand,
 	}
 }
 
