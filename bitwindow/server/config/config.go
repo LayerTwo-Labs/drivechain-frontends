@@ -30,7 +30,8 @@ type Config struct {
 	BitcoinCoreRpcPassword string  `long:"bitcoincore.rpcpassword" default:"password"`
 	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network - derived from URL if not set" choice:"mainnet" choice:"forknet" choice:"regtest" choice:"signet" choice:"testnet"`
 
-	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
+	EnforcerHost     string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
+	OrchestratorAddr string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon" default:"http://localhost:30400"`
 
 	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:30301"`
 	Datadir string `long:"datadir" description:"Path to the data directory"`

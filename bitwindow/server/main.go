@@ -137,6 +137,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		ChainParams:       chainParams,
 		WalletDir:         walletDir,
 		DataDir:           conf.Datadir,
+		OrchestratorAddr:  conf.OrchestratorAddr,
 	}
 
 	// Use this to obtain a random unused port for the core proxy.
