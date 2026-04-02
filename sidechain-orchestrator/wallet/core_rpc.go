@@ -177,16 +177,32 @@ func (c *CoreRPCClient) GetBalance(ctx context.Context, walletName string) (floa
 }
 
 // GetUnconfirmedBalance returns the unconfirmed balance.
+// Falls back to getbalances RPC if the deprecated getunconfirmedbalance is
+// not available (removed in Bitcoin Core v30+).
 func (c *CoreRPCClient) GetUnconfirmedBalance(ctx context.Context, walletName string) (float64, error) {
 	result, err := c.call(ctx, walletName, "getunconfirmedbalance")
+	if err == nil {
+		var balance float64
+		if err := json.Unmarshal(result, &balance); err != nil {
+			return 0, fmt.Errorf("decode getunconfirmedbalance: %w", err)
+		}
+		return balance, nil
+	}
+
+	// Fallback: use getbalances (available since Core v0.19).
+	result, err = c.call(ctx, walletName, "getbalances")
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getbalances fallback: %w", err)
 	}
-	var balance float64
-	if err := json.Unmarshal(result, &balance); err != nil {
-		return 0, fmt.Errorf("decode getunconfirmedbalance: %w", err)
+	var balances struct {
+		Mine struct {
+			UntrustedPending float64 `json:"untrusted_pending"`
+		} `json:"mine"`
 	}
-	return balance, nil
+	if err := json.Unmarshal(result, &balances); err != nil {
+		return 0, fmt.Errorf("decode getbalances: %w", err)
+	}
+	return balances.Mine.UntrustedPending, nil
 }
 
 // GetNewAddress generates a new address.
@@ -341,6 +357,43 @@ func (c *CoreRPCClient) BumpFee(ctx context.Context, walletName, txid string, ne
 		return "", fmt.Errorf("decode bumpfee: %w", err)
 	}
 	return resp.TxID, nil
+}
+
+// GetBlockchainInfo returns blockchain info (used for health checks and sync).
+func (c *CoreRPCClient) GetBlockchainInfo(ctx context.Context) (json.RawMessage, error) {
+	return c.call(ctx, "", "getblockchaininfo")
+}
+
+// GenerateToAddress mines blocks to a given address (regtest only).
+func (c *CoreRPCClient) GenerateToAddress(ctx context.Context, nblocks int, address string) ([]string, error) {
+	result, err := c.call(ctx, "", "generatetoaddress", nblocks, address)
+	if err != nil {
+		return nil, err
+	}
+	var hashes []string
+	if err := json.Unmarshal(result, &hashes); err != nil {
+		return nil, fmt.Errorf("decode generatetoaddress: %w", err)
+	}
+	return hashes, nil
+}
+
+// AddNode adds a peer for p2p connection.
+func (c *CoreRPCClient) AddNode(ctx context.Context, addr, command string) error {
+	_, err := c.call(ctx, "", "addnode", addr, command)
+	return err
+}
+
+// GetBlockCount returns the current block height.
+func (c *CoreRPCClient) GetBlockCount(ctx context.Context) (int, error) {
+	result, err := c.call(ctx, "", "getblockcount")
+	if err != nil {
+		return 0, err
+	}
+	var count int
+	if err := json.Unmarshal(result, &count); err != nil {
+		return 0, fmt.Errorf("decode getblockcount: %w", err)
+	}
+	return count, nil
 }
 
 // DeriveAddresses derives addresses from a descriptor.
