@@ -57,9 +57,9 @@ const (
 	// WalletManagerServiceListWalletsProcedure is the fully-qualified name of the
 	// WalletManagerService's ListWallets RPC.
 	WalletManagerServiceListWalletsProcedure = "/walletmanager.v1.WalletManagerService/ListWallets"
-	// WalletManagerServiceSetActiveWalletProcedure is the fully-qualified name of the
-	// WalletManagerService's SetActiveWallet RPC.
-	WalletManagerServiceSetActiveWalletProcedure = "/walletmanager.v1.WalletManagerService/SetActiveWallet"
+	// WalletManagerServiceSwitchWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's SwitchWallet RPC.
+	WalletManagerServiceSwitchWalletProcedure = "/walletmanager.v1.WalletManagerService/SwitchWallet"
 	// WalletManagerServiceUpdateWalletMetadataProcedure is the fully-qualified name of the
 	// WalletManagerService's UpdateWalletMetadata RPC.
 	WalletManagerServiceUpdateWalletMetadataProcedure = "/walletmanager.v1.WalletManagerService/UpdateWalletMetadata"
@@ -72,13 +72,47 @@ const (
 	// WalletManagerServiceCreateWatchOnlyWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateWatchOnlyWallet RPC.
 	WalletManagerServiceCreateWatchOnlyWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateWatchOnlyWallet"
-	// WalletManagerServiceGetMnemonicProcedure is the fully-qualified name of the
-	// WalletManagerService's GetMnemonic RPC.
-	WalletManagerServiceGetMnemonicProcedure = "/walletmanager.v1.WalletManagerService/GetMnemonic"
+	// WalletManagerServiceCreateBitcoinCoreWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's CreateBitcoinCoreWallet RPC.
+	WalletManagerServiceCreateBitcoinCoreWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateBitcoinCoreWallet"
+	// WalletManagerServiceEnsureCoreWalletsProcedure is the fully-qualified name of the
+	// WalletManagerService's EnsureCoreWallets RPC.
+	WalletManagerServiceEnsureCoreWalletsProcedure = "/walletmanager.v1.WalletManagerService/EnsureCoreWallets"
+	// WalletManagerServiceGetBalanceProcedure is the fully-qualified name of the WalletManagerService's
+	// GetBalance RPC.
+	WalletManagerServiceGetBalanceProcedure = "/walletmanager.v1.WalletManagerService/GetBalance"
+	// WalletManagerServiceGetNewAddressProcedure is the fully-qualified name of the
+	// WalletManagerService's GetNewAddress RPC.
+	WalletManagerServiceGetNewAddressProcedure = "/walletmanager.v1.WalletManagerService/GetNewAddress"
+	// WalletManagerServiceSendTransactionProcedure is the fully-qualified name of the
+	// WalletManagerService's SendTransaction RPC.
+	WalletManagerServiceSendTransactionProcedure = "/walletmanager.v1.WalletManagerService/SendTransaction"
+	// WalletManagerServiceListTransactionsProcedure is the fully-qualified name of the
+	// WalletManagerService's ListTransactions RPC.
+	WalletManagerServiceListTransactionsProcedure = "/walletmanager.v1.WalletManagerService/ListTransactions"
+	// WalletManagerServiceListUnspentProcedure is the fully-qualified name of the
+	// WalletManagerService's ListUnspent RPC.
+	WalletManagerServiceListUnspentProcedure = "/walletmanager.v1.WalletManagerService/ListUnspent"
+	// WalletManagerServiceListReceiveAddressesProcedure is the fully-qualified name of the
+	// WalletManagerService's ListReceiveAddresses RPC.
+	WalletManagerServiceListReceiveAddressesProcedure = "/walletmanager.v1.WalletManagerService/ListReceiveAddresses"
+	// WalletManagerServiceGetTransactionDetailsProcedure is the fully-qualified name of the
+	// WalletManagerService's GetTransactionDetails RPC.
+	WalletManagerServiceGetTransactionDetailsProcedure = "/walletmanager.v1.WalletManagerService/GetTransactionDetails"
+	// WalletManagerServiceBumpFeeProcedure is the fully-qualified name of the WalletManagerService's
+	// BumpFee RPC.
+	WalletManagerServiceBumpFeeProcedure = "/walletmanager.v1.WalletManagerService/BumpFee"
+	// WalletManagerServiceDeriveAddressesProcedure is the fully-qualified name of the
+	// WalletManagerService's DeriveAddresses RPC.
+	WalletManagerServiceDeriveAddressesProcedure = "/walletmanager.v1.WalletManagerService/DeriveAddresses"
+	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
+	// WalletManagerService's GetWalletSeed RPC.
+	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
 )
 
 // WalletManagerServiceClient is a client for the walletmanager.v1.WalletManagerService service.
 type WalletManagerServiceClient interface {
+	// Wallet lifecycle
 	GetWalletStatus(context.Context, *connect.Request[v1.GetWalletStatusRequest]) (*connect.Response[v1.GetWalletStatusResponse], error)
 	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
@@ -87,12 +121,26 @@ type WalletManagerServiceClient interface {
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
 	RemoveEncryption(context.Context, *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error)
 	ListWallets(context.Context, *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error)
-	SetActiveWallet(context.Context, *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error)
+	SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error)
 	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
 	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
 	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
-	GetMnemonic(context.Context, *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error)
+	// Core wallet management
+	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
+	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
+	// Bitcoin operations (proxied through Core RPC)
+	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
+	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
+	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
+	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
+	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
+	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
+	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
+	// Seed access for cheque engine
+	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 }
 
 // NewWalletManagerServiceClient constructs a client for the walletmanager.v1.WalletManagerService
@@ -154,10 +202,10 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("ListWallets")),
 			connect.WithClientOptions(opts...),
 		),
-		setActiveWallet: connect.NewClient[v1.SetActiveWalletRequest, v1.SetActiveWalletResponse](
+		switchWallet: connect.NewClient[v1.SwitchWalletRequest, v1.SwitchWalletResponse](
 			httpClient,
-			baseURL+WalletManagerServiceSetActiveWalletProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SetActiveWallet")),
+			baseURL+WalletManagerServiceSwitchWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SwitchWallet")),
 			connect.WithClientOptions(opts...),
 		),
 		updateWalletMetadata: connect.NewClient[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse](
@@ -184,10 +232,76 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
 			connect.WithClientOptions(opts...),
 		),
-		getMnemonic: connect.NewClient[v1.GetMnemonicRequest, v1.GetMnemonicResponse](
+		createBitcoinCoreWallet: connect.NewClient[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse](
 			httpClient,
-			baseURL+WalletManagerServiceGetMnemonicProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetMnemonic")),
+			baseURL+WalletManagerServiceCreateBitcoinCoreWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CreateBitcoinCoreWallet")),
+			connect.WithClientOptions(opts...),
+		),
+		ensureCoreWallets: connect.NewClient[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse](
+			httpClient,
+			baseURL+WalletManagerServiceEnsureCoreWalletsProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("EnsureCoreWallets")),
+			connect.WithClientOptions(opts...),
+		),
+		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetBalanceProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetBalance")),
+			connect.WithClientOptions(opts...),
+		),
+		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetNewAddressProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetNewAddress")),
+			connect.WithClientOptions(opts...),
+		),
+		sendTransaction: connect.NewClient[v1.SendTransactionRequest, v1.SendTransactionResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSendTransactionProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
+			connect.WithClientOptions(opts...),
+		),
+		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
+			httpClient,
+			baseURL+WalletManagerServiceListTransactionsProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ListTransactions")),
+			connect.WithClientOptions(opts...),
+		),
+		listUnspent: connect.NewClient[v1.ListUnspentRequest, v1.ListUnspentResponse](
+			httpClient,
+			baseURL+WalletManagerServiceListUnspentProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ListUnspent")),
+			connect.WithClientOptions(opts...),
+		),
+		listReceiveAddresses: connect.NewClient[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse](
+			httpClient,
+			baseURL+WalletManagerServiceListReceiveAddressesProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ListReceiveAddresses")),
+			connect.WithClientOptions(opts...),
+		),
+		getTransactionDetails: connect.NewClient[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetTransactionDetailsProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetTransactionDetails")),
+			connect.WithClientOptions(opts...),
+		),
+		bumpFee: connect.NewClient[v1.BumpFeeRequest, v1.BumpFeeResponse](
+			httpClient,
+			baseURL+WalletManagerServiceBumpFeeProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
+			connect.WithClientOptions(opts...),
+		),
+		deriveAddresses: connect.NewClient[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse](
+			httpClient,
+			baseURL+WalletManagerServiceDeriveAddressesProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("DeriveAddresses")),
+			connect.WithClientOptions(opts...),
+		),
+		getWalletSeed: connect.NewClient[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetWalletSeedProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -195,20 +309,31 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 
 // walletManagerServiceClient implements WalletManagerServiceClient.
 type walletManagerServiceClient struct {
-	getWalletStatus       *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
-	generateWallet        *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
-	unlockWallet          *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
-	lockWallet            *connect.Client[v1.LockWalletRequest, v1.LockWalletResponse]
-	encryptWallet         *connect.Client[v1.EncryptWalletRequest, v1.EncryptWalletResponse]
-	changePassword        *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
-	removeEncryption      *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
-	listWallets           *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
-	setActiveWallet       *connect.Client[v1.SetActiveWalletRequest, v1.SetActiveWalletResponse]
-	updateWalletMetadata  *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
-	deleteWallet          *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
-	deleteAllWallets      *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
-	createWatchOnlyWallet *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
-	getMnemonic           *connect.Client[v1.GetMnemonicRequest, v1.GetMnemonicResponse]
+	getWalletStatus         *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
+	generateWallet          *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
+	unlockWallet            *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
+	lockWallet              *connect.Client[v1.LockWalletRequest, v1.LockWalletResponse]
+	encryptWallet           *connect.Client[v1.EncryptWalletRequest, v1.EncryptWalletResponse]
+	changePassword          *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	removeEncryption        *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
+	listWallets             *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
+	switchWallet            *connect.Client[v1.SwitchWalletRequest, v1.SwitchWalletResponse]
+	updateWalletMetadata    *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
+	deleteWallet            *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
+	deleteAllWallets        *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
+	createWatchOnlyWallet   *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
+	createBitcoinCoreWallet *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
+	ensureCoreWallets       *connect.Client[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse]
+	getBalance              *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
+	getNewAddress           *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
+	sendTransaction         *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	listTransactions        *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
+	listUnspent             *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
+	listReceiveAddresses    *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
+	getTransactionDetails   *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
+	bumpFee                 *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
+	deriveAddresses         *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
+	getWalletSeed           *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
 }
 
 // GetWalletStatus calls walletmanager.v1.WalletManagerService.GetWalletStatus.
@@ -251,9 +376,9 @@ func (c *walletManagerServiceClient) ListWallets(ctx context.Context, req *conne
 	return c.listWallets.CallUnary(ctx, req)
 }
 
-// SetActiveWallet calls walletmanager.v1.WalletManagerService.SetActiveWallet.
-func (c *walletManagerServiceClient) SetActiveWallet(ctx context.Context, req *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error) {
-	return c.setActiveWallet.CallUnary(ctx, req)
+// SwitchWallet calls walletmanager.v1.WalletManagerService.SwitchWallet.
+func (c *walletManagerServiceClient) SwitchWallet(ctx context.Context, req *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error) {
+	return c.switchWallet.CallUnary(ctx, req)
 }
 
 // UpdateWalletMetadata calls walletmanager.v1.WalletManagerService.UpdateWalletMetadata.
@@ -276,14 +401,70 @@ func (c *walletManagerServiceClient) CreateWatchOnlyWallet(ctx context.Context, 
 	return c.createWatchOnlyWallet.CallUnary(ctx, req)
 }
 
-// GetMnemonic calls walletmanager.v1.WalletManagerService.GetMnemonic.
-func (c *walletManagerServiceClient) GetMnemonic(ctx context.Context, req *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error) {
-	return c.getMnemonic.CallUnary(ctx, req)
+// CreateBitcoinCoreWallet calls walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet.
+func (c *walletManagerServiceClient) CreateBitcoinCoreWallet(ctx context.Context, req *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
+	return c.createBitcoinCoreWallet.CallUnary(ctx, req)
+}
+
+// EnsureCoreWallets calls walletmanager.v1.WalletManagerService.EnsureCoreWallets.
+func (c *walletManagerServiceClient) EnsureCoreWallets(ctx context.Context, req *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error) {
+	return c.ensureCoreWallets.CallUnary(ctx, req)
+}
+
+// GetBalance calls walletmanager.v1.WalletManagerService.GetBalance.
+func (c *walletManagerServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
+	return c.getBalance.CallUnary(ctx, req)
+}
+
+// GetNewAddress calls walletmanager.v1.WalletManagerService.GetNewAddress.
+func (c *walletManagerServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
+	return c.getNewAddress.CallUnary(ctx, req)
+}
+
+// SendTransaction calls walletmanager.v1.WalletManagerService.SendTransaction.
+func (c *walletManagerServiceClient) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
+	return c.sendTransaction.CallUnary(ctx, req)
+}
+
+// ListTransactions calls walletmanager.v1.WalletManagerService.ListTransactions.
+func (c *walletManagerServiceClient) ListTransactions(ctx context.Context, req *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
+	return c.listTransactions.CallUnary(ctx, req)
+}
+
+// ListUnspent calls walletmanager.v1.WalletManagerService.ListUnspent.
+func (c *walletManagerServiceClient) ListUnspent(ctx context.Context, req *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error) {
+	return c.listUnspent.CallUnary(ctx, req)
+}
+
+// ListReceiveAddresses calls walletmanager.v1.WalletManagerService.ListReceiveAddresses.
+func (c *walletManagerServiceClient) ListReceiveAddresses(ctx context.Context, req *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
+	return c.listReceiveAddresses.CallUnary(ctx, req)
+}
+
+// GetTransactionDetails calls walletmanager.v1.WalletManagerService.GetTransactionDetails.
+func (c *walletManagerServiceClient) GetTransactionDetails(ctx context.Context, req *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error) {
+	return c.getTransactionDetails.CallUnary(ctx, req)
+}
+
+// BumpFee calls walletmanager.v1.WalletManagerService.BumpFee.
+func (c *walletManagerServiceClient) BumpFee(ctx context.Context, req *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
+	return c.bumpFee.CallUnary(ctx, req)
+}
+
+// DeriveAddresses calls walletmanager.v1.WalletManagerService.DeriveAddresses.
+func (c *walletManagerServiceClient) DeriveAddresses(ctx context.Context, req *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error) {
+	return c.deriveAddresses.CallUnary(ctx, req)
+}
+
+// GetWalletSeed calls walletmanager.v1.WalletManagerService.GetWalletSeed.
+func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
+	return c.getWalletSeed.CallUnary(ctx, req)
 }
 
 // WalletManagerServiceHandler is an implementation of the walletmanager.v1.WalletManagerService
 // service.
 type WalletManagerServiceHandler interface {
+	// Wallet lifecycle
 	GetWalletStatus(context.Context, *connect.Request[v1.GetWalletStatusRequest]) (*connect.Response[v1.GetWalletStatusResponse], error)
 	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
@@ -292,12 +473,26 @@ type WalletManagerServiceHandler interface {
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
 	RemoveEncryption(context.Context, *connect.Request[v1.RemoveEncryptionRequest]) (*connect.Response[v1.RemoveEncryptionResponse], error)
 	ListWallets(context.Context, *connect.Request[v1.ListWalletsRequest]) (*connect.Response[v1.ListWalletsResponse], error)
-	SetActiveWallet(context.Context, *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error)
+	SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error)
 	UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error)
 	DeleteWallet(context.Context, *connect.Request[v1.DeleteWalletRequest]) (*connect.Response[v1.DeleteWalletResponse], error)
 	DeleteAllWallets(context.Context, *connect.Request[v1.DeleteAllWalletsRequest]) (*connect.Response[v1.DeleteAllWalletsResponse], error)
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
-	GetMnemonic(context.Context, *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error)
+	// Core wallet management
+	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
+	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
+	// Bitcoin operations (proxied through Core RPC)
+	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
+	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
+	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
+	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
+	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
+	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
+	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
+	// Seed access for cheque engine
+	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 }
 
 // NewWalletManagerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -355,10 +550,10 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("ListWallets")),
 		connect.WithHandlerOptions(opts...),
 	)
-	walletManagerServiceSetActiveWalletHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSetActiveWalletProcedure,
-		svc.SetActiveWallet,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SetActiveWallet")),
+	walletManagerServiceSwitchWalletHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSwitchWalletProcedure,
+		svc.SwitchWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SwitchWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceUpdateWalletMetadataHandler := connect.NewUnaryHandler(
@@ -385,10 +580,76 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
-	walletManagerServiceGetMnemonicHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetMnemonicProcedure,
-		svc.GetMnemonic,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetMnemonic")),
+	walletManagerServiceCreateBitcoinCoreWalletHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCreateBitcoinCoreWalletProcedure,
+		svc.CreateBitcoinCoreWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CreateBitcoinCoreWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceEnsureCoreWalletsHandler := connect.NewUnaryHandler(
+		WalletManagerServiceEnsureCoreWalletsProcedure,
+		svc.EnsureCoreWallets,
+		connect.WithSchema(walletManagerServiceMethods.ByName("EnsureCoreWallets")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetBalanceHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetBalanceProcedure,
+		svc.GetBalance,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetBalance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetNewAddressHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetNewAddressProcedure,
+		svc.GetNewAddress,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetNewAddress")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSendTransactionHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSendTransactionProcedure,
+		svc.SendTransaction,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceListTransactionsHandler := connect.NewUnaryHandler(
+		WalletManagerServiceListTransactionsProcedure,
+		svc.ListTransactions,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ListTransactions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceListUnspentHandler := connect.NewUnaryHandler(
+		WalletManagerServiceListUnspentProcedure,
+		svc.ListUnspent,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ListUnspent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceListReceiveAddressesHandler := connect.NewUnaryHandler(
+		WalletManagerServiceListReceiveAddressesProcedure,
+		svc.ListReceiveAddresses,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ListReceiveAddresses")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetTransactionDetailsHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetTransactionDetailsProcedure,
+		svc.GetTransactionDetails,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetTransactionDetails")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceBumpFeeHandler := connect.NewUnaryHandler(
+		WalletManagerServiceBumpFeeProcedure,
+		svc.BumpFee,
+		connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceDeriveAddressesHandler := connect.NewUnaryHandler(
+		WalletManagerServiceDeriveAddressesProcedure,
+		svc.DeriveAddresses,
+		connect.WithSchema(walletManagerServiceMethods.ByName("DeriveAddresses")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetWalletSeedHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetWalletSeedProcedure,
+		svc.GetWalletSeed,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/walletmanager.v1.WalletManagerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -409,8 +670,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceRemoveEncryptionHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListWalletsProcedure:
 			walletManagerServiceListWalletsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSetActiveWalletProcedure:
-			walletManagerServiceSetActiveWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSwitchWalletProcedure:
+			walletManagerServiceSwitchWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceUpdateWalletMetadataProcedure:
 			walletManagerServiceUpdateWalletMetadataHandler.ServeHTTP(w, r)
 		case WalletManagerServiceDeleteWalletProcedure:
@@ -419,8 +680,30 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceDeleteAllWalletsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateWatchOnlyWalletProcedure:
 			walletManagerServiceCreateWatchOnlyWalletHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetMnemonicProcedure:
-			walletManagerServiceGetMnemonicHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCreateBitcoinCoreWalletProcedure:
+			walletManagerServiceCreateBitcoinCoreWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceEnsureCoreWalletsProcedure:
+			walletManagerServiceEnsureCoreWalletsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetBalanceProcedure:
+			walletManagerServiceGetBalanceHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetNewAddressProcedure:
+			walletManagerServiceGetNewAddressHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSendTransactionProcedure:
+			walletManagerServiceSendTransactionHandler.ServeHTTP(w, r)
+		case WalletManagerServiceListTransactionsProcedure:
+			walletManagerServiceListTransactionsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceListUnspentProcedure:
+			walletManagerServiceListUnspentHandler.ServeHTTP(w, r)
+		case WalletManagerServiceListReceiveAddressesProcedure:
+			walletManagerServiceListReceiveAddressesHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetTransactionDetailsProcedure:
+			walletManagerServiceGetTransactionDetailsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceBumpFeeProcedure:
+			walletManagerServiceBumpFeeHandler.ServeHTTP(w, r)
+		case WalletManagerServiceDeriveAddressesProcedure:
+			walletManagerServiceDeriveAddressesHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetWalletSeedProcedure:
+			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -462,8 +745,8 @@ func (UnimplementedWalletManagerServiceHandler) ListWallets(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListWallets is not implemented"))
 }
 
-func (UnimplementedWalletManagerServiceHandler) SetActiveWallet(context.Context, *connect.Request[v1.SetActiveWalletRequest]) (*connect.Response[v1.SetActiveWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetActiveWallet is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) SwitchWallet(context.Context, *connect.Request[v1.SwitchWalletRequest]) (*connect.Response[v1.SwitchWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SwitchWallet is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) UpdateWalletMetadata(context.Context, *connect.Request[v1.UpdateWalletMetadataRequest]) (*connect.Response[v1.UpdateWalletMetadataResponse], error) {
@@ -482,6 +765,50 @@ func (UnimplementedWalletManagerServiceHandler) CreateWatchOnlyWallet(context.Co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet is not implemented"))
 }
 
-func (UnimplementedWalletManagerServiceHandler) GetMnemonic(context.Context, *connect.Request[v1.GetMnemonicRequest]) (*connect.Response[v1.GetMnemonicResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetMnemonic is not implemented"))
+func (UnimplementedWalletManagerServiceHandler) CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EnsureCoreWallets is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetBalance is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetNewAddress is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SendTransaction is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListTransactions is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListUnspent is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListReceiveAddresses is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetTransactionDetails is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BumpFee is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeriveAddresses is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetWalletSeed is not implemented"))
 }

@@ -3,6 +3,7 @@ syntax = "proto3";
 package walletmanager.v1;
 
 service WalletManagerService {
+  // Wallet lifecycle
   rpc GetWalletStatus(GetWalletStatusRequest) returns (GetWalletStatusResponse);
   rpc GenerateWallet(GenerateWalletRequest) returns (GenerateWalletResponse);
   rpc UnlockWallet(UnlockWalletRequest) returns (UnlockWalletResponse);
@@ -11,15 +12,34 @@ service WalletManagerService {
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   rpc RemoveEncryption(RemoveEncryptionRequest) returns (RemoveEncryptionResponse);
   rpc ListWallets(ListWalletsRequest) returns (ListWalletsResponse);
-  rpc SetActiveWallet(SetActiveWalletRequest) returns (SetActiveWalletResponse);
+  rpc SwitchWallet(SwitchWalletRequest) returns (SwitchWalletResponse);
   rpc UpdateWalletMetadata(UpdateWalletMetadataRequest) returns (UpdateWalletMetadataResponse);
   rpc DeleteWallet(DeleteWalletRequest) returns (DeleteWalletResponse);
   rpc DeleteAllWallets(DeleteAllWalletsRequest) returns (DeleteAllWalletsResponse);
   rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
-  rpc GetMnemonic(GetMnemonicRequest) returns (GetMnemonicResponse);
+
+  // Core wallet management
+  rpc CreateBitcoinCoreWallet(CreateBitcoinCoreWalletRequest) returns (CreateBitcoinCoreWalletResponse);
+  rpc EnsureCoreWallets(EnsureCoreWalletsRequest) returns (EnsureCoreWalletsResponse);
+
+  // Bitcoin operations (proxied through Core RPC)
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+  rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
+  rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  rpc ListUnspent(ListUnspentRequest) returns (ListUnspentResponse);
+  rpc ListReceiveAddresses(ListReceiveAddressesRequest) returns (ListReceiveAddressesResponse);
+  rpc GetTransactionDetails(GetTransactionDetailsRequest) returns (GetTransactionDetailsResponse);
+  rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
+  rpc DeriveAddresses(DeriveAddressesRequest) returns (DeriveAddressesResponse);
+
+  // Seed access for cheque engine
+  rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
 }
 
+// ============================================================================
 // Status
+// ============================================================================
 
 message GetWalletStatusRequest {}
 
@@ -28,9 +48,12 @@ message GetWalletStatusResponse {
   bool encrypted = 2;
   bool unlocked = 3;
   string active_wallet_id = 4;
+  string active_wallet_name = 5;
 }
 
+// ============================================================================
 // Generate
+// ============================================================================
 
 message GenerateWalletRequest {
   string name = 1;
@@ -43,7 +66,9 @@ message GenerateWalletResponse {
   string mnemonic = 2; // master mnemonic for display to user
 }
 
+// ============================================================================
 // Unlock/Lock
+// ============================================================================
 
 message UnlockWalletRequest {
   string password = 1;
@@ -55,15 +80,15 @@ message LockWalletRequest {}
 
 message LockWalletResponse {}
 
+// ============================================================================
 // Encrypt
+// ============================================================================
 
 message EncryptWalletRequest {
   string password = 1;
 }
 
 message EncryptWalletResponse {}
-
-// Change Password
 
 message ChangePasswordRequest {
   string old_password = 1;
@@ -72,15 +97,15 @@ message ChangePasswordRequest {
 
 message ChangePasswordResponse {}
 
-// Remove Encryption
-
 message RemoveEncryptionRequest {
   string password = 1;
 }
 
 message RemoveEncryptionResponse {}
 
-// List Wallets
+// ============================================================================
+// List/Switch/Update/Delete Wallets
+// ============================================================================
 
 message WalletMetadata {
   string id = 1;
@@ -94,17 +119,14 @@ message ListWalletsRequest {}
 
 message ListWalletsResponse {
   repeated WalletMetadata wallets = 1;
+  string active_wallet_id = 2;
 }
 
-// Set Active Wallet
-
-message SetActiveWalletRequest {
+message SwitchWalletRequest {
   string wallet_id = 1;
 }
 
-message SetActiveWalletResponse {}
-
-// Update Wallet Metadata
+message SwitchWalletResponse {}
 
 message UpdateWalletMetadataRequest {
   string wallet_id = 1;
@@ -114,21 +136,19 @@ message UpdateWalletMetadataRequest {
 
 message UpdateWalletMetadataResponse {}
 
-// Delete Wallet
-
 message DeleteWalletRequest {
   string wallet_id = 1;
 }
 
 message DeleteWalletResponse {}
 
-// Delete All Wallets
-
 message DeleteAllWalletsRequest {}
 
 message DeleteAllWalletsResponse {}
 
-// Create Watch-Only Wallet
+// ============================================================================
+// Watch-Only Wallet
+// ============================================================================
 
 message CreateWatchOnlyWalletRequest {
   string name = 1;
@@ -140,20 +160,159 @@ message CreateWatchOnlyWalletResponse {
   string wallet_id = 1;
 }
 
-// Get Mnemonic
+// ============================================================================
+// Core Wallet Management
+// ============================================================================
 
-message GetMnemonicRequest {
+message CreateBitcoinCoreWalletRequest {
+  string wallet_id = 1;  // wallet ID from wallet.json
+}
+
+message CreateBitcoinCoreWalletResponse {
+  string core_wallet_name = 1;  // Bitcoin Core wallet name
+}
+
+message EnsureCoreWalletsRequest {}
+
+message EnsureCoreWalletsResponse {
+  int32 synced_count = 1;
+}
+
+// ============================================================================
+// Bitcoin Operations
+// ============================================================================
+
+message GetBalanceRequest {
+  string wallet_id = 1;  // empty = active wallet
+}
+
+message GetBalanceResponse {
+  double confirmed_sats = 1;
+  double unconfirmed_sats = 2;
+}
+
+message GetNewAddressRequest {
+  string wallet_id = 1;  // empty = active wallet
+}
+
+message GetNewAddressResponse {
+  string address = 1;
+  int32 index = 2;
+}
+
+message SendTransactionRequest {
+  string wallet_id = 1;  // empty = active wallet
+  map<string, int64> destinations = 2;  // address -> satoshis
+  int64 fee_rate_sat_per_vbyte = 3;     // 0 = use default
+  bool subtract_fee_from_amount = 4;
+  // For enforcer wallet: raw OP_RETURN hex
+  string op_return_hex = 5;
+}
+
+message SendTransactionResponse {
+  string txid = 1;
+}
+
+message ListTransactionsRequest {
+  string wallet_id = 1;
+  int32 count = 2;   // 0 = default (100)
+}
+
+message TransactionEntry {
+  string txid = 1;
+  int32 vout = 2;
+  string address = 3;
+  string category = 4;  // send, receive, generate, immature
+  double amount = 5;    // BTC
+  int64 amount_sats = 6;
+  int32 confirmations = 7;
+  int64 block_time = 8;
+  int64 time = 9;
+  string label = 10;
+  double fee = 11;
+  bool replaced_by_txid = 12;
+  string wallet_id = 13;
+}
+
+message ListTransactionsResponse {
+  repeated TransactionEntry transactions = 1;
+}
+
+message ListUnspentRequest {
   string wallet_id = 1;
 }
 
-message GetMnemonicResponse {
-  string master_mnemonic = 1;
-  string l1_mnemonic = 2;
-  repeated SidechainMnemonic sidechain_mnemonics = 3;
+message UnspentOutput {
+  string txid = 1;
+  int32 vout = 2;
+  string address = 3;
+  double amount = 4;    // BTC
+  int64 amount_sats = 5;
+  int32 confirmations = 6;
+  string label = 7;
+  bool spendable = 8;
+  bool solvable = 9;
+  string wallet_id = 10;
 }
 
-message SidechainMnemonic {
-  int32 slot = 1;
-  string name = 2;
-  string mnemonic = 3;
+message ListUnspentResponse {
+  repeated UnspentOutput utxos = 1;
+}
+
+message ListReceiveAddressesRequest {
+  string wallet_id = 1;
+}
+
+message ReceiveAddress {
+  string address = 1;
+  double amount = 2;  // BTC total received
+  int64 amount_sats = 3;
+  string label = 4;
+  int32 tx_count = 5;
+}
+
+message ListReceiveAddressesResponse {
+  repeated ReceiveAddress addresses = 1;
+}
+
+message GetTransactionDetailsRequest {
+  string wallet_id = 1;
+  string txid = 2;
+}
+
+message GetTransactionDetailsResponse {
+  TransactionEntry transaction = 1;
+  string raw_hex = 2;
+}
+
+message BumpFeeRequest {
+  string wallet_id = 1;
+  string txid = 2;
+  int64 new_fee_rate = 3;  // sat/vB, 0 = automatic
+}
+
+message BumpFeeResponse {
+  string new_txid = 1;
+}
+
+message DeriveAddressesRequest {
+  string wallet_id = 1;
+  int32 start_index = 2;
+  int32 count = 3;
+}
+
+message DeriveAddressesResponse {
+  repeated string addresses = 1;
+}
+
+// ============================================================================
+// Seed Access
+// ============================================================================
+
+message GetWalletSeedRequest {
+  string wallet_id = 1;  // specific wallet, or empty for enforcer
+}
+
+message GetWalletSeedResponse {
+  string seed_hex = 1;
 }
