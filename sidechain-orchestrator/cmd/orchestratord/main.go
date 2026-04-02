@@ -107,30 +107,17 @@ func run(cctx *cli.Context) error {
 		defer stopWatch()
 	}
 
-	// Adopt orphaned processes from previous session
-	if err := orch.AdoptOrphans(ctx); err != nil {
-		log.Warn().Err(err).Msg("adopt orphans")
-	}
-
-	// Set up wallet service
+	// Initialize wallet service
 	walletSvc := wallet.NewService(bitwindowDir, log)
 	if err := walletSvc.Init(); err != nil {
 		log.Warn().Err(err).Msg("wallet service init")
 	}
 	defer walletSvc.Close()
+	orch.WalletSvc = walletSvc
 
-	// Wire wallet engine for Core wallet management
-	walletEngine := orchestrator.NewWalletEngine(
-		walletSvc,
-		orch.CoreStatusClient,
-		network,
-		log,
-	)
-	orch.WalletEngine = walletEngine
-
-	// Wire callback: when a non-enforcer wallet is created, also create it in Bitcoin Core
-	walletSvc.OnCreateCoreWallet = func(walletName string, seedHex string) error {
-		return orch.CreateCoreWallet(walletName, seedHex)
+	// Adopt orphaned processes from previous session
+	if err := orch.AdoptOrphans(ctx); err != nil {
+		log.Warn().Err(err).Msg("adopt orphans")
 	}
 
 	// Set up gRPC/ConnectRPC server
@@ -142,6 +129,24 @@ func run(cctx *cli.Context) error {
 
 	// Wallet manager service
 	walletHandler := api.NewWalletHandler(walletSvc)
+
+	// Set up wallet engine for Core RPC operations if bitcoin config is available
+	if orch.BitcoinConf != nil {
+		port := orch.BitcoinConf.GetRPCPort()
+		var user, password string
+		if orch.BitcoinConf.Config != nil {
+			section := orch.BitcoinConf.Network.CoreSection()
+			user = orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+			password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+		}
+
+		coreRPC := wallet.NewCoreRPCClient("localhost", port, user, password)
+		walletEngine := wallet.NewWalletEngine(walletSvc, coreRPC, network, log)
+		walletHandler.SetEngine(walletEngine)
+
+		log.Info().Int("rpc_port", port).Msg("wallet engine initialized with Core RPC")
+	}
+
 	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors())
 	mux.Handle(walletPath, walletH)
 
