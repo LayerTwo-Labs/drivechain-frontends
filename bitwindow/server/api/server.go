@@ -38,6 +38,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -58,6 +59,7 @@ type Services struct {
 	ChainParams       *chaincfg.Params
 	WalletDir         string
 	DataDir           string
+	OrchestratorAddr  string // e.g. "http://localhost:30400"
 }
 
 // New creates a new Server with interceptors applied.
@@ -92,6 +94,16 @@ func New(
 		svcs.WalletDir,
 		svcs.ChainParams,
 	)
+
+	// Connect wallet engine to orchestrator if address is configured
+	if svcs.OrchestratorAddr != "" {
+		orchClient := orchrpc.NewWalletManagerServiceClient(
+			http.DefaultClient,
+			svcs.OrchestratorAddr,
+		)
+		walletEngine.SetOrchestratorClient(orchClient)
+		zerolog.Ctx(ctx).Info().Str("addr", svcs.OrchestratorAddr).Msg("wallet engine connected to orchestrator")
+	}
 
 	// Create cheque engine for address derivation
 	chequeEngine := engines.NewChequeEngine(walletEngine, svcs.ChainParams, bitcoindSvc)
