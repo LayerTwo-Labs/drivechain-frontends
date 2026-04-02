@@ -304,6 +304,7 @@ message CheckChequeFundingResponse {
   uint64 actual_amount_sats = 2;
   repeated string funded_txids = 3;
   optional google.protobuf.Timestamp funded_at = 4;
+  uint32 min_confirmations = 5;
 }
 
 message SweepChequeRequest {

@@ -2,7 +2,6 @@ package orchestrator
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 
@@ -156,13 +155,11 @@ func BinaryPath(dataDir, binaryName string) string {
 	return filepath.Join(BinDir(dataDir), name)
 }
 
-// DefaultDataDir returns the default data directory (~/.sail).
+// DefaultDataDir returns the default data directory for the orchestrator.
+// This is the same as the BitWindow data directory, since orchestrator
+// stores its assets (binaries, configs) alongside BitWindow.
 func DefaultDataDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return filepath.Join(".", ".sail")
-	}
-	return filepath.Join(home, ".sail")
+	return DefaultBitwindowDir()
 }
 
 // DefaultBitwindowDir returns the default BitWindow data directory.

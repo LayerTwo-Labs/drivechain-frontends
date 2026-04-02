@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -2012,9 +2013,13 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		// Collect ALL txids and sum total amount
 		var totalAmount float64
 		var txids []string
+		var minConfirmations uint32 = math.MaxUint32
 		for _, utxo := range utxos.Msg.Unspent {
 			totalAmount += utxo.Amount
 			txids = append(txids, utxo.Txid)
+			if utxo.Confirmations < minConfirmations {
+				minConfirmations = utxo.Confirmations
+			}
 		}
 
 		// Convert BTC to satoshis
@@ -2043,6 +2048,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 			Funded:           cheque.IsFunded(),
 			ActualAmountSats: amountSats,
 			FundedTxids:      txids,
+			MinConfirmations: minConfirmations,
 		}
 		if cheque.FundedAt != nil {
 			resp.FundedAt = timestamppb.New(*cheque.FundedAt)
