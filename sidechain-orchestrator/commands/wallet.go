@@ -132,7 +132,7 @@ var walletSetActiveCommand = &cli.Command{
 		}
 
 		client := newWalletClient(cctx)
-		_, err := client.SetActiveWallet(cctx.Context, connect.NewRequest(&pb.SetActiveWalletRequest{
+		_, err := client.SwitchWallet(cctx.Context, connect.NewRequest(&pb.SwitchWalletRequest{
 			WalletId: cctx.Args().First(),
 		}))
 		if err != nil {
@@ -258,7 +258,7 @@ var walletMnemonicCommand = &cli.Command{
 
 		client := newWalletClient(cctx)
 
-		resp, err := client.GetMnemonic(cctx.Context, connect.NewRequest(&pb.GetMnemonicRequest{
+		resp, err := client.GetWalletSeed(cctx.Context, connect.NewRequest(&pb.GetWalletSeedRequest{
 			WalletId: cctx.Args().First(),
 		}))
 		if err != nil {
@@ -266,11 +266,7 @@ var walletMnemonicCommand = &cli.Command{
 		}
 
 		fmt.Print("⚠️  SENSITIVE — do not share!\n\n")
-		fmt.Printf("master:  %s\n", resp.Msg.MasterMnemonic)
-		fmt.Printf("L1:      %s\n", resp.Msg.L1Mnemonic)
-		for _, sc := range resp.Msg.SidechainMnemonics {
-			fmt.Printf("sc[%d] %s: %s\n", sc.Slot, sc.Name, sc.Mnemonic)
-		}
+		fmt.Printf("seed: %s\n", resp.Msg.SeedHex)
 		return nil
 	},
 }
