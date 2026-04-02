@@ -15,6 +15,8 @@ import (
 	"connectrpc.com/connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -52,12 +54,17 @@ type WalletInfo struct {
 	} `json:"watch_only,omitempty"`
 }
 
-// WalletEngine handles wallet unlock/lock, backend routing, and Bitcoin Core sync
+// WalletEngine handles wallet unlock/lock, backend routing, and Bitcoin Core sync.
+// When an orchestrator client is set, core wallet operations are delegated to
+// the orchestrator's WalletManagerService.
 type WalletEngine struct {
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error)
 	enforcerConnector func(context.Context) (validatorrpc.WalletServiceClient, error)
 	walletDir         string
 	chainParams       *chaincfg.Params
+
+	// Orchestrator client — when set, core wallet operations delegate here
+	orchClient orchrpc.WalletManagerServiceClient
 
 	// Unlocked wallet state (in memory)
 	mu             sync.RWMutex
@@ -94,6 +101,8 @@ func NewWalletEngine(
 	}
 	e.unlockCond = sync.NewCond(&e.mu)
 
+	// The orchestrator client is set via SetOrchestratorClient after construction.
+
 	// Auto-unlock unencrypted wallets at startup
 	if !wallet.IsWalletEncrypted(walletDir) {
 		walletData, err := wallet.LoadUnencryptedWallet(walletDir)
@@ -105,6 +114,12 @@ func NewWalletEngine(
 	}
 
 	return e
+}
+
+// SetOrchestratorClient sets the orchestrator WalletManagerService client.
+// When set, core wallet operations delegate to the orchestrator.
+func (e *WalletEngine) SetOrchestratorClient(client orchrpc.WalletManagerServiceClient) {
+	e.orchClient = client
 }
 
 // ============================================================================
@@ -257,6 +272,15 @@ func (e *WalletEngine) IsUnlocked() bool {
 // GetEnforcerSeed returns the enforcer wallet's seed hex
 // Used by ChequeEngine for deriving cheque addresses
 func (e *WalletEngine) GetEnforcerSeed() (string, error) {
+	// Try orchestrator first
+	if e.orchClient != nil {
+		resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{}))
+		if err == nil {
+			return resp.Msg.SeedHex, nil
+		}
+		// Fall through to local on error
+	}
+
 	wallets, err := e.loadAllWallets()
 	if err != nil {
 		return "", fmt.Errorf("load wallets: %w", err)
@@ -281,6 +305,17 @@ func (e *WalletEngine) GetEnforcerSeed() (string, error) {
 // GetWalletSeed returns the seed hex for a specific wallet by ID
 // Used by ChequeEngine for per-wallet cheque address derivation
 func (e *WalletEngine) GetWalletSeed(walletId string) (string, error) {
+	// Try orchestrator first
+	if e.orchClient != nil {
+		resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{
+			WalletId: walletId,
+		}))
+		if err == nil {
+			return resp.Msg.SeedHex, nil
+		}
+		// Fall through to local on error
+	}
+
 	wallets, err := e.loadAllWallets()
 	if err != nil {
 		return "", fmt.Errorf("load wallets: %w", err)
@@ -422,6 +457,20 @@ func (e *WalletEngine) GetWalletBackendType(ctx context.Context, walletId string
 // EnsureBitcoinCoreWallet ensures a Bitcoin Core wallet exists for the given walletId
 // Creates it from the seed if it doesn't exist (lazy loading)
 func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletId string) (string, error) {
+	// Try orchestrator first
+	if e.orchClient != nil {
+		resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
+			WalletId: walletId,
+		}))
+		if err == nil {
+			e.mu.Lock()
+			e.coreWallets[walletId] = resp.Msg.CoreWalletName
+			e.mu.Unlock()
+			return resp.Msg.CoreWalletName, nil
+		}
+		// Fall through to local on error
+	}
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -610,6 +659,20 @@ func (e *WalletEngine) GetBitcoinCoreWalletName(ctx context.Context, walletId st
 
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core
 func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
+	// Try orchestrator first (it handles both bitcoinCore and watchOnly)
+	if e.orchClient != nil {
+		resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
+			WalletId: walletId,
+		}))
+		if err == nil {
+			e.mu.Lock()
+			e.coreWallets[walletId] = resp.Msg.CoreWalletName
+			e.mu.Unlock()
+			return resp.Msg.CoreWalletName, nil
+		}
+		// Fall through to local on error
+	}
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -807,6 +870,16 @@ func (e *WalletEngine) SyncWallets(ctx context.Context) error {
 	e.mu.Unlock()
 
 	log.Info().Msg("wallet sync: starting")
+
+	// Try orchestrator first
+	if e.orchClient != nil {
+		resp, err := e.orchClient.EnsureCoreWallets(ctx, connect.NewRequest(&orchpb.EnsureCoreWalletsRequest{}))
+		if err == nil {
+			log.Info().Int32("synced", resp.Msg.SyncedCount).Msg("wallet sync: completed via orchestrator")
+			return nil
+		}
+		log.Warn().Err(err).Msg("wallet sync: orchestrator failed, falling back to local")
+	}
 
 	wallets, err := e.loadAllWallets()
 	if err != nil {
