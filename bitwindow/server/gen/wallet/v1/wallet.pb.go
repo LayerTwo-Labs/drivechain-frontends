@@ -4,7 +4,7 @@
 // 	protoc        (unknown)
 // source: wallet/v1/wallet.proto
 
-package walletv1
+package v1
 
 import (
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
@@ -2187,6 +2187,7 @@ type CheckChequeFundingResponse struct {
 	ActualAmountSats uint64                 `protobuf:"varint,2,opt,name=actual_amount_sats,json=actualAmountSats,proto3" json:"actual_amount_sats,omitempty"`
 	FundedTxids      []string               `protobuf:"bytes,3,rep,name=funded_txids,json=fundedTxids,proto3" json:"funded_txids,omitempty"`
 	FundedAt         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=funded_at,json=fundedAt,proto3,oneof" json:"funded_at,omitempty"`
+	MinConfirmations uint32                 `protobuf:"varint,5,opt,name=min_confirmations,json=minConfirmations,proto3" json:"min_confirmations,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -2247,6 +2248,13 @@ func (x *CheckChequeFundingResponse) GetFundedAt() *timestamppb.Timestamp {
 		return x.FundedAt
 	}
 	return nil
+}
+
+func (x *CheckChequeFundingResponse) GetMinConfirmations() uint32 {
+	if x != nil {
+		return x.MinConfirmations
+	}
+	return 0
 }
 
 type SweepChequeRequest struct {
@@ -3910,12 +3918,13 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\acheques\x18\x01 \x03(\v2\x11.wallet.v1.ChequeR\acheques\"H\n" +
 	"\x19CheckChequeFundingRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\x03R\x02id\"\xd1\x01\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\"\xfe\x01\n" +
 	"\x1aCheckChequeFundingResponse\x12\x16\n" +
 	"\x06funded\x18\x01 \x01(\bR\x06funded\x12,\n" +
 	"\x12actual_amount_sats\x18\x02 \x01(\x04R\x10actualAmountSats\x12!\n" +
 	"\ffunded_txids\x18\x03 \x03(\tR\vfundedTxids\x12<\n" +
-	"\tfunded_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\bfundedAt\x88\x01\x01B\f\n" +
+	"\tfunded_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\bfundedAt\x88\x01\x01\x12+\n" +
+	"\x11min_confirmations\x18\x05 \x01(\rR\x10minConfirmationsB\f\n" +
 	"\n" +
 	"_funded_at\"\xb5\x01\n" +
 	"\x12SweepChequeRequest\x12\x1b\n" +
@@ -4076,9 +4085,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x15GetTransactionDetails\x12'.wallet.v1.GetTransactionDetailsRequest\x1a(.wallet.v1.GetTransactionDetailsResponse\x12d\n" +
 	"\x13GetUTXODistribution\x12%.wallet.v1.GetUTXODistributionRequest\x1a&.wallet.v1.GetUTXODistributionResponse\x12@\n" +
 	"\aBumpFee\x12\x19.wallet.v1.BumpFeeRequest\x1a\x1a.wallet.v1.BumpFeeResponse\x12L\n" +
-	"\vSelectCoins\x12\x1d.wallet.v1.SelectCoinsRequest\x1a\x1e.wallet.v1.SelectCoinsResponseB\xac\x01\n" +
-	"\rcom.wallet.v1B\vWalletProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1;walletv1\xa2\x02\x03WXX\xaa\x02\tWallet.V1\xca\x02\tWallet\\V1\xe2\x02\x15Wallet\\V1\\GPBMetadata\xea\x02\n" +
-	"Wallet::V1b\x06proto3"
+	"\vSelectCoins\x12\x1d.wallet.v1.SelectCoinsRequest\x1a\x1e.wallet.v1.SelectCoinsResponseb\x06proto3"
 
 var (
 	file_wallet_v1_wallet_proto_rawDescOnce sync.Once

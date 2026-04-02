@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -165,15 +166,19 @@ func run(cctx *cli.Context) error {
 	}
 
 	srv := &http.Server{
-		Addr:    listenAddr,
 		Handler: h2c.NewHandler(mux, &http2.Server{}),
 	}
 
-	// Start server
+	// Bind listener first so we know the port is ours before logging.
+	lis, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", listenAddr, err)
+	}
+	log.Info().Str("addr", lis.Addr().String()).Msg("serving gRPC")
+
 	errs := make(chan error, 1)
 	go func() {
-		log.Info().Str("addr", listenAddr).Msg("serving gRPC")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(lis); err != nil && err != http.ErrServerClosed {
 			errs <- fmt.Errorf("serve: %w", err)
 		}
 	}()
