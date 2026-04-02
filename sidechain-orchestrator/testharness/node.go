@@ -9,13 +9,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/rs/zerolog"
@@ -42,23 +43,16 @@ type Node struct {
 	closeOnce sync.Once
 }
 
-// testPorts returns ports for a test run. A single random base is chosen per
-// harness (via randomPortBase), then each node gets a 300-wide band:
-//   node0: base, base+100, base+200
-//   node1: base+300, base+400, base+500
-//   ...
-// This avoids the previous bug where each call generated independent random
-// bases that could collide.
-func testPorts(base, nodeIndex int) (rpcPort, p2pPort, grpcPort int) {
-	nodeBase := base + nodeIndex*300
-	return nodeBase, nodeBase + 100, nodeBase + 200
-}
-
-// randomPortBase picks a random base port in 40000-59000 range.
-func randomPortBase() int {
+// testPorts returns ports for a test run using a random base to avoid
+// collisions with TIME_WAIT sockets from previous runs.
+// Ports are spaced 100 apart because Bitcoin Core binds extra ports
+// near rpcport (e.g. rpcport+2 for evhttp).
+func testPorts(nodeIndex int) (rpcPort, p2pPort, grpcPort int) {
 	b := make([]byte, 2)
 	_, _ = rand.Read(b)
-	return 40000 + int(b[0])%190*100
+	// Random base in 40000-49000, each node gets a 1000-wide band.
+	base := 40000 + int(b[0])%90*100 + nodeIndex*1000
+	return base, base + 100, base + 200
 }
 
 // newNode creates and starts a fully-wired Node with real subprocesses.
@@ -137,7 +131,8 @@ port=%d
 
 	t.Cleanup(func() {
 		if n.BitcoindProcess != nil {
-			stopProcess(n.BitcoindProcess)
+			_ = n.BitcoindProcess.Signal(syscall.SIGTERM)
+			_, _ = n.BitcoindProcess.Wait()
 		}
 	})
 	go func() { _ = bitcoindCmd.Wait() }()
@@ -172,7 +167,8 @@ port=%d
 
 	t.Cleanup(func() {
 		if n.OrchdProcess != nil {
-			stopProcess(n.OrchdProcess)
+			_ = n.OrchdProcess.Signal(syscall.SIGTERM)
+			_, _ = n.OrchdProcess.Wait()
 		}
 	})
 
@@ -221,11 +217,13 @@ port=%d
 func (n *Node) close() {
 	n.closeOnce.Do(func() {
 		if n.OrchdProcess != nil {
-			stopProcess(n.OrchdProcess)
+			_ = n.OrchdProcess.Signal(syscall.SIGTERM)
+			_, _ = n.OrchdProcess.Wait()
 			n.OrchdProcess = nil
 		}
 		if n.BitcoindProcess != nil {
-			stopProcess(n.BitcoindProcess)
+			_ = n.BitcoindProcess.Signal(syscall.SIGTERM)
+			_, _ = n.BitcoindProcess.Wait()
 			n.BitcoindProcess = nil
 		}
 	})
@@ -251,6 +249,28 @@ func waitForBitcoind(t *testing.T, rpcClient *wallet.CoreRPCClient, nodeName str
 	}
 }
 
+// waitForGRPC polls the orchestratord gRPC endpoint with a real RPC call until it responds.
+func waitForGRPC(t *testing.T, port int, nodeName string) {
+	t.Helper()
+
+	client := rpc.NewWalletManagerServiceClient(
+		http.DefaultClient,
+		fmt.Sprintf("http://127.0.0.1:%d", port),
+		connect.WithGRPC(),
+	)
+
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
+		cancel()
+		if err == nil {
+			return
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatalf("testharness[%s]: orchestratord gRPC not ready at port %d within 15s", nodeName, port)
+}
 
 // GenerateToAddress mines blocks to the given address using the raw RPC client.
 func (n *Node) GenerateToAddress(ctx context.Context, blocks int, addr string) ([]string, error) {
@@ -260,7 +280,7 @@ func (n *Node) GenerateToAddress(ctx context.Context, blocks int, addr string) (
 // orchBinaryName returns "orchestratord" with .exe on Windows.
 func orchBinaryName() string {
 	name := "orchestratord"
-	if runtime.GOOS == "windows" {
+	if strings.Contains(strings.ToLower(os.Getenv("GOOS")), "windows") {
 		name += ".exe"
 	}
 	return name
