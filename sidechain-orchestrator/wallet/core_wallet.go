@@ -299,12 +299,19 @@ func (e *WalletEngine) serializeKey(key *bip32.Key) string {
 		return key.String()
 	}
 
+	// key.Serialize() returns the full 82-byte payload (78 data + 4 checksum).
+	// We need to strip the existing checksum, replace version bytes, then
+	// re-encode with a fresh checksum so Bitcoin Core accepts the key.
 	serialized, err := key.Serialize()
 	if err != nil {
 		return key.String()
 	}
-	copy(serialized[0:4], tprvVersionBytes)
-	return base58CheckEncode(serialized)
+
+	// serialized is 82 bytes: [4 version][74 data][4 checksum].
+	// Strip old checksum, patch version, recompute.
+	raw := serialized[:78]
+	copy(raw[0:4], tprvVersionBytes)
+	return base58CheckEncode(raw)
 }
 
 // ============================================================================
@@ -337,7 +344,12 @@ func mustAddChecksum(desc string) string {
 	return result
 }
 
-// base58CheckEncode encodes a byte slice as Base58Check.
+// Base58CheckEncode encodes a byte slice as Base58Check.
+func Base58CheckEncode(data []byte) string {
+	return base58CheckEncode(data)
+}
+
+// base58CheckEncode encodes a byte slice as Base58Check (internal).
 func base58CheckEncode(data []byte) string {
 	// Append 4-byte checksum
 	checksum := doubleSha256(data)
