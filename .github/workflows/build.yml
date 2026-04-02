@@ -179,11 +179,6 @@ jobs:
           mkdir -p "$BUILD_DIR/${{ matrix.client }}/assets/bin"
           echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
-      - name: Install Flutter dependencies
-        run: |
-          cd ${{ env.BUILD_DIR }}/${{ matrix.client }}
-          flutter pub get --enforce-lockfile
-
         # standard macOS sed has subtle differences from gnu
       - name: Install GNU sed on macOS
         if: runner.os == 'macOS'
@@ -195,6 +190,11 @@ jobs:
       # prettier-ignore
       - run:  sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa && sudo apt-get install clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libcurl4-openssl-dev
         if: runner.os == 'Linux'
+
+      - name: Install Flutter dependencies
+        run: |
+          cd ${{ env.BUILD_DIR }}/${{ matrix.client }}
+          flutter pub get --enforce-lockfile
 
       # Install FUSE and other dependencies for AppImage creation
       - name: Install FUSE and AppImage dependencies
