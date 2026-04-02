@@ -158,7 +158,7 @@ func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.
 
 func (h *WalletHandler) requireEngine() error {
 	if h.engine == nil {
-		return fmt.Errorf("Bitcoin Core RPC not configured")
+		return fmt.Errorf("bitcoin Core RPC not configured")
 	}
 	return nil
 }

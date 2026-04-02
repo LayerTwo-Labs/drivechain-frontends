@@ -80,7 +80,7 @@ func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, par
 	if err != nil {
 		return nil, fmt.Errorf("%s call: %w", method, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
