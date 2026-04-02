@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/rs/zerolog"
@@ -249,28 +248,6 @@ func waitForBitcoind(t *testing.T, rpcClient *wallet.CoreRPCClient, nodeName str
 	}
 }
 
-// waitForGRPC polls the orchestratord gRPC endpoint with a real RPC call until it responds.
-func waitForGRPC(t *testing.T, port int, nodeName string) {
-	t.Helper()
-
-	client := rpc.NewWalletManagerServiceClient(
-		http.DefaultClient,
-		fmt.Sprintf("http://127.0.0.1:%d", port),
-		connect.WithGRPC(),
-	)
-
-	deadline := time.Now().Add(15 * time.Second)
-	for time.Now().Before(deadline) {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		_, err := client.GetWalletStatus(ctx, connect.NewRequest(&pb.GetWalletStatusRequest{}))
-		cancel()
-		if err == nil {
-			return
-		}
-		time.Sleep(250 * time.Millisecond)
-	}
-	t.Fatalf("testharness[%s]: orchestratord gRPC not ready at port %d within 15s", nodeName, port)
-}
 
 // GenerateToAddress mines blocks to the given address using the raw RPC client.
 func (n *Node) GenerateToAddress(ctx context.Context, blocks int, addr string) ([]string, error) {
