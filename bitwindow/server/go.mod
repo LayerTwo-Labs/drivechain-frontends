@@ -11,7 +11,7 @@ require (
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
 	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.0
 	github.com/samber/lo v1.53.0
 	github.com/sourcegraph/conc v0.3.0
 	go.uber.org/mock v0.6.0
@@ -48,13 +48,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-require (
-	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
-	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
-	github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator v0.0.0-20260401154321-d019aef317bb // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/tyler-smith/go-bip32 v1.0.0 // indirect
-	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
-)
+require github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator v0.0.0-20260401154321-d019aef317bb
 
 replace github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator => ../../sidechain-orchestrator
