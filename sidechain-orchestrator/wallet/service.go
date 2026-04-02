@@ -796,6 +796,15 @@ func (s *Service) RemoveEncryption(password string) error {
 
 // --- List/Switch/Update/Delete ---
 
+// GetAllWallets returns a copy of all loaded wallet data.
+func (s *Service) GetAllWallets() []WalletData {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]WalletData, len(s.wallets))
+	copy(out, s.wallets)
+	return out
+}
+
 func (s *Service) ListWallets() []WalletMetadata {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
