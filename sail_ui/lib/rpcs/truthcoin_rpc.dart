@@ -340,12 +340,7 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', {
-      'mainchain_address': address,
-      'amount_sats': amountSats,
-      'fee_sats': sidechainFeeSats,
-      'mainchain_fee_sats': mainchainFeeSats,
-    });
+    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
     return response as String;
   }
 
@@ -357,11 +352,11 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final response = await _client().call('transfer', {
-      'dest': address,
-      'value': btcToSatoshi(amount).toInt(),
-      'fee': btcToSatoshi(0.00001).toInt(),
-    });
+    final response = await _client().call('transfer', [
+      address,
+      btcToSatoshi(amount).toInt(),
+      btcToSatoshi(0.00001).toInt(),
+    ]);
     return response as String;
   }
 
@@ -375,11 +370,7 @@ class TruthcoinLive extends TruthcoinRPC {
   /// Create a deposit transaction
   @override
   Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create_deposit', {
-      'address': address,
-      'value_sats': btcToSatoshi(amount),
-      'fee_sats': btcToSatoshi(fee),
-    });
+    final response = await _client().call('create_deposit', [address, btcToSatoshi(amount), btcToSatoshi(fee)]);
     return response as String;
   }
 
@@ -527,10 +518,7 @@ class TruthcoinLive extends TruthcoinRPC {
     int? numOutcomes,
     String? dimensions,
   }) async {
-    final params = <String, dynamic>{'beta': beta};
-    if (numOutcomes != null) params['num_outcomes'] = numOutcomes;
-    if (dimensions != null) params['dimensions'] = dimensions;
-    final response = await _client().call('calculate_initial_liquidity', params);
+    final response = await _client().call('calculate_initial_liquidity', [beta, numOutcomes, dimensions]);
     return response as Map<String, dynamic>;
   }
 
@@ -547,19 +535,18 @@ class TruthcoinLive extends TruthcoinRPC {
     List<String>? categoryTxids,
     List<String>? residualNames,
   }) async {
-    final params = <String, dynamic>{
-      'title': title,
-      'description': description,
-      'dimensions': dimensions,
-      'fee_sats': feeSats,
-    };
-    if (beta != null) params['beta'] = beta;
-    if (initialLiquidity != null) params['initial_liquidity'] = initialLiquidity;
-    if (tradingFee != null) params['trading_fee'] = tradingFee;
-    if (tags != null) params['tags'] = tags;
-    if (categoryTxids != null) params['category_txids'] = categoryTxids;
-    if (residualNames != null) params['residual_names'] = residualNames;
-    final response = await _client().call('market_create', params);
+    final response = await _client().call('market_create', [
+      title,
+      description,
+      dimensions,
+      feeSats,
+      beta,
+      initialLiquidity,
+      tradingFee,
+      tags,
+      categoryTxids,
+      residualNames,
+    ]);
     return response as String;
   }
 
@@ -584,15 +571,14 @@ class TruthcoinLive extends TruthcoinRPC {
     int? feeSats,
     int? maxCost,
   }) async {
-    final params = <String, dynamic>{
-      'market_id': marketId,
-      'outcome_index': outcomeIndex,
-      'shares_amount': sharesAmount,
-    };
-    if (dryRun != null) params['dry_run'] = dryRun;
-    if (feeSats != null) params['fee_sats'] = feeSats;
-    if (maxCost != null) params['max_cost'] = maxCost;
-    final response = await _client().call('market_buy', params);
+    final response = await _client().call('market_buy', [
+      marketId,
+      outcomeIndex,
+      sharesAmount,
+      dryRun,
+      feeSats,
+      maxCost,
+    ]);
     return response as Map<String, dynamic>;
   }
 
@@ -606,25 +592,21 @@ class TruthcoinLive extends TruthcoinRPC {
     int? feeSats,
     int? minProceeds,
   }) async {
-    final params = <String, dynamic>{
-      'market_id': marketId,
-      'outcome_index': outcomeIndex,
-      'shares_amount': sharesAmount,
-      'seller_address': sellerAddress,
-    };
-    if (dryRun != null) params['dry_run'] = dryRun;
-    if (feeSats != null) params['fee_sats'] = feeSats;
-    if (minProceeds != null) params['min_proceeds'] = minProceeds;
-    final response = await _client().call('market_sell', params);
+    final response = await _client().call('market_sell', [
+      marketId,
+      outcomeIndex,
+      sharesAmount,
+      sellerAddress,
+      dryRun,
+      feeSats,
+      minProceeds,
+    ]);
     return response as Map<String, dynamic>;
   }
 
   @override
   Future<Map<String, dynamic>> marketPositions({String? address, String? marketId}) async {
-    final params = <String, dynamic>{};
-    if (address != null) params['address'] = address;
-    if (marketId != null) params['market_id'] = marketId;
-    final response = await _client().call('market_positions', params);
+    final response = await _client().call('market_positions', [address, marketId]);
     return response as Map<String, dynamic>;
   }
 
@@ -637,13 +619,7 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<List<Map<String, dynamic>>> slotList({int? period, String? status}) async {
-    Map<String, dynamic>? params;
-    if (period != null || status != null) {
-      params = <String, dynamic>{};
-      if (period != null) params['period'] = period;
-      if (status != null) params['status'] = status;
-    }
-    final response = await _client().call('slot_list', params) as List<dynamic>;
+    final response = await _client().call('slot_list', [period, status]) as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
 
@@ -664,17 +640,16 @@ class TruthcoinLive extends TruthcoinRPC {
     int? min,
     int? max,
   }) async {
-    final params = <String, dynamic>{
-      'fee_sats': feeSats,
-      'period_index': periodIndex,
-      'slot_index': slotIndex,
-      'question': question,
-      'is_standard': isStandard,
-    };
-    if (isScaled != null) params['is_scaled'] = isScaled;
-    if (min != null) params['min'] = min;
-    if (max != null) params['max'] = max;
-    final response = await _client().call('slot_claim', params);
+    final response = await _client().call('slot_claim', [
+      feeSats,
+      periodIndex,
+      slotIndex,
+      question,
+      isStandard,
+      isScaled,
+      min,
+      max,
+    ]);
     return response as String;
   }
 
@@ -684,20 +659,14 @@ class TruthcoinLive extends TruthcoinRPC {
     required bool isStandard,
     required int feeSats,
   }) async {
-    final response = await _client().call('slot_claim_category', {
-      'slots': slots,
-      'is_standard': isStandard,
-      'fee_sats': feeSats,
-    });
+    final response = await _client().call('slot_claim_category', [slots, isStandard, feeSats]);
     return response as String;
   }
 
   // Voting
   @override
   Future<String> voteRegister({required int feeSats, int? reputationBondSats}) async {
-    final params = <String, dynamic>{'fee_sats': feeSats};
-    if (reputationBondSats != null) params['reputation_bond_sats'] = reputationBondSats;
-    final response = await _client().call('vote_register', params);
+    final response = await _client().call('vote_register', [feeSats, reputationBondSats]);
     return response as String;
   }
 
@@ -715,20 +684,13 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<String> voteSubmit({required List<Map<String, dynamic>> votes, required int feeSats}) async {
-    final response = await _client().call('vote_submit', {
-      'votes': votes,
-      'fee_sats': feeSats,
-    });
+    final response = await _client().call('vote_submit', [votes, feeSats]);
     return response as String;
   }
 
   @override
   Future<List<Map<String, dynamic>>> voteList({String? voter, String? decisionId, int? periodId}) async {
-    final params = <String, dynamic>{};
-    if (voter != null) params['voter'] = voter;
-    if (decisionId != null) params['decision_id'] = decisionId;
-    if (periodId != null) params['period_id'] = periodId;
-    final response = await _client().call('vote_list', params) as List<dynamic>;
+    final response = await _client().call('vote_list', [voter, decisionId, periodId]) as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
 
@@ -746,13 +708,7 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final params = <String, dynamic>{
-      'dest': dest,
-      'amount': amount,
-      'fee_sats': feeSats,
-    };
-    if (memo != null) params['memo'] = memo;
-    final response = await _client().call('votecoin_transfer', params);
+    final response = await _client().call('votecoin_transfer', [dest, amount, feeSats, memo]);
     return response as String;
   }
 
@@ -769,13 +725,7 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final params = <String, dynamic>{
-      'dest': dest,
-      'amount': amount,
-      'fee_sats': feeSats,
-    };
-    if (memo != null) params['memo'] = memo;
-    final response = await _client().call('transfer_votecoin', params);
+    final response = await _client().call('transfer_votecoin', [dest, amount, feeSats, memo]);
     return response as String;
   }
 
@@ -794,37 +744,25 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
-    final response = await _client().call('encrypt_msg', {
-      'msg': msg,
-      'encryption_pubkey': encryptionPubkey,
-    });
+    final response = await _client().call('encrypt_msg', [encryptionPubkey, msg]);
     return response as String;
   }
 
   @override
   Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
-    final response = await _client().call('decrypt_msg', {
-      'ciphertext': ciphertext,
-      'encryption_pubkey': encryptionPubkey,
-    });
+    final response = await _client().call('decrypt_msg', [encryptionPubkey, ciphertext]);
     return response as String;
   }
 
   @override
   Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
-    final response = await _client().call('sign_arbitrary_msg', {
-      'msg': msg,
-      'verifying_key': verifyingKey,
-    });
+    final response = await _client().call('sign_arbitrary_msg', [msg, verifyingKey]);
     return response as String;
   }
 
   @override
   Future<Map<String, dynamic>> signArbitraryMsgAsAddr({required String address, required String msg}) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', {
-      'address': address,
-      'msg': msg,
-    });
+    final response = await _client().call('sign_arbitrary_msg_as_addr', [msg, address]);
     return response as Map<String, dynamic>;
   }
 
@@ -835,12 +773,7 @@ class TruthcoinLive extends TruthcoinRPC {
     required String verifyingKey,
     required String dst,
   }) async {
-    final response = await _client().call('verify_signature', {
-      'msg': msg,
-      'signature': signature,
-      'verifying_key': verifyingKey,
-      'dst': dst,
-    });
+    final response = await _client().call('verify_signature', [msg, signature, verifyingKey, dst]);
     return response as bool;
   }
 }

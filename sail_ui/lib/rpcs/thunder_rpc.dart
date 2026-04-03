@@ -205,11 +205,7 @@ class ThunderLive extends ThunderRPC {
   /// Create a deposit transaction
   @override
   Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create_deposit', {
-      'address': address,
-      'value_sats': btcToSatoshi(amount),
-      'fee_sats': btcToSatoshi(fee),
-    });
+    final response = await _client().call('create_deposit', [address, btcToSatoshi(amount), btcToSatoshi(fee)]);
     return response as String;
   }
 

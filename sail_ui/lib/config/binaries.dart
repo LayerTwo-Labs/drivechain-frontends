@@ -1024,14 +1024,14 @@ class BitWindow extends Binary {
              directories ??
              DirectoryConfig(
                binary: allNetworks({
-                 OS.linux: 'bitwindow',
+                 OS.linux: 'com.layertwolabs.bitwindow',
                  OS.macos: 'bitwindow',
-                 OS.windows: 'bitwindow',
+                 OS.windows: '10520LayertwoLabs/BitWindow',
                }),
                flutterFrontend: {
-                 OS.linux: 'bitwindow',
+                 OS.linux: 'com.layertwolabs.bitwindow',
                  OS.macos: 'bitwindow',
-                 OS.windows: 'bitwindow',
+                 OS.windows: '10520LayertwoLabs/BitWindow',
                },
              ),
          metadata:
@@ -1442,41 +1442,41 @@ extension BinaryPaths on Binary {
       BinaryType.bitWindow => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'bitwindow'),
         OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitWindow'),
-        OS.linux => path.join(home, '.local', 'share', 'bitwindow'),
+        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitwindow'),
       },
       BinaryType.thunder => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.thunder'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Thunder'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Thunder'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.thunder'),
       },
       BinaryType.zSide => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.zside'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'ZSide'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'ZSide'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.zside'),
       },
       BinaryType.bitnames => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitnames'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'BitNames'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitNames'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitnames'),
       },
       BinaryType.bitassets => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitassets'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'BitAssets'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitAssets'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitassets'),
       },
       BinaryType.truthcoin => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.truthcoin'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Truthcoin'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Truthcoin'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.truthcoin'),
       },
       BinaryType.photon => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.photon'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Photon'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Photon'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.photon'),
       },
       BinaryType.coinShift => switch (OS.current) {
         OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.coinshift'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', 'LayerTwoLabs', 'Coinshift'),
+        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Coinshift'),
         OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
       },
       BinaryType.bitcoinCore ||

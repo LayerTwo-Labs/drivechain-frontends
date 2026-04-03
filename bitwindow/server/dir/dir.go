@@ -13,7 +13,7 @@ func DefaultDataDir() (string, error) {
 
 	switch runtime.GOOS {
 	case "linux":
-		const linuxAppName = "bitwindow"
+		const linuxAppName = "com.layertwolabs.bitwindow"
 
 		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
 			dir = filepath.Join(xdgDataHome, linuxAppName)

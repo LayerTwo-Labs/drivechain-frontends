@@ -159,8 +159,8 @@ var BitWindowDirs = BinaryDirConfig{
 	BinaryName: "bitwindowd",
 	ChainLayer: 1,
 	Port:       30301,
-	DataDir:    map[string]string{osLinux: "bitwindow", osMacOS: "bitwindow", osWindows: "bitwindow"},
-	FlutterFrontendDir: map[string]string{osLinux: "bitwindow", osMacOS: "bitwindow", osWindows: "10520LayertwoLabs/BitWindow"},
+	DataDir:    map[string]string{osLinux: "com.layertwolabs.bitwindow", osMacOS: "bitwindow", osWindows: "10520LayertwoLabs/BitWindow"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitwindow", osMacOS: "bitwindow", osWindows: "10520LayertwoLabs/BitWindow"},
 }
 
 var EnforcerDirs = BinaryDirConfig{
@@ -177,7 +177,7 @@ var ThunderDirs = BinaryDirConfig{
 	ChainLayer: 2,
 	Port:       6009,
 	DataDir:    map[string]string{osLinux: "thunder", osMacOS: "Thunder", osWindows: "thunder"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.thunder", osMacOS: "com.layertwolabs.thunder", osWindows: "LayerTwoLabs/Thunder"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.thunder", osMacOS: "com.layertwolabs.thunder", osWindows: "10520LayertwoLabs/Thunder"},
 }
 
 var BitNamesDirs = BinaryDirConfig{
@@ -186,7 +186,7 @@ var BitNamesDirs = BinaryDirConfig{
 	ChainLayer: 2,
 	Port:       6002,
 	DataDir:    map[string]string{osLinux: "plain_bitnames", osMacOS: "plain_bitnames", osWindows: "plain_bitnames"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitnames", osMacOS: "com.layertwolabs.bitnames", osWindows: "LayerTwoLabs/BitNames"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitnames", osMacOS: "com.layertwolabs.bitnames", osWindows: "10520LayertwoLabs/BitNames"},
 }
 
 var BitAssetsDirs = BinaryDirConfig{
@@ -195,7 +195,7 @@ var BitAssetsDirs = BinaryDirConfig{
 	ChainLayer: 2,
 	Port:       6004,
 	DataDir:    map[string]string{osLinux: "plain_bitassets", osMacOS: "plain_bitassets", osWindows: "plain_bitassets"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitassets", osMacOS: "com.layertwolabs.bitassets", osWindows: "LayerTwoLabs/BitAssets"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitassets", osMacOS: "com.layertwolabs.bitassets", osWindows: "10520LayertwoLabs/BitAssets"},
 }
 
 var ZSideDirs = BinaryDirConfig{
@@ -204,7 +204,7 @@ var ZSideDirs = BinaryDirConfig{
 	ChainLayer: 2,
 	Port:       6098,
 	DataDir:    map[string]string{osLinux: "thunder-orchard", osMacOS: "thunder-orchard", osWindows: "thunder-orchard"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.zside", osMacOS: "com.layertwolabs.zside", osWindows: "LayerTwoLabs/ZSide"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.zside", osMacOS: "com.layertwolabs.zside", osWindows: "10520LayertwoLabs/ZSide"},
 }
 
 var TruthcoinDirs = BinaryDirConfig{
@@ -213,7 +213,7 @@ var TruthcoinDirs = BinaryDirConfig{
 	ChainLayer: 2,
 	Port:       6013,
 	DataDir:    map[string]string{osLinux: "truthcoin", osMacOS: "truthcoin", osWindows: "truthcoin"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.truthcoin", osMacOS: "com.layertwolabs.truthcoin", osWindows: "LayerTwoLabs/Truthcoin"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.truthcoin", osMacOS: "com.layertwolabs.truthcoin", osWindows: "10520LayertwoLabs/Truthcoin"},
 }
 
 var PhotonDirs = BinaryDirConfig{
@@ -222,7 +222,7 @@ var PhotonDirs = BinaryDirConfig{
 	ChainLayer: 2,
 	Port:       6099,
 	DataDir:    map[string]string{osLinux: "photon", osMacOS: "photon", osWindows: "photon"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.photon", osMacOS: "com.layertwolabs.photon", osWindows: "LayerTwoLabs/Photon"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.photon", osMacOS: "com.layertwolabs.photon", osWindows: "10520LayertwoLabs/Photon"},
 }
 
 var CoinShiftDirs = BinaryDirConfig{
@@ -231,7 +231,7 @@ var CoinShiftDirs = BinaryDirConfig{
 	ChainLayer: 2,
 	Port:       6255,
 	DataDir:    map[string]string{osLinux: "coinshift", osMacOS: "coinshift", osWindows: "coinshift"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.coinshift", osMacOS: "com.layertwolabs.coinshift", osWindows: "LayerTwoLabs/Coinshift"},
+	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.coinshift", osMacOS: "com.layertwolabs.coinshift", osWindows: "10520LayertwoLabs/Coinshift"},
 }
 
 // DirConfigByName returns the BinaryDirConfig for a given binary name.
