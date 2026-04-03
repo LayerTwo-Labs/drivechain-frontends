@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -576,6 +577,9 @@ var versionPattern = regexp.MustCompile(`[-_]v?\d+\.\d+\.\d+[-_]?`)
 func StripPlatformSuffix(name string) string {
 	result := name
 
+	// Track whether the file had .exe (needed on Windows).
+	hadExe := strings.HasSuffix(result, ".exe")
+
 	// Strip file extension first
 	for _, ext := range []string{".exe", ".tar.gz", ".zip", ".gz"} {
 		result = strings.TrimSuffix(result, ext)
@@ -595,6 +599,11 @@ func StripPlatformSuffix(name string) string {
 	// Clean up trailing/leading/double dashes
 	result = strings.TrimRight(result, "-_")
 	result = strings.TrimLeft(result, "-_")
+
+	// Restore .exe on Windows — it's a meaningful extension, not a platform suffix.
+	if hadExe && runtime.GOOS == "windows" {
+		result += ".exe"
+	}
 
 	return result
 }
