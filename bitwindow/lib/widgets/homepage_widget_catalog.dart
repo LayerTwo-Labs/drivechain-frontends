@@ -104,12 +104,7 @@ class HomepageWidgetCatalog {
       description: 'Quick L2 to L1 withdrawals',
       size: WidgetSize.full,
       icon: SailSVGAsset.iconSend,
-      builder: (_) => ViewModelBuilder<FastWithdrawalTabViewModel>.reactive(
-        viewModelBuilder: () => FastWithdrawalTabViewModel(),
-        builder: (context, viewModel, child) {
-          return const FastWithdrawalTab();
-        },
-      ),
+      builder: (_) => const FastWithdrawalTab(),
     ),
     'sidechains_compact': HomepageWidgetInfo(
       id: 'sidechains_compact',
