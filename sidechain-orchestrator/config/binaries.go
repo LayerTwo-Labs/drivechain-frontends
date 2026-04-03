@@ -2,6 +2,7 @@ package config
 
 import (
 	"crypto/sha256"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -141,108 +143,112 @@ func (b BinaryDirConfig) FrontendDir() string {
 }
 
 // ---------------------------------------------------------------------------
-// Predefined BinaryDirConfigs (1:1 from Dart binary classes)
+// Embedded JSON config — single source of truth for all BinaryDirConfigs
 // ---------------------------------------------------------------------------
 
-var BitcoinCoreDirs = BinaryDirConfig{
-	Name:           "Bitcoin Core",
-	BinaryName:     "bitcoind",
-	ChainLayer:     1,
-	Port:           0,
-	DataDir:        map[string]string{osLinux: ".drivechain", osMacOS: "Drivechain", osWindows: "Drivechain"},
-	DataDirMainnet: map[string]string{osLinux: ".bitcoin", osMacOS: "Bitcoin", osWindows: "Bitcoin"},
-	IsBitcoinCore:  true,
+//go:embed chains_config.json
+var embeddedDirConfig []byte
+
+// jsonDirConfig mirrors the JSON structure for BinaryDirConfig loading.
+type jsonDirConfig struct {
+	Version  int                           `json:"version"`
+	Binaries map[string]jsonDirBinaryEntry `json:"binaries"`
 }
 
-var BitWindowDirs = BinaryDirConfig{
-	Name:       "BitWindow",
-	BinaryName: "bitwindowd",
-	ChainLayer: 1,
-	Port:       30301,
-	DataDir:    map[string]string{osLinux: "com.layertwolabs.bitwindow", osMacOS: "bitwindow", osWindows: "10520LayertwoLabs/BitWindow"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitwindow", osMacOS: "bitwindow", osWindows: "10520LayertwoLabs/BitWindow"},
+type jsonDirBinaryEntry struct {
+	Name          string `json:"name"`
+	ChainLayer    int    `json:"chain_layer"`
+	Port          int    `json:"port"`
+	IsBitcoinCore bool   `json:"is_bitcoin_core"`
+
+	Directories struct {
+		Binary          map[string]map[string]string `json:"binary"`
+		FlutterFrontend map[string]string            `json:"flutter_frontend"`
+	} `json:"directories"`
+
+	Download *struct {
+		Binary string `json:"binary"`
+	} `json:"download"`
 }
 
-var EnforcerDirs = BinaryDirConfig{
-	Name:       "Enforcer",
-	BinaryName: "bip300301-enforcer",
-	ChainLayer: 1,
-	Port:       50051,
-	DataDir:    map[string]string{osLinux: "bip300301_enforcer", osMacOS: "bip300301_enforcer", osWindows: "bip300301_enforcer"},
+var (
+	parsedDirConfigs     map[string]BinaryDirConfig
+	parsedDirConfigsOnce sync.Once
+)
+
+// loadDirConfigs parses the embedded JSON into BinaryDirConfig map, keyed by JSON key.
+func loadDirConfigs() map[string]BinaryDirConfig {
+	parsedDirConfigsOnce.Do(func() {
+		var raw jsonDirConfig
+		if err := json.Unmarshal(embeddedDirConfig, &raw); err != nil {
+			panic(fmt.Sprintf("config: failed to parse embedded chains_config.json: %v", err))
+		}
+
+		result := make(map[string]BinaryDirConfig, len(raw.Binaries))
+		for key, jb := range raw.Binaries {
+			binaryName := key
+			if jb.Download != nil && jb.Download.Binary != "" {
+				binaryName = jb.Download.Binary
+			}
+
+			dc := BinaryDirConfig{
+				Name:          jb.Name,
+				BinaryName:    binaryName,
+				ChainLayer:    jb.ChainLayer,
+				Port:          jb.Port,
+				IsBitcoinCore: jb.IsBitcoinCore,
+			}
+
+			// Parse directories.binary: "default" -> DataDir, "mainnet" -> DataDirMainnet
+			if defaultDirs, ok := jb.Directories.Binary["default"]; ok {
+				dc.DataDir = defaultDirs
+			}
+			if mainnetDirs, ok := jb.Directories.Binary["mainnet"]; ok {
+				dc.DataDirMainnet = mainnetDirs
+			}
+
+			dc.FlutterFrontendDir = jb.Directories.FlutterFrontend
+
+			result[key] = dc
+		}
+
+		parsedDirConfigs = result
+	})
+	return parsedDirConfigs
 }
 
-var ThunderDirs = BinaryDirConfig{
-	Name:       "Thunder",
-	BinaryName: "thunder",
-	ChainLayer: 2,
-	Port:       6009,
-	DataDir:    map[string]string{osLinux: "thunder", osMacOS: "Thunder", osWindows: "thunder"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.thunder", osMacOS: "com.layertwolabs.thunder", osWindows: "10520LayertwoLabs/Thunder"},
+// AllDirConfigs returns all BinaryDirConfig entries loaded from JSON.
+func AllDirConfigs() map[string]BinaryDirConfig {
+	return loadDirConfigs()
 }
 
-var BitNamesDirs = BinaryDirConfig{
-	Name:       "BitNames",
-	BinaryName: "plain_bitnames",
-	ChainLayer: 2,
-	Port:       6002,
-	DataDir:    map[string]string{osLinux: "plain_bitnames", osMacOS: "plain_bitnames", osWindows: "plain_bitnames"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitnames", osMacOS: "com.layertwolabs.bitnames", osWindows: "10520LayertwoLabs/BitNames"},
+// MustDirConfig returns the BinaryDirConfig for a JSON key, panicking if not found.
+func MustDirConfig(jsonKey string) BinaryDirConfig {
+	dc, ok := loadDirConfigs()[jsonKey]
+	if !ok {
+		panic(fmt.Sprintf("config: no dir config for key %q in chains_config.json", jsonKey))
+	}
+	return dc
 }
 
-var BitAssetsDirs = BinaryDirConfig{
-	Name:       "BitAssets",
-	BinaryName: "plain_bitassets",
-	ChainLayer: 2,
-	Port:       6004,
-	DataDir:    map[string]string{osLinux: "plain_bitassets", osMacOS: "plain_bitassets", osWindows: "plain_bitassets"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.bitassets", osMacOS: "com.layertwolabs.bitassets", osWindows: "10520LayertwoLabs/BitAssets"},
-}
-
-var ZSideDirs = BinaryDirConfig{
-	Name:       "ZSide",
-	BinaryName: "thunder-orchard",
-	ChainLayer: 2,
-	Port:       6098,
-	DataDir:    map[string]string{osLinux: "thunder-orchard", osMacOS: "thunder-orchard", osWindows: "thunder-orchard"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.zside", osMacOS: "com.layertwolabs.zside", osWindows: "10520LayertwoLabs/ZSide"},
-}
-
-var TruthcoinDirs = BinaryDirConfig{
-	Name:       "Truthcoin",
-	BinaryName: "truthcoin",
-	ChainLayer: 2,
-	Port:       6013,
-	DataDir:    map[string]string{osLinux: "truthcoin", osMacOS: "truthcoin", osWindows: "truthcoin"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.truthcoin", osMacOS: "com.layertwolabs.truthcoin", osWindows: "10520LayertwoLabs/Truthcoin"},
-}
-
-var PhotonDirs = BinaryDirConfig{
-	Name:       "Photon",
-	BinaryName: "photon",
-	ChainLayer: 2,
-	Port:       6099,
-	DataDir:    map[string]string{osLinux: "photon", osMacOS: "photon", osWindows: "photon"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.photon", osMacOS: "com.layertwolabs.photon", osWindows: "10520LayertwoLabs/Photon"},
-}
-
-var CoinShiftDirs = BinaryDirConfig{
-	Name:       "CoinShift",
-	BinaryName: "coinshift",
-	ChainLayer: 2,
-	Port:       6255,
-	DataDir:    map[string]string{osLinux: "coinshift", osMacOS: "coinshift", osWindows: "coinshift"},
-	FlutterFrontendDir: map[string]string{osLinux: "com.layertwolabs.coinshift", osMacOS: "com.layertwolabs.coinshift", osWindows: "10520LayertwoLabs/Coinshift"},
-}
+// Package-level accessors that read from JSON. These replace the old hardcoded vars.
+var (
+	BitcoinCoreDirs = MustDirConfig("bitcoincore")
+	BitWindowDirs   = MustDirConfig("bitwindow")
+	EnforcerDirs    = MustDirConfig("enforcer")
+	ThunderDirs     = MustDirConfig("thunder")
+	BitNamesDirs    = MustDirConfig("bitnames")
+	BitAssetsDirs   = MustDirConfig("bitassets")
+	ZSideDirs       = MustDirConfig("zside")
+	TruthcoinDirs   = MustDirConfig("truthcoin")
+	PhotonDirs      = MustDirConfig("photon")
+	CoinShiftDirs   = MustDirConfig("coinshift")
+)
 
 // DirConfigByName returns the BinaryDirConfig for a given binary name.
 func DirConfigByName(name string) (BinaryDirConfig, bool) {
-	all := []BinaryDirConfig{
-		BitcoinCoreDirs, BitWindowDirs, EnforcerDirs, ThunderDirs,
-		BitNamesDirs, BitAssetsDirs, ZSideDirs, TruthcoinDirs,
-		PhotonDirs, CoinShiftDirs,
-	}
 	lower := strings.ToLower(name)
-	for _, d := range all {
+	for _, d := range loadDirConfigs() {
 		if strings.ToLower(d.Name) == lower || strings.ToLower(d.BinaryName) == lower {
 			return d, true
 		}

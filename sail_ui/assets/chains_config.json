@@ -10,6 +10,23 @@
       "port": 0,
       "chain_layer": 1,
       "color": "green",
+      "is_bitcoin_core": true,
+      "health_check": {
+        "type": "jsonrpc",
+        "rpc_method": "getblockcount"
+      },
+      "dependencies": [],
+      "startup_log_patterns": [
+        "init message:",
+        "Verifying last \\d+ blocks",
+        "Verification progress: \\d+%",
+        "Verification: No coin database inconsistencies",
+        "Loading block index",
+        "Done loading",
+        "Synchronizing blockheaders",
+        "Rescan completed in",
+        "Rescan started from block"
+      ],
       "directories": {
         "binary": {
           "default": {
@@ -64,6 +81,11 @@
       "port": 30301,
       "chain_layer": 1,
       "color": "green",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -100,6 +122,35 @@
       "port": 50051,
       "chain_layer": 1,
       "color": "green",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind"],
+      "startup_log_patterns": [
+        "Starting up bip300301_enforcer",
+        "verified mainchain REST server is enabled",
+        "verified mainchain REST server at",
+        "created mainchain JSON-RPC client",
+        "Connected to mainchain client network=\\w+ blocks=\\d+",
+        "Created validator DBs in",
+        "Instantiating \\w+ wallet",
+        "creating esplora client esplora_url=",
+        "esplora client initialized height=\\d+",
+        "Created database connection to",
+        "Loaded existing BDK wallet",
+        "wallet inner: wired together components",
+        "Listening for JSON-RPC on",
+        "Listening for gRPC on",
+        "Connected to ZMQ server",
+        "Reached main tip at height \\d+!",
+        "Synced \\d+ headers in",
+        "starting batched sync",
+        "Synced batch of \\d+ blocks in",
+        "Synced \\d+ blocks in",
+        "enforcer synced to tip!",
+        "Initial mempool sync complete",
+        "initial_mempool_sync:"
+      ],
       "directories": {
         "binary": {
           "default": {
@@ -136,6 +187,11 @@
       "port": 0,
       "chain_layer": 0,
       "color": "green",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": [],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -172,6 +228,11 @@
       "port": 30302,
       "chain_layer": 1,
       "color": "orange",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": [],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -208,6 +269,11 @@
       "port": 30303,
       "chain_layer": 1,
       "color": "blue",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": [],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -245,6 +311,11 @@
       "port": 6009,
       "chain_layer": 2,
       "color": "purple",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -300,6 +371,11 @@
       "port": 6002,
       "chain_layer": 2,
       "color": "green",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -355,6 +431,11 @@
       "port": 6004,
       "chain_layer": 2,
       "color": "blue",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -410,6 +491,11 @@
       "port": 6013,
       "chain_layer": 2,
       "color": "orange",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -465,6 +551,11 @@
       "port": 6099,
       "chain_layer": 2,
       "color": "purple",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -520,6 +611,11 @@
       "port": 6255,
       "chain_layer": 2,
       "color": "orange",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
@@ -575,6 +671,11 @@
       "port": 6098,
       "chain_layer": 2,
       "color": "blue",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
