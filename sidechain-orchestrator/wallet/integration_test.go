@@ -206,7 +206,8 @@ func TestWalletIntegration(t *testing.T) {
 		err = nodeA.MineToAddress(ctx, 101, addr)
 		require.NoError(t, err)
 
-		// GetBalance → verify > 0.
+		// GetBalance → verify > 0 (poll on Windows where indexing is slow).
+		nodeA.WaitForBalance(t)
 		balResp, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
 		require.NoError(t, err)
 		require.Greater(t, balResp.Msg.ConfirmedSats, float64(0), "balance should be positive after mining")
@@ -349,6 +350,7 @@ func TestWalletIntegration(t *testing.T) {
 		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: wallet2ID}))
 		require.NoError(t, err)
 
+		nodeA.WaitForBalance(t)
 		balResp, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
 		require.NoError(t, err)
 		require.Greater(t, balResp.Msg.ConfirmedSats, float64(0), "second wallet should have received funds")
@@ -414,6 +416,7 @@ func TestWalletIntegration(t *testing.T) {
 		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: woID}))
 		require.NoError(t, err)
 
+		nodeA.WaitForBalance(t)
 		balResp, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
 		require.NoError(t, err)
 		require.Greater(t, balResp.Msg.ConfirmedSats, float64(0), "watch-only should see balance")

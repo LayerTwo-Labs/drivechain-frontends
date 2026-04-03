@@ -85,6 +85,27 @@ func (n *Node) FundWallet(t *testing.T) string {
 	return addr
 }
 
+// WaitForBalance polls the wallet balance until it's > 0 or times out.
+// Bitcoin Core on some platforms (Windows) may take a moment to index new blocks.
+func (n *Node) WaitForBalance(t *testing.T) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			t.Fatalf("testharness[%s]: balance did not become positive within 30s", n.Name)
+		default:
+		}
+		resp, err := n.WalletClient.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+		if err == nil && resp.Msg.ConfirmedSats > 0 {
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
 // ConnectTo adds a p2p connection from this node to another.
 func (n *Node) ConnectTo(t *testing.T, other *Node) {
 	t.Helper()
