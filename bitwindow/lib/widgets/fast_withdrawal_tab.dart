@@ -1,21 +1,16 @@
-import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/providers/fast_withdrawal_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class FastWithdrawalTab extends StatelessWidget {
   const FastWithdrawalTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<FastWithdrawalTabViewModel>.reactive(
-      viewModelBuilder: () => FastWithdrawalTabViewModel(),
-      builder: (context, viewModel, child) {
+    return ListenableBuilder(
+      listenable: GetIt.I.get<FastWithdrawalProvider>(),
+      builder: (context, _) {
         return SingleChildScrollView(
           child: FastWithdrawalForm(),
         );
@@ -24,11 +19,12 @@ class FastWithdrawalTab extends StatelessWidget {
   }
 }
 
-class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
+class FastWithdrawalForm extends StatelessWidget {
   const FastWithdrawalForm({super.key});
 
   @override
-  Widget build(BuildContext context, FastWithdrawalTabViewModel viewModel) {
+  Widget build(BuildContext context) {
+    final provider = GetIt.I.get<FastWithdrawalProvider>();
     final theme = SailTheme.of(context);
 
     if (!GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains) {
@@ -38,51 +34,70 @@ class FastWithdrawalForm extends ViewModelWidget<FastWithdrawalTabViewModel> {
       );
     }
 
-    if (viewModel.isUsingBitcoinCoreWallet) {
+    final walletReader = GetIt.I.get<WalletReaderProvider>();
+    final activeWallet = walletReader.activeWallet;
+    if (activeWallet != null && activeWallet.walletType != BinaryType.enforcer) {
       return SailCard(
         error: 'Switch to your enforcer wallet to interact with sidechains',
         child: SizedBox(),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!viewModel.isCompleted) ...[
-          if (viewModel.withdrawalHash == null)
-            _WithdrawalForm(viewModel: viewModel, colors: theme.colors)
-          else
-            _PaymentSection(viewModel: viewModel, colors: theme.colors),
-        ] else
-          _SuccessSection(viewModel: viewModel),
-      ],
-    );
+    switch (provider.stage) {
+      case FastWithdrawalStage.idle:
+      case FastWithdrawalStage.requesting:
+        return _WithdrawalForm(provider: provider, colors: theme.colors);
+      case FastWithdrawalStage.awaitingPayment:
+      case FastWithdrawalStage.sendingL2:
+      case FastWithdrawalStage.completing:
+        return _PaymentSection(provider: provider, colors: theme.colors);
+      case FastWithdrawalStage.done:
+        return _SuccessSection(provider: provider);
+      case FastWithdrawalStage.error:
+        return _ErrorSection(provider: provider, colors: theme.colors);
+    }
   }
 }
 
-class _WithdrawalForm extends StatelessWidget {
-  final FastWithdrawalTabViewModel viewModel;
+class _WithdrawalForm extends StatefulWidget {
+  final FastWithdrawalProvider provider;
   final SailColor colors;
 
-  const _WithdrawalForm({required this.viewModel, required this.colors});
+  const _WithdrawalForm({required this.provider, required this.colors});
+
+  @override
+  State<_WithdrawalForm> createState() => _WithdrawalFormState();
+}
+
+class _WithdrawalFormState extends State<_WithdrawalForm> {
+  final TextEditingController amountController = TextEditingController();
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = widget.provider;
+    final isRequesting = provider.stage == FastWithdrawalStage.requesting;
+
     return SailCard(
       title: 'Fast Withdrawal',
       subtitle: 'Quickly withdraw L2 coins to your L1-wallet',
       padding: true,
-      error: viewModel.errorMessage,
+      error: provider.errorMessage,
       child: SailColumn(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: SailStyleValues.padding16,
         children: [
           SailTextField(
             label: 'Withdraw amount (BTC)',
-            controller: viewModel.amountController,
+            controller: amountController,
             hintText: 'How much do you want to withdraw?',
             suffixWidget: PasteButton(
-              onPaste: (text) => viewModel.amountController.text = text,
+              onPaste: (text) => amountController.text = text,
             ),
           ),
           Column(
@@ -92,9 +107,9 @@ class _WithdrawalForm extends StatelessWidget {
               const SizedBox(height: 8),
               SailDropdownButton(
                 items: ['Thunder', 'BitNames'].map((chain) => SailDropdownItem(label: chain, value: chain)).toList(),
-                value: viewModel.layer2Chain,
+                value: provider.layer2Chain,
                 onChanged: (dynamic value) {
-                  viewModel.setLayer2Chain(value as String);
+                  provider.setLayer2Chain(value as String);
                 },
               ),
             ],
@@ -108,12 +123,12 @@ class _WithdrawalForm extends StatelessWidget {
                     SailText.secondary13('Using fast withdrawal server'),
                     const SizedBox(height: 8),
                     SailDropdownButton(
-                      items: FastWithdrawalTabViewModel.fastWithdrawalServers
+                      items: FastWithdrawalProvider.fastWithdrawalServers
                           .map((e) => SailDropdownItem(label: e['name']!, value: e['url']!))
                           .toList(),
-                      value: viewModel.selectedServer,
+                      value: provider.selectedServer,
                       onChanged: (dynamic value) {
-                        viewModel.setSelectedServer(value as String);
+                        provider.setSelectedServer(value as String);
                       },
                     ),
                   ],
@@ -123,9 +138,12 @@ class _WithdrawalForm extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           SailButton(
-            label: 'Request Withdrawal',
-            onPressed: () => viewModel.requestWithdrawal(),
+            label: isRequesting ? 'Requesting...' : 'Request Withdrawal',
+            onPressed: isRequesting
+                ? null
+                : () => provider.requestWithdrawal(amountController.text),
             variant: ButtonVariant.primary,
+            loading: isRequesting,
           ),
         ],
       ),
@@ -133,30 +151,56 @@ class _WithdrawalForm extends StatelessWidget {
   }
 }
 
-class _PaymentSection extends StatelessWidget {
-  final FastWithdrawalTabViewModel viewModel;
+class _PaymentSection extends StatefulWidget {
+  final FastWithdrawalProvider provider;
   final SailColor colors;
 
-  const _PaymentSection({required this.viewModel, required this.colors});
+  const _PaymentSection({required this.provider, required this.colors});
+
+  @override
+  State<_PaymentSection> createState() => _PaymentSectionState();
+}
+
+class _PaymentSectionState extends State<_PaymentSection> {
+  final TextEditingController paymentTxIdController = TextEditingController();
+
+  @override
+  void dispose() {
+    paymentTxIdController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = widget.provider;
+    final colors = widget.colors;
+    final isSendingL2 = provider.stage == FastWithdrawalStage.sendingL2;
+    final isCompleting = provider.stage == FastWithdrawalStage.completing;
+    final isBusy = isSendingL2 || isCompleting;
+
     return SailCard(
       title: 'Complete withdrawal',
-      subtitle: 'Send funds to the info below to complete the withdrawal',
-      error: viewModel.errorMessage,
+      subtitle: isSendingL2
+          ? 'Sending L2 coins...'
+          : isCompleting
+              ? 'Completing withdrawal...'
+              : 'Send funds to the info below to complete the withdrawal',
+      error: provider.errorMessage,
       widgetHeaderEnd: SailButton(
         label: 'Cancel Withdrawal',
-        onPressed: () async {
-          viewModel.resetState();
-        },
+        onPressed: isBusy
+            ? null
+            : () async {
+                provider.reset();
+              },
         variant: ButtonVariant.destructive,
       ),
       child: SailColumn(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: SailStyleValues.padding16,
         children: [
-          if (viewModel.paymentMessage != null)
+          // Show L2 address and amount
+          if (provider.l2Address != null && provider.l2Amount != null)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -168,63 +212,101 @@ class _PaymentSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: SailStyleValues.padding08,
                 children: [
-                  SailText.primary13('Send L2 ${viewModel.layer2Chain} Coins to the info below'),
+                  SailText.primary13('Send L2 ${provider.layer2Chain} Coins to the info below'),
                   SailTextField(
-                    controller: TextEditingController(text: viewModel.paymentMessage!['amount']),
+                    controller: TextEditingController(text: provider.l2Amount),
                     hintText: 'Amount',
                     readOnly: true,
-                    suffixWidget: CopyButton(text: viewModel.paymentMessage!['amount']),
+                    suffixWidget: CopyButton(text: provider.l2Amount!),
                   ),
                   SailTextField(
-                    controller: TextEditingController(text: viewModel.paymentMessage!['address']),
+                    controller: TextEditingController(text: provider.l2Address),
                     hintText: 'L2 address',
                     readOnly: true,
-                    suffixWidget: CopyButton(text: viewModel.paymentMessage!['address']),
+                    suffixWidget: CopyButton(text: provider.l2Address!),
                   ),
                 ],
               ),
             ),
-          Row(
-            children: [
-              Expanded(
-                child: SailTextField(
-                  label: 'Paste the L2 txid here to complete the withdrawal',
-                  controller: viewModel.paymentTxIdController,
-                  hintText: 'Paste L2 payment txid',
-                  suffixWidget: PasteButton(
-                    onPaste: (text) => viewModel.paymentTxIdController.text = text,
+
+          // Progress indicator when busy
+          if (isBusy)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colors.border),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 12),
+                  SailText.primary13(
+                    isSendingL2 ? 'Sending L2 coins...' : 'Completing withdrawal with server...',
+                  ),
+                ],
+              ),
+            ),
+
+          // Auto-send button (only if sidechain RPC is available and not busy)
+          if (!isBusy && provider.canAutoSend)
+            SailButton(
+              label: 'Send & Complete Automatically',
+              onPressed: () => provider.sendL2AndComplete(null),
+              variant: ButtonVariant.primary,
+            ),
+
+          // Manual txid paste (always available when not busy)
+          if (!isBusy)
+            Row(
+              children: [
+                Expanded(
+                  child: SailTextField(
+                    label: 'Or paste the L2 txid manually',
+                    controller: paymentTxIdController,
+                    hintText: 'Paste L2 payment txid',
+                    suffixWidget: PasteButton(
+                      onPaste: (text) => paymentTxIdController.text = text,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              SailButton(
-                label: 'Complete Withdrawal',
-                onPressed: () => viewModel.completeWithdrawal(),
-                variant: ButtonVariant.primary,
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colors.backgroundSecondary,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: colors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.secondary13('Withdrawal Hash:'),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: SailText.primary13(viewModel.withdrawalHash!)),
-                    CopyButton(text: viewModel.withdrawalHash!),
-                  ],
+                const SizedBox(width: 16),
+                SailButton(
+                  label: 'Complete Withdrawal',
+                  onPressed: () => provider.sendL2AndComplete(paymentTxIdController.text),
+                  variant: ButtonVariant.secondary,
                 ),
               ],
             ),
-          ),
+
+          // Withdrawal hash
+          if (provider.withdrawalHash != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.secondary13('Withdrawal Hash:'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(child: SailText.primary13(provider.withdrawalHash!)),
+                      CopyButton(text: provider.withdrawalHash!),
+                    ],
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -232,9 +314,9 @@ class _PaymentSection extends StatelessWidget {
 }
 
 class _SuccessSection extends StatelessWidget {
-  final FastWithdrawalTabViewModel viewModel;
+  final FastWithdrawalProvider provider;
 
-  const _SuccessSection({required this.viewModel});
+  const _SuccessSection({required this.provider});
 
   @override
   Widget build(BuildContext context) {
@@ -254,12 +336,13 @@ class _SuccessSection extends StatelessWidget {
           SailText.secondary13(
             'Coins are on their way to your L1-wallet and should show up in your unconfirmed balance soon.',
           ),
-          SailText.secondary13('TXID: ${viewModel.successMessage}'),
+          if (provider.l1Txid != null) SailText.secondary13('L1 TXID: ${provider.l1Txid}'),
+          if (provider.l2Txid != null) SailText.secondary13('L2 TXID: ${provider.l2Txid}'),
           const SizedBox(height: 16),
           SailButton(
             label: 'Start New Withdrawal',
             onPressed: () async {
-              viewModel.resetState();
+              provider.reset();
             },
             variant: ButtonVariant.primary,
           ),
@@ -269,199 +352,45 @@ class _SuccessSection extends StatelessWidget {
   }
 }
 
-class FastWithdrawalTabViewModel extends BaseViewModel {
-  final Logger log = GetIt.I.get<Logger>();
-  TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
-  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+class _ErrorSection extends StatelessWidget {
+  final FastWithdrawalProvider provider;
+  final SailColor colors;
 
-  String get address => transactionsProvider.address;
+  const _ErrorSection({required this.provider, required this.colors});
 
-  bool get isUsingBitcoinCoreWallet {
-    final activeWallet = _walletReader.activeWallet;
-    if (activeWallet == null) return false;
-    return activeWallet.walletType != BinaryType.enforcer;
-  }
-
-  // Fast withdrawal server configuration
-  static const List<Map<String, String>> fastWithdrawalServers = [
-    {
-      'name': 'fw1.drivechain.info (L2L #1)',
-      'url': 'https://fw1.drivechain.info',
-    },
-    {
-      'name': 'fw2.drivechain.info (L2L #2)',
-      'url': 'https://fw2.drivechain.info',
-    },
-  ];
-
-  static String get defaultServer => fastWithdrawalServers[0]['url']!;
-
-  // Form state
-  String selectedServer = defaultServer;
-  String layer2Chain = 'Thunder';
-  String amount = '';
-  String? withdrawalHash;
-  String paymentTxid = '';
-  Map<String, dynamic>? paymentMessage;
-  String successMessage = '';
-  String errorMessage = '';
-  bool isCompleted = false;
-
-  // Clipboard states
-  Map<String, bool> copiedStates = {};
-
-  // Controllers
-  final TextEditingController amountController = TextEditingController();
-  final TextEditingController paymentTxIdController = TextEditingController();
-
-  void setSelectedServer(String server) {
-    selectedServer = server;
-    notifyListeners();
-  }
-
-  void setLayer2Chain(String chain) {
-    layer2Chain = chain;
-    notifyListeners();
-  }
-
-  void clearError() {
-    errorMessage = '';
-    notifyListeners();
-  }
-
-  Future<void> pasteFromClipboard(TextEditingController controller) async {
-    try {
-      final data = await Clipboard.getData(Clipboard.kTextPlain);
-      if (data?.text != null) {
-        controller.text = data!.text!;
-        notifyListeners();
-      }
-    } catch (error) {
-      log.e('could not paste from clipboard: $error');
-    }
-  }
-
-  Future<void> copyToClipboard(String text) async {
-    try {
-      await Clipboard.setData(ClipboardData(text: text));
-      copiedStates['hash'] = true;
-      notifyListeners();
-
-      // Reset copied state after 2 seconds
-      Future.delayed(const Duration(seconds: 2), () {
-        copiedStates['hash'] = false;
-        notifyListeners();
-      });
-    } catch (error) {
-      log.e('could not copy to clipboard: $error');
-    }
-  }
-
-  Future<void> requestWithdrawal() async {
-    try {
-      errorMessage = '';
-
-      // Validate inputs
-      final amountValue = double.tryParse(amountController.text);
-      if (amountValue == null || amountValue <= 0) {
-        throw Exception('Amount must be greater than 0');
-      }
-
-      if (address.isEmpty) {
-        throw Exception('Address not loaded yet, please wait for enforcer to start and wallet to sync..');
-      }
-
-      // Make actual API call
-      final url = Uri.parse('$selectedServer/withdraw');
-      final body = {
-        'withdrawal_destination': address,
-        'withdrawal_amount': amountValue.toString(),
-        'layer_2_chain_name': layer2Chain,
-      };
-
-      log.i('requesting withdrawal from $url with params: ${jsonEncode(body)}');
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
-
-      final responseData = jsonDecode(response.body);
-
-      if (responseData['status'] != 'success') {
-        throw Exception(responseData['error'] ?? 'Withdrawal request failed');
-      }
-
-      final result = responseData['data'];
-
-      // Handle the response
-      if (result['server_l2_address']?['info'] == null) {
-        log.i('HMMM: $result');
-        final errorMessage = result['error'] ?? jsonEncode(result);
-        throw Exception('Withdrawal request failed: $errorMessage');
-      }
-
-      withdrawalHash = result['hash'];
-      final totalAmount = (amountValue + (result['server_fee_sats'] as int) / 100000000).toString();
-      paymentMessage = {
-        'amount': totalAmount,
-        'address': result['server_l2_address']['info'],
-      };
-
-      notifyListeners();
-    } catch (error) {
-      errorMessage = error.toString();
-      notifyListeners();
-    }
-  }
-
-  Future<void> completeWithdrawal() async {
-    try {
-      errorMessage = '';
-
-      if (paymentTxIdController.text.trim().isEmpty) {
-        throw Exception('Please enter your L2 payment transaction ID');
-      }
-
-      // Make actual API call
-      final url = Uri.parse('$selectedServer/paid');
-      final body = {
-        'hash': withdrawalHash!,
-        'txid': paymentTxIdController.text.trim(),
-      };
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
-
-      final responseData = jsonDecode(response.body);
-
-      if (responseData['status'] != 'success') {
-        throw Exception(responseData['error'] ?? 'Payment notification failed');
-      }
-
-      successMessage = responseData['message']['info'];
-      isCompleted = true;
-
-      notifyListeners();
-    } catch (error) {
-      errorMessage = error.toString();
-      notifyListeners();
-    }
-  }
-
-  void resetState() {
-    amountController.clear();
-    paymentTxIdController.clear();
-    withdrawalHash = null;
-    paymentMessage = null;
-    successMessage = '';
-    errorMessage = '';
-    isCompleted = false;
-    copiedStates.clear();
-    notifyListeners();
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      title: 'Withdrawal Error',
+      error: provider.errorMessage,
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        children: [
+          Row(
+            children: [
+              SailButton(
+                label: 'Try Again',
+                onPressed: () async {
+                  provider.reset();
+                },
+                variant: ButtonVariant.primary,
+              ),
+              const SizedBox(width: 16),
+              if (provider.withdrawalHash != null)
+                SailButton(
+                  label: 'Back to Payment',
+                  onPressed: () async {
+                    // Go back to awaiting payment stage so user can retry completing
+                    provider.errorMessage = null;
+                    provider.stage = FastWithdrawalStage.awaitingPayment;
+                    provider.notifyListeners();
+                  },
+                  variant: ButtonVariant.secondary,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
