@@ -244,11 +244,11 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final response = await _client().call('transfer', {
-      'dest': address,
-      'value_sats': btcToSatoshi(amount),
-      'fee_sats': btcToSatoshi(0.00001), // Fixed fee
-    });
+    final response = await _client().call('transfer', [
+      address,
+      btcToSatoshi(amount),
+      btcToSatoshi(0.00001), // Fixed fee
+    ]);
     return response as String;
   }
 

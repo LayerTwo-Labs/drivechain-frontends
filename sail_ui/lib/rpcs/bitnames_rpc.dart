@@ -320,13 +320,13 @@ class BitnamesLive extends BitnamesRPC {
 
   /// Sign an arbitrary message with the specified verifying key
   Future<String> signArbitraryMessage(String message, String verifyingKey) async {
-    final response = await _client().call('sign_arbitrary_msg', {'msg': message, 'verifying_key': verifyingKey});
+    final response = await _client().call('sign_arbitrary_msg', [message, verifyingKey]);
     return response as String;
   }
 
   /// Sign a message with the secret key for the specified address
   Future<Map<String, String>> signArbitraryMessageAsAddress(String message, String address) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', {'msg': message, 'address': address});
+    final response = await _client().call('sign_arbitrary_msg_as_addr', [message, address]);
     return {'verifying_key': response['verifying_key'] as String, 'signature': response['signature'] as String};
   }
 
@@ -416,11 +416,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> createDeposit({required String address, required int feeSats, required int valueSats}) async {
-    final response = await _client().call('create_deposit', {
-      'address': address,
-      'fee_sats': feeSats,
-      'value_sats': valueSats,
-    });
+    final response = await _client().call('create_deposit', [address, valueSats, feeSats]);
     return response as String;
   }
 
@@ -483,13 +479,13 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
-    final response = await _client().call('sign_arbitrary_msg', {'msg': msg, 'verifying_key': verifyingKey});
+    final response = await _client().call('sign_arbitrary_msg', [msg, verifyingKey]);
     return response as String;
   }
 
   @override
   Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', {'msg': msg, 'address': address});
+    final response = await _client().call('sign_arbitrary_msg_as_addr', [msg, address]);
     return {'verifying_key': response['verifying_key'] as String, 'signature': response['signature'] as String};
   }
 
@@ -501,7 +497,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
-    final response = await _client().call('transfer', {'dest': dest, 'value': value, 'fee': fee, 'memo': memo});
+    final response = await _client().call('transfer', [dest, value, fee, memo]);
     return response as String;
   }
 
