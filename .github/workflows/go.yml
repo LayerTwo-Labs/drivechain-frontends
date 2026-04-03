@@ -7,12 +7,23 @@ on:
       - "thunder/server/**"
       - "sidechain-orchestrator/**"
       - "faucet/server/**"
+      - "sail_ui/assets/chains_config.json"
       - ".github/workflows/go.yml"
 
 env:
   GO_VERSION: "1.25"
 
 jobs:
+  config-sync:
+    name: chains_config.json sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate chains_config.json copies are identical
+        run: |
+          diff sidechain-orchestrator/chains_config.json sail_ui/assets/chains_config.json
+          diff sidechain-orchestrator/chains_config.json sidechain-orchestrator/config/chains_config.json
+
   golangci-lint:
     name: lint (${{ matrix.module }})
     runs-on: ubuntu-latest

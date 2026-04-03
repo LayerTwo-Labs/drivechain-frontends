@@ -136,7 +136,9 @@ func TestDownload_SkipsWhenExists(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(binPath), 0o755))
 	require.NoError(t, os.WriteFile(binPath, []byte("existing"), 0o755))
 
-	ch, err := dm.Download(context.Background(), DefaultThunder(), "default", false)
+	thunderCfg, ok := BinaryConfigByName("thunder")
+	require.True(t, ok, "thunder config must exist")
+	ch, err := dm.Download(context.Background(), thunderCfg, "default", false)
 	require.NoError(t, err)
 
 	last := drainProgress(t, ch)
