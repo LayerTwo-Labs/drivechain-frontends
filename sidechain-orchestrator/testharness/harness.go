@@ -47,9 +47,10 @@ func New(t *testing.T, nodeCount int) *Harness {
 		log:     log,
 	}
 
+	portBase := randomPortBase()
 	for i := 0; i < nodeCount; i++ {
 		name := fmt.Sprintf("node%d", i)
-		rpcPort, p2pPort, grpcPort := testPorts(i)
+		rpcPort, p2pPort, grpcPort := testPorts(portBase, i)
 		n := newNode(t, name, rootDir, bitcoindBin, orchBin, rpcPort, p2pPort, grpcPort, log)
 		h.Nodes = append(h.Nodes, n)
 	}

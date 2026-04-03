@@ -42,16 +42,23 @@ type Node struct {
 	closeOnce sync.Once
 }
 
-// testPorts returns ports for a test run using a random base to avoid
-// collisions with TIME_WAIT sockets from previous runs.
-// Ports are spaced 100 apart because Bitcoin Core binds extra ports
-// near rpcport (e.g. rpcport+2 for evhttp).
-func testPorts(nodeIndex int) (rpcPort, p2pPort, grpcPort int) {
+// testPorts returns ports for a test run. A single random base is chosen per
+// harness (via randomPortBase), then each node gets a 300-wide band:
+//   node0: base, base+100, base+200
+//   node1: base+300, base+400, base+500
+//   ...
+// This avoids the previous bug where each call generated independent random
+// bases that could collide.
+func testPorts(base, nodeIndex int) (rpcPort, p2pPort, grpcPort int) {
+	nodeBase := base + nodeIndex*300
+	return nodeBase, nodeBase + 100, nodeBase + 200
+}
+
+// randomPortBase picks a random base port in 40000-59000 range.
+func randomPortBase() int {
 	b := make([]byte, 2)
 	_, _ = rand.Read(b)
-	// Random base in 40000-49000, each node gets a 1000-wide band.
-	base := 40000 + int(b[0])%90*100 + nodeIndex*1000
-	return base, base + 100, base + 200
+	return 40000 + int(b[0])%190*100
 }
 
 // newNode creates and starts a fully-wired Node with real subprocesses.
