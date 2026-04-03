@@ -12,10 +12,22 @@
       "color": "green",
       "directories": {
         "binary": {
-          "default": { "linux": ".drivechain", "macos": "Drivechain", "windows": "Drivechain" },
-          "mainnet": { "linux": ".bitcoin", "macos": "Bitcoin", "windows": "Bitcoin" }
+          "default": {
+            "linux": ".drivechain",
+            "macos": "Drivechain",
+            "windows": "Drivechain"
+          },
+          "mainnet": {
+            "linux": ".bitcoin",
+            "macos": "Bitcoin",
+            "windows": "Bitcoin"
+          }
         },
-        "flutter_frontend": { "linux": "", "macos": "", "windows": "" }
+        "flutter_frontend": {
+          "linux": "",
+          "macos": "",
+          "windows": ""
+        }
       },
       "download": {
         "binary": "bitcoind",
@@ -34,7 +46,11 @@
           }
         },
         "extract_subfolder": {
-          "forknet": { "linux": "forknet", "macos": "forknet", "windows": "forknet" }
+          "forknet": {
+            "linux": "forknet",
+            "macos": "forknet",
+            "windows": "forknet"
+          }
         }
       },
       "hashes": {}
@@ -50,9 +66,17 @@
       "color": "green",
       "directories": {
         "binary": {
-          "default": { "linux": "bitwindow", "macos": "bitwindow", "windows": "bitwindow" }
+          "default": {
+            "linux": "com.layertwolabs.bitwindow",
+            "macos": "bitwindow",
+            "windows": "10520LayertwoLabs/BitWindow"
+          }
         },
-        "flutter_frontend": { "linux": "bitwindow", "macos": "bitwindow", "windows": "bitwindow" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.bitwindow",
+          "macos": "bitwindow",
+          "windows": "10520LayertwoLabs/BitWindow"
+        }
       },
       "download": {
         "binary": "bitwindowd",
@@ -78,9 +102,17 @@
       "color": "green",
       "directories": {
         "binary": {
-          "default": { "linux": "bip300301_enforcer", "macos": "bip300301_enforcer", "windows": "bip300301_enforcer" }
+          "default": {
+            "linux": "bip300301_enforcer",
+            "macos": "bip300301_enforcer",
+            "windows": "bip300301_enforcer"
+          }
         },
-        "flutter_frontend": { "linux": "", "macos": "", "windows": "" }
+        "flutter_frontend": {
+          "linux": "",
+          "macos": "",
+          "windows": ""
+        }
       },
       "download": {
         "binary": "bip300301-enforcer",
@@ -106,9 +138,17 @@
       "color": "green",
       "directories": {
         "binary": {
-          "default": { "linux": "grpcurl", "macos": "grpcurl", "windows": "grpcurl" }
+          "default": {
+            "linux": "grpcurl",
+            "macos": "grpcurl",
+            "windows": "grpcurl"
+          }
         },
-        "flutter_frontend": { "linux": "grpcurl", "macos": "grpcurl", "windows": "grpcurl" }
+        "flutter_frontend": {
+          "linux": "grpcurl",
+          "macos": "grpcurl",
+          "windows": "grpcurl"
+        }
       },
       "download": {
         "binary": "grpcurl",
@@ -134,9 +174,17 @@
       "color": "orange",
       "directories": {
         "binary": {
-          "default": { "linux": "thunder", "macos": "thunder", "windows": "thunder" }
+          "default": {
+            "linux": "thunder",
+            "macos": "thunder",
+            "windows": "thunder"
+          }
         },
-        "flutter_frontend": { "linux": "thunder", "macos": "thunder", "windows": "thunder" }
+        "flutter_frontend": {
+          "linux": "thunder",
+          "macos": "thunder",
+          "windows": "thunder"
+        }
       },
       "download": {
         "binary": "thunderd",
@@ -162,9 +210,17 @@
       "color": "blue",
       "directories": {
         "binary": {
-          "default": { "linux": "zside", "macos": "zside", "windows": "zside" }
+          "default": {
+            "linux": "zside",
+            "macos": "zside",
+            "windows": "zside"
+          }
         },
-        "flutter_frontend": { "linux": "zside", "macos": "zside", "windows": "zside" }
+        "flutter_frontend": {
+          "linux": "zside",
+          "macos": "zside",
+          "windows": "zside"
+        }
       },
       "download": {
         "binary": "zsided",
@@ -191,9 +247,17 @@
       "color": "purple",
       "directories": {
         "binary": {
-          "default": { "linux": "thunder", "macos": "Thunder", "windows": "thunder" }
+          "default": {
+            "linux": "thunder",
+            "macos": "Thunder",
+            "windows": "thunder"
+          }
         },
-        "flutter_frontend": { "linux": "com.layertwolabs.thunder", "macos": "com.layertwolabs.thunder", "windows": "com.layertwolabs.thunder" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.thunder",
+          "macos": "com.layertwolabs.thunder",
+          "windows": "10520LayertwoLabs/Thunder"
+        }
       },
       "download": {
         "binary": "thunder",
@@ -217,7 +281,11 @@
           }
         },
         "extract_subfolder": {
-          "default": { "linux": "thunder", "macos": "", "windows": "" }
+          "default": {
+            "linux": "thunder",
+            "macos": "",
+            "windows": ""
+          }
         }
       },
       "hashes": {}
@@ -234,9 +302,17 @@
       "color": "green",
       "directories": {
         "binary": {
-          "default": { "linux": "plain_bitnames", "macos": "plain_bitnames", "windows": "plain_bitnames" }
+          "default": {
+            "linux": "plain_bitnames",
+            "macos": "plain_bitnames",
+            "windows": "plain_bitnames"
+          }
         },
-        "flutter_frontend": { "linux": "com.layertwolabs.bitnames", "macos": "com.layertwolabs.bitnames", "windows": "com.layertwolabs.bitnames" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.bitnames",
+          "macos": "com.layertwolabs.bitnames",
+          "windows": "10520LayertwoLabs/BitNames"
+        }
       },
       "download": {
         "binary": "bitnames",
@@ -260,7 +336,11 @@
           }
         },
         "extract_subfolder": {
-          "default": { "linux": "bitnames", "macos": "", "windows": "" }
+          "default": {
+            "linux": "bitnames",
+            "macos": "",
+            "windows": ""
+          }
         }
       },
       "hashes": {}
@@ -277,9 +357,17 @@
       "color": "blue",
       "directories": {
         "binary": {
-          "default": { "linux": "plain_bitassets", "macos": "plain_bitassets", "windows": "plain_bitassets" }
+          "default": {
+            "linux": "plain_bitassets",
+            "macos": "plain_bitassets",
+            "windows": "plain_bitassets"
+          }
         },
-        "flutter_frontend": { "linux": "com.layertwolabs.bitassets", "macos": "com.layertwolabs.bitassets", "windows": "com.layertwolabs.bitassets" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.bitassets",
+          "macos": "com.layertwolabs.bitassets",
+          "windows": "10520LayertwoLabs/BitAssets"
+        }
       },
       "download": {
         "binary": "bitassets",
@@ -303,7 +391,11 @@
           }
         },
         "extract_subfolder": {
-          "default": { "linux": "bitassets", "macos": "", "windows": "" }
+          "default": {
+            "linux": "bitassets",
+            "macos": "",
+            "windows": ""
+          }
         }
       },
       "hashes": {}
@@ -320,9 +412,17 @@
       "color": "orange",
       "directories": {
         "binary": {
-          "default": { "linux": "truthcoin", "macos": "truthcoin", "windows": "truthcoin" }
+          "default": {
+            "linux": "truthcoin",
+            "macos": "truthcoin",
+            "windows": "truthcoin"
+          }
         },
-        "flutter_frontend": { "linux": "com.layertwolabs.truthcoin", "macos": "com.layertwolabs.truthcoin", "windows": "com.layertwolabs.truthcoin" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.truthcoin",
+          "macos": "com.layertwolabs.truthcoin",
+          "windows": "10520LayertwoLabs/Truthcoin"
+        }
       },
       "download": {
         "binary": "truthcoin",
@@ -346,7 +446,11 @@
           }
         },
         "extract_subfolder": {
-          "default": { "linux": "truthcoin", "macos": "", "windows": "" }
+          "default": {
+            "linux": "truthcoin",
+            "macos": "",
+            "windows": ""
+          }
         }
       },
       "hashes": {}
@@ -363,9 +467,17 @@
       "color": "purple",
       "directories": {
         "binary": {
-          "default": { "linux": "photon", "macos": "photon", "windows": "photon" }
+          "default": {
+            "linux": "photon",
+            "macos": "photon",
+            "windows": "photon"
+          }
         },
-        "flutter_frontend": { "linux": "com.layertwolabs.photon", "macos": "com.layertwolabs.photon", "windows": "com.layertwolabs.photon" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.photon",
+          "macos": "com.layertwolabs.photon",
+          "windows": "10520LayertwoLabs/Photon"
+        }
       },
       "download": {
         "binary": "photon",
@@ -389,7 +501,11 @@
           }
         },
         "extract_subfolder": {
-          "default": { "linux": "photon", "macos": "", "windows": "" }
+          "default": {
+            "linux": "photon",
+            "macos": "",
+            "windows": ""
+          }
         }
       },
       "hashes": {}
@@ -406,9 +522,17 @@
       "color": "orange",
       "directories": {
         "binary": {
-          "default": { "linux": "coinshift", "macos": "coinshift", "windows": "coinshift" }
+          "default": {
+            "linux": "coinshift",
+            "macos": "coinshift",
+            "windows": "coinshift"
+          }
         },
-        "flutter_frontend": { "linux": "com.layertwolabs.coinshift", "macos": "com.layertwolabs.coinshift", "windows": "com.layertwolabs.coinshift" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.coinshift",
+          "macos": "com.layertwolabs.coinshift",
+          "windows": "10520LayertwoLabs/Coinshift"
+        }
       },
       "download": {
         "binary": "coinshift",
@@ -432,7 +556,11 @@
           }
         },
         "extract_subfolder": {
-          "default": { "linux": "coinshift", "macos": "", "windows": "" }
+          "default": {
+            "linux": "coinshift",
+            "macos": "",
+            "windows": ""
+          }
         }
       },
       "hashes": {}
@@ -449,9 +577,17 @@
       "color": "blue",
       "directories": {
         "binary": {
-          "default": { "linux": "thunder-orchard", "macos": "thunder-orchard", "windows": "thunder-orchard" }
+          "default": {
+            "linux": "thunder-orchard",
+            "macos": "thunder-orchard",
+            "windows": "thunder-orchard"
+          }
         },
-        "flutter_frontend": { "linux": "com.layertwolabs.zside", "macos": "com.layertwolabs.zside", "windows": "com.layertwolabs.zside" }
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.zside",
+          "macos": "com.layertwolabs.zside",
+          "windows": "10520LayertwoLabs/ZSide"
+        }
       },
       "download": {
         "binary": "thunder-orchard",
@@ -475,7 +611,11 @@
           }
         },
         "extract_subfolder": {
-          "default": { "linux": "zside", "macos": "", "windows": "" }
+          "default": {
+            "linux": "zside",
+            "macos": "",
+            "windows": ""
+          }
         }
       },
       "hashes": {}
