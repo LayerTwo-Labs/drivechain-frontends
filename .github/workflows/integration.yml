@@ -21,11 +21,11 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            cache-path: ~/.local/share/bitwindow/assets/bin
+            cache-path: ~/.local/share/com.layertwolabs.bitwindow/assets/bin
           - os: macos-latest
             cache-path: ~/Library/Application Support/bitwindow/assets/bin
           - os: windows-latest
-            cache-path: ~/AppData/Roaming/bitwindow/assets/bin
+            cache-path: ~/AppData/Roaming/10520LayertwoLabs/BitWindow/assets/bin
 
     steps:
       - uses: actions/checkout@v4

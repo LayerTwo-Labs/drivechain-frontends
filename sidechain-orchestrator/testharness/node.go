@@ -9,9 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -130,8 +130,7 @@ port=%d
 
 	t.Cleanup(func() {
 		if n.BitcoindProcess != nil {
-			_ = n.BitcoindProcess.Signal(syscall.SIGTERM)
-			_, _ = n.BitcoindProcess.Wait()
+			stopProcess(n.BitcoindProcess)
 		}
 	})
 	go func() { _ = bitcoindCmd.Wait() }()
@@ -166,8 +165,7 @@ port=%d
 
 	t.Cleanup(func() {
 		if n.OrchdProcess != nil {
-			_ = n.OrchdProcess.Signal(syscall.SIGTERM)
-			_, _ = n.OrchdProcess.Wait()
+			stopProcess(n.OrchdProcess)
 		}
 	})
 
@@ -216,13 +214,11 @@ port=%d
 func (n *Node) close() {
 	n.closeOnce.Do(func() {
 		if n.OrchdProcess != nil {
-			_ = n.OrchdProcess.Signal(syscall.SIGTERM)
-			_, _ = n.OrchdProcess.Wait()
+			stopProcess(n.OrchdProcess)
 			n.OrchdProcess = nil
 		}
 		if n.BitcoindProcess != nil {
-			_ = n.BitcoindProcess.Signal(syscall.SIGTERM)
-			_, _ = n.BitcoindProcess.Wait()
+			stopProcess(n.BitcoindProcess)
 			n.BitcoindProcess = nil
 		}
 	})
@@ -257,7 +253,7 @@ func (n *Node) GenerateToAddress(ctx context.Context, blocks int, addr string) (
 // orchBinaryName returns "orchestratord" with .exe on Windows.
 func orchBinaryName() string {
 	name := "orchestratord"
-	if strings.Contains(strings.ToLower(os.Getenv("GOOS")), "windows") {
+	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
 	return name
