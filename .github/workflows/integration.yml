@@ -1,0 +1,59 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    paths:
+      - "sidechain-orchestrator/**"
+      - "bitwindow/server/**"
+      - ".github/workflows/integration.yml"
+
+env:
+  GO_VERSION: "1.25"
+
+jobs:
+  integration:
+    name: integration (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            cache-path: ~/.local/share/com.layertwolabs.bitwindow/assets/bin
+          - os: macos-latest
+            cache-path: ~/Library/Application Support/bitwindow/assets/bin
+          - os: windows-latest
+            cache-path: ~/AppData/Roaming/10520LayertwoLabs/BitWindow/assets/bin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install Rosetta (macOS ARM)
+        if: runner.os == 'macOS'
+        run: softwareupdate --install-rosetta --agree-to-license
+
+      - name: Install SQLite (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Cache bitcoind binary
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.cache-path }}
+          key: bitcoind-${{ runner.os }}-v30.2
+
+      - name: Run orchestrator wallet integration tests
+        working-directory: sidechain-orchestrator
+        run: go test -v -tags integration -timeout 10m ./wallet/
+
+      - name: Run bitwindow wallet integration tests
+        working-directory: bitwindow/server
+        run: go test -v -tags integration -timeout 10m ./integrationtest/
