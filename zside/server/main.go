@@ -96,10 +96,13 @@ func run(cctx *cli.Context) error {
 		Msg("starting zsided")
 
 	// Only ZSide-relevant binaries: bitcoind, enforcer, and zside itself
-	configs := []orchestrator.BinaryConfig{
-		orchestrator.DefaultBitcoinCore(),
-		orchestrator.DefaultEnforcer(),
-		orchestrator.DefaultZSide(),
+	var configs []orchestrator.BinaryConfig
+	for _, name := range []string{"bitcoind", "enforcer", "zside"} {
+		cfg, ok := orchestrator.BinaryConfigByName(name)
+		if !ok {
+			log.Fatal().Str("binary", name).Msg("binary config not found")
+		}
+		configs = append(configs, cfg)
 	}
 	bitwindowDir := cctx.String("bitwindow-dir")
 	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)

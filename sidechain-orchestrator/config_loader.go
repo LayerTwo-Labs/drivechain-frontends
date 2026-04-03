@@ -34,6 +34,16 @@ type jsonBinaryConf struct {
 	Slot        int    `json:"slot"`
 	Color       string `json:"color"`
 
+	IsBitcoinCore bool `json:"is_bitcoin_core"`
+
+	HealthCheck *struct {
+		Type      string `json:"type"`
+		RPCMethod string `json:"rpc_method"`
+	} `json:"health_check"`
+
+	Dependencies       []string `json:"dependencies"`
+	StartupLogPatterns []string `json:"startup_log_patterns"`
+
 	Directories struct {
 		Binary          map[string]json.RawMessage `json:"binary"`
 		FlutterFrontend map[string]string          `json:"flutter_frontend"`
@@ -70,12 +80,11 @@ func LoadConfigFile(path string, log zerolog.Logger) []BinaryConfig {
 }
 
 // loadEmbeddedConfig parses the embedded chains_config.json.
-// Falls back to AllDefaults() if the embedded config fails to parse.
 func loadEmbeddedConfig(log zerolog.Logger) []BinaryConfig {
 	configs, err := parseConfigJSON(embeddedConfig)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to parse embedded config, using hardcoded defaults")
-		return AllDefaults()
+		log.Error().Err(err).Msg("failed to parse embedded config")
+		return nil
 	}
 	log.Info().Int("count", len(configs)).Msg("loaded binary configs from embedded default")
 	return configs
@@ -145,32 +154,9 @@ func parseConfigJSON(data []byte) ([]BinaryConfig, error) {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	// Use AllDefaults() as a base — JSON overrides fields that are present.
-	defaults := make(map[string]BinaryConfig)
-	for _, d := range AllDefaults() {
-		defaults[d.Name] = d
-	}
-
 	var configs []BinaryConfig
 	for key, jb := range raw.Binaries {
 		bc := jsonToBinaryConfig(key, jb)
-
-		// Merge with defaults: keep Go-specific fields (health check, deps, startup patterns)
-		// that aren't in the JSON.
-		if def, ok := defaults[bc.Name]; ok {
-			bc.HealthCheckType = def.HealthCheckType
-			bc.HealthCheckRPC = def.HealthCheckRPC
-			bc.Dependencies = def.Dependencies
-			bc.StartupLogPatterns = def.StartupLogPatterns
-			bc.IsBitcoinCore = def.IsBitcoinCore
-			if len(bc.FlutterFrontendDir) == 0 {
-				bc.FlutterFrontendDir = def.FlutterFrontendDir
-			}
-			if len(bc.DataDirMainnet) == 0 {
-				bc.DataDirMainnet = def.DataDirMainnet
-			}
-		}
-
 		configs = append(configs, bc)
 	}
 
@@ -201,14 +187,28 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 	}
 
 	bc := BinaryConfig{
-		Name:        name,
-		DisplayName: jb.Name,
-		Version:     jb.Version,
-		Description: jb.Description,
-		RepoURL:     jb.RepoURL,
-		Port:        jb.Port,
-		ChainLayer:  jb.ChainLayer,
-		Slot:        jb.Slot,
+		Name:               name,
+		DisplayName:        jb.Name,
+		Version:            jb.Version,
+		Description:        jb.Description,
+		RepoURL:            jb.RepoURL,
+		Port:               jb.Port,
+		ChainLayer:         jb.ChainLayer,
+		Slot:               jb.Slot,
+		IsBitcoinCore:      jb.IsBitcoinCore,
+		Dependencies:       jb.Dependencies,
+		StartupLogPatterns: jb.StartupLogPatterns,
+	}
+
+	// Parse health check from JSON
+	if jb.HealthCheck != nil {
+		switch jb.HealthCheck.Type {
+		case "jsonrpc":
+			bc.HealthCheckType = HealthCheckJSONRPC
+			bc.HealthCheckRPC = jb.HealthCheck.RPCMethod
+		default:
+			bc.HealthCheckType = HealthCheckTCP
+		}
 	}
 
 	// Parse directories
