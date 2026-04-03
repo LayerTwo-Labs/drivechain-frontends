@@ -175,6 +175,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<ThunderRPC>(ThunderLive());
   GetIt.I.registerSingleton<ZSideRPC>(ZSideLive());
   GetIt.I.registerSingleton<CoinShiftRPC>(CoinShiftLive());
+  GetIt.I.registerSingleton<PhotonRPC>(PhotonLive());
+  GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
 
   final walletReader = WalletReaderProvider.create(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
@@ -192,6 +194,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
         GetIt.I.get<BitAssetsRPC>(),
         GetIt.I.get<ThunderRPC>(),
         GetIt.I.get<ZSideRPC>(),
+        GetIt.I.get<PhotonRPC>(),
+        GetIt.I.get<TruthcoinRPC>(),
       ],
     ),
   );
@@ -229,6 +233,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
       log: log,
       binaryType: BinaryType.bitWindow,
       currentVersion: AppVersion.version,
+      onBeforeUpdate: () async {
+        final binaryProvider = GetIt.I.get<BinaryProvider>();
+        await binaryProvider.onShutdown();
+      },
     ),
   );
 

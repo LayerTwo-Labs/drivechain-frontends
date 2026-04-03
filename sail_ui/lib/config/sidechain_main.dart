@@ -113,6 +113,10 @@ Future<void> initSidechainDependencies({
       log: log,
       binaryType: sidechainType,
       currentVersion: currentVersion,
+      onBeforeUpdate: () async {
+        final binaryProvider = GetIt.I.get<BinaryProvider>();
+        await binaryProvider.onShutdown();
+      },
     ),
   );
 }

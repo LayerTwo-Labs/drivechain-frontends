@@ -8,10 +8,15 @@ import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 
+/// Callback to gracefully shut down all running processes before an update.
+/// Should call BinaryProvider.onShutdown() or equivalent.
+typedef ShutdownCallback = Future<void> Function();
+
 class UpdateProvider extends ChangeNotifier {
   final Logger log;
   final BinaryType binaryType;
   final String currentVersion;
+  final ShutdownCallback? onBeforeUpdate;
 
   static const String versionsUrl = 'https://releases.drivechain.info/versions.json';
   static const String installScriptBaseUrl =
@@ -29,6 +34,7 @@ class UpdateProvider extends ChangeNotifier {
     required this.log,
     required this.binaryType,
     required this.currentVersion,
+    this.onBeforeUpdate,
   }) {
     // Only check for updates on Linux (macOS/Windows use auto_updater)
     if (!Platform.isLinux) {
@@ -170,6 +176,17 @@ class UpdateProvider extends ChangeNotifier {
       // Clean up
       await scriptFile.delete();
 
+      // Gracefully shut down all running processes before restarting
+      if (onBeforeUpdate != null) {
+        log.i('Shutting down running processes before restart...');
+        try {
+          await onBeforeUpdate!();
+        } catch (e) {
+          log.e('Error during pre-update shutdown: $e');
+          // Continue with restart anyway — install already succeeded
+        }
+      }
+
       // Restart the application
       await _restartApplication();
     } catch (e) {
@@ -181,22 +198,43 @@ class UpdateProvider extends ChangeNotifier {
     }
   }
 
-  /// Restart the application
+  /// Restart the application using the known install path.
+  /// Falls back to wrapper script → AppImage → PATH-based name.
   Future<void> _restartApplication() async {
     log.i('Restarting application...');
 
-    try {
-      // Start a new instance of the application
-      // The executable should be in PATH after installation via the script
-      await Process.start(_appname, [], mode: ProcessStartMode.detached);
+    final home = Platform.environment['HOME'] ?? '';
+    final wrapperPath = '$home/.local/bin/$_appname';
+    final appImagePath = '$home/.local/bin/$_appname.AppImage';
 
-      // Exit current instance
-      exit(0);
-    } catch (e) {
-      log.e('Failed to restart application: $e');
-      // If restart fails, just exit and let user manually restart
-      exit(0);
+    // Try wrapper first (handles FUSE fallback), then AppImage directly, then PATH
+    final candidates = [
+      wrapperPath,
+      appImagePath,
+      _appname, // last resort: hope it's on PATH
+    ];
+
+    for (final execPath in candidates) {
+      try {
+        // Skip if it's an absolute path that doesn't exist
+        if (execPath.startsWith('/') && !File(execPath).existsSync()) {
+          continue;
+        }
+
+        log.i('Attempting restart with: $execPath');
+        await Process.start(execPath, [], mode: ProcessStartMode.detached);
+
+        // Give the detached process a moment to start before we exit
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        exit(0);
+      } catch (e) {
+        log.w('Failed to restart with $execPath: $e');
+      }
     }
+
+    log.e('All restart attempts failed. Exiting — user must restart manually.');
+    exit(0);
   }
 
   @override
