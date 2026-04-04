@@ -12,10 +12,25 @@ export const dynamic = "force-dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const network = instanceNetwork();
+const title = `Drivechain Faucet (${network})`;
+const description = `A Drivechain faucet for obtaining free (and worthless!) coins on ${network}`;
+
 export const metadata: Metadata = {
-  title: `Drivechain Faucet (${instanceNetwork()})`,
-  description: `A Drivechain faucet for obtaining free (and worthless!) coins on ${instanceNetwork()}`,
-  metadataBase: process.env.METADATA_BASE_URL ? new URL(process.env.METADATA_BASE_URL) : undefined,
+  title,
+  description,
+  metadataBase: process.env.METADATA_BASE_URL,
+  openGraph: {
+    title,
+    description,
+    siteName: "Drivechain Faucet",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 export default function RootLayout({
