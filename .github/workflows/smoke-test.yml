@@ -62,10 +62,10 @@ jobs:
           echo "🚀 Running BitWindow smoke test..."
           echo "This test verifies the app launches without crashing and shows expected UI."
           
-          # Run the integration test
+          # Run the minimal integration test
           flutter drive \
             --driver=test_driver/integration_test.dart \
-            --target=integration_test/simple_startup_test.dart \
+            --target=integration_test/minimal_smoke_test.dart \
             --verbose \
           || {
             echo ""
