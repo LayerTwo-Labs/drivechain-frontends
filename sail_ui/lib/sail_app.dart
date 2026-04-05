@@ -68,9 +68,11 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   }
 
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
-    themeToLoad ??= (await settings.getValue(ThemeSetting())).value;
-    if (themeToLoad == SailThemeValues.system) {
-      themeToLoad = PlatformDispatcher.instance.platformBrightness == Brightness.light
+    final originalTheme = themeToLoad ?? (await settings.getValue(ThemeSetting())).value;
+    SailThemeValues resolvedTheme = originalTheme;
+    
+    if (originalTheme == SailThemeValues.system) {
+      resolvedTheme = PlatformDispatcher.instance.platformBrightness == Brightness.light
           ? SailThemeValues.light
           : SailThemeValues.dark;
     }
@@ -79,10 +81,13 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     final fontSetting = await settings.getValue(FontSetting());
     final font = fontSetting.value;
 
-    theme = _themeDataFromTheme(themeToLoad, widget.dense, font);
+    theme = _themeDataFromTheme(resolvedTheme, widget.dense, font);
 
     setState(() {});
-    await settings.setValue(ThemeSetting(newValue: themeToLoad));
+    // Save the original theme preference, not the resolved one
+    if (themeToLoad != null) {
+      await settings.setValue(ThemeSetting(newValue: originalTheme));
+    }
   }
 
   Future<void> loadFont([SailFontValues? fontToLoad]) async {

@@ -41,7 +41,7 @@ class _DenialDialogState extends State<DenialDialog> {
   BitcoinUnit get currentUnit => settingsProvider.bitcoinUnit;
 
   final hopsController = TextEditingController(text: '3');
-  final minutesController = TextEditingController(text: '2');
+  final minutesController = TextEditingController(text: '15');
   final hoursController = TextEditingController(text: '0');
   final daysController = TextEditingController(text: '0');
   final List<TextEditingController> targetSizeControllers = [];
@@ -55,7 +55,7 @@ class _DenialDialogState extends State<DenialDialog> {
   Future<void> setNormalDefaults() async {
     setState(() {
       hopsController.text = '3';
-      minutesController.text = '2';
+      minutesController.text = '15';
       hoursController.text = '0';
       daysController.text = '0';
     });
