@@ -68,7 +68,9 @@ class CoreTransaction {
       blocktime: map['blocktime'] ?? 0,
       txid: map['txid'] ?? '',
       time: DateTime.fromMillisecondsSinceEpoch((map['time'] ?? 0) * 1000),
-      timereceived: DateTime.fromMillisecondsSinceEpoch((map['timereceived'] ?? 0) * 1000),
+      timereceived: DateTime.fromMillisecondsSinceEpoch(
+        (map['timereceived'] ?? 0) * 1000,
+      ),
       comment: map['comment'] ?? '',
       bip125Replaceable: map['bip125-replaceable'] ?? 'unknown',
       abandoned: map['abandoned'] ?? false,

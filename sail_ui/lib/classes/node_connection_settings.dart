@@ -37,7 +37,9 @@ class CoreConnectionSettings extends ChangeNotifier {
   }
 
   /// Factory constructor for creating an empty/default config
-  static CoreConnectionSettings empty([BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET]) {
+  static CoreConnectionSettings empty([
+    BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+  ]) {
     // Use correct default port based on network
     final defaultPort = switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332,
@@ -123,7 +125,10 @@ CoreConnectionSettings readMainchainConf({BitcoinConfProvider? provider}) {
 
   // Read connection settings from config (null if not set)
   final configUsername = config.getEffectiveSetting('rpcuser', networkSection);
-  final configPassword = config.getEffectiveSetting('rpcpassword', networkSection);
+  final configPassword = config.getEffectiveSetting(
+    'rpcpassword',
+    networkSection,
+  );
   final host =
       config.getEffectiveSetting('rpcconnect', networkSection) ??
       config.getEffectiveSetting('rpchost', networkSection) ??
@@ -173,7 +178,9 @@ CoreConnectionSettings readMainchainConf({BitcoinConfProvider? provider}) {
       }
     } else {
       // No cookie file, use defaults as last resort
-      log.w('No rpcuser/rpcpassword in config and no cookie file found, using defaults');
+      log.w(
+        'No rpcuser/rpcpassword in config and no cookie file found, using defaults',
+      );
       username = 'user';
       password = 'password';
     }

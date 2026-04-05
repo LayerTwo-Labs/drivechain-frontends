@@ -24,12 +24,7 @@ class SailPage extends StatelessWidget {
     final scaffold = SelectionArea(
       child: Scaffold(
         backgroundColor: backgroundColor,
-        appBar: widgetTitle == null && title == null
-            ? null
-            : SailAppBar.build(
-                context,
-                title: widgetTitle,
-              ),
+        appBar: widgetTitle == null && title == null ? null : SailAppBar.build(context, title: widgetTitle),
         body: buildBody(context),
       ),
     );
@@ -49,11 +44,11 @@ class SailPage extends StatelessWidget {
                 spacing: 0,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(top: SailStyleValues.padding32, bottom: SailStyleValues.padding32),
-                    child: SailText.primary24(
-                      title ?? '',
-                      bold: true,
+                    padding: const EdgeInsets.only(
+                      top: SailStyleValues.padding32,
+                      bottom: SailStyleValues.padding32,
                     ),
+                    child: SailText.primary24(title ?? '', bold: true),
                   ),
                   if (subtitle != null) ...[
                     const SailSpacing(SailStyleValues.padding08),
@@ -95,7 +90,10 @@ Widget _withPadding(Widget child, String? title, bool scrollable) {
   }
 
   return Padding(
-    padding: const EdgeInsets.only(bottom: SailStyleValues.padding20, top: SailStyleValues.padding16),
+    padding: const EdgeInsets.only(
+      bottom: SailStyleValues.padding20,
+      top: SailStyleValues.padding16,
+    ),
     child: child,
   );
 }

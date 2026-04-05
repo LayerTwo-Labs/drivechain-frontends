@@ -44,7 +44,10 @@ class WalletData {
     final walletId = json['id'] as String? ?? _generateId();
     final walletTypeStr = json['wallet_type'] as String?;
     final walletType = walletTypeStr != null
-        ? BinaryType.values.firstWhere((e) => e.name == walletTypeStr, orElse: () => BinaryType.bitcoinCore)
+        ? BinaryType.values.firstWhere(
+            (e) => e.name == walletTypeStr,
+            orElse: () => BinaryType.bitcoinCore,
+          )
         : BinaryType.bitcoinCore;
 
     return WalletData(
@@ -112,7 +115,9 @@ class MasterWallet {
 
     if (bip39Binary != null) json['bip39_binary'] = bip39Binary!;
     if (bip39Checksum != null) json['bip39_checksum'] = bip39Checksum!;
-    if (bip39ChecksumHex != null) json['bip39_checksum_hex'] = bip39ChecksumHex!;
+    if (bip39ChecksumHex != null) {
+      json['bip39_checksum_hex'] = bip39ChecksumHex!;
+    }
 
     return json;
   }
@@ -136,16 +141,10 @@ class L1Wallet {
   final String mnemonic;
   final String name;
 
-  L1Wallet({
-    required this.mnemonic,
-    this.name = 'Bitcoin Core (Patched)',
-  });
+  L1Wallet({required this.mnemonic, this.name = 'Bitcoin Core (Patched)'});
 
   Map<String, dynamic> toJson() {
-    return {
-      'mnemonic': mnemonic,
-      'name': name,
-    };
+    return {'mnemonic': mnemonic, 'name': name};
   }
 
   factory L1Wallet.fromJson(Map<String, dynamic> json) {
@@ -169,11 +168,7 @@ class SidechainWallet {
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'slot': slot,
-      'name': name,
-      'mnemonic': mnemonic,
-    };
+    return {'slot': slot, 'name': name, 'mnemonic': mnemonic};
   }
 
   factory SidechainWallet.fromJson(Map<String, dynamic> json) {

@@ -67,16 +67,15 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
         ),
       );
 
-      _logger.i('generateWallet: wallet generated via backend, id=${resp.walletId}');
+      _logger.i(
+        'generateWallet: wallet generated via backend, id=${resp.walletId}',
+      );
 
       // Reload wallet reader to pick up the new wallet
       await _walletReader.init();
       notifyListeners();
 
-      return {
-        'wallet_id': resp.walletId,
-        'mnemonic': resp.mnemonic,
-      };
+      return {'wallet_id': resp.walletId, 'mnemonic': resp.mnemonic};
     } catch (e) {
       _logger.e('generateWallet: failed: $e');
       rethrow;
@@ -110,7 +109,9 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
         ),
       );
 
-      _logger.i('createWatchOnlyWallet: created via backend, id=${resp.walletId}');
+      _logger.i(
+        'createWatchOnlyWallet: created via backend, id=${resp.walletId}',
+      );
 
       await _walletReader.init();
       notifyListeners();
@@ -127,12 +128,17 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
     bool doNotSave = false,
   }) async {
     // Backend handles key derivation internally
-    _logger.w('generateWalletFromEntropy: delegating to generateWallet in backend mode');
+    _logger.w(
+      'generateWalletFromEntropy: delegating to generateWallet in backend mode',
+    );
     return generateWallet(name: 'Enforcer Wallet', passphrase: passphrase);
   }
 
   @override
-  Future<void> saveMasterWallet(Map<String, dynamic> walletData, {required String name}) async {
+  Future<void> saveMasterWallet(
+    Map<String, dynamic> walletData, {
+    required String name,
+  }) async {
     // Backend handles this internally during generateWallet
     _logger.w('saveMasterWallet: handled internally by backend generateWallet');
   }
@@ -186,7 +192,11 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
   }
 
   @override
-  Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {
+  Future<void> updateWalletMetadata(
+    String walletId,
+    String name,
+    WalletGradient gradient,
+  ) async {
     try {
       await _client.updateWalletMetadata(
         wmpb.UpdateWalletMetadataRequest(

@@ -33,7 +33,10 @@ abstract class WalletWriterProvider extends ChangeNotifier {
     String? passphrase,
     bool doNotSave = false,
   });
-  Future<void> saveMasterWallet(Map<String, dynamic> walletData, {required String name});
+  Future<void> saveMasterWallet(
+    Map<String, dynamic> walletData, {
+    required String name,
+  });
   Future<Map<String, dynamic>?> loadMasterStarter();
   Future<String?> getL1Starter();
   Future<String?> getSidechainStarter(int sidechainSlot);
@@ -41,7 +44,11 @@ abstract class WalletWriterProvider extends ChangeNotifier {
     Future<void> Function()? beforeBoot,
     void Function(String status)? onStatusUpdate,
   });
-  Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient);
+  Future<void> updateWalletMetadata(
+    String walletId,
+    String name,
+    WalletGradient gradient,
+  );
   Future<void> restartEnforcer();
 
   static WalletWriterProvider create({required Directory bitwindowAppDir}) {

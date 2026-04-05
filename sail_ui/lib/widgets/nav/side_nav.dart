@@ -7,7 +7,13 @@ class SideNav extends StatelessWidget {
   final ValueChanged<int>? onItemSelected;
   final int selectedIndex;
 
-  const SideNav({super.key, required this.items, this.width = 200, this.onItemSelected, this.selectedIndex = 0});
+  const SideNav({
+    super.key,
+    required this.items,
+    this.width = 200,
+    this.onItemSelected,
+    this.selectedIndex = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +53,11 @@ class _SideNavItem extends StatefulWidget {
   final VoidCallback onTap;
   final bool isSelected;
 
-  const _SideNavItem({required this.label, required this.onTap, this.isSelected = false});
+  const _SideNavItem({
+    required this.label,
+    required this.onTap,
+    this.isSelected = false,
+  });
 
   @override
   State<_SideNavItem> createState() => _SideNavItemState();

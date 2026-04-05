@@ -9,10 +9,21 @@ class ActionTile extends StatelessWidget {
   final SailSVGAsset? icon;
   final Future<void> Function() onTap;
 
-  const ActionTile({super.key, required this.title, required this.category, this.icon, required this.onTap});
+  const ActionTile({
+    super.key,
+    required this.title,
+    required this.category,
+    this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SailButton(label: title, variant: ButtonVariant.outline, onPressed: onTap, icon: icon);
+    return SailButton(
+      label: title,
+      variant: ButtonVariant.outline,
+      onPressed: onTap,
+      icon: icon,
+    );
   }
 }

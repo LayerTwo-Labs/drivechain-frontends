@@ -44,7 +44,9 @@ class ThemeSetting extends SettingValue<SailThemeValues> {
 
   @override
   SailThemeValues? fromJson(String jsonString) {
-    return SailThemeValues.values.firstWhereOrNull((element) => element.name == jsonString);
+    return SailThemeValues.values.firstWhereOrNull(
+      (element) => element.name == jsonString,
+    );
   }
 
   @override

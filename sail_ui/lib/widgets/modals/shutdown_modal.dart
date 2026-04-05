@@ -22,14 +22,20 @@ class ShutdownCard extends StatelessWidget {
     return SizedBox(
       width: 250,
       child: SailBorder(
-        padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding12, vertical: SailStyleValues.padding08),
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding12,
+          vertical: SailStyleValues.padding08,
+        ),
         child: SailColumn(
           spacing: 0,
           children: [
             SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                SailSVG.fromAsset(SailSVGAsset.iconGlobe, color: theme.colors.orangeLight),
+                SailSVG.fromAsset(
+                  SailSVGAsset.iconGlobe,
+                  color: theme.colors.orangeLight,
+                ),
                 SailText.primary13('${chain.name} daemon'),
                 Expanded(child: Container()),
                 SailButton(

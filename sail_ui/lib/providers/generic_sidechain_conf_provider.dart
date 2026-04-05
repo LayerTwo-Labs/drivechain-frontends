@@ -209,7 +209,9 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
       }
 
       _fileWatcher = confDir
-          .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
+          .watch(
+            events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete,
+          )
           .where((event) => event.path.endsWith(configFileName))
           .listen(_handleFileSystemEvent);
 

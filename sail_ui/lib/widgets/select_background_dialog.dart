@@ -20,9 +20,18 @@ class SelectBackgroundDialog extends StatelessWidget {
     BackgroundOption(name: 'Ice', svg: 'background_ice.svg'),
     BackgroundOption(name: 'Ocean', svg: 'background_ocean.svg'),
     BackgroundOption(name: 'Northern', svg: 'background_northern.svg'),
-    BackgroundOption(name: 'Northern Blue', svg: 'background_northern_blue.svg'),
-    BackgroundOption(name: 'Northern Green', svg: 'background_northern_green.svg'),
-    BackgroundOption(name: 'Northern Dark', svg: 'background_northern_dark_green.svg'),
+    BackgroundOption(
+      name: 'Northern Blue',
+      svg: 'background_northern_blue.svg',
+    ),
+    BackgroundOption(
+      name: 'Northern Green',
+      svg: 'background_northern_green.svg',
+    ),
+    BackgroundOption(
+      name: 'Northern Dark',
+      svg: 'background_northern_dark_green.svg',
+    ),
     BackgroundOption(name: 'Sphere', svg: 'background_sphere.svg'),
     BackgroundOption(name: 'Contact', svg: 'background_contact.svg'),
     BackgroundOption(name: 'Hooked', svg: 'background_hooked.svg'),
@@ -58,10 +67,14 @@ class SelectBackgroundDialog extends StatelessWidget {
                           Expanded(
                             child: _BackgroundTile(
                               background: _backgrounds[i * 3 + j],
-                              isTaken: takenBackgrounds.contains(_backgrounds[i * 3 + j].svg),
+                              isTaken: takenBackgrounds.contains(
+                                _backgrounds[i * 3 + j].svg,
+                              ),
                               isSelected: currentBackground == _backgrounds[i * 3 + j].svg,
                               onTap: () {
-                                Navigator.of(context).pop(_backgrounds[i * 3 + j].svg);
+                                Navigator.of(
+                                  context,
+                                ).pop(_backgrounds[i * 3 + j].svg);
                               },
                             ),
                           )

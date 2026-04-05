@@ -11,7 +11,11 @@ class ComingSoonPage extends StatefulWidget {
   final RootStackRouter router;
   final String message;
 
-  const ComingSoonPage({super.key, required this.router, required this.message});
+  const ComingSoonPage({
+    super.key,
+    required this.router,
+    required this.message,
+  });
 
   @override
   State<ComingSoonPage> createState() => _ComingSoonPageState();
@@ -98,14 +102,8 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
                           color: Colors.white,
                           letterSpacing: 4,
                           shadows: [
-                            ui.Shadow(
-                              color: Color(0xFFFFD700),
-                              blurRadius: 20,
-                            ),
-                            ui.Shadow(
-                              color: Color(0xFFFFD700),
-                              blurRadius: 40,
-                            ),
+                            ui.Shadow(color: Color(0xFFFFD700), blurRadius: 20),
+                            ui.Shadow(color: Color(0xFFFFD700), blurRadius: 40),
                           ],
                         ),
                       ),
@@ -150,7 +148,10 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
                           widget.router.push(NetworkSwitchRoute());
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 14,
+                          ),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -158,7 +159,9 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
                             borderRadius: BorderRadius.circular(4),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                                color: const Color(
+                                  0xFFFFD700,
+                                ).withValues(alpha: 0.4),
                                 blurRadius: 20,
                                 spreadRadius: 2,
                               ),

@@ -72,7 +72,9 @@ class SailTextField extends StatelessWidget {
         if (label != null) SailText.primary13(label!, bold: true),
         Theme(
           data: Theme.of(context).copyWith(
-            textSelectionTheme: TextSelectionThemeData(selectionColor: theme.colors.primary.withValues(alpha: 0.2)),
+            textSelectionTheme: TextSelectionThemeData(
+              selectionColor: theme.colors.primary.withValues(alpha: 0.2),
+            ),
           ),
           child: TextField(
             autofocus: autofocus,
@@ -85,7 +87,10 @@ class SailTextField extends StatelessWidget {
             onSubmitted: onSubmitted,
             onChanged: onChanged,
             readOnly: readOnly,
-            style: SailStyleValues.thirteen.copyWith(color: SailTheme.of(context).colors.text, fontSize: textSize),
+            style: SailStyleValues.thirteen.copyWith(
+              color: SailTheme.of(context).colors.text,
+              fontSize: textSize,
+            ),
             inputFormatters: [
               if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
               if (textFieldType == TextFieldType.bitcoin) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
@@ -105,7 +110,10 @@ class SailTextField extends StatelessWidget {
                 borderRadius: SailStyleValues.borderRadius,
                 borderSide: BorderSide(color: theme.colors.text),
               ),
-              suffixStyle: TextStyle(color: SailTheme.of(context).colors.inactiveNavText, fontSize: textSize),
+              suffixStyle: TextStyle(
+                color: SailTheme.of(context).colors.inactiveNavText,
+                fontSize: textSize,
+              ),
               suffixText: suffix,
               border: OutlineInputBorder(
                 borderRadius: SailStyleValues.borderRadius,
@@ -114,19 +122,30 @@ class SailTextField extends StatelessWidget {
               suffixIcon: loading != null && loading!.enabled
                   ? Tooltip(
                       message: loading!.description,
-                      child: Padding(padding: EdgeInsets.all(SailStyleValues.padding08), child: LoadingIndicator()),
+                      child: Padding(
+                        padding: EdgeInsets.all(SailStyleValues.padding08),
+                        child: LoadingIndicator(),
+                      ),
                     )
                   : suffixWidget != null
                   ? Align(
                       alignment: Alignment.center,
                       widthFactor: 1.0,
                       child: Padding(
-                        padding: EdgeInsets.only(top: 1, bottom: 1, left: 1, right: 8),
+                        padding: EdgeInsets.only(
+                          top: 1,
+                          bottom: 1,
+                          left: 1,
+                          right: 8,
+                        ),
                         child: suffixWidget,
                       ),
                     )
                   : null,
-              prefixStyle: TextStyle(color: SailTheme.of(context).colors.inactiveNavText, fontSize: textSize),
+              prefixStyle: TextStyle(
+                color: SailTheme.of(context).colors.inactiveNavText,
+                fontSize: textSize,
+              ),
               prefixText: prefix,
               prefix: prefixWidget,
               prefixIcon: prefixIcon,

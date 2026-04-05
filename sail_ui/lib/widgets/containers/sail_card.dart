@@ -9,7 +9,11 @@ class NewWindowIdentifier {
   final Directory applicationDir;
   final File logFile;
 
-  const NewWindowIdentifier({required this.windowType, required this.applicationDir, required this.logFile});
+  const NewWindowIdentifier({
+    required this.windowType,
+    required this.applicationDir,
+    required this.logFile,
+  });
 }
 
 class SailCard extends StatelessWidget {
@@ -346,7 +350,11 @@ class SailCardStats extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SailText.primary13(title, bold: true),
-                          SailSVG.fromAsset(icon, color: theme.colors.inactiveNavText, width: 10),
+                          SailSVG.fromAsset(
+                            icon,
+                            color: theme.colors.inactiveNavText,
+                            width: 10,
+                          ),
                         ],
                       ),
                     ),
@@ -357,7 +365,11 @@ class SailCardStats extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          if (bitcoinAmount) SailSVG.fromAsset(SailSVGAsset.bitcoin, color: theme.colors.text),
+                          if (bitcoinAmount)
+                            SailSVG.fromAsset(
+                              SailSVGAsset.bitcoin,
+                              color: theme.colors.text,
+                            ),
                           SailSkeletonizer(
                             description: loading?.description ?? '',
                             enabled: loading?.enabled ?? false,
@@ -370,7 +382,10 @@ class SailCardStats extends StatelessWidget {
                     SailSkeletonizer(
                       description: loading?.description ?? '',
                       enabled: loading?.enabled ?? false,
-                      child: SailText.secondary12(subtitle, color: theme.colors.inactiveNavText),
+                      child: SailText.secondary12(
+                        subtitle,
+                        color: theme.colors.inactiveNavText,
+                      ),
                     ),
                   ],
                 ),
@@ -450,7 +465,11 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
               children: [
                 SailText.primary13(field.name, bold: true),
                 Expanded(
-                  child: SailTextField(controller: controllers[i], hintText: '', autofocus: i == 0),
+                  child: SailTextField(
+                    controller: controllers[i],
+                    hintText: '',
+                    autofocus: i == 0,
+                  ),
                 ),
               ],
             );
@@ -463,7 +482,10 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
               onPressed: () async {
                 final updatedFields = List<EditField>.generate(
                   widget.fields.length,
-                  (i) => EditField(name: widget.fields[i].name, currentValue: controllers[i].text),
+                  (i) => EditField(
+                    name: widget.fields[i].name,
+                    currentValue: controllers[i].text,
+                  ),
                 );
                 widget.onSave(updatedFields);
               },

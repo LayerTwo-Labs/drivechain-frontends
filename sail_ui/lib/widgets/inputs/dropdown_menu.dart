@@ -56,7 +56,9 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
     final theme = SailTheme.of(context);
 
     var items = widget.items
-        .where((e) => !widget.hideCurrentlySelectedFromList || e.value != widget.value)
+        .where(
+          (e) => !widget.hideCurrentlySelectedFromList || e.value != widget.value,
+        )
         .map(
           (e) => SailMenuItem(
             onSelected: () {
@@ -70,7 +72,9 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
 
     Widget currentDisplay;
     if (widget.value != null) {
-      var currentIndex = widget.items.indexWhere((element) => element.value == widget.value);
+      var currentIndex = widget.items.indexWhere(
+        (element) => element.value == widget.value,
+      );
       if (currentIndex >= 0) {
         currentDisplay = widget.items[currentIndex];
       } else {
@@ -92,7 +96,10 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
         },
         child: DecoratedBox(
           decoration: BoxDecoration(
-            border: Border.all(color: context.sailTheme.colors.border, width: 1),
+            border: Border.all(
+              color: context.sailTheme.colors.border,
+              width: 1,
+            ),
             borderRadius: SailStyleValues.borderRadius,
             color: widget.value == null ? theme.colors.primary : Colors.transparent,
           ),
@@ -119,7 +126,9 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
     final menuAnchor = MenuAnchor(
       controller: _controller,
       style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(context.sailTheme.colors.background),
+        backgroundColor: WidgetStatePropertyAll(
+          context.sailTheme.colors.background,
+        ),
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
       ),
       builder: (context, controller, child) => button,
@@ -186,7 +195,10 @@ class SailDropdownItem<T> extends StatelessWidget {
     this.label,
     this.child,
     this.monospace = false,
-  }) : assert(label != null || child != null, 'Either label or child must be provided');
+  }) : assert(
+         label != null || child != null,
+         'Either label or child must be provided',
+       );
 
   String get displayLabel => label ?? '';
 
@@ -309,7 +321,10 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
               children: [
                 Text(
                   widget.selectedCountText,
-                  style: SailStyleValues.thirteen.copyWith(color: theme.colors.text, fontSize: 13),
+                  style: SailStyleValues.thirteen.copyWith(
+                    color: theme.colors.text,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 if (widget.showDropdownArrow)
@@ -338,7 +353,11 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              SailSVG.fromAsset(SailSVGAsset.search, height: 13, color: theme.colors.inactiveNavText),
+              SailSVG.fromAsset(
+                SailSVGAsset.search,
+                height: 13,
+                color: theme.colors.inactiveNavText,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
@@ -347,7 +366,10 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                   focusNode: _focusNode,
                   decoration: InputDecoration(
                     hintText: widget.searchPlaceholder,
-                    hintStyle: SailStyleValues.thirteen.copyWith(color: theme.colors.textSecondary, fontSize: 13),
+                    hintStyle: SailStyleValues.thirteen.copyWith(
+                      color: theme.colors.textSecondary,
+                      fontSize: 13,
+                    ),
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                     border: InputBorder.none,
@@ -355,7 +377,10 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                     focusedBorder: InputBorder.none,
                     filled: false,
                   ),
-                  style: SailStyleValues.thirteen.copyWith(color: theme.colors.text, fontSize: 13),
+                  style: SailStyleValues.thirteen.copyWith(
+                    color: theme.colors.text,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],
@@ -374,7 +399,11 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                   spacing: SailStyleValues.padding08,
                   children: [
                     if (isSelected)
-                      SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.text, height: 8)
+                      SailSVG.fromAsset(
+                        SailSVGAsset.check,
+                        color: theme.colors.text,
+                        height: 8,
+                      )
                     else
                       const SizedBox(width: 13),
                     Expanded(child: SailText.primary13(item.displayLabel)),
@@ -411,14 +440,23 @@ class ExtraActionItem {
   final String? shortcut;
   final VoidCallback onSelect;
 
-  const ExtraActionItem({required this.label, required this.icon, required this.onSelect, this.shortcut});
+  const ExtraActionItem({
+    required this.label,
+    required this.icon,
+    required this.onSelect,
+    this.shortcut,
+  });
 }
 
 class ExtraActionsDropdown extends StatefulWidget {
   final String title;
   final List<ExtraActionItem> items;
 
-  const ExtraActionsDropdown({required this.title, required this.items, super.key});
+  const ExtraActionsDropdown({
+    required this.title,
+    required this.items,
+    super.key,
+  });
 
   @override
   State<ExtraActionsDropdown> createState() => _ExtraActionsDropdownState();
@@ -472,11 +510,18 @@ class _ExtraActionsDropdownState extends State<ExtraActionsDropdown> {
                         spacing: SailStyleValues.padding12,
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          SailSVG.fromAsset(item.icon, height: 13, color: theme.colors.text),
+                          SailSVG.fromAsset(
+                            item.icon,
+                            height: 13,
+                            color: theme.colors.text,
+                          ),
                           SailText.primary13(item.label),
                           if (item.shortcut != null) ...[
                             const Spacer(),
-                            SailText.primary12(item.shortcut!, color: theme.colors.text.withValues(alpha: 0.6)),
+                            SailText.primary12(
+                              item.shortcut!,
+                              color: theme.colors.text.withValues(alpha: 0.6),
+                            ),
                           ],
                         ],
                       ),
@@ -544,7 +589,10 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
 
     // Find the currently selected item
     final selectedItem = widget.selectedValues != null
-        ? widget.items.firstWhere((item) => item.value == widget.selectedValues, orElse: () => widget.items.first)
+        ? widget.items.firstWhere(
+            (item) => item.value == widget.selectedValues,
+            orElse: () => widget.items.first,
+          )
         : null;
 
     return MenuAnchor(
@@ -572,7 +620,10 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 borderRadius: SailStyleValues.borderRadius,
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 9,
+                  horizontal: 12,
+                ),
                 child: SailRow(
                   spacing: SailStyleValues.padding08,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -581,7 +632,10 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                     Expanded(
                       child: selectedItem != null
                           ? (selectedItem.child ?? SailText.primary13(selectedItem.displayLabel))
-                          : SailText.primary13(widget.searchPlaceholder, color: theme.colors.textSecondary),
+                          : SailText.primary13(
+                              widget.searchPlaceholder,
+                              color: theme.colors.textSecondary,
+                            ),
                     ),
                     widget.suffix ??
                         SailSVG.fromAsset(
@@ -608,7 +662,10 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
         if (filteredItems.isEmpty)
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: SailText.primary13('No results found', color: theme.colors.textSecondary),
+            child: SailText.primary13(
+              'No results found',
+              color: theme.colors.textSecondary,
+            ),
           )
         else
           SailMenu(
@@ -619,7 +676,11 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 },
                 child: SailRow(
                   spacing: SailStyleValues.padding08,
-                  children: [Expanded(child: item.child ?? SailText.primary13(item.displayLabel))],
+                  children: [
+                    Expanded(
+                      child: item.child ?? SailText.primary13(item.displayLabel),
+                    ),
+                  ],
                 ),
               );
             }).toList(),

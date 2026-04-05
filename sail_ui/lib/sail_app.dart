@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -15,8 +16,13 @@ class SailApp extends StatefulWidget {
 
   final WidgetBuilder builder;
 
-  SailApp({required this.builder, required this.accentColor, required this.log, required this.dense, this.initMethod})
-    : super(key: sailAppKey);
+  SailApp({
+    required this.builder,
+    required this.accentColor,
+    required this.log,
+    required this.dense,
+    this.initMethod,
+  }) : super(key: sailAppKey);
 
   @override
   State<SailApp> createState() => SailAppState();
@@ -25,7 +31,9 @@ class SailApp extends StatefulWidget {
     final SailAppState? result = context.findAncestorStateOfType<SailAppState>();
     if (result != null) return result;
     throw FlutterError.fromParts(<DiagnosticsNode>[
-      ErrorSummary('SailAppState.of() called with a context that does not contain a SailApp.'),
+      ErrorSummary(
+        'SailAppState.of() called with a context that does not contain a SailApp.',
+      ),
     ]);
   }
 }
@@ -37,7 +45,11 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
   @override
   void initState() {
-    theme = SailThemeData.darkTheme(SailColorScheme.orange, widget.dense, SailFontValues.inter);
+    theme = SailThemeData.darkTheme(
+      SailColorScheme.orange,
+      widget.dense,
+      SailFontValues.inter,
+    );
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
@@ -58,8 +70,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
     themeToLoad ??= (await settings.getValue(ThemeSetting())).value;
     if (themeToLoad == SailThemeValues.system) {
-      // ignore: deprecated_member_use
-      themeToLoad = WidgetsBinding.instance.window.platformBrightness == Brightness.light
+      themeToLoad = PlatformDispatcher.instance.platformBrightness == Brightness.light
           ? SailThemeValues.light
           : SailThemeValues.dark;
     }
@@ -84,7 +95,12 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     await settings.setValue(FontSetting(newValue: fontToLoad));
   }
 
-  SailThemeData _themeDataFromTheme(SailThemeValues themeType, bool dense, SailFontValues font, [Color? accentColor]) {
+  SailThemeData _themeDataFromTheme(
+    SailThemeValues themeType,
+    bool dense,
+    SailFontValues font, [
+    Color? accentColor,
+  ]) {
     final color = accentColor ?? widget.accentColor;
     switch (themeType) {
       case SailThemeValues.light:

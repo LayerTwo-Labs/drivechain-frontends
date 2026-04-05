@@ -34,7 +34,9 @@ class DaemonConnectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final providerBinary = _binaryProvider.binaries.firstWhereOrNull((b) => b.name == connection.binary.name);
+    final providerBinary = _binaryProvider.binaries.firstWhereOrNull(
+      (b) => b.name == connection.binary.name,
+    );
 
     return SailCard(
       child: SailColumn(
@@ -42,8 +44,14 @@ class DaemonConnectionCard extends StatelessWidget {
           SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SailText.primary15('${connection.binary.name} daemon', bold: true),
-              SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: _getConnectionColor(theme)),
+              SailText.primary15(
+                '${connection.binary.name} daemon',
+                bold: true,
+              ),
+              SailSVG.fromAsset(
+                SailSVGAsset.iconConnectionStatus,
+                color: _getConnectionColor(theme),
+              ),
               Expanded(child: Container()),
               if (providerBinary != null && providerBinary.updateAvailable)
                 SailButton(
@@ -51,7 +59,10 @@ class DaemonConnectionCard extends StatelessWidget {
                   onPressed: () async {
                     try {
                       // 1. Download the updated binary
-                      await _binaryProvider.download(providerBinary, shouldUpdate: true);
+                      await _binaryProvider.download(
+                        providerBinary,
+                        shouldUpdate: true,
+                      );
 
                       // 2. Stop the binary
                       await _binaryProvider.stop(providerBinary);
@@ -85,8 +96,12 @@ class DaemonConnectionCard extends StatelessWidget {
                 ),
               Builder(
                 builder: (context) {
-                  final hasLogFile = File(connection.binary.logPath()).existsSync();
-                  final hasProcessLogs = _logProvider.hasLogsForBinary(connection.binary.type);
+                  final hasLogFile = File(
+                    connection.binary.logPath(),
+                  ).existsSync();
+                  final hasProcessLogs = _logProvider.hasLogsForBinary(
+                    connection.binary.type,
+                  );
                   final hasLogs = hasLogFile || hasProcessLogs;
                   return Tooltip(
                     message: hasLogs ? 'View logs' : 'No logs available yet',
@@ -126,13 +141,20 @@ class DaemonConnectionCard extends StatelessWidget {
                 errorColor: theme.colors.error,
               ),
               if (deleteFunction != null)
-                SailButton(variant: ButtonVariant.icon, onPressed: deleteFunction, icon: SailSVGAsset.iconDelete),
+                SailButton(
+                  variant: ButtonVariant.icon,
+                  onPressed: deleteFunction,
+                  icon: SailSVGAsset.iconDelete,
+                ),
             ],
           ),
           if (syncInfo != null)
             SizedBox(
               width: 350,
-              child: BlockStatus(name: connection.binary.name, syncInfo: syncInfo!),
+              child: BlockStatus(
+                name: connection.binary.name,
+                syncInfo: syncInfo!,
+              ),
             ),
           if (infoMessage != null ||
               connection.connectionError != null ||
@@ -182,8 +204,14 @@ class BlockStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentProgress = formatProgress(syncInfo.progressCurrent, syncInfo.downloadInfo.isDownloading);
-    final goalProgress = formatProgress(syncInfo.progressGoal, syncInfo.downloadInfo.isDownloading);
+    final currentProgress = formatProgress(
+      syncInfo.progressCurrent,
+      syncInfo.downloadInfo.isDownloading,
+    );
+    final goalProgress = formatProgress(
+      syncInfo.progressGoal,
+      syncInfo.downloadInfo.isDownloading,
+    );
 
     // Check if download just finished but blockchain sync hasn't started yet
     // This happens when progressCurrent is very low (download progress was 0-1)
@@ -211,7 +239,10 @@ class BlockStatus extends StatelessWidget {
               children: [
                 if (!syncInfo.isSynced)
                   Expanded(
-                    child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal),
+                    child: ProgressBar(
+                      current: syncInfo.progressCurrent,
+                      goal: syncInfo.progressGoal,
+                    ),
                   )
                 else if (downloadJustFinished)
                   SailText.secondary12('Finishing up...')

@@ -47,7 +47,10 @@ class LargeEmbeddedInput extends StatelessWidget {
         hintText: hintText,
         suffix: suffixText != null ? SailText.primary13(suffixText!, bold: true) : null,
         contentPadding: const EdgeInsets.all(SailStyleValues.padding20),
-        hintStyle: TextStyle(color: SailTheme.of(context).colors.textHint, fontSize: 15),
+        hintStyle: TextStyle(
+          color: SailTheme.of(context).colors.textHint,
+          fontSize: 15,
+        ),
       ),
     );
   }
@@ -55,7 +58,10 @@ class LargeEmbeddedInput extends StatelessWidget {
 
 class BitcoinTextInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final newText = newValue.text;
 
     if (newText.contains('.') && newText.substring(newText.indexOf('.') + 1).length > 8) {
@@ -71,7 +77,10 @@ class BitcoinTextInputFormatter extends TextInputFormatter {
 
 class CommaReplacerInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final newText = newValue.text.replaceAll(',', '.');
 
     return newValue.copyWith(

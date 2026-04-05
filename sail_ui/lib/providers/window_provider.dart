@@ -50,7 +50,10 @@ extension WindowControllerExtension on WindowController {
   }
 
   Future<void> setTitle(String title) {
-    return invokeMethod('sail_ui_window_channel', MethodCall('window_set_title', title));
+    return invokeMethod(
+      'sail_ui_window_channel',
+      MethodCall('window_set_title', title),
+    );
   }
 
   Future<void> show() {
@@ -85,7 +88,11 @@ class WindowProvider extends ChangeNotifier {
   WindowProvider._create({required this.logFile, required this.appDir});
 
   // Async factory
-  static Future<WindowProvider> newInstance(File logFile, Directory appDir, {bool isMainWindow = false}) async {
+  static Future<WindowProvider> newInstance(
+    File logFile,
+    Directory appDir, {
+    bool isMainWindow = false,
+  }) async {
     final instance = WindowProvider._create(logFile: logFile, appDir: appDir);
     await instance._initialize(isMainWindow: isMainWindow);
     return instance;
@@ -96,7 +103,10 @@ class WindowProvider extends ChangeNotifier {
     // Only the main window registers the handler in unidirectional mode
     // Sub-windows can invoke methods but don't register
     if (isMainWindow) {
-      const channel = WindowMethodChannel('sail_ui_window_channel', mode: ChannelMode.unidirectional);
+      const channel = WindowMethodChannel(
+        'sail_ui_window_channel',
+        mode: ChannelMode.unidirectional,
+      );
       await channel.setMethodCallHandler(_handleMethodCall);
     }
   }
@@ -107,7 +117,10 @@ class WindowProvider extends ChangeNotifier {
       final screen = PlatformDispatcher.instance.displays.first;
       final physicalSize = screen.size;
       final devicePixelRatio = screen.devicePixelRatio;
-      final actualScreenSize = Size(physicalSize.width / devicePixelRatio, physicalSize.height / devicePixelRatio);
+      final actualScreenSize = Size(
+        physicalSize.width / devicePixelRatio,
+        physicalSize.height / devicePixelRatio,
+      );
 
       var windowPosition = windowType.defaultPosition ?? const Offset(100, 100);
       var windowSize = windowType.defaultSize ?? const Size(800, 600);
@@ -118,7 +131,10 @@ class WindowProvider extends ChangeNotifier {
       } else if (windowSize.width > actualScreenSize.width) {
         final proportion = windowSize.width / double.maxFinite;
         if (proportion > 0 && proportion <= 1) {
-          windowSize = Size(actualScreenSize.width * proportion, windowSize.height);
+          windowSize = Size(
+            actualScreenSize.width * proportion,
+            windowSize.height,
+          );
         } else {
           windowSize = Size(actualScreenSize.width, windowSize.height);
         }
@@ -129,7 +145,10 @@ class WindowProvider extends ChangeNotifier {
       } else if (windowSize.height > actualScreenSize.height) {
         final proportion = windowSize.height / double.maxFinite;
         if (proportion > 0 && proportion <= 1) {
-          windowSize = Size(windowSize.width, actualScreenSize.height * proportion);
+          windowSize = Size(
+            windowSize.width,
+            actualScreenSize.height * proportion,
+          );
         } else {
           windowSize = Size(windowSize.width, actualScreenSize.height);
         }
@@ -138,7 +157,10 @@ class WindowProvider extends ChangeNotifier {
       if (windowPosition.dx > actualScreenSize.width) {
         final proportion = windowPosition.dx / double.maxFinite;
         if (proportion > 0 && proportion <= 1) {
-          windowPosition = Offset(actualScreenSize.width * proportion, windowPosition.dy);
+          windowPosition = Offset(
+            actualScreenSize.width * proportion,
+            windowPosition.dy,
+          );
         } else {
           windowPosition = Offset(actualScreenSize.width, windowPosition.dy);
         }
@@ -147,7 +169,10 @@ class WindowProvider extends ChangeNotifier {
       if (windowPosition.dy > actualScreenSize.height) {
         final proportion = windowPosition.dy / double.maxFinite;
         if (proportion > 0 && proportion <= 1) {
-          windowPosition = Offset(windowPosition.dx, actualScreenSize.height * proportion);
+          windowPosition = Offset(
+            windowPosition.dx,
+            actualScreenSize.height * proportion,
+          );
         } else {
           windowPosition = Offset(windowPosition.dx, actualScreenSize.height);
         }
@@ -226,9 +251,16 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<dynamic> sendMessageTo(String windowId, String method, dynamic arguments) async {
+  Future<dynamic> sendMessageTo(
+    String windowId,
+    String method,
+    dynamic arguments,
+  ) async {
     try {
-      const channel = WindowMethodChannel('sail_ui_window_channel', mode: ChannelMode.unidirectional);
+      const channel = WindowMethodChannel(
+        'sail_ui_window_channel',
+        mode: ChannelMode.unidirectional,
+      );
       final response = await channel.invokeMethod(method, arguments);
       return response;
     } catch (e) {
@@ -237,7 +269,10 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> sendMessageToAll(String method, dynamic arguments) async {
+  Future<Map<String, dynamic>> sendMessageToAll(
+    String method,
+    dynamic arguments,
+  ) async {
     final responses = <String, dynamic>{};
     for (final window in windows) {
       try {
@@ -252,7 +287,10 @@ class WindowProvider extends ChangeNotifier {
 
   Future<dynamic> sendMessageToMain(String method, dynamic arguments) async {
     try {
-      const channel = WindowMethodChannel('sail_ui_window_channel', mode: ChannelMode.unidirectional);
+      const channel = WindowMethodChannel(
+        'sail_ui_window_channel',
+        mode: ChannelMode.unidirectional,
+      );
       final response = await channel.invokeMethod(method, arguments);
       return response;
     } catch (e) {
@@ -299,7 +337,10 @@ class WindowProvider extends ChangeNotifier {
   void _handleWindowFocused(String windowId) {}
 
   dynamic _handleDataRequest(dynamic arguments) {
-    return {'status': 'data_available', 'timestamp': DateTime.now().toIso8601String()};
+    return {
+      'status': 'data_available',
+      'timestamp': DateTime.now().toIso8601String(),
+    };
   }
 
   void _handleStatusUpdate(String fromWindowId, dynamic arguments) {}
@@ -328,7 +369,12 @@ class SailWindow {
   /// Get the unique identifier for this window type
   String identifier;
 
-  SailWindow({required this.name, this.defaultSize, this.defaultPosition, required this.identifier});
+  SailWindow({
+    required this.name,
+    this.defaultSize,
+    this.defaultPosition,
+    required this.identifier,
+  });
 }
 
 /// Class representing a window with its properties
@@ -338,7 +384,12 @@ class WindowInfo {
   final WindowController controller;
   final DateTime createdAt;
 
-  WindowInfo({required this.id, required this.windowType, required this.controller, required this.createdAt});
+  WindowInfo({
+    required this.id,
+    required this.windowType,
+    required this.controller,
+    required this.createdAt,
+  });
 
   @override
   String toString() {
@@ -346,12 +397,20 @@ class WindowInfo {
   }
 }
 
-SailApp buildSailWindowApp(Logger log, String windowTitle, Widget child, Color accentColor) {
+SailApp buildSailWindowApp(
+  Logger log,
+  String windowTitle,
+  Widget child,
+  Color accentColor,
+) {
   return SailApp(
     log: log,
     dense: true,
     builder: (context) => MaterialApp(
-      theme: ThemeData(visualDensity: VisualDensity.compact, fontFamily: 'Inter'),
+      theme: ThemeData(
+        visualDensity: VisualDensity.compact,
+        fontFamily: 'Inter',
+      ),
       home: Scaffold(
         backgroundColor: SailTheme.of(context).colors.background,
         body: Column(

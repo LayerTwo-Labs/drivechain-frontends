@@ -12,10 +12,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the photon server.
 abstract class PhotonRPC extends SidechainRPC {
-  PhotonRPC({
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  PhotonRPC({required super.binaryType, required super.restartOnFailure});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -74,11 +71,7 @@ class PhotonLive extends PhotonRPC {
     return client;
   }
 
-  PhotonLive()
-    : super(
-        binaryType: BinaryType.photon,
-        restartOnFailure: false,
-      ) {
+  PhotonLive() : super(binaryType: BinaryType.photon, restartOnFailure: false) {
     if (!Environment.backendManagesBinaries) {
       startConnectionTimer();
     }
@@ -180,8 +173,18 @@ class PhotonLive extends PhotonRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) async {
+    final response = await _client().call('withdraw', [
+      address,
+      amountSats,
+      sidechainFeeSats,
+      mainchainFeeSats,
+    ]);
     return response as String;
   }
 
@@ -192,7 +195,11 @@ class PhotonLive extends PhotonRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) async {
     final response = await _client().call('transfer', [
       address,
       btcToSatoshi(amount).toInt(),
@@ -210,8 +217,16 @@ class PhotonLive extends PhotonRPC {
 
   /// Create a deposit transaction
   @override
-  Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create_deposit', [address, btcToSatoshi(amount), btcToSatoshi(fee)]);
+  Future<String> createDeposit(
+    String address,
+    double amount,
+    double fee,
+  ) async {
+    final response = await _client().call('create_deposit', [
+      address,
+      btcToSatoshi(amount),
+      btcToSatoshi(fee),
+    ]);
     return response as String;
   }
 
@@ -293,7 +308,9 @@ class PhotonLive extends PhotonRPC {
   /// Get latest failed withdrawal bundle height
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response = await _client().call('latest_failed_withdrawal_bundle_height');
+    final response = await _client().call(
+      'latest_failed_withdrawal_bundle_height',
+    );
     return response as int?;
   }
 

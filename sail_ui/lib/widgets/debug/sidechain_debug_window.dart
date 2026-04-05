@@ -186,12 +186,12 @@ class _SidechainInfoTabState extends State<SidechainInfoTab> {
             children: [
               SailText.secondary13('Failed to load information'),
               const SizedBox(height: 8),
-              SailText.secondary12(_error!, color: context.sailTheme.colors.error),
-              const SizedBox(height: 16),
-              SailButton(
-                label: 'Retry',
-                onPressed: () async => _loadInfo(),
+              SailText.secondary12(
+                _error!,
+                color: context.sailTheme.colors.error,
               ),
+              const SizedBox(height: 16),
+              SailButton(label: 'Retry', onPressed: () async => _loadInfo()),
             ],
           ),
         ),
@@ -240,7 +240,9 @@ class _SidechainInfoTabState extends State<SidechainInfoTab> {
               details: {
                 'Current Block Height': _blockchainInfo?.blocks.toString() ?? 'Loading...',
                 'Headers': _blockchainInfo?.headers.toString() ?? 'Loading...',
-                'Best Block Hash': _truncateHash(_blockchainInfo?.bestBlockHash ?? ''),
+                'Best Block Hash': _truncateHash(
+                  _blockchainInfo?.bestBlockHash ?? '',
+                ),
                 'Sync Progress': '${((_blockchainInfo?.verificationProgress ?? 0) * 100).toStringAsFixed(0)}%',
               },
             ),
@@ -288,16 +290,8 @@ class SidechainInfoSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
-                SizedBox(
-                  width: 200,
-                  child: SailText.secondary13(e.key),
-                ),
-                Expanded(
-                  child: SailText.primary13(
-                    e.value,
-                    monospace: true,
-                  ),
-                ),
+                SizedBox(width: 200, child: SailText.secondary13(e.key)),
+                Expanded(child: SailText.primary13(e.value, monospace: true)),
               ],
             ),
           ),
@@ -360,10 +354,7 @@ class SidechainProcessesTab extends StatelessWidget {
 class SidechainConsoleTab extends StatelessWidget {
   final String sidechainName;
 
-  const SidechainConsoleTab({
-    super.key,
-    required this.sidechainName,
-  });
+  const SidechainConsoleTab({super.key, required this.sidechainName});
 
   @override
   Widget build(BuildContext context) {
@@ -379,10 +370,7 @@ class SidechainConsoleTab extends StatelessWidget {
 class SidechainPeersTab extends StatefulWidget {
   final SidechainRPC rpc;
 
-  const SidechainPeersTab({
-    super.key,
-    required this.rpc,
-  });
+  const SidechainPeersTab({super.key, required this.rpc});
 
   @override
   State<SidechainPeersTab> createState() => _SidechainPeersTabState();
@@ -425,16 +413,16 @@ class _SidechainPeersTabState extends State<SidechainPeersTab> {
     try {
       await widget.rpc.callRAW('connect_peer', [address]);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connecting to $address...')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Connecting to $address...')));
         await _loadPeers();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to connect: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to connect: $e')));
       }
     }
   }
@@ -442,9 +430,7 @@ class _SidechainPeersTabState extends State<SidechainPeersTab> {
   void _showConnectPeerDialog() {
     showDialog(
       context: context,
-      builder: (context) => ConnectPeerDialog(
-        onConnect: _connectPeer,
-      ),
+      builder: (context) => ConnectPeerDialog(onConnect: _connectPeer),
     );
   }
 
@@ -506,10 +492,7 @@ class _SidechainPeersTabState extends State<SidechainPeersTab> {
               const SizedBox(height: 8),
               SailText.secondary12(_error!, color: theme.colors.error),
               const SizedBox(height: 16),
-              SailButton(
-                label: 'Retry',
-                onPressed: () async => _loadPeers(),
-              ),
+              SailButton(label: 'Retry', onPressed: () async => _loadPeers()),
             ],
           ),
         ),
@@ -583,10 +566,7 @@ class SidechainPeerInfo {
   final String address;
   final String status;
 
-  SidechainPeerInfo({
-    required this.address,
-    required this.status,
-  });
+  SidechainPeerInfo({required this.address, required this.status});
 
   factory SidechainPeerInfo.fromJson(Map<String, dynamic> json) {
     return SidechainPeerInfo(
@@ -600,10 +580,7 @@ class SidechainPeerInfo {
 class ConnectPeerDialog extends StatefulWidget {
   final Future<void> Function(String address) onConnect;
 
-  const ConnectPeerDialog({
-    super.key,
-    required this.onConnect,
-  });
+  const ConnectPeerDialog({super.key, required this.onConnect});
 
   @override
   State<ConnectPeerDialog> createState() => _ConnectPeerDialogState();
@@ -662,7 +639,9 @@ class _ConnectPeerDialogState extends State<ConnectPeerDialog> {
           children: [
             SailText.primary15('Connect to Peer'),
             const SizedBox(height: 8),
-            SailText.secondary13('Enter the address of the peer you want to connect to.'),
+            SailText.secondary13(
+              'Enter the address of the peer you want to connect to.',
+            ),
             const SizedBox(height: 16),
             SailTextField(
               controller: _addressController,
@@ -702,10 +681,7 @@ class _ConnectPeerDialogState extends State<ConnectPeerDialog> {
 class SidechainRPCMethodsTab extends StatefulWidget {
   final SidechainRPC rpc;
 
-  const SidechainRPCMethodsTab({
-    super.key,
-    required this.rpc,
-  });
+  const SidechainRPCMethodsTab({super.key, required this.rpc});
 
   @override
   State<SidechainRPCMethodsTab> createState() => _SidechainRPCMethodsTabState();
@@ -897,9 +873,9 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
   void _copyResult() {
     if (_methodResult != null) {
       Clipboard.setData(ClipboardData(text: _methodResult!));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copied to clipboard')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
     }
   }
 
@@ -974,7 +950,9 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
           Expanded(
             child: _selectedMethod == null
                 ? Center(
-                    child: SailText.secondary13('Select a method to view details'),
+                    child: SailText.secondary13(
+                      'Select a method to view details',
+                    ),
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

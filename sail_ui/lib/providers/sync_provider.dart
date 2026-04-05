@@ -133,7 +133,10 @@ class SyncProvider extends ChangeNotifier {
         if (wasSynced != isSynced) {
           // changed sync status, so we must apply the correct timer
           _mainchainTimer?.cancel();
-          _mainchainTimer = Timer.periodic(isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL, (_) => tick());
+          _mainchainTimer = Timer.periodic(
+            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
+            (_) => tick(),
+          );
         }
       } catch (e) {
         // swallow
@@ -163,7 +166,10 @@ class SyncProvider extends ChangeNotifier {
         if (wasSynced != isSynced) {
           // changed sync status, so we must apply the correct timer
           _enforcerTimer?.cancel();
-          _enforcerTimer = Timer.periodic(isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL, (_) => tick());
+          _enforcerTimer = Timer.periodic(
+            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
+            (_) => tick(),
+          );
         }
       } catch (e) {
         // swallow
@@ -193,7 +199,10 @@ class SyncProvider extends ChangeNotifier {
         if (wasSynced != isSynced) {
           // changed sync status, so we must apply the correct timer
           _additionalTimer?.cancel();
-          _additionalTimer = Timer.periodic(isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL, (_) => tick());
+          _additionalTimer = Timer.periodic(
+            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
+            (_) => tick(),
+          );
         }
       } catch (e) {
         // swallow
@@ -306,7 +315,9 @@ class SyncProvider extends ChangeNotifier {
   void _checkDownloadProgress() {
     bool hasChanges = false;
 
-    var downloadInfo = binaryProvider.downloadProgress(enforcer.rpc.binary.type);
+    var downloadInfo = binaryProvider.downloadProgress(
+      enforcer.rpc.binary.type,
+    );
     if (downloadInfo.isDownloading || (enforcerSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
       final (currentMB, totalMB) = (downloadInfo.progress, downloadInfo.total);
 
@@ -333,10 +344,15 @@ class SyncProvider extends ChangeNotifier {
     }
 
     if (additionalConnection != null) {
-      downloadInfo = binaryProvider.downloadProgress(additionalConnection!.rpc.binary.type);
+      downloadInfo = binaryProvider.downloadProgress(
+        additionalConnection!.rpc.binary.type,
+      );
       if (downloadInfo.isDownloading ||
           (additionalSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-        final (currentMB, totalMB) = (downloadInfo.progress, downloadInfo.total);
+        final (currentMB, totalMB) = (
+          downloadInfo.progress,
+          downloadInfo.total,
+        );
 
         additionalSyncInfo = SyncInfo(
           progressCurrent: currentMB,
@@ -360,7 +376,11 @@ class SyncProvider extends ChangeNotifier {
 
   // For manual fetching of all connections
   Future<void> fetch() async {
-    await Future.wait([_fetchMainchain(), _fetchEnforcer(), if (additionalConnection != null) _fetchAdditional()]);
+    await Future.wait([
+      _fetchMainchain(),
+      _fetchEnforcer(),
+      if (additionalConnection != null) _fetchAdditional(),
+    ]);
   }
 
   /// Clear all sync state - useful when network changes or services restart

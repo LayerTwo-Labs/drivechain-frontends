@@ -23,9 +23,7 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
   @override
   final Directory bitwindowAppDir;
 
-  FrontendWalletWriterProvider({
-    required this.bitwindowAppDir,
-  });
+  FrontendWalletWriterProvider({required this.bitwindowAppDir});
 
   final _logger = GetIt.I.get<Logger>();
   static const String defaultBip32Path = "m/44'/0'/0'";
@@ -62,7 +60,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
   Future<void> saveWallet(WalletData wallet) async {
     await _walletLock.synchronized(() async {
       try {
-        _logger.i('saveWallet: Saving wallet to wallet.json via WalletReaderProvider');
+        _logger.i(
+          'saveWallet: Saving wallet to wallet.json via WalletReaderProvider',
+        );
 
         // Ensure bitwindowAppDir exists
         if (!await bitwindowAppDir.exists()) {
@@ -71,7 +71,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
 
         // Use WalletReaderProvider to update wallet (handles encryption/decryption)
         await _walletReader.updateWallet(wallet);
-        _logger.i('saveWallet: Wallet saved successfully via WalletReaderProvider');
+        _logger.i(
+          'saveWallet: Wallet saved successfully via WalletReaderProvider',
+        );
       } catch (e, stack) {
         _logger.e('saveWallet: Error saving wallet: $e\n$stack');
         rethrow;
@@ -87,7 +89,11 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
   }) async {
     _logger.i('generateWallet: Starting wallet generation');
 
-    final walletData = await _genWallet(name: name, customMnemonic: customMnemonic, passphrase: passphrase);
+    final walletData = await _genWallet(
+      name: name,
+      customMnemonic: customMnemonic,
+      passphrase: passphrase,
+    );
 
     _logger.i('generateWallet: Wallet data generated, restarting enforcer');
 
@@ -110,11 +116,15 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
         final hdWalletProvider = GetIt.I.get(instanceName: 'HDWalletProvider');
         await (hdWalletProvider as dynamic).reset();
         await (hdWalletProvider as dynamic).init();
-        _logger.i('generateWallet: HD wallet provider reset and re-initialized');
+        _logger.i(
+          'generateWallet: HD wallet provider reset and re-initialized',
+        );
       }
     } catch (e) {
       // HDWalletProvider not available or reset failed - that's OK for sidechains
-      _logger.d('generateWallet: HD wallet provider not available or reset failed: $e');
+      _logger.d(
+        'generateWallet: HD wallet provider not available or reset failed: $e',
+      );
     }
   }
 
@@ -144,7 +154,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
     required String name,
     required WalletGradient gradient,
   }) async {
-    _logger.i('createBitcoinCoreWallet: Creating Bitcoin Core wallet named "$name"');
+    _logger.i(
+      'createBitcoinCoreWallet: Creating Bitcoin Core wallet named "$name"',
+    );
 
     // Generate a new wallet with random mnemonic
     // This will save the wallet via saveMasterWallet with auto-generated gradient
@@ -167,7 +179,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
     required String xpubOrDescriptor,
     required WalletGradient gradient,
   }) async {
-    _logger.i('createWatchOnlyWallet: Creating watch-only wallet named "$name"');
+    _logger.i(
+      'createWatchOnlyWallet: Creating watch-only wallet named "$name"',
+    );
 
     await _walletLock.synchronized(() async {
       final walletId = _generateWalletId();
@@ -200,10 +214,7 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
         walletFileData = jsonDecode(content) as Map<String, dynamic>;
       } else {
         // Create new structure
-        walletFileData = {
-          'version': 1,
-          'wallets': [],
-        };
+        walletFileData = {'version': 1, 'wallets': []};
       }
 
       // Add new wallet to wallets array
@@ -218,7 +229,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
       // Reload wallet reader to pick up the new wallet
       await _walletReader.init();
 
-      _logger.i('createWatchOnlyWallet: Successfully created watch-only wallet $walletId');
+      _logger.i(
+        'createWatchOnlyWallet: Successfully created watch-only wallet $walletId',
+      );
     });
   }
 
@@ -240,7 +253,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
     _logger.i('_genWallet: About to save master wallet (includes all chains)');
     await saveMasterWallet(walletData, name: name);
 
-    _logger.i('_genWallet: Notifying listeners once after all wallets generated');
+    _logger.i(
+      '_genWallet: Notifying listeners once after all wallets generated',
+    );
     notifyListeners();
 
     _logger.i('_genWallet: Complete');
@@ -262,7 +277,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
     pbkdf2.init(params);
 
     // Use mnemonic sentence as the input key material
-    final seedBytes = pbkdf2.process(utf8.encode(mnemonic.sentence + (passphrase ?? '')));
+    final seedBytes = pbkdf2.process(
+      utf8.encode(mnemonic.sentence + (passphrase ?? '')),
+    );
     final seedHex = hex.encode(seedBytes);
 
     // Create master key from seed
@@ -274,7 +291,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
       'seed_hex': seedHex,
       'bip39_binary': _bytesToBinary(mnemonic.entropy),
       'bip39_checksum': _calculateChecksumBits(mnemonic.entropy),
-      'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2)]),
+      'bip39_checksum_hex': hex.encode([
+        int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2),
+      ]),
       'master_key': masterKey.privateKeyHex(),
       'chain_code': hex.encode(masterKey.chainCode!),
     };
@@ -303,13 +322,23 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
   }
 
   // Static method to run in isolate
-  static Map<String, dynamic> _generateWalletInIsolate(Map<String, dynamic> params) {
+  static Map<String, dynamic> _generateWalletInIsolate(
+    Map<String, dynamic> params,
+  ) {
     final customMnemonic = params['customMnemonic'] as String?;
     final passphrase = params['passphrase'] as String?;
 
     final Mnemonic mnemonicObj = customMnemonic != null
-        ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
-        : Mnemonic.generate(Language.english, length: MnemonicLength.words12, passphrase: passphrase ?? '');
+        ? Mnemonic.fromSentence(
+            customMnemonic,
+            Language.english,
+            passphrase: passphrase ?? '',
+          )
+        : Mnemonic.generate(
+            Language.english,
+            length: MnemonicLength.words12,
+            passphrase: passphrase ?? '',
+          );
 
     final seedHex = hex.encode(mnemonicObj.seed);
 
@@ -324,7 +353,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
       'chain_code': hex.encode(masterKey.chainCode!),
       'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
       'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
-      'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
+      'bip39_checksum_hex': hex.encode([
+        int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2),
+      ]),
     };
   }
 
@@ -362,8 +393,13 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
   }
 
   @override
-  Future<void> saveMasterWallet(Map<String, dynamic> walletData, {required String name}) async {
-    _logger.i('saveMasterWallet: Starting (will save to new wallet.json structure)');
+  Future<void> saveMasterWallet(
+    Map<String, dynamic> walletData, {
+    required String name,
+  }) async {
+    _logger.i(
+      'saveMasterWallet: Starting (will save to new wallet.json structure)',
+    );
 
     walletData['name'] = 'Master';
 
@@ -417,9 +453,13 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
             mnemonic: starterData['mnemonic'] as String,
           ),
         );
-        _logger.i('saveMasterWallet: Derived sidechain starter for ${chain.name}');
+        _logger.i(
+          'saveMasterWallet: Derived sidechain starter for ${chain.name}',
+        );
       } catch (e) {
-        _logger.e('saveMasterWallet: Could not derive starter for ${chain.name}: $e');
+        _logger.e(
+          'saveMasterWallet: Could not derive starter for ${chain.name}: $e',
+        );
       }
     }
 
@@ -459,7 +499,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
     // Reload wallet list and switch to the newly created wallet
     await _walletReader.init();
 
-    _logger.i('saveMasterWallet: Complete - created wallet $walletId named "$name"');
+    _logger.i(
+      'saveMasterWallet: Complete - created wallet $walletId named "$name"',
+    );
   }
 
   @override
@@ -498,7 +540,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
     }
 
     // Sidechain doesn't exist yet - generate it
-    _logger.i('getSidechainStarter: Sidechain for slot $sidechainSlot not found, generating...');
+    _logger.i(
+      'getSidechainStarter: Sidechain for slot $sidechainSlot not found, generating...',
+    );
 
     // Find the sidechain binary configuration
     final sidechainBinary = binaryProvider.binaries
@@ -506,7 +550,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
         .where((s) => s.slot == sidechainSlot)
         .firstOrNull;
     if (sidechainBinary == null) {
-      _logger.w('getSidechainStarter: No sidechain binary configured for slot $sidechainSlot');
+      _logger.w(
+        'getSidechainStarter: No sidechain binary configured for slot $sidechainSlot',
+      );
       return null;
     }
 
@@ -539,7 +585,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
 
     // Save updated wallet
     await saveWallet(updatedWallet);
-    _logger.i('getSidechainStarter: Generated and saved sidechain wallet for slot $sidechainSlot');
+    _logger.i(
+      'getSidechainStarter: Generated and saved sidechain wallet for slot $sidechainSlot',
+    );
 
     return newSidechain.mnemonic;
   }
@@ -556,7 +604,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
             await maybeMusigWallet.delete(recursive: true);
             logger.i('Deleted multisig wallet: ${maybeMusigWallet.path}');
           } catch (e) {
-            logger.w('Could not delete multisig wallet ${maybeMusigWallet.path}: $e');
+            logger.w(
+              'Could not delete multisig wallet ${maybeMusigWallet.path}: $e',
+            );
           }
         }
       }
@@ -603,7 +653,9 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
         await walletFile.delete();
         _logger.i('deleted ${walletFile.path}');
       }
-      final encryptionFile = File(path.join(bitwindowAppDir.path, 'wallet_encryption.json'));
+      final encryptionFile = File(
+        path.join(bitwindowAppDir.path, 'wallet_encryption.json'),
+      );
       if (await encryptionFile.exists()) {
         await encryptionFile.delete();
         _logger.i('deleted ${encryptionFile.path}');
@@ -669,13 +721,19 @@ class FrontendWalletWriterProvider extends WalletWriterProvider {
 
   /// Update wallet metadata (name and gradient)
   @override
-  Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {
+  Future<void> updateWalletMetadata(
+    String walletId,
+    String name,
+    WalletGradient gradient,
+  ) async {
     return await _walletLock.synchronized(() async {
       try {
         await _walletReader.updateWalletMetadata(walletId, name, gradient);
         _logger.i('updateWalletMetadata: Updated wallet $walletId');
       } catch (e, stack) {
-        _logger.e('updateWalletMetadata: Failed to update wallet metadata: $e\n$stack');
+        _logger.e(
+          'updateWalletMetadata: Failed to update wallet metadata: $e\n$stack',
+        );
         rethrow;
       }
     });

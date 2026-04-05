@@ -7,11 +7,7 @@ class WalletBlobAvatar extends StatelessWidget {
   final WalletGradient gradient;
   final double size;
 
-  const WalletBlobAvatar({
-    super.key,
-    required this.gradient,
-    this.size = 50,
-  });
+  const WalletBlobAvatar({super.key, required this.gradient, this.size = 50});
 
   @override
   Widget build(BuildContext context) {

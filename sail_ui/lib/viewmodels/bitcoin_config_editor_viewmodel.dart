@@ -3,11 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-enum ViewMode {
-  settings,
-  diff,
-  raw,
-}
+enum ViewMode { settings, diff, raw }
 
 class BitcoinConfigEditorViewModel extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
@@ -153,7 +149,11 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
       // Add network-specific settings for certain presets
       if (preset == ConfigPreset.performance || preset == ConfigPreset.storageOptimized) {
         // Add signet configuration
-        workingConfig!.setSetting('addnode', '172.105.148.135:38333', section: 'signet');
+        workingConfig!.setSetting(
+          'addnode',
+          '172.105.148.135:38333',
+          section: 'signet',
+        );
         workingConfig!.setSetting('signetblocktime', '600', section: 'signet');
         workingConfig!.setSetting(
           'signetchallenge',

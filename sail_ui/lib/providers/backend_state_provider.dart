@@ -219,7 +219,12 @@ class BackendStateProvider extends ChangeNotifier {
   }
 
   /// Map backend binary name to BinaryType for updating download progress.
-  void _updateDownloadProgress(String binaryName, int bytesDownloaded, int totalBytes, String message) {
+  void _updateDownloadProgress(
+    String binaryName,
+    int bytesDownloaded,
+    int totalBytes,
+    String message,
+  ) {
     if (!GetIt.I.isRegistered<BinaryProvider>()) return;
     final binaryProvider = GetIt.I.get<BinaryProvider>();
 

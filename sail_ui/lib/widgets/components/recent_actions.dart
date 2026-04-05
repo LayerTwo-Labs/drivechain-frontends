@@ -22,10 +22,7 @@ class ActionEntry {
 class ActionEntryTile extends StatelessWidget {
   final ActionEntry entry;
 
-  const ActionEntryTile({
-    super.key,
-    required this.entry,
-  });
+  const ActionEntryTile({super.key, required this.entry});
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +35,7 @@ class ActionEntryTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         if (entry.avatar != null)
-          SizedBox(
-            width: 40,
-            height: 40,
-            child: entry.avatar,
-          )
+          SizedBox(width: 40, height: 40, child: entry.avatar)
         else
           Container(
             width: 40,

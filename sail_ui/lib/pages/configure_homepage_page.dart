@@ -24,7 +24,9 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
   @override
   Widget build(BuildContext context) {
     return SailPage(
-      widgetTitle: SailText.secondary12(widget.backButtonLabel ?? 'Back to homepage'),
+      widgetTitle: SailText.secondary12(
+        widget.backButtonLabel ?? 'Back to homepage',
+      ),
       body: ViewModelBuilder<SailConfigureHomePageViewModel>.reactive(
         viewModelBuilder: () => SailConfigureHomePageViewModel(widget.provider),
         builder: (context, model, child) => QtPage(
@@ -91,7 +93,9 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                         color: context.sailTheme.colors.textTertiary,
                                       ),
                                       SailText.secondary13('No widgets added'),
-                                      SailText.secondary12('Click "Add Widget" to get started'),
+                                      SailText.secondary12(
+                                        'Click "Add Widget" to get started',
+                                      ),
                                     ],
                                   ),
                                 )
@@ -112,7 +116,9 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                         color: context.sailTheme.colors.backgroundSecondary,
                                         elevation: 4,
                                         borderRadius: BorderRadius.circular(8),
-                                        shadowColor: Colors.black.withValues(alpha: 0.2),
+                                        shadowColor: Colors.black.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         child: child,
                                       );
                                     },
@@ -123,15 +129,26 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                       final widgetInfo = widget.widgetCatalog[widgetConfig.widgetId];
 
                                       return Container(
-                                        key: ValueKey(widgetConfig.widgetId + index.toString()),
-                                        margin: const EdgeInsets.only(bottom: 8),
+                                        key: ValueKey(
+                                          widgetConfig.widgetId + index.toString(),
+                                        ),
+                                        margin: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: context.sailTheme.colors.backgroundSecondary,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: context.sailTheme.colors.border),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: context.sailTheme.colors.border,
+                                          ),
                                         ),
                                         child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8.0,
+                                            vertical: 4.0,
+                                          ),
                                           child: Row(
                                             crossAxisAlignment: CrossAxisAlignment.center,
                                             children: [
@@ -145,7 +162,9 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
-                                                    SailText.primary13(widgetInfo?.name ?? 'Unknown Widget'),
+                                                    SailText.primary13(
+                                                      widgetInfo?.name ?? 'Unknown Widget',
+                                                    ),
                                                     SailText.secondary12(
                                                       widgetInfo?.size == WidgetSize.full ? 'Full Width' : 'Half Width',
                                                     ),
@@ -192,7 +211,10 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                             onPressed: () async {
                               await model.saveConfiguration();
                               if (context.mounted) {
-                                showSnackBar(context, 'Homepage configuration saved!');
+                                showSnackBar(
+                                  context,
+                                  'Homepage configuration saved!',
+                                );
                                 widget.onHomepageConfigured?.call();
                               }
                             },
@@ -234,12 +256,17 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
     );
   }
 
-  Future<void> _showAddWidgetDialog(BuildContext context, SailConfigureHomePageViewModel model) async {
+  Future<void> _showAddWidgetDialog(
+    BuildContext context,
+    SailConfigureHomePageViewModel model,
+  ) async {
     final allWidgets = widget.widgetCatalog.values.toList();
 
     // Filter out widgets that are already added
     final availableWidgets = allWidgets.where((widget) {
-      return !model.tempConfiguration.widgets.any((w) => w.widgetId == widget.id);
+      return !model.tempConfiguration.widgets.any(
+        (w) => w.widgetId == widget.id,
+      );
     }).toList();
 
     if (availableWidgets.isEmpty) {
@@ -278,7 +305,9 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                         decoration: BoxDecoration(
                           color: context.sailTheme.colors.backgroundSecondary,
                           borderRadius: SailStyleValues.borderRadius,
-                          border: Border.all(color: context.sailTheme.colors.border),
+                          border: Border.all(
+                            color: context.sailTheme.colors.border,
+                          ),
                         ),
                         child: ListTile(
                           tileColor: Colors.transparent,
@@ -290,7 +319,10 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                               SailText.secondary12(widget.description),
                               const SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: widget.size == WidgetSize.full
                                       ? Colors.blue.withValues(alpha: 0.1)

@@ -16,9 +16,7 @@ class PidFileManager {
   final Directory pidDir;
   final BitcoinCorePidTracker _bitcoinCorePidTracker = BitcoinCorePidTracker();
 
-  PidFileManager({
-    required this.pidDir,
-  }) {
+  PidFileManager({required this.pidDir}) {
     // Ensure directory exists synchronously on creation
     if (!pidDir.existsSync()) {
       pidDir.createSync(recursive: true);
@@ -111,7 +109,11 @@ class PidFileManager {
     try {
       if (Platform.isWindows) {
         // On Windows, use tasklist to check if process exists
-        final result = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/NH']);
+        final result = await Process.run('tasklist', [
+          '/FI',
+          'PID eq $pid',
+          '/NH',
+        ]);
         return result.stdout.toString().contains('$pid');
       }
 
@@ -133,10 +135,13 @@ class PidFileManager {
       if (Platform.isWindows) {
         // On Windows: tasklist /FI "PID eq PID" /FO CSV /NH
         // Output: "ImageName.exe","PID","SessionName","Session#","MemUsage"
-        final result = await Process.run(
-          'tasklist',
-          ['/FI', 'PID eq $pid', '/FO', 'CSV', '/NH'],
-        );
+        final result = await Process.run('tasklist', [
+          '/FI',
+          'PID eq $pid',
+          '/FO',
+          'CSV',
+          '/NH',
+        ]);
 
         if (result.exitCode != 0) return null;
 
@@ -201,7 +206,9 @@ class PidFileManager {
     // Then verify process name (prevents PID reuse issues)
     final nameMatches = await verifyProcessName(pid, binary);
     if (!nameMatches) {
-      log.w('PID $pid is alive but process name does not match ${binary.binaryName}');
+      log.w(
+        'PID $pid is alive but process name does not match ${binary.binaryName}',
+      );
       return false;
     }
 

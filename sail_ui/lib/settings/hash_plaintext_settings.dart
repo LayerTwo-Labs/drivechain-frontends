@@ -13,7 +13,10 @@ class HashMapping {
   Map<String, dynamic> toJson() => {'name': name, 'isMine': isMine};
 
   factory HashMapping.fromJson(Map<String, dynamic> json) {
-    return HashMapping(name: json['name'] as String, isMine: json['isMine'] as bool? ?? false);
+    return HashMapping(
+      name: json['name'] as String,
+      isMine: json['isMine'] as bool? ?? false,
+    );
   }
 }
 
@@ -43,7 +46,9 @@ class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
         final Map<String, HashMapping> result = {};
         decoded.forEach((key, value) {
           if (value is Map) {
-            result[key] = HashMapping.fromJson(Map<String, dynamic>.from(value));
+            result[key] = HashMapping.fromJson(
+              Map<String, dynamic>.from(value),
+            );
           }
         });
         return result;
@@ -55,14 +60,23 @@ class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
   }
 
   @override
-  SettingValue<Map<String, HashMapping>> withValue([Map<String, HashMapping>? value]) {
+  SettingValue<Map<String, HashMapping>> withValue([
+    Map<String, HashMapping>? value,
+  ]) {
     return HashNameMappingSetting(newValue: value);
   }
 
   /// Add a new hash-name mapping
-  HashNameMappingSetting addMapping(String hash, String name, {bool isMine = false}) {
+  HashNameMappingSetting addMapping(
+    String hash,
+    String name, {
+    bool isMine = false,
+  }) {
     final newMappings = Map<String, HashMapping>.from(value);
-    newMappings[hash.toLowerCase()] = HashMapping(name: name.toLowerCase(), isMine: isMine);
+    newMappings[hash.toLowerCase()] = HashMapping(
+      name: name.toLowerCase(),
+      isMine: isMine,
+    );
     return HashNameMappingSetting(newValue: newMappings);
   }
 

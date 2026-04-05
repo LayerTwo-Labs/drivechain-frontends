@@ -20,7 +20,9 @@ class BitcoinConfig {
   BitcoinConfig.fromConfig(BitcoinConfig other) {
     globalSettings = Map<String, String>.from(other.globalSettings);
     for (final network in networkSettings.keys) {
-      networkSettings[network] = Map<String, String>.from(other.networkSettings[network]!);
+      networkSettings[network] = Map<String, String>.from(
+        other.networkSettings[network]!,
+      );
     }
     configVersion = other.configVersion;
   }
@@ -35,7 +37,9 @@ class BitcoinConfig {
 
       // Parse version comment for migration system
       if (trimmed.startsWith(kBitcoinConfVersionCommentPrefix)) {
-        final v = int.tryParse(trimmed.substring(kBitcoinConfVersionCommentPrefix.length).trim());
+        final v = int.tryParse(
+          trimmed.substring(kBitcoinConfVersionCommentPrefix.length).trim(),
+        );
         if (v != null && v >= 0) config.configVersion = v;
         continue;
       }
@@ -103,7 +107,9 @@ class BitcoinConfig {
     for (final network in networkSettings.keys) {
       final settings = networkSettings[network]!;
       if (settings.isNotEmpty) {
-        buffer.writeln('# Options for ${network == 'main' ? 'mainnet' : network} only');
+        buffer.writeln(
+          '# Options for ${network == 'main' ? 'mainnet' : network} only',
+        );
         buffer.writeln(sectionNames[network] ?? '[$network]');
         for (final entry in settings.entries) {
           buffer.writeln('${entry.key}=${entry.value}');
@@ -192,12 +198,7 @@ class BitcoinConfig {
   }
 }
 
-enum ConfigPreset {
-  defaultPreset,
-  performance,
-  storageOptimized,
-  custom,
-}
+enum ConfigPreset { defaultPreset, performance, storageOptimized, custom }
 
 class ConfigPresets {
   static Map<String, String> getPresetSettings(ConfigPreset preset) {

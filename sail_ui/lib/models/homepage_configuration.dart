@@ -6,16 +6,10 @@ class HomepageWidgetConfig {
   final String widgetId;
   final Map<String, dynamic> settings;
 
-  HomepageWidgetConfig({
-    required this.widgetId,
-    this.settings = const {},
-  });
+  HomepageWidgetConfig({required this.widgetId, this.settings = const {}});
 
   Map<String, dynamic> toMap() {
-    return {
-      'widgetId': widgetId,
-      'settings': settings,
-    };
+    return {'widgetId': widgetId, 'settings': settings};
   }
 
   factory HomepageWidgetConfig.fromMap(Map<String, dynamic> map) {
@@ -40,10 +34,8 @@ class HomepageConfiguration {
   final List<HomepageWidgetConfig> widgets;
   final DateTime lastModified;
 
-  HomepageConfiguration({
-    required this.widgets,
-    DateTime? lastModified,
-  }) : lastModified = lastModified ?? DateTime.now();
+  HomepageConfiguration({required this.widgets, DateTime? lastModified})
+    : lastModified = lastModified ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
     return {
@@ -55,7 +47,9 @@ class HomepageConfiguration {
   factory HomepageConfiguration.fromMap(Map<String, dynamic> map) {
     return HomepageConfiguration(
       widgets: (map['widgets'] as List<dynamic>)
-          .map((item) => HomepageWidgetConfig.fromMap(item as Map<String, dynamic>))
+          .map(
+            (item) => HomepageWidgetConfig.fromMap(item as Map<String, dynamic>),
+          )
           .toList(),
       lastModified: DateTime.parse(map['lastModified'] as String),
     );
@@ -64,7 +58,9 @@ class HomepageConfiguration {
   String toJson() => json.encode(toMap());
 
   factory HomepageConfiguration.fromJson(String source) {
-    return HomepageConfiguration.fromMap(json.decode(source) as Map<String, dynamic>);
+    return HomepageConfiguration.fromMap(
+      json.decode(source) as Map<String, dynamic>,
+    );
   }
 
   HomepageConfiguration copyWith({
@@ -90,28 +86,22 @@ class HomepageConfiguration {
   HomepageConfiguration removeWidget(int index) {
     final newWidgets = List<HomepageWidgetConfig>.from(widgets);
     newWidgets.removeAt(index);
-    return copyWith(
-      widgets: newWidgets,
-      lastModified: DateTime.now(),
-    );
+    return copyWith(widgets: newWidgets, lastModified: DateTime.now());
   }
 
   HomepageConfiguration reorderWidgets(int oldIndex, int newIndex) {
     final newWidgets = List<HomepageWidgetConfig>.from(widgets);
     final widget = newWidgets.removeAt(oldIndex);
     newWidgets.insert(newIndex > oldIndex ? newIndex - 1 : newIndex, widget);
-    return copyWith(
-      widgets: newWidgets,
-      lastModified: DateTime.now(),
-    );
+    return copyWith(widgets: newWidgets, lastModified: DateTime.now());
   }
 
-  HomepageConfiguration updateWidgetSettings(int index, Map<String, dynamic> settings) {
+  HomepageConfiguration updateWidgetSettings(
+    int index,
+    Map<String, dynamic> settings,
+  ) {
     final newWidgets = List<HomepageWidgetConfig>.from(widgets);
     newWidgets[index] = newWidgets[index].copyWith(settings: settings);
-    return copyWith(
-      widgets: newWidgets,
-      lastModified: DateTime.now(),
-    );
+    return copyWith(widgets: newWidgets, lastModified: DateTime.now());
   }
 }

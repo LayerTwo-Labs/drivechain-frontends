@@ -8,5 +8,8 @@ extension FormatTime on DateTime {
 
 String formatWithThousandSpacers(dynamic value) {
   String stringValue = value.toString();
-  return stringValue.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ');
+  return stringValue.replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]} ',
+  );
 }

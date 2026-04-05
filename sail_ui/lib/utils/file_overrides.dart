@@ -28,8 +28,9 @@ class RetryFile implements io.File {
   @override
   Future<io.File> copy(String newPath) => _withRetry(() => _delegate.copy(newPath));
   @override
-  Future<io.File> create({bool recursive = false, bool exclusive = false}) =>
-      _withRetry(() => _delegate.create(recursive: recursive, exclusive: exclusive));
+  Future<io.File> create({bool recursive = false, bool exclusive = false}) => _withRetry(
+    () => _delegate.create(recursive: recursive, exclusive: exclusive),
+  );
   @override
   Future<io.FileSystemEntity> delete({bool recursive = false}) =>
       _withRetry(() => _delegate.delete(recursive: recursive));
@@ -57,15 +58,25 @@ class RetryFile implements io.File {
   @override
   Future<io.FileStat> stat() => _withRetry(() => _delegate.stat());
   @override
-  Future<io.File> writeAsBytes(List<int> bytes, {io.FileMode mode = io.FileMode.write, bool flush = false}) =>
-      _withRetry(() => _delegate.writeAsBytes(bytes, mode: mode, flush: flush));
+  Future<io.File> writeAsBytes(
+    List<int> bytes, {
+    io.FileMode mode = io.FileMode.write,
+    bool flush = false,
+  }) => _withRetry(() => _delegate.writeAsBytes(bytes, mode: mode, flush: flush));
   @override
   Future<io.File> writeAsString(
     String contents, {
     io.FileMode mode = io.FileMode.write,
     Encoding encoding = utf8,
     bool flush = false,
-  }) => _withRetry(() => _delegate.writeAsString(contents, mode: mode, encoding: encoding, flush: flush));
+  }) => _withRetry(
+    () => _delegate.writeAsString(
+      contents,
+      mode: mode,
+      encoding: encoding,
+      flush: flush,
+    ),
+  );
   @override
   Future setLastAccessed(DateTime time) => _withRetry(() => _delegate.setLastAccessed(time));
   @override
@@ -87,11 +98,15 @@ class RetryFile implements io.File {
   @override
   Stream<List<int>> openRead([int? start, int? end]) => _delegate.openRead(start, end);
   @override
-  io.IOSink openWrite({io.FileMode mode = io.FileMode.write, Encoding encoding = utf8}) =>
-      _delegate.openWrite(mode: mode, encoding: encoding);
+  io.IOSink openWrite({
+    io.FileMode mode = io.FileMode.write,
+    Encoding encoding = utf8,
+  }) => _delegate.openWrite(mode: mode, encoding: encoding);
   @override
-  Stream<io.FileSystemEvent> watch({int events = io.FileSystemEvent.all, bool recursive = false}) =>
-      _delegate.watch(events: events, recursive: recursive);
+  Stream<io.FileSystemEvent> watch({
+    int events = io.FileSystemEvent.all,
+    bool recursive = false,
+  }) => _delegate.watch(events: events, recursive: recursive);
   @override
   io.File copySync(String newPath) => _delegate.copySync(newPath);
   @override
@@ -126,15 +141,23 @@ class RetryFile implements io.File {
   @override
   io.FileStat statSync() => _delegate.statSync();
   @override
-  void writeAsBytesSync(List<int> bytes, {io.FileMode mode = io.FileMode.write, bool flush = false}) =>
-      _delegate.writeAsBytesSync(bytes, mode: mode, flush: flush);
+  void writeAsBytesSync(
+    List<int> bytes, {
+    io.FileMode mode = io.FileMode.write,
+    bool flush = false,
+  }) => _delegate.writeAsBytesSync(bytes, mode: mode, flush: flush);
   @override
   void writeAsStringSync(
     String contents, {
     io.FileMode mode = io.FileMode.write,
     Encoding encoding = utf8,
     bool flush = false,
-  }) => _delegate.writeAsStringSync(contents, mode: mode, encoding: encoding, flush: flush);
+  }) => _delegate.writeAsStringSync(
+    contents,
+    mode: mode,
+    encoding: encoding,
+    flush: flush,
+  );
 }
 
 /// Directory wrapper that retries async operations on Windows.
@@ -171,11 +194,15 @@ class RetryDirectory implements io.Directory {
   @override
   bool get isAbsolute => _delegate.isAbsolute;
   @override
-  Stream<io.FileSystemEntity> list({bool recursive = false, bool followLinks = true}) =>
-      _delegate.list(recursive: recursive, followLinks: followLinks);
+  Stream<io.FileSystemEntity> list({
+    bool recursive = false,
+    bool followLinks = true,
+  }) => _delegate.list(recursive: recursive, followLinks: followLinks);
   @override
-  Stream<io.FileSystemEvent> watch({int events = io.FileSystemEvent.all, bool recursive = false}) =>
-      _delegate.watch(events: events, recursive: recursive);
+  Stream<io.FileSystemEvent> watch({
+    int events = io.FileSystemEvent.all,
+    bool recursive = false,
+  }) => _delegate.watch(events: events, recursive: recursive);
   @override
   void createSync({bool recursive = false}) => _delegate.createSync(recursive: recursive);
   @override
@@ -185,8 +212,10 @@ class RetryDirectory implements io.Directory {
   @override
   bool existsSync() => _delegate.existsSync();
   @override
-  List<io.FileSystemEntity> listSync({bool recursive = false, bool followLinks = true}) =>
-      _delegate.listSync(recursive: recursive, followLinks: followLinks);
+  List<io.FileSystemEntity> listSync({
+    bool recursive = false,
+    bool followLinks = true,
+  }) => _delegate.listSync(recursive: recursive, followLinks: followLinks);
   @override
   io.Directory renameSync(String newPath) => RetryDirectory(_delegate.renameSync(newPath));
   @override

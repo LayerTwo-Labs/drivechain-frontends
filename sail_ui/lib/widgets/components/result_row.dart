@@ -21,7 +21,9 @@ class ResultRow extends StatelessWidget {
   void _copyToClipboard(BuildContext context) {
     Clipboard.setData(ClipboardData(text: value));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${label.replaceAll(':', '')} copied to clipboard')),
+      SnackBar(
+        content: Text('${label.replaceAll(':', '')} copied to clipboard'),
+      ),
     );
   }
 
@@ -40,7 +42,10 @@ class ResultRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 140,
-            child: SailText.secondary13(label, color: theme.colors.textSecondary),
+            child: SailText.secondary13(
+              label,
+              color: theme.colors.textSecondary,
+            ),
           ),
           Expanded(
             child: Row(
@@ -58,7 +63,11 @@ class ResultRow extends StatelessWidget {
                 if (copyable) ...[
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: Icon(Icons.copy, size: 18, color: theme.colors.primary),
+                    icon: Icon(
+                      Icons.copy,
+                      size: 18,
+                      color: theme.colors.primary,
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () => _copyToClipboard(context),

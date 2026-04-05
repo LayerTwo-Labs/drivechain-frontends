@@ -9,7 +9,10 @@ Rect getGlobalBoundsForContext(BuildContext context) {
 
   return Rect.fromPoints(
     renderBox.localToGlobal(Offset.zero, ancestor: overlay),
-    renderBox.localToGlobal(renderBox.size.bottomRight(Offset.zero), ancestor: overlay),
+    renderBox.localToGlobal(
+      renderBox.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    ),
   );
 }
 
@@ -34,14 +37,20 @@ Future showSailMenu({
       semanticLabel ??= MaterialLocalizations.of(context).popupMenuLabel;
   }
 
-  final NavigatorState navigator = Navigator.of(context, rootNavigator: useRootNavigator);
+  final NavigatorState navigator = Navigator.of(
+    context,
+    rootNavigator: useRootNavigator,
+  );
   return navigator.push(
     _PopupMenuRoute(
       preferredAnchorPoint: preferredAnchorPoint,
       alignment: alignment,
       semanticLabel: semanticLabel,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      capturedThemes: InheritedTheme.capture(from: context, to: navigator.context),
+      capturedThemes: InheritedTheme.capture(
+        from: context,
+        to: navigator.context,
+      ),
       menu: menu,
     ),
   );
@@ -76,7 +85,11 @@ class _PopupMenuRoute extends PopupRoute {
   final String barrierLabel;
 
   @override
-  Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
     final MediaQueryData mediaQuery = MediaQuery.of(context);
     return MediaQuery.removePadding(
       context: context,
@@ -103,7 +116,12 @@ class _PopupMenuRoute extends PopupRoute {
 
 // Positioning of the menu on the screen.
 class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
-  _PopupMenuRouteLayout(this.preferredAnchorPoint, this.alignment, this.textDirection, this.padding);
+  _PopupMenuRouteLayout(
+    this.preferredAnchorPoint,
+    this.alignment,
+    this.textDirection,
+    this.padding,
+  );
 
   // Rectangle of underlying button, relative to the overlay's dimensions.
   // final RelativeRect position;
@@ -121,7 +139,9 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
     // The menu can be at most the size of the overlay minus 8.0 pixels in each
     // direction.
-    return BoxConstraints.loose(constraints.biggest).deflate(const EdgeInsets.all(8.0) + padding);
+    return BoxConstraints.loose(
+      constraints.biggest,
+    ).deflate(const EdgeInsets.all(8.0) + padding);
   }
 
   @override

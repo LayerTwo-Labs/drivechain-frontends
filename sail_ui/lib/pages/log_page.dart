@@ -16,7 +16,12 @@ class LogPage extends StatefulWidget {
   final String title;
   final BinaryType? binaryType;
 
-  const LogPage({super.key, required this.logPath, required this.title, this.binaryType});
+  const LogPage({
+    super.key,
+    required this.logPath,
+    required this.title,
+    this.binaryType,
+  });
 
   @override
   State<LogPage> createState() => _LogPageState();
@@ -28,7 +33,10 @@ class _LogPageState extends State<LogPage> {
     return Scaffold(
       backgroundColor: SailColorScheme.blackLighter,
       appBar: AppBar(
-        title: SailText.primary20(widget.title, color: SailColorScheme.whiteDark),
+        title: SailText.primary20(
+          widget.title,
+          color: SailColorScheme.whiteDark,
+        ),
         backgroundColor: SailColorScheme.blackLighter,
         foregroundColor: SailColorScheme.whiteDark,
       ),
@@ -112,10 +120,17 @@ class _FileLogsTabState extends State<_FileLogsTab> {
                     return const SizedBox(height: 100);
                   }
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 2.0,
+                    ),
                     child: Text.rich(
                       _parseAnsiCodes(_logLines[index]),
-                      style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 10, color: SailColorScheme.whiteDark),
+                      style: const TextStyle(
+                        fontFamily: 'IBMPlexMono',
+                        fontSize: 10,
+                        color: SailColorScheme.whiteDark,
+                      ),
                     ),
                   );
                 },
@@ -348,7 +363,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
         // Only auto-scroll if we were already at the bottom
         if (wasAtBottom && _scrollController.hasClients) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            _scrollController.jumpTo(
+              _scrollController.position.maxScrollExtent,
+            );
           });
         } else if (_scrollController.hasClients) {
           // Restore previous scroll position
@@ -487,7 +504,10 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
 
           if (log.isStartupMarker) {
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: Center(
                 child: SailText.secondary12(
                   log.message,
@@ -500,7 +520,10 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
           final textColor = log.isStderr ? SailColorScheme.redLight : SailColorScheme.whiteDark;
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 2.0,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -514,7 +537,10 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
                 const SizedBox(width: 8),
                 if (log.isStderr) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: SailColorScheme.red.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(3),
@@ -527,10 +553,7 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
                   const SizedBox(width: 8),
                 ],
                 Expanded(
-                  child: SailText.primary12(
-                    log.message,
-                    color: textColor,
-                  ),
+                  child: SailText.primary12(log.message, color: textColor),
                 ),
               ],
             ),
@@ -592,7 +615,10 @@ class LogPageViewModel extends BaseViewModel {
   String _stripAnsiCodes(String text) {
     // This regex matches ANSI escape codes and Flutter debug prefixes
     return text
-        .replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '') // Remove ANSI color codes
+        .replaceAll(
+          RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'),
+          '',
+        ) // Remove ANSI color codes
         .replaceAll(RegExp(r'^flutter: '), ''); // Remove Flutter debug prefix
   }
 
@@ -659,7 +685,9 @@ class LogPageViewModel extends BaseViewModel {
       final buffer = await raf.read(fileLength - currentPosition);
       try {
         final chunk = utf8.decode(buffer, allowMalformed: true);
-        newLines.addAll(chunk.split('\n').map(_stripAnsiCodes).where((line) => line.isNotEmpty));
+        newLines.addAll(
+          chunk.split('\n').map(_stripAnsiCodes).where((line) => line.isNotEmpty),
+        );
       } catch (e) {
         log.e('Error decoding new log lines: $e');
       }

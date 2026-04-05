@@ -68,7 +68,10 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
 
   void _startPolling() {
     if (Environment.isInTest) return;
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadFromBackend());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _loadFromBackend(),
+    );
   }
 
   bool _isConnectionError(Object e) {
@@ -81,7 +84,9 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
 
   Future<void> _loadFromBackend() async {
     try {
-      final statusResp = await _client.getWalletStatus(wmpb.GetWalletStatusRequest());
+      final statusResp = await _client.getWalletStatus(
+        wmpb.GetWalletStatusRequest(),
+      );
       final listResp = await _client.listWallets(wmpb.ListWalletsRequest());
 
       activeWalletId = statusResp.activeWalletId.isEmpty ? null : statusResp.activeWalletId;
@@ -107,7 +112,13 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
 
         return WalletData(
           version: 1,
-          master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: '', name: ''),
+          master: MasterWallet(
+            mnemonic: '',
+            seedHex: '',
+            masterKey: '',
+            chainCode: '',
+            name: '',
+          ),
           l1: L1Wallet(mnemonic: '', name: ''),
           sidechains: [],
           id: protoWallet.id,
@@ -186,7 +197,9 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> encryptWallet(String password) async {
     try {
-      await _client.encryptWallet(wmpb.EncryptWalletRequest(password: password));
+      await _client.encryptWallet(
+        wmpb.EncryptWalletRequest(password: password),
+      );
       unlockedPassword = password;
       await _loadFromBackend();
     } catch (e) {
@@ -198,7 +211,12 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> changePassword(String oldPassword, String newPassword) async {
     try {
-      await _client.changePassword(wmpb.ChangePasswordRequest(oldPassword: oldPassword, newPassword: newPassword));
+      await _client.changePassword(
+        wmpb.ChangePasswordRequest(
+          oldPassword: oldPassword,
+          newPassword: newPassword,
+        ),
+      );
       unlockedPassword = newPassword;
     } catch (e) {
       _logger.e('BackendWalletReaderProvider: change password failed: $e');
@@ -209,7 +227,9 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> removeEncryption(String password) async {
     try {
-      await _client.removeEncryption(wmpb.RemoveEncryptionRequest(password: password));
+      await _client.removeEncryption(
+        wmpb.RemoveEncryptionRequest(password: password),
+      );
       unlockedPassword = null;
       await _loadFromBackend();
     } catch (e) {
@@ -248,7 +268,11 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   }
 
   @override
-  Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {
+  Future<void> updateWalletMetadata(
+    String walletId,
+    String name,
+    WalletGradient gradient,
+  ) async {
     try {
       await _client.updateWalletMetadata(
         wmpb.UpdateWalletMetadataRequest(
@@ -277,12 +301,16 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<File> writeEnforcerL1Starter() async {
     // In backend mode, the Go orchestrator handles starter injection
-    throw UnsupportedError('writeEnforcerL1Starter not needed in backend mode — Go handles starter injection');
+    throw UnsupportedError(
+      'writeEnforcerL1Starter not needed in backend mode — Go handles starter injection',
+    );
   }
 
   @override
   Future<File> writeSidechainStarter(int slot) async {
-    throw UnsupportedError('writeSidechainStarter not needed in backend mode — Go handles starter injection');
+    throw UnsupportedError(
+      'writeSidechainStarter not needed in backend mode — Go handles starter injection',
+    );
   }
 
   @override

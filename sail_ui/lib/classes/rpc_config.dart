@@ -80,7 +80,10 @@ CoreConnectionSettings readRPCConfig(
       configFromFile.add('rpcuser');
     }
 
-    final rpcPassword = config.getEffectiveSetting('rpcpassword', networkSection);
+    final rpcPassword = config.getEffectiveSetting(
+      'rpcpassword',
+      networkSection,
+    );
     if (rpcPassword != null) {
       password = rpcPassword;
       configFromFile.add('rpcpassword');
@@ -129,7 +132,9 @@ CoreConnectionSettings readRPCConfig(
 
     // Make sure to not include password here
     log.t('rpc: read password from cookie file at $cookie');
-    log.i('resolved conf: $cookieUsername@$host:$port on ${network.toReadableNet()}');
+    log.i(
+      'resolved conf: $cookieUsername@$host:$port on ${network.toReadableNet()}',
+    );
     return CoreConnectionSettings(
       '', // no conf file path when using cookie
       host,
@@ -141,7 +146,9 @@ CoreConnectionSettings readRPCConfig(
     );
   }
 
-  log.i('missing both conf ($conf) and cookie ($cookie), returning default settings');
+  log.i(
+    'missing both conf ($conf) and cookie ($cookie), returning default settings',
+  );
   return CoreConnectionSettings(
     '',
     host,

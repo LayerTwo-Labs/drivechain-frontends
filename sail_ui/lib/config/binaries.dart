@@ -91,12 +91,7 @@ abstract class Binary {
   List<ProcessLogEntry> startupLogs = [];
 
   void addStartupLog(DateTime timestamp, String message) {
-    startupLogs.add(
-      ProcessLogEntry(
-        timestamp: timestamp,
-        message: message,
-      ),
-    );
+    startupLogs.add(ProcessLogEntry(timestamp: timestamp, message: message));
 
     if (startupLogs.length > 1000) {
       startupLogs.removeAt(0);
@@ -174,7 +169,13 @@ abstract class Binary {
     final dir = assetsDir.path;
 
     // delete raw binary assets
-    await _deleteFilesInDir(dir, [binary, binary.replaceAll('.exe', ''), '$binary.exe', '$binary.app', '$binary.meta']);
+    await _deleteFilesInDir(dir, [
+      binary,
+      binary.replaceAll('.exe', ''),
+      '$binary.exe',
+      '$binary.app',
+      '$binary.meta',
+    ]);
 
     // then any extra files for that specific chain
     switch (type) {
@@ -260,7 +261,9 @@ abstract class Binary {
                 return;
               } else {
                 // Neither directory nor file exists - might have been deleted already
-                _log('Path does not exist (may have been deleted): $filePath - $dirError');
+                _log(
+                  'Path does not exist (may have been deleted): $filePath - $dirError',
+                );
                 return;
               }
             }
@@ -299,7 +302,9 @@ abstract class Binary {
               break;
             } else {
               // Neither directory nor file exists - might have been deleted already
-              _log('Path does not exist (may have been deleted): $filePath - $dirError');
+              _log(
+                'Path does not exist (may have been deleted): $filePath - $dirError',
+              );
               break;
             }
           }
@@ -314,8 +319,13 @@ abstract class Binary {
   }
 
   /// Returns list of existing file/directory paths that would be deleted
-  Future<List<String>> _getExistingFilesInDir(String dir, List<String> files) async {
-    _log('_getExistingFilesInDir: checking $dir for ${files.length} items: $files');
+  Future<List<String>> _getExistingFilesInDir(
+    String dir,
+    List<String> files,
+  ) async {
+    _log(
+      '_getExistingFilesInDir: checking $dir for ${files.length} items: $files',
+    );
     final existing = <String>[];
     for (final file in files) {
       final filePath = path.join(dir, file);
@@ -375,7 +385,11 @@ abstract class Binary {
       case BinaryType.truthcoin:
       case BinaryType.photon:
       case BinaryType.coinShift:
-        return _getExistingFilesInDir(networkDir, ['data.mdb', 'lock.mdb', 'logs']);
+        return _getExistingFilesInDir(networkDir, [
+          'data.mdb',
+          'lock.mdb',
+          'logs',
+        ]);
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
@@ -391,13 +405,20 @@ abstract class Binary {
     // Also include Flutter frontend app directory (getApplicationSupportDirectory())
     final flutterDir = flutterFrontendDir();
     if (flutterDir != null) {
-      paths.addAll(await _getExistingFilesInDir(flutterDir, ['settings.json', 'debug.log']));
+      paths.addAll(
+        await _getExistingFilesInDir(flutterDir, [
+          'settings.json',
+          'debug.log',
+        ]),
+      );
     }
 
     switch (type) {
       case BinaryType.bitcoinCore:
         final network = GetIt.I<BitcoinConfProvider>().network;
-        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['settings.json']));
+        paths.addAll(
+          await _getExistingFilesInDir(datadirNetwork(), ['settings.json']),
+        );
         paths.addAll(
           await _getExistingFilesInDir(rootDirNetwork(network), [
             kBitwindowBitcoinConfFilename,
@@ -411,7 +432,9 @@ abstract class Binary {
         return [];
 
       case BinaryType.bitWindow:
-        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['server.log']));
+        paths.addAll(
+          await _getExistingFilesInDir(datadirNetwork(), ['server.log']),
+        );
         paths.addAll(
           await _getExistingFilesInDir(BitWindow().rootDir(), [
             'assets',
@@ -432,21 +455,41 @@ abstract class Binary {
       case BinaryType.truthcoin:
       case BinaryType.photon:
         paths.addAll(
-          await _getExistingFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']),
+          await _getExistingFilesInDir(frontendDir(), [
+            'assets',
+            'downloads',
+            'debug.log',
+            'settings.json',
+          ]),
         );
         return paths;
 
       case BinaryType.thunder:
         paths.addAll(
-          await _getExistingFilesInDir(rootDir(), ['start.sh', 'thunder.conf', 'thunder.zip', 'thunder_app']),
+          await _getExistingFilesInDir(rootDir(), [
+            'start.sh',
+            'thunder.conf',
+            'thunder.zip',
+            'thunder_app',
+          ]),
         );
         paths.addAll(
-          await _getExistingFilesInDir(frontendDir(), ['assets', 'downloads', 'debug.log', 'settings.json']),
+          await _getExistingFilesInDir(frontendDir(), [
+            'assets',
+            'downloads',
+            'debug.log',
+            'settings.json',
+          ]),
         );
         return paths;
 
       case BinaryType.coinShift:
-        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['debug.log', 'settings.json']));
+        paths.addAll(
+          await _getExistingFilesInDir(datadirNetwork(), [
+            'debug.log',
+            'settings.json',
+          ]),
+        );
         return paths;
 
       case BinaryType.grpcurl:
@@ -487,7 +530,12 @@ abstract class Binary {
         paths.addAll(await _getExistingFilesInDir(networkDir, ['wallet.mdb']));
 
       case BinaryType.bitWindow:
-        paths.addAll(await _getExistingFilesInDir(networkDir, ['wallet.json', 'wallet_encryption.json']));
+        paths.addAll(
+          await _getExistingFilesInDir(networkDir, [
+            'wallet.json',
+            'wallet_encryption.json',
+          ]),
+        );
 
       case BinaryType.grpcurl:
       case BinaryType.thunderd:
@@ -498,7 +546,12 @@ abstract class Binary {
     // Also include Flutter frontend app directory (getApplicationSupportDirectory())
     final flutterDir = flutterFrontendDir();
     if (flutterDir != null) {
-      paths.addAll(await _getExistingFilesInDir(flutterDir, ['wallet.json', 'wallet_encryption.json']));
+      paths.addAll(
+        await _getExistingFilesInDir(flutterDir, [
+          'wallet.json',
+          'wallet_encryption.json',
+        ]),
+      );
     }
 
     return paths;
@@ -528,14 +581,23 @@ abstract class Binary {
 
     switch (type) {
       case BinaryType.bitcoinCore:
-        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['debug.log']));
+        paths.addAll(
+          await _getExistingFilesInDir(datadirNetwork(), ['debug.log']),
+        );
 
       case BinaryType.enforcer:
         // Individual log file + entire logs directory
-        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['bip300301_enforcer.log', 'logs']));
+        paths.addAll(
+          await _getExistingFilesInDir(datadirNetwork(), [
+            'bip300301_enforcer.log',
+            'logs',
+          ]),
+        );
 
       case BinaryType.bitWindow:
-        paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['server.log']));
+        paths.addAll(
+          await _getExistingFilesInDir(datadirNetwork(), ['server.log']),
+        );
         paths.addAll(await _getExistingFilesInDir(rootDir(), ['debug.log']));
 
       case BinaryType.thunder:
@@ -649,7 +711,10 @@ abstract class Binary {
     }
 
     try {
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         paths.add(entity.path);
       }
     } catch (e) {
@@ -671,7 +736,12 @@ abstract class Binary {
           var resolvedPath = binaryPath;
           // Handle .app bundles on macOS
           if (Platform.isMacOS && (resolvedPath.endsWith('.app'))) {
-            resolvedPath = path.join(binaryPath, 'Contents', 'MacOS', path.basenameWithoutExtension(binaryPath));
+            resolvedPath = path.join(
+              binaryPath,
+              'Contents',
+              'MacOS',
+              path.basenameWithoutExtension(binaryPath),
+            );
           }
           return File(resolvedPath);
         }
@@ -690,17 +760,25 @@ abstract class Binary {
     final subfolder = metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
 
     if (kDebugMode) {
-      paths.addAll([path.join(binDir(Directory.current.path).path, subfolder, baseBinary)]);
+      paths.addAll([
+        path.join(binDir(Directory.current.path).path, subfolder, baseBinary),
+      ]);
     }
 
     paths.addAll([path.join(binDir(appDir.path).path, subfolder, baseBinary)]);
 
     // For L1 binaries, also check BitWindow's assets directory
     // This allows sidechains to reuse already-downloaded binaries
-    final isCurrentlyBitwindow = appDir.path.toLowerCase().contains('bitwindow');
+    final isCurrentlyBitwindow = appDir.path.toLowerCase().contains(
+      'bitwindow',
+    );
     if (chainLayer == 1 && !isCurrentlyBitwindow) {
       final bitwindowDir = path.join(appDir.parent.path, 'bitwindow');
-      final binaryPath = path.join(binDir(bitwindowDir).path, subfolder, baseBinary);
+      final binaryPath = path.join(
+        binDir(bitwindowDir).path,
+        subfolder,
+        baseBinary,
+      );
       paths.add(binaryPath);
       if (Platform.isWindows && !baseBinary.endsWith('.exe')) {
         paths.add('$binaryPath.exe');
@@ -710,13 +788,17 @@ abstract class Binary {
     // finally check .app bundle on macos
     if (Platform.isMacOS) {
       if (!baseBinary.endsWith('.app')) {
-        paths.addAll([path.join(binDir(appDir.path).path, subfolder, '$baseBinary.app')]);
+        paths.addAll([
+          path.join(binDir(appDir.path).path, subfolder, '$baseBinary.app'),
+        ]);
       }
     }
     // or .exe on windows
     if (Platform.isWindows) {
       if (!baseBinary.endsWith('.exe')) {
-        paths.addAll([path.join(binDir(appDir.path).path, subfolder, '$baseBinary.exe')]);
+        paths.addAll([
+          path.join(binDir(appDir.path).path, subfolder, '$baseBinary.exe'),
+        ]);
       }
     }
 
@@ -740,7 +822,9 @@ abstract class Binary {
   }
 
   Future<DateTime?> _checkGithubReleaseDate() async {
-    final url = metadata.downloadConfig.baseUrl(GetIt.I.get<BitcoinConfProvider>().network);
+    final url = metadata.downloadConfig.baseUrl(
+      GetIt.I.get<BitcoinConfProvider>().network,
+    );
 
     // Check cache first
     final cached = _GitHubCache.get(url);
@@ -779,7 +863,9 @@ abstract class Binary {
       _GitHubCache.set(url, releaseDate); // Cache the result
       return releaseDate;
     } catch (e) {
-      log.d('Could not check GitHub release date for $name: ${e.toString().split('\n').first}');
+      log.d(
+        'Could not check GitHub release date for $name: ${e.toString().split('\n').first}',
+      );
       _GitHubCache.set(url, null); // Cache the failure
       return null;
     }
@@ -789,7 +875,9 @@ abstract class Binary {
     try {
       final os = getOS();
       final fileName = metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![os];
-      final baseUrl = metadata.downloadConfig.baseUrl(GetIt.I.get<BitcoinConfProvider>().network);
+      final baseUrl = metadata.downloadConfig.baseUrl(
+        GetIt.I.get<BitcoinConfProvider>().network,
+      );
       if (fileName == null || fileName.isEmpty || baseUrl.isEmpty) {
         return null;
       }
@@ -802,7 +890,9 @@ abstract class Binary {
       final response = await request.close();
 
       if (response.statusCode != 200) {
-        log.w('Warning: Could not check release date for $name: HTTP ${response.statusCode}');
+        log.w(
+          'Warning: Could not check release date for $name: HTTP ${response.statusCode}',
+        );
         return null;
       }
 
@@ -928,7 +1018,9 @@ class BitcoinCore extends Binary {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  baseUrls: {
-                   ...allNetworksUrl('https://bitcoincore.org/bin/bitcoin-core-30.2/'),
+                   ...allNetworksUrl(
+                     'https://bitcoincore.org/bin/bitcoin-core-30.2/',
+                   ),
                    BitcoinNetwork.BITCOIN_NETWORK_FORKNET: 'https://releases.drivechain.info/',
                  },
                  binary: 'bitcoind',
@@ -1382,7 +1474,9 @@ class GRPCurl extends Binary {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 baseUrls: allNetworksUrl('https://api.github.com/repos/fullstorydev/grpcurl/releases/latest'),
+                 baseUrls: allNetworksUrl(
+                   'https://api.github.com/repos/fullstorydev/grpcurl/releases/latest',
+                 ),
                  binary: 'grpcurl',
                  files: allNetworks({
                    OS.linux: r'grpcurl_\d+\.\d+\.\d+_linux_x86_64\.tar\.gz',
@@ -1440,44 +1534,172 @@ extension BinaryPaths on Binary {
 
     return switch (type) {
       BinaryType.bitWindow => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'bitwindow'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitWindow'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitwindow'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'bitwindow',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'BitWindow',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.bitwindow',
+        ),
       },
       BinaryType.thunder => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.thunder'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Thunder'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.thunder'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'com.layertwolabs.thunder',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'Thunder',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.thunder',
+        ),
       },
       BinaryType.zSide => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.zside'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'ZSide'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.zside'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'com.layertwolabs.zside',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'ZSide',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.zside',
+        ),
       },
       BinaryType.bitnames => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitnames'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitNames'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitnames'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'com.layertwolabs.bitnames',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'BitNames',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.bitnames',
+        ),
       },
       BinaryType.bitassets => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitassets'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitAssets'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitassets'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'com.layertwolabs.bitassets',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'BitAssets',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.bitassets',
+        ),
       },
       BinaryType.truthcoin => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.truthcoin'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Truthcoin'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.truthcoin'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'com.layertwolabs.truthcoin',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'Truthcoin',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.truthcoin',
+        ),
       },
       BinaryType.photon => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.photon'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Photon'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.photon'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'com.layertwolabs.photon',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'Photon',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.photon',
+        ),
       },
       BinaryType.coinShift => switch (OS.current) {
-        OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.coinshift'),
-        OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Coinshift'),
-        OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
+        OS.macos => path.join(
+          home,
+          'Library',
+          'Application Support',
+          'com.layertwolabs.coinshift',
+        ),
+        OS.windows => path.join(
+          home,
+          'AppData',
+          'Roaming',
+          '10520LayertwoLabs',
+          'Coinshift',
+        ),
+        OS.linux => path.join(
+          home,
+          '.local',
+          'share',
+          'com.layertwolabs.coinshift',
+        ),
       },
       BinaryType.bitcoinCore ||
       BinaryType.enforcer ||
@@ -1512,7 +1734,10 @@ extension BinaryPaths on Binary {
 
   String logPath() {
     return switch (type) {
-      BinaryType.bitcoinCore => filePath([BitcoinCore().datadirNetwork(), 'debug.log']),
+      BinaryType.bitcoinCore => filePath([
+        BitcoinCore().datadirNetwork(),
+        'debug.log',
+      ]),
       BinaryType.bitWindow => filePath([datadirNetwork(), 'server.log']),
       BinaryType.thunder ||
       BinaryType.bitnames ||
@@ -1530,18 +1755,26 @@ extension BinaryPaths on Binary {
     final logsDir = Directory(filePath([datadirNetwork(), 'logs']));
 
     if (!logsDir.existsSync()) {
-      return filePath([datadirNetwork(), 'bip300301_enforcer.log']); // Fallback to original
+      return filePath([
+        datadirNetwork(),
+        'bip300301_enforcer.log',
+      ]); // Fallback to original
     }
 
     // Find all enforcer log files matching the pattern: bip300301_enforcer.log.YYYY-MM-DD.N
     final logFiles = logsDir.listSync().whereType<File>().where((file) {
       final fileName = file.path.split(Platform.pathSeparator).last;
       return fileName.startsWith('bip300301_enforcer.log.') &&
-          RegExp(r'bip300301_enforcer\.log\.\d{4}-\d{2}-\d{2}\.\d+$').hasMatch(fileName);
+          RegExp(
+            r'bip300301_enforcer\.log\.\d{4}-\d{2}-\d{2}\.\d+$',
+          ).hasMatch(fileName);
     }).toList();
 
     if (logFiles.isEmpty) {
-      return filePath([datadirNetwork(), 'bip300301_enforcer.log']); // Fallback to original
+      return filePath([
+        datadirNetwork(),
+        'bip300301_enforcer.log',
+      ]); // Fallback to original
     }
 
     // Sort by date and sequence number (latest first)
@@ -1550,8 +1783,12 @@ extension BinaryPaths on Binary {
       final bFileName = b.path.split(Platform.pathSeparator).last;
 
       // Extract date and sequence number from filename
-      final aMatch = RegExp(r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$').firstMatch(aFileName);
-      final bMatch = RegExp(r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$').firstMatch(bFileName);
+      final aMatch = RegExp(
+        r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$',
+      ).firstMatch(aFileName);
+      final bMatch = RegExp(
+        r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$',
+      ).firstMatch(bFileName);
 
       if (aMatch == null || bMatch == null) return 0;
 
@@ -1581,11 +1818,17 @@ extension BinaryPaths on Binary {
     final versionDirs = logsDir
         .listSync()
         .whereType<Directory>()
-        .where((dir) => dir.path.split(Platform.pathSeparator).last.startsWith('v'))
+        .where(
+          (dir) => dir.path.split(Platform.pathSeparator).last.startsWith('v'),
+        )
         .toList();
 
     if (versionDirs.isEmpty) {
-      return filePath([datadirNetwork(), 'logs', 'unknown.log']); // Fallback if no version directories found
+      return filePath([
+        datadirNetwork(),
+        'logs',
+        'unknown.log',
+      ]); // Fallback if no version directories found
     }
 
     // Sort version directories by version number
@@ -1614,7 +1857,11 @@ extension BinaryPaths on Binary {
     final logFiles = latestVersionDir.listSync().whereType<File>().where((file) => file.path.endsWith('.log')).toList();
 
     if (logFiles.isEmpty) {
-      return filePath([datadirNetwork(), 'logs', 'unknown.log']); // Fallback if no log files found
+      return filePath([
+        datadirNetwork(),
+        'logs',
+        'unknown.log',
+      ]); // Fallback if no log files found
     }
 
     // Sort log files by date in filename (YYYY-MM-DD.log format)
@@ -1758,11 +2005,9 @@ extension BinaryPaths on Binary {
       final binaryFile = await resolveBinaryPath(appDir);
 
       final result =
-          await Process.run(
-            binaryFile.path,
-            ['--version'],
-            runInShell: true,
-          ).timeout(
+          await Process.run(binaryFile.path, [
+            '--version',
+          ], runInShell: true).timeout(
             const Duration(seconds: 5),
             onTimeout: () => throw TimeoutException('Version check timed out'),
           );
@@ -1782,15 +2027,25 @@ extension BinaryPaths on Binary {
       }
 
       if (type == BinaryType.enforcer) {
-        final versionLine = lines.firstWhere((line) => line.contains('bip300301_enforcer_lib'), orElse: () => '');
-        final commitLine = lines.firstWhere((line) => line.trim().startsWith('commit:'), orElse: () => '');
+        final versionLine = lines.firstWhere(
+          (line) => line.contains('bip300301_enforcer_lib'),
+          orElse: () => '',
+        );
+        final commitLine = lines.firstWhere(
+          (line) => line.trim().startsWith('commit:'),
+          orElse: () => '',
+        );
 
         if (versionLine.isEmpty) {
           return lines.first;
         }
 
-        final versionMatch = RegExp(r'v?(\d+\.\d+\.\d+)').firstMatch(versionLine);
-        final commitMatch = RegExp(r'commit:\s*([a-f0-9]+)').firstMatch(commitLine);
+        final versionMatch = RegExp(
+          r'v?(\d+\.\d+\.\d+)',
+        ).firstMatch(versionLine);
+        final commitMatch = RegExp(
+          r'commit:\s*([a-f0-9]+)',
+        ).firstMatch(commitLine);
 
         if (versionMatch != null && commitMatch != null) {
           return '${versionMatch.group(1)!} (${commitMatch.group(1)!})';
@@ -1958,10 +2213,7 @@ class DirectoryConfig {
   final Map<BitcoinNetwork, Map<OS, String>> binary;
   final Map<OS, String> flutterFrontend;
 
-  const DirectoryConfig({
-    required this.binary,
-    required this.flutterFrontend,
-  });
+  const DirectoryConfig({required this.binary, required this.flutterFrontend});
 
   @override
   bool operator ==(Object other) =>
@@ -1970,7 +2222,10 @@ class DirectoryConfig {
   @override
   int get hashCode => binary.hashCode;
 
-  bool _mapEquals(Map<BitcoinNetwork, Map<OS, String>> a, Map<BitcoinNetwork, Map<OS, String>> b) {
+  bool _mapEquals(
+    Map<BitcoinNetwork, Map<OS, String>> a,
+    Map<BitcoinNetwork, Map<OS, String>> b,
+  ) {
     if (a.length != b.length) return false;
     for (final key in a.keys) {
       if (!b.containsKey(key) || a[key] != b[key]) return false;
@@ -1994,7 +2249,9 @@ class DownloadConfig {
 
   /// Get the base URL for a network. Falls back to first available URL.
   String baseUrl([BitcoinNetwork? network]) {
-    if (network != null && _baseUrls.containsKey(network)) return _baseUrls[network]!;
+    if (network != null && _baseUrls.containsKey(network)) {
+      return _baseUrls[network]!;
+    }
     return _baseUrls.isNotEmpty ? _baseUrls.values.first : '';
   }
 }
@@ -2053,7 +2310,10 @@ class MetadataConfig {
     if (_alternativeDownloadConfig == null && other._alternativeDownloadConfig == null) {
       alternativeConfigsEqual = true;
     } else if (_alternativeDownloadConfig != null && other._alternativeDownloadConfig != null) {
-      alternativeConfigsEqual = _mapEquals(_alternativeDownloadConfig.files, other._alternativeDownloadConfig.files);
+      alternativeConfigsEqual = _mapEquals(
+        _alternativeDownloadConfig.files,
+        other._alternativeDownloadConfig.files,
+      );
     } else {
       // One is null, the other isn't
       alternativeConfigsEqual = false;
@@ -2078,7 +2338,10 @@ class MetadataConfig {
     binaryPath?.path,
   );
 
-  bool _mapEquals(Map<BitcoinNetwork, Map<OS, String>> a, Map<BitcoinNetwork, Map<OS, String>> b) {
+  bool _mapEquals(
+    Map<BitcoinNetwork, Map<OS, String>> a,
+    Map<BitcoinNetwork, Map<OS, String>> b,
+  ) {
     if (a.length != b.length) return false;
     for (final network in a.keys) {
       if (!b.containsKey(network)) return false;
@@ -2175,29 +2438,31 @@ class DownloadInfo {
 
   @override
   @override
-  int get hashCode => Object.hash(progress, total, error, hash, expectedHash, hashMatch, downloadedAt, isDownloading);
+  int get hashCode => Object.hash(
+    progress,
+    total,
+    error,
+    hash,
+    expectedHash,
+    hashMatch,
+    downloadedAt,
+    isDownloading,
+  );
 }
 
 class ProcessLogEntry {
   final DateTime timestamp;
   final String message;
 
-  ProcessLogEntry({
-    required this.timestamp,
-    required this.message,
-  });
+  ProcessLogEntry({required this.timestamp, required this.message});
 }
 
 Map<BitcoinNetwork, Map<OS, String>> allNetworks(Map<OS, String> osFiles) {
-  return {
-    for (final network in BitcoinNetwork.values) network: osFiles,
-  };
+  return {for (final network in BitcoinNetwork.values) network: osFiles};
 }
 
 Map<BitcoinNetwork, String> allNetworksUrl(String url) {
-  return {
-    for (final network in BitcoinNetwork.values) network: url,
-  };
+  return {for (final network in BitcoinNetwork.values) network: url};
 }
 
 /// Same value for all networks and all OS platforms.
@@ -2237,7 +2502,9 @@ String colorToString(Color color) {
 
 /// Parse a directory map from JSON. The JSON uses "default" for all-networks
 /// and specific network names for overrides.
-Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(Map<String, dynamic> json) {
+Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(
+  Map<String, dynamic> json,
+) {
   final result = <BitcoinNetwork, Map<OS, String>>{};
 
   // "default" key spreads to all networks
@@ -2275,7 +2542,9 @@ extension DirectoryConfigJson on DirectoryConfig {
   static DirectoryConfig fromJson(Map<String, dynamic> json) {
     return DirectoryConfig(
       binary: _directoryBinaryFromJson(json['binary'] as Map<String, dynamic>),
-      flutterFrontend: _osMapFromJson(json['flutter_frontend'] as Map<String, dynamic>),
+      flutterFrontend: _osMapFromJson(
+        json['flutter_frontend'] as Map<String, dynamic>,
+      ),
     );
   }
 }
@@ -2302,7 +2571,10 @@ extension DownloadConfigJson on DownloadConfig {
 /// Extract base_url from each network entry in files JSON.
 /// Each network entry can have its own "base_url" key.
 /// Falls back to [defaultBaseUrl] if not present.
-Map<BitcoinNetwork, String> _baseUrlsFromFilesJson(Map<String, dynamic> filesJson, String defaultBaseUrl) {
+Map<BitcoinNetwork, String> _baseUrlsFromFilesJson(
+  Map<String, dynamic> filesJson,
+  String defaultBaseUrl,
+) {
   final result = <BitcoinNetwork, String>{};
 
   for (final entry in filesJson.entries) {
@@ -2363,13 +2635,17 @@ String binaryTypeToJsonKey(BinaryType type) {
 Binary binaryFromJson(String key, Map<String, dynamic> json) {
   final binaryType = _binaryTypeFromJsonKey(key);
 
-  final directories = DirectoryConfigJson.fromJson(json['directories'] as Map<String, dynamic>);
+  final directories = DirectoryConfigJson.fromJson(
+    json['directories'] as Map<String, dynamic>,
+  );
   final downloadJson = json['download'] as Map<String, dynamic>;
   final downloadConfig = DownloadConfigJson.fromJson(downloadJson);
 
   DownloadConfig? altDownloadConfig;
   if (json.containsKey('alternative_download') && json['alternative_download'] != null) {
-    altDownloadConfig = DownloadConfigJson.fromJson(json['alternative_download'] as Map<String, dynamic>);
+    altDownloadConfig = DownloadConfigJson.fromJson(
+      json['alternative_download'] as Map<String, dynamic>,
+    );
   }
 
   final metadata = MetadataConfig(

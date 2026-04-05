@@ -42,7 +42,9 @@ class EncryptionMetadata {
   }
 
   factory EncryptionMetadata.fromJsonString(String jsonString) {
-    return EncryptionMetadata.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+    return EncryptionMetadata.fromJson(
+      jsonDecode(jsonString) as Map<String, dynamic>,
+    );
   }
 }
 
@@ -53,7 +55,11 @@ class EncryptionService {
   static const int defaultIterations = 100000;
 
   /// Derive encryption key from password using PBKDF2 in an isolate
-  static Future<Uint8List> deriveKey(String password, Uint8List salt, int iterations) async {
+  static Future<Uint8List> deriveKey(
+    String password,
+    Uint8List salt,
+    int iterations,
+  ) async {
     return await compute(_deriveKeyIsolate, {
       'password': password,
       'salt': salt,
@@ -83,7 +89,9 @@ class EncryptionService {
       block[salt.length + 2] = (blockIndex >> 8) & 0xff;
       block[salt.length + 3] = blockIndex & 0xff;
 
-      var u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(block).bytes);
+      var u = Uint8List.fromList(
+        Hmac(sha256, passwordBytes).convert(block).bytes,
+      );
       var f = Uint8List.fromList(u);
 
       for (var i = 1; i < iterations; i++) {

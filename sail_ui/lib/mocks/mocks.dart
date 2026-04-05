@@ -10,7 +10,9 @@ import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
     : super(
-        conf: CoreConnectionSettings.empty(BitcoinNetwork.BITCOIN_NETWORK_SIGNET),
+        conf: CoreConnectionSettings.empty(
+          BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+        ),
         binaryType: BinaryType.bitcoinCore,
         restartOnFailure: false,
       );
@@ -159,11 +161,7 @@ class MockMainchainRPC extends MainchainRPC {
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
-  MockEnforcerRPC()
-    : super(
-        binaryType: BinaryType.enforcer,
-        restartOnFailure: true,
-      );
+  MockEnforcerRPC() : super(binaryType: BinaryType.enforcer, restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;
@@ -260,11 +258,7 @@ class MockEnforcerRPC extends EnforcerRPC {
 }
 
 class MockBitwindowRPC extends BitwindowRPC {
-  MockBitwindowRPC()
-    : super(
-        binaryType: BinaryType.bitWindow,
-        restartOnFailure: true,
-      );
+  MockBitwindowRPC() : super(binaryType: BinaryType.bitWindow, restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;
@@ -461,7 +455,12 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) {
     return Future.value('txid_mainchain_send_1234');
   }
 
@@ -471,7 +470,11 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) {
     return Future.value('txid_sidechain_send_5678');
   }
 
@@ -652,7 +655,12 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) {
     return Future.value('txid_mainchain_send_1234');
   }
 
@@ -662,7 +670,11 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) {
     return Future.value('txid_sidechain_send_5678');
   }
 
@@ -808,7 +820,10 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<Map<String, dynamic>> marketPositions({String? address, String? marketId}) {
+  Future<Map<String, dynamic>> marketPositions({
+    String? address,
+    String? marketId,
+  }) {
     return Future.value({});
   }
 
@@ -868,12 +883,19 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<String> voteSubmit({required List<Map<String, dynamic>> votes, required int feeSats}) {
+  Future<String> voteSubmit({
+    required List<Map<String, dynamic>> votes,
+    required int feeSats,
+  }) {
     return Future.value('vote_submit_1234');
   }
 
   @override
-  Future<List<Map<String, dynamic>>> voteList({String? voter, String? decisionId, int? periodId}) {
+  Future<List<Map<String, dynamic>>> voteList({
+    String? voter,
+    String? decisionId,
+    int? periodId,
+  }) {
     return Future.value([]);
   }
 
@@ -920,22 +942,34 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) {
+  Future<String> encryptMsg({
+    required String msg,
+    required String encryptionPubkey,
+  }) {
     return Future.value('encrypted_msg_1234');
   }
 
   @override
-  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) {
+  Future<String> decryptMsg({
+    required String ciphertext,
+    required String encryptionPubkey,
+  }) {
     return Future.value('decrypted_msg_1234');
   }
 
   @override
-  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) {
+  Future<String> signArbitraryMsg({
+    required String msg,
+    required String verifyingKey,
+  }) {
     return Future.value('signature_1234');
   }
 
   @override
-  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({required String address, required String msg}) {
+  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({
+    required String address,
+    required String msg,
+  }) {
     return Future.value({'verifying_key': 'key', 'signature': 'sig'});
   }
 
@@ -1076,7 +1110,12 @@ class MockPhotonRPC extends PhotonRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) {
     return Future.value('txid_mainchain_send_1234');
   }
 
@@ -1086,7 +1125,11 @@ class MockPhotonRPC extends PhotonRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) {
     return Future.value('txid_sidechain_send_5678');
   }
 
@@ -1182,11 +1225,7 @@ class MockPhotonRPC extends PhotonRPC {
 }
 
 class MockBitnamesRPC extends BitnamesRPC {
-  MockBitnamesRPC()
-    : super(
-        binaryType: BinaryType.bitnames,
-        restartOnFailure: true,
-      );
+  MockBitnamesRPC() : super(binaryType: BinaryType.bitnames, restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;
@@ -1276,7 +1315,12 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) {
     return Future.value('txid_mainchain_send_1234');
   }
 
@@ -1286,7 +1330,11 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) {
     return Future.value('txid_sidechain_send_5678');
   }
 
@@ -1381,17 +1429,27 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<String> createDeposit({required String address, required int feeSats, required int valueSats}) async {
+  Future<String> createDeposit({
+    required String address,
+    required int feeSats,
+    required int valueSats,
+  }) async {
     return Future.value('mock_txid_create_deposit_1234');
   }
 
   @override
-  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
+  Future<String> decryptMsg({
+    required String ciphertext,
+    required String encryptionPubkey,
+  }) async {
     return Future.value('mock_decrypted_msg_1234');
   }
 
   @override
-  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
+  Future<String> encryptMsg({
+    required String msg,
+    required String encryptionPubkey,
+  }) async {
     return Future.value('mock_encrypted_msg_1234');
   }
 
@@ -1460,17 +1518,28 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
+  Future<String> signArbitraryMsg({
+    required String msg,
+    required String verifyingKey,
+  }) async {
     return Future.value('mock_signed_msg_1234');
   }
 
   @override
-  Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
+  Future<Map<String, String>> signArbitraryMsgAsAddr({
+    required String msg,
+    required String address,
+  }) async {
     return Future.value({'signed_msg': 'mock_signed_msg_1234'});
   }
 
   @override
-  Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
+  Future<String> transfer({
+    required String dest,
+    required int value,
+    required int fee,
+    String? memo,
+  }) async {
     return Future.value('mock_txid_transfer_1234');
   }
 
@@ -1576,7 +1645,12 @@ class MockCoinShiftRPC extends CoinShiftRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) {
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) {
     return Future.value('txid_mainchain_send_1234');
   }
 
@@ -1586,7 +1660,11 @@ class MockCoinShiftRPC extends CoinShiftRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) {
     return Future.value('txid_sidechain_send_5678');
   }
 
@@ -1716,7 +1794,9 @@ class MockCoinShiftRPC extends CoinShiftRPC {
     int? requiredConfirmations,
     required int feeSats,
   }) {
-    return Future.value(CoinShiftSwapCreateResult(swapId: 'mock_swap_id', txid: 'mock_txid'));
+    return Future.value(
+      CoinShiftSwapCreateResult(swapId: 'mock_swap_id', txid: 'mock_txid'),
+    );
   }
 
   @override
@@ -1853,7 +1933,10 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<CreateMultisigResponse> createMultisig(int nRequired, List<String> keys) {
+  Future<CreateMultisigResponse> createMultisig(
+    int nRequired,
+    List<String> keys,
+  ) {
     return Future.value(CreateMultisigResponse());
   }
 
@@ -1874,7 +1957,10 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet) {
+  Future<GetAddressesByAccountResponse> getAddressesByAccount(
+    String account,
+    String wallet,
+  ) {
     return Future.value(GetAddressesByAccountResponse());
   }
 
@@ -1889,7 +1975,11 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<SetAccountResponse> setAccount(String address, String account, String wallet) {
+  Future<SetAccountResponse> setAccount(
+    String address,
+    String account,
+    String wallet,
+  ) {
     return Future.value(SetAccountResponse());
   }
 
@@ -1924,7 +2014,9 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<TestMempoolAcceptResponse> testMempoolAccept(TestMempoolAcceptRequest request) {
+  Future<TestMempoolAcceptResponse> testMempoolAccept(
+    TestMempoolAcceptRequest request,
+  ) {
     return Future.value(TestMempoolAcceptResponse());
   }
 
@@ -1955,11 +2047,7 @@ class MockBinary extends Binary {
             OS.macos: 'Mock',
             OS.windows: 'Mock',
           }),
-          flutterFrontend: {
-            OS.linux: '',
-            OS.macos: '',
-            OS.windows: '',
-          },
+          flutterFrontend: {OS.linux: '', OS.macos: '', OS.windows: ''},
         ),
         metadata: MetadataConfig(
           downloadConfig: DownloadConfig(
@@ -2236,10 +2324,7 @@ class MockBinaryProvider extends BinaryProvider {
 class MockDownloadManager extends DownloadManager {
   MockDownloadManager()
     // ignore: invalid_use_of_visible_for_testing_member
-    : super.test(
-        appDir: Directory('/tmp'),
-        binaries: [MockBinary()],
-      );
+    : super.test(appDir: Directory('/tmp'), binaries: [MockBinary()]);
 }
 
 class MockProcessManager extends ProcessManager {

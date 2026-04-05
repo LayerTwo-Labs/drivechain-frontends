@@ -64,7 +64,11 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   MainchainRPCLive._internal()
-    : super(conf: readMainchainConf(), binaryType: BinaryType.bitcoinCore, restartOnFailure: false) {
+    : super(
+        conf: readMainchainConf(),
+        binaryType: BinaryType.bitcoinCore,
+        restartOnFailure: false,
+      ) {
     if (Environment.isInTest) {
       return;
     }
@@ -106,7 +110,9 @@ class MainchainRPCLive extends MainchainRPC {
 
         // Only notify if status changed
         if (wasInHeaderSync != inHeaderSync || wasInIBD != inIBD || inSync != wasInSync) {
-          log.i('IBD status changed - inHeaderSync: $inHeaderSync, inIBD: $inIBD, inSync: $inSync');
+          log.i(
+            'IBD status changed - inHeaderSync: $inHeaderSync, inIBD: $inIBD, inSync: $inSync',
+          );
           notifyListeners();
         }
       } catch (error) {
@@ -182,7 +188,10 @@ class MainchainRPCLive extends MainchainRPC {
 
     log.i('Using $confFile with network args: $networkArgs');
 
-    final finalArgs = cleanArgs(conf, [...networkArgs, ...coreBinary.extraBootArgs]);
+    final finalArgs = cleanArgs(conf, [
+      ...networkArgs,
+      ...coreBinary.extraBootArgs,
+    ]);
 
     // If -reindex was added due to a block database error, remove it from extraBootArgs
     // so it's only used for this one boot attempt
@@ -191,14 +200,13 @@ class MainchainRPCLive extends MainchainRPC {
       coreBinary.extraBootArgs = List<String>.from(coreBinary.extraBootArgs)..remove('-reindex');
 
       // Update the binary in the provider to persist the change
-      GetIt.I.get<BinaryProvider>().updateBinary(
-        coreBinary.type,
-        (currentBinary) {
-          final updated = currentBinary.copyWith();
-          updated.extraBootArgs = coreBinary.extraBootArgs;
-          return updated;
-        },
-      );
+      GetIt.I.get<BinaryProvider>().updateBinary(coreBinary.type, (
+        currentBinary,
+      ) {
+        final updated = currentBinary.copyWith();
+        updated.extraBootArgs = coreBinary.extraBootArgs;
+        return updated;
+      });
     }
 
     log.i('Final binary args: $finalArgs');

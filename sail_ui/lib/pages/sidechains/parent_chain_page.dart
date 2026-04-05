@@ -25,7 +25,10 @@ class ParentChainPage extends StatelessWidget {
         builder: ((context, model, child) {
           final List<TabItem> allTabs = [
             const SingleTabItem(label: 'Transfer', child: TransferTab()),
-            const SingleTabItem(label: 'Withdrawal Explorer', child: WithdrawalExplorerTab()),
+            const SingleTabItem(
+              label: 'Withdrawal Explorer',
+              child: WithdrawalExplorerTab(),
+            ),
             const SingleTabItem(label: 'BMM', child: BMMTab()),
           ];
 
@@ -116,11 +119,15 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   String? withdrawError;
 
   double? get pegAmount => double.tryParse(bitcoinAmountController.text);
-  double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0), 0);
+  double? get maxAmount => max(
+    _balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0),
+    0,
+  );
   String get sidechainName => _rpc.chain.name;
 
-  String get totalBitcoinAmount =>
-      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)));
+  String get totalBitcoinAmount => formatBitcoin(
+    ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)),
+  );
 
   String? get depositAddress => _addressProvider.depositAddress;
 
@@ -264,7 +271,9 @@ class DepositTab extends StatelessWidget {
           title: 'Deposit from Parent Chain',
           subtitle: 'Deposit coins to the sidechain',
           error: model.depositError,
-          widgetHeaderEnd: HelpButton(onPressed: () async => model.castHelp(context)),
+          widgetHeaderEnd: HelpButton(
+            onPressed: () async => model.castHelp(context),
+          ),
           child: SailRow(
             spacing: SailStyleValues.padding16,
             mainAxisSize: MainAxisSize.min,
@@ -282,10 +291,14 @@ class DepositTab extends StatelessWidget {
                         enabled: model.depositAddress == null,
                         description: 'Waiting for ${model.sidechainName} to boot...',
                       ),
-                      controller: TextEditingController(text: model.depositAddress),
+                      controller: TextEditingController(
+                        text: model.depositAddress,
+                      ),
                       hintText: 'Generating deposit address...',
                       readOnly: true,
-                      suffixWidget: CopyButton(text: model.depositAddress ?? ''),
+                      suffixWidget: CopyButton(
+                        text: model.depositAddress ?? '',
+                      ),
                     ),
                   ],
                 ),
@@ -371,12 +384,24 @@ class WithdrawTab extends ViewModelWidget<ParentChainTabViewModel> {
             ),
             child: Column(
               children: [
-                _FeeRow(label: 'Withdrawal Amount', value: viewModel.pegAmount ?? 0),
+                _FeeRow(
+                  label: 'Withdrawal Amount',
+                  value: viewModel.pegAmount ?? 0,
+                ),
                 const SizedBox(height: SailStyleValues.padding04),
-                _FeeRow(label: 'Sidechain Fee', value: viewModel.sidechainFee ?? 0),
+                _FeeRow(
+                  label: 'Sidechain Fee',
+                  value: viewModel.sidechainFee ?? 0,
+                ),
                 const SizedBox(height: SailStyleValues.padding04),
-                _FeeRow(label: 'Mainchain Fee', value: viewModel.mainchainFee ?? 0),
-                Divider(color: theme.colors.divider, height: SailStyleValues.padding16),
+                _FeeRow(
+                  label: 'Mainchain Fee',
+                  value: viewModel.mainchainFee ?? 0,
+                ),
+                Divider(
+                  color: theme.colors.divider,
+                  height: SailStyleValues.padding16,
+                ),
                 _FeeRow(
                   label: 'Total Cost',
                   value: (viewModel.pegAmount ?? 0) + (viewModel.sidechainFee ?? 0) + (viewModel.mainchainFee ?? 0),
@@ -422,11 +447,7 @@ class _FeeRow extends StatelessWidget {
   final double value;
   final bool bold;
 
-  const _FeeRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-  });
+  const _FeeRow({required this.label, required this.value, this.bold = false});
 
   @override
   Widget build(BuildContext context) {

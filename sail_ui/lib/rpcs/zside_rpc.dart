@@ -48,10 +48,7 @@ final zsideRPCMethods = [
 ];
 
 abstract class ZSideRPC extends SidechainRPC {
-  ZSideRPC({
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  ZSideRPC({required super.binaryType, required super.restartOnFailure});
 
   Future<double> getSidechainWealth();
   Future<String> createDeposit(String address, double amount, double fee);
@@ -103,11 +100,7 @@ class ZSideLive extends ZSideRPC {
     return client;
   }
 
-  ZSideLive()
-    : super(
-        binaryType: BinaryType.zSide,
-        restartOnFailure: false,
-      ) {
+  ZSideLive() : super(binaryType: BinaryType.zSide, restartOnFailure: false) {
     if (!Environment.backendManagesBinaries) {
       startConnectionTimer();
     }
@@ -231,8 +224,18 @@ class ZSideLive extends ZSideRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) async {
+    final response = await _client().call('withdraw', [
+      address,
+      amountSats,
+      sidechainFeeSats,
+      mainchainFeeSats,
+    ]);
     return response as String;
   }
 
@@ -243,7 +246,11 @@ class ZSideLive extends ZSideRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) async {
     final response = await _client().call('transfer', [
       address,
       btcToSatoshi(amount),
@@ -261,8 +268,16 @@ class ZSideLive extends ZSideRPC {
 
   /// Create a deposit transaction
   @override
-  Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create_deposit', [address, btcToSatoshi(amount), btcToSatoshi(fee)]);
+  Future<String> createDeposit(
+    String address,
+    double amount,
+    double fee,
+  ) async {
+    final response = await _client().call('create_deposit', [
+      address,
+      btcToSatoshi(amount),
+      btcToSatoshi(fee),
+    ]);
     return response as String;
   }
 
@@ -339,7 +354,9 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response = await _client().call('latest_failed_withdrawal_bundle_height');
+    final response = await _client().call(
+      'latest_failed_withdrawal_bundle_height',
+    );
     return response as int?;
   }
 
@@ -380,25 +397,47 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
-    final response = await _client().call('shield', [utxo.amount.toInt(), zsideFee.toInt()]);
+    final response = await _client().call('shield', [
+      utxo.amount.toInt(),
+      zsideFee.toInt(),
+    ]);
     return response as String;
   }
 
   @override
-  Future<String> sendShielded(String dest, double valueSats, double feeSats) async {
-    final response = await _client().call('shielded_transfer', [dest, valueSats.toInt(), feeSats.toInt()]);
+  Future<String> sendShielded(
+    String dest,
+    double valueSats,
+    double feeSats,
+  ) async {
+    final response = await _client().call('shielded_transfer', [
+      dest,
+      valueSats.toInt(),
+      feeSats.toInt(),
+    ]);
     return response as String;
   }
 
   @override
-  Future<String> sendTransparent(String dest, double valueSats, double feeSats) async {
-    final response = await _client().call('transparent_transfer', [dest, valueSats.toInt(), feeSats.toInt()]);
+  Future<String> sendTransparent(
+    String dest,
+    double valueSats,
+    double feeSats,
+  ) async {
+    final response = await _client().call('transparent_transfer', [
+      dest,
+      valueSats.toInt(),
+      feeSats.toInt(),
+    ]);
     return response as String;
   }
 
   @override
   Future<String> deshield(ShieldedUTXO utxo, double amount) async {
-    final response = await _client().call('unshield', [utxo.amount.toInt(), zsideFee.toInt()]);
+    final response = await _client().call('unshield', [
+      utxo.amount.toInt(),
+      zsideFee.toInt(),
+    ]);
     return response as String;
   }
 

@@ -51,7 +51,9 @@ class ConnectionStatusChip extends StatelessWidget {
               if (initializing) SailText.primary12('Initializing $chain'),
               if (initializing) InitializingDaemonSVG(animate: initializing),
               if (!initializing)
-                SailText.secondary12(infoMessage ?? '$chain | ${formatNumberWithSpace(blockHeight)} blocks'),
+                SailText.secondary12(
+                  infoMessage ?? '$chain | ${formatNumberWithSpace(blockHeight)} blocks',
+                ),
             ],
           ),
         ),
@@ -80,7 +82,10 @@ class _InitializingDaemonSVGState extends State<InitializingDaemonSVG> with Sing
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(duration: const Duration(seconds: 3), vsync: this);
+    _controller = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    );
 
     // Control the animation based on the 'animate' property
     if (widget.animate) {

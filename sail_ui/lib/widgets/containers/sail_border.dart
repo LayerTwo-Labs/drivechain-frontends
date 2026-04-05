@@ -28,7 +28,10 @@ class SailBorder extends StatelessWidget {
       ),
       child: Container(
         color: backgroundColor,
-        child: Padding(padding: padding != null ? padding! : const EdgeInsets.all(0), child: child),
+        child: Padding(
+          padding: padding != null ? padding! : const EdgeInsets.all(0),
+          child: child,
+        ),
       ),
     );
   }

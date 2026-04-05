@@ -25,19 +25,27 @@ class WalletDropdown extends StatelessWidget {
     return SizedBox(
       width: 200,
       child: SailDropdownButton<String>(
-        key: ValueKey('wallet_dropdown_${currentWallet?.id}_${currentWallet?.gradient.backgroundSvg}'),
+        key: ValueKey(
+          'wallet_dropdown_${currentWallet?.id}_${currentWallet?.gradient.backgroundSvg}',
+        ),
         value: currentWallet?.id,
         hideCurrentlySelectedFromList: true,
         items: availableWallets
             .map(
               (wallet) => SailDropdownItem<String>(
-                key: ValueKey('wallet_item_${wallet.id}_${wallet.gradient.backgroundSvg}'),
+                key: ValueKey(
+                  'wallet_item_${wallet.id}_${wallet.gradient.backgroundSvg}',
+                ),
                 value: wallet.id,
                 child: Row(
-                  key: ValueKey('wallet_row_${wallet.id}_${wallet.gradient.backgroundSvg}'),
+                  key: ValueKey(
+                    'wallet_row_${wallet.id}_${wallet.gradient.backgroundSvg}',
+                  ),
                   children: [
                     WalletBlobAvatar(
-                      key: ValueKey('wallet_avatar_${wallet.id}_${wallet.gradient.backgroundSvg}'),
+                      key: ValueKey(
+                        'wallet_avatar_${wallet.id}_${wallet.gradient.backgroundSvg}',
+                      ),
                       gradient: wallet.gradient,
                       size: 24,
                     ),
@@ -65,16 +73,9 @@ class WalletDropdown extends StatelessWidget {
                   height: 24,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: theme.colors.border,
-                      width: 2,
-                    ),
+                    border: Border.all(color: theme.colors.border, width: 2),
                   ),
-                  child: Icon(
-                    Icons.add,
-                    size: 14,
-                    color: theme.colors.text,
-                  ),
+                  child: Icon(Icons.add, size: 14, color: theme.colors.text),
                 ),
                 const SizedBox(width: 12),
                 SailText.primary13('Create new wallet'),

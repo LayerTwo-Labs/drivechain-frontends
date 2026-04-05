@@ -41,14 +41,21 @@ class SailNotification extends StatelessWidget {
               ),
               borderRadius: SailStyleValues.borderRadius,
               boxShadow: [
-                BoxShadow(color: SailTheme.of(context).colors.shadow, blurRadius: 8, offset: const Offset(0, 2)),
+                BoxShadow(
+                  color: SailTheme.of(context).colors.shadow,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
               ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SailSVG.fromAsset(SailSVGAsset.iconInfo, color: findColorForType(dialogType)),
+                SailSVG.fromAsset(
+                  SailSVGAsset.iconInfo,
+                  color: findColorForType(dialogType),
+                ),
                 const SizedBox(width: 8),
                 Column(
                   mainAxisSize: MainAxisSize.min,

@@ -16,8 +16,8 @@ on:
       - ".github/workflows/dart.yml"
 
 env:
-  FLUTTER_VERSION: "3.41.2"
-  DART_VERSION: "3.11.0"
+  FLUTTER_VERSION: "3.41.6"
+  DART_VERSION: "3.11.4"
 
 jobs:
   format-lint-test:

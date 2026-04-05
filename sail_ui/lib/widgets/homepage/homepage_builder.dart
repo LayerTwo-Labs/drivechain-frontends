@@ -57,7 +57,9 @@ class HomepageBuilder extends StatelessWidget {
                 border: Border.all(color: Colors.red),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Center(child: Text('Widget not found: ${widgetConfig.widgetId}')),
+              child: Center(
+                child: Text('Widget not found: ${widgetConfig.widgetId}'),
+              ),
             );
           } else {
             createdWidget = catalogInfo.builder(widgetConfig.settings);
@@ -70,14 +72,20 @@ class HomepageBuilder extends StatelessWidget {
           } else {
             wrappedWidget = DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue.withValues(alpha: 0.3), width: 1),
+                border: Border.all(
+                  color: Colors.blue.withValues(alpha: 0.3),
+                  width: 1,
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: const BorderRadius.only(

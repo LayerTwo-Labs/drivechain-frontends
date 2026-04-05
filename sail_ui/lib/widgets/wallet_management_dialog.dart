@@ -79,9 +79,7 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => _DeleteConfirmationDialog(
-        walletName: widget.existingWallet!.name,
-      ),
+      builder: (context) => _DeleteConfirmationDialog(walletName: widget.existingWallet!.name),
     );
 
     if (confirmed != true) return;
@@ -107,9 +105,7 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
 
     return Dialog(
       backgroundColor: theme.colors.background,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 400),
         padding: const EdgeInsets.all(24),
@@ -125,10 +121,7 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
             Center(
               child: Column(
                 children: [
-                  WalletBlobAvatar(
-                    gradient: _gradient,
-                    size: 80,
-                  ),
+                  WalletBlobAvatar(gradient: _gradient, size: 80),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _regenerateGradient,
@@ -183,9 +176,7 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
 class _DeleteConfirmationDialog extends StatelessWidget {
   final String walletName;
 
-  const _DeleteConfirmationDialog({
-    required this.walletName,
-  });
+  const _DeleteConfirmationDialog({required this.walletName});
 
   @override
   Widget build(BuildContext context) {
@@ -193,9 +184,7 @@ class _DeleteConfirmationDialog extends StatelessWidget {
 
     return AlertDialog(
       backgroundColor: theme.colors.background,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: SailText.primary15('Delete Wallet?', bold: true),
       content: SailText.primary13(
         'Are you sure you want to delete "$walletName"? This action cannot be undone.',

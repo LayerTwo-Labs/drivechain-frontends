@@ -64,7 +64,9 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
           context.router.pop();
         }
       } else {
-        _logger.d('_tryAutoDecrypt: Wrong password (length ${password.length})');
+        _logger.d(
+          '_tryAutoDecrypt: Wrong password (length ${password.length})',
+        );
       }
     } catch (e, stack) {
       // Silently fail - user can still manually submit
@@ -225,16 +227,9 @@ class BootTitle extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 30),
-        SailText.primary40(
-          title,
-          bold: true,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary40(title, bold: true, textAlign: TextAlign.center),
         const SizedBox(height: 24),
-        SailText.primary15(
-          subtitle,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary15(subtitle, textAlign: TextAlign.center),
         const SizedBox(height: 30),
       ],
     );

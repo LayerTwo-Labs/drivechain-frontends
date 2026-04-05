@@ -46,9 +46,7 @@ abstract class Sidechain extends Binary {
     return null;
   }
 
-  static List<Sidechain> get all => [
-    ...sidechainBinaries.cast<Sidechain>(),
-  ];
+  static List<Sidechain> get all => [...sidechainBinaries.cast<Sidechain>()];
 
   static Sidechain? fromSlot(int slot) {
     for (final sidechain in all) {
@@ -187,7 +185,9 @@ class ZSide extends Sidechain {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  binary: 'thunder-orchard',
-                 baseUrls: allNetworksUrl('https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest'),
+                 baseUrls: allNetworksUrl(
+                   'https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest',
+                 ),
 
                  files: allNetworks({
                    OS.linux: r'thunder-orchard-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu',

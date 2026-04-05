@@ -152,7 +152,9 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
         // Check if the actual CLI executable exists
         final cliName = binaryToCLI[binaryName];
         if (cliName != null) {
-          final cliFile = File('${bindir.path}/$cliName${Platform.isWindows ? '.exe' : ''}');
+          final cliFile = File(
+            '${bindir.path}/$cliName${Platform.isWindows ? '.exe' : ''}',
+          );
 
           if (cliFile.existsSync()) {
             if (Platform.isMacOS || Platform.isLinux) {
@@ -170,7 +172,9 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
             // Check for CLI files in subdirectories too
             for (final cliEntry in binaryToCLI.entries) {
               final cliName = cliEntry.value;
-              final cliFile = File('${entity.path}/$cliName${Platform.isWindows ? '.exe' : ''}');
+              final cliFile = File(
+                '${entity.path}/$cliName${Platform.isWindows ? '.exe' : ''}',
+              );
 
               if (cliFile.existsSync()) {
                 if (Platform.isMacOS || Platform.isLinux) {
@@ -215,11 +219,15 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       'zside-cli': 'ZSide sidechain',
     };
 
-    terminal.write('\r\nWelcome to SideShell, your friendly neighbourhood CLI\r\n');
+    terminal.write(
+      '\r\nWelcome to SideShell, your friendly neighbourhood CLI\r\n',
+    );
     terminal.write('\x1b[92mYou have access to:\x1b[0m\r\n');
 
     if (availableCLIs.isEmpty) {
-      terminal.write('  No CLI binaries found. Make sure binaries are downloaded.\r\n');
+      terminal.write(
+        '  No CLI binaries found. Make sure binaries are downloaded.\r\n',
+      );
     } else {
       for (final entry in availableCLIs.entries) {
         if (entry.value) {

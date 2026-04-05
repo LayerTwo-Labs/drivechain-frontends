@@ -56,7 +56,9 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       for (final binPath in binPaths) {
         if (await Directory(binPath).exists()) {
           try {
-            await for (final entity in Directory(binPath).list(recursive: true, followLinks: false)) {
+            await for (final entity in Directory(
+              binPath,
+            ).list(recursive: true, followLinks: false)) {
               allDatadirPaths.add(entity.path);
             }
           } catch (_) {}
@@ -88,7 +90,9 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     });
 
     // Stop binaries first
-    await Future.wait(widget.binariesToReset.map((b) => widget.binaryProvider.stop(b)));
+    await Future.wait(
+      widget.binariesToReset.map((b) => widget.binaryProvider.stop(b)),
+    );
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
@@ -247,10 +251,16 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                               borderRadius: SailStyleValues.borderRadiusSmall,
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(SailStyleValues.padding12),
+                              padding: const EdgeInsets.all(
+                                SailStyleValues.padding12,
+                              ),
                               child: _isDeleting
-                                  ? _DeletionProgress(filesToDelete: widget.filesToDelete)
-                                  : PathTreeView(paths: widget.filesToDelete.map((f) => f.path).toList()),
+                                  ? _DeletionProgress(
+                                      filesToDelete: widget.filesToDelete,
+                                    )
+                                  : PathTreeView(
+                                      paths: widget.filesToDelete.map((f) => f.path).toList(),
+                                    ),
                             ),
                           ),
                           if (!_isDeleting) ...[
@@ -263,7 +273,9 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                                   if (!_showUntouched) {
                                     await _loadUntouchedFiles();
                                   }
-                                  setState(() => _showUntouched = !_showUntouched);
+                                  setState(
+                                    () => _showUntouched = !_showUntouched,
+                                  );
                                 },
                               ),
                             ),
@@ -298,12 +310,20 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                                     borderRadius: SailStyleValues.borderRadiusSmall,
                                   ),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(SailStyleValues.padding12),
-                                    child: PathTreeView(paths: _untouchedFiles!),
+                                    padding: const EdgeInsets.all(
+                                      SailStyleValues.padding12,
+                                    ),
+                                    child: PathTreeView(
+                                      paths: _untouchedFiles!,
+                                    ),
                                   ),
                                 ),
                               ] else
-                                Center(child: SailText.secondary12('No untouched files found.')),
+                                Center(
+                                  child: SailText.secondary12(
+                                    'No untouched files found.',
+                                  ),
+                                ),
                             ],
                           ],
                         ],
@@ -388,19 +408,30 @@ class _StatusIcon extends StatelessWidget {
         return SizedBox(
           width: 16,
           height: 16,
-          child: Icon(Icons.circle_outlined, size: 14, color: theme.colors.textTertiary),
+          child: Icon(
+            Icons.circle_outlined,
+            size: 14,
+            color: theme.colors.textTertiary,
+          ),
         );
       case DeleteItemStatus.inProgress:
         return SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: theme.colors.primary),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: theme.colors.primary,
+          ),
         );
       case DeleteItemStatus.success:
         return SizedBox(
           width: 16,
           height: 16,
-          child: Icon(Icons.check_circle, size: 16, color: theme.colors.success),
+          child: Icon(
+            Icons.check_circle,
+            size: 16,
+            color: theme.colors.success,
+          ),
         );
       case DeleteItemStatus.error:
         return SizedBox(

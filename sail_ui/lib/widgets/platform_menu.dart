@@ -7,7 +7,11 @@ class CrossPlatformMenuBar extends StatelessWidget {
   final List<PlatformMenuItem> menus;
   final Widget child;
 
-  const CrossPlatformMenuBar({super.key, required this.menus, required this.child});
+  const CrossPlatformMenuBar({
+    super.key,
+    required this.menus,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +28,10 @@ class CrossPlatformMenuBar extends StatelessWidget {
             children: [
               const SizedBox(width: 8),
               for (final menu in menus)
-                if (menu is PlatformMenu) ...[_MenuButton(menu: menu), const SizedBox(width: 4)],
+                if (menu is PlatformMenu) ...[
+                  _MenuButton(menu: menu),
+                  const SizedBox(width: 4),
+                ],
             ],
           ),
         ),
@@ -77,7 +84,9 @@ class _MenuButtonState extends State<_MenuButton> {
       child: MenuAnchor(
         controller: _controller,
         style: MenuStyle(
-          backgroundColor: WidgetStatePropertyAll(context.sailTheme.colors.background),
+          backgroundColor: WidgetStatePropertyAll(
+            context.sailTheme.colors.background,
+          ),
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
         ),
         builder: (context, controller, child) {
@@ -111,7 +120,10 @@ class _MenuButtonState extends State<_MenuButton> {
     );
   }
 
-  List<SailMenuEntity> _buildMenuItems(BuildContext context, PlatformMenu menu) {
+  List<SailMenuEntity> _buildMenuItems(
+    BuildContext context,
+    PlatformMenu menu,
+  ) {
     final items = <SailMenuEntity>[];
 
     for (final group in menu.menus) {
@@ -128,7 +140,10 @@ class _MenuButtonState extends State<_MenuButton> {
     return items;
   }
 
-  List<SailMenuEntity> _buildMenuGroup(BuildContext context, PlatformMenuItemGroup group) {
+  List<SailMenuEntity> _buildMenuGroup(
+    BuildContext context,
+    PlatformMenuItemGroup group,
+  ) {
     return group.members.map((item) {
       final bool isEnabled = item.onSelected != null;
 
@@ -146,7 +161,9 @@ class _MenuButtonState extends State<_MenuButton> {
                 _getShortcutLabel(item.shortcut!),
                 color: isEnabled
                     ? context.sailTheme.colors.textTertiary
-                    : context.sailTheme.colors.textTertiary.withValues(alpha: 0.3),
+                    : context.sailTheme.colors.textTertiary.withValues(
+                        alpha: 0.3,
+                      ),
               ),
           ],
         ),

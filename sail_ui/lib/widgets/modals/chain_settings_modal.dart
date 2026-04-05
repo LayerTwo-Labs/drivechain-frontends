@@ -10,7 +10,11 @@ class ChainSettingsModal extends StatefulWidget {
   final RPCConnection connection;
   final VoidCallback? onOpenConfConfigurator;
 
-  const ChainSettingsModal({super.key, required this.connection, this.onOpenConfConfigurator});
+  const ChainSettingsModal({
+    super.key,
+    required this.connection,
+    this.onOpenConfConfigurator,
+  });
 
   @override
   State<ChainSettingsModal> createState() => _ChainSettingsModalState();
@@ -60,7 +64,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
         return;
       }
 
-      final version = await widget.connection.binary.binaryVersion(binaryProvider.appDir);
+      final version = await widget.connection.binary.binaryVersion(
+        binaryProvider.appDir,
+      );
 
       if (mounted) {
         setState(() {
@@ -122,13 +128,19 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                           final appDir = GetIt.I.get<BinaryProvider>().appDir;
                           final binary = widget.connection.binary;
 
-                          await binaryProvider.stop(binary, skipDownstream: true);
+                          await binaryProvider.stop(
+                            binary,
+                            skipDownstream: true,
+                          );
 
                           // Delete binaries and all datadir paths
                           await binary.deleteBinaries(binDir(appDir.path));
                           final allPaths = await binary.getAllDatadirPaths();
                           await binary.deleteFiles(allPaths);
-                          await copyBinariesFromAssets(GetIt.I.get<Logger>(), appDir);
+                          await copyBinariesFromAssets(
+                            GetIt.I.get<Logger>(),
+                            appDir,
+                          );
 
                           if (context.mounted) {
                             Navigator.of(context).pop();
@@ -147,17 +159,31 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     copyable: true,
                   ),
                   if (viewModel.binary.repoUrl.isNotEmpty)
-                    StaticField(label: 'Repository', value: viewModel.binary.repoUrl, copyable: true),
-                  StaticField(label: 'Host', value: '127.0.0.1', copyable: true),
+                    StaticField(
+                      label: 'Repository',
+                      value: viewModel.binary.repoUrl,
+                      copyable: true,
+                    ),
+                  StaticField(
+                    label: 'Host',
+                    value: '127.0.0.1',
+                    copyable: true,
+                  ),
                   StaticField(
                     label: 'Port',
                     value: widget.connection.binary.port != 0
                         ? widget.connection.binary.port.toString()
-                        : CoreConnectionSettings.empty(GetIt.I.get<BitcoinConfProvider>().network).port.toString(),
+                        : CoreConnectionSettings.empty(
+                            GetIt.I.get<BitcoinConfProvider>().network,
+                          ).port.toString(),
                     copyable: true,
                   ),
                   if (args.isNotEmpty)
-                    StaticField(label: 'Binary Arguments', value: args.join(' \\\n'), copyable: true),
+                    StaticField(
+                      label: 'Binary Arguments',
+                      value: args.join(' \\\n'),
+                      copyable: true,
+                    ),
                   StaticField(
                     label: 'Chain Layer',
                     value: viewModel.binary.chainLayer == 0
@@ -167,7 +193,12 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                         : 'Layer 2',
                     copyable: true,
                   ),
-                  if (baseDir != null) StaticField(label: 'Installation Directory', value: baseDir, copyable: true),
+                  if (baseDir != null)
+                    StaticField(
+                      label: 'Installation Directory',
+                      value: baseDir,
+                      copyable: true,
+                    ),
                   StaticField(
                     label: 'Binary Data Directory',
                     value: viewModel.binary.datadirNetwork(),
@@ -183,8 +214,15 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     value: viewModel.binary.metadata.binaryPath?.path ?? 'N/A',
                     copyable: true,
                   ),
-                  if (downloadFile != null) viewModel.buildInfoRow(context, 'Download File', downloadFile),
-                  _HashVerificationSection(downloadInfo: viewModel.binary.downloadInfo),
+                  if (downloadFile != null)
+                    viewModel.buildInfoRow(
+                      context,
+                      'Download File',
+                      downloadFile,
+                    ),
+                  _HashVerificationSection(
+                    downloadInfo: viewModel.binary.downloadInfo,
+                  ),
                   StaticField(
                     label: 'Latest Release At',
                     value: viewModel.binary.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
@@ -208,7 +246,10 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                             widget.onOpenConfConfigurator!();
                           },
                         ),
-                      SailButton(label: 'Close', onPressed: () async => Navigator.pop(context)),
+                      SailButton(
+                        label: 'Close',
+                        onPressed: () async => Navigator.pop(context),
+                      ),
                     ],
                   ),
                 ],
@@ -236,7 +277,9 @@ class _HashVerificationSection extends StatelessWidget {
     if (localHash == null && releaseHash == null) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: SailText.secondary12('No hash data available (re-download to verify)'),
+        child: SailText.secondary12(
+          'No hash data available (re-download to verify)',
+        ),
       );
     }
 
@@ -244,7 +287,10 @@ class _HashVerificationSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        SailText.primary13('Hash Verification', color: theme.colors.textTertiary),
+        SailText.primary13(
+          'Hash Verification',
+          color: theme.colors.textTertiary,
+        ),
         const SizedBox(height: 8),
         if (localHash != null) _HashRow(label: 'Local SHA256', hash: localHash),
         if (releaseHash != null)
@@ -263,13 +309,22 @@ class _HashVerificationSection extends StatelessWidget {
               decoration: BoxDecoration(
                 color: theme.colors.error.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: theme.colors.error.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: theme.colors.error.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: theme.colors.error, size: 14),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: theme.colors.error,
+                    size: 14,
+                  ),
                   const SizedBox(width: 4),
-                  SailText.secondary12('HASH MISMATCH — binary may be compromised', color: theme.colors.error),
+                  SailText.secondary12(
+                    'HASH MISMATCH — binary may be compromised',
+                    color: theme.colors.error,
+                  ),
                 ],
               ),
             ),
@@ -285,7 +340,11 @@ class _HashRow extends StatelessWidget {
   final String hash;
   final bool isMismatch;
 
-  const _HashRow({required this.label, required this.hash, this.isMismatch = false});
+  const _HashRow({
+    required this.label,
+    required this.hash,
+    this.isMismatch = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -301,7 +360,10 @@ class _HashRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 110,
-              child: SailText.secondary12(label, color: isMismatch ? theme.colors.error : null),
+              child: SailText.secondary12(
+                label,
+                color: isMismatch ? theme.colors.error : null,
+              ),
             ),
             Expanded(
               child: SelectableText(
@@ -398,10 +460,7 @@ class ChainSettingsViewModel extends BaseViewModel {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary13(
-            label,
-            color: theme.colors.textTertiary,
-          ),
+          SailText.primary13(label, color: theme.colors.textTertiary),
           const SizedBox(height: 4),
           SailText.primary13(value),
         ],

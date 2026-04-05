@@ -8,7 +8,12 @@ class UnitDropdown extends StatelessWidget {
   final Function(Unit) onChanged;
   final bool enabled;
 
-  const UnitDropdown({super.key, required this.value, required this.onChanged, this.enabled = true});
+  const UnitDropdown({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.enabled = true,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -35,10 +35,7 @@ class ResetOptionTile extends StatelessWidget {
         child: SailRow(
           spacing: SailStyleValues.padding12,
           children: [
-            SailCheckbox(
-              value: value,
-              onChanged: onChanged,
-            ),
+            SailCheckbox(value: value, onChanged: onChanged),
             Expanded(
               child: SailColumn(
                 spacing: SailStyleValues.padding04,

@@ -3,7 +3,11 @@ import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-void showArticleDetails(BuildContext context, Article article, String groupTitle) {
+void showArticleDetails(
+  BuildContext context,
+  Article article,
+  String groupTitle,
+) {
   final theme = SailTheme.of(context);
 
   showModalBottomSheet(
@@ -27,13 +31,19 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                 bottom: SailStyleValues.padding10,
               ),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: theme.colors.background, width: 1)),
+                border: Border(
+                  bottom: BorderSide(color: theme.colors.background, width: 1),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const SizedBox(width: 80), // Balance the header
-                  Expanded(child: Center(child: SailText.primary15(groupTitle, bold: true))),
+                  Expanded(
+                    child: Center(
+                      child: SailText.primary15(groupTitle, bold: true),
+                    ),
+                  ),
                   SizedBox(
                     width: 80, // Match left spacing
                     child: Align(
@@ -73,7 +83,9 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                                   Container(
                                     width: 40,
                                     height: 40,
-                                    margin: const EdgeInsets.only(right: SailStyleValues.padding12),
+                                    margin: const EdgeInsets.only(
+                                      right: SailStyleValues.padding12,
+                                    ),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       image: DecorationImage(
@@ -95,16 +107,37 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                           MarkdownBody(
                             data: article.markdown,
                             styleSheet: MarkdownStyleSheet(
-                              p: SailStyleValues.fifteen.copyWith(color: theme.colors.text),
-                              h1: SailStyleValues.twentyFour.copyWith(color: theme.colors.text),
-                              h2: SailStyleValues.twentyFour.copyWith(color: theme.colors.text),
-                              h3: SailStyleValues.twenty.copyWith(color: theme.colors.text),
-                              listBullet: SailStyleValues.fifteen.copyWith(color: theme.colors.text),
-                              listBulletPadding: const EdgeInsets.only(bottom: 20),
+                              p: SailStyleValues.fifteen.copyWith(
+                                color: theme.colors.text,
+                              ),
+                              h1: SailStyleValues.twentyFour.copyWith(
+                                color: theme.colors.text,
+                              ),
+                              h2: SailStyleValues.twentyFour.copyWith(
+                                color: theme.colors.text,
+                              ),
+                              h3: SailStyleValues.twenty.copyWith(
+                                color: theme.colors.text,
+                              ),
+                              listBullet: SailStyleValues.fifteen.copyWith(
+                                color: theme.colors.text,
+                              ),
+                              listBulletPadding: const EdgeInsets.only(
+                                bottom: 20,
+                              ),
                               pPadding: const EdgeInsets.only(bottom: 20),
-                              h1Padding: const EdgeInsets.only(top: SailStyleValues.padding16, bottom: 0),
-                              h2Padding: const EdgeInsets.only(top: SailStyleValues.padding16, bottom: 0),
-                              h3Padding: const EdgeInsets.only(top: SailStyleValues.padding16, bottom: 0),
+                              h1Padding: const EdgeInsets.only(
+                                top: SailStyleValues.padding16,
+                                bottom: 0,
+                              ),
+                              h2Padding: const EdgeInsets.only(
+                                top: SailStyleValues.padding16,
+                                bottom: 0,
+                              ),
+                              h3Padding: const EdgeInsets.only(
+                                top: SailStyleValues.padding16,
+                                bottom: 0,
+                              ),
                               blockquoteDecoration: BoxDecoration(
                                 color: Colors.transparent,
                                 borderRadius: SailStyleValues.borderRadius,
@@ -168,5 +201,9 @@ class ArticleGroup {
   final String subtitle;
   final List<Article> articles;
 
-  ArticleGroup({required this.title, required this.subtitle, required this.articles});
+  ArticleGroup({
+    required this.title,
+    required this.subtitle,
+    required this.articles,
+  });
 }

@@ -5,11 +5,7 @@ class StatRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const StatRow({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const StatRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +13,7 @@ class StatRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SailText.secondary13(label),
-          SailText.primary15(value),
-        ],
+        children: [SailText.secondary13(label), SailText.primary15(value)],
       ),
     );
   }
@@ -30,11 +23,7 @@ class StatSection extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const StatSection({
-    super.key,
-    required this.title,
-    required this.children,
-  });
+  const StatSection({super.key, required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {

@@ -34,7 +34,9 @@ class BottomNav extends StatelessWidget {
       height: 36,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: SailTheme.of(context).colors.border)),
+          border: Border(
+            top: BorderSide(color: SailTheme.of(context).colors.border),
+          ),
         ),
         child: SailRow(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -73,8 +75,11 @@ class BottomNav extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     InkWell(
-                      onTap: () async =>
-                          displayConnectionStatusDialog(context, additionalConnection, onlyShowAdditional),
+                      onTap: () async => displayConnectionStatusDialog(
+                        context,
+                        additionalConnection,
+                        onlyShowAdditional,
+                      ),
                       child: Tooltip(
                         message: 'Open daemon status dialog',
                         child: Row(
@@ -86,7 +91,9 @@ class BottomNav extends StatelessWidget {
                                   ? BoxDecoration(
                                       boxShadow: [
                                         BoxShadow(
-                                          color: SailColorScheme.red.withValues(alpha: 0.5),
+                                          color: SailColorScheme.red.withValues(
+                                            alpha: 0.5,
+                                          ),
                                           blurRadius: 8,
                                           spreadRadius: 2,
                                         ),
@@ -166,11 +173,19 @@ class BottomNav extends StatelessWidget {
                     DaemonConnectionCard(
                       connection: model.mainchain,
                       syncInfo: model.syncProvider.mainchainSyncInfo,
-                      restartDaemon: () =>
-                          binaryProvider.start(binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name)),
-                      stopDaemon: () =>
-                          binaryProvider.stop(binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name)),
-                      infoMessage: _getDownloadMessage(model.syncProvider.mainchainSyncInfo),
+                      restartDaemon: () => binaryProvider.start(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == BitcoinCore().name,
+                        ),
+                      ),
+                      stopDaemon: () => binaryProvider.stop(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == BitcoinCore().name,
+                        ),
+                      ),
+                      infoMessage: _getDownloadMessage(
+                        model.syncProvider.mainchainSyncInfo,
+                      ),
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenConfConfigurator,
                     ),
@@ -181,28 +196,42 @@ class BottomNav extends StatelessWidget {
                       connection: model.enforcer,
                       syncInfo: model.syncProvider.enforcerSyncInfo,
                       infoMessage:
-                          _getDownloadMessage(model.syncProvider.enforcerSyncInfo) ??
+                          _getDownloadMessage(
+                            model.syncProvider.enforcerSyncInfo,
+                          ) ??
                           (model.mainchain.initializingBinary
                               ? 'Waiting for mainchain to finish initializing'
                               : model.mainchain.inHeaderSync
                               ? 'Waiting for L1 to sync headers...'
                               : null),
-                      restartDaemon: () =>
-                          binaryProvider.start(binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name)),
-                      stopDaemon: () =>
-                          binaryProvider.stop(binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name)),
+                      restartDaemon: () => binaryProvider.start(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == Enforcer().name,
+                        ),
+                      ),
+                      stopDaemon: () => binaryProvider.stop(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == Enforcer().name,
+                        ),
+                      ),
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
                     ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
                     syncInfo: model.syncProvider.additionalSyncInfo,
-                    infoMessage: _getDownloadMessage(model.syncProvider.additionalSyncInfo),
+                    infoMessage: _getDownloadMessage(
+                      model.syncProvider.additionalSyncInfo,
+                    ),
                     restartDaemon: () => binaryProvider.start(
-                      binaryProvider.binaries.firstWhere((b) => b.name == additionalConnection.rpc.binary.name),
+                      binaryProvider.binaries.firstWhere(
+                        (b) => b.name == additionalConnection.rpc.binary.name,
+                      ),
                     ),
                     stopDaemon: () => binaryProvider.stop(
-                      binaryProvider.binaries.firstWhere((b) => b.name == additionalConnection.rpc.binary.name),
+                      binaryProvider.binaries.firstWhere(
+                        (b) => b.name == additionalConnection.rpc.binary.name,
+                      ),
                     ),
                     navigateToLogs: model.navigateToLogs,
                     onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
@@ -244,7 +273,10 @@ class DividerDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return SailPadding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: SailText.primary10('|', color: SailTheme.of(context).colors.divider),
+      child: SailText.primary10(
+        '|',
+        color: SailTheme.of(context).colors.divider,
+      ),
     );
   }
 }
@@ -294,7 +326,11 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   final bool mainchainInfo;
   final Function(String, String, BinaryType) navigateToLogs;
 
-  BottomNavViewModel({required this.additionalConnection, required this.mainchainInfo, required this.navigateToLogs}) {
+  BottomNavViewModel({
+    required this.additionalConnection,
+    required this.mainchainInfo,
+    required this.navigateToLogs,
+  }) {
     initChangeTracker();
     // Add listeners for required connections
     mainchain.addListener(_onChange);
@@ -541,8 +577,14 @@ class ChainLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentProgress = formatProgress(syncInfo.progressCurrent, syncInfo.downloadInfo.isDownloading);
-    final goalProgress = formatProgress(syncInfo.progressGoal, syncInfo.downloadInfo.isDownloading);
+    final currentProgress = formatProgress(
+      syncInfo.progressCurrent,
+      syncInfo.downloadInfo.isDownloading,
+    );
+    final goalProgress = formatProgress(
+      syncInfo.progressGoal,
+      syncInfo.downloadInfo.isDownloading,
+    );
 
     // Check if download just finished but blockchain sync hasn't started yet
     final downloadJustFinished =
@@ -556,7 +598,11 @@ class ChainLoader extends StatelessWidget {
           : downloadJustFinished
           ? 'Starting $name...'
           : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
-      child: ProgressBar(current: syncInfo.progressCurrent, goal: syncInfo.progressGoal, justPercent: justPercent),
+      child: ProgressBar(
+        current: syncInfo.progressCurrent,
+        goal: syncInfo.progressGoal,
+        justPercent: justPercent,
+      ),
     );
 
     if (expanded) {
@@ -629,7 +675,9 @@ class BalanceDisplay extends StatelessWidget {
                         width: SailStyleValues.iconSizeSecondary,
                         height: SailStyleValues.iconSizeSecondary,
                       ),
-                      SailText.secondary12(formatBitcoin(pendingBalance, symbol: 'BTC')),
+                      SailText.secondary12(
+                        formatBitcoin(pendingBalance, symbol: 'BTC'),
+                      ),
                     ],
                   ),
                 ),
@@ -700,11 +748,16 @@ class UpdateIndicator extends StatelessWidget {
               child: InkWell(
                 onTap: () => _showUpdateDialog(context, updateProvider),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: SailColorScheme.green.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: SailColorScheme.green.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: SailColorScheme.green.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

@@ -39,7 +39,10 @@ class _TopNavState extends State<TopNav> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Padding(
-                padding: EdgeInsets.only(left: widget.leadingPadding ? 16 : 0, bottom: 4),
+                padding: EdgeInsets.only(
+                  left: widget.leadingPadding ? 16 : 0,
+                  bottom: 4,
+                ),
                 child: SailRow(
                   spacing: 30,
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -92,12 +95,11 @@ class TopNavRoute {
   final SailSVGAsset? icon;
   final int? optionalKey;
 
-  const TopNavRoute({
-    this.label,
-    this.onTap,
-    this.icon,
-    this.optionalKey,
-  }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
+  const TopNavRoute({this.label, this.onTap, this.icon, this.optionalKey})
+    : assert(
+        (label != null) != (icon != null),
+        'Either label or icon must be set',
+      );
 }
 
 class QtTab extends StatefulWidget {
@@ -112,7 +114,10 @@ class QtTab extends StatefulWidget {
     this.icon,
     required this.active,
     required this.onTap,
-  }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
+  }) : assert(
+         (label != null) != (icon != null),
+         'Either label or icon must be set',
+       );
 
   @override
   State<QtTab> createState() => _QtTabState();
@@ -140,16 +145,8 @@ class _QtTabState extends State<QtTab> {
         child: GestureDetector(
           onTap: widget.onTap,
           child: widget.label != null
-              ? SailText.primary13(
-                  widget.label!,
-                  color: getColor(),
-                  bold: true,
-                )
-              : SailSVG.fromAsset(
-                  widget.icon!,
-                  color: getColor(),
-                  width: 18,
-                ),
+              ? SailText.primary13(widget.label!, color: getColor(), bold: true)
+              : SailSVG.fromAsset(widget.icon!, color: getColor(), width: 18),
         ),
       ),
     );

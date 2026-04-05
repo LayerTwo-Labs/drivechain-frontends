@@ -26,8 +26,6 @@ class FontSetting extends SettingValue<SailFontValues> {
 
   @override
   SettingValue<SailFontValues> withValue([SailFontValues? value]) {
-    return FontSetting(
-      newValue: value,
-    );
+    return FontSetting(newValue: value);
   }
 }

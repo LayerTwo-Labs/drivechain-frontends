@@ -54,7 +54,9 @@ class WalletGradient {
   }
 
   factory WalletGradient.fromJsonString(String jsonString) {
-    return WalletGradient.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+    return WalletGradient.fromJson(
+      jsonDecode(jsonString) as Map<String, dynamic>,
+    );
   }
 
   /// Generate a gradient from wallet ID

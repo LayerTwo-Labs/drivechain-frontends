@@ -42,7 +42,9 @@ class ProgressBar extends StatelessWidget {
                 // Background container
                 Container(
                   decoration: BoxDecoration(
-                    color: theme.colors.backgroundSecondary.withValues(alpha: 0.5),
+                    color: theme.colors.backgroundSecondary.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -57,7 +59,9 @@ class ProgressBar extends StatelessWidget {
                         color: theme.colors.text,
                         borderRadius: BorderRadius.horizontal(
                           left: const Radius.circular(999),
-                          right: Radius.circular(current / goal > 0.99 ? 999 : 0),
+                          right: Radius.circular(
+                            current / goal > 0.99 ? 999 : 0,
+                          ),
                         ),
                       ),
                     ),
@@ -83,7 +87,10 @@ class ProgressBar extends StatelessWidget {
           if (!small && !justPercent)
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 50, maxWidth: 50),
-              child: SailText.primary12('${((progress) * 100).toStringAsFixed(2)}%', textAlign: TextAlign.left),
+              child: SailText.primary12(
+                '${((progress) * 100).toStringAsFixed(2)}%',
+                textAlign: TextAlign.left,
+              ),
             ),
         ],
       ),
