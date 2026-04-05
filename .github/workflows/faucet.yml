@@ -15,8 +15,19 @@ on:
 jobs:
   web-format:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false || github.event_name == 'push'
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('faucet/bun.lockb') }}
+          restore-keys: |
+            bun-
+      
       - uses: oven-sh/setup-bun@v2
       - run: bun install
         working-directory: faucet
@@ -25,6 +36,8 @@ jobs:
 
   web-lint:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false || github.event_name == 'push'
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: biomejs/setup-biome@v2
@@ -36,8 +49,19 @@ jobs:
 
   web-build:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false || github.event_name == 'push'
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ hashFiles('faucet/bun.lockb') }}
+          restore-keys: |
+            bun-
+      
       - uses: oven-sh/setup-bun@v2
       - run: bun install
         working-directory: faucet
@@ -51,7 +75,10 @@ jobs:
   # Official GitHub docs on this: https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images
   build-push-docker:
     runs-on: ubuntu-latest-large
+    if: github.event.pull_request.draft == false || github.event_name == 'push'
+    timeout-minutes: 30
     strategy:
+      fail-fast: true
       matrix:
         # not able to deduce how to configure the Next.js server
         # at runtime. have to bake in the env vars at build time?
