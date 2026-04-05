@@ -94,7 +94,7 @@ jobs:
 
       - name: Verify formatting
         # prettier-ignore
-        run: find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format --set-exit-if-changed
+        run: find . -name "*.dart" -not -path "./lib/gen/*" -not -path "./.dart_tool/*" | xargs dart format --set-exit-if-changed
 
       - name: Analyze
         run: dart analyze
