@@ -66,6 +66,7 @@ jobs:
           flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/minimal_smoke_test.dart \
+            --device-id=linux \
             --verbose \
           || {
             echo ""
