@@ -13,6 +13,10 @@ import 'package:stacked/stacked.dart';
 import 'test_utils.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized({
+    'flutter.test.automatic_wait_for_timers': 'false',
+  });
+
   testWidgets('can build overview page', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
