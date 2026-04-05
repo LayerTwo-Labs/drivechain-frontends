@@ -2,8 +2,10 @@
 
 import * as pb from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
+import { SiGithub } from "@icons-pack/react-simple-icons";
 import { format, formatDistanceToNow } from "date-fns";
-import { useState } from "react";
+import { Check, Copy } from "lucide-react";
+import { useCallback, useState } from "react";
 import { Console } from "@/components/console";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,34 +72,39 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <BlockCard
-          title="Latest Mainchain Block"
+          title="Mainchain"
           subtitle="Most recent block on the mainchain"
           block={data?.mainchain}
         />
         <BlockCard
-          title="Latest Thunder Block"
+          title="Thunder"
           subtitle="Most recent block on the Thunder sidechain (L2-S9)"
           block={data?.thunder}
+          repoUrl="https://github.com/LayerTwo-Labs/thunder-rust"
         />
         <BlockCard
-          title="Latest BitAssets Block"
+          title="BitAssets"
           subtitle="Most recent block on the BitAssets sidechain (L2-S4)"
           block={data?.bitassets}
+          repoUrl="https://github.com/LayerTwo-Labs/plain-bitassets"
         />
         <BlockCard
-          title="Latest BitNames Block"
+          title="BitNames"
           subtitle="Most recent block on the BitNames sidechain (L2-S2)"
           block={data?.bitnames}
+          repoUrl="https://github.com/LayerTwo-Labs/plain-bitnames"
         />
         <BlockCard
-          title="Latest Zside Block"
+          title="Zside"
           subtitle="Most recent block on the Zside sidechain (L2-S98)"
           block={data?.zside}
+          repoUrl="https://github.com/iwakura-rein/thunder-orchard"
         />
         <BlockCard
-          title="Latest CoinShift Block"
+          title="CoinShift"
           subtitle="Most recent block on the CoinShift sidechain (L2-S255)"
           block={data?.coinshift}
+          repoUrl="https://github.com/LayerTwo-Labs/coinshift-rs"
         />
       </div>
 
@@ -129,16 +136,25 @@ function BlockCard({
   title,
   subtitle,
   block,
+  repoUrl,
 }: {
   title: string;
   subtitle: string;
   block?: ChainTip;
+  repoUrl?: string;
 }) {
-  if (!block || !block.height) {
+  if (!block?.height) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{title}</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            {title}
+            {repoUrl && (
+              <a href={repoUrl} target="_blank" rel="noopener">
+                <SiGithub className="h-4 w-4 fill-current" />
+              </a>
+            )}
+          </CardTitle>
           <CardDescription className="text-xs">{subtitle}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -157,19 +173,54 @@ function BlockCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-base flex items-center gap-2">
+          {title}
+          {repoUrl && (
+            <a href={repoUrl} target="_blank" rel="noopener">
+              <SiGithub className="h-4 w-4 fill-current" />
+            </a>
+          )}
+        </CardTitle>
         <CardDescription className="text-xs">{subtitle}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
         <div className="text-sm">Height: {block.height.toString()}</div>
-        <div className="text-sm truncate" title={block.hash}>
-          Hash: {block.hash}
-        </div>
+        <CopyHash hash={block.hash} />
         <div className="text-sm">Time: {format(blockTime, "yyyy-MM-dd HH:mm:ss")}</div>
         <div className="text-sm font-bold text-orange-500">
           {formatDistanceToNow(blockTime, { addSuffix: true })}
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function CopyHash({ hash }: { hash: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = useCallback(() => {
+    navigator.clipboard.writeText(hash);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [hash]);
+
+  const truncated = `${hash.slice(0, 12)}...`;
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className={`flex items-center gap-1 text-sm text-left cursor-pointer transition-colors ${
+        copied ? "text-green-600 dark:text-green-400" : "hover:text-foreground/80"
+      }`}
+      title={hash}
+    >
+      Hash: {truncated}
+      {copied ? (
+        <Check className="h-3 w-3 shrink-0" />
+      ) : (
+        <Copy className="h-3 w-3 shrink-0 opacity-50" />
+      )}
+    </button>
   );
 }
