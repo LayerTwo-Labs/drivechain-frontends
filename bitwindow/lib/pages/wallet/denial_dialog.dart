@@ -20,6 +20,18 @@ class DenialDialog extends StatefulWidget {
   /// Fee per hop in satoshis (matches server/engines/deniability_engine.go)
   static const int feePerHopSats = 10000;
 
+  // Default values for normal mode
+  static const String defaultHops = '3';
+  static const String defaultMinutes = '15';
+  static const String defaultHours = '0';
+  static const String defaultDays = '0';
+
+  // Default values for paranoid mode
+  static const String paranoidHops = '6';
+  static const String paranoidMinutes = '0';
+  static const String paranoidHours = '0';
+  static const String paranoidDays = '2';
+
   const DenialDialog({
     super.key,
     this.output,
@@ -40,10 +52,10 @@ class _DenialDialogState extends State<DenialDialog> {
 
   BitcoinUnit get currentUnit => settingsProvider.bitcoinUnit;
 
-  final hopsController = TextEditingController(text: '3');
-  final minutesController = TextEditingController(text: '15');
-  final hoursController = TextEditingController(text: '0');
-  final daysController = TextEditingController(text: '0');
+  final hopsController = TextEditingController(text: DenialDialog.defaultHops);
+  final minutesController = TextEditingController(text: DenialDialog.defaultMinutes);
+  final hoursController = TextEditingController(text: DenialDialog.defaultHours);
+  final daysController = TextEditingController(text: DenialDialog.defaultDays);
   final List<TextEditingController> targetSizeControllers = [];
 
   bool isProcessing = false;
@@ -54,19 +66,19 @@ class _DenialDialogState extends State<DenialDialog> {
 
   Future<void> setNormalDefaults() async {
     setState(() {
-      hopsController.text = '3';
-      minutesController.text = '15';
-      hoursController.text = '0';
-      daysController.text = '0';
+      hopsController.text = DenialDialog.defaultHops;
+      minutesController.text = DenialDialog.defaultMinutes;
+      hoursController.text = DenialDialog.defaultHours;
+      daysController.text = DenialDialog.defaultDays;
     });
   }
 
   Future<void> setParanoidDefaults() async {
     setState(() {
-      hopsController.text = '6';
-      minutesController.text = '0';
-      hoursController.text = '0';
-      daysController.text = '2';
+      hopsController.text = DenialDialog.paranoidHops;
+      minutesController.text = DenialDialog.paranoidMinutes;
+      hoursController.text = DenialDialog.paranoidHours;
+      daysController.text = DenialDialog.paranoidDays;
     });
   }
 

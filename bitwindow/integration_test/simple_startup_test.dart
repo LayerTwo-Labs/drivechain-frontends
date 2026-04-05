@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:bitwindow/main.dart' as app;
@@ -15,7 +17,7 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     }
 
-    print('🚀 App launched, looking for UI elements...');
+    log('App launched, looking for UI elements...');
 
     // Look for any of the main tab elements that should exist
     final possibleElements = [
@@ -34,7 +36,7 @@ void main() {
       if (tester.any(finder)) {
         foundElement = true;
         foundElementText = elementText;
-        print('✅ Found expected element: $elementText');
+        log('Found expected element: $elementText');
         break;
       }
     }
@@ -52,7 +54,7 @@ void main() {
         if (tester.any(finder)) {
           foundElement = true;
           foundElementText = finder.toString();
-          print('✅ Found fallback element: $foundElementText');
+          log('Found fallback element: $foundElementText');
           break;
         }
       }
@@ -64,7 +66,7 @@ void main() {
       reason: 'Should find at least one expected UI element - app may have crashed or failed to load',
     );
 
-    print('🎉 Smoke test passed! BitWindow launched successfully and UI is visible.');
-    print('   Found element: $foundElementText');
+    log('Smoke test passed! BitWindow launched successfully and UI is visible.');
+    log('Found element: $foundElementText');
   });
 }

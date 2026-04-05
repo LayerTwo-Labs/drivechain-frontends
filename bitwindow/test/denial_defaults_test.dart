@@ -2,17 +2,18 @@ import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('normal deniability defaults are CI-safe regression values', () {
-    expect(DenialDefaults.normalHops, 3);
-    expect(DenialDefaults.normalMinutes, 15);
-    expect(DenialDefaults.normalHours, 0);
-    expect(DenialDefaults.normalDays, 0);
+  test('denial dialog default values are correct for signet compatibility', () {
+    // Verify the normal defaults match expected values
+    expect(DenialDialog.defaultHops, '3');
+    expect(DenialDialog.defaultMinutes, '15'); // Fix for issue #1578
+    expect(DenialDialog.defaultHours, '0');
+    expect(DenialDialog.defaultDays, '0');
   });
 
-  test('paranoid deniability defaults remain unchanged', () {
-    expect(DenialDefaults.paranoidHops, 6);
-    expect(DenialDefaults.paranoidMinutes, 0);
-    expect(DenialDefaults.paranoidHours, 0);
-    expect(DenialDefaults.paranoidDays, 2);
+  test('paranoid defaults are correct', () {
+    expect(DenialDialog.paranoidHops, '6');
+    expect(DenialDialog.paranoidMinutes, '0');
+    expect(DenialDialog.paranoidHours, '0');
+    expect(DenialDialog.paranoidDays, '2');
   });
 }
