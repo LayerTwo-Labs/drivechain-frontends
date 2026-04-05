@@ -8,7 +8,6 @@ on:
 
 env:
   GO_VERSION: "1.25"
-  BITNAMES_PORT: 6002
 
 jobs:
   schema-validate:
@@ -22,42 +21,39 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       # ---------------------------------------------------------------
-      # Download the BitNames binary from releases.drivechain.info.
-      # If the download or startup fails the job fails explicitly —
-      # we never silently skip validation.
+      # Download the BitNames release archive. It contains both the
+      # server binary and the CLI binary. We use the CLI to generate
+      # the OpenAPI schema locally (no mainchain node required).
       # ---------------------------------------------------------------
       - name: Download BitNames binary
         run: |
           set -euo pipefail
-          url="https://releases.drivechain.info/bitnames-latest-x86_64-unknown-linux-gnu.zip"
+          url="https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip"
           echo "Downloading $url"
           curl -fSL --retry 3 "$url" -o bitnames.zip
           unzip -o bitnames.zip
-          chmod +x bitnames || chmod +x plain_bitnames || true
-          # The binary may be named plain_bitnames or bitnames
-          BINARY=$(ls bitnames plain_bitnames 2>/dev/null | head -1)
-          echo "BITNAMES_BIN=$PWD/$BINARY" >> "$GITHUB_ENV"
+          # The CLI binary is named bitnames-cli-* after extraction
+          CLI_BIN=$(ls bitnames-cli-* 2>/dev/null | head -1)
+          if [ -z "$CLI_BIN" ]; then
+            echo "::error::bitnames-cli binary not found in archive"
+            ls -la
+            exit 1
+          fi
+          chmod +x "$CLI_BIN"
+          echo "BITNAMES_CLI=$PWD/$CLI_BIN" >> "$GITHUB_ENV"
 
-      - name: Start BitNames node
+      - name: Generate schema from CLI and validate snapshot
+        working-directory: sidechain-orchestrator
         run: |
           set -euo pipefail
-          "$BITNAMES_BIN" --headless --port "$BITNAMES_PORT" &
-          echo "Waiting for BitNames RPC to become ready..."
-          for i in $(seq 1 30); do
-            if curl -s -X POST -H 'Content-Type: application/json' \
-              -d '{"jsonrpc":"2.0","id":"probe","method":"getblockcount","params":null}' \
-              "http://127.0.0.1:${BITNAMES_PORT}" | grep -q '"result"'; then
-              echo "BitNames RPC ready after ${i}s"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "::error::BitNames node did not become ready within 30s"
-          exit 1
+          "$BITNAMES_CLI" openapi-schema > /tmp/live_schema.json
+          # Validate it's real JSON
+          python3 -m json.tool /tmp/live_schema.json > /dev/null
+          echo "BITNAMES_CLI_SCHEMA=/tmp/live_schema.json" >> "$GITHUB_ENV"
 
       - name: Validate schema snapshot
         working-directory: sidechain-orchestrator
         env:
-          BITNAMES_SCHEMA_VALIDATE: "1"
-          BITNAMES_RPC_PORT: ${{ env.BITNAMES_PORT }}
+          BITNAMES_SCHEMA_VALIDATE_CLI: "1"
+          BITNAMES_CLI_SCHEMA: /tmp/live_schema.json
         run: go test -v -run TestSchemaSnapshot ./sidechain/bitnames/

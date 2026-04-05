@@ -11,40 +11,69 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSchemaSnapshot validates the saved openapi_schema.json against a live
-// BitNames node. The test is activated by setting BITNAMES_SCHEMA_VALIDATE=1
-// and BITNAMES_RPC_PORT to the node's port. In normal `go test` runs it is
-// skipped; in CI the dedicated workflow enables it after downloading the binary.
+// TestSchemaSnapshot validates the saved openapi_schema.json against a
+// freshly-generated schema. There are two ways to obtain the "live" schema:
 //
-// To update the snapshot locally:
+//  1. CLI file (CI path): set BITNAMES_SCHEMA_VALIDATE_CLI=1 and
+//     BITNAMES_CLI_SCHEMA to the path of a schema produced by
+//     `bitnames-cli openapi-schema`. This avoids needing a full mainchain
+//     stack just to validate the snapshot.
 //
-//	BITNAMES_SCHEMA_UPDATE=1 BITNAMES_RPC_PORT=6745 go test -run TestSchemaSnapshot ./sidechain/bitnames/
+//  2. Live RPC (local-dev path): set BITNAMES_SCHEMA_VALIDATE=1 and
+//     BITNAMES_RPC_PORT to the port of a running BitNames node.
+//
+// To update the snapshot from a live node:
+//
+//	BITNAMES_SCHEMA_UPDATE=1 BITNAMES_RPC_PORT=6002 go test -run TestSchemaSnapshot ./sidechain/bitnames/
+//
+// To update the snapshot from the CLI binary:
+//
+//	BITNAMES_SCHEMA_UPDATE_CLI=1 BITNAMES_CLI_SCHEMA=/path/to/schema.json go test -run TestSchemaSnapshot ./sidechain/bitnames/
 func TestSchemaSnapshot(t *testing.T) {
-	if os.Getenv("BITNAMES_SCHEMA_VALIDATE") != "1" && os.Getenv("BITNAMES_SCHEMA_UPDATE") != "1" {
-		t.Skip("BITNAMES_SCHEMA_VALIDATE or BITNAMES_SCHEMA_UPDATE not set; skipping live schema check")
+	cliValidate := os.Getenv("BITNAMES_SCHEMA_VALIDATE_CLI") == "1"
+	cliUpdate := os.Getenv("BITNAMES_SCHEMA_UPDATE_CLI") == "1"
+	rpcValidate := os.Getenv("BITNAMES_SCHEMA_VALIDATE") == "1"
+	rpcUpdate := os.Getenv("BITNAMES_SCHEMA_UPDATE") == "1"
+
+	if !cliValidate && !cliUpdate && !rpcValidate && !rpcUpdate {
+		t.Skip("no BITNAMES_SCHEMA_* env set; skipping live schema check")
 	}
 
-	port := os.Getenv("BITNAMES_RPC_PORT")
-	if port == "" {
-		t.Fatal("BITNAMES_RPC_PORT must be set for schema validation")
+	var live []byte
+
+	switch {
+	case cliValidate || cliUpdate:
+		schemaPath := os.Getenv("BITNAMES_CLI_SCHEMA")
+		if schemaPath == "" {
+			t.Fatal("BITNAMES_CLI_SCHEMA must point to the schema file produced by bitnames-cli")
+		}
+		raw, err := os.ReadFile(schemaPath)
+		require.NoError(t, err, "reading CLI schema file")
+		// Pretty-print for stable diffs.
+		var buf json.RawMessage
+		require.NoError(t, json.Unmarshal(raw, &buf))
+		live, err = json.MarshalIndent(buf, "", "  ")
+		require.NoError(t, err)
+
+	case rpcValidate || rpcUpdate:
+		port := os.Getenv("BITNAMES_RPC_PORT")
+		if port == "" {
+			t.Fatal("BITNAMES_RPC_PORT must be set for RPC schema validation")
+		}
+		portNum, err := strconv.Atoi(port)
+		if err != nil {
+			t.Fatalf("invalid BITNAMES_RPC_PORT %q: %v", port, err)
+		}
+		c := NewClient("127.0.0.1", portNum)
+		raw, err := c.OpenAPISchema(context.Background())
+		require.NoError(t, err, "openapi_schema RPC failed — is the BitNames node running?")
+		live, err = json.MarshalIndent(json.RawMessage(raw), "", "  ")
+		require.NoError(t, err)
 	}
-
-	portNum, err := strconv.Atoi(port)
-	if err != nil {
-		t.Fatalf("invalid BITNAMES_RPC_PORT %q: %v", port, err)
-	}
-
-	c := NewClient("127.0.0.1", portNum)
-	raw, err := c.OpenAPISchema(context.Background())
-	require.NoError(t, err, "openapi_schema RPC failed — is the BitNames node running?")
-
-	// Pretty-print for stable diffs.
-	live, err := json.MarshalIndent(json.RawMessage(raw), "", "  ")
-	require.NoError(t, err)
 
 	snapshotPath := "testdata/openapi_schema.json"
 
-	if os.Getenv("BITNAMES_SCHEMA_UPDATE") == "1" {
+	if cliUpdate || rpcUpdate {
 		require.NoError(t, os.MkdirAll("testdata", 0o755))
 		require.NoError(t, os.WriteFile(snapshotPath, append(live, '\n'), 0o644))
 		t.Log("snapshot updated")
@@ -58,5 +87,5 @@ func TestSchemaSnapshot(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.JSONEq(t, string(saved), string(live),
-		"openapi_schema diverged from snapshot; run with BITNAMES_SCHEMA_UPDATE=1 to refresh")
+		"openapi_schema diverged from snapshot; run with BITNAMES_SCHEMA_UPDATE_CLI=1 or BITNAMES_SCHEMA_UPDATE=1 to refresh")
 }
