@@ -3,6 +3,7 @@ package testharness
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
@@ -35,7 +36,12 @@ func (n *Node) MineToAddress(ctx context.Context, blocks int, addr string) error
 // the funded address.
 func (n *Node) FundWallet(t *testing.T) string {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	// Use longer timeout on Windows for slower disk I/O
+	timeout := 60 * time.Second
+	if runtime.GOOS == "windows" {
+		timeout = 90 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	// Check if wallets already exist.
@@ -89,13 +95,23 @@ func (n *Node) FundWallet(t *testing.T) string {
 // Bitcoin Core on some platforms (Windows) may take a moment to index new blocks.
 func (n *Node) WaitForBalance(t *testing.T) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Use longer timeout on Windows for slower block indexing
+	timeout := 30 * time.Second
+	if runtime.GOOS == "windows" {
+		timeout = 45 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	for {
 		select {
 		case <-ctx.Done():
-			t.Fatalf("testharness[%s]: balance did not become positive within 30s", n.Name)
+			msg := "testharness[%s]: balance did not become positive within %v"
+			if runtime.GOOS == "windows" {
+				t.Fatalf(msg, n.Name, "45s")
+			} else {
+				t.Fatalf(msg, n.Name, "30s")
+			}
 		default:
 		}
 		resp, err := n.WalletClient.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
