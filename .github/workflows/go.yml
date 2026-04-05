@@ -17,6 +17,8 @@ jobs:
   config-sync:
     name: chains_config.json sync
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Validate chains_config.json copies are identical
@@ -27,8 +29,10 @@ jobs:
   golangci-lint:
     name: lint (${{ matrix.module }})
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         module:
           - bitwindow/server
@@ -67,8 +71,10 @@ jobs:
   go-test:
     name: test (${{ matrix.module }})
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         module:
           - bitwindow/server
@@ -90,6 +96,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-test-${{ env.GO_VERSION }}-${{ matrix.module }}-${{ hashFiles(format('{0}/go.sum', matrix.module)) }}
+          restore-keys: |
+            go-test-${{ env.GO_VERSION }}-${{ matrix.module }}-
 
       - name: Test
         working-directory: ${{ matrix.module }}
@@ -98,8 +114,10 @@ jobs:
   go-build:
     name: build (${{ matrix.module }})
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         module:
           - bitwindow/server
@@ -121,6 +139,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ env.GO_VERSION }}-${{ matrix.module }}-${{ hashFiles(format('{0}/go.sum', matrix.module)) }}
+          restore-keys: |
+            go-build-${{ env.GO_VERSION }}-${{ matrix.module }}-
 
       - name: Build
         working-directory: ${{ matrix.module }}

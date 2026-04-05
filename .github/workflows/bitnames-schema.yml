@@ -13,9 +13,22 @@ jobs:
   schema-validate:
     name: validate openapi_schema snapshot
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: bitnames-schema-${{ env.GO_VERSION }}-${{ hashFiles('sidechain-orchestrator/go.sum') }}
+          restore-keys: |
+            bitnames-schema-${{ env.GO_VERSION }}-
+      
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -25,7 +38,15 @@ jobs:
       # server binary and the CLI binary. We use the CLI to generate
       # the OpenAPI schema locally (no mainchain node required).
       # ---------------------------------------------------------------
+      - name: Cache BitNames binary
+        id: cache-bitnames
+        uses: actions/cache@v4
+        with:
+          path: bitnames-cli
+          key: bitnames-cli-latest
+          
       - name: Download BitNames binary
+        if: steps.cache-bitnames.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           url="https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip"
@@ -40,7 +61,12 @@ jobs:
             exit 1
           fi
           chmod +x "$CLI_BIN"
-          echo "BITNAMES_CLI=$PWD/$CLI_BIN" >> "$GITHUB_ENV"
+          mv "$CLI_BIN" bitnames-cli
+          
+      - name: Set CLI path
+        run: |
+          chmod +x bitnames-cli
+          echo "BITNAMES_CLI=$PWD/bitnames-cli" >> "$GITHUB_ENV"
 
       - name: Generate schema from CLI and validate snapshot
         working-directory: sidechain-orchestrator
