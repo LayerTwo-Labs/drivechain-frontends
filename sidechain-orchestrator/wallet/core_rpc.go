@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"time"
 )
 
@@ -20,11 +21,17 @@ type CoreRPCClient struct {
 
 // NewCoreRPCClient creates a new Bitcoin Core RPC client.
 func NewCoreRPCClient(host string, port int, user, password string) *CoreRPCClient {
+	// Use longer timeout on Windows due to slower disk I/O in CI environments
+	timeout := 30 * time.Second
+	if runtime.GOOS == "windows" {
+		timeout = 60 * time.Second
+	}
+	
 	return &CoreRPCClient{
 		baseURL:  fmt.Sprintf("http://%s:%d", host, port),
 		user:     user,
 		password: password,
-		client:   &http.Client{Timeout: 30 * time.Second},
+		client:   &http.Client{Timeout: timeout},
 	}
 }
 

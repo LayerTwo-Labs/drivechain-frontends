@@ -15,24 +15,40 @@ jobs:
     name: integration (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]  # Removed macos/windows to save minutes
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
             cache-path: ~/.local/share/bitwindow/assets/bin
+          - os: windows-latest
+            cache-path: ~/AppData/Roaming/10520LayertwoLabs/BitWindow/assets/bin
+          - os: macos-latest
+            cache-path: ~/Library/Application Support/bitwindow/assets/bin
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Go modules
+      - name: Cache Go modules (Unix)
+        if: runner.os != 'Windows'
         uses: actions/cache@v4
         with:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
+          key: go-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ env.GO_VERSION }}-${{ runner.os }}-
+
+      - name: Cache Go modules (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            %LocalAppData%\go-build
+            ~/go/pkg/mod
           key: go-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             go-${{ env.GO_VERSION }}-${{ runner.os }}-
@@ -50,6 +66,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Install SQLite (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # SQLite is built into Go's database/sql on Windows
+          echo "SQLite support built-in on Windows"
 
       - name: Cache bitcoind binary
         uses: actions/cache@v4
