@@ -70,7 +70,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
     final originalTheme = themeToLoad ?? (await settings.getValue(ThemeSetting())).value;
     SailThemeValues resolvedTheme = originalTheme;
-    
+
     if (originalTheme == SailThemeValues.system) {
       resolvedTheme = PlatformDispatcher.instance.platformBrightness == Brightness.light
           ? SailThemeValues.light
