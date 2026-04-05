@@ -1,0 +1,94 @@
+name: Smoke Test
+
+on:
+  pull_request:
+    paths:
+      - "bitwindow/**"
+      - "sail_ui/**"
+      - ".github/workflows/smoke-test.yml"
+  push:
+    branches: [master]
+    paths:
+      - "bitwindow/**" 
+      - "sail_ui/**"
+
+env:
+  FLUTTER_VERSION: "3.41.6"
+
+jobs:
+  smoke-test:
+    name: BitWindow Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.flutter
+            ~/.pub-cache
+          key: flutter-smoke-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+          restore-keys: |
+            flutter-smoke-${{ env.FLUTTER_VERSION }}-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            xvfb
+
+      - name: Get Flutter dependencies
+        working-directory: bitwindow
+        run: flutter pub get
+
+      - name: Setup virtual display
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      - name: Run smoke test
+        working-directory: bitwindow
+        run: |
+          echo "🚀 Running BitWindow smoke test..."
+          echo "This test verifies the app launches without crashing and shows expected UI."
+          
+          # Run the integration test
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/simple_startup_test.dart \
+            --verbose \
+          || {
+            echo ""
+            echo "❌ SMOKE TEST FAILED!"
+            echo "BitWindow either:"
+            echo "  - Failed to compile"
+            echo "  - Crashed during startup"
+            echo "  - Didn't show expected UI elements"
+            echo ""
+            echo "This means basic app functionality is broken."
+            exit 1
+          }
+          
+          echo ""
+          echo "✅ SMOKE TEST PASSED!"
+          echo "BitWindow launches successfully and shows expected UI."
+          echo "Basic app functionality is working."
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: smoke-test-failure-logs
+          path: |
+            bitwindow/build/
+            ~/.flutter/logs/
