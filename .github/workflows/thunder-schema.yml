@@ -1,0 +1,85 @@
+name: Thunder schema snapshot
+
+on:
+  pull_request:
+    paths:
+      - "sidechain-orchestrator/sidechain/thunder/**"
+      - ".github/workflows/thunder-schema.yml"
+
+env:
+  GO_VERSION: "1.25"
+
+jobs:
+  schema-validate:
+    name: validate openapi_schema snapshot
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: thunder-schema-${{ env.GO_VERSION }}-${{ hashFiles('sidechain-orchestrator/go.sum') }}
+          restore-keys: |
+            thunder-schema-${{ env.GO_VERSION }}-
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # ---------------------------------------------------------------
+      # Download the Thunder release archive. It contains both the
+      # server binary and the CLI binary. We use the CLI to generate
+      # the OpenAPI schema locally (no mainchain node required).
+      # ---------------------------------------------------------------
+      - name: Cache Thunder binary
+        id: cache-thunder
+        uses: actions/cache@v4
+        with:
+          path: thunder-cli
+          key: thunder-cli-latest
+          
+      - name: Download Thunder binary
+        if: steps.cache-thunder.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://releases.drivechain.info/L2-S0-Thunder-latest-x86_64-unknown-linux-gnu.zip"
+          echo "Downloading $url"
+          curl -fSL --retry 3 "$url" -o thunder.zip
+          unzip -o thunder.zip
+          # The CLI binary is named thunder-cli-* after extraction
+          CLI_BIN=$(ls thunder-cli-* 2>/dev/null | head -1)
+          if [ -z "$CLI_BIN" ]; then
+            echo "::error::thunder-cli binary not found in archive"
+            ls -la
+            exit 1
+          fi
+          chmod +x "$CLI_BIN"
+          mv "$CLI_BIN" thunder-cli
+          
+      - name: Set CLI path
+        run: |
+          chmod +x thunder-cli
+          echo "THUNDER_CLI=$PWD/thunder-cli" >> "$GITHUB_ENV"
+
+      - name: Generate schema from CLI and validate snapshot
+        working-directory: sidechain-orchestrator
+        run: |
+          set -euo pipefail
+          "$THUNDER_CLI" openapi-schema > /tmp/live_schema.json
+          # Validate it's real JSON
+          python3 -m json.tool /tmp/live_schema.json > /dev/null
+          echo "THUNDER_CLI_SCHEMA=/tmp/live_schema.json" >> "$GITHUB_ENV"
+
+      - name: Validate schema snapshot
+        working-directory: sidechain-orchestrator
+        env:
+          THUNDER_SCHEMA_VALIDATE_CLI: "1"
+          THUNDER_CLI_SCHEMA: /tmp/live_schema.json
+        run: go test -v -run TestSchemaSnapshot ./sidechain/thunder/

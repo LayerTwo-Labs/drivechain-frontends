@@ -1,0 +1,18 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Photon RPC API",
+    "version": "1.0.0",
+    "description": "JSON-RPC API for Photon sidechain node"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:38333",
+      "description": "Default Photon RPC server"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "schemas": {}
+  }
+}

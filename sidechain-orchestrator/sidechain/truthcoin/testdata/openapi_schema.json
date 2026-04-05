@@ -1,0 +1,18 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Truthcoin RPC API",
+    "version": "1.0.0",
+    "description": "JSON-RPC API for Truthcoin sidechain node"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:38333",
+      "description": "Default Truthcoin RPC server"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "schemas": {}
+  }
+}

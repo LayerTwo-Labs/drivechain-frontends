@@ -1,0 +1,87 @@
+name: Truthcoin schema snapshot
+
+on:
+  pull_request:
+    paths:
+      - "sidechain-orchestrator/sidechain/truthcoin/**"
+      - ".github/workflows/truthcoin-schema.yml"
+
+env:
+  GO_VERSION: "1.25"
+
+jobs:
+  schema-validate:
+    name: validate openapi_schema snapshot
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: truthcoin-schema-${{ env.GO_VERSION }}-${{ hashFiles('sidechain-orchestrator/go.sum') }}
+          restore-keys: |
+            truthcoin-schema-${{ env.GO_VERSION }}-
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # ---------------------------------------------------------------
+      # Download the Truthcoin release archive. It contains both the
+      # server binary and the CLI binary. We use the CLI to generate
+      # the OpenAPI schema locally (no mainchain node required).
+      # ---------------------------------------------------------------
+      - name: Cache Truthcoin binary
+        id: cache-truthcoin
+        uses: actions/cache@v4
+        with:
+          path: truthcoin-cli
+          key: truthcoin-cli-latest
+          
+      - name: Download Truthcoin binary
+        if: steps.cache-truthcoin.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://releases.drivechain.info/L2-S${SIDECHAIN_ID}-Truthcoin-latest-x86_64-unknown-linux-gnu.zip"
+          echo "Downloading $url"
+          curl -fSL --retry 3 "$url" -o truthcoin.zip
+          unzip -o truthcoin.zip
+          # The CLI binary is named truthcoin-cli-* after extraction
+          CLI_BIN=$(ls truthcoin-cli-* 2>/dev/null | head -1)
+          if [ -z "$CLI_BIN" ]; then
+            echo "::error::truthcoin-cli binary not found in archive"
+            ls -la
+            exit 1
+          fi
+          chmod +x "$CLI_BIN"
+          mv "$CLI_BIN" truthcoin-cli
+        env:
+          SIDECHAIN_ID: "0"  # This would need to be set properly for each sidechain
+          
+      - name: Set CLI path
+        run: |
+          chmod +x truthcoin-cli
+          echo "TRUTHCOIN_CLI=$PWD/truthcoin-cli" >> "$GITHUB_ENV"
+
+      - name: Generate schema from CLI and validate snapshot
+        working-directory: sidechain-orchestrator
+        run: |
+          set -euo pipefail
+          "$TRUTHCOIN_CLI" openapi-schema > /tmp/live_schema.json
+          # Validate it's real JSON
+          python3 -m json.tool /tmp/live_schema.json > /dev/null
+          echo "TRUTHCOIN_CLI_SCHEMA=/tmp/live_schema.json" >> "$GITHUB_ENV"
+
+      - name: Validate schema snapshot
+        working-directory: sidechain-orchestrator
+        env:
+          TRUTHCOIN_SCHEMA_VALIDATE_CLI: "1"
+          TRUTHCOIN_CLI_SCHEMA: /tmp/live_schema.json
+        run: go test -v -run TestSchemaSnapshot ./sidechain/truthcoin/

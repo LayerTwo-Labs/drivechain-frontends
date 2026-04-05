@@ -1,0 +1,18 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bitassets RPC API",
+    "version": "1.0.0",
+    "description": "JSON-RPC API for Bitassets sidechain node"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:38333",
+      "description": "Default Bitassets RPC server"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "schemas": {}
+  }
+}
