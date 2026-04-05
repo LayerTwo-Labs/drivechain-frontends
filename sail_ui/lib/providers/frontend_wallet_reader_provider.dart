@@ -34,15 +34,11 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
 
   @override
   @override
-  WalletData? get activeWallet => wallets.firstWhereOrNull(
-    (w) => w.id == activeWalletId,
-  );
+  WalletData? get activeWallet => wallets.firstWhereOrNull((w) => w.id == activeWalletId);
 
   @override
   @override
-  WalletData? get enforcerWallet => wallets.firstWhereOrNull(
-    (w) => w.walletType == BinaryType.enforcer,
-  );
+  WalletData? get enforcerWallet => wallets.firstWhereOrNull((w) => w.walletType == BinaryType.enforcer);
 
   @override
   @override
@@ -117,7 +113,9 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
         if (!bitwindow.connected) return;
 
         await bitwindow.wallet.unlockWallet(unlockedPassword!);
-        _logger.i('_onBackendConnectionChanged: Auto-unlocked backend after reconnect');
+        _logger.i(
+          '_onBackendConnectionChanged: Auto-unlocked backend after reconnect',
+        );
       } catch (e) {
         // Might already be unlocked or other error - that's OK
         _logger.d('_onBackendConnectionChanged: Backend unlock skipped: $e');
@@ -151,43 +149,45 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
       return;
     }
 
-    _walletDirWatcher = walletFile.watch(events: FileSystemEvent.modify).listen((event) {
-      if (event.path.endsWith('wallet.json')) {
-        _logger.i('Wallet file modified: ${event.path}');
+    _walletDirWatcher = walletFile.watch(events: FileSystemEvent.modify).listen(
+      (event) {
+        if (event.path.endsWith('wallet.json')) {
+          _logger.i('Wallet file modified: ${event.path}');
 
-        // Debounce: cancel previous timer and start new one
-        _reloadDebounceTimer?.cancel();
-        _reloadDebounceTimer = Timer(const Duration(milliseconds: 100), () {
-          Future.microtask(() async {
-            await _lock.synchronized(() async {
-              try {
-                final previousWallets = List<WalletData>.from(wallets);
-                await _loadWalletIntoCache();
+          // Debounce: cancel previous timer and start new one
+          _reloadDebounceTimer?.cancel();
+          _reloadDebounceTimer = Timer(const Duration(milliseconds: 100), () {
+            Future.microtask(() async {
+              await _lock.synchronized(() async {
+                try {
+                  final previousWallets = List<WalletData>.from(wallets);
+                  await _loadWalletIntoCache();
 
-                // Only notify if data actually changed
-                bool hasChanges = false;
-                if (previousWallets.length != wallets.length) {
-                  hasChanges = true;
-                } else {
-                  for (var i = 0; i < wallets.length; i++) {
-                    if (previousWallets[i].toJsonString() != wallets[i].toJsonString()) {
-                      hasChanges = true;
-                      break;
+                  // Only notify if data actually changed
+                  bool hasChanges = false;
+                  if (previousWallets.length != wallets.length) {
+                    hasChanges = true;
+                  } else {
+                    for (var i = 0; i < wallets.length; i++) {
+                      if (previousWallets[i].toJsonString() != wallets[i].toJsonString()) {
+                        hasChanges = true;
+                        break;
+                      }
                     }
                   }
-                }
 
-                if (hasChanges) {
-                  notifyListeners();
+                  if (hasChanges) {
+                    notifyListeners();
+                  }
+                } catch (e) {
+                  _logger.w('File watcher failed to reload wallet: $e');
                 }
-              } catch (e) {
-                _logger.w('File watcher failed to reload wallet: $e');
-              }
+              });
             });
           });
-        });
-      }
-    });
+        }
+      },
+    );
   }
 
   @override
@@ -234,7 +234,11 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
           if (metadata != null && metadata.encrypted) {
             final encryptedData = await walletFile.readAsString();
             final salt = base64.decode(metadata.salt);
-            final key = await EncryptionService.deriveKey(unlockedPassword!, salt, metadata.iterations);
+            final key = await EncryptionService.deriveKey(
+              unlockedPassword!,
+              salt,
+              metadata.iterations,
+            );
             final decryptedJson = EncryptionService.decrypt(encryptedData, key);
             fileJson = jsonDecode(decryptedJson) as Map<String, dynamic>;
             _encryptionKey = key;
@@ -257,12 +261,18 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
       final newWallets = <WalletData>[];
       if (walletsJson != null) {
         for (final walletJson in walletsJson) {
-          final wallet = WalletData.fromJson(walletJson as Map<String, dynamic>);
+          final wallet = WalletData.fromJson(
+            walletJson as Map<String, dynamic>,
+          );
           newWallets.add(wallet);
-          _logger.i('_loadWalletIntoCache: Loaded wallet ${wallet.id} named "${wallet.name}"');
+          _logger.i(
+            '_loadWalletIntoCache: Loaded wallet ${wallet.id} named "${wallet.name}"',
+          );
         }
       }
-      _logger.i('_loadWalletIntoCache: Total wallets loaded: ${newWallets.length}');
+      _logger.i(
+        '_loadWalletIntoCache: Total wallets loaded: ${newWallets.length}',
+      );
 
       // Only update state after successfully loading
       wallets = newWallets;
@@ -337,7 +347,11 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
       }
 
       final salt = base64.decode(metadata.salt);
-      final key = await EncryptionService.deriveKey(password, salt, metadata.iterations);
+      final key = await EncryptionService.deriveKey(
+        password,
+        salt,
+        metadata.iterations,
+      );
 
       // Test password
       try {
@@ -393,7 +407,9 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
       }
 
       try {
-        final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
+        final tmpDir = Directory(
+          path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'),
+        );
         if (await tmpDir.exists()) {
           await tmpDir.delete(recursive: true);
         }
@@ -421,11 +437,20 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
         }
 
         final salt = EncryptionService.generateSalt();
-        final key = await EncryptionService.deriveKey(password, salt, EncryptionService.defaultIterations);
+        final key = await EncryptionService.deriveKey(
+          password,
+          salt,
+          EncryptionService.defaultIterations,
+        );
 
         // Backup
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final backupFile = File(path.join(bitwindowAppDir.path, 'wallet.json.backup_before_encryption_$timestamp'));
+        final backupFile = File(
+          path.join(
+            bitwindowAppDir.path,
+            'wallet.json.backup_before_encryption_$timestamp',
+          ),
+        );
         await walletFile.copy(backupFile.path);
 
         // Encrypt
@@ -475,7 +500,11 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
         }
 
         final newSalt = EncryptionService.generateSalt();
-        final newKey = await EncryptionService.deriveKey(newPassword, newSalt, EncryptionService.defaultIterations);
+        final newKey = await EncryptionService.deriveKey(
+          newPassword,
+          newSalt,
+          EncryptionService.defaultIterations,
+        );
 
         // Re-encrypt the wallet file
         final fileJson = {
@@ -484,7 +513,10 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
           'wallets': wallets.map((w) => w.toJson()).toList(),
         };
         final walletJsonString = jsonEncode(fileJson);
-        final newEncryptedData = EncryptionService.encrypt(walletJsonString, newKey);
+        final newEncryptedData = EncryptionService.encrypt(
+          walletJsonString,
+          newKey,
+        );
 
         final walletFile = getWalletFile();
         final tempFile = File('${walletFile.path}.tmp');
@@ -530,11 +562,16 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
 
         // Read and decrypt wallet data
         final encryptedData = await walletFile.readAsString();
-        final decryptedJson = EncryptionService.decrypt(encryptedData, _encryptionKey!);
+        final decryptedJson = EncryptionService.decrypt(
+          encryptedData,
+          _encryptionKey!,
+        );
 
         // Create backup before removing encryption
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final backupFile = File('${walletFile.path}.backup_before_decryption_$timestamp');
+        final backupFile = File(
+          '${walletFile.path}.backup_before_decryption_$timestamp',
+        );
         await walletFile.copy(backupFile.path);
 
         // Write decrypted JSON
@@ -614,14 +651,20 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
         // Update in list, or add if not found (used for both creating and updating)
         final index = wallets.indexWhere((w) => w.id == wallet.id);
         if (index != -1) {
-          _logger.i('updateWallet: Updating existing wallet ${wallet.id} "${wallet.name}" at index $index');
+          _logger.i(
+            'updateWallet: Updating existing wallet ${wallet.id} "${wallet.name}" at index $index',
+          );
           wallets[index] = wallet;
         } else {
-          _logger.i('updateWallet: Adding NEW wallet ${wallet.id} "${wallet.name}" (current count: ${wallets.length})');
+          _logger.i(
+            'updateWallet: Adding NEW wallet ${wallet.id} "${wallet.name}" (current count: ${wallets.length})',
+          );
           wallets.add(wallet);
         }
 
-        _logger.i('updateWallet: Total wallets after update: ${wallets.length}');
+        _logger.i(
+          'updateWallet: Total wallets after update: ${wallets.length}',
+        );
         await _saveWalletsToFile();
         notifyListeners();
       } catch (e, stack) {
@@ -645,7 +688,9 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
     final wallet = activeWallet;
     if (wallet == null) return null;
 
-    final sidechain = wallet.sidechains.firstWhereOrNull((sc) => sc.slot == slot);
+    final sidechain = wallet.sidechains.firstWhereOrNull(
+      (sc) => sc.slot == slot,
+    );
     return sidechain?.mnemonic;
   }
 
@@ -663,7 +708,9 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
       throw Exception('L1 mnemonic not found in enforcer wallet');
     }
 
-    final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
+    final tmpDir = Directory(
+      path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'),
+    );
     if (!tmpDir.existsSync()) {
       tmpDir.createSync(recursive: true);
       if (!Platform.isWindows) {
@@ -685,7 +732,9 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
       throw Exception('Sidechain slot $slot mnemonic not found');
     }
 
-    final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
+    final tmpDir = Directory(
+      path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'),
+    );
     if (!tmpDir.existsSync()) {
       tmpDir.createSync(recursive: true);
       if (!Platform.isWindows) {
@@ -693,7 +742,9 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
       }
     }
 
-    final scFile = File(path.join(tmpDir.path, 'sidechain_${slot}_starter.txt'));
+    final scFile = File(
+      path.join(tmpDir.path, 'sidechain_${slot}_starter.txt'),
+    );
     scFile.writeAsStringSync(mnemonic);
     return scFile;
   }
@@ -702,7 +753,9 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
   @override
   @override
   Future<void> cleanupStarterFiles() async {
-    final tmpDir = Directory(path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'));
+    final tmpDir = Directory(
+      path.join(Directory.systemTemp.path, 'bitwindow_starters_$pid'),
+    );
     if (await tmpDir.exists()) {
       await tmpDir.delete(recursive: true);
     }
@@ -778,8 +831,14 @@ class FrontendWalletReaderProvider extends WalletReaderProvider {
   @override
   @override
   @override
-  Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient) async {
-    _logger.i('updateWalletMetadata: walletId=$walletId, name=$name, background=${gradient.backgroundSvg}');
+  Future<void> updateWalletMetadata(
+    String walletId,
+    String name,
+    WalletGradient gradient,
+  ) async {
+    _logger.i(
+      'updateWalletMetadata: walletId=$walletId, name=$name, background=${gradient.backgroundSvg}',
+    );
     _logger.i('updateWalletMetadata: Waiting for lock...');
     await _lock.synchronized(() async {
       _logger.i('updateWalletMetadata: Lock acquired!');

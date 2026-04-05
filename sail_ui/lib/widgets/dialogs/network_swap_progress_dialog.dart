@@ -6,10 +6,7 @@ class NetworkSwapStep {
   DateTime startTime;
   DateTime? endTime;
 
-  NetworkSwapStep({
-    required this.name,
-    required this.startTime,
-  });
+  NetworkSwapStep({required this.name, required this.startTime});
 
   bool get isCompleted => endTime != null;
   Duration? get duration => endTime?.difference(startTime);
@@ -57,10 +54,7 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
     setState(() {
       _steps.addAll(
         stepNames.map(
-          (name) => NetworkSwapStep(
-            name: name,
-            startTime: DateTime.now(),
-          ),
+          (name) => NetworkSwapStep(name: name, startTime: DateTime.now()),
         ),
       );
     });
@@ -165,7 +159,12 @@ class _StepTile extends StatelessWidget {
     String timeText = '';
 
     if (step.isCompleted) {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circleCheck, color: SailColorScheme.green, width: 16, height: 16);
+      iconWidget = SailSVG.fromAsset(
+        SailSVGAsset.circleCheck,
+        color: SailColorScheme.green,
+        width: 16,
+        height: 16,
+      );
       if (step.duration != null) {
         final duration = step.duration!;
         if (duration.inSeconds > 0) {
@@ -184,7 +183,12 @@ class _StepTile extends StatelessWidget {
         ),
       );
     } else {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circle, color: theme.colors.textSecondary, width: 16, height: 16);
+      iconWidget = SailSVG.fromAsset(
+        SailSVGAsset.circle,
+        color: theme.colors.textSecondary,
+        width: 16,
+        height: 16,
+      );
     }
 
     return SailRow(
@@ -201,11 +205,7 @@ class _StepTile extends StatelessWidget {
                 : theme.colors.textSecondary,
           ),
         ),
-        if (timeText.isNotEmpty)
-          SailText.secondary12(
-            timeText,
-            color: SailColorScheme.green,
-          ),
+        if (timeText.isNotEmpty) SailText.secondary12(timeText, color: SailColorScheme.green),
       ],
     );
   }

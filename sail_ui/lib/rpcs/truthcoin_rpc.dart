@@ -12,10 +12,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the truthcoin server.
 abstract class TruthcoinRPC extends SidechainRPC {
-  TruthcoinRPC({
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  TruthcoinRPC({required super.binaryType, required super.restartOnFailure});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -118,7 +115,10 @@ abstract class TruthcoinRPC extends SidechainRPC {
   });
 
   /// Get positions in a market
-  Future<Map<String, dynamic>> marketPositions({String? address, String? marketId});
+  Future<Map<String, dynamic>> marketPositions({
+    String? address,
+    String? marketId,
+  });
 
   // Slots
   /// Get slot system status and configuration
@@ -160,10 +160,17 @@ abstract class TruthcoinRPC extends SidechainRPC {
   Future<List<Map<String, dynamic>>> voteVoters();
 
   /// Submit votes (batch)
-  Future<String> voteSubmit({required List<Map<String, dynamic>> votes, required int feeSats});
+  Future<String> voteSubmit({
+    required List<Map<String, dynamic>> votes,
+    required int feeSats,
+  });
 
   /// List votes with optional filters
-  Future<List<Map<String, dynamic>>> voteList({String? voter, String? decisionId, int? periodId});
+  Future<List<Map<String, dynamic>>> voteList({
+    String? voter,
+    String? decisionId,
+    int? periodId,
+  });
 
   /// Get voting period information
   Future<Map<String, dynamic>?> votePeriod({int? periodId});
@@ -196,16 +203,28 @@ abstract class TruthcoinRPC extends SidechainRPC {
   Future<String> getNewVerifyingKey();
 
   /// Encrypt a message
-  Future<String> encryptMsg({required String msg, required String encryptionPubkey});
+  Future<String> encryptMsg({
+    required String msg,
+    required String encryptionPubkey,
+  });
 
   /// Decrypt a message
-  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey});
+  Future<String> decryptMsg({
+    required String ciphertext,
+    required String encryptionPubkey,
+  });
 
   /// Sign an arbitrary message with verifying key
-  Future<String> signArbitraryMsg({required String msg, required String verifyingKey});
+  Future<String> signArbitraryMsg({
+    required String msg,
+    required String verifyingKey,
+  });
 
   /// Sign an arbitrary message as address
-  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({required String address, required String msg});
+  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({
+    required String address,
+    required String msg,
+  });
 
   /// Verify a signature
   Future<bool> verifySignature({
@@ -233,11 +252,7 @@ class TruthcoinLive extends TruthcoinRPC {
     return client;
   }
 
-  TruthcoinLive()
-    : super(
-        binaryType: BinaryType.truthcoin,
-        restartOnFailure: false,
-      ) {
+  TruthcoinLive() : super(binaryType: BinaryType.truthcoin, restartOnFailure: false) {
     if (!Environment.backendManagesBinaries) {
       startConnectionTimer();
     }
@@ -339,8 +354,18 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
-    final response = await _client().call('withdraw', [address, amountSats, sidechainFeeSats, mainchainFeeSats]);
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) async {
+    final response = await _client().call('withdraw', [
+      address,
+      amountSats,
+      sidechainFeeSats,
+      mainchainFeeSats,
+    ]);
     return response as String;
   }
 
@@ -351,7 +376,11 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) async {
     final response = await _client().call('transfer', [
       address,
       btcToSatoshi(amount).toInt(),
@@ -369,8 +398,16 @@ class TruthcoinLive extends TruthcoinRPC {
 
   /// Create a deposit transaction
   @override
-  Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create_deposit', [address, btcToSatoshi(amount), btcToSatoshi(fee)]);
+  Future<String> createDeposit(
+    String address,
+    double amount,
+    double fee,
+  ) async {
+    final response = await _client().call('create_deposit', [
+      address,
+      btcToSatoshi(amount),
+      btcToSatoshi(fee),
+    ]);
     return response as String;
   }
 
@@ -453,7 +490,9 @@ class TruthcoinLive extends TruthcoinRPC {
   /// Get latest failed withdrawal bundle height
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response = await _client().call('latest_failed_withdrawal_bundle_height');
+    final response = await _client().call(
+      'latest_failed_withdrawal_bundle_height',
+    );
     return response as int?;
   }
 
@@ -518,7 +557,11 @@ class TruthcoinLive extends TruthcoinRPC {
     int? numOutcomes,
     String? dimensions,
   }) async {
-    final response = await _client().call('calculate_initial_liquidity', [beta, numOutcomes, dimensions]);
+    final response = await _client().call('calculate_initial_liquidity', [
+      beta,
+      numOutcomes,
+      dimensions,
+    ]);
     return response as Map<String, dynamic>;
   }
 
@@ -605,8 +648,14 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<Map<String, dynamic>> marketPositions({String? address, String? marketId}) async {
-    final response = await _client().call('market_positions', [address, marketId]);
+  Future<Map<String, dynamic>> marketPositions({
+    String? address,
+    String? marketId,
+  }) async {
+    final response = await _client().call('market_positions', [
+      address,
+      marketId,
+    ]);
     return response as Map<String, dynamic>;
   }
 
@@ -618,7 +667,10 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> slotList({int? period, String? status}) async {
+  Future<List<Map<String, dynamic>>> slotList({
+    int? period,
+    String? status,
+  }) async {
     final response = await _client().call('slot_list', [period, status]) as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
@@ -659,14 +711,24 @@ class TruthcoinLive extends TruthcoinRPC {
     required bool isStandard,
     required int feeSats,
   }) async {
-    final response = await _client().call('slot_claim_category', [slots, isStandard, feeSats]);
+    final response = await _client().call('slot_claim_category', [
+      slots,
+      isStandard,
+      feeSats,
+    ]);
     return response as String;
   }
 
   // Voting
   @override
-  Future<String> voteRegister({required int feeSats, int? reputationBondSats}) async {
-    final response = await _client().call('vote_register', [feeSats, reputationBondSats]);
+  Future<String> voteRegister({
+    required int feeSats,
+    int? reputationBondSats,
+  }) async {
+    final response = await _client().call('vote_register', [
+      feeSats,
+      reputationBondSats,
+    ]);
     return response as String;
   }
 
@@ -683,13 +745,20 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<String> voteSubmit({required List<Map<String, dynamic>> votes, required int feeSats}) async {
+  Future<String> voteSubmit({
+    required List<Map<String, dynamic>> votes,
+    required int feeSats,
+  }) async {
     final response = await _client().call('vote_submit', [votes, feeSats]);
     return response as String;
   }
 
   @override
-  Future<List<Map<String, dynamic>>> voteList({String? voter, String? decisionId, int? periodId}) async {
+  Future<List<Map<String, dynamic>>> voteList({
+    String? voter,
+    String? decisionId,
+    int? periodId,
+  }) async {
     final response = await _client().call('vote_list', [voter, decisionId, periodId]) as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
@@ -708,7 +777,12 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final response = await _client().call('votecoin_transfer', [dest, amount, feeSats, memo]);
+    final response = await _client().call('votecoin_transfer', [
+      dest,
+      amount,
+      feeSats,
+      memo,
+    ]);
     return response as String;
   }
 
@@ -725,7 +799,12 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final response = await _client().call('transfer_votecoin', [dest, amount, feeSats, memo]);
+    final response = await _client().call('transfer_votecoin', [
+      dest,
+      amount,
+      feeSats,
+      memo,
+    ]);
     return response as String;
   }
 
@@ -743,26 +822,50 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
-    final response = await _client().call('encrypt_msg', [encryptionPubkey, msg]);
+  Future<String> encryptMsg({
+    required String msg,
+    required String encryptionPubkey,
+  }) async {
+    final response = await _client().call('encrypt_msg', [
+      encryptionPubkey,
+      msg,
+    ]);
     return response as String;
   }
 
   @override
-  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
-    final response = await _client().call('decrypt_msg', [encryptionPubkey, ciphertext]);
+  Future<String> decryptMsg({
+    required String ciphertext,
+    required String encryptionPubkey,
+  }) async {
+    final response = await _client().call('decrypt_msg', [
+      encryptionPubkey,
+      ciphertext,
+    ]);
     return response as String;
   }
 
   @override
-  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
-    final response = await _client().call('sign_arbitrary_msg', [msg, verifyingKey]);
+  Future<String> signArbitraryMsg({
+    required String msg,
+    required String verifyingKey,
+  }) async {
+    final response = await _client().call('sign_arbitrary_msg', [
+      msg,
+      verifyingKey,
+    ]);
     return response as String;
   }
 
   @override
-  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({required String address, required String msg}) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', [msg, address]);
+  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({
+    required String address,
+    required String msg,
+  }) async {
+    final response = await _client().call('sign_arbitrary_msg_as_addr', [
+      msg,
+      address,
+    ]);
     return response as Map<String, dynamic>;
   }
 
@@ -773,7 +876,12 @@ class TruthcoinLive extends TruthcoinRPC {
     required String verifyingKey,
     required String dst,
   }) async {
-    final response = await _client().call('verify_signature', [msg, signature, verifyingKey, dst]);
+    final response = await _client().call('verify_signature', [
+      msg,
+      signature,
+      verifyingKey,
+      dst,
+    ]);
     return response as bool;
   }
 }

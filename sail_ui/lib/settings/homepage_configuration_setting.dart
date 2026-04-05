@@ -25,7 +25,9 @@ class HomepageConfigurationSetting extends SettingValue<HomepageConfiguration> {
   }
 
   @override
-  SettingValue<HomepageConfiguration> withValue([HomepageConfiguration? value]) {
+  SettingValue<HomepageConfiguration> withValue([
+    HomepageConfiguration? value,
+  ]) {
     return HomepageConfigurationSetting(newValue: value);
   }
 }

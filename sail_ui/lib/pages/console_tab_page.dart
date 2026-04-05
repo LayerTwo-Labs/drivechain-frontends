@@ -16,11 +16,7 @@ class _ConsoleTabPageState extends State<ConsoleTabPage> {
   Widget build(BuildContext context) {
     return QtPage(
       child: SailColumn(
-        children: [
-          const Expanded(
-            child: IntegratedConsoleView(),
-          ),
-        ],
+        children: [const Expanded(child: IntegratedConsoleView())],
       ),
     );
   }

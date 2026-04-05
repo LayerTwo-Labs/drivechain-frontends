@@ -38,10 +38,7 @@ class _EnforcerConfEditorPageContent extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  SailText.primary24(
-                    'Enforcer Conf Configurator',
-                    bold: true,
-                  ),
+                  SailText.primary24('Enforcer Conf Configurator', bold: true),
                   Expanded(child: Container()),
                   Row(
                     children: [
@@ -107,16 +104,10 @@ class _EnforcerConfEditorPageContent extends StatelessWidget {
             // Warning when node-rpc settings are out of sync with Bitcoin conf
             _NodeRpcSyncWarning(viewModel: viewModel),
 
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: theme.colors.divider,
-            ),
+            Divider(height: 1, thickness: 1, color: theme.colors.divider),
 
             // Three-panel layout
-            Expanded(
-              child: _MainContent(viewModel: viewModel),
-            ),
+            Expanded(child: _MainContent(viewModel: viewModel)),
 
             // CLI preview
             const _CliPreview(),
@@ -162,9 +153,7 @@ class _MainContent extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     if (viewModel.isLoading && viewModel.workingConfig == null) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (viewModel.errorMessage != null) {
@@ -172,13 +161,9 @@ class _MainContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SailText.primary15(
-              'Error loading configuration',
-            ),
+            SailText.primary15('Error loading configuration'),
             const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(
-              viewModel.errorMessage!,
-            ),
+            SailText.secondary13(viewModel.errorMessage!),
             const SailSpacing(SailStyleValues.padding20),
             SailButton(
               label: 'Retry',
@@ -194,32 +179,17 @@ class _MainContent extends StatelessWidget {
     return Row(
       children: [
         // Left panel - Changes
-        Expanded(
-          flex: 1,
-          child: EnforcerWorkingConfigPanel(),
-        ),
+        Expanded(flex: 1, child: EnforcerWorkingConfigPanel()),
 
-        Container(
-          width: 1,
-          color: theme.colors.divider,
-        ),
+        Container(width: 1, color: theme.colors.divider),
 
         // Middle panel - Saved File + Any Diff
-        Expanded(
-          flex: 1,
-          child: EnforcerActualConfigPanel(),
-        ),
+        Expanded(flex: 1, child: EnforcerActualConfigPanel()),
 
-        Container(
-          width: 1,
-          color: theme.colors.divider,
-        ),
+        Container(width: 1, color: theme.colors.divider),
 
         // Right panel - Configurator
-        SizedBox(
-          width: 350,
-          child: EnforcerConfiguratorPanel(),
-        ),
+        SizedBox(width: 350, child: EnforcerConfiguratorPanel()),
       ],
     );
   }
@@ -302,9 +272,7 @@ class _CliPreview extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        border: Border(
-          top: BorderSide(color: theme.colors.divider),
-        ),
+        border: Border(top: BorderSide(color: theme.colors.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

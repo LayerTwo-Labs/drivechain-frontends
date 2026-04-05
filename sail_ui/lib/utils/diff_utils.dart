@@ -1,8 +1,4 @@
-enum DiffLineType {
-  added,
-  removed,
-  unchanged,
-}
+enum DiffLineType { added, removed, unchanged }
 
 class DiffLine {
   final String content;

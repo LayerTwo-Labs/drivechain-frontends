@@ -28,7 +28,10 @@ class DownloadManager extends ChangeNotifier {
   }
 
   // Private constructor
-  DownloadManager._create({required this.appDir, required List<Binary> binaries}) {
+  DownloadManager._create({
+    required this.appDir,
+    required List<Binary> binaries,
+  }) {
     // Convert list to map keyed by BinaryType
     _binariesMap = {for (var b in binaries) b.type: b};
   }
@@ -38,12 +41,17 @@ class DownloadManager extends ChangeNotifier {
     required Directory appDir,
     required List<Binary> initialBinaries,
   }) async {
-    final binariesWithTimestamps = await loadBinaryCreationTimestamp(initialBinaries, appDir);
+    final binariesWithTimestamps = await loadBinaryCreationTimestamp(
+      initialBinaries,
+      appDir,
+    );
 
     // Fetch expected hashes for already-downloaded binaries
     Map<String, dynamic>? remoteHashes;
     try {
-      final response = await http.get(Uri.parse('https://releases.drivechain.info/hashes.json'));
+      final response = await http.get(
+        Uri.parse('https://releases.drivechain.info/hashes.json'),
+      );
       if (response.statusCode == 200) {
         remoteHashes = json.decode(response.body) as Map<String, dynamic>;
       }
@@ -62,7 +70,9 @@ class DownloadManager extends ChangeNotifier {
         }
         binariesWithHashes.add(
           binary.copyWith(
-            downloadInfo: binary.downloadInfo.copyWith(expectedHash: expectedHash),
+            downloadInfo: binary.downloadInfo.copyWith(
+              expectedHash: expectedHash,
+            ),
           ),
         );
       } else {
@@ -70,7 +80,10 @@ class DownloadManager extends ChangeNotifier {
       }
     }
 
-    return DownloadManager._create(appDir: appDir, binaries: binariesWithHashes);
+    return DownloadManager._create(
+      appDir: appDir,
+      binaries: binariesWithHashes,
+    );
   }
 
   // Test constructor (visible for mocking)
@@ -88,7 +101,10 @@ class DownloadManager extends ChangeNotifier {
     return binary.downloadInfo;
   }
 
-  Future<void> downloadIfMissing(Binary binary, {bool shouldUpdate = false}) async {
+  Future<void> downloadIfMissing(
+    Binary binary, {
+    bool shouldUpdate = false,
+  }) async {
     // Always use the current binary state from our internal map to avoid stale metadata
     var currentBinary = _binariesMap[binary.type] ?? binary;
 
@@ -119,11 +135,15 @@ class DownloadManager extends ChangeNotifier {
     // Check if already downloading
     final currentlyDownloading = isDownloading(binary.type);
     if (currentlyDownloading) {
-      log.i('Download already in progress for ${binary.name}, waiting for completion...');
+      log.i(
+        'Download already in progress for ${binary.name}, waiting for completion...',
+      );
       // Wait for the download to complete
       while (isDownloading(binary.type)) {
         await Future.delayed(const Duration(milliseconds: 100));
-        log.i('download already in progress for ${binary.name}, waiting for it to finish...');
+        log.i(
+          'download already in progress for ${binary.name}, waiting for it to finish...',
+        );
       }
       return;
     }
@@ -206,7 +226,9 @@ class DownloadManager extends ChangeNotifier {
     // 1. Setup directories
     final downloadsDir = Directory(path.join(appDir.path, 'downloads'));
     final subfolder = binary.metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
-    final extractDir = Directory(path.join(binDir(appDir.path).path, subfolder));
+    final extractDir = Directory(
+      path.join(binDir(appDir.path).path, subfolder),
+    );
     await downloadsDir.create(recursive: true);
     await extractDir.create(recursive: true);
 
@@ -256,7 +278,9 @@ class DownloadManager extends ChangeNotifier {
       log.i('Verifying hash for ${binary.name}: local=$localHash');
 
       expectedHash = await _fetchExpectedHash(binary);
-      log.i('Release server hash for ${binary.name}: ${expectedHash ?? 'not available'}');
+      log.i(
+        'Release server hash for ${binary.name}: ${expectedHash ?? 'not available'}',
+      );
 
       if (expectedHash != null && expectedHash != localHash) {
         await File(filePath).delete();
@@ -331,7 +355,12 @@ class DownloadManager extends ChangeNotifier {
           OS.macos => 'macos',
           OS.windows => 'windows',
         };
-        await configProvider.updateHashes(binaryKey, osKey, localHash, archiveSize);
+        await configProvider.updateHashes(
+          binaryKey,
+          osKey,
+          localHash,
+          archiveSize,
+        );
       } catch (e) {
         log.w('Failed to write hash to chains config: $e');
       }
@@ -340,7 +369,11 @@ class DownloadManager extends ChangeNotifier {
     log.i('Successfully downloaded and extracted ${binary.name}');
   }
 
-  Future<String> _downloadGithubBinary(Binary binary, Directory downloadsDir, BitcoinNetwork network) async {
+  Future<String> _downloadGithubBinary(
+    Binary binary,
+    Directory downloadsDir,
+    BitcoinNetwork network,
+  ) async {
     final baseUrl = binary.metadata.downloadConfig.baseUrl(network);
     final response = await http.get(
       Uri.parse(baseUrl),
@@ -357,7 +390,9 @@ class DownloadManager extends ChangeNotifier {
     }
 
     if (response.statusCode != 200) {
-      throw Exception('GitHub API returned ${response.statusCode}. Please try again later.');
+      throw Exception(
+        'GitHub API returned ${response.statusCode}. Please try again later.',
+      );
     }
 
     // Use the regex pattern from binary configuration
@@ -368,7 +403,9 @@ class DownloadManager extends ChangeNotifier {
     // search for corresponding asset matching the metadata.files regex-pattern
     final asset = assets.firstWhere(
       (a) => platformRegex.hasMatch(a['name'].toString()),
-      orElse: () => throw Exception('No matching asset found for platform: ${OS.current}'),
+      orElse: () => throw Exception(
+        'No matching asset found for platform: ${OS.current}',
+      ),
     );
 
     // Download the binary using the actual asset name
@@ -393,7 +430,11 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
-  Future<String> _downloadReleasesBinary(Binary binary, Directory downloadsDir, BitcoinNetwork network) async {
+  Future<String> _downloadReleasesBinary(
+    Binary binary,
+    Directory downloadsDir,
+    BitcoinNetwork network,
+  ) async {
     // 2. Download the binary
     var zipName = binary.metadata.downloadConfig.files[network]![OS.current]!;
     final zipPath = path.join(downloadsDir.path, zipName);
@@ -404,7 +445,11 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Download a file
-  Future<void> _downloadFile(String url, String savePath, BinaryType binaryType) async {
+  Future<void> _downloadFile(
+    String url,
+    String savePath,
+    BinaryType binaryType,
+  ) async {
     log.i('_downloadFile started for $binaryType from $url');
     try {
       final client = HttpClient();
@@ -424,7 +469,9 @@ class DownloadManager extends ChangeNotifier {
       var receivedBytes = 0;
       String lastPercentStr = '';
 
-      log.i('Download starting: totalBytes=$totalBytes, binaryName=$binaryType');
+      log.i(
+        'Download starting: totalBytes=$totalBytes, binaryName=$binaryType',
+      );
 
       double downloadedMB = 0;
       double totalMB = 0;
@@ -439,8 +486,12 @@ class DownloadManager extends ChangeNotifier {
 
           // Only update if the percentage display would change
           if (currentPercentStr != lastPercentStr) {
-            downloadedMB = double.parse((receivedBytes / 1024 / 1024).toStringAsFixed(2));
-            totalMB = double.parse((totalBytes / 1024 / 1024).toStringAsFixed(2));
+            downloadedMB = double.parse(
+              (receivedBytes / 1024 / 1024).toStringAsFixed(2),
+            );
+            totalMB = double.parse(
+              (totalBytes / 1024 / 1024).toStringAsFixed(2),
+            );
 
             updateBinary(
               binaryType,
@@ -479,7 +530,13 @@ class DownloadManager extends ChangeNotifier {
       log.e('ERROR: $error');
       updateBinary(
         binaryType,
-        (b) => b.copyWith(downloadInfo: DownloadInfo(progress: 0.0, message: error, isDownloading: false)),
+        (b) => b.copyWith(
+          downloadInfo: DownloadInfo(
+            progress: 0.0,
+            message: error,
+            isDownloading: false,
+          ),
+        ),
       );
       rethrow;
     }
@@ -491,7 +548,9 @@ class DownloadManager extends ChangeNotifier {
     if (fileName == null) return null;
 
     try {
-      final response = await http.get(Uri.parse('https://releases.drivechain.info/hashes.json'));
+      final response = await http.get(
+        Uri.parse('https://releases.drivechain.info/hashes.json'),
+      );
       if (response.statusCode != 200) return null;
       final hashes = json.decode(response.body) as Map<String, dynamic>;
       return (hashes[fileName] as Map<String, dynamic>?)?['sha256'] as String?;
@@ -502,7 +561,12 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Extract binary archive or process raw binary
-  Future<void> _extractBinary(Directory extractDir, String filePath, Directory downloadsDir, Binary binary) async {
+  Future<void> _extractBinary(
+    Directory extractDir,
+    String filePath,
+    Directory downloadsDir,
+    Binary binary,
+  ) async {
     final fileName = path.basename(filePath);
 
     if (fileName.endsWith('.zip')) {
@@ -521,16 +585,32 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Extract zip file (existing logic)
-  Future<void> _extractZipFile(Directory extractDir, String zipPath, Directory downloadsDir, Binary binary) async {
+  Future<void> _extractZipFile(
+    Directory extractDir,
+    String zipPath,
+    Directory downloadsDir,
+    Binary binary,
+  ) async {
     updateBinary(
       binary.type,
       (b) => b.copyWith(
-        downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Extracting archive...'),
+        downloadInfo: DownloadInfo(
+          progress: 0.9999,
+          total: 1.0,
+          isDownloading: true,
+          message: 'Extracting archive...',
+        ),
       ),
     );
 
     // Create a temporary directory for extraction
-    final tempDir = Directory(path.join(extractDir.path, 'temp', path.basenameWithoutExtension(binary.binary)));
+    final tempDir = Directory(
+      path.join(
+        extractDir.path,
+        'temp',
+        path.basenameWithoutExtension(binary.binary),
+      ),
+    );
     try {
       await tempDir.delete(recursive: true);
     } catch (e) {
@@ -547,7 +627,12 @@ class DownloadManager extends ChangeNotifier {
       updateBinary(
         binary.type,
         (b) => b.copyWith(
-          downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Moving files...'),
+          downloadInfo: DownloadInfo(
+            progress: 0.9999,
+            total: 1.0,
+            isDownloading: true,
+            message: 'Moving files...',
+          ),
         ),
       );
 
@@ -558,7 +643,10 @@ class DownloadManager extends ChangeNotifier {
 
         if (entity is Directory && baseName == path.basenameWithoutExtension(zipPath)) {
           await for (final innerEntity in entity.list()) {
-            await safeMove(innerEntity, path.join(extractDir.path, path.basename(innerEntity.path)));
+            await safeMove(
+              innerEntity,
+              path.join(extractDir.path, path.basename(innerEntity.path)),
+            );
           }
           await entity.delete(recursive: true);
           continue;
@@ -570,7 +658,12 @@ class DownloadManager extends ChangeNotifier {
       updateBinary(
         binary.type,
         (b) => b.copyWith(
-          downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Cleaning up...'),
+          downloadInfo: DownloadInfo(
+            progress: 0.9999,
+            total: 1.0,
+            isDownloading: true,
+            message: 'Cleaning up...',
+          ),
         ),
       );
 
@@ -585,7 +678,10 @@ class DownloadManager extends ChangeNotifier {
         final innerDir = Directory(expectedDirPath);
 
         for (final entity in innerDir.listSync()) {
-          final newPath = path.join(extractDir.path, path.basename(entity.path));
+          final newPath = path.join(
+            extractDir.path,
+            path.basename(entity.path),
+          );
           await safeMove(entity, newPath);
         }
         await innerDir.delete(recursive: true);
@@ -597,16 +693,32 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Extract tar.gz file
-  Future<void> _extractTarGzFile(Directory extractDir, String tarGzPath, Directory downloadsDir, Binary binary) async {
+  Future<void> _extractTarGzFile(
+    Directory extractDir,
+    String tarGzPath,
+    Directory downloadsDir,
+    Binary binary,
+  ) async {
     updateBinary(
       binary.type,
       (b) => b.copyWith(
-        downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Extracting archive...'),
+        downloadInfo: DownloadInfo(
+          progress: 0.9999,
+          total: 1.0,
+          isDownloading: true,
+          message: 'Extracting archive...',
+        ),
       ),
     );
 
     // Create a temporary directory for extraction
-    final tempDir = Directory(path.join(extractDir.path, 'temp', path.basenameWithoutExtension(binary.binary)));
+    final tempDir = Directory(
+      path.join(
+        extractDir.path,
+        'temp',
+        path.basenameWithoutExtension(binary.binary),
+      ),
+    );
     try {
       await tempDir.delete(recursive: true);
     } catch (e) {
@@ -625,7 +737,12 @@ class DownloadManager extends ChangeNotifier {
       updateBinary(
         binary.type,
         (b) => b.copyWith(
-          downloadInfo: DownloadInfo(progress: 0.9999, total: 1.0, isDownloading: true, message: 'Moving files...'),
+          downloadInfo: DownloadInfo(
+            progress: 0.9999,
+            total: 1.0,
+            isDownloading: true,
+            message: 'Moving files...',
+          ),
         ),
       );
 
@@ -669,7 +786,9 @@ class DownloadManager extends ChangeNotifier {
       await tempDir.delete(recursive: true);
 
       // Get the tar.gz name without extension
-      final tarGzBaseName = path.basenameWithoutExtension(path.basenameWithoutExtension(tarGzPath));
+      final tarGzBaseName = path.basenameWithoutExtension(
+        path.basenameWithoutExtension(tarGzPath),
+      );
       final expectedDirPath = path.join(extractDir.path, tarGzBaseName);
 
       if (await Directory(expectedDirPath).exists()) {
@@ -700,7 +819,11 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Process raw binary file
-  Future<void> _processRawBinary(Directory extractDir, String binaryPath, Binary binary) async {
+  Future<void> _processRawBinary(
+    Directory extractDir,
+    String binaryPath,
+    Binary binary,
+  ) async {
     final downloadedFile = File(binaryPath);
     final fileName = path.basename(binaryPath);
 
@@ -718,7 +841,9 @@ class DownloadManager extends ChangeNotifier {
         final fileName = path.basename(entity.path);
 
         // Skip non-executable files
-        if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
+        if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) {
+          continue;
+        }
 
         String targetName = fileName;
 

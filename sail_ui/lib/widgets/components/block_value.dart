@@ -5,11 +5,7 @@ class BlockValue extends StatelessWidget {
   final String label;
   final String value;
 
-  const BlockValue({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const BlockValue({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -27,10 +23,7 @@ class BlockValue extends StatelessWidget {
             monospace: true,
             color: theme.colors.textTertiary,
           ),
-          SailText.secondary13(
-            value,
-            monospace: true,
-          ),
+          SailText.secondary13(value, monospace: true),
         ],
       ),
     );

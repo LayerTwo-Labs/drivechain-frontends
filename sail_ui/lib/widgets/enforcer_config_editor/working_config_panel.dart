@@ -70,10 +70,7 @@ class _EnforcerWorkingConfigPanelContentState extends State<_EnforcerWorkingConf
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                SailText.secondary13(
-                  'Your Changes',
-                  bold: true,
-                ),
+                SailText.secondary13('Your Changes', bold: true),
                 const Spacer(),
                 SailText.secondary12(
                   widget.viewModel.hasUnsavedChanges ? '• Modified' : '• Saved',
@@ -83,17 +80,12 @@ class _EnforcerWorkingConfigPanelContentState extends State<_EnforcerWorkingConf
             ),
           ),
 
-          Container(
-            height: 1,
-            color: theme.colors.divider,
-          ),
+          Container(height: 1, color: theme.colors.divider),
 
           // Config content
           Expanded(
             child: widget.viewModel.workingConfig == null
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
+                ? const Center(child: CircularProgressIndicator())
                 : Padding(
                     padding: const EdgeInsets.all(16),
                     child: TextField(

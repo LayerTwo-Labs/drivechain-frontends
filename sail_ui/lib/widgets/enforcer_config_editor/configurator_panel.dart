@@ -90,18 +90,20 @@ class _EnforcerConfiguratorPanelContentState extends State<_EnforcerConfigurator
                   color: theme.colors.textSecondary,
                 ),
               ),
-              prefixIconConstraints: BoxConstraints(maxWidth: 21, maxHeight: 13),
+              prefixIconConstraints: BoxConstraints(
+                maxWidth: 21,
+                maxHeight: 13,
+              ),
             ),
           ),
-          Container(
-            height: 1,
-            color: theme.colors.divider,
-          ),
+          Container(height: 1, color: theme.colors.divider),
           Expanded(
             child: widget.viewModel.workingConfig == null
                 ? Center(child: SailText.secondary13('No config loaded'))
                 : filteredOptions.isEmpty
-                ? Center(child: SailText.secondary13('No options match your search'))
+                ? Center(
+                    child: SailText.secondary13('No options match your search'),
+                  )
                 : _OptionsList(
                     options: filteredOptions,
                     viewModel: widget.viewModel,
@@ -178,7 +180,11 @@ class _UsefulSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final entry in groupedUseful.entries) ...[
-            SailText.primary20(entry.key, bold: true, color: theme.colors.orange),
+            SailText.primary20(
+              entry.key,
+              bold: true,
+              color: theme.colors.orange,
+            ),
             const SailSpacing(SailStyleValues.padding08),
             for (final option in entry.value) _OptionWidget(option: option, viewModel: viewModel),
             const SailSpacing(SailStyleValues.padding12),
@@ -221,7 +227,11 @@ class _CategorySection extends StatelessWidget {
               color: theme.colors.primary.withValues(alpha: 0.1),
               borderRadius: SailStyleValues.borderRadiusSmall,
             ),
-            child: SailText.primary15(category, bold: true, color: theme.colors.primary),
+            child: SailText.primary15(
+              category,
+              bold: true,
+              color: theme.colors.primary,
+            ),
           ),
           const SailSpacing(SailStyleValues.padding20),
           for (final option in options) _OptionWidget(option: option, viewModel: viewModel),
@@ -251,7 +261,11 @@ class _OptionWidget extends StatelessWidget {
             child: SailText.primary15(option.description, bold: true),
           ),
           const SailSpacing(SailStyleValues.padding08),
-          _InputWidget(option: option, currentValue: currentValue, viewModel: viewModel),
+          _InputWidget(
+            option: option,
+            currentValue: currentValue,
+            viewModel: viewModel,
+          ),
         ],
       ),
     );
@@ -273,14 +287,26 @@ class _InputWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (option.inputType) {
       case EnforcerConfigInputType.boolean:
-        return _BooleanInput(option: option, currentValue: currentValue, viewModel: viewModel);
+        return _BooleanInput(
+          option: option,
+          currentValue: currentValue,
+          viewModel: viewModel,
+        );
       case EnforcerConfigInputType.select:
-        return _SelectInput(option: option, currentValue: currentValue, viewModel: viewModel);
+        return _SelectInput(
+          option: option,
+          currentValue: currentValue,
+          viewModel: viewModel,
+        );
       case EnforcerConfigInputType.text:
       case EnforcerConfigInputType.url:
       case EnforcerConfigInputType.number:
       case EnforcerConfigInputType.path:
-        return _TextInput(option: option, currentValue: currentValue, viewModel: viewModel);
+        return _TextInput(
+          option: option,
+          currentValue: currentValue,
+          viewModel: viewModel,
+        );
     }
   }
 }
@@ -328,14 +354,7 @@ class _SelectInput extends StatelessWidget {
 
     return SailDropdownButton<String>(
       value: effectiveValue,
-      items: options
-          .map(
-            (opt) => SailDropdownItem<String>(
-              value: opt,
-              label: opt,
-            ),
-          )
-          .toList(),
+      items: options.map((opt) => SailDropdownItem<String>(value: opt, label: opt)).toList(),
       onChanged: (value) {
         if (value != null) {
           viewModel.updateSetting(option.key, value);
@@ -392,7 +411,9 @@ class _TextInputState extends State<_TextInput> {
     if (widget.option.inputType == EnforcerConfigInputType.url) {
       final confProvider = GetIt.I.get<BitcoinConfProvider>();
       final enforcerConfProvider = GetIt.I.get<EnforcerConfProvider>();
-      final defaultUrl = enforcerConfProvider.getEsploraUrlForNetwork(confProvider.network);
+      final defaultUrl = enforcerConfProvider.getEsploraUrlForNetwork(
+        confProvider.network,
+      );
       hintText = defaultUrl != null ? 'Default: $defaultUrl' : 'Enter ${widget.option.description.toLowerCase()}';
     } else {
       hintText = widget.option.defaultValue != null
@@ -400,9 +421,6 @@ class _TextInputState extends State<_TextInput> {
           : 'Enter ${widget.option.description.toLowerCase()}';
     }
 
-    return SailTextField(
-      controller: _controller,
-      hintText: hintText,
-    );
+    return SailTextField(controller: _controller, hintText: hintText);
   }
 }

@@ -119,10 +119,7 @@ class ToggleSettingRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           SailText.secondary12(label),
-          SailToggle(
-            value: value,
-            onChanged: onChanged,
-          ),
+          SailToggle(value: value, onChanged: onChanged),
         ],
       ),
     );

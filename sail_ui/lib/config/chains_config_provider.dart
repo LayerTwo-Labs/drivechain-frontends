@@ -47,11 +47,15 @@ class ChainsConfigProvider extends ChangeNotifier {
     // Copy seed config from bundled assets if the file doesn't exist yet
     if (!configFile.existsSync()) {
       try {
-        final seedData = await rootBundle.loadString('$_assetsPrefix/$_configFileName');
+        final seedData = await rootBundle.loadString(
+          '$_assetsPrefix/$_configFileName',
+        );
         await configFile.writeAsString(seedData);
       } catch (e) {
         // If asset loading fails (e.g. in tests), create a minimal config
-        Logger(level: Level.warning).w('Failed to copy seed config from assets: $e');
+        Logger(
+          level: Level.warning,
+        ).w('Failed to copy seed config from assets: $e');
         await configFile.writeAsString('{"version": 1, "binaries": {}}');
       }
     }
@@ -60,7 +64,9 @@ class ChainsConfigProvider extends ChangeNotifier {
     if (!paranoidMode) {
       await _runMigrations(configFile);
     } else {
-      Logger(level: Level.info).i('Paranoid mode: skipping chains_config.json migrations');
+      Logger(
+        level: Level.info,
+      ).i('Paranoid mode: skipping chains_config.json migrations');
     }
 
     final provider = ChainsConfigProvider._(configFile: configFile);
@@ -114,7 +120,9 @@ class ChainsConfigProvider extends ChangeNotifier {
       final latestVersion = available.last;
       if (currentVersion >= latestVersion) return;
 
-      log.i('Config version $currentVersion → $latestVersion: checking migrations');
+      log.i(
+        'Config version $currentVersion → $latestVersion: checking migrations',
+      );
 
       for (final migrationNum in available) {
         if (migrationNum <= currentVersion) continue;
@@ -130,11 +138,15 @@ class ChainsConfigProvider extends ChangeNotifier {
 
         if (baseline != null && _configsEqual(userConfig, baseline)) {
           // User hasn't customized — safe to replace entirely
-          log.i('Migration $migrationNum: config unchanged from baseline, replacing');
+          log.i(
+            'Migration $migrationNum: config unchanged from baseline, replacing',
+          );
           userConfig = newConfig;
         } else {
           // User has customized — just bump the version, keep their values
-          log.i('Migration $migrationNum: config was customized, bumping version only');
+          log.i(
+            'Migration $migrationNum: config was customized, bumping version only',
+          );
           userConfig['version'] = migrationNum;
         }
       }
@@ -156,7 +168,9 @@ class ChainsConfigProvider extends ChangeNotifier {
 
   /// Deep-copy a config, removing fields that are computed at runtime
   /// (hashes, download sizes) so they don't block migrations.
-  static Map<String, dynamic> _stripComputedFields(Map<String, dynamic> config) {
+  static Map<String, dynamic> _stripComputedFields(
+    Map<String, dynamic> config,
+  ) {
     final copy = json.decode(json.encode(config)) as Map<String, dynamic>;
 
     final binaries = copy['binaries'] as Map<String, dynamic>?;
@@ -190,7 +204,9 @@ class ChainsConfigProvider extends ChangeNotifier {
     final result = <Binary>[];
     for (final entry in binaries.entries) {
       try {
-        result.add(binaryFromJson(entry.key, entry.value as Map<String, dynamic>));
+        result.add(
+          binaryFromJson(entry.key, entry.value as Map<String, dynamic>),
+        );
       } catch (e) {
         log.e('Failed to parse binary "${entry.key}" from config: $e');
       }
@@ -217,7 +233,12 @@ class ChainsConfigProvider extends ChangeNotifier {
 
   /// Write hash and size data for a binary back to the config file.
   /// The file watcher will pick up the change and notify listeners.
-  Future<void> updateHashes(String binaryKey, String os, String sha256, int size) async {
+  Future<void> updateHashes(
+    String binaryKey,
+    String os,
+    String sha256,
+    int size,
+  ) async {
     final binaries = _rawConfig['binaries'] as Map<String, dynamic>? ?? {};
     final binaryConfig = binaries[binaryKey] as Map<String, dynamic>?;
     if (binaryConfig == null) return;
@@ -230,7 +251,11 @@ class ChainsConfigProvider extends ChangeNotifier {
   }
 
   /// Update a specific field for a binary in the config file.
-  Future<void> updateBinaryField(String binaryKey, String field, dynamic value) async {
+  Future<void> updateBinaryField(
+    String binaryKey,
+    String field,
+    dynamic value,
+  ) async {
     final binaries = _rawConfig['binaries'] as Map<String, dynamic>? ?? {};
     final binaryConfig = binaries[binaryKey] as Map<String, dynamic>?;
     if (binaryConfig == null) return;

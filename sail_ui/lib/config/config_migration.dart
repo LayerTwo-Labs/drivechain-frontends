@@ -171,7 +171,9 @@ class ForknetConfig {
 
       // Parse version comment
       if (trimmed.startsWith(kForknetConfVersionCommentPrefix)) {
-        final v = int.tryParse(trimmed.substring(kForknetConfVersionCommentPrefix.length).trim());
+        final v = int.tryParse(
+          trimmed.substring(kForknetConfVersionCommentPrefix.length).trim(),
+        );
         if (v != null && v >= 0) config.version = v;
         continue;
       }
@@ -218,7 +220,9 @@ class MainnetConfig {
 
       // Parse version comment
       if (trimmed.startsWith(kMainnetConfVersionCommentPrefix)) {
-        final v = int.tryParse(trimmed.substring(kMainnetConfVersionCommentPrefix.length).trim());
+        final v = int.tryParse(
+          trimmed.substring(kMainnetConfVersionCommentPrefix.length).trim(),
+        );
         if (v != null && v >= 0) config.version = v;
         continue;
       }

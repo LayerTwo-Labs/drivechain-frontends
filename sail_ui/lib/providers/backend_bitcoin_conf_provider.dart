@@ -46,7 +46,9 @@ class BackendBitcoinConfProvider extends BitcoinConfProvider {
 
   BackendBitcoinConfProvider._create(this.router);
 
-  static Future<BackendBitcoinConfProvider> create(RootStackRouter router) async {
+  static Future<BackendBitcoinConfProvider> create(
+    RootStackRouter router,
+  ) async {
     final instance = BackendBitcoinConfProvider._create(router);
     instance._initClient();
     await instance.loadConfig(isFirst: true);
@@ -65,7 +67,10 @@ class BackendBitcoinConfProvider extends BitcoinConfProvider {
 
   void _startPolling() {
     if (Environment.isInTest) return;
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => loadConfig());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => loadConfig(),
+    );
   }
 
   bool _isConnectionError(Object e) {
@@ -127,14 +132,20 @@ class BackendBitcoinConfProvider extends BitcoinConfProvider {
   }
 
   @override
-  Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork) async {
+  Future<void> swapNetwork(
+    BuildContext context,
+    BitcoinNetwork newNetwork,
+  ) async {
     if (hasPrivateBitcoinConf) return;
     if (network == newNetwork) return;
     await updateNetwork(newNetwork);
   }
 
   @override
-  Future<void> updateDataDir(String? dataDir, {BitcoinNetwork? forNetwork}) async {
+  Future<void> updateDataDir(
+    String? dataDir, {
+    BitcoinNetwork? forNetwork,
+  }) async {
     try {
       await _client.setBitcoinConfigDataDir(
         SetBitcoinConfigDataDirRequest(
@@ -168,7 +179,9 @@ class BackendBitcoinConfProvider extends BitcoinConfProvider {
   @override
   Future<void> writeConfig(String content) async {
     try {
-      await _client.writeBitcoinConfig(WriteBitcoinConfigRequest(configContent: content));
+      await _client.writeBitcoinConfig(
+        WriteBitcoinConfigRequest(configContent: content),
+      );
       await loadConfig();
     } catch (e) {
       log.e('BackendBitcoinConfProvider: failed to write config: $e');

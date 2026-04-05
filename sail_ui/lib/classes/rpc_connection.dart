@@ -17,16 +17,15 @@ import 'package:sail_ui/sail_ui.dart';
 // YourClass extends ChangeNotifier implements RPCConnection
 abstract class RPCConnection extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
-  Binary get binary => GetIt.I.get<BinaryProvider>().binaries.firstWhere((b) => b.type == binaryType);
+  Binary get binary => GetIt.I.get<BinaryProvider>().binaries.firstWhere(
+    (b) => b.type == binaryType,
+  );
 
   BinaryType binaryType;
   // if set to true, the process will be restarted when exiting with a non-zero exit code
   final bool restartOnFailure;
 
-  RPCConnection({
-    required this.binaryType,
-    required this.restartOnFailure,
-  });
+  RPCConnection({required this.binaryType, required this.restartOnFailure});
 
   /// Args to pass to the binary on startup.
   Future<List<String>> binaryArgs();
@@ -168,7 +167,9 @@ abstract class RPCConnection extends ChangeNotifier {
         _shouldNotify = true;
         onConnectionStateChanged(false);
         // we have a new error on our hands!
-        log.e('could not test connection ${binary.connectionString}: ${newError ?? ''}!');
+        log.e(
+          'could not test connection ${binary.connectionString}: ${newError ?? ''}!',
+        );
       }
 
       connected = false;
@@ -193,7 +194,12 @@ abstract class RPCConnection extends ChangeNotifier {
   }
 
   Future<void> initBinary(
-    Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment)
+    Future<String?> Function(
+      Binary,
+      List<String>,
+      Future<void> Function(),
+      Map<String, String> environment,
+    )
     bootProcess,
   ) async {
     final args = await binaryArgs();
@@ -214,7 +220,9 @@ abstract class RPCConnection extends ChangeNotifier {
     // only start restart timer if this process starts the binary!
     startRestartTimer(bootProcess);
 
-    log.i('init binaries: starting ${binary.name}:${binary.binary} ${args.join(" ")}');
+    log.i(
+      'init binaries: starting ${binary.name}:${binary.binary} ${args.join(" ")}',
+    );
 
     final error = await bootProcess(binary, args, stopRPC, environment);
     if (error != null) {
@@ -232,7 +240,12 @@ abstract class RPCConnection extends ChangeNotifier {
   Timer? restartTimer;
   int _restartCount = 0;
   void startRestartTimer(
-    Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment)
+    Future<String?> Function(
+      Binary,
+      List<String>,
+      Future<void> Function(),
+      Map<String, String> environment,
+    )
     bootProcess,
   ) {
     if (Environment.isInTest) {
@@ -240,7 +253,9 @@ abstract class RPCConnection extends ChangeNotifier {
     }
 
     restartTimer?.cancel();
-    restartTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
+    restartTimer = Timer.periodic(const Duration(milliseconds: 500), (
+      timer,
+    ) async {
       if (restartOnFailure && (_completedStartup || restartOnInitialFailure)) {
         if (initializingBinary) {
           // we're still going from the last loop, don't retry multiple times in parallell!
@@ -270,7 +285,9 @@ abstract class RPCConnection extends ChangeNotifier {
         final exit = GetIt.I.get<BinaryProvider>().exited(binary);
         if (exit != null && exit.code != 0) {
           // Only attempt restart if the process has exited with non-zero code
-          log.w('${binary.name} process exited unexpectedly with code ${exit.code}, restarting...');
+          log.w(
+            '${binary.name} process exited unexpectedly with code ${exit.code}, restarting...',
+          );
           _restartCount++;
           // inshallah we'll connect this time
           await initBinary(bootProcess);
@@ -308,7 +325,9 @@ abstract class RPCConnection extends ChangeNotifier {
     if (connected) {
       log.i('${binary.connectionString} already running');
     } else {
-      log.i('${binary.connectionString} could not connect: error=${connectionError ?? ''}');
+      log.i(
+        '${binary.connectionString} could not connect: error=${connectionError ?? ''}',
+      );
     }
 
     log.i('starting connection timer for ${binary.connectionString}');
@@ -319,7 +338,10 @@ abstract class RPCConnection extends ChangeNotifier {
 
   // cleanArgs makes sure to NOT add any cli-args that are already set in the conf file
   // any duplicates are removed
-  List<String> cleanArgs(CoreConnectionSettings settings, List<String> extraArgs) {
+  List<String> cleanArgs(
+    CoreConnectionSettings settings,
+    List<String> extraArgs,
+  ) {
     final baseArgs = bitcoinCoreBinaryArgs(settings);
     log.d('Deduplicating args - base args: $baseArgs');
 
@@ -531,7 +553,9 @@ String prettifyLogMessage(String message) {
   var cleaned = message.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
 
   // Match pattern: timestamp INFO/WARN/etc module: file.rs:line: 'message' or message
-  final logPattern = RegExp(r'^\d{2,4}-\d{2}-\d{2}T[\d:.]+Z\s+\w+\s+.*?:\d+:\s*(.+)$');
+  final logPattern = RegExp(
+    r'^\d{2,4}-\d{2}-\d{2}T[\d:.]+Z\s+\w+\s+.*?:\d+:\s*(.+)$',
+  );
   final match = logPattern.firstMatch(cleaned);
   if (match != null) {
     var extracted = match.group(1)!.trim();

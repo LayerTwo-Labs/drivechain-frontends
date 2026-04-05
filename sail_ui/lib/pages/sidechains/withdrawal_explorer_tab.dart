@@ -24,7 +24,10 @@ class WithdrawalExplorerTab extends StatelessWidget {
     return SailCard(
       child: InlineTabBar(
         tabs: [
-          const SingleTabItem(label: 'Bundle Explorer', child: BundleExplorerTab()),
+          const SingleTabItem(
+            label: 'Bundle Explorer',
+            child: BundleExplorerTab(),
+          ),
           const SingleTabItem(label: 'Next Bundle', child: NextBundleTab()),
         ],
         initialIndex: 0,
@@ -36,7 +39,10 @@ class WithdrawalExplorerTab extends StatelessWidget {
 class BundleExplorerTab extends StatelessWidget {
   const BundleExplorerTab({super.key});
 
-  void _showBundleHistoryDialog(BuildContext context, PendingBundleViewModel viewModel) {
+  void _showBundleHistoryDialog(
+    BuildContext context,
+    PendingBundleViewModel viewModel,
+  ) {
     final theme = SailTheme.of(context);
     showThemedDialog(
       context: context,
@@ -129,7 +135,11 @@ class BundleExplorerTab extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: theme.colors.info),
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: theme.colors.info,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: SailText.primary12(
@@ -169,7 +179,9 @@ class BundleExplorerTab extends StatelessWidget {
               // Bundle Status Header
               Container(
                 padding: const EdgeInsets.all(SailStyleValues.padding12),
-                margin: const EdgeInsets.only(bottom: SailStyleValues.padding16),
+                margin: const EdgeInsets.only(
+                  bottom: SailStyleValues.padding16,
+                ),
                 decoration: BoxDecoration(
                   color: viewModel.bundle != null
                       ? theme.colors.success.withValues(alpha: 0.1)
@@ -207,7 +219,11 @@ class BundleExplorerTab extends StatelessWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.error_outline, size: 16, color: theme.colors.error),
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 16,
+                                  color: theme.colors.error,
+                                ),
                                 const SizedBox(width: 4),
                                 SailText.primary12(
                                   'Last failed bundle at height: ${viewModel.lastFailedHeight}',
@@ -241,9 +257,19 @@ class BundleExplorerTab extends StatelessWidget {
                   rowBuilder: (context, row, selected) {
                     final withdrawal = viewModel.bundle!.withdrawalOutputs[row];
                     return [
-                      SailTableCell(value: withdrawal.valueSats.toString(), monospace: true),
-                      SailTableCell(value: withdrawal.mainFeeSats.toString(), monospace: true),
-                      SailTableCell(value: withdrawal.mainAddress, copyValue: withdrawal.mainAddress, monospace: true),
+                      SailTableCell(
+                        value: withdrawal.valueSats.toString(),
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: withdrawal.mainFeeSats.toString(),
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: withdrawal.mainAddress,
+                        copyValue: withdrawal.mainAddress,
+                        monospace: true,
+                      ),
                     ];
                   },
                   rowCount: viewModel.bundle?.withdrawalOutputs.length ?? 0,
@@ -254,7 +280,9 @@ class BundleExplorerTab extends StatelessWidget {
                       SailMenuItem(
                         onSelected: () {
                           // Copy destination address to clipboard
-                          Clipboard.setData(ClipboardData(text: withdrawal.mainAddress));
+                          Clipboard.setData(
+                            ClipboardData(text: withdrawal.mainAddress),
+                          );
                         },
                         child: SailText.primary12('Copy Address'),
                       ),
@@ -275,16 +303,26 @@ class BundleExplorerTab extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               SailText.primary13('Mainchain status: Pending'),
-                              SailText.primary13('Withdrawals: ${viewModel.bundle?.withdrawalOutputs.length ?? 0}'),
-                              SailText.primary13('Height Created: ${viewModel.bundle?.heightCreated ?? 0}'),
+                              SailText.primary13(
+                                'Withdrawals: ${viewModel.bundle?.withdrawalOutputs.length ?? 0}',
+                              ),
+                              SailText.primary13(
+                                'Height Created: ${viewModel.bundle?.heightCreated ?? 0}',
+                              ),
                             ],
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SailText.primary13('Total withdrawal amount: ${viewModel.totalAmount}'),
-                              SailText.primary13('Total mainchain fees: ${viewModel.totalFees}'),
-                              SailText.primary13('Total size: ${viewModel.totalSize}'),
+                              SailText.primary13(
+                                'Total withdrawal amount: ${viewModel.totalAmount}',
+                              ),
+                              SailText.primary13(
+                                'Total mainchain fees: ${viewModel.totalFees}',
+                              ),
+                              SailText.primary13(
+                                'Total size: ${viewModel.totalSize}',
+                              ),
                             ],
                           ),
                         ],
@@ -302,8 +340,14 @@ class BundleExplorerTab extends StatelessWidget {
                         rowBuilder: (context, row, selected) {
                           final withdrawal = viewModel.bundle!.withdrawalOutputs[row];
                           return [
-                            SailTableCell(value: withdrawal.valueSats.toString(), monospace: true),
-                            SailTableCell(value: withdrawal.mainFeeSats.toString(), monospace: true),
+                            SailTableCell(
+                              value: withdrawal.valueSats.toString(),
+                              monospace: true,
+                            ),
+                            SailTableCell(
+                              value: withdrawal.mainFeeSats.toString(),
+                              monospace: true,
+                            ),
                             SailTableCell(
                               value: withdrawal.mainAddress,
                               copyValue: withdrawal.mainAddress,
@@ -321,7 +365,9 @@ class BundleExplorerTab extends StatelessWidget {
                             SailMenuItem(
                               onSelected: () {
                                 // Copy destination address to clipboard
-                                Clipboard.setData(ClipboardData(text: withdrawal.mainAddress));
+                                Clipboard.setData(
+                                  ClipboardData(text: withdrawal.mainAddress),
+                                );
                               },
                               child: SailText.primary12('Copy Address'),
                             ),
@@ -332,21 +378,32 @@ class BundleExplorerTab extends StatelessWidget {
                                   context: context,
                                   builder: (BuildContext context) {
                                     return AlertDialog(
-                                      title: SailText.primary15('Withdrawal Details'),
+                                      title: SailText.primary15(
+                                        'Withdrawal Details',
+                                      ),
                                       content: SailColumn(
                                         spacing: SailStyleValues.padding08,
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          SailText.primary12('Amount: ${withdrawal.valueSats} sats'),
-                                          SailText.primary12('Mainchain Fee: ${withdrawal.mainFeeSats} sats'),
-                                          SailText.primary12('Destination: ${withdrawal.mainAddress}'),
+                                          SailText.primary12(
+                                            'Amount: ${withdrawal.valueSats} sats',
+                                          ),
+                                          SailText.primary12(
+                                            'Mainchain Fee: ${withdrawal.mainFeeSats} sats',
+                                          ),
+                                          SailText.primary12(
+                                            'Destination: ${withdrawal.mainAddress}',
+                                          ),
                                           SailText.primary12(
                                             'Total Value: ${withdrawal.valueSats + withdrawal.mainFeeSats} sats',
                                           ),
                                         ],
                                       ),
                                       actions: [
-                                        SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop()),
+                                        SailButton(
+                                          label: 'Close',
+                                          onPressed: () async => Navigator.of(context).pop(),
+                                        ),
                                       ],
                                     );
                                   },
@@ -419,7 +476,11 @@ class NextBundleTab extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 8),
                         child: Tooltip(
                           message: 'No addresses found in enforcer wallet',
-                          child: Icon(Icons.warning_amber, size: 16, color: theme.colors.orange),
+                          child: Icon(
+                            Icons.warning_amber,
+                            size: 16,
+                            color: theme.colors.orange,
+                          ),
                         ),
                       ),
                   ],
@@ -442,9 +503,19 @@ class NextBundleTab extends StatelessWidget {
                   final weightDisplay = '$cumulativeWeight / $maxWithdrawalBundleWeight';
 
                   return [
-                    SailTableCell(value: withdrawal.valueSats.toString(), monospace: true),
-                    SailTableCell(value: withdrawal.mainFeeSats.toString(), monospace: true),
-                    SailTableCell(value: withdrawal.mainAddress, copyValue: withdrawal.mainAddress, monospace: true),
+                    SailTableCell(
+                      value: withdrawal.valueSats.toString(),
+                      monospace: true,
+                    ),
+                    SailTableCell(
+                      value: withdrawal.mainFeeSats.toString(),
+                      monospace: true,
+                    ),
+                    SailTableCell(
+                      value: withdrawal.mainAddress,
+                      copyValue: withdrawal.mainAddress,
+                      monospace: true,
+                    ),
                     SailTableCell(
                       value: weightDisplay,
                       monospace: true,
@@ -462,12 +533,16 @@ class NextBundleTab extends StatelessWidget {
                   return null;
                 },
                 contextMenuItems: (rowId) {
-                  final withdrawal = outputs.firstWhere((w) => w.mainAddress == rowId);
+                  final withdrawal = outputs.firstWhere(
+                    (w) => w.mainAddress == rowId,
+                  );
                   return [
                     SailMenuItem(
                       onSelected: () {
                         // Copy destination address to clipboard
-                        Clipboard.setData(ClipboardData(text: withdrawal.mainAddress));
+                        Clipboard.setData(
+                          ClipboardData(text: withdrawal.mainAddress),
+                        );
                       },
                       child: SailText.primary12('Copy Address'),
                     ),
@@ -483,15 +558,26 @@ class NextBundleTab extends StatelessWidget {
                                 spacing: SailStyleValues.padding08,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SailText.primary12('Amount: ${withdrawal.valueSats} sats'),
-                                  SailText.primary12('Mainchain Fee: ${withdrawal.mainFeeSats} sats'),
-                                  SailText.primary12('Destination: ${withdrawal.mainAddress}'),
+                                  SailText.primary12(
+                                    'Amount: ${withdrawal.valueSats} sats',
+                                  ),
+                                  SailText.primary12(
+                                    'Mainchain Fee: ${withdrawal.mainFeeSats} sats',
+                                  ),
+                                  SailText.primary12(
+                                    'Destination: ${withdrawal.mainAddress}',
+                                  ),
                                   SailText.primary12(
                                     'Total Value: ${withdrawal.valueSats + withdrawal.mainFeeSats} sats',
                                   ),
                                 ],
                               ),
-                              actions: [SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop())],
+                              actions: [
+                                SailButton(
+                                  label: 'Close',
+                                  onPressed: () async => Navigator.of(context).pop(),
+                                ),
+                              ],
                             );
                           },
                         );

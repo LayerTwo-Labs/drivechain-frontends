@@ -42,7 +42,10 @@ class BackendEnforcerConfProvider extends EnforcerConfProvider {
 
   void _startPolling() {
     if (Environment.isInTest) return;
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadFromBackend());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _loadFromBackend(),
+    );
   }
 
   bool _isConnectionError(Object e) {
@@ -122,7 +125,9 @@ class BackendEnforcerConfProvider extends EnforcerConfProvider {
   @override
   Future<void> syncNodeRpcFromBitcoinConf() async {
     try {
-      await _client.syncNodeRpcFromBitcoinConf(SyncNodeRpcFromBitcoinConfRequest());
+      await _client.syncNodeRpcFromBitcoinConf(
+        SyncNodeRpcFromBitcoinConfRequest(),
+      );
       await _loadFromBackend();
     } catch (e) {
       log.e('BackendEnforcerConfProvider: failed to sync: $e');
@@ -180,7 +185,9 @@ class BackendEnforcerConfProvider extends EnforcerConfProvider {
   @override
   Future<void> writeConfig(String content) async {
     try {
-      await _client.writeEnforcerConfig(WriteEnforcerConfigRequest(configContent: content));
+      await _client.writeEnforcerConfig(
+        WriteEnforcerConfigRequest(configContent: content),
+      );
       await _loadFromBackend();
     } catch (e) {
       log.e('BackendEnforcerConfProvider: failed to write config: $e');

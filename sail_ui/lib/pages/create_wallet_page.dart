@@ -37,12 +37,7 @@ class SailCreateWalletPage extends StatefulWidget {
   State<SailCreateWalletPage> createState() => _SailCreateWalletPageState();
 }
 
-enum WelcomeScreen {
-  initial,
-  restore,
-  advanced,
-  success,
-}
+enum WelcomeScreen { initial, restore, advanced, success }
 
 class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   late WelcomeScreen _currentScreen;
@@ -152,7 +147,10 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       if (entropyHex.length > 64) {
         return false;
       }
-      final paddedHex = entropyHex.padRight(((entropyHex.length + 31) ~/ 32) * 32, '0');
+      final paddedHex = entropyHex.padRight(
+        ((entropyHex.length + 31) ~/ 32) * 32,
+        '0',
+      );
       hex.decode(paddedHex);
       return true;
     } catch (e) {
@@ -191,14 +189,21 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   Future<void> _generateWalletFromEntropy(String entropyHex) async {
     try {
-      final paddedHex = entropyHex.trim().padRight(((entropyHex.length + 31) ~/ 32) * 32, '0');
+      final paddedHex = entropyHex.trim().padRight(
+        ((entropyHex.length + 31) ~/ 32) * 32,
+        '0',
+      );
       final entropy = hex.decode(paddedHex);
       if (entropy.isEmpty) {
         _clearWalletData();
         return;
       }
       try {
-        final wallet = await _walletProvider.generateWalletFromEntropy(entropy, passphrase: null, doNotSave: true);
+        final wallet = await _walletProvider.generateWalletFromEntropy(
+          entropy,
+          passphrase: null,
+          doNotSave: true,
+        );
         setState(() {
           _currentWalletData = Map<String, dynamic>.from(wallet);
           _isValidInput = true;
@@ -221,7 +226,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       if (_isHexMode) {
         entropy = hex.decode(entropyHex);
         if (entropy.length < 16 || entropy.length > 32 || entropy.length % 4 != 0) {
-          await _showErrorDialog('Invalid entropy length. Must be 16-32 bytes and a multiple of 4.');
+          await _showErrorDialog(
+            'Invalid entropy length. Must be 16-32 bytes and a multiple of 4.',
+          );
           return;
         }
       } else {
@@ -230,7 +237,10 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         entropy = hash.bytes.sublist(0, 16);
       }
 
-      final wallet = await _walletProvider.generateWalletFromEntropy(entropy, passphrase: null);
+      final wallet = await _walletProvider.generateWalletFromEntropy(
+        entropy,
+        passphrase: null,
+      );
       _currentWalletData = Map<String, dynamic>.from(wallet);
       _isValidInput = true;
       _setScreen(WelcomeScreen.success);
@@ -287,7 +297,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           ),
           for (int row = 0; row < (words.length / 6).ceil(); row++)
             Padding(
-              padding: EdgeInsets.only(bottom: row < (words.length / 6).ceil() - 1 ? 4 : 0),
+              padding: EdgeInsets.only(
+                bottom: row < (words.length / 6).ceil() - 1 ? 4 : 0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
@@ -298,7 +310,10 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                         child: SailColumn(
                           spacing: 2,
                           children: [
-                            SailText.primary10(words[row * 6 + col], bold: true),
+                            SailText.primary10(
+                              words[row * 6 + col],
+                              bold: true,
+                            ),
                             if (row * 6 + col < binaryStrings.length)
                               row * 6 + col == words.length - 1
                                   ? RichText(
@@ -345,12 +360,16 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                     label: 'Copy Mnemonic',
                     variant: ButtonVariant.secondary,
                     onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: _currentWalletData['mnemonic']));
+                      await Clipboard.setData(
+                        ClipboardData(text: _currentWalletData['mnemonic']),
+                      );
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Mnemonic copied to clipboard'),
-                            backgroundColor: SailTheme.of(context).colors.success,
+                            backgroundColor: SailTheme.of(
+                              context,
+                            ).colors.success,
                           ),
                         );
                       }
@@ -398,10 +417,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 width: 100,
                 child: SailText.primary10('Checksum:', bold: true),
               ),
-              SailText.primary10(
-                checksumBinary,
-                color: theme.colors.success,
-              ),
+              SailText.primary10(checksumBinary, color: theme.colors.success),
               const SizedBox(width: SailStyleValues.padding16),
               SailText.primary10('Hex:', bold: true),
               const SizedBox(width: SailStyleValues.padding04),
@@ -517,14 +533,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                                 SailText.secondary12(
                                   _mnemonicController.text.isEmpty
                                       ? 'Enter up to 64 hex characters (0-9 and A-F)'
-                                      : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text)
+                                      : (!RegExp(
+                                              r'^[0-9a-fA-F]+$',
+                                            ).hasMatch(_mnemonicController.text)
                                             ? 'Invalid hex characters (only 0-9 and A-F allowed)'
                                             : (_mnemonicController.text.length > 64
                                                   ? 'Too many characters (maximum 64)'
                                                   : 'Valid hex input')),
                                   color: _mnemonicController.text.isEmpty
                                       ? theme.colors.textSecondary
-                                      : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text) ||
+                                      : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(
+                                                  _mnemonicController.text,
+                                                ) ||
                                                 _mnemonicController.text.length > 64
                                             ? theme.colors.error
                                             : theme.colors.success),
@@ -554,7 +574,10 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                                     setState(() {
                                       _isHexMode = true;
                                     });
-                                    final entropy = List.generate(16, (index) => Random.secure().nextInt(256));
+                                    final entropy = List.generate(
+                                      16,
+                                      (index) => Random.secure().nextInt(256),
+                                    );
                                     final entropyHex = hex.encode(entropy);
                                     _mnemonicController.text = entropyHex;
                                     _onMnemonicChanged();
@@ -647,10 +670,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        theme.colors.primary,
-                        theme.colors.primary,
-                      ],
+                      colors: [theme.colors.primary, theme.colors.primary],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -853,7 +873,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   Future<void> _handleRestore() async {
     if (!_isValidMnemonic(_mnemonicController.text)) {
-      await _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
+      await _showErrorDialog(
+        'Invalid mnemonic format. Please enter 12 or 24 words.',
+      );
       return;
     }
 
@@ -955,16 +977,9 @@ class BootTitle extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 30),
-        SailText.primary40(
-          title,
-          bold: true,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary40(title, bold: true, textAlign: TextAlign.center),
         const SizedBox(height: 24),
-        SailText.primary15(
-          subtitle,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary15(subtitle, textAlign: TextAlign.center),
         const SizedBox(height: 30),
       ],
     );

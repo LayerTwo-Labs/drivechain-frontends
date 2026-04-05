@@ -13,10 +13,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server
 abstract class EnforcerRPC extends RPCConnection {
-  EnforcerRPC({
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  EnforcerRPC({required super.binaryType, required super.restartOnFailure});
 
   ValidatorServiceClient get validator;
   WalletServiceClient get wallet;
@@ -275,7 +272,9 @@ class EnforcerLive extends EnforcerRPC {
           errorString.contains('connection reset') ||
           errorString.contains('broken pipe') ||
           (errorString.contains('unavailable') && errorString.contains('grpc'))) {
-        log.w('Connection error detected, recreating connection: ${e.toString()}');
+        log.w(
+          'Connection error detected, recreating connection: ${e.toString()}',
+        );
         _recreateConnection();
         // Retry the operation with the new connection
         return await operation();
@@ -322,7 +321,9 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<List<String>> getAddresses() async {
     return await _withRecreate(() async {
-      final response = await wallet.listUnspentOutputs(ListUnspentOutputsRequest());
+      final response = await wallet.listUnspentOutputs(
+        ListUnspentOutputsRequest(),
+      );
       final addresses = <String>{};
       for (final output in response.outputs) {
         if (output.hasAddress() && output.address.value.isNotEmpty) {

@@ -68,13 +68,23 @@ abstract class BitnamesRPC extends SidechainRPC {
   Future<String> getNewVerifyingKey();
 
   /// Create a deposit to an address
-  Future<String> createDeposit({required String address, required int feeSats, required int valueSats});
+  Future<String> createDeposit({
+    required String address,
+    required int feeSats,
+    required int valueSats,
+  });
 
   /// Decrypt a message with the specified encryption key
-  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey});
+  Future<String> decryptMsg({
+    required String ciphertext,
+    required String encryptionPubkey,
+  });
 
   /// Encrypt a message to the specified encryption pubkey
-  Future<String> encryptMsg({required String msg, required String encryptionPubkey});
+  Future<String> encryptMsg({
+    required String msg,
+    required String encryptionPubkey,
+  });
 
   /// Get a new address
   Future<String> getNewAddress();
@@ -106,13 +116,24 @@ abstract class BitnamesRPC extends SidechainRPC {
   Future<String> resolveCommit(String bitname);
 
   /// Sign an arbitrary message with the specified verifying key
-  Future<String> signArbitraryMsg({required String msg, required String verifyingKey});
+  Future<String> signArbitraryMsg({
+    required String msg,
+    required String verifyingKey,
+  });
 
   /// Sign an arbitrary message with the secret key for the specified address
-  Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address});
+  Future<Map<String, String>> signArbitraryMsgAsAddr({
+    required String msg,
+    required String address,
+  });
 
   /// Transfer funds to the specified address
-  Future<String> transfer({required String dest, required int value, required int fee, String? memo});
+  Future<String> transfer({
+    required String dest,
+    required int value,
+    required int fee,
+    String? memo,
+  });
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -155,7 +176,9 @@ class BitnamesLive extends BitnamesRPC {
   Future<(double confirmed, double unconfirmed)> balance() async {
     final response = await getBalance();
     final confirmed = satoshiToBTC(response.availableSats);
-    final unconfirmed = satoshiToBTC(response.totalSats - response.availableSats);
+    final unconfirmed = satoshiToBTC(
+      response.totalSats - response.availableSats,
+    );
     return (confirmed, unconfirmed);
   }
 
@@ -228,7 +251,11 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) async {
     final response = await _client().call('transfer', [
       address,
       btcToSatoshi(amount).toInt(),
@@ -255,8 +282,12 @@ class BitnamesLive extends BitnamesRPC {
 
     Map<String, String>? hashNameMapping;
     try {
-      final settingValue = await clientSettings.getValue(HashNameMappingSetting());
-      hashNameMapping = Map.fromEntries(settingValue.value.entries.map((e) => MapEntry(e.key, e.value.name)));
+      final settingValue = await clientSettings.getValue(
+        HashNameMappingSetting(),
+      );
+      hashNameMapping = Map.fromEntries(
+        settingValue.value.entries.map((e) => MapEntry(e.key, e.value.name)),
+      );
     } catch (e) {
       // do nothing
     }
@@ -288,7 +319,11 @@ class BitnamesLive extends BitnamesRPC {
       }
 
       final details = BitnameDetails.fromJson(parsedDetails);
-      return BitnameEntry(hash: hash, details: details, plaintextName: hashNameMapping?[hash]);
+      return BitnameEntry(
+        hash: hash,
+        details: details,
+        plaintextName: hashNameMapping?[hash],
+      );
     }).toList();
   }
 
@@ -305,7 +340,10 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> registerBitName(String plainName, BitNameData? data) async {
-    final response = await _client().call('register_bitname', [plainName, data?.toJson()]);
+    final response = await _client().call('register_bitname', [
+      plainName,
+      data?.toJson(),
+    ]);
     return response as String;
   }
 
@@ -319,15 +357,30 @@ class BitnamesLive extends BitnamesRPC {
   /// Additional methods from OpenAPI schema
 
   /// Sign an arbitrary message with the specified verifying key
-  Future<String> signArbitraryMessage(String message, String verifyingKey) async {
-    final response = await _client().call('sign_arbitrary_msg', [message, verifyingKey]);
+  Future<String> signArbitraryMessage(
+    String message,
+    String verifyingKey,
+  ) async {
+    final response = await _client().call('sign_arbitrary_msg', [
+      message,
+      verifyingKey,
+    ]);
     return response as String;
   }
 
   /// Sign a message with the secret key for the specified address
-  Future<Map<String, String>> signArbitraryMessageAsAddress(String message, String address) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', [message, address]);
-    return {'verifying_key': response['verifying_key'] as String, 'signature': response['signature'] as String};
+  Future<Map<String, String>> signArbitraryMessageAsAddress(
+    String message,
+    String address,
+  ) async {
+    final response = await _client().call('sign_arbitrary_msg_as_addr', [
+      message,
+      address,
+    ]);
+    return {
+      'verifying_key': response['verifying_key'] as String,
+      'signature': response['signature'] as String,
+    };
   }
 
   /// Get paymail information
@@ -375,7 +428,9 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response = await _client().call('latest_failed_withdrawal_bundle_height');
+    final response = await _client().call(
+      'latest_failed_withdrawal_bundle_height',
+    );
     return response as int?;
   }
 
@@ -415,14 +470,29 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<String> createDeposit({required String address, required int feeSats, required int valueSats}) async {
-    final response = await _client().call('create_deposit', [address, valueSats, feeSats]);
+  Future<String> createDeposit({
+    required String address,
+    required int feeSats,
+    required int valueSats,
+  }) async {
+    final response = await _client().call('create_deposit', [
+      address,
+      valueSats,
+      feeSats,
+    ]);
     return response as String;
   }
 
   @override
-  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
-    final response = await _client().call('decrypt_msg', [encryptionPubkey, ciphertext, true]);
+  Future<String> decryptMsg({
+    required String ciphertext,
+    required String encryptionPubkey,
+  }) async {
+    final response = await _client().call('decrypt_msg', [
+      encryptionPubkey,
+      ciphertext,
+      true,
+    ]);
     // convert hex to string
     final bytes = hex.decode(response as String);
     final decoded = utf8.decode(bytes);
@@ -430,8 +500,14 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
-    final response = await _client().call('encrypt_msg', [encryptionPubkey, msg]);
+  Future<String> encryptMsg({
+    required String msg,
+    required String encryptionPubkey,
+  }) async {
+    final response = await _client().call('encrypt_msg', [
+      encryptionPubkey,
+      msg,
+    ]);
     return response as String;
   }
 
@@ -478,15 +554,30 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
-    final response = await _client().call('sign_arbitrary_msg', [msg, verifyingKey]);
+  Future<String> signArbitraryMsg({
+    required String msg,
+    required String verifyingKey,
+  }) async {
+    final response = await _client().call('sign_arbitrary_msg', [
+      msg,
+      verifyingKey,
+    ]);
     return response as String;
   }
 
   @override
-  Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', [msg, address]);
-    return {'verifying_key': response['verifying_key'] as String, 'signature': response['signature'] as String};
+  Future<Map<String, String>> signArbitraryMsgAsAddr({
+    required String msg,
+    required String address,
+  }) async {
+    final response = await _client().call('sign_arbitrary_msg_as_addr', [
+      msg,
+      address,
+    ]);
+    return {
+      'verifying_key': response['verifying_key'] as String,
+      'signature': response['signature'] as String,
+    };
   }
 
   @override
@@ -496,13 +587,23 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
+  Future<String> transfer({
+    required String dest,
+    required int value,
+    required int fee,
+    String? memo,
+  }) async {
     final response = await _client().call('transfer', [dest, value, fee, memo]);
     return response as String;
   }
 
   @override
-  Future<String> withdraw(String mainchainAddress, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
+  Future<String> withdraw(
+    String mainchainAddress,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) async {
     final response = await _client().call('withdraw', [
       mainchainAddress,
       amountSats,
@@ -603,8 +704,10 @@ class BalanceResponse {
 
   BalanceResponse({required this.totalSats, required this.availableSats});
 
-  factory BalanceResponse.fromJson(Map<String, dynamic> json) =>
-      BalanceResponse(totalSats: json['total_sats'] as int, availableSats: json['available_sats'] as int);
+  factory BalanceResponse.fromJson(Map<String, dynamic> json) => BalanceResponse(
+    totalSats: json['total_sats'] as int,
+    availableSats: json['available_sats'] as int,
+  );
 }
 
 class BitnamesPeerInfo {
@@ -613,8 +716,10 @@ class BitnamesPeerInfo {
 
   BitnamesPeerInfo({required this.address, required this.status});
 
-  factory BitnamesPeerInfo.fromJson(Map<String, dynamic> json) =>
-      BitnamesPeerInfo(address: json['address'] as String, status: json['status'] as String);
+  factory BitnamesPeerInfo.fromJson(Map<String, dynamic> json) => BitnamesPeerInfo(
+    address: json['address'] as String,
+    status: json['status'] as String,
+  );
 }
 
 class BitnameEntry {

@@ -36,7 +36,11 @@ abstract class WalletReaderProvider extends ChangeNotifier {
   Future<void> cleanupStarterFiles();
   Future<void> switchWallet(String walletId);
   Future<void> removeWalletFromList(String walletId);
-  Future<void> updateWalletMetadata(String walletId, String name, WalletGradient gradient);
+  Future<void> updateWalletMetadata(
+    String walletId,
+    String name,
+    WalletGradient gradient,
+  );
   void clearState();
 
   static WalletReaderProvider create(Directory bitwindowAppDir) {

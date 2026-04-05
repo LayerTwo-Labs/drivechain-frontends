@@ -46,7 +46,10 @@ class LoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailCircularProgressIndicator(strokeWidth: strokeWidth, color: color);
+    return SailCircularProgressIndicator(
+      strokeWidth: strokeWidth,
+      color: color,
+    );
   }
 }
 
@@ -54,10 +57,17 @@ class SailCircularProgressIndicator extends StatelessWidget {
   final double strokeWidth;
   final Color? color;
 
-  const SailCircularProgressIndicator({super.key, this.color, this.strokeWidth = 2});
+  const SailCircularProgressIndicator({
+    super.key,
+    this.color,
+    this.strokeWidth = 2,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return CircularProgressIndicator(color: color ?? SailTheme.of(context).colors.text, strokeWidth: strokeWidth);
+    return CircularProgressIndicator(
+      color: color ?? SailTheme.of(context).colors.text,
+      strokeWidth: strokeWidth,
+    );
   }
 }

@@ -13,10 +13,7 @@ class ProcessManager extends ChangeNotifier {
   final Directory appDir;
   final PidFileManager pidFileManager;
 
-  ProcessManager({
-    required this.appDir,
-    required this.pidFileManager,
-  });
+  ProcessManager({required this.appDir, required this.pidFileManager});
 
   Logger get log => GetIt.I.get<Logger>();
   LogProvider get logProvider => GetIt.I.get<LogProvider>();
@@ -175,18 +172,19 @@ class ProcessManager extends ChangeNotifier {
     unawaited(
       process.exitCode.then((code) async {
         try {
-          log.i('process exit handler for code=$code binary=$binary pid=${process.pid} triggered');
+          log.i(
+            'process exit handler for code=$code binary=$binary pid=${process.pid} triggered',
+          );
 
           // Wait for stdout and stderr to fully drain before reading error output.
           // Without this, there's a race where the exit handler fires before
           // the streams have delivered all their data.
-          await Future.wait([
-            stdoutDone.future,
-            stderrDone.future,
-          ]).timeout(
+          await Future.wait([stdoutDone.future, stderrDone.future]).timeout(
             const Duration(seconds: 2),
             onTimeout: () {
-              log.w('timed out waiting for streams to drain for ${binary.name}');
+              log.w(
+                'timed out waiting for streams to drain for ${binary.name}',
+              );
               return [];
             },
           );
@@ -203,7 +201,9 @@ class ProcessManager extends ChangeNotifier {
             final finalStdout = _finalErr[binary.name];
             if (stderrBuffer != null && stderrBuffer.isNotEmpty) {
               final raw = stderrBuffer.join('\n').replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
-              log.i('using buffered stderr for error message (${stderrBuffer.length} chunks)');
+              log.i(
+                'using buffered stderr for error message (${stderrBuffer.length} chunks)',
+              );
               message = raw;
             } else if (finalStdout != null) {
               log.i('no stderr, using last stdout message: $finalStdout');
@@ -259,7 +259,9 @@ class ProcessManager extends ChangeNotifier {
   }
 
   Future<void> kill(Binary binary) async {
-    final process = runningProcesses.values.firstWhereOrNull((p) => p.binary.name == binary.name);
+    final process = runningProcesses.values.firstWhereOrNull(
+      (p) => p.binary.name == binary.name,
+    );
     if (process == null) {
       log.w('Process not found for binary ${binary.name}');
       return;
@@ -279,7 +281,9 @@ class ProcessManager extends ChangeNotifier {
 
   Future<void> stopAll() async {
     log.d('dispose process provider: killing all processes $runningProcesses');
-    await Future.wait(runningProcesses.values.map((process) => _shutdownSingle(process)));
+    await Future.wait(
+      runningProcesses.values.map((process) => _shutdownSingle(process)),
+    );
   }
 
   Future<void> _shutdownSingle(SailProcess process) async {
@@ -288,7 +292,9 @@ class ProcessManager extends ChangeNotifier {
     try {
       // first try being nice
       await process.cleanup();
-      log.d('nice shutdown successful for pid=${process.pid} binary=${process.binary.name}');
+      log.d(
+        'nice shutdown successful for pid=${process.pid} binary=${process.binary.name}',
+      );
     } catch (error) {
       // if being nice didnt work, be mean
       await killPid(process.pid);
@@ -306,7 +312,11 @@ class ProcessManager extends ChangeNotifier {
     try {
       if (Platform.isWindows) {
         // On Windows, use tasklist to check if process exists
-        final result = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/NH']);
+        final result = await Process.run('tasklist', [
+          '/FI',
+          'PID eq $pid',
+          '/NH',
+        ]);
         return result.stdout.toString().contains('$pid');
       }
 
@@ -327,7 +337,9 @@ class ProcessManager extends ChangeNotifier {
     while (DateTime.now().difference(startTime) < timeout) {
       final alive = await isPidAlive(pid);
       if (!alive) {
-        log.d('PID $pid died after ${DateTime.now().difference(startTime).inMilliseconds}ms');
+        log.d(
+          'PID $pid died after ${DateTime.now().difference(startTime).inMilliseconds}ms',
+        );
         return true;
       }
 
@@ -398,7 +410,10 @@ class ProcessManager extends ChangeNotifier {
 
   String _cleanMessage(String line) {
     // Remove timestamp prefix if present
-    final cleaned = line.replaceFirst(RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\s*'), '');
+    final cleaned = line.replaceFirst(
+      RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\s*'),
+      '',
+    );
     // Strip ANSI color codes
     return cleaned.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
   }

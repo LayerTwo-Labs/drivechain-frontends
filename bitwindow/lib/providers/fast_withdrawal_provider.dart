@@ -224,6 +224,12 @@ class FastWithdrawalProvider extends ChangeNotifier {
     }
   }
 
+  void retryPayment() {
+    errorMessage = null;
+    stage = FastWithdrawalStage.awaitingPayment;
+    notifyListeners();
+  }
+
   void reset() {
     stage = FastWithdrawalStage.idle;
     errorMessage = null;

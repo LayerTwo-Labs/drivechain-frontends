@@ -139,9 +139,7 @@ class _WithdrawalFormState extends State<_WithdrawalForm> {
           const SizedBox(height: 24),
           SailButton(
             label: isRequesting ? 'Requesting...' : 'Request Withdrawal',
-            onPressed: isRequesting
-                ? null
-                : () => provider.requestWithdrawal(amountController.text),
+            onPressed: isRequesting ? null : () => provider.requestWithdrawal(amountController.text),
             variant: ButtonVariant.primary,
             loading: isRequesting,
           ),
@@ -183,8 +181,8 @@ class _PaymentSectionState extends State<_PaymentSection> {
       subtitle: isSendingL2
           ? 'Sending L2 coins...'
           : isCompleting
-              ? 'Completing withdrawal...'
-              : 'Send funds to the info below to complete the withdrawal',
+          ? 'Completing withdrawal...'
+          : 'Send funds to the info below to complete the withdrawal',
       error: provider.errorMessage,
       widgetHeaderEnd: SailButton(
         label: 'Cancel Withdrawal',
@@ -381,9 +379,7 @@ class _ErrorSection extends StatelessWidget {
                   label: 'Back to Payment',
                   onPressed: () async {
                     // Go back to awaiting payment stage so user can retry completing
-                    provider.errorMessage = null;
-                    provider.stage = FastWithdrawalStage.awaitingPayment;
-                    provider.notifyListeners();
+                    provider.retryPayment();
                   },
                   variant: ButtonVariant.secondary,
                 ),

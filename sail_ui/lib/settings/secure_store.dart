@@ -9,7 +9,9 @@ abstract class KeyValueStore {
   Future<void> delete(String key);
 
   static Future<KeyValueStore> create({Directory? dir}) async {
-    return FileStorage.fromDirectory(dir ?? await getApplicationSupportDirectory());
+    return FileStorage.fromDirectory(
+      dir ?? await getApplicationSupportDirectory(),
+    );
   }
 }
 

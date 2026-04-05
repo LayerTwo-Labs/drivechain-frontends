@@ -49,7 +49,11 @@ class _SailCheckboxState extends State<SailCheckbox> {
           color: color,
           boxShadow: enabled ? sailBoxShadow(context) : null,
         ),
-        child: Icon(Icons.check, size: widget.size - 2, color: context.sailTheme.colors.background),
+        child: Icon(
+          Icons.check,
+          size: widget.size - 2,
+          color: context.sailTheme.colors.background,
+        ),
       );
     } else {
       var color = context.sailTheme.colors.backgroundSecondary;
@@ -61,7 +65,10 @@ class _SailCheckboxState extends State<SailCheckbox> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
           color: color,
-          border: Border.all(color: context.sailTheme.colors.border, width: 0.5),
+          border: Border.all(
+            color: context.sailTheme.colors.border,
+            width: 0.5,
+          ),
           boxShadow: sailBoxShadow(context),
         ),
       );

@@ -76,58 +76,38 @@ If your wallet was encrypted with a password, the wallet.json in this
 backup is also encrypted. You will need your password to restore.
 ''';
   final readmeBytes = utf8.encode(readme);
-  archive.addFile(
-    ArchiveFile(
-      'README.txt',
-      readmeBytes.length,
-      readmeBytes,
-    ),
-  );
+  archive.addFile(ArchiveFile('README.txt', readmeBytes.length, readmeBytes));
   log.i('Added to backup: README.txt');
 
   // 1. Backup wallet.json
   final walletJsonFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
   if (await walletJsonFile.exists()) {
     final bytes = await walletJsonFile.readAsBytes();
-    archive.addFile(
-      ArchiveFile(
-        'wallet.json',
-        bytes.length,
-        bytes,
-      ),
-    );
+    archive.addFile(ArchiveFile('wallet.json', bytes.length, bytes));
     log.i('Added to backup: wallet.json');
   } else {
     log.w('wallet.json not found');
   }
 
   // 2. Backup multisig.json
-  final multisigFile = File(path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'));
+  final multisigFile = File(
+    path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'),
+  );
   if (await multisigFile.exists()) {
     final bytes = await multisigFile.readAsBytes();
-    archive.addFile(
-      ArchiveFile(
-        'multisig/multisig.json',
-        bytes.length,
-        bytes,
-      ),
-    );
+    archive.addFile(ArchiveFile('multisig/multisig.json', bytes.length, bytes));
     log.i('Added to backup: multisig/multisig.json');
   } else {
     log.w('multisig.json not found');
   }
 
   // 3. Backup transactions.json
-  final transactionsFile = File(path.join(appDir.path, 'bitdrive', 'transactions.json'));
+  final transactionsFile = File(
+    path.join(appDir.path, 'bitdrive', 'transactions.json'),
+  );
   if (await transactionsFile.exists()) {
     final bytes = await transactionsFile.readAsBytes();
-    archive.addFile(
-      ArchiveFile(
-        'transactions.json',
-        bytes.length,
-        bytes,
-      ),
-    );
+    archive.addFile(ArchiveFile('transactions.json', bytes.length, bytes));
     log.i('Added to backup: transactions.json');
   } else {
     log.w('transactions.json not found');
@@ -163,9 +143,13 @@ Future<void> restoreWalletFiles({
   }
 
   // Copy multisig.json if present
-  final tempMultisig = File(path.join(tempDir.path, 'multisig', 'multisig.json'));
+  final tempMultisig = File(
+    path.join(tempDir.path, 'multisig', 'multisig.json'),
+  );
   if (await tempMultisig.exists()) {
-    final destMultisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
+    final destMultisigDir = Directory(
+      path.join(appDir.path, 'bitdrive', 'multisig'),
+    );
     await destMultisigDir.create(recursive: true);
     await tempMultisig.copy(path.join(destMultisigDir.path, 'multisig.json'));
     log.i('Restored: multisig.json');
@@ -176,7 +160,9 @@ Future<void> restoreWalletFiles({
   if (await tempTransactions.exists()) {
     final destBitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
     await destBitdriveDir.create(recursive: true);
-    await tempTransactions.copy(path.join(destBitdriveDir.path, 'transactions.json'));
+    await tempTransactions.copy(
+      path.join(destBitdriveDir.path, 'transactions.json'),
+    );
     log.i('Restored: transactions.json');
   }
 
@@ -261,10 +247,7 @@ Future<BackupValidationResult> validateBackupJson({
     await jsonFile.copy(tempWalletFile.path);
 
     log.i('JSON backup validation successful');
-    return BackupValidationResult(
-      isValid: true,
-      tempDir: tempDir,
-    );
+    return BackupValidationResult(isValid: true, tempDir: tempDir);
   } catch (e) {
     // Clean up temp directory on error
     if (tempDir != null) {
@@ -363,7 +346,9 @@ Future<BackupValidationResult> validateBackupZip({
     }
 
     // Validate multisig.json if present
-    final multisigFile = File(path.join(tempDir.path, 'multisig', 'multisig.json'));
+    final multisigFile = File(
+      path.join(tempDir.path, 'multisig', 'multisig.json'),
+    );
     if (await multisigFile.exists()) {
       try {
         final multisigContent = await multisigFile.readAsString();
@@ -377,10 +362,7 @@ Future<BackupValidationResult> validateBackupZip({
     }
 
     log.i('Backup validation successful');
-    return BackupValidationResult(
-      isValid: true,
-      tempDir: tempDir,
-    );
+    return BackupValidationResult(isValid: true, tempDir: tempDir);
   } catch (e) {
     log.e('Backup validation failed: $e');
     // Clean up temp directory on error
@@ -396,7 +378,9 @@ Future<BackupValidationResult> validateBackupZip({
 
 /// Check if current wallet exists
 Future<bool> hasCurrentWallet(WalletWriterProvider walletProvider) async {
-  final walletJsonFile = File(path.join(walletProvider.bitwindowAppDir.path, 'wallet.json'));
+  final walletJsonFile = File(
+    path.join(walletProvider.bitwindowAppDir.path, 'wallet.json'),
+  );
   return await walletJsonFile.exists();
 }
 
@@ -411,16 +395,9 @@ class _PageTitle extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 30),
-        SailText.primary40(
-          title,
-          bold: true,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary40(title, bold: true, textAlign: TextAlign.center),
         const SizedBox(height: 24),
-        SailText.primary15(
-          subtitle,
-          textAlign: TextAlign.center,
-        ),
+        SailText.primary15(subtitle, textAlign: TextAlign.center),
         const SizedBox(height: 30),
       ],
     );
@@ -452,7 +429,9 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
 
   Future<void> _selectSaveLocation() async {
     try {
-      final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+      final timestamp = DateFormat(
+        'yyyy-MM-dd_HH-mm-ss',
+      ).format(DateTime.now());
       final defaultFileName = '${widget.appName.toLowerCase()}-backup-$timestamp.zip';
 
       final result = await FilePicker.platform.saveFile(
@@ -551,12 +530,21 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SailText.primary13('What will be backed up:', bold: true),
+                              SailText.primary13(
+                                'What will be backed up:',
+                                bold: true,
+                              ),
                               const SizedBox(height: 12),
-                              const BulletPoint('Master wallet and all derived keys'),
+                              const BulletPoint(
+                                'Master wallet and all derived keys',
+                              ),
                               const BulletPoint('All sidechain wallet seeds'),
-                              const BulletPoint('Multisig group configurations'),
-                              const BulletPoint('Transaction history and notes'),
+                              const BulletPoint(
+                                'Multisig group configurations',
+                              ),
+                              const BulletPoint(
+                                'Transaction history and notes',
+                              ),
                             ],
                           ),
                         ),
@@ -600,7 +588,10 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
                               color: theme.colors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: SailText.primary13(_error!, color: theme.colors.error),
+                            child: SailText.primary13(
+                              _error!,
+                              color: theme.colors.error,
+                            ),
                           ),
                         ],
                       ],
@@ -706,10 +697,7 @@ class RestoreProgressStep {
   DateTime startTime;
   DateTime? endTime;
 
-  RestoreProgressStep({
-    required this.name,
-    required this.startTime,
-  });
+  RestoreProgressStep({required this.name, required this.startTime});
 
   bool get isCompleted => endTime != null;
   Duration? get duration => endTime?.difference(startTime);
@@ -781,7 +769,9 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     setState(() {
       _steps.clear();
       _steps.addAll(
-        stepNames.map((name) => RestoreProgressStep(name: name, startTime: DateTime.now())),
+        stepNames.map(
+          (name) => RestoreProgressStep(name: name, startTime: DateTime.now()),
+        ),
       );
     });
   }
@@ -810,7 +800,9 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     final hasCurrent = await hasCurrentWallet(walletProvider);
 
     if (hasCurrent) {
-      final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+      final timestamp = DateFormat(
+        'yyyy-MM-dd_HH-mm-ss',
+      ).format(DateTime.now());
       _autoBackupPath = path.join(
         walletProvider.bitwindowAppDir.path,
         'wallet-backup-before-restore-$timestamp.zip',
@@ -837,7 +829,10 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
 
       // 2. Validate backup
       _updateStatus('Validating backup file');
-      final validation = await validateBackup(backupFile: _selectedFile!, log: log);
+      final validation = await validateBackup(
+        backupFile: _selectedFile!,
+        log: log,
+      );
       if (!validation.isValid) {
         throw Exception(validation.errorMessage);
       }
@@ -859,19 +854,25 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
       final bitwindowAppDir = walletProvider.bitwindowAppDir;
 
       // Delete wallet.json
-      final walletJsonFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
+      final walletJsonFile = File(
+        path.join(bitwindowAppDir.path, 'wallet.json'),
+      );
       if (await walletJsonFile.exists()) {
         await walletJsonFile.delete();
       }
 
       // Delete multisig.json
-      final multisigFile = File(path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'));
+      final multisigFile = File(
+        path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'),
+      );
       if (await multisigFile.exists()) {
         await multisigFile.delete();
       }
 
       // Delete transactions.json
-      final transactionsFile = File(path.join(appDir.path, 'bitdrive', 'transactions.json'));
+      final transactionsFile = File(
+        path.join(appDir.path, 'bitdrive', 'transactions.json'),
+      );
       if (await transactionsFile.exists()) {
         await transactionsFile.delete();
       }
@@ -894,7 +895,9 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
 
       // 8. Verify restored wallet
       _updateStatus('Verifying restored wallet');
-      final restoredWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
+      final restoredWalletJson = File(
+        path.join(bitwindowAppDir.path, 'wallet.json'),
+      );
       if (!await restoredWalletJson.exists()) {
         throw Exception('Restored wallet verification failed');
       }
@@ -968,10 +971,17 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SailText.primary13('Supported formats:', bold: true),
+                              SailText.primary13(
+                                'Supported formats:',
+                                bold: true,
+                              ),
                               const SizedBox(height: 12),
-                              const BulletPoint('.zip - Full backup (wallet, multisig, transactions)'),
-                              const BulletPoint('.json - Just wallet.json (master seed only)'),
+                              const BulletPoint(
+                                '.zip - Full backup (wallet, multisig, transactions)',
+                              ),
+                              const BulletPoint(
+                                '.json - Just wallet.json (master seed only)',
+                              ),
                             ],
                           ),
                         ),
@@ -1015,7 +1025,10 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                               color: theme.colors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: SailText.primary13(_error!, color: theme.colors.error),
+                            child: SailText.primary13(
+                              _error!,
+                              color: theme.colors.error,
+                            ),
                           ),
                         ],
                       ],
@@ -1096,7 +1109,10 @@ class _RestoreProgressScreen extends StatelessWidget {
                           final index = entry.key;
                           final step = entry.value;
                           final isActive = index == currentStepIndex && !step.isCompleted;
-                          return _RestoreStepRow(step: step, isActive: isActive);
+                          return _RestoreStepRow(
+                            step: step,
+                            isActive: isActive,
+                          );
                         }),
                         if (success && autoBackupPath != null) ...[
                           const SizedBox(height: 24),
@@ -1109,7 +1125,10 @@ class _RestoreProgressScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SailText.primary13('Previous wallet backed up to:', bold: true),
+                                SailText.primary13(
+                                  'Previous wallet backed up to:',
+                                  bold: true,
+                                ),
                                 const SizedBox(height: 8),
                                 SelectableText(
                                   autoBackupPath!,
@@ -1131,7 +1150,10 @@ class _RestoreProgressScreen extends StatelessWidget {
                               color: theme.colors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: SailText.primary13(error!, color: theme.colors.error),
+                            child: SailText.primary13(
+                              error!,
+                              color: theme.colors.error,
+                            ),
                           ),
                         ],
                       ],
@@ -1170,7 +1192,11 @@ class _RestoreStepRow extends StatelessWidget {
     String timeText = '';
 
     if (step.isCompleted) {
-      iconWidget = Icon(Icons.check_circle, color: SailColorScheme.green, size: 20);
+      iconWidget = Icon(
+        Icons.check_circle,
+        color: SailColorScheme.green,
+        size: 20,
+      );
       if (step.duration != null) {
         final duration = step.duration!;
         if (duration.inSeconds > 0) {
@@ -1189,7 +1215,11 @@ class _RestoreStepRow extends StatelessWidget {
         ),
       );
     } else {
-      iconWidget = Icon(Icons.circle_outlined, color: theme.colors.textSecondary, size: 20);
+      iconWidget = Icon(
+        Icons.circle_outlined,
+        color: theme.colors.textSecondary,
+        size: 20,
+      );
     }
 
     return Padding(
@@ -1208,11 +1238,7 @@ class _RestoreStepRow extends StatelessWidget {
                   : theme.colors.textSecondary,
             ),
           ),
-          if (timeText.isNotEmpty)
-            SailText.secondary12(
-              timeText,
-              color: SailColorScheme.green,
-            ),
+          if (timeText.isNotEmpty) SailText.secondary12(timeText, color: SailColorScheme.green),
         ],
       ),
     );

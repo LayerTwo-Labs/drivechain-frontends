@@ -55,7 +55,11 @@ void main() {
   Widget buildTestableWidget(Widget child) {
     return MaterialApp(
       home: SailTheme(
-        data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+        data: SailThemeData.lightTheme(
+          SailColorScheme.orange,
+          true,
+          SailFontValues.inter,
+        ),
         child: Scaffold(body: child),
       ),
     );
@@ -64,9 +68,7 @@ void main() {
   group('SailText', () {
     testWidgets('renders primary text correctly', (tester) async {
       await tester.pumpWidget(
-        buildTestableWidget(
-          SailText.primary15('Test Text'),
-        ),
+        buildTestableWidget(SailText.primary15('Test Text')),
       );
 
       expect(find.text('Test Text'), findsOneWidget);
@@ -74,9 +76,7 @@ void main() {
 
     testWidgets('renders secondary text correctly', (tester) async {
       await tester.pumpWidget(
-        buildTestableWidget(
-          SailText.secondary13('Secondary Text'),
-        ),
+        buildTestableWidget(SailText.secondary13('Secondary Text')),
       );
 
       expect(find.text('Secondary Text'), findsOneWidget);
@@ -142,10 +142,7 @@ void main() {
     testWidgets('renders with title', (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
-          SailCard(
-            title: 'Card Title',
-            child: SailText.primary15('Content'),
-          ),
+          SailCard(title: 'Card Title', child: SailText.primary15('Content')),
         ),
       );
 
@@ -173,10 +170,7 @@ void main() {
     testWidgets('renders with label', (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
-          SailButton(
-            label: 'Click Me',
-            onPressed: () async {},
-          ),
+          SailButton(label: 'Click Me', onPressed: () async {}),
         ),
       );
 
@@ -187,11 +181,7 @@ void main() {
     testWidgets('shows loading state', (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
-          SailButton(
-            label: 'Loading',
-            loading: true,
-            onPressed: () async {},
-          ),
+          SailButton(label: 'Loading', loading: true, onPressed: () async {}),
         ),
       );
 

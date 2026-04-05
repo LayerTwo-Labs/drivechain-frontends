@@ -26,16 +26,25 @@ Future<void> initSidechainDependencies({
 }) async {
   Environment.backendManagesBinaries = backendManagesBinaries;
 
-  GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
+  GetIt.I.registerLazySingleton<NotificationProvider>(
+    () => NotificationProvider(),
+  );
 
   final store = await KeyValueStore.create(dir: applicationDir);
   final clientSettings = ClientSettings(store: store, log: log);
   GetIt.I.registerLazySingleton<ClientSettings>(() => clientSettings);
 
-  final bitwindowDir = Directory(path.join(applicationDir.parent.path, 'bitwindow'));
+  final bitwindowDir = Directory(
+    path.join(applicationDir.parent.path, 'bitwindow'),
+  );
   final bitwindowStore = await KeyValueStore.create(dir: bitwindowDir);
-  final bitwindowClientSettings = BitwindowClientSettings(store: bitwindowStore, log: log);
-  GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => bitwindowClientSettings);
+  final bitwindowClientSettings = BitwindowClientSettings(
+    store: bitwindowStore,
+    log: log,
+  );
+  GetIt.I.registerLazySingleton<BitwindowClientSettings>(
+    () => bitwindowClientSettings,
+  );
 
   // Register WalletReaderProvider pointing to bitwindow directory
   final walletReader = WalletReaderProvider.create(bitwindowDir);
@@ -43,13 +52,17 @@ Future<void> initSidechainDependencies({
   await walletReader.init();
 
   // Register WalletWriterProvider (same code as BitWindow) for chain-agnostic wallet creation
-  final walletWriter = WalletWriterProvider.create(bitwindowAppDir: bitwindowDir);
+  final walletWriter = WalletWriterProvider.create(
+    bitwindowAppDir: bitwindowDir,
+  );
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
 
   final settingsProvider = await SettingsProvider.create();
   GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
-  GetIt.I.registerLazySingleton<FormatterProvider>(() => FormatterProvider(settingsProvider));
+  GetIt.I.registerLazySingleton<FormatterProvider>(
+    () => FormatterProvider(settingsProvider),
+  );
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
   final bitcoinConfProvider = await BitcoinConfProvider.create(router);
@@ -57,15 +70,22 @@ Future<void> initSidechainDependencies({
 
   // Initialize EnforcerConfProvider (must be after BitcoinConfProvider)
   final enforcerConfProvider = await EnforcerConfProvider.create();
-  GetIt.I.registerLazySingleton<EnforcerConfProvider>(() => enforcerConfProvider);
+  GetIt.I.registerLazySingleton<EnforcerConfProvider>(
+    () => enforcerConfProvider,
+  );
 
   // Load paranoid mode from bitwindow settings before creating chains config
   final bitwindowSettingValue = BitwindowSettingValue();
-  final loadedBitwindowSetting = await bitwindowClientSettings.getValue(bitwindowSettingValue);
+  final loadedBitwindowSetting = await bitwindowClientSettings.getValue(
+    bitwindowSettingValue,
+  );
   final paranoidMode = loadedBitwindowSetting.value.paranoidMode;
 
   // Load chains config from shared bitwindow directory (single source of truth)
-  final chainsConfigProvider = await ChainsConfigProvider.create(appDir: bitwindowDir, paranoidMode: paranoidMode);
+  final chainsConfigProvider = await ChainsConfigProvider.create(
+    appDir: bitwindowDir,
+    paranoidMode: paranoidMode,
+  );
   GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
 
   // first of all, write all binaries to the assets/bin directory
@@ -75,8 +95,15 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerSingleton<LogProvider>(LogProvider());
 
   // Load and register initial binary states
-  final binaries = _initialBinaries(sidechainType, additionalBinaries(), chainsConfigProvider);
-  final binaryProvider = await BinaryProvider.create(appDir: applicationDir, initialBinaries: binaries);
+  final binaries = _initialBinaries(
+    sidechainType,
+    additionalBinaries(),
+    chainsConfigProvider,
+  );
+  final binaryProvider = await BinaryProvider.create(
+    appDir: applicationDir,
+    initialBinaries: binaries,
+  );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
 
   // register and boot binaries
@@ -97,14 +124,21 @@ Future<void> initSidechainDependencies({
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
-  GetIt.I.registerLazySingleton<BalanceProvider>(() => BalanceProvider(connections: [sidechainConnection]));
+  GetIt.I.registerLazySingleton<BalanceProvider>(
+    () => BalanceProvider(connections: [sidechainConnection]),
+  );
   GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
   final syncProvider = SyncProvider(
-    additionalConnection: SyncConnection(rpc: sidechainConnection, name: sidechainConnection.chain.name),
+    additionalConnection: SyncConnection(
+      rpc: sidechainConnection,
+      name: sidechainConnection.chain.name,
+    ),
   );
   GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
   unawaited(syncProvider.fetch());
-  GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => SidechainTransactionsProvider());
+  GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
+    () => SidechainTransactionsProvider(),
+  );
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
 
   // Register UpdateProvider for checking updates
@@ -154,7 +188,11 @@ void bootBinaries(Logger log, Binary sidechain) async {
 
 List<Binary> _noAdditionalBinaries() => [];
 
-List<Binary> _initialBinaries(BinaryType sidechainType, List<Binary> additional, ChainsConfigProvider configProvider) {
+List<Binary> _initialBinaries(
+  BinaryType sidechainType,
+  List<Binary> additional,
+  ChainsConfigProvider configProvider,
+) {
   final configBinaries = configProvider.buildBinaries();
 
   Binary resolve(BinaryType type) {
@@ -194,7 +232,12 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
       log.d('Writing binary ${binary.name} to: ${file.path}');
 
       final buffer = binResource.buffer;
-      await file.writeAsBytes(buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes));
+      await file.writeAsBytes(
+        buffer.asUint8List(
+          binResource.offsetInBytes,
+          binResource.lengthInBytes,
+        ),
+      );
 
       log.d('Successfully wrote binary: ${binary.name}');
     } catch (e) {

@@ -10,7 +10,11 @@ class TreeNode {
   bool isDirectory;
   final Map<String, TreeNode> children = {};
 
-  TreeNode({required this.name, required this.fullPath, this.isDirectory = false});
+  TreeNode({
+    required this.name,
+    required this.fullPath,
+    this.isDirectory = false,
+  });
 
   bool get shouldShowAsDirectory => isDirectory || children.isNotEmpty;
 

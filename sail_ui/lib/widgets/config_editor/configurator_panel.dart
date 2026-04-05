@@ -52,7 +52,13 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
     setState(() => _searchQuery = _searchController.text.toLowerCase());
   }
 
-  static const _networkSpecificKeys = {'datadir', 'port', 'rpcport', 'rpcbind', 'bind'};
+  static const _networkSpecificKeys = {
+    'datadir',
+    'port',
+    'rpcport',
+    'rpcbind',
+    'bind',
+  };
 
   String? _getSectionForOption(BitcoinConfigOption option) {
     if (_networkSpecificKeys.contains(option.key)) {
@@ -107,7 +113,10 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
                   color: theme.colors.textSecondary,
                 ),
               ),
-              prefixIconConstraints: BoxConstraints(maxWidth: 21, maxHeight: 13),
+              prefixIconConstraints: BoxConstraints(
+                maxWidth: 21,
+                maxHeight: 13,
+              ),
             ),
           ),
           Container(height: 1, color: theme.colors.divider),
@@ -115,7 +124,11 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
             child: widget.viewModel.workingConfig == null
                 ? Center(child: SailText.secondary13('No config loaded'))
                 : filteredOptions.isEmpty
-                ? Center(child: SailText.secondary13('No options match your filters'))
+                ? Center(
+                    child: SailText.secondary13(
+                      'No options match your filters',
+                    ),
+                  )
                 : _OptionsList(
                     options: filteredOptions,
                     viewModel: widget.viewModel,
@@ -212,7 +225,11 @@ class _UsefulSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final entry in groupedUseful.entries) ...[
-            SailText.primary20(entry.key, bold: true, color: theme.colors.orange),
+            SailText.primary20(
+              entry.key,
+              bold: true,
+              color: theme.colors.orange,
+            ),
             const SailSpacing(SailStyleValues.padding08),
             for (final option in entry.value)
               _OptionWidget(
@@ -262,7 +279,11 @@ class _CategorySection extends StatelessWidget {
               color: theme.colors.primary.withValues(alpha: 0.1),
               borderRadius: SailStyleValues.borderRadiusSmall,
             ),
-            child: SailText.primary15(category, bold: true, color: theme.colors.primary),
+            child: SailText.primary15(
+              category,
+              bold: true,
+              color: theme.colors.primary,
+            ),
           ),
           const SailSpacing(SailStyleValues.padding20),
           for (final option in options)
@@ -331,28 +352,56 @@ class _InputWidget extends StatelessWidget {
   });
 
   void _updateSetting(dynamic value) {
-    viewModel.updateSetting(option.key, value, section: getSectionForOption(option));
+    viewModel.updateSetting(
+      option.key,
+      value,
+      section: getSectionForOption(option),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     switch (option.inputType) {
       case ConfigInputType.dropdown:
-        return _DropdownInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
+        return _DropdownInput(
+          option: option,
+          currentValue: currentValue,
+          onChanged: _updateSetting,
+        );
       case ConfigInputType.boolean:
-        return _BooleanInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
+        return _BooleanInput(
+          option: option,
+          currentValue: currentValue,
+          onChanged: _updateSetting,
+        );
       case ConfigInputType.number:
-        return _NumberInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
+        return _NumberInput(
+          option: option,
+          currentValue: currentValue,
+          onChanged: _updateSetting,
+        );
       case ConfigInputType.bitcoinAmount:
-        return _BitcoinAmountInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
+        return _BitcoinAmountInput(
+          option: option,
+          currentValue: currentValue,
+          onChanged: _updateSetting,
+        );
       case ConfigInputType.text:
       case ConfigInputType.command:
       case ConfigInputType.ipAddress:
       case ConfigInputType.network:
-        return _TextInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
+        return _TextInput(
+          option: option,
+          currentValue: currentValue,
+          onChanged: _updateSetting,
+        );
       case ConfigInputType.file:
       case ConfigInputType.directory:
-        return _FileInput(option: option, currentValue: currentValue, onChanged: _updateSetting);
+        return _FileInput(
+          option: option,
+          currentValue: currentValue,
+          onChanged: _updateSetting,
+        );
     }
   }
 }
@@ -362,7 +411,11 @@ class _DropdownInput extends StatelessWidget {
   final String? currentValue;
   final void Function(dynamic) onChanged;
 
-  const _DropdownInput({required this.option, required this.currentValue, required this.onChanged});
+  const _DropdownInput({
+    required this.option,
+    required this.currentValue,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -382,7 +435,11 @@ class _BooleanInput extends StatelessWidget {
   final String? currentValue;
   final void Function(dynamic) onChanged;
 
-  const _BooleanInput({required this.option, required this.currentValue, required this.onChanged});
+  const _BooleanInput({
+    required this.option,
+    required this.currentValue,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -401,7 +458,11 @@ class _NumberInput extends StatefulWidget {
   final String? currentValue;
   final void Function(dynamic) onChanged;
 
-  const _NumberInput({required this.option, required this.currentValue, required this.onChanged});
+  const _NumberInput({
+    required this.option,
+    required this.currentValue,
+    required this.onChanged,
+  });
 
   @override
   State<_NumberInput> createState() => _NumberInputState();
@@ -449,7 +510,11 @@ class _BitcoinAmountInput extends StatefulWidget {
   final String? currentValue;
   final void Function(dynamic) onChanged;
 
-  const _BitcoinAmountInput({required this.option, required this.currentValue, required this.onChanged});
+  const _BitcoinAmountInput({
+    required this.option,
+    required this.currentValue,
+    required this.onChanged,
+  });
 
   @override
   State<_BitcoinAmountInput> createState() => _BitcoinAmountInputState();
@@ -507,7 +572,11 @@ class _TextInput extends StatefulWidget {
   final String? currentValue;
   final void Function(dynamic) onChanged;
 
-  const _TextInput({required this.option, required this.currentValue, required this.onChanged});
+  const _TextInput({
+    required this.option,
+    required this.currentValue,
+    required this.onChanged,
+  });
 
   @override
   State<_TextInput> createState() => _TextInputState();
@@ -551,7 +620,11 @@ class _FileInput extends StatefulWidget {
   final String? currentValue;
   final void Function(dynamic) onChanged;
 
-  const _FileInput({required this.option, required this.currentValue, required this.onChanged});
+  const _FileInput({
+    required this.option,
+    required this.currentValue,
+    required this.onChanged,
+  });
 
   @override
   State<_FileInput> createState() => _FileInputState();

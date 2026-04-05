@@ -7,7 +7,9 @@ class ClientSettings {
 
   const ClientSettings({required this.store, required this.log});
 
-  Future<SettingValue<T>> getValue<T extends Object>(SettingValue<T> setting) async {
+  Future<SettingValue<T>> getValue<T extends Object>(
+    SettingValue<T> setting,
+  ) async {
     String? jsonString;
     try {
       jsonString = await store.getString(setting.key);
@@ -23,7 +25,9 @@ class ClientSettings {
     return setting.withValue(value);
   }
 
-  Future<SettingValue<T>> setValue<T extends Object>(SettingValue<T> setting) async {
+  Future<SettingValue<T>> setValue<T extends Object>(
+    SettingValue<T> setting,
+  ) async {
     final json = setting.toJson();
 
     await store.setString(setting.key, json);

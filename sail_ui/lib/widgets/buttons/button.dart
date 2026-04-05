@@ -3,7 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'dart:async';
 
-enum ButtonVariant { primary, secondary, destructive, outline, ghost, link, icon }
+enum ButtonVariant {
+  primary,
+  secondary,
+  destructive,
+  outline,
+  ghost,
+  link,
+  icon,
+}
 
 class SailButton extends StatefulWidget {
   final String? label;
@@ -111,7 +119,12 @@ class _SailButtonState extends State<SailButton> {
                       ? widget.small
                             ? EdgeInsets.all(8)
                             : EdgeInsets.all(12)
-                      : const EdgeInsets.only(top: 8, bottom: 8, left: 12, right: 12))),
+                      : const EdgeInsets.only(
+                          top: 8,
+                          bottom: 8,
+                          left: 12,
+                          right: 12,
+                        ))),
         child: content,
       ),
     );
@@ -153,7 +166,11 @@ class _ButtonContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (isLoading) ...[
-          SizedBox(width: 12, height: 12, child: LoadingIndicator.insideButton(foregroundColor)),
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: LoadingIndicator.insideButton(foregroundColor),
+          ),
           const SizedBox(width: 8),
         ] else if (icon != null || endIcon != null) ...[
           if (icon != null)
@@ -206,7 +223,11 @@ class _ButtonVariantStyle {
   });
 }
 
-_ButtonVariantStyle _getVariantStyle(ButtonVariant variant, SailColor colors, Color? textColor) {
+_ButtonVariantStyle _getVariantStyle(
+  ButtonVariant variant,
+  SailColor colors,
+  Color? textColor,
+) {
   switch (variant) {
     case ButtonVariant.primary:
       return _ButtonVariantStyle(
@@ -304,7 +325,10 @@ class _CopyButtonState extends State<CopyButton> {
                 });
                 // Reset after 2 seconds
                 _resetTimer?.cancel();
-                _resetTimer = Timer(const Duration(seconds: 2), _resetCopiedState);
+                _resetTimer = Timer(
+                  const Duration(seconds: 2),
+                  _resetCopiedState,
+                );
               }
             })
             .catchError((error) {
@@ -376,7 +400,10 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(duration: const Duration(milliseconds: 50), vsync: this);
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 50),
+      vsync: this,
+    );
   }
 
   @override
@@ -445,8 +472,12 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
               animation: _controller,
               builder: (context, child) {
                 return MouseRegion(
-                  onEnter: (_) => setState(() => widget.disabled ? _isHovered = _isHovered : _isHovered = true),
-                  onExit: (_) => setState(() => widget.disabled ? _isHovered = _isHovered : _isHovered = false),
+                  onEnter: (_) => setState(
+                    () => widget.disabled ? _isHovered = _isHovered : _isHovered = true,
+                  ),
+                  onExit: (_) => setState(
+                    () => widget.disabled ? _isHovered = _isHovered : _isHovered = false,
+                  ),
                   child: Stack(
                     children: [
                       // Bottom shadow layer

@@ -5,7 +5,11 @@ class ConnectionErrorChip extends StatelessWidget {
   final String chain;
   final Future<void> Function() onPressed;
 
-  const ConnectionErrorChip({super.key, required this.chain, required this.onPressed});
+  const ConnectionErrorChip({
+    super.key,
+    required this.chain,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -5,8 +5,6 @@ class Migration004Uacomment extends StructuredBitcoinConfMigration {
   Migration004Uacomment() : super(4, _data);
 
   static const _data = {
-    '': {
-      'uacomment': 'BitWindow-0.2',
-    },
+    '': {'uacomment': 'BitWindow-0.2'},
   };
 }

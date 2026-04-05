@@ -57,7 +57,9 @@ class UpdateProvider extends ChangeNotifier {
     BinaryType.bitassets => 'bitassets',
     BinaryType.truthcoin => 'truthcoin',
     BinaryType.photon => 'photon',
-    _ => throw UnsupportedError('Update provider not supported for ${binaryType.name}'),
+    _ => throw UnsupportedError(
+      'Update provider not supported for ${binaryType.name}',
+    ),
   };
 
   /// Get the install script URL for this binary type
@@ -144,7 +146,9 @@ class UpdateProvider extends ChangeNotifier {
       final response = await http.get(Uri.parse(_installScriptUrl));
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to download install script: ${response.statusCode}');
+        throw Exception(
+          'Failed to download install script: ${response.statusCode}',
+        );
       }
 
       // Save to temporary file
@@ -159,7 +163,9 @@ class UpdateProvider extends ChangeNotifier {
       // Make executable
       final chmodResult = await Process.run('chmod', ['+x', scriptPath]);
       if (chmodResult.exitCode != 0) {
-        throw Exception('Failed to make script executable: ${chmodResult.stderr}');
+        throw Exception(
+          'Failed to make script executable: ${chmodResult.stderr}',
+        );
       }
 
       log.i('Running install script...');

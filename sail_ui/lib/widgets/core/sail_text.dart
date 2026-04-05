@@ -8,7 +8,13 @@ class _Text extends StatelessWidget {
   final int? maxLines;
   final TextOverflow? overflow;
 
-  const _Text({required this.label, required this.style, this.textAlign, this.maxLines, this.overflow});
+  const _Text({
+    required this.label,
+    required this.style,
+    this.textAlign,
+    this.maxLines,
+    this.overflow,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +39,12 @@ class SailText {
 
   const SailText(this.value);
 
-  static Widget primary40(String label, {TextAlign? textAlign, bool bold = false, Color? color}) {
+  static Widget primary40(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -50,7 +61,12 @@ class SailText {
     );
   }
 
-  static Widget primary24(String label, {TextAlign? textAlign, bool bold = false, Color? color}) {
+  static Widget primary24(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -66,7 +82,12 @@ class SailText {
     );
   }
 
-  static Widget primary22(String label, {TextAlign? textAlign, bool bold = false, Color? color}) {
+  static Widget primary22(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -82,7 +103,12 @@ class SailText {
     );
   }
 
-  static Widget primary20(String label, {TextAlign? textAlign, bool bold = false, Color? color}) {
+  static Widget primary20(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -177,7 +203,12 @@ class SailText {
     );
   }
 
-  static Widget secondary15(String label, {TextAlign? textAlign, bool bold = false, Color? color}) {
+  static Widget secondary15(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -253,7 +284,12 @@ class SailText {
     );
   }
 
-  static Widget background12(String label, {TextAlign? textAlign, bool bold = false, Color? color}) {
+  static Widget background12(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -269,7 +305,12 @@ class SailText {
     );
   }
 
-  static Widget background13(String label, {TextAlign? textAlign, bool bold = false, Color? color}) {
+  static Widget background13(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -319,6 +360,8 @@ class SailText {
 class Shadow {
   static List<BoxShadow> regular(BuildContext context) {
     final theme = SailTheme.of(context);
-    return [BoxShadow(color: theme.colors.shadow, blurRadius: 6, spreadRadius: 3)];
+    return [
+      BoxShadow(color: theme.colors.shadow, blurRadius: 6, spreadRadius: 3),
+    ];
   }
 }

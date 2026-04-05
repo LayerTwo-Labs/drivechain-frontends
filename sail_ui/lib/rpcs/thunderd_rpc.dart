@@ -22,10 +22,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the thunder server.
 abstract class ThunderdRPC extends SidechainRPC {
-  ThunderdRPC({
-    required super.binaryType,
-    required super.restartOnFailure,
-  });
+  ThunderdRPC({required super.binaryType, required super.restartOnFailure});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -63,7 +60,11 @@ abstract class ThunderdRPC extends SidechainRPC {
   // Wallet Manager RPCs
 
   Future<wmpb.GetWalletStatusResponse> getWalletStatus();
-  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(String name, {String? customMnemonic, String? passphrase});
+  Future<wmpb.GenerateWalletResponse> walletGenerateWallet(
+    String name, {
+    String? customMnemonic,
+    String? passphrase,
+  });
   Future<void> walletUnlock(String password);
   Future<void> walletLock();
   Future<void> walletEncrypt(String password);
@@ -71,7 +72,11 @@ abstract class ThunderdRPC extends SidechainRPC {
   Future<void> walletRemoveEncryption(String password);
   Future<wmpb.ListWalletsResponse> walletList();
   Future<void> walletSwitch(String walletId);
-  Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson);
+  Future<void> walletUpdateMetadata(
+    String walletId,
+    String name,
+    String gradientJson,
+  );
   Future<void> walletDelete(String walletId);
   Future<void> walletDeleteAll();
 }
@@ -83,11 +88,7 @@ class ThunderdLive extends ThunderdRPC {
   late ThunderServiceClient _client;
   late WalletManagerServiceClient _walletClient;
 
-  ThunderdLive()
-    : super(
-        binaryType: BinaryType.thunderd,
-        restartOnFailure: false,
-      ) {
+  ThunderdLive() : super(binaryType: BinaryType.thunderd, restartOnFailure: false) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:${binary.port}',
       codec: const ProtoCodec(),
@@ -126,7 +127,9 @@ class ThunderdLive extends ThunderdRPC {
   Future<(double, double)> balance() async {
     final response = await _client.getBalance(GetBalanceRequest());
     final confirmed = satoshiToBTC(response.availableSats.toInt());
-    final unconfirmed = satoshiToBTC((response.totalSats - response.availableSats).toInt());
+    final unconfirmed = satoshiToBTC(
+      (response.totalSats - response.availableSats).toInt(),
+    );
     return (confirmed, unconfirmed);
   }
 
@@ -178,7 +181,9 @@ class ThunderdLive extends ThunderdRPC {
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     try {
       final paramsJson = params != null ? jsonEncode(params) : '';
-      final response = await _client.callRaw(CallRawRequest(method: method, paramsJson: paramsJson));
+      final response = await _client.callRaw(
+        CallRawRequest(method: method, paramsJson: paramsJson),
+      );
       if (response.resultJson.isEmpty) return null;
       return jsonDecode(response.resultJson);
     } catch (err) {
@@ -205,7 +210,12 @@ class ThunderdLive extends ThunderdRPC {
   }
 
   @override
-  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
+  Future<String> withdraw(
+    String address,
+    int amountSats,
+    int sidechainFeeSats,
+    int mainchainFeeSats,
+  ) async {
     final response = await _client.withdraw(
       WithdrawRequest(
         address: address,
@@ -223,7 +233,11 @@ class ThunderdLive extends ThunderdRPC {
   }
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) async {
     final response = await _client.transfer(
       TransferRequest(
         address: address,
@@ -236,12 +250,18 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<double> getSidechainWealth() async {
-    final response = await _client.getSidechainWealth(GetSidechainWealthRequest());
+    final response = await _client.getSidechainWealth(
+      GetSidechainWealthRequest(),
+    );
     return satoshiToBTC(response.sats.toInt());
   }
 
   @override
-  Future<String> createDeposit(String address, double amount, double fee) async {
+  Future<String> createDeposit(
+    String address,
+    double amount,
+    double fee,
+  ) async {
     final response = await _client.createDeposit(
       CreateDepositRequest(
         address: address,
@@ -254,7 +274,9 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
-    final response = await _client.getPendingWithdrawalBundle(GetPendingWithdrawalBundleRequest());
+    final response = await _client.getPendingWithdrawalBundle(
+      GetPendingWithdrawalBundleRequest(),
+    );
     if (response.bundleJson.isEmpty) return null;
     final json = jsonDecode(response.bundleJson) as Map<String, dynamic>;
     return PendingWithdrawalBundle.fromJson(json);
@@ -289,21 +311,27 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<String?> getBestMainchainBlockHash() async {
-    final response = await _client.getBestMainchainBlockHash(GetBestMainchainBlockHashRequest());
+    final response = await _client.getBestMainchainBlockHash(
+      GetBestMainchainBlockHashRequest(),
+    );
     if (response.hash.isEmpty) return null;
     return response.hash;
   }
 
   @override
   Future<String?> getBestSidechainBlockHash() async {
-    final response = await _client.getBestSidechainBlockHash(GetBestSidechainBlockHashRequest());
+    final response = await _client.getBestSidechainBlockHash(
+      GetBestSidechainBlockHashRequest(),
+    );
     if (response.hash.isEmpty) return null;
     return response.hash;
   }
 
   @override
   Future<String> getBMMInclusions(String blockHash) async {
-    final response = await _client.getBmmInclusions(GetBmmInclusionsRequest(blockHash: blockHash));
+    final response = await _client.getBmmInclusions(
+      GetBmmInclusionsRequest(blockHash: blockHash),
+    );
     return response.inclusions;
   }
 
@@ -345,7 +373,9 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
-    await _client.setSeedFromMnemonic(SetSeedFromMnemonicRequest(mnemonic: mnemonic));
+    await _client.setSeedFromMnemonic(
+      SetSeedFromMnemonicRequest(mnemonic: mnemonic),
+    );
   }
 
   // Wallet Manager RPCs
@@ -372,7 +402,9 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<void> walletUnlock(String password) async {
-    await _walletClient.unlockWallet(wmpb.UnlockWalletRequest(password: password));
+    await _walletClient.unlockWallet(
+      wmpb.UnlockWalletRequest(password: password),
+    );
   }
 
   @override
@@ -382,19 +414,29 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<void> walletEncrypt(String password) async {
-    await _walletClient.encryptWallet(wmpb.EncryptWalletRequest(password: password));
+    await _walletClient.encryptWallet(
+      wmpb.EncryptWalletRequest(password: password),
+    );
   }
 
   @override
-  Future<void> walletChangePassword(String oldPassword, String newPassword) async {
+  Future<void> walletChangePassword(
+    String oldPassword,
+    String newPassword,
+  ) async {
     await _walletClient.changePassword(
-      wmpb.ChangePasswordRequest(oldPassword: oldPassword, newPassword: newPassword),
+      wmpb.ChangePasswordRequest(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      ),
     );
   }
 
   @override
   Future<void> walletRemoveEncryption(String password) async {
-    await _walletClient.removeEncryption(wmpb.RemoveEncryptionRequest(password: password));
+    await _walletClient.removeEncryption(
+      wmpb.RemoveEncryptionRequest(password: password),
+    );
   }
 
   @override
@@ -404,19 +446,31 @@ class ThunderdLive extends ThunderdRPC {
 
   @override
   Future<void> walletSwitch(String walletId) async {
-    await _walletClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
+    await _walletClient.switchWallet(
+      wmpb.SwitchWalletRequest(walletId: walletId),
+    );
   }
 
   @override
-  Future<void> walletUpdateMetadata(String walletId, String name, String gradientJson) async {
+  Future<void> walletUpdateMetadata(
+    String walletId,
+    String name,
+    String gradientJson,
+  ) async {
     await _walletClient.updateWalletMetadata(
-      wmpb.UpdateWalletMetadataRequest(walletId: walletId, name: name, gradientJson: gradientJson),
+      wmpb.UpdateWalletMetadataRequest(
+        walletId: walletId,
+        name: name,
+        gradientJson: gradientJson,
+      ),
     );
   }
 
   @override
   Future<void> walletDelete(String walletId) async {
-    await _walletClient.deleteWallet(wmpb.DeleteWalletRequest(walletId: walletId));
+    await _walletClient.deleteWallet(
+      wmpb.DeleteWalletRequest(walletId: walletId),
+    );
   }
 
   @override

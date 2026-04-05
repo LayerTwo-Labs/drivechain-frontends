@@ -24,8 +24,6 @@ class BitcoinUnitSetting extends SettingValue<BitcoinUnit> {
 
   @override
   SettingValue<BitcoinUnit> withValue([BitcoinUnit? value]) {
-    return BitcoinUnitSetting(
-      newValue: value,
-    );
+    return BitcoinUnitSetting(newValue: value);
   }
 }

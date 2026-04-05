@@ -83,7 +83,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
   FrontendBitcoinConfProvider._create(this.router);
 
   // Async factory
-  static Future<FrontendBitcoinConfProvider> create(RootStackRouter router) async {
+  static Future<FrontendBitcoinConfProvider> create(
+    RootStackRouter router,
+  ) async {
     final instance = FrontendBitcoinConfProvider._create(router);
     await instance.loadConfig(isFirst: true);
     instance._setupBitWindowWatcher();
@@ -142,7 +144,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
 
       // Determine if current config is forknet (chain=main + drivechain=1)
       final chainSetting = config.getSetting('chain')?.toLowerCase();
-      final drivechainSetting = config.getEffectiveSetting('drivechain', 'main');
+      final drivechainSetting = config.getEffectiveSetting(
+        'drivechain',
+        'main',
+      );
       final isForknet = (chainSetting == 'main' || chainSetting == 'mainnet') && drivechainSetting == '1';
 
       // Run migrations - forknet data only applies to [main] if currently on forknet
@@ -156,7 +161,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
         content = config.serialize();
         try {
           await bitwindowFile.writeAsString(content);
-          log.i('Migrated bitwindow-bitcoin.conf (version $bitcoinConfMigrationsVersion, isForknet: $isForknet)');
+          log.i(
+            'Migrated bitwindow-bitcoin.conf (version $bitcoinConfMigrationsVersion, isForknet: $isForknet)',
+          );
         } catch (e) {
           log.e('Failed to write migrated config: $e');
         }
@@ -179,7 +186,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
   /// Migrate bitwindow-forknet.conf with forknet-specific data from migrations.
   Future<void> _migrateForknetConfig() async {
     try {
-      final confPath = _getMainSectionPath(BitcoinNetwork.BITCOIN_NETWORK_FORKNET);
+      final confPath = _getMainSectionPath(
+        BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+      );
       final file = File(confPath);
 
       ForknetConfig forknetConfig;
@@ -189,7 +198,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
       } else {
         forknetConfig = ForknetConfig();
         // Apply defaults for new forknet config
-        forknetConfig.settings.addAll(_getDefaultMainSection(BitcoinNetwork.BITCOIN_NETWORK_FORKNET));
+        forknetConfig.settings.addAll(
+          _getDefaultMainSection(BitcoinNetwork.BITCOIN_NETWORK_FORKNET),
+        );
       }
 
       final migrated = runForknetConfMigrations(
@@ -201,7 +212,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
       if (migrated) {
         await file.parent.create(recursive: true);
         await file.writeAsString(forknetConfig.serialize());
-        log.i('Migrated bitwindow-forknet.conf (version $bitcoinConfMigrationsVersion)');
+        log.i(
+          'Migrated bitwindow-forknet.conf (version $bitcoinConfMigrationsVersion)',
+        );
       }
     } catch (e) {
       log.e('Failed to migrate forknet config: $e');
@@ -211,7 +224,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
   /// Migrate bitwindow-mainnet.conf with mainnet-specific data from migrations.
   Future<void> _migrateMainnetConfig() async {
     try {
-      final confPath = _getMainSectionPath(BitcoinNetwork.BITCOIN_NETWORK_MAINNET);
+      final confPath = _getMainSectionPath(
+        BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
+      );
       final file = File(confPath);
 
       MainnetConfig mainnetConfig;
@@ -221,7 +236,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
       } else {
         mainnetConfig = MainnetConfig();
         // Apply defaults for new mainnet config
-        mainnetConfig.settings.addAll(_getDefaultMainSection(BitcoinNetwork.BITCOIN_NETWORK_MAINNET));
+        mainnetConfig.settings.addAll(
+          _getDefaultMainSection(BitcoinNetwork.BITCOIN_NETWORK_MAINNET),
+        );
       }
 
       final migrated = runMainnetConfMigrations(
@@ -233,7 +250,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
       if (migrated) {
         await file.parent.create(recursive: true);
         await file.writeAsString(mainnetConfig.serialize());
-        log.i('Migrated bitwindow-mainnet.conf (version $bitcoinConfMigrationsVersion)');
+        log.i(
+          'Migrated bitwindow-mainnet.conf (version $bitcoinConfMigrationsVersion)',
+        );
       }
     } catch (e) {
       log.e('Failed to migrate mainnet config: $e');
@@ -264,7 +283,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
   }
 
   /// Handle network change: load saved settings, write config, restart services
-  Future<void> _handleNetworkChangeIfNeeded(BitcoinNetwork oldNetwork, bool isFirst) async {
+  Future<void> _handleNetworkChangeIfNeeded(
+    BitcoinNetwork oldNetwork,
+    bool isFirst,
+  ) async {
     final networkChanged = !isFirst && oldNetwork != network;
     if (!networkChanged) return;
 
@@ -328,7 +350,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
       switch (chainSetting.toLowerCase()) {
         case 'main':
         case 'mainnet':
-          final drivechainSetting = currentConfig!.getEffectiveSetting('drivechain', 'main');
+          final drivechainSetting = currentConfig!.getEffectiveSetting(
+            'drivechain',
+            'main',
+          );
           return drivechainSetting == '1'
               ? BitcoinNetwork.BITCOIN_NETWORK_FORKNET
               : BitcoinNetwork.BITCOIN_NETWORK_MAINNET;
@@ -353,7 +378,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
   }
 
   @override
-  Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork) async {
+  Future<void> swapNetwork(
+    BuildContext context,
+    BitcoinNetwork newNetwork,
+  ) async {
     if (hasPrivateBitcoinConf) {
       log.w('Cannot swap network - controlled by user bitcoin.conf');
       return;
@@ -367,7 +395,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
       if (!hasDatadir) {
         // Show datadir setup page with pending network - don't change network yet
         // Network change will be committed when user saves the datadir
-        final result = await router.push(DataDirSetupRoute(network: newNetwork));
+        final result = await router.push(
+          DataDirSetupRoute(network: newNetwork),
+        );
         if (result != true) {
           // User cancelled - don't change network
           log.i('User cancelled datadir setup, not switching to $newNetwork');
@@ -442,7 +472,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
 
     // Restart all services (datadir guard will block if needed)
     log.i('Starting services for network: $network');
-    final bitwindowBinary = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
+    final bitwindowBinary = binaryProvider.binaries.firstWhere(
+      (b) => b is BitWindow,
+    );
     await binaryProvider.startWithEnforcer(
       bitwindowBinary,
       bootExtraBinaryImmediately: true,
@@ -455,7 +487,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
 
   /// Update datadir for the specified network section (or current network if not specified)
   @override
-  Future<void> updateDataDir(String? dataDir, {BitcoinNetwork? forNetwork}) async {
+  Future<void> updateDataDir(
+    String? dataDir, {
+    BitcoinNetwork? forNetwork,
+  }) async {
     if (hasPrivateBitcoinConf) {
       log.w('Cannot update datadir - controlled by your private bitcoin.conf');
       return;
@@ -540,7 +575,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
     }
 
     // Use master config file in BitWindow directory (source of truth)
-    return (hasPrivateConf: false, path: path.join(BitWindow().rootDir(), kBitwindowBitcoinConfFilename));
+    return (
+      hasPrivateConf: false,
+      path: path.join(BitWindow().rootDir(), kBitwindowBitcoinConfFilename),
+    );
   }
 
   /// Get the path to the config file in BitWindow directory (source of truth)
@@ -550,7 +588,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
 
   /// Get the path where config should be copied for Bitcoin Core to find
   String _getDownstreamConfigPath() {
-    return path.join(BitcoinCore().rootDirNetwork(network), kBitwindowBitcoinConfFilename);
+    return path.join(
+      BitcoinCore().rootDirNetwork(network),
+      kBitwindowBitcoinConfFilename,
+    );
   }
 
   /// Copy config from BitWindow directory to downstream location (Drivechain or Bitcoin dir)
@@ -562,7 +603,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
 
       final sourceFile = File(sourcePath);
       if (!await sourceFile.exists()) {
-        log.w('Cannot copy downstream - source file does not exist: $sourcePath');
+        log.w(
+          'Cannot copy downstream - source file does not exist: $sourcePath',
+        );
         return;
       }
 
@@ -596,7 +639,10 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
     if (currentConfig == null) return;
 
     network = _getNetwork();
-    detectedDataDir = currentConfig!.getEffectiveSetting('datadir', network.toCoreNetwork());
+    detectedDataDir = currentConfig!.getEffectiveSetting(
+      'datadir',
+      network.toCoreNetwork(),
+    );
 
     // Ensure datadir exists - Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't
     if (detectedDataDir != null && detectedDataDir!.isNotEmpty) {
@@ -615,7 +661,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
       }
 
       _bitWindowWatcher = bitWindowDir
-          .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
+          .watch(
+            events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete,
+          )
           .where((event) => event.path.endsWith(kBitwindowBitcoinConfFilename))
           .listen(_handleBitWindowConfigChange);
 
@@ -661,7 +709,9 @@ class FrontendBitcoinConfProvider extends BitcoinConfProvider {
 
     // Real mainnet gets minimal standard Bitcoin Core config
     if (effectiveNetwork == BitcoinNetwork.BITCOIN_NETWORK_MAINNET) {
-      final mainnetDatadir = BitcoinCore().rootDirNetwork(BitcoinNetwork.BITCOIN_NETWORK_MAINNET);
+      final mainnetDatadir = BitcoinCore().rootDirNetwork(
+        BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
+      );
       return '''# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
@@ -780,7 +830,9 @@ $mainSection
     try {
       final mainchainRPC = GetIt.I.get<MainchainRPC>();
       mainchainRPC.updateConf(newConf);
-      log.i('Updated MainchainRPC configuration: ${newConf.host}:${newConf.port}');
+      log.i(
+        'Updated MainchainRPC configuration: ${newConf.host}:${newConf.port}',
+      );
 
       // Also update the Binary's port to keep it in sync
       try {
@@ -897,7 +949,9 @@ $mainSection
       if (!await file.exists()) {
         log.i('No saved [main] section for $network, using defaults');
         // Apply default settings for this network (file watcher will save it)
-        currentConfig!.networkSettings['main'] = _getDefaultMainSection(network);
+        currentConfig!.networkSettings['main'] = _getDefaultMainSection(
+          network,
+        );
         return;
       }
 
@@ -905,11 +959,15 @@ $mainSection
 
       if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
         final forknetConfig = ForknetConfig.parse(content);
-        currentConfig!.networkSettings['main'] = Map<String, String>.from(forknetConfig.settings);
+        currentConfig!.networkSettings['main'] = Map<String, String>.from(
+          forknetConfig.settings,
+        );
       } else {
         // Mainnet
         final mainnetConfig = MainnetConfig.parse(content);
-        currentConfig!.networkSettings['main'] = Map<String, String>.from(mainnetConfig.settings);
+        currentConfig!.networkSettings['main'] = Map<String, String>.from(
+          mainnetConfig.settings,
+        );
       }
 
       log.i('Loaded [main] section for $network from $confPath');

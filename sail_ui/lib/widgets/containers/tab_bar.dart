@@ -53,7 +53,9 @@ class InlineTabBarState extends State<InlineTabBar> {
       });
       widget.onTabChanged?.call(index);
     } else {
-      throw Exception('Index out of bounds: index=$index, tabs.length=${widget.tabs.length}');
+      throw Exception(
+        'Index out of bounds: index=$index, tabs.length=${widget.tabs.length}',
+      );
     }
   }
 
@@ -92,14 +94,22 @@ class InlineTabBarState extends State<InlineTabBar> {
                       return MenuAnchor(
                         controller: _menuControllers[tab.title]!,
                         style: MenuStyle(
-                          backgroundColor: WidgetStatePropertyAll(context.sailTheme.colors.backgroundSecondary),
-                          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-                          shadowColor: const WidgetStatePropertyAll(Colors.black26),
+                          backgroundColor: WidgetStatePropertyAll(
+                            context.sailTheme.colors.backgroundSecondary,
+                          ),
+                          padding: const WidgetStatePropertyAll(
+                            EdgeInsets.zero,
+                          ),
+                          shadowColor: const WidgetStatePropertyAll(
+                            Colors.black26,
+                          ),
                           elevation: const WidgetStatePropertyAll(4),
                           shape: WidgetStatePropertyAll(
                             RoundedRectangleBorder(
                               borderRadius: SailStyleValues.borderRadius,
-                              side: BorderSide(color: context.sailTheme.colors.border),
+                              side: BorderSide(
+                                color: context.sailTheme.colors.border,
+                              ),
                             ),
                           ),
                         ),
@@ -172,7 +182,9 @@ class InlineTabBarState extends State<InlineTabBar> {
           child: () {
             final tab = widget.tabs[_selectedIndex];
             if (tab is MultiSelectTabItem && _selectedSubItem != null) {
-              final selectedItem = tab.items.firstWhere((item) => item.label == _selectedSubItem);
+              final selectedItem = tab.items.firstWhere(
+                (item) => item.label == _selectedSubItem,
+              );
               return selectedItem.child;
             }
             return tab.child;
@@ -209,7 +221,10 @@ class _TabItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04, horizontal: SailStyleValues.padding12),
+        padding: const EdgeInsets.symmetric(
+          vertical: SailStyleValues.padding04,
+          horizontal: SailStyleValues.padding12,
+        ),
         decoration: BoxDecoration(
           color: isSelected
               ? (secondary ? context.sailTheme.colors.background : context.sailTheme.colors.backgroundSecondary)
@@ -252,7 +267,13 @@ class _TabItem extends StatelessWidget {
 }
 
 class SingleTabItem extends TabItem {
-  const SingleTabItem({required super.label, required super.child, super.onTap, super.icon, super.onIconTap});
+  const SingleTabItem({
+    required super.label,
+    required super.child,
+    super.onTap,
+    super.icon,
+    super.onIconTap,
+  });
 }
 
 class MultiSelectTabItem extends TabItem {
@@ -272,5 +293,11 @@ class TabItem {
   final VoidCallback? onTap;
   final SailSVGAsset? icon;
   final VoidCallback? onIconTap;
-  const TabItem({required this.label, required this.child, this.onTap, this.icon, this.onIconTap});
+  const TabItem({
+    required this.label,
+    required this.child,
+    this.onTap,
+    this.icon,
+    this.onIconTap,
+  });
 }

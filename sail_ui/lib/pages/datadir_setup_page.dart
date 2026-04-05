@@ -12,10 +12,7 @@ class DataDirSetupPage extends StatefulWidget {
   /// The network we're configuring the datadir for.
   final BitcoinNetwork network;
 
-  const DataDirSetupPage({
-    super.key,
-    required this.network,
-  });
+  const DataDirSetupPage({super.key, required this.network});
 
   @override
   State<DataDirSetupPage> createState() => _DataDirSetupPageState();
@@ -77,7 +74,10 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
 
     try {
       // Save the datadir for the target network
-      await _confProvider.updateDataDir(_selectedPath, forNetwork: _targetNetwork);
+      await _confProvider.updateDataDir(
+        _selectedPath,
+        forNetwork: _targetNetwork,
+      );
 
       // sleep for 500 millis because windows file stuff sucks, and we cant await
       await Future.delayed(const Duration(milliseconds: 500));

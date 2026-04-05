@@ -6,14 +6,21 @@ class QtContainer extends StatelessWidget {
   final bool tight;
   final Color? color;
 
-  const QtContainer({super.key, required this.child, this.tight = false, this.color});
+  const QtContainer({
+    super.key,
+    required this.child,
+    this.tight = false,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(0.0),
       decoration: BoxDecoration(
-        border: Border.all(color: context.sailTheme.colors.text.withValues(alpha: 0.21)),
+        border: Border.all(
+          color: context.sailTheme.colors.text.withValues(alpha: 0.21),
+        ),
         color: color,
       ),
       child: child,

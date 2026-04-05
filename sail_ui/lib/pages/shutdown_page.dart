@@ -128,7 +128,12 @@ class _ShutDownPageState extends State<ShutDownPage> {
         child: Stack(
           children: [
             // Centered logo
-            Center(child: SailSVG.fromAsset(SailSVGAsset.layerTwoLabsLogo, height: 71)),
+            Center(
+              child: SailSVG.fromAsset(
+                SailSVGAsset.layerTwoLabsLogo,
+                height: 71,
+              ),
+            ),
 
             // Progress and text overlay
             Positioned(

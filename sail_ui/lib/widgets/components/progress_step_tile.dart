@@ -23,7 +23,12 @@ class ProgressStepTile extends StatelessWidget {
     String timeText = '';
 
     if (isCompleted) {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circleCheck, color: SailColorScheme.green, width: 16, height: 16);
+      iconWidget = SailSVG.fromAsset(
+        SailSVGAsset.circleCheck,
+        color: SailColorScheme.green,
+        width: 16,
+        height: 16,
+      );
       if (duration != null) {
         final d = duration!;
         if (d.inSeconds > 0) {
@@ -42,7 +47,12 @@ class ProgressStepTile extends StatelessWidget {
         ),
       );
     } else {
-      iconWidget = SailSVG.fromAsset(SailSVGAsset.circle, color: theme.colors.textSecondary, width: 16, height: 16);
+      iconWidget = SailSVG.fromAsset(
+        SailSVGAsset.circle,
+        color: theme.colors.textSecondary,
+        width: 16,
+        height: 16,
+      );
     }
 
     return SailRow(
@@ -59,11 +69,7 @@ class ProgressStepTile extends StatelessWidget {
                 : theme.colors.textSecondary,
           ),
         ),
-        if (timeText.isNotEmpty)
-          SailText.secondary12(
-            timeText,
-            color: SailColorScheme.green,
-          ),
+        if (timeText.isNotEmpty) SailText.secondary12(timeText, color: SailColorScheme.green),
       ],
     );
   }

@@ -26,12 +26,27 @@ class OrchestratorRPC {
     return _client.getBinaryStatus(GetBinaryStatusRequest(name: name));
   }
 
-  Stream<DownloadBinaryResponse> downloadBinary(String name, {bool force = false}) {
-    return _client.downloadBinary(DownloadBinaryRequest(name: name, force: force));
+  Stream<DownloadBinaryResponse> downloadBinary(
+    String name, {
+    bool force = false,
+  }) {
+    return _client.downloadBinary(
+      DownloadBinaryRequest(name: name, force: force),
+    );
   }
 
-  Future<StartBinaryResponse> startBinary(String name, {List<String>? extraArgs, Map<String, String>? env}) {
-    return _client.startBinary(StartBinaryRequest(name: name, extraArgs: extraArgs ?? [], env: env ?? {}));
+  Future<StartBinaryResponse> startBinary(
+    String name, {
+    List<String>? extraArgs,
+    Map<String, String>? env,
+  }) {
+    return _client.startBinary(
+      StartBinaryRequest(
+        name: name,
+        extraArgs: extraArgs ?? [],
+        env: env ?? {},
+      ),
+    );
   }
 
   Future<StopBinaryResponse> stopBinary(String name, {bool force = false}) {
@@ -75,11 +90,15 @@ class OrchestratorRPC {
   }
 
   Future<GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo() {
-    return _client.getMainchainBlockchainInfo(GetMainchainBlockchainInfoRequest());
+    return _client.getMainchainBlockchainInfo(
+      GetMainchainBlockchainInfoRequest(),
+    );
   }
 
   Future<GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo() {
-    return _client.getEnforcerBlockchainInfo(GetEnforcerBlockchainInfoRequest());
+    return _client.getEnforcerBlockchainInfo(
+      GetEnforcerBlockchainInfoRequest(),
+    );
   }
 
   Future<GetMainchainBalanceResponse> getMainchainBalance() {

@@ -259,7 +259,10 @@ class BinaryProvider extends ChangeNotifier {
     // Create PID file manager for tracking spawned processes across restarts
     final pidDir = Directory(path.join(appDir.path, 'pids'));
     final pidFileManager = PidFileManager(pidDir: pidDir);
-    final processManager = ProcessManager(appDir: appDir, pidFileManager: pidFileManager);
+    final processManager = ProcessManager(
+      appDir: appDir,
+      pidFileManager: pidFileManager,
+    );
 
     if (Environment.backendManagesBinaries) {
       return BackendBinaryProvider._create(
@@ -289,7 +292,10 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     // Set up periodic release date checks
-    _releaseCheckTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkReleaseDates());
+    _releaseCheckTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _checkReleaseDates(),
+    );
 
     try {
       _setupDirectoryWatcher();
@@ -323,30 +329,27 @@ class BinaryProvider extends ChangeNotifier {
     final newBinaries = configProvider.buildBinaries();
 
     for (final newBinary in newBinaries) {
-      _downloadManager.updateBinary(
-        newBinary.type,
-        (currentBinary) {
-          // Merge: take new static config, preserve runtime state
-          final merged = newBinary.copyWith(
-            metadata: newBinary.metadata.copyWith(
-              remoteTimestamp: currentBinary.metadata.remoteTimestamp,
-              downloadedTimestamp: currentBinary.metadata.downloadedTimestamp,
-              binaryPath: currentBinary.metadata.binaryPath,
-              updateable: currentBinary.metadata.updateable,
-            ),
-            downloadInfo: currentBinary.downloadInfo,
-          );
-          // Preserve runtime startup logs
-          merged.startupLogs = currentBinary.startupLogs;
-          // Merge boot args: keep runtime-added args not in new config
-          for (final arg in currentBinary.extraBootArgs) {
-            if (!merged.extraBootArgs.contains(arg)) {
-              merged.extraBootArgs = [...merged.extraBootArgs, arg];
-            }
+      _downloadManager.updateBinary(newBinary.type, (currentBinary) {
+        // Merge: take new static config, preserve runtime state
+        final merged = newBinary.copyWith(
+          metadata: newBinary.metadata.copyWith(
+            remoteTimestamp: currentBinary.metadata.remoteTimestamp,
+            downloadedTimestamp: currentBinary.metadata.downloadedTimestamp,
+            binaryPath: currentBinary.metadata.binaryPath,
+            updateable: currentBinary.metadata.updateable,
+          ),
+          downloadInfo: currentBinary.downloadInfo,
+        );
+        // Preserve runtime startup logs
+        merged.startupLogs = currentBinary.startupLogs;
+        // Merge boot args: keep runtime-added args not in new config
+        for (final arg in currentBinary.extraBootArgs) {
+          if (!merged.extraBootArgs.contains(arg)) {
+            merged.extraBootArgs = [...merged.extraBootArgs, arg];
           }
-          return merged;
-        },
-      );
+        }
+        return merged;
+      });
     }
   }
 
@@ -362,21 +365,20 @@ class BinaryProvider extends ChangeNotifier {
       final walletReader = GetIt.I.get<WalletReaderProvider>();
       final walletWriter = GetIt.I.get<WalletWriterProvider>();
       await walletWriter.getSidechainStarter(binary.slot);
-      final mnemonicPath = (await walletReader.writeSidechainStarter(binary.slot)).path;
+      final mnemonicPath = (await walletReader.writeSidechainStarter(
+        binary.slot,
+      )).path;
       log.i('mnemonic path: $mnemonicPath');
 
       log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
       binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
-      _downloadManager.updateBinary(
-        binary.type,
-        (currentBinary) {
-          // Don't replace the entire binary! Just update the boot args
-          // The currentBinary has the correct metadata from downloads/watcher
-          final updated = currentBinary as Sidechain;
-          updated.extraBootArgs = binary.extraBootArgs;
-          return updated;
-        },
-      );
+      _downloadManager.updateBinary(binary.type, (currentBinary) {
+        // Don't replace the entire binary! Just update the boot args
+        // The currentBinary has the correct metadata from downloads/watcher
+        final updated = currentBinary as Sidechain;
+        updated.extraBootArgs = binary.extraBootArgs;
+        return updated;
+      });
     }
 
     var rpcConnection = switch (binary) {
@@ -399,7 +401,12 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     await rpcConnection.initBinary((binary, args, cleanup, environment) async {
-      return await _startProcess(binary, args, cleanup, environment: environment);
+      return await _startProcess(
+        binary,
+        args,
+        cleanup,
+        environment: environment,
+      );
     });
   }
 
@@ -416,7 +423,12 @@ class BinaryProvider extends ChangeNotifier {
     String? error;
 
     try {
-      await _processManager.start(binary, args, cleanup, environment: environment);
+      await _processManager.start(
+        binary,
+        args,
+        cleanup,
+        environment: environment,
+      );
 
       final startTime = DateTime.now();
 
@@ -489,9 +501,13 @@ class BinaryProvider extends ChangeNotifier {
 
           // Check if this is a Bitcoin Core reindex error by searching through ALL logs
           if (binary is BitcoinCore && logs != null) {
-            final needsReindex = logs.any((line) => line.contains('Please restart with -reindex'));
+            final needsReindex = logs.any(
+              (line) => line.contains('Please restart with -reindex'),
+            );
             if (needsReindex) {
-              log.w('Bitcoin Core needs reindex, adding -reindex flag for next boot attempt');
+              log.w(
+                'Bitcoin Core needs reindex, adding -reindex flag for next boot attempt',
+              );
 
               // Add -reindex flag for the next boot attempt
               final updatedBinary = binary.copyWith();
@@ -511,7 +527,10 @@ class BinaryProvider extends ChangeNotifier {
 
       return error;
     } catch (err) {
-      log.e('init binaries: could not start ${binary.connectionString}', error: err);
+      log.e(
+        'init binaries: could not start ${binary.connectionString}',
+        error: err,
+      );
       return 'could not boot binary: ${binary.connectionString}: $err';
     } finally {
       notifyListeners();
@@ -564,10 +583,14 @@ class BinaryProvider extends ChangeNotifier {
       // For Bitcoin Core, fallback to PID tracker if process manager doesn't have it
       pidToWaitFor ??= _processManager.pidFileManager.bitcoinCorePid;
       timeout = const Duration(seconds: 30);
-      log.i('Waiting for Bitcoin Core PID ${pidToWaitFor ?? "unknown"} to exit (30s timeout)');
+      log.i(
+        'Waiting for Bitcoin Core PID ${pidToWaitFor ?? "unknown"} to exit (30s timeout)',
+      );
     } else {
       timeout = const Duration(seconds: 10);
-      log.i('Waiting for ${binary.name} PID ${pidToWaitFor ?? "unknown"} to exit (10s timeout)');
+      log.i(
+        'Waiting for ${binary.name} PID ${pidToWaitFor ?? "unknown"} to exit (10s timeout)',
+      );
     }
 
     // Step 3: If we have a PID, wait for it to die
@@ -581,7 +604,9 @@ class BinaryProvider extends ChangeNotifier {
       }
 
       // Still alive after timeout, force kill it
-      log.w('${binary.name} PID $pidToWaitFor still alive after ${timeout.inSeconds}s, force killing');
+      log.w(
+        '${binary.name} PID $pidToWaitFor still alive after ${timeout.inSeconds}s, force killing',
+      );
       await _processManager.killPid(pidToWaitFor);
       // wait for 2 seconds to just... give it some time
       await Future.delayed(const Duration(seconds: 3));
@@ -657,7 +682,10 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Download a binary using the DownloadProvider
   Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
-    await _downloadManager.downloadIfMissing(binary, shouldUpdate: shouldUpdate);
+    await _downloadManager.downloadIfMissing(
+      binary,
+      shouldUpdate: shouldUpdate,
+    );
   }
 
   /// Get download progress for a binary
@@ -784,7 +812,9 @@ class BinaryProvider extends ChangeNotifier {
 
     log.i('[T+0ms] STARTUP: Booting L1 binaries + ${binaryToBoot.name}');
 
-    log.i('[T+${getElapsed()}ms] STARTUP: Ensuring all binaries are downloaded');
+    log.i(
+      '[T+${getElapsed()}ms] STARTUP: Ensuring all binaries are downloaded',
+    );
 
     // Ensure we have all required binaries
     final bitcoinCore = binaries.whereType<BitcoinCore>().first;
@@ -797,10 +827,14 @@ class BinaryProvider extends ChangeNotifier {
       while (true) {
         final dataDir = confProvider.detectedDataDir;
         if (dataDir != null && dataDir.isNotEmpty) {
-          log.i('[T+${getElapsed()}ms] STARTUP: Datadir configured for ${network.name}: $dataDir');
+          log.i(
+            '[T+${getElapsed()}ms] STARTUP: Datadir configured for ${network.name}: $dataDir',
+          );
           break;
         }
-        log.i('[T+${getElapsed()}ms] STARTUP: Waiting for datadir to be configured for ${network.name}');
+        log.i(
+          '[T+${getElapsed()}ms] STARTUP: Waiting for datadir to be configured for ${network.name}',
+        );
         await Future.delayed(const Duration(seconds: 1));
       }
     }
@@ -825,12 +859,16 @@ class BinaryProvider extends ChangeNotifier {
       log.i('[T+${getElapsed()}ms] STARTUP: Waiting for wallet to be unlocked');
       await Future.delayed(const Duration(seconds: 1));
     }
-    log.i('[T+${getElapsed()}ms] STARTUP: Wallet is unlocked, proceeding with enforcer start');
+    log.i(
+      '[T+${getElapsed()}ms] STARTUP: Wallet is unlocked, proceeding with enforcer start',
+    );
 
     // Wait for IBD to complete before starting enforcer
     // The enforcer needs a fully synced chain to function properly
     if (mainchainRPC != null) {
-      log.i('[T+${getElapsed()}ms] STARTUP: Waiting for IBD to complete before starting enforcer');
+      log.i(
+        '[T+${getElapsed()}ms] STARTUP: Waiting for IBD to complete before starting enforcer',
+      );
       await mainchainRPC!.waitForIBD();
       log.i('[T+${getElapsed()}ms] STARTUP: IBD complete, starting enforcer');
     }
@@ -905,14 +943,21 @@ class BinaryProvider extends ChangeNotifier {
 
         // Kill all processes immediately
         for (final process in processesToStop) {
-          log.i('Force-killing ${process.binary.name} (PID: ${process.pid})...');
+          log.i(
+            'Force-killing ${process.binary.name} (PID: ${process.pid})...',
+          );
           await _processManager.killPid(process.pid);
         }
 
         // Animate progress smoothly over 1 second
-        final progressTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+        final progressTimer = Timer.periodic(const Duration(milliseconds: 16), (
+          timer,
+        ) {
           final elapsed = DateTime.now().difference(startTime);
-          final progress = (elapsed.inMilliseconds / animationDuration.inMilliseconds).clamp(0.0, 1.0);
+          final progress = (elapsed.inMilliseconds / animationDuration.inMilliseconds).clamp(
+            0.0,
+            1.0,
+          );
           final animatedCompletedCount = (progress * totalCount).round();
 
           progressController?.add(
@@ -997,7 +1042,9 @@ class BinaryProvider extends ChangeNotifier {
         return;
       }
 
-      log.d('File system event for ${changedBinary.name}: ${event.type} (${event.path})');
+      log.d(
+        'File system event for ${changedBinary.name}: ${event.type} (${event.path})',
+      );
 
       // Get or create lock for this binary
       final lock = _updateLocks.putIfAbsent(changedBinary.type, () => Lock());
@@ -1018,7 +1065,10 @@ class BinaryProvider extends ChangeNotifier {
 
           log.d('Successfully updated metadata for ${changedBinary.name}');
         } catch (e) {
-          log.e('Failed to update metadata for ${changedBinary.name}', error: e);
+          log.e(
+            'Failed to update metadata for ${changedBinary.name}',
+            error: e,
+          );
         }
       });
     });
@@ -1113,9 +1163,14 @@ String _stripFromString(String input, String whatToStrip) {
   return input.substring(startIndex, endIndex + 1);
 }
 
-Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
+Future<List<Binary>> loadBinaryCreationTimestamp(
+  List<Binary> binaries,
+  Directory appDir,
+) async {
   // Update metadata for all binaries in parallel
-  return await Future.wait(binaries.map((binary) => binary.updateMetadata(appDir)));
+  return await Future.wait(
+    binaries.map((binary) => binary.updateMetadata(appDir)),
+  );
 }
 
 Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));
@@ -1159,7 +1214,10 @@ class BackendBinaryProvider extends BinaryProvider {
           _orchestrator.startWithDeps(name, targetArgs: ['--headless']),
         );
       } else {
-        await for (final progress in _orchestrator.startWithDeps(name, targetArgs: ['--headless'])) {
+        await for (final progress in _orchestrator.startWithDeps(
+          name,
+          targetArgs: ['--headless'],
+        )) {
           log.i('${progress.stage}: ${progress.message}');
           if (progress.error.isNotEmpty) {
             log.e('startup error: ${progress.error}');
@@ -1203,7 +1261,10 @@ class BackendBinaryProvider extends BinaryProvider {
     log.i('BackendBinaryProvider: downloading $name via orchestrator');
 
     try {
-      await for (final progress in _orchestrator.downloadBinary(name, force: shouldUpdate)) {
+      await for (final progress in _orchestrator.downloadBinary(
+        name,
+        force: shouldUpdate,
+      )) {
         updateBinary(binary.type, (b) {
           return b.copyWith(
             downloadInfo: DownloadInfo(
@@ -1217,7 +1278,9 @@ class BackendBinaryProvider extends BinaryProvider {
         notifyListeners();
 
         if (progress.error.isNotEmpty) {
-          log.e('BackendBinaryProvider: download error for $name: ${progress.error}');
+          log.e(
+            'BackendBinaryProvider: download error for $name: ${progress.error}',
+          );
           break;
         }
         if (progress.done) break;
@@ -1234,7 +1297,11 @@ class BackendBinaryProvider extends BinaryProvider {
       // Clear download state on error too
       updateBinary(binary.type, (b) {
         return b.copyWith(
-          downloadInfo: DownloadInfo(progress: 0.0, message: e.toString(), isDownloading: false),
+          downloadInfo: DownloadInfo(
+            progress: 0.0,
+            message: e.toString(),
+            isDownloading: false,
+          ),
         );
       });
       notifyListeners();

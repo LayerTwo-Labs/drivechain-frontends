@@ -5,7 +5,11 @@ class QuestionContainer extends StatelessWidget {
   final String category;
   final List<Widget> children;
 
-  const QuestionContainer({super.key, required this.category, required this.children});
+  const QuestionContainer({
+    super.key,
+    required this.category,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +29,9 @@ class QuestionContainer extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
+                      padding: const EdgeInsets.only(
+                        bottom: SailStyleValues.padding32,
+                      ),
                       child: SailColumn(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,

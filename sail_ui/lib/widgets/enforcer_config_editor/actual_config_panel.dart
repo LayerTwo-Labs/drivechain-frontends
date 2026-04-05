@@ -17,23 +17,15 @@ class EnforcerActualConfigPanel extends ViewModelWidget<EnforcerConfigEditorView
           // Header
           Padding(
             padding: const EdgeInsets.all(16),
-            child: SailText.secondary13(
-              'Diff',
-              bold: true,
-            ),
+            child: SailText.secondary13('Diff', bold: true),
           ),
 
-          Container(
-            height: 1,
-            color: theme.colors.divider,
-          ),
+          Container(height: 1, color: theme.colors.divider),
 
           // Diff content
           Expanded(
             child: viewModel.originalConfig == null
-                ? Center(
-                    child: SailText.secondary13('No config file loaded'),
-                  )
+                ? Center(child: SailText.secondary13('No config file loaded'))
                 : _buildDiffView(theme, viewModel),
           ),
         ],
@@ -41,13 +33,14 @@ class EnforcerActualConfigPanel extends ViewModelWidget<EnforcerConfigEditorView
     );
   }
 
-  Widget _buildDiffView(SailThemeData theme, EnforcerConfigEditorViewModel viewModel) {
+  Widget _buildDiffView(
+    SailThemeData theme,
+    EnforcerConfigEditorViewModel viewModel,
+  ) {
     final diff = _getDiffLines(viewModel);
 
     if (diff.isEmpty) {
-      return Center(
-        child: SailText.secondary13('No changes to show'),
-      );
+      return Center(child: SailText.secondary13('No changes to show'));
     }
 
     return Padding(

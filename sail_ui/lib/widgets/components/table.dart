@@ -222,7 +222,10 @@ class _SailTableState extends State<SailTable> {
         Widget rowsContent;
         if (widget.rowCount == 0 && widget.emptyPlaceholder != null) {
           rowsContent = Center(
-            child: SailText.primary15(widget.emptyPlaceholder!, color: theme.colors.textTertiary),
+            child: SailText.primary15(
+              widget.emptyPlaceholder!,
+              color: theme.colors.textTertiary,
+            ),
           );
         } else if (widget.shrinkWrap) {
           rowsContent = Column(
@@ -296,7 +299,9 @@ class _SailTableState extends State<SailTable> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        border: Border(bottom: BorderSide(color: theme.colors.divider)),
+                        border: Border(
+                          bottom: BorderSide(color: theme.colors.divider),
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(children: headerCells),
@@ -361,10 +366,15 @@ class _SailTableState extends State<SailTable> {
 
     if (widget is SailTableCell) {
       text = widget.value;
-      textStyle = SailStyleValues.twelve.copyWith(fontFamily: widget.monospace ? 'IBMPlexMono' : 'Inter');
+      textStyle = SailStyleValues.twelve.copyWith(
+        fontFamily: widget.monospace ? 'IBMPlexMono' : 'Inter',
+      );
     } else if (widget is SailTableHeaderCell) {
       text = widget.name;
-      textStyle = SailStyleValues.twelve.copyWith(fontFamily: 'Inter', fontWeight: SailStyleValues.boldWeight);
+      textStyle = SailStyleValues.twelve.copyWith(
+        fontFamily: 'Inter',
+        fontWeight: SailStyleValues.boldWeight,
+      );
     }
 
     return _calculateTextWidth(text, textStyle ?? SailStyleValues.twelve);
@@ -451,12 +461,18 @@ class _ResizeHandleState extends State<_ResizeHandle> {
           _dragStartX = details.globalPosition.dx;
         },
         onHorizontalDragUpdate: (details) {
-          widget.onDragUpdate(widget.index, details.globalPosition.dx, _dragStartX);
+          widget.onDragUpdate(
+            widget.index,
+            details.globalPosition.dx,
+            _dragStartX,
+          );
         },
         child: Container(
           width: 8,
           decoration: BoxDecoration(
-            border: Border(left: BorderSide(color: context.sailTheme.colors.divider)),
+            border: Border(
+              left: BorderSide(color: context.sailTheme.colors.divider),
+            ),
           ),
           child: Text(''),
         ),
@@ -499,7 +515,12 @@ class _TableRow extends StatefulWidget {
 class _TableRowState extends State<_TableRow> {
   bool isHovered = false;
 
-  void _showContextMenu(BuildContext context, Offset position, String value, String rowId) {
+  void _showContextMenu(
+    BuildContext context,
+    Offset position,
+    String value,
+    String rowId,
+  ) {
     final maxWidth = widget.contextMenuItems?.call(rowId).fold(0, (m, item) => max(m, item.width.toInt())) ?? 200;
 
     showSailMenu(
@@ -541,12 +562,22 @@ class _TableRowState extends State<_TableRow> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onSecondaryTapDown: cellValue != null
-                  ? (details) => _showContextMenu(context, details.globalPosition, cellValue, widget.rowId)
+                  ? (details) => _showContextMenu(
+                      context,
+                      details.globalPosition,
+                      cellValue,
+                      widget.rowId,
+                    )
                   : null,
               child: Container(
                 decoration: widget.grid
                     ? BoxDecoration(
-                        border: Border(right: BorderSide(color: theme.colors.divider, width: 1.0)),
+                        border: Border(
+                          right: BorderSide(
+                            color: theme.colors.divider,
+                            width: 1.0,
+                          ),
+                        ),
                       )
                     : null,
                 width: double.infinity,
@@ -574,14 +605,20 @@ class _TableRowState extends State<_TableRow> {
       contents = DecoratedBox(
         decoration: BoxDecoration(
           color: widget.selected || isHovered ? theme.colors.backgroundSecondary : widget.backgroundColor,
-          border: widget.drawBorder ? Border(bottom: BorderSide(color: theme.colors.divider, width: 1.0)) : null,
+          border: widget.drawBorder
+              ? Border(
+                  bottom: BorderSide(color: theme.colors.divider, width: 1.0),
+                )
+              : null,
         ),
         child: Row(children: cellWidgets),
       );
     } else {
       contents = DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
+          borderRadius: const BorderRadius.all(
+            Radius.circular(SailStyleValues.padding04),
+          ),
           color: widget.selected || isHovered ? theme.colors.backgroundSecondary : widget.backgroundColor,
         ),
         child: Row(children: cellWidgets),
@@ -729,7 +766,10 @@ String formatDate(DateTime date, {bool long = true}) {
     }
   }
 
-  return intl.DateFormat(dateFormat, intl.Intl.getCurrentLocale()).format(date.toLocal());
+  return intl.DateFormat(
+    dateFormat,
+    intl.Intl.getCurrentLocale(),
+  ).format(date.toLocal());
 }
 
 /// Heuristic: Returns true if the locale is likely to use 24-hour time.

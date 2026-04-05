@@ -37,10 +37,7 @@ class _BitcoinConfEditorPageContent extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  SailText.primary24(
-                    'Conf File Configurator',
-                    bold: true,
-                  ),
+                  SailText.primary24('Conf File Configurator', bold: true),
                   Expanded(child: Container()),
                   Row(
                     children: [
@@ -72,16 +69,10 @@ class _BitcoinConfEditorPageContent extends StatelessWidget {
               ),
             ),
 
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: theme.colors.divider,
-            ),
+            Divider(height: 1, thickness: 1, color: theme.colors.divider),
 
             // Three-panel layout
-            Expanded(
-              child: _MainContent(viewModel: viewModel),
-            ),
+            Expanded(child: _MainContent(viewModel: viewModel)),
           ],
         ),
       ),
@@ -124,9 +115,7 @@ class _MainContent extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     if (viewModel.isLoading && viewModel.workingConfig == null) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (viewModel.errorMessage != null) {
@@ -134,13 +123,9 @@ class _MainContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SailText.primary15(
-              'Error loading configuration',
-            ),
+            SailText.primary15('Error loading configuration'),
             const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(
-              viewModel.errorMessage!,
-            ),
+            SailText.secondary13(viewModel.errorMessage!),
             const SailSpacing(SailStyleValues.padding20),
             SailButton(
               label: 'Retry',
@@ -156,32 +141,17 @@ class _MainContent extends StatelessWidget {
     return Row(
       children: [
         // Left panel - Changes
-        Expanded(
-          flex: 1,
-          child: WorkingConfigPanel(),
-        ),
+        Expanded(flex: 1, child: WorkingConfigPanel()),
 
-        Container(
-          width: 1,
-          color: theme.colors.divider,
-        ),
+        Container(width: 1, color: theme.colors.divider),
 
         // Middle panel - Saved File + Any Diff
-        Expanded(
-          flex: 1,
-          child: ActualConfigPanel(),
-        ),
+        Expanded(flex: 1, child: ActualConfigPanel()),
 
-        Container(
-          width: 1,
-          color: theme.colors.divider,
-        ),
+        Container(width: 1, color: theme.colors.divider),
 
         // Right panel - Configurator
-        SizedBox(
-          width: 350,
-          child: ConfiguratorPanel(),
-        ),
+        SizedBox(width: 350, child: ConfiguratorPanel()),
       ],
     );
   }

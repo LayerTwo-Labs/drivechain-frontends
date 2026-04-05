@@ -103,7 +103,10 @@ class FrontendEnforcerConfProvider extends EnforcerConfProvider {
     currentConfig!.setSetting('node-rpc-user', expected['node-rpc-user']!);
     currentConfig!.setSetting('node-rpc-pass', expected['node-rpc-pass']!);
     currentConfig!.setSetting('node-rpc-addr', expected['node-rpc-addr']!);
-    currentConfig!.setSetting('node-zmq-addr-sequence', expected['node-zmq-addr-sequence']!);
+    currentConfig!.setSetting(
+      'node-zmq-addr-sequence',
+      expected['node-zmq-addr-sequence']!,
+    );
 
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = bitcoinConfProvider.network;
@@ -156,7 +159,9 @@ class FrontendEnforcerConfProvider extends EnforcerConfProvider {
           content = config.serialize();
           try {
             await file.writeAsString(content);
-            log.i('Migrated bitwindow-enforcer.conf (version $_kEnforcerConfVersion)');
+            log.i(
+              'Migrated bitwindow-enforcer.conf (version $_kEnforcerConfVersion)',
+            );
           } catch (e) {
             log.e('Failed to write migrated enforcer config: $e');
           }
@@ -184,7 +189,9 @@ class FrontendEnforcerConfProvider extends EnforcerConfProvider {
   @override
   String getDefaultConfig() {
     final nodeRpc = getExpectedNodeRpcSettings();
-    final esploraUrl = getEsploraUrlForNetwork(GetIt.I.get<BitcoinConfProvider>().network);
+    final esploraUrl = getEsploraUrlForNetwork(
+      GetIt.I.get<BitcoinConfProvider>().network,
+    );
 
     return '''$kEnforcerConfVersionCommentPrefix$_kEnforcerConfVersion
 
@@ -292,7 +299,9 @@ ${esploraUrl != null ? 'wallet-esplora-url=$esploraUrl' : '# wallet-esplora-url=
         confDir.createSync(recursive: true);
       }
       _fileWatcher = confDir
-          .watch(events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete)
+          .watch(
+            events: FileSystemEvent.modify | FileSystemEvent.create | FileSystemEvent.delete,
+          )
           .where((event) => event.path.endsWith('bitwindow-enforcer.conf'))
           .listen(_handleFileSystemEvent);
       log.d('Enforcer config file watching enabled for ${confDir.path}');
