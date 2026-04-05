@@ -662,11 +662,20 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		t.Logf("funded zero-conf cheque with tx: %s (unmined)", sendResp2.Msg.Txid)
 
 		// CheckChequeFunding → funded but unconfirmed.
-		fundingResp3, err := serverA.CheckChequeFunding(ctx, connect.NewRequest(&walletpb.CheckChequeFundingRequest{
-			WalletId: enforcerID,
-			Id:       chequeID2,
-		}))
-		require.NoError(t, err)
+		// Poll for unconfirmed funding — Bitcoin Core may take a moment to
+		// index the unconfirmed UTXO in the watch wallet (especially on Windows).
+		var fundingResp3 *connect.Response[walletpb.CheckChequeFundingResponse]
+		for i := 0; i < 10; i++ {
+			fundingResp3, err = serverA.CheckChequeFunding(ctx, connect.NewRequest(&walletpb.CheckChequeFundingRequest{
+				WalletId: enforcerID,
+				Id:       chequeID2,
+			}))
+			require.NoError(t, err)
+			if fundingResp3.Msg.Funded {
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
 		require.True(t, fundingResp3.Msg.Funded, "zero-conf cheque should be funded")
 		require.Equal(t, uint32(0), fundingResp3.Msg.MinConfirmations, "zero-conf cheque should have 0 confirmations")
 		t.Logf("zero-conf cheque funded: %d sats, min_confirmations=%d",
