@@ -1,0 +1,63 @@
+name: BitNames schema snapshot
+
+on:
+  pull_request:
+    paths:
+      - "sidechain-orchestrator/sidechain/bitnames/**"
+      - ".github/workflows/bitnames-schema.yml"
+
+env:
+  GO_VERSION: "1.25"
+  BITNAMES_PORT: 6002
+
+jobs:
+  schema-validate:
+    name: validate openapi_schema snapshot
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # ---------------------------------------------------------------
+      # Download the BitNames binary from releases.drivechain.info.
+      # If the download or startup fails the job fails explicitly —
+      # we never silently skip validation.
+      # ---------------------------------------------------------------
+      - name: Download BitNames binary
+        run: |
+          set -euo pipefail
+          url="https://releases.drivechain.info/bitnames-latest-x86_64-unknown-linux-gnu.zip"
+          echo "Downloading $url"
+          curl -fSL --retry 3 "$url" -o bitnames.zip
+          unzip -o bitnames.zip
+          chmod +x bitnames || chmod +x plain_bitnames || true
+          # The binary may be named plain_bitnames or bitnames
+          BINARY=$(ls bitnames plain_bitnames 2>/dev/null | head -1)
+          echo "BITNAMES_BIN=$PWD/$BINARY" >> "$GITHUB_ENV"
+
+      - name: Start BitNames node
+        run: |
+          set -euo pipefail
+          "$BITNAMES_BIN" --headless --port "$BITNAMES_PORT" &
+          echo "Waiting for BitNames RPC to become ready..."
+          for i in $(seq 1 30); do
+            if curl -s -X POST -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","id":"probe","method":"getblockcount","params":null}' \
+              "http://127.0.0.1:${BITNAMES_PORT}" | grep -q '"result"'; then
+              echo "BitNames RPC ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::BitNames node did not become ready within 30s"
+          exit 1
+
+      - name: Validate schema snapshot
+        working-directory: sidechain-orchestrator
+        env:
+          BITNAMES_SCHEMA_VALIDATE: "1"
+          BITNAMES_RPC_PORT: ${{ env.BITNAMES_PORT }}
+        run: go test -v -run TestSchemaSnapshot ./sidechain/bitnames/
