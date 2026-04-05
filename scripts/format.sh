@@ -5,8 +5,19 @@ DIRS=(bitwindow bitassets bitnames sail_ui thunder zside photon truthcoin coinsh
 
 has_cmd() { command -v "$1" &>/dev/null; }
 
-# Phase 1: dart fix --apply (parallel per dir)
-if has_cmd dart; then
+# Ensure Flutter's dart is used for Flutter projects
+export PATH="/opt/homebrew/share/flutter/bin:$PATH"
+
+# Phase 1: fix (parallel per dir)
+if has_cmd flutter; then
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      (cd "$dir" && flutter pub get > /dev/null 2>&1 && dart fix --apply) &
+    fi
+  done
+  wait
+elif has_cmd dart; then
+  echo "warning: using dart fix without flutter context" >&2
   for dir in "${DIRS[@]}"; do
     if [ -d "$dir" ]; then
       (cd "$dir" && dart fix --apply) &
@@ -14,7 +25,7 @@ if has_cmd dart; then
   done
   wait
 else
-  echo "warning: dart not found, skipping dart fix" >&2
+  echo "warning: neither flutter nor dart found, skipping fix" >&2
 fi
 
 # Phase 2: golangci-lint on Go server dirs (sequential to avoid parallel runner conflicts)
@@ -28,8 +39,16 @@ else
   echo "warning: golangci-lint not found, skipping Go lints" >&2
 fi
 
-# Phase 3: dart analyze (parallel per dir)
-if has_cmd dart; then
+# Phase 3: analyze (parallel per dir)
+if has_cmd flutter; then
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      (cd "$dir" && flutter analyze) &
+    fi
+  done
+  wait
+elif has_cmd dart; then
+  echo "warning: using dart analyze instead of flutter analyze" >&2
   for dir in "${DIRS[@]}"; do
     if [ -d "$dir" ]; then
       (cd "$dir" && dart analyze) &
