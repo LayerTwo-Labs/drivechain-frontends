@@ -16,3 +16,6 @@ for dir in thunder bitnames bitassets zside bitassets photon truthcoin bitwindow
 done
 
 wait
+
+cd sail_ui
+flutter pub get

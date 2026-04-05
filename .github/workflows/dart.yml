@@ -23,8 +23,10 @@ jobs:
   format-lint-test:
     name: ${{ matrix.package }}
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         package:
           - sail_ui
@@ -48,6 +50,17 @@ jobs:
         if: matrix.package == 'sail_ui'
         run: ../scripts/check-migrations.sh
 
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.flutter
+            ~/.pub-cache
+          key: flutter-${{ env.FLUTTER_VERSION }}-${{ env.DART_VERSION }}-${{ runner.os }}
+          restore-keys: |
+            flutter-${{ env.FLUTTER_VERSION }}-${{ env.DART_VERSION }}-
+            flutter-${{ env.FLUTTER_VERSION }}-
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -56,6 +69,16 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ env.DART_VERSION }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ matrix.package }}/.dart_tool
+            ${{ matrix.package }}/build
+          key: dart-deps-${{ matrix.package }}-${{ hashFiles(format('{0}/pubspec.lock', matrix.package)) }}
+          restore-keys: |
+            dart-deps-${{ matrix.package }}-
 
         # https://docs.flutter.dev/platform-integration/linux/building
       - name: Install Linux build dependencies
