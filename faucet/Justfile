@@ -16,8 +16,9 @@ run-client:
     bun dev 
 
 run-client-prod: 
-    env NEXT_PUBLIC_API_BASE_URL=https://node.drivechain.info/api \
-        API_BASE_URL=https://node.drivechain.info/api \
+    env NEXT_PUBLIC_API_BASE_URL=https://node.signet.drivechain.info/api \
+        NEXT_PUBLIC_API_CLIENT_BASE_URL=https://node.signet.drivechain.info/api \
+        API_BASE_URL=https://node.signet.drivechain.info/api \
         bun dev
 
 run:

@@ -25,13 +25,21 @@ export function exampleAddressForNetwork(): string {
   }
 }
 
-export function blockExplorerUrl(txid: string): string {
+function blockExplorerBase(): string {
   switch (instanceNetwork()) {
     case "signet":
-      return `https://explorer.drivechain.info/tx/${txid}`;
+      return "https://explorer.drivechain.info";
     case "forknet":
-      return `https://explorer.forknet.drivechain.info/tx/${txid}`;
+      return "https://explorer.forknet.drivechain.info";
     default:
       throw new Error(`No block explorer URL for network: ${instanceNetwork()}`);
   }
+}
+
+export function blockExplorerUrl(txid: string): string {
+  return `${blockExplorerBase()}/tx/${txid}`;
+}
+
+export function blockExplorerBlockUrl(blockHash: string): string {
+  return `${blockExplorerBase()}/block/${blockHash}`;
 }

@@ -27,8 +27,8 @@ export function Navbar() {
           <NavLink href="/" active={pathname === "/"}>
             Faucet
           </NavLink>
-          <NavLink href="/explorer" active={pathname?.startsWith("/explorer")}>
-            Explorer
+          <NavLink href="/sidechains" active={pathname?.startsWith("/sidechains")}>
+            Sidechains
           </NavLink>
           <NavLink href="https://drivechain.info/">Info</NavLink>
           <NavLink href="https://www.drivechain.info/dev.txt">Dev</NavLink>

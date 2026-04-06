@@ -1,6 +1,7 @@
 "use client";
 
 import * as pb from "@bufbuild/protobuf";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { createClient } from "@connectrpc/connect";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import { format, formatDistanceToNow } from "date-fns";
@@ -18,6 +19,7 @@ import {
 import { timestampToDate } from "@/lib/api";
 import { clientTransport } from "@/lib/client-api";
 import { useInterval } from "@/lib/use-interval";
+import { blockExplorerBlockUrl } from "@/lib/utils";
 
 interface ExplorerClientProps {
   // We accept any here because the initial data might have BigInts converted to strings
@@ -70,11 +72,14 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
         </span>
       </div>
 
+      {data?.mainchain?.timestamp && <BlockTime timestamp={data.mainchain.timestamp} />}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <BlockCard
           title="Mainchain"
           subtitle="Most recent block on the mainchain"
           block={data?.mainchain}
+          explorerUrl={blockExplorerBlockUrl}
         />
         <BlockCard
           title="Thunder"
@@ -132,28 +137,80 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
   );
 }
 
+function MempoolIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 125 126"
+      fill="none"
+      role="img"
+      aria-label="Block explorer"
+    >
+      <path
+        d="M124.706 110.25C124.706 118.849 117.772 125.791 109.183 125.791H15.5236C6.93387 125.791 0 118.849 0 110.25V16.4837C0 7.88416 6.98561 0.942383 15.5236 0.942383H109.183C117.772 0.942383 124.706 7.88416 124.706 16.4837V110.25Z"
+        fill="#2E3349"
+      />
+      <path
+        d="M0 63.5225V110.25C0 118.849 6.98561 125.791 15.5753 125.791H109.183C117.772 125.791 124.758 118.849 124.758 110.25V63.5225H0Z"
+        fill="url(#mempoolGrad)"
+      />
+      <path
+        opacity="0.3"
+        d="M109.909 109.11C109.909 111.026 108.615 112.581 107.011 112.581H90.8665C89.2624 112.581 87.9688 111.026 87.9688 109.11V17.6232C87.9688 15.7065 89.2624 14.1523 90.8665 14.1523H107.011C108.615 14.1523 109.909 15.7065 109.909 17.6232V109.11Z"
+        fill="white"
+      />
+      <defs>
+        <linearGradient
+          id="mempoolGrad"
+          x1="62.38"
+          y1="36.39"
+          x2="62.38"
+          y2="156.84"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#AE61FF" />
+          <stop offset="1" stopColor="#13EFD8" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 function BlockCard({
   title,
   subtitle,
   block,
   repoUrl,
+  explorerUrl,
 }: {
   title: string;
   subtitle: string;
   block?: ChainTip;
   repoUrl?: string;
+  explorerUrl?: (hash: string) => string;
 }) {
+  const icons = (
+    <>
+      {repoUrl && (
+        <a href={repoUrl} target="_blank" rel="noopener">
+          <SiGithub className="h-4 w-4 fill-current" />
+        </a>
+      )}
+      {explorerUrl && block?.hash && (
+        <a href={explorerUrl(block.hash)} target="_blank" rel="noopener">
+          <MempoolIcon className="h-4 w-4" />
+        </a>
+      )}
+    </>
+  );
+
   if (!block?.height) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             {title}
-            {repoUrl && (
-              <a href={repoUrl} target="_blank" rel="noopener">
-                <SiGithub className="h-4 w-4 fill-current" />
-              </a>
-            )}
+            {icons}
           </CardTitle>
           <CardDescription className="text-xs">{subtitle}</CardDescription>
         </CardHeader>
@@ -164,34 +221,34 @@ function BlockCard({
     );
   }
 
-  // timestampToDate expects Timestamp object.
-  // If block.timestamp is from initialData (sanitized), seconds might be string.
-  // Cast to any to allow safe conversion.
-  // biome-ignore lint/suspicious/noExplicitAny: it's OK
-  const blockTime = timestampToDate(block.timestamp as any);
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           {title}
-          {repoUrl && (
-            <a href={repoUrl} target="_blank" rel="noopener">
-              <SiGithub className="h-4 w-4 fill-current" />
-            </a>
-          )}
+          {icons}
         </CardTitle>
         <CardDescription className="text-xs">{subtitle}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
         <div className="text-sm">Height: {block.height.toString()}</div>
         <CopyHash hash={block.hash} />
-        <div className="text-sm">Time: {format(blockTime, "yyyy-MM-dd HH:mm:ss")}</div>
-        <div className="text-sm font-bold text-orange-500">
-          {formatDistanceToNow(blockTime, { addSuffix: true })}
-        </div>
       </CardContent>
     </Card>
+  );
+}
+
+function BlockTime({ timestamp }: { timestamp: Timestamp }) {
+  // biome-ignore lint/suspicious/noExplicitAny: timestamp seconds may be string from serialized initial data
+  const blockTime = timestampToDate(timestamp as any);
+
+  return (
+    <div className="flex items-baseline gap-3 text-sm text-muted-foreground">
+      <span>Last block: {format(blockTime, "yyyy-MM-dd HH:mm:ss")}</span>
+      <span className="font-bold text-orange-500">
+        {formatDistanceToNow(blockTime, { addSuffix: true })}
+      </span>
+    </div>
   );
 }
 
