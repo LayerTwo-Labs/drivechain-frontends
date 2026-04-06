@@ -86,6 +86,13 @@ func realMain(ctx context.Context) error {
 		coinshiftPassword,
 	)
 
+	var photonUsername, photonPassword string
+	photonClient := jsonrpc.NewClient(
+		conf.PhotonAddress,
+		photonUsername,
+		photonPassword,
+	)
+
 	proxy, err := coreproxy.NewBitcoind(
 		ctx, conf.BitcoinCoreAddress,
 		conf.BitcoinCoreRPCUser, conf.BitcoinCoreRPCPassword,
@@ -110,6 +117,7 @@ func realMain(ctx context.Context) error {
 		BitNames:  bitnamesClient,
 		Zside:     zsideClient,
 		CoinShift: coinshiftClient,
+		Photon:    photonClient,
 	}, validatorConnector)
 
 	zerolog.Ctx(ctx).Info().Msgf("server: listening on %q", conf.Listen)

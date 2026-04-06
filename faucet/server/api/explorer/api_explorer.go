@@ -9,6 +9,7 @@ import (
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
+	"github.com/sourcegraph/conc/pool"
 
 	pb "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1/explorerv1connect"
@@ -23,6 +24,7 @@ type RpcClients struct {
 	BitNames  *jsonrpc.Client
 	Zside     *jsonrpc.Client
 	CoinShift *jsonrpc.Client
+	Photon    *jsonrpc.Client
 }
 
 func New(
@@ -36,6 +38,7 @@ func New(
 		rpcClients.BitNames,
 		rpcClients.Zside,
 		rpcClients.CoinShift,
+		rpcClients.Photon,
 	}
 }
 
@@ -46,6 +49,7 @@ type Server struct {
 	bitnames  *jsonrpc.Client
 	zside     *jsonrpc.Client
 	coinshift *jsonrpc.Client
+	photon    *jsonrpc.Client
 }
 
 func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetChainTipsRequest]) (*connect.Response[pb.GetChainTipsResponse], error) {
@@ -72,49 +76,80 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 	zerolog.Ctx(ctx).
 		Info().Msgf("best mainchain block: %s", bestMainchainBlock.Msg)
 
-	// Don't let this crash us out!
-	thunderTip, err := s.getSidechainTip(ctx, s.thunder, bestMainchainBlock.Msg)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Msgf("failed to get thunder tip: %s", err)
-	}
-
-	bitassetsTip, err := s.getSidechainTip(ctx, s.bitassets, bestMainchainBlock.Msg)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Msgf("failed to get bitassets tip: %s", err)
-	}
-
-	bitnamesTip, err := s.getSidechainTip(ctx, s.bitnames, bestMainchainBlock.Msg)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Msgf("failed to get bitnames tip: %s", err)
-	}
-
-	zsideTip, err := s.getSidechainTip(ctx, s.zside, bestMainchainBlock.Msg)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Msgf("failed to get zside tip: %s", err)
-	}
-
-	coinshiftTip, err := s.getSidechainTip(ctx, s.coinshift, bestMainchainBlock.Msg)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Msgf("failed to get coinshift tip: %s", err)
-	}
-
-	return connect.NewResponse(&pb.GetChainTipsResponse{
+	res := &pb.GetChainTipsResponse{
 		Mainchain: &pb.ChainTip{
 			Height:    uint64(bestMainchainBlock.Msg.Height),
 			Hash:      bestMainchainBlock.Msg.Hash,
 			Timestamp: bestMainchainBlock.Msg.Time,
 		},
-		Thunder:   thunderTip,
-		Bitassets: bitassetsTip,
-		Bitnames:  bitnamesTip,
-		Zside:     zsideTip,
-		Coinshift: coinshiftTip,
-	}), nil
+	}
+	p := pool.New().WithContext(ctx)
+	p.Go(func(ctx context.Context) error {
+		fetched, err := s.getSidechainTip(ctx, s.thunder, bestMainchainBlock.Msg)
+		if err != nil {
+			return fmt.Errorf("get thunder tip: %w", err)
+		}
+		res.Thunder = fetched
+		return nil
+	})
+
+	p.Go(func(ctx context.Context) error {
+		var err error
+		fetched, err := s.getSidechainTip(ctx, s.bitassets, bestMainchainBlock.Msg)
+		if err != nil {
+			return fmt.Errorf("get bitassets tip: %w", err)
+		}
+		res.Bitassets = fetched
+		return nil
+	})
+
+	p.Go(func(ctx context.Context) error {
+		var err error
+		fetched, err := s.getSidechainTip(ctx, s.bitnames, bestMainchainBlock.Msg)
+		if err != nil {
+			return fmt.Errorf("get bitnames tip: %w", err)
+		}
+		res.Bitnames = fetched
+		return nil
+	})
+
+	p.Go(func(ctx context.Context) error {
+		var err error
+		fetched, err := s.getSidechainTip(ctx, s.zside, bestMainchainBlock.Msg)
+		if err != nil {
+			return fmt.Errorf("get zside tip: %w", err)
+		}
+		res.Zside = fetched
+		return nil
+	})
+
+	p.Go(func(ctx context.Context) error {
+		var err error
+		fetched, err := s.getSidechainTip(ctx, s.coinshift, bestMainchainBlock.Msg)
+		if err != nil {
+			return fmt.Errorf("get coinshift tip: %w", err)
+		}
+		res.Coinshift = fetched
+		return nil
+	})
+
+	p.Go(func(ctx context.Context) error {
+		var err error
+		fetched, err := s.getSidechainTip(ctx, s.photon, bestMainchainBlock.Msg)
+		if err != nil {
+			return fmt.Errorf("get photon tip: %w", err)
+		}
+		res.Photon = fetched
+		return nil
+	})
+
+	// Avoid erroring out here. Just log, and continue. Don't want a single bad
+	// sidechain cause the entire request to fail.
+	if err := p.Wait(); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("failed to get sidechain tips")
+	}
+
+	return connect.NewResponse(res), nil
 }
 
 func (s *Server) getSidechainTip(ctx context.Context, sidechain *jsonrpc.Client, bestMainchainBlock *btcpb.GetBlockResponse) (*pb.ChainTip, error) {
