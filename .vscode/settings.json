@@ -28,6 +28,7 @@
     "**/.retool_types/**": true,
     "**/*tsconfig.json": true,
     ".cache": true,
-    "retool.config.json": true
+    "retool.config.json": true,
+    "**/.next": true
   }
 }
