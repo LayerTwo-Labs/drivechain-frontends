@@ -1,0 +1,139 @@
+name: All sidechain schema snapshots
+
+on:
+  pull_request:
+    paths:
+      - "sidechain-orchestrator/sidechain/**"
+      - ".github/workflows/all-schemas.yml"
+
+env:
+  GO_VERSION: "1.25"
+
+jobs:
+  validate-all-schemas:
+    name: validate all openapi_schema snapshots
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: all-schemas-${{ env.GO_VERSION }}-${{ hashFiles('sidechain-orchestrator/go.sum') }}
+          restore-keys: |
+            all-schemas-${{ env.GO_VERSION }}-
+
+      - name: Cache Bitcoin Core, enforcer, and sidechain binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/orchestrator-data
+            ~/.cache/drivechain-binaries
+            ~/.cache/enforcer-binaries
+          key: drivechain-binaries-${{ hashFiles('sidechain-orchestrator/go.sum') }}
+          restore-keys: |
+            drivechain-binaries-
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build orchestrator binaries
+        working-directory: sidechain-orchestrator
+        run: |
+          set -euo pipefail
+          go build -o orchestratorctl ./cmd/orchestratorctl/
+          go build -o orchestratord ./cmd/orchestratord/
+
+      - name: Start orchestrator daemon
+        working-directory: sidechain-orchestrator
+        run: |
+          set -euo pipefail
+          # Start daemon in background
+          ./orchestratord --datadir=/tmp/orchestrator-data &
+          # Wait for daemon to be ready
+          sleep 5
+        env:
+          ORCHESTRATOR_AUTO_DOWNLOAD: "1"
+
+      - name: Download and generate all schemas
+        working-directory: sidechain-orchestrator
+        run: |
+          set -euo pipefail
+          
+          # Array of all sidechains (zside excluded - binary not available)
+          sidechains=(bitassets bitnames coinshift photon thunder truthcoin)
+          
+          for sidechain in "${sidechains[@]}"; do
+            echo "Downloading $sidechain binary..."
+            ./orchestratorctl download "$sidechain"
+            
+            echo "Contents of assets/bin:"
+            ls -la /tmp/orchestrator-data/assets/bin/ || echo "No bin directory yet"
+            
+            # Test binary integrity
+            cli_binary="/tmp/orchestrator-data/assets/bin/${sidechain}-cli"
+            echo "Testing $sidechain-cli binary:"
+            file "$cli_binary" || echo "file command failed"
+            ldd "$cli_binary" | head -5 || echo "ldd failed (static binary?)"
+            "$cli_binary" --version || echo "--version failed"
+            "$cli_binary" --help | head -3 || echo "--help failed"
+            
+            echo "Generating schema for $sidechain..."
+            # Extract just the JSON by finding the opening { and matching closing }
+            "$cli_binary" openapi-schema 2>/dev/null > "/tmp/${sidechain}_raw.json"
+            # Use python to extract valid JSON from the mixed output
+            python3 -c "
+import sys
+with open('/tmp/${sidechain}_raw.json', 'r') as f:
+    content = f.read()
+# Find the first { and extract from there
+start = content.find('{')
+if start >= 0:
+    with open('/tmp/${sidechain}_schema.json', 'w') as f:
+        f.write(content[start:])
+else:
+    print('No JSON found in output')
+    sys.exit(1)
+"
+            
+            # Debug: show file size and first few bytes
+            echo "Schema file size: $(wc -c < "/tmp/${sidechain}_schema.json") bytes"
+            echo "First 50 bytes (hex): $(head -c 50 "/tmp/${sidechain}_schema.json" | xxd -l 50)"
+            echo "First 100 chars: $(head -c 100 "/tmp/${sidechain}_schema.json")"
+            
+            # Validate JSON
+            python3 -m json.tool "/tmp/${sidechain}_schema.json" > /dev/null
+            
+            # Set environment variable for later validation
+            upper=$(echo "$sidechain" | tr '[:lower:]' '[:upper:]')
+            echo "${upper}_CLI_SCHEMA=/tmp/${sidechain}_schema.json" >> "$GITHUB_ENV"
+            
+            echo "✅ $sidechain schema generated"
+          done
+
+      - name: Validate all schema snapshots
+        working-directory: sidechain-orchestrator
+        run: |
+          set -euo pipefail
+          
+          # Test all sidechain schema snapshots (zside excluded - binary not available)
+          sidechains=(bitassets bitnames coinshift photon thunder truthcoin)
+          
+          for sidechain in "${sidechains[@]}"; do
+            echo "Validating $sidechain schema snapshot..."
+            
+            upper=$(echo "$sidechain" | tr '[:lower:]' '[:upper:]')
+            export "${upper}_SCHEMA_VALIDATE_CLI=1"
+            export "${upper}_CLI_SCHEMA=/tmp/${sidechain}_schema.json"
+            
+            go test -v -run TestSchemaSnapshot "./sidechain/$sidechain/"
+            
+            echo "✅ $sidechain validation passed"
+          done
