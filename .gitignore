@@ -58,3 +58,7 @@ mycert.pem
 ed25519
 ed25519.priv
 vendor/
+
+# Build artifacts
+sidechain-orchestrator/orchestratorctl
+sidechain-orchestrator/orchestratord
