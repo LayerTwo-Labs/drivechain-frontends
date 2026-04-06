@@ -74,7 +74,7 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
 
       {data?.mainchain?.timestamp && <BlockTime timestamp={data.mainchain.timestamp} />}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <BlockCard
           title="Mainchain"
           subtitle="Most recent block on the mainchain"
@@ -110,6 +110,12 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
           subtitle="Most recent block on the CoinShift sidechain (L2-S255)"
           block={data?.coinshift}
           repoUrl="https://github.com/LayerTwo-Labs/coinshift-rs"
+        />
+        <BlockCard
+          title="Photon"
+          subtitle="Most recent block on the Photon sidechain (L2-S99)"
+          block={data?.photon}
+          repoUrl="https://github.com/LayerTwo-Labs/photon"
         />
       </div>
 
