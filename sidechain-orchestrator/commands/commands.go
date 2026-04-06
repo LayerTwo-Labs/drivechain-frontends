@@ -3,6 +3,7 @@ package commands
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,15 +11,24 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"reflect"
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	"connectrpc.com/connect"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 )
@@ -41,11 +51,16 @@ var GlobalFlags = []cli.Flag{
 		Value:   "signet",
 		EnvVars: []string{"ORCHESTRATOR_NETWORK"},
 	},
+	&cli.BoolFlag{
+		Name:    "auto-download",
+		Usage:   "automatically download binaries when needed (for CI)",
+		EnvVars: []string{"ORCHESTRATOR_AUTO_DOWNLOAD"},
+	},
 }
 
 // Commands returns all available CLI subcommands.
 func Commands() []*cli.Command {
-	return []*cli.Command{
+	cmds := []*cli.Command{
 		downloadCommand,
 		wipeCommand,
 		startCommand,
@@ -62,6 +77,11 @@ func Commands() []*cli.Command {
 		whichCommand,
 		walletCommand,
 	}
+
+	// Add sidechain proxy commands
+	cmds = append(cmds, createSidechainCommands()...)
+
+	return cmds
 }
 
 func newClient(cctx *cli.Context) rpc.OrchestratorServiceClient {
@@ -904,4 +924,306 @@ var shutdownCommand = &cli.Command{
 
 		return stream.Err()
 	},
+}
+
+// ---------------------------------------------------------------------------
+// Sidechain proxy commands
+// ---------------------------------------------------------------------------
+
+// createSidechainCommands dynamically creates sidechain proxy commands.
+func createSidechainCommands() []*cli.Command {
+	return []*cli.Command{
+		createGenericSidechainCommand("bitassets", newBitassetsClient),
+		createGenericSidechainCommand("bitnames", newBitnamesClient),
+		createGenericSidechainCommand("coinshift", newCoinshiftClient),
+		createGenericSidechainCommand("photon", newPhotonClient),
+		createGenericSidechainCommand("thunder", newThunderClient),
+		createGenericSidechainCommand("truthcoin", newTruthcoinClient),
+		createGenericSidechainCommand("zside", newZsideClient),
+	}
+}
+
+// SidechainClient interface for all sidechain RPC clients
+type SidechainClient interface {
+	// Every sidechain client should have these core methods
+	Balance(ctx context.Context) (interface{}, error)
+	OpenAPISchema(ctx context.Context) (json.RawMessage, error)
+}
+
+// ClientFactory creates a new sidechain client for the given port
+type ClientFactory func(port int) SidechainClient
+
+// BitnamesClientWrapper adapts the bitnames.Client to SidechainClient interface
+type BitnamesClientWrapper struct {
+	*bitnames.Client
+}
+
+func (w *BitnamesClientWrapper) Balance(ctx context.Context) (interface{}, error) {
+	return w.Client.Balance(ctx)
+}
+
+func (w *BitnamesClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
+	return w.Client.OpenAPISchema(ctx)
+}
+
+// ThunderClientWrapper adapts the thunder.Client to SidechainClient interface
+type ThunderClientWrapper struct {
+	*thunder.Client
+}
+
+func (w *ThunderClientWrapper) Balance(ctx context.Context) (interface{}, error) {
+	return w.Client.Balance(ctx)
+}
+
+func (w *ThunderClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
+	return w.Client.OpenAPISchema(ctx)
+}
+
+// BitassetsClientWrapper adapts the bitassets.Client to SidechainClient interface
+type BitassetsClientWrapper struct {
+	*bitassets.Client
+}
+
+func (w *BitassetsClientWrapper) Balance(ctx context.Context) (interface{}, error) {
+	return w.Client.Balance(ctx)
+}
+
+func (w *BitassetsClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
+	return w.Client.OpenAPISchema(ctx)
+}
+
+// CoinshiftClientWrapper adapts the coinshift.Client to SidechainClient interface
+type CoinshiftClientWrapper struct {
+	*coinshift.Client
+}
+
+func (w *CoinshiftClientWrapper) Balance(ctx context.Context) (interface{}, error) {
+	return w.Client.Balance(ctx)
+}
+
+func (w *CoinshiftClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
+	return w.Client.OpenAPISchema(ctx)
+}
+
+// PhotonClientWrapper adapts the photon.Client to SidechainClient interface
+type PhotonClientWrapper struct {
+	*photon.Client
+}
+
+func (w *PhotonClientWrapper) Balance(ctx context.Context) (interface{}, error) {
+	return w.Client.Balance(ctx)
+}
+
+func (w *PhotonClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
+	return w.Client.OpenAPISchema(ctx)
+}
+
+// TruthcoinClientWrapper adapts the truthcoin.Client to SidechainClient interface
+type TruthcoinClientWrapper struct {
+	*truthcoin.Client
+}
+
+func (w *TruthcoinClientWrapper) Balance(ctx context.Context) (interface{}, error) {
+	return w.Client.Balance(ctx)
+}
+
+func (w *TruthcoinClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
+	return w.Client.OpenAPISchema(ctx)
+}
+
+// ZsideClientWrapper adapts the zside.Client to SidechainClient interface
+type ZsideClientWrapper struct {
+	*zside.Client
+}
+
+func (w *ZsideClientWrapper) Balance(ctx context.Context) (interface{}, error) {
+	return w.Client.Balance(ctx)
+}
+
+func (w *ZsideClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
+	return w.Client.OpenAPISchema(ctx)
+}
+
+// Client factory functions
+func newBitassetsClient(port int) SidechainClient {
+	return &BitassetsClientWrapper{bitassets.NewClient("localhost", port)}
+}
+
+func newBitnamesClient(port int) SidechainClient {
+	return &BitnamesClientWrapper{bitnames.NewClient("localhost", port)}
+}
+
+func newCoinshiftClient(port int) SidechainClient {
+	return &CoinshiftClientWrapper{coinshift.NewClient("localhost", port)}
+}
+
+func newPhotonClient(port int) SidechainClient {
+	return &PhotonClientWrapper{photon.NewClient("localhost", port)}
+}
+
+func newThunderClient(port int) SidechainClient {
+	return &ThunderClientWrapper{thunder.NewClient("localhost", port)}
+}
+
+func newTruthcoinClient(port int) SidechainClient {
+	return &TruthcoinClientWrapper{truthcoin.NewClient("localhost", port)}
+}
+
+func newZsideClient(port int) SidechainClient {
+	return &ZsideClientWrapper{zside.NewClient("localhost", port)}
+}
+
+// createGenericSidechainCommand creates a command with sidechain-specific subcommands
+func createGenericSidechainCommand(sidechainName string, clientFactory ClientFactory) *cli.Command {
+	return &cli.Command{
+		Name:  sidechainName,
+		Usage: fmt.Sprintf("Manage %s sidechain", titleCase(sidechainName)),
+		Subcommands: []*cli.Command{
+			createMethodCommand(sidechainName, "balance", "Show wallet balance", clientFactory, "Balance"),
+			createMethodCommand(sidechainName, "generate-schema", "Generate OpenAPI schema", clientFactory, "OpenAPISchema"),
+		},
+	}
+}
+
+// createMethodCommand creates a command that calls a specific method on the sidechain client
+func createMethodCommand(sidechainName, cmdName, usage string, clientFactory ClientFactory, methodName string) *cli.Command {
+	return &cli.Command{
+		Name:  cmdName,
+		Usage: usage,
+		Action: func(cctx *cli.Context) error {
+			return runSidechainMethod(cctx, sidechainName, clientFactory, methodName)
+		},
+	}
+}
+
+// runSidechainMethod executes a method on the sidechain client with smart binary management
+func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory ClientFactory, methodName string) error {
+	client := newClient(cctx)
+	
+	// Check if binary is downloaded
+	resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
+		Name: sidechainName,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to check %s status: %w", sidechainName, err)
+	}
+
+	status := resp.Msg.Status
+	if !status.Downloaded {
+		// Binary not downloaded - ask user or auto-download in CI
+		autoDownload := cctx.Bool("auto-download") || os.Getenv("ORCHESTRATOR_AUTO_DOWNLOAD") != ""
+		displayName := status.DisplayName
+		if displayName == "" {
+			displayName = titleCase(sidechainName)
+		}
+
+		if autoDownload {
+			fmt.Printf("%s is not downloaded. Downloading now...\n", displayName)
+		} else {
+			fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
+			if !confirmYes() {
+				return fmt.Errorf("cannot run %s command without %s binary", methodName, sidechainName)
+			}
+		}
+
+		// Download the binary
+		if err := runDownload(cctx.Context, client, sidechainName, false); err != nil {
+			return fmt.Errorf("failed to download %s: %w", sidechainName, err)
+		}
+		fmt.Println()
+	}
+
+	// Get the port for the sidechain
+	port, err := getSidechainPort(sidechainName)
+	if err != nil {
+		return fmt.Errorf("failed to get port for %s: %w", sidechainName, err)
+	}
+
+	// Create the sidechain client and call the method
+	sidechainClient := clientFactory(port)
+	return callClientMethod(cctx.Context, sidechainClient, methodName)
+}
+
+// callClientMethod uses reflection to call the specified method on the client
+func callClientMethod(ctx context.Context, client SidechainClient, methodName string) error {
+	clientValue := reflect.ValueOf(client)
+	method := clientValue.MethodByName(methodName)
+	
+	if !method.IsValid() {
+		return fmt.Errorf("method %s not found on client", methodName)
+	}
+
+	// Call the method with context
+	results := method.Call([]reflect.Value{reflect.ValueOf(ctx)})
+	if len(results) != 2 {
+		return fmt.Errorf("unexpected return values from method %s", methodName)
+	}
+
+	// Check for error (second return value)
+	if !results[1].IsNil() {
+		err := results[1].Interface().(error)
+		return fmt.Errorf("%s error: %w", methodName, err)
+	}
+
+	// Handle the result (first return value)
+	result := results[0].Interface()
+	return outputResult(result)
+}
+
+// outputResult formats and prints the result
+func outputResult(result interface{}) error {
+	switch v := result.(type) {
+	case json.RawMessage:
+		// For OpenAPI schema, pretty print JSON
+		var formatted interface{}
+		if err := json.Unmarshal(v, &formatted); err != nil {
+			return fmt.Errorf("failed to parse JSON result: %w", err)
+		}
+		pretty, err := json.MarshalIndent(formatted, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to format JSON result: %w", err)
+		}
+		fmt.Println(string(pretty))
+	default:
+		// For balance and other structured data, use JSON for consistency
+		pretty, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to format result: %w", err)
+		}
+		fmt.Println(string(pretty))
+	}
+	return nil
+}
+
+// getSidechainPort returns the default port for a sidechain
+func getSidechainPort(sidechainName string) (int, error) {
+	// These ports match the default ports used by each sidechain
+	switch sidechainName {
+	case "bitnames":
+		return 38332, nil
+	case "thunder":
+		return 48332, nil
+	case "bitassets":
+		return 28332, nil
+	case "coinshift":
+		return 58332, nil
+	case "photon":
+		return 18332, nil
+	case "truthcoin":
+		return 68332, nil
+	case "zside":
+		return 78332, nil
+	default:
+		return 0, fmt.Errorf("unknown sidechain: %s", sidechainName)
+	}
+}
+
+// titleCase capitalizes the first letter of a string
+func titleCase(s string) string {
+	if s == "" {
+		return s
+	}
+	r := []rune(s)
+	r[0] = unicode.ToUpper(r[0])
+	return string(r)
 }

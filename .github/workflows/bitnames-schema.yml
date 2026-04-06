@@ -34,45 +34,20 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       # ---------------------------------------------------------------
-      # Download the BitNames release archive. It contains both the
-      # server binary and the CLI binary. We use the CLI to generate
-      # the OpenAPI schema locally (no mainchain node required).
+      # Build orchestratorctl and use it to generate the schema
       # ---------------------------------------------------------------
-      - name: Cache BitNames binary
-        id: cache-bitnames
-        uses: actions/cache@v4
-        with:
-          path: bitnames-cli
-          key: bitnames-cli-latest
-          
-      - name: Download BitNames binary
-        if: steps.cache-bitnames.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          url="https://releases.drivechain.info/L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip"
-          echo "Downloading $url"
-          curl -fSL --retry 3 "$url" -o bitnames.zip
-          unzip -o bitnames.zip
-          # The CLI binary is named bitnames-cli-* after extraction
-          CLI_BIN=$(ls bitnames-cli-* 2>/dev/null | head -1)
-          if [ -z "$CLI_BIN" ]; then
-            echo "::error::bitnames-cli binary not found in archive"
-            ls -la
-            exit 1
-          fi
-          chmod +x "$CLI_BIN"
-          mv "$CLI_BIN" bitnames-cli
-          
-      - name: Set CLI path
-        run: |
-          chmod +x bitnames-cli
-          echo "BITNAMES_CLI=$PWD/bitnames-cli" >> "$GITHUB_ENV"
-
-      - name: Generate schema from CLI and validate snapshot
+      - name: Build orchestratorctl
         working-directory: sidechain-orchestrator
         run: |
+          go build -o orchestratorctl ./cmd/orchestratorctl/
+
+      - name: Generate schema using orchestrator proxy
+        working-directory: sidechain-orchestrator
+        env:
+          ORCHESTRATOR_AUTO_DOWNLOAD: "1"
+        run: |
           set -euo pipefail
-          "$BITNAMES_CLI" openapi-schema > /tmp/live_schema.json
+          ./orchestratorctl bitnames generate-schema > /tmp/live_schema.json
           # Validate it's real JSON
           python3 -m json.tool /tmp/live_schema.json > /dev/null
           echo "BITNAMES_CLI_SCHEMA=/tmp/live_schema.json" >> "$GITHUB_ENV"
