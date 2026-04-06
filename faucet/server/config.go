@@ -20,6 +20,7 @@ type Config struct {
 	ThunderAddress   string `long:"thunder.url" description:"URL for connecting to Thunder" default:"http://localhost:6009"`
 	ZsideAddress     string `long:"zside.url" description:"URL for connecting to zSide" default:"http://localhost:6098"`
 	CoinShiftAddress string `long:"coinshift.url" description:"URL for connecting to CoinShift" default:"http://localhost:6255"`
+	PhotonAddress    string `long:"photon.url" description:"URL for connecting to Photon" default:"http://localhost:6099"`
 
 	EnforcerURL string `long:"enforcer.url" description:"URL for connecting to the enforcer server" default:"http://localhost:50051"`
 
