@@ -130,7 +130,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		crypto, err := dial.EnforcerCrypto(ctx, conf.EnforcerHost)
 		return crypto, err
 	}
-	
+
 	// Sidechain connectors
 	thunderConnector := func(ctx context.Context) (*thunder.Client, error) {
 		return dial.Thunder(ctx, "localhost", 6009)
@@ -160,19 +160,19 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		WalletConnector:   walletConnector,
 		EnforcerConnector: enforcerConnector,
 		CryptoConnector:   cryptoConnector,
-		
+
 		// Sidechain connectors
-		ThunderConnector:    thunderConnector,
-		BitNamesConnector:   bitnamesConnector,
-		BitAssetsConnector:  bitassetsConnector,
-		TruthcoinConnector:  truthcoinConnector,
-		PhotonConnector:     photonConnector,
-		CoinShiftConnector:  coinshiftConnector,
-		
-		ChainParams:       chainParams,
-		WalletDir:         walletDir,
-		DataDir:           conf.Datadir,
-		OrchestratorAddr:  conf.OrchestratorAddr,
+		ThunderConnector:   thunderConnector,
+		BitNamesConnector:  bitnamesConnector,
+		BitAssetsConnector: bitassetsConnector,
+		TruthcoinConnector: truthcoinConnector,
+		PhotonConnector:    photonConnector,
+		CoinShiftConnector: coinshiftConnector,
+
+		ChainParams:      chainParams,
+		WalletDir:        walletDir,
+		DataDir:          conf.Datadir,
+		OrchestratorAddr: conf.OrchestratorAddr,
 	}
 
 	// Use this to obtain a random unused port for the core proxy.

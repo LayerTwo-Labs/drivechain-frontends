@@ -1,8 +1,12 @@
 package fast_withdrawal
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
@@ -31,6 +35,9 @@ type Server struct {
 
 	// Monitor engine for withdrawal detection
 	monitor *engines.SidechainMonitorEngine
+
+	// Secure HTTP client
+	httpClient *http.Client
 }
 
 // New creates a new fast withdrawal API server
@@ -44,13 +51,14 @@ func New(
 	monitor *engines.SidechainMonitorEngine,
 ) *Server {
 	return &Server{
-		thunder:   thunder,
-		bitnames:  bitnames,
-		bitassets: bitassets,
-		truthcoin: truthcoin,
-		photon:    photon,
-		coinshift: coinshift,
-		monitor:   monitor,
+		thunder:    thunder,
+		bitnames:   bitnames,
+		bitassets:  bitassets,
+		truthcoin:  truthcoin,
+		photon:     photon,
+		coinshift:  coinshift,
+		monitor:    monitor,
+		httpClient: createSecureHTTPClient(),
 	}
 }
 
@@ -113,13 +121,75 @@ func (s *Server) initiateSidechainWithdrawal(ctx context.Context, sidechain stri
 	}
 
 	// TODO: Make this configurable or try multiple servers
-	fastWithdrawalServerURL := "https://fw1.drivechain.info/withdraw"
+	fastWithdrawalServerURL := "https://fw1.drivechain.info"
 
 	log.Info().Interface("request", withdrawalRequest).Str("server", fastWithdrawalServerURL).Msg("requesting fast withdrawal from external server")
 
-	// For now, return a placeholder - the actual HTTP call to external server would go here
-	// This matches the existing frontend pattern but moves the logic server-side
-	withdrawalHash := fmt.Sprintf("hash_%s_%d_%d", sidechain, amount, time.Now().Unix())
+	// Make actual HTTP call to external server
+	jsonPayload, err := json.Marshal(withdrawalRequest)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	withdrawURL := fastWithdrawalServerURL + "/withdraw"
+	resp, err := http.Post(withdrawURL, "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return "", fmt.Errorf("http request to %s: %w", withdrawURL, err)
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+
+	if status, ok := result["status"].(string); !ok || status != "success" {
+		errorMsg, _ := result["error"].(string)
+		return "", fmt.Errorf("withdrawal request failed: %s", errorMsg)
+	}
+
+	// Extract response data
+	data, ok := result["data"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("invalid response format: missing data")
+	}
+
+	withdrawalHash, ok := data["hash"].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid response format: missing hash")
+	}
+
+	serverL2AddressInfo, ok := data["server_l2_address"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("invalid response format: missing server_l2_address")
+	}
+
+	serverAddress, ok := serverL2AddressInfo["info"].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid response format: missing server L2 address info")
+	}
+
+	serverFeeSatsFloat, ok := data["server_fee_sats"].(float64)
+	if !ok {
+		return "", fmt.Errorf("invalid response format: missing server_fee_sats")
+	}
+	serverFeeSats := int64(serverFeeSatsFloat)
+
+	// Register this pending withdrawal for monitoring
+	pending := engines.PendingFastWithdrawal{
+		Hash:           withdrawalHash,
+		Sidechain:      sidechain,
+		ServerAddress:  serverAddress,
+		ExpectedAmount: amount + serverFeeSats,
+		ServerURL:      fastWithdrawalServerURL,
+		CreatedAt:      time.Now(),
+	}
+
+	if err := s.monitor.RegisterPendingFastWithdrawal(ctx, pending); err != nil {
+		log.Error().Err(err).Msg("failed to register pending fast withdrawal")
+		// Continue anyway - this just means no auto-completion
+	}
+
 	return withdrawalHash, nil
 }
 
@@ -169,11 +239,11 @@ func (s *Server) monitorWithdrawal(ctx context.Context, stream *connect.ServerSt
 				// Check for confirmation
 				if withdrawal.BlockHash != nil {
 					return stream.Send(&pb.FastWithdrawalUpdate{
-						Status:     pb.FastWithdrawalUpdate_STATUS_CONFIRMED,
-						Txid:       &withdrawal.Txid,
-						BlockHash:  withdrawal.BlockHash,
-						Message:    "Withdrawal confirmed on sidechain",
-						Timestamp:  timestamppb.Now(),
+						Status:    pb.FastWithdrawalUpdate_STATUS_CONFIRMED,
+						Txid:      &withdrawal.Txid,
+						BlockHash: withdrawal.BlockHash,
+						Message:   "Withdrawal confirmed on sidechain",
+						Timestamp: timestamppb.Now(),
 					})
 				}
 
@@ -216,13 +286,27 @@ func (s *Server) monitorConfirmation(ctx context.Context, stream *connect.Server
 
 			if withdrawal != nil && withdrawal.BlockHash != nil {
 				return stream.Send(&pb.FastWithdrawalUpdate{
-					Status:     pb.FastWithdrawalUpdate_STATUS_CONFIRMED,
-					Txid:       &withdrawal.Txid,
-					BlockHash:  withdrawal.BlockHash,
-					Message:    "Withdrawal confirmed on sidechain",
-					Timestamp:  timestamppb.Now(),
+					Status:    pb.FastWithdrawalUpdate_STATUS_CONFIRMED,
+					Txid:      &withdrawal.Txid,
+					BlockHash: withdrawal.BlockHash,
+					Message:   "Withdrawal confirmed on sidechain",
+					Timestamp: timestamppb.Now(),
 				})
 			}
 		}
+	}
+}
+
+// createSecureHTTPClient creates an HTTP client with security timeouts and limits
+func createSecureHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			},
+			MaxResponseHeaderBytes: 4096,
+			ResponseHeaderTimeout:  10 * time.Second,
+		},
 	}
 }

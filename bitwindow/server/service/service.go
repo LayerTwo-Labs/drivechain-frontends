@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -101,8 +102,14 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 	old := s.connected.Swap(val)
 	if old != val {
-		zerolog.Ctx(ctx).Info().
-			Msgf("%s changed connected to: %t", s.name, val)
+		// Use logger from context, fallback to nop if not available
+		log := zerolog.Ctx(ctx)
+		if log.GetLevel() == zerolog.Disabled {
+			// Context doesn't have a logger, create a minimal one
+			logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+			log = &logger
+		}
+		log.Info().Msgf("%s changed connected to: %t", s.name, val)
 		select {
 		case s.connectedCh <- val:
 		default: // don't block if nobody is listening

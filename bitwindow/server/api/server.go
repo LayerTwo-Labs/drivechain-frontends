@@ -66,19 +66,19 @@ type Services struct {
 	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
 	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
-	
+
 	// Sidechain connectors
-	ThunderConnector    service.Connector[*thunder.Client]
-	BitNamesConnector   service.Connector[*bitnames.Client]
-	BitAssetsConnector  service.Connector[*bitassets.Client]
-	TruthcoinConnector  service.Connector[*truthcoin.Client]
-	PhotonConnector     service.Connector[*photon.Client]
-	CoinShiftConnector  service.Connector[*coinshift.Client]
-	
-	ChainParams       *chaincfg.Params
-	WalletDir         string
-	DataDir           string
-	OrchestratorAddr  string // e.g. "http://localhost:30400"
+	ThunderConnector   service.Connector[*thunder.Client]
+	BitNamesConnector  service.Connector[*bitnames.Client]
+	BitAssetsConnector service.Connector[*bitassets.Client]
+	TruthcoinConnector service.Connector[*truthcoin.Client]
+	PhotonConnector    service.Connector[*photon.Client]
+	CoinShiftConnector service.Connector[*coinshift.Client]
+
+	ChainParams      *chaincfg.Params
+	WalletDir        string
+	DataDir          string
+	OrchestratorAddr string // e.g. "http://localhost:30400"
 }
 
 // New creates a new Server with interceptors applied.
@@ -101,7 +101,7 @@ func New(
 	validatorSvc.StartReconnectLoop(ctx)
 	walletSvc.StartReconnectLoop(ctx)
 	cryptoSvc.StartReconnectLoop(ctx)
-	
+
 	// Create sidechain services
 	thunderSvc := service.New("thunder", svcs.ThunderConnector)
 	bitnamesSvc := service.New("bitnames", svcs.BitNamesConnector)
@@ -109,7 +109,7 @@ func New(
 	truthcoinSvc := service.New("truthcoin", svcs.TruthcoinConnector)
 	photonSvc := service.New("photon", svcs.PhotonConnector)
 	coinshiftSvc := service.New("coinshift", svcs.CoinShiftConnector)
-	
+
 	// Start sidechain reconnection loops
 	thunderSvc.StartReconnectLoop(ctx)
 	bitnamesSvc.StartReconnectLoop(ctx)
@@ -168,25 +168,25 @@ func New(
 	)
 
 	srv := &Server{
-		mux:                mux,
-		Bitcoind:           bitcoindSvc,
-		Enforcer:           validatorSvc,
-		Wallet:             walletSvc,
-		Crypto:             cryptoSvc,
-		WalletEngine:       walletEngine,
-		ChequeEngine:            chequeEngine,
-		TimestampEngine:         timestampEngine,
-		M4Engine:                m4Engine,
-		NotificationEngine:      notificationEngine,
-		SidechainMonitorEngine:  sidechainMonitorEngine,
-		
+		mux:                    mux,
+		Bitcoind:               bitcoindSvc,
+		Enforcer:               validatorSvc,
+		Wallet:                 walletSvc,
+		Crypto:                 cryptoSvc,
+		WalletEngine:           walletEngine,
+		ChequeEngine:           chequeEngine,
+		TimestampEngine:        timestampEngine,
+		M4Engine:               m4Engine,
+		NotificationEngine:     notificationEngine,
+		SidechainMonitorEngine: sidechainMonitorEngine,
+
 		// Sidechain services
-		Thunder:    thunderSvc,
-		BitNames:   bitnamesSvc,
-		BitAssets:  bitassetsSvc,
-		Truthcoin:  truthcoinSvc,
-		Photon:     photonSvc,
-		CoinShift:  coinshiftSvc,
+		Thunder:   thunderSvc,
+		BitNames:  bitnamesSvc,
+		BitAssets: bitassetsSvc,
+		Truthcoin: truthcoinSvc,
+		Photon:    photonSvc,
+		CoinShift: coinshiftSvc,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
@@ -310,24 +310,24 @@ type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
 
-	Enforcer           *service.Service[validatorrpc.ValidatorServiceClient]
-	Bitcoind           *service.Service[corerpc.BitcoinServiceClient]
-	Wallet             *service.Service[validatorrpc.WalletServiceClient]
-	Crypto             *service.Service[cryptorpc.CryptoServiceClient]
-	WalletEngine       *engines.WalletEngine
-	ChequeEngine       *engines.ChequeEngine
-	TimestampEngine         *engines.TimestampEngine
-	M4Engine                *engines.M4Engine
-	NotificationEngine      *engines.NotificationEngine
-	SidechainMonitorEngine  *engines.SidechainMonitorEngine
-	
+	Enforcer               *service.Service[validatorrpc.ValidatorServiceClient]
+	Bitcoind               *service.Service[corerpc.BitcoinServiceClient]
+	Wallet                 *service.Service[validatorrpc.WalletServiceClient]
+	Crypto                 *service.Service[cryptorpc.CryptoServiceClient]
+	WalletEngine           *engines.WalletEngine
+	ChequeEngine           *engines.ChequeEngine
+	TimestampEngine        *engines.TimestampEngine
+	M4Engine               *engines.M4Engine
+	NotificationEngine     *engines.NotificationEngine
+	SidechainMonitorEngine *engines.SidechainMonitorEngine
+
 	// Sidechain services
-	Thunder    *service.Service[*thunder.Client]
-	BitNames   *service.Service[*bitnames.Client]
-	BitAssets  *service.Service[*bitassets.Client]
-	Truthcoin  *service.Service[*truthcoin.Client]
-	Photon     *service.Service[*photon.Client]
-	CoinShift  *service.Service[*coinshift.Client]
+	Thunder   *service.Service[*thunder.Client]
+	BitNames  *service.Service[*bitnames.Client]
+	BitAssets *service.Service[*bitassets.Client]
+	Truthcoin *service.Service[*truthcoin.Client]
+	Photon    *service.Service[*photon.Client]
+	CoinShift *service.Service[*coinshift.Client]
 }
 
 func (s *Server) Handler() http.Handler {
