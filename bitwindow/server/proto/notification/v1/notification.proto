@@ -17,6 +17,7 @@ message WatchResponse {
     TransactionEvent transaction = 2;
     TimestampEvent timestamp_event = 3;
     SystemEvent system = 4;
+    SidechainWithdrawalEvent sidechain_withdrawal = 5;
   }
 }
 
@@ -56,4 +57,19 @@ message SystemEvent {
   }
   Type type = 1;
   string message = 2;
+}
+
+message SidechainWithdrawalEvent {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_DETECTED = 1;
+    TYPE_CONFIRMED = 2;
+  }
+  Type type = 1;
+  string txid = 2;
+  string sidechain = 3;
+  int64 amount = 4;
+  string destination = 5;
+  google.protobuf.Timestamp detected_at = 6;
+  optional string block_hash = 7;
 }

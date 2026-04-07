@@ -24,6 +24,12 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/version"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -124,6 +130,26 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		crypto, err := dial.EnforcerCrypto(ctx, conf.EnforcerHost)
 		return crypto, err
 	}
+	
+	// Sidechain connectors
+	thunderConnector := func(ctx context.Context) (*thunder.Client, error) {
+		return dial.Thunder(ctx, "localhost", 6009)
+	}
+	bitnamesConnector := func(ctx context.Context) (*bitnames.Client, error) {
+		return dial.BitNames(ctx, "localhost", 6002)
+	}
+	bitassetsConnector := func(ctx context.Context) (*bitassets.Client, error) {
+		return dial.BitAssets(ctx, "localhost", 6004)
+	}
+	truthcoinConnector := func(ctx context.Context) (*truthcoin.Client, error) {
+		return dial.Truthcoin(ctx, "localhost", 6013)
+	}
+	photonConnector := func(ctx context.Context) (*photon.Client, error) {
+		return dial.Photon(ctx, "localhost", 6099)
+	}
+	coinshiftConnector := func(ctx context.Context) (*coinshift.Client, error) {
+		return dial.CoinShift(ctx, "localhost", 6255)
+	}
 
 	// Wallet should be in parent dir (shared across all networks)
 	walletDir := filepath.Dir(conf.Datadir)
@@ -134,6 +160,15 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		WalletConnector:   walletConnector,
 		EnforcerConnector: enforcerConnector,
 		CryptoConnector:   cryptoConnector,
+		
+		// Sidechain connectors
+		ThunderConnector:    thunderConnector,
+		BitNamesConnector:   bitnamesConnector,
+		BitAssetsConnector:  bitassetsConnector,
+		TruthcoinConnector:  truthcoinConnector,
+		PhotonConnector:     photonConnector,
+		CoinShiftConnector:  coinshiftConnector,
+		
 		ChainParams:       chainParams,
 		WalletDir:         walletDir,
 		DataDir:           conf.Datadir,
@@ -240,6 +275,9 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}()
 	go func() {
 		errs <- srv.NotificationEngine.Run(ctx)
+	}()
+	go func() {
+		errs <- srv.SidechainMonitorEngine.Run(ctx)
 	}()
 
 	// Start demo engine if in demo mode (mainnet)

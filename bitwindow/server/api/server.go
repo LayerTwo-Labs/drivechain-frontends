@@ -18,10 +18,12 @@ import (
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/drivechain"
 	api_enforcer "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/enforcer"
+	api_fast_withdrawal "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/fast_withdrawal"
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	api_m4 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/m4"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
 	api_notification "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/notification"
+	api_sidechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/sidechain"
 	api_utils "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/utils"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
@@ -31,14 +33,22 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
+	fast_withdrawalv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/fast_withdrawal/v1/fast_withdrawalv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1/healthv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1/sidechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -56,6 +66,15 @@ type Services struct {
 	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
 	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
+	
+	// Sidechain connectors
+	ThunderConnector    service.Connector[*thunder.Client]
+	BitNamesConnector   service.Connector[*bitnames.Client]
+	BitAssetsConnector  service.Connector[*bitassets.Client]
+	TruthcoinConnector  service.Connector[*truthcoin.Client]
+	PhotonConnector     service.Connector[*photon.Client]
+	CoinShiftConnector  service.Connector[*coinshift.Client]
+	
 	ChainParams       *chaincfg.Params
 	WalletDir         string
 	DataDir           string
@@ -82,6 +101,22 @@ func New(
 	validatorSvc.StartReconnectLoop(ctx)
 	walletSvc.StartReconnectLoop(ctx)
 	cryptoSvc.StartReconnectLoop(ctx)
+	
+	// Create sidechain services
+	thunderSvc := service.New("thunder", svcs.ThunderConnector)
+	bitnamesSvc := service.New("bitnames", svcs.BitNamesConnector)
+	bitassetsSvc := service.New("bitassets", svcs.BitAssetsConnector)
+	truthcoinSvc := service.New("truthcoin", svcs.TruthcoinConnector)
+	photonSvc := service.New("photon", svcs.PhotonConnector)
+	coinshiftSvc := service.New("coinshift", svcs.CoinShiftConnector)
+	
+	// Start sidechain reconnection loops
+	thunderSvc.StartReconnectLoop(ctx)
+	bitnamesSvc.StartReconnectLoop(ctx)
+	bitassetsSvc.StartReconnectLoop(ctx)
+	truthcoinSvc.StartReconnectLoop(ctx)
+	photonSvc.StartReconnectLoop(ctx)
+	coinshiftSvc.StartReconnectLoop(ctx)
 
 	// Create wallet engine for unlock/lock, routing, and sync
 	walletEngine := engines.NewWalletEngine(
@@ -121,6 +156,17 @@ func New(
 	// Create BitDrive engine for file storage
 	bitdriveEngine := engines.NewBitDriveEngine(svcs.Database, walletEngine, svcs.DataDir, svcs.ChainParams)
 
+	// Create sidechain monitor engine for fast withdrawal detection
+	sidechainMonitorEngine := engines.NewSidechainMonitorEngine(
+		thunderSvc,
+		bitnamesSvc,
+		bitassetsSvc,
+		truthcoinSvc,
+		photonSvc,
+		coinshiftSvc,
+		notificationEngine,
+	)
+
 	srv := &Server{
 		mux:                mux,
 		Bitcoind:           bitcoindSvc,
@@ -128,10 +174,19 @@ func New(
 		Wallet:             walletSvc,
 		Crypto:             cryptoSvc,
 		WalletEngine:       walletEngine,
-		ChequeEngine:       chequeEngine,
-		TimestampEngine:    timestampEngine,
-		M4Engine:           m4Engine,
-		NotificationEngine: notificationEngine,
+		ChequeEngine:            chequeEngine,
+		TimestampEngine:         timestampEngine,
+		M4Engine:                m4Engine,
+		NotificationEngine:      notificationEngine,
+		SidechainMonitorEngine:  sidechainMonitorEngine,
+		
+		// Sidechain services
+		Thunder:    thunderSvc,
+		BitNames:   bitnamesSvc,
+		BitAssets:  bitassetsSvc,
+		Truthcoin:  truthcoinSvc,
+		Photon:     photonSvc,
+		CoinShift:  coinshiftSvc,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
@@ -225,6 +280,18 @@ func New(
 	Register(srv, utilsv1connect.NewUtilsServiceHandler, utilsv1connect.UtilsServiceHandler(api_utils.New(
 		svcs.ChainParams,
 	)))
+	Register(srv, sidechainv1connect.NewSidechainServiceHandler, sidechainv1connect.SidechainServiceHandler(api_sidechain.New(
+		sidechainMonitorEngine,
+	)))
+	Register(srv, fast_withdrawalv1connect.NewFastWithdrawalServiceHandler, fast_withdrawalv1connect.FastWithdrawalServiceHandler(api_fast_withdrawal.New(
+		thunderSvc,
+		bitnamesSvc,
+		bitassetsSvc,
+		truthcoinSvc,
+		photonSvc,
+		coinshiftSvc,
+		sidechainMonitorEngine,
+	)))
 
 	// Register all enforcer services, only to be used as a bridge
 	enforcer := api_enforcer.New(validatorSvc, walletSvc, cryptoSvc)
@@ -249,9 +316,18 @@ type Server struct {
 	Crypto             *service.Service[cryptorpc.CryptoServiceClient]
 	WalletEngine       *engines.WalletEngine
 	ChequeEngine       *engines.ChequeEngine
-	TimestampEngine    *engines.TimestampEngine
-	M4Engine           *engines.M4Engine
-	NotificationEngine *engines.NotificationEngine
+	TimestampEngine         *engines.TimestampEngine
+	M4Engine                *engines.M4Engine
+	NotificationEngine      *engines.NotificationEngine
+	SidechainMonitorEngine  *engines.SidechainMonitorEngine
+	
+	// Sidechain services
+	Thunder    *service.Service[*thunder.Client]
+	BitNames   *service.Service[*bitnames.Client]
+	BitAssets  *service.Service[*bitassets.Client]
+	Truthcoin  *service.Service[*truthcoin.Client]
+	Photon     *service.Service[*photon.Client]
+	CoinShift  *service.Service[*coinshift.Client]
 }
 
 func (s *Server) Handler() http.Handler {

@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package sidechain.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1";
+
+// SidechainService provides API for sidechain monitoring and fast withdrawal detection
+service SidechainService {
+  // GetDetectedWithdrawals returns all detected fast withdrawal transactions
+  rpc GetDetectedWithdrawals(GetDetectedWithdrawalsRequest) returns (GetDetectedWithdrawalsResponse);
+  
+  // GetWithdrawalByTxid returns a specific withdrawal by transaction ID
+  rpc GetWithdrawalByTxid(GetWithdrawalByTxidRequest) returns (GetWithdrawalByTxidResponse);
+}
+
+message GetDetectedWithdrawalsRequest {
+  // Optional filter by sidechain name
+  optional string sidechain = 1;
+  
+  // Optional limit on number of results
+  optional int32 limit = 2;
+}
+
+message GetDetectedWithdrawalsResponse {
+  repeated DetectedWithdrawal withdrawals = 1;
+}
+
+message GetWithdrawalByTxidRequest {
+  string txid = 1;
+}
+
+message GetWithdrawalByTxidResponse {
+  optional DetectedWithdrawal withdrawal = 1;
+}
+
+message DetectedWithdrawal {
+  // Transaction ID of the withdrawal
+  string txid = 1;
+  
+  // Sidechain name (thunder, bitnames, etc.)
+  string sidechain = 2;
+  
+  // Amount in satoshis
+  int64 amount = 3;
+  
+  // Destination address on mainchain
+  string destination = 4;
+  
+  // When the withdrawal was first detected
+  google.protobuf.Timestamp detected_at = 5;
+  
+  // Block hash if confirmed (optional)
+  optional string block_hash = 6;
+}

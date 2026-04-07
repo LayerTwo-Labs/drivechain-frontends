@@ -348,6 +348,11 @@ func (e *NotificationEngine) Subscribe(ctx context.Context) <-chan *notification
 	return ch
 }
 
+// Broadcast sends a notification event to all subscribers (public method)
+func (e *NotificationEngine) Broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
+	e.broadcast(ctx, event)
+}
+
 func (e *NotificationEngine) broadcast(ctx context.Context, event *notificationv1.WatchResponse) {
 	log := zerolog.Ctx(ctx)
 	e.mu.RLock()

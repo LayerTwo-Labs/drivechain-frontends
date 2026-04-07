@@ -179,6 +179,55 @@ func (SystemEvent_Type) EnumDescriptor() ([]byte, []int) {
 	return file_notification_v1_notification_proto_rawDescGZIP(), []int{3, 0}
 }
 
+type SidechainWithdrawalEvent_Type int32
+
+const (
+	SidechainWithdrawalEvent_TYPE_UNSPECIFIED SidechainWithdrawalEvent_Type = 0
+	SidechainWithdrawalEvent_TYPE_DETECTED    SidechainWithdrawalEvent_Type = 1
+	SidechainWithdrawalEvent_TYPE_CONFIRMED   SidechainWithdrawalEvent_Type = 2
+)
+
+// Enum value maps for SidechainWithdrawalEvent_Type.
+var (
+	SidechainWithdrawalEvent_Type_name = map[int32]string{
+		0: "TYPE_UNSPECIFIED",
+		1: "TYPE_DETECTED",
+		2: "TYPE_CONFIRMED",
+	}
+	SidechainWithdrawalEvent_Type_value = map[string]int32{
+		"TYPE_UNSPECIFIED": 0,
+		"TYPE_DETECTED":    1,
+		"TYPE_CONFIRMED":   2,
+	}
+)
+
+func (x SidechainWithdrawalEvent_Type) Enum() *SidechainWithdrawalEvent_Type {
+	p := new(SidechainWithdrawalEvent_Type)
+	*p = x
+	return p
+}
+
+func (x SidechainWithdrawalEvent_Type) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SidechainWithdrawalEvent_Type) Descriptor() protoreflect.EnumDescriptor {
+	return file_notification_v1_notification_proto_enumTypes[3].Descriptor()
+}
+
+func (SidechainWithdrawalEvent_Type) Type() protoreflect.EnumType {
+	return &file_notification_v1_notification_proto_enumTypes[3]
+}
+
+func (x SidechainWithdrawalEvent_Type) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SidechainWithdrawalEvent_Type.Descriptor instead.
+func (SidechainWithdrawalEvent_Type) EnumDescriptor() ([]byte, []int) {
+	return file_notification_v1_notification_proto_rawDescGZIP(), []int{4, 0}
+}
+
 type WatchResponse struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -187,6 +236,7 @@ type WatchResponse struct {
 	//	*WatchResponse_Transaction
 	//	*WatchResponse_TimestampEvent
 	//	*WatchResponse_System
+	//	*WatchResponse_SidechainWithdrawal
 	Event         isWatchResponse_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -263,6 +313,15 @@ func (x *WatchResponse) GetSystem() *SystemEvent {
 	return nil
 }
 
+func (x *WatchResponse) GetSidechainWithdrawal() *SidechainWithdrawalEvent {
+	if x != nil {
+		if x, ok := x.Event.(*WatchResponse_SidechainWithdrawal); ok {
+			return x.SidechainWithdrawal
+		}
+	}
+	return nil
+}
+
 type isWatchResponse_Event interface {
 	isWatchResponse_Event()
 }
@@ -279,11 +338,17 @@ type WatchResponse_System struct {
 	System *SystemEvent `protobuf:"bytes,4,opt,name=system,proto3,oneof"`
 }
 
+type WatchResponse_SidechainWithdrawal struct {
+	SidechainWithdrawal *SidechainWithdrawalEvent `protobuf:"bytes,5,opt,name=sidechain_withdrawal,json=sidechainWithdrawal,proto3,oneof"`
+}
+
 func (*WatchResponse_Transaction) isWatchResponse_Event() {}
 
 func (*WatchResponse_TimestampEvent) isWatchResponse_Event() {}
 
 func (*WatchResponse_System) isWatchResponse_Event() {}
+
+func (*WatchResponse_SidechainWithdrawal) isWatchResponse_Event() {}
 
 type TransactionEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -481,16 +546,109 @@ func (x *SystemEvent) GetMessage() string {
 	return ""
 }
 
+type SidechainWithdrawalEvent struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Type          SidechainWithdrawalEvent_Type `protobuf:"varint,1,opt,name=type,proto3,enum=notification.v1.SidechainWithdrawalEvent_Type" json:"type,omitempty"`
+	Txid          string                        `protobuf:"bytes,2,opt,name=txid,proto3" json:"txid,omitempty"`
+	Sidechain     string                        `protobuf:"bytes,3,opt,name=sidechain,proto3" json:"sidechain,omitempty"`
+	Amount        int64                         `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
+	Destination   string                        `protobuf:"bytes,5,opt,name=destination,proto3" json:"destination,omitempty"`
+	DetectedAt    *timestamppb.Timestamp        `protobuf:"bytes,6,opt,name=detected_at,json=detectedAt,proto3" json:"detected_at,omitempty"`
+	BlockHash     *string                       `protobuf:"bytes,7,opt,name=block_hash,json=blockHash,proto3,oneof" json:"block_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SidechainWithdrawalEvent) Reset() {
+	*x = SidechainWithdrawalEvent{}
+	mi := &file_notification_v1_notification_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SidechainWithdrawalEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SidechainWithdrawalEvent) ProtoMessage() {}
+
+func (x *SidechainWithdrawalEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_notification_v1_notification_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SidechainWithdrawalEvent.ProtoReflect.Descriptor instead.
+func (*SidechainWithdrawalEvent) Descriptor() ([]byte, []int) {
+	return file_notification_v1_notification_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SidechainWithdrawalEvent) GetType() SidechainWithdrawalEvent_Type {
+	if x != nil {
+		return x.Type
+	}
+	return SidechainWithdrawalEvent_TYPE_UNSPECIFIED
+}
+
+func (x *SidechainWithdrawalEvent) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *SidechainWithdrawalEvent) GetSidechain() string {
+	if x != nil {
+		return x.Sidechain
+	}
+	return ""
+}
+
+func (x *SidechainWithdrawalEvent) GetAmount() int64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *SidechainWithdrawalEvent) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
+func (x *SidechainWithdrawalEvent) GetDetectedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DetectedAt
+	}
+	return nil
+}
+
+func (x *SidechainWithdrawalEvent) GetBlockHash() string {
+	if x != nil && x.BlockHash != nil {
+		return *x.BlockHash
+	}
+	return ""
+}
+
 var File_notification_v1_notification_proto protoreflect.FileDescriptor
 
 const file_notification_v1_notification_proto_rawDesc = "" +
 	"\n" +
-	"\"notification/v1/notification.proto\x12\x0fnotification.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9d\x02\n" +
+	"\"notification/v1/notification.proto\x12\x0fnotification.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfd\x02\n" +
 	"\rWatchResponse\x128\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12E\n" +
 	"\vtransaction\x18\x02 \x01(\v2!.notification.v1.TransactionEventH\x00R\vtransaction\x12J\n" +
 	"\x0ftimestamp_event\x18\x03 \x01(\v2\x1f.notification.v1.TimestampEventH\x00R\x0etimestampEvent\x126\n" +
-	"\x06system\x18\x04 \x01(\v2\x1c.notification.v1.SystemEventH\x00R\x06systemB\a\n" +
+	"\x06system\x18\x04 \x01(\v2\x1c.notification.v1.SystemEventH\x00R\x06system\x12^\n" +
+	"\x14sidechain_withdrawal\x18\x05 \x01(\v2).notification.v1.SidechainWithdrawalEventH\x00R\x13sidechainWithdrawalB\a\n" +
 	"\x05event\"\xfd\x01\n" +
 	"\x10TransactionEvent\x12:\n" +
 	"\x04type\x18\x01 \x01(\x0e2&.notification.v1.TransactionEvent.TypeR\x04type\x12\x12\n" +
@@ -522,7 +680,22 @@ const file_notification_v1_notification_proto_rawDesc = "" +
 	"\x16TYPE_SERVICE_CONNECTED\x10\x01\x12\x1d\n" +
 	"\x19TYPE_SERVICE_DISCONNECTED\x10\x02\x12\x17\n" +
 	"\x13TYPE_SYNC_COMPLETED\x10\x03\x12\x14\n" +
-	"\x10TYPE_BLOCK_FOUND\x10\x042X\n" +
+	"\x10TYPE_BLOCK_FOUND\x10\x04\"\xff\x02\n" +
+	"\x18SidechainWithdrawalEvent\x12B\n" +
+	"\x04type\x18\x01 \x01(\x0e2..notification.v1.SidechainWithdrawalEvent.TypeR\x04type\x12\x12\n" +
+	"\x04txid\x18\x02 \x01(\tR\x04txid\x12\x1c\n" +
+	"\tsidechain\x18\x03 \x01(\tR\tsidechain\x12\x16\n" +
+	"\x06amount\x18\x04 \x01(\x03R\x06amount\x12 \n" +
+	"\vdestination\x18\x05 \x01(\tR\vdestination\x12;\n" +
+	"\vdetected_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"detectedAt\x12\"\n" +
+	"\n" +
+	"block_hash\x18\a \x01(\tH\x00R\tblockHash\x88\x01\x01\"C\n" +
+	"\x04Type\x12\x14\n" +
+	"\x10TYPE_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rTYPE_DETECTED\x10\x01\x12\x12\n" +
+	"\x0eTYPE_CONFIRMED\x10\x02B\r\n" +
+	"\v_block_hash2X\n" +
 	"\x13NotificationService\x12A\n" +
 	"\x05Watch\x12\x16.google.protobuf.Empty\x1a\x1e.notification.v1.WatchResponse0\x01B\xdc\x01\n" +
 	"\x13com.notification.v1B\x11NotificationProtoP\x01ZUgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1;notificationv1\xa2\x02\x03NXX\xaa\x02\x0fNotification.V1\xca\x02\x0fNotification\\V1\xe2\x02\x1bNotification\\V1\\GPBMetadata\xea\x02\x10Notification::V1b\x06proto3"
@@ -539,34 +712,39 @@ func file_notification_v1_notification_proto_rawDescGZIP() []byte {
 	return file_notification_v1_notification_proto_rawDescData
 }
 
-var file_notification_v1_notification_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_notification_v1_notification_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_notification_v1_notification_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_notification_v1_notification_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_notification_v1_notification_proto_goTypes = []any{
-	(TransactionEvent_Type)(0),    // 0: notification.v1.TransactionEvent.Type
-	(TimestampEvent_Type)(0),      // 1: notification.v1.TimestampEvent.Type
-	(SystemEvent_Type)(0),         // 2: notification.v1.SystemEvent.Type
-	(*WatchResponse)(nil),         // 3: notification.v1.WatchResponse
-	(*TransactionEvent)(nil),      // 4: notification.v1.TransactionEvent
-	(*TimestampEvent)(nil),        // 5: notification.v1.TimestampEvent
-	(*SystemEvent)(nil),           // 6: notification.v1.SystemEvent
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),         // 8: google.protobuf.Empty
+	(TransactionEvent_Type)(0),         // 0: notification.v1.TransactionEvent.Type
+	(TimestampEvent_Type)(0),           // 1: notification.v1.TimestampEvent.Type
+	(SystemEvent_Type)(0),              // 2: notification.v1.SystemEvent.Type
+	(SidechainWithdrawalEvent_Type)(0), // 3: notification.v1.SidechainWithdrawalEvent.Type
+	(*WatchResponse)(nil),              // 4: notification.v1.WatchResponse
+	(*TransactionEvent)(nil),           // 5: notification.v1.TransactionEvent
+	(*TimestampEvent)(nil),             // 6: notification.v1.TimestampEvent
+	(*SystemEvent)(nil),                // 7: notification.v1.SystemEvent
+	(*SidechainWithdrawalEvent)(nil),   // 8: notification.v1.SidechainWithdrawalEvent
+	(*timestamppb.Timestamp)(nil),      // 9: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),              // 10: google.protobuf.Empty
 }
 var file_notification_v1_notification_proto_depIdxs = []int32{
-	7, // 0: notification.v1.WatchResponse.timestamp:type_name -> google.protobuf.Timestamp
-	4, // 1: notification.v1.WatchResponse.transaction:type_name -> notification.v1.TransactionEvent
-	5, // 2: notification.v1.WatchResponse.timestamp_event:type_name -> notification.v1.TimestampEvent
-	6, // 3: notification.v1.WatchResponse.system:type_name -> notification.v1.SystemEvent
-	0, // 4: notification.v1.TransactionEvent.type:type_name -> notification.v1.TransactionEvent.Type
-	1, // 5: notification.v1.TimestampEvent.type:type_name -> notification.v1.TimestampEvent.Type
-	2, // 6: notification.v1.SystemEvent.type:type_name -> notification.v1.SystemEvent.Type
-	8, // 7: notification.v1.NotificationService.Watch:input_type -> google.protobuf.Empty
-	3, // 8: notification.v1.NotificationService.Watch:output_type -> notification.v1.WatchResponse
-	8, // [8:9] is the sub-list for method output_type
-	7, // [7:8] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	9,  // 0: notification.v1.WatchResponse.timestamp:type_name -> google.protobuf.Timestamp
+	5,  // 1: notification.v1.WatchResponse.transaction:type_name -> notification.v1.TransactionEvent
+	6,  // 2: notification.v1.WatchResponse.timestamp_event:type_name -> notification.v1.TimestampEvent
+	7,  // 3: notification.v1.WatchResponse.system:type_name -> notification.v1.SystemEvent
+	8,  // 4: notification.v1.WatchResponse.sidechain_withdrawal:type_name -> notification.v1.SidechainWithdrawalEvent
+	0,  // 5: notification.v1.TransactionEvent.type:type_name -> notification.v1.TransactionEvent.Type
+	1,  // 6: notification.v1.TimestampEvent.type:type_name -> notification.v1.TimestampEvent.Type
+	2,  // 7: notification.v1.SystemEvent.type:type_name -> notification.v1.SystemEvent.Type
+	3,  // 8: notification.v1.SidechainWithdrawalEvent.type:type_name -> notification.v1.SidechainWithdrawalEvent.Type
+	9,  // 9: notification.v1.SidechainWithdrawalEvent.detected_at:type_name -> google.protobuf.Timestamp
+	10, // 10: notification.v1.NotificationService.Watch:input_type -> google.protobuf.Empty
+	4,  // 11: notification.v1.NotificationService.Watch:output_type -> notification.v1.WatchResponse
+	11, // [11:12] is the sub-list for method output_type
+	10, // [10:11] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_notification_v1_notification_proto_init() }
@@ -578,15 +756,17 @@ func file_notification_v1_notification_proto_init() {
 		(*WatchResponse_Transaction)(nil),
 		(*WatchResponse_TimestampEvent)(nil),
 		(*WatchResponse_System)(nil),
+		(*WatchResponse_SidechainWithdrawal)(nil),
 	}
 	file_notification_v1_notification_proto_msgTypes[2].OneofWrappers = []any{}
+	file_notification_v1_notification_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_notification_v1_notification_proto_rawDesc), len(file_notification_v1_notification_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   4,
+			NumEnums:      4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -16,6 +16,12 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -86,6 +92,108 @@ func EnforcerCrypto(ctx context.Context, url string) (
 		},
 	})); err != nil {
 		return nil, fmt.Errorf("ripemd160: %w", err)
+	}
+
+	return client, nil
+}
+
+// Thunder creates a Thunder sidechain client
+func Thunder(ctx context.Context, host string, port int) (*thunder.Client, error) {
+	if host == "" {
+		return nil, errors.New("empty thunder host")
+	}
+
+	client := thunder.NewClient(host, port)
+	
+	// Test connection with a simple call
+	_, err := client.Balance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("thunder connection test: %w", err)
+	}
+
+	return client, nil
+}
+
+// BitNames creates a BitNames sidechain client
+func BitNames(ctx context.Context, host string, port int) (*bitnames.Client, error) {
+	if host == "" {
+		return nil, errors.New("empty bitnames host")
+	}
+
+	client := bitnames.NewClient(host, port)
+	
+	// Test connection with a simple call
+	_, err := client.Balance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("bitnames connection test: %w", err)
+	}
+
+	return client, nil
+}
+
+// BitAssets creates a BitAssets sidechain client
+func BitAssets(ctx context.Context, host string, port int) (*bitassets.Client, error) {
+	if host == "" {
+		return nil, errors.New("empty bitassets host")
+	}
+
+	client := bitassets.NewClient(host, port)
+	
+	// Test connection with a simple call
+	_, err := client.Balance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("bitassets connection test: %w", err)
+	}
+
+	return client, nil
+}
+
+// Truthcoin creates a Truthcoin sidechain client
+func Truthcoin(ctx context.Context, host string, port int) (*truthcoin.Client, error) {
+	if host == "" {
+		return nil, errors.New("empty truthcoin host")
+	}
+
+	client := truthcoin.NewClient(host, port)
+	
+	// Test connection with a simple call
+	_, err := client.Balance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("truthcoin connection test: %w", err)
+	}
+
+	return client, nil
+}
+
+// Photon creates a Photon sidechain client
+func Photon(ctx context.Context, host string, port int) (*photon.Client, error) {
+	if host == "" {
+		return nil, errors.New("empty photon host")
+	}
+
+	client := photon.NewClient(host, port)
+	
+	// Test connection with a simple call
+	_, err := client.Balance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("photon connection test: %w", err)
+	}
+
+	return client, nil
+}
+
+// CoinShift creates a CoinShift sidechain client
+func CoinShift(ctx context.Context, host string, port int) (*coinshift.Client, error) {
+	if host == "" {
+		return nil, errors.New("empty coinshift host")
+	}
+
+	client := coinshift.NewClient(host, port)
+	
+	// Test connection with a simple call
+	_, err := client.Balance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("coinshift connection test: %w", err)
 	}
 
 	return client, nil
