@@ -104,7 +104,7 @@ func Thunder(ctx context.Context, host string, port int) (*thunder.Client, error
 	}
 
 	client := thunder.NewClient(host, port)
-	
+
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)
 	if err != nil {
@@ -121,7 +121,7 @@ func BitNames(ctx context.Context, host string, port int) (*bitnames.Client, err
 	}
 
 	client := bitnames.NewClient(host, port)
-	
+
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)
 	if err != nil {
@@ -138,7 +138,7 @@ func BitAssets(ctx context.Context, host string, port int) (*bitassets.Client, e
 	}
 
 	client := bitassets.NewClient(host, port)
-	
+
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)
 	if err != nil {
@@ -155,7 +155,7 @@ func Truthcoin(ctx context.Context, host string, port int) (*truthcoin.Client, e
 	}
 
 	client := truthcoin.NewClient(host, port)
-	
+
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)
 	if err != nil {
@@ -172,7 +172,7 @@ func Photon(ctx context.Context, host string, port int) (*photon.Client, error) 
 	}
 
 	client := photon.NewClient(host, port)
-	
+
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)
 	if err != nil {
@@ -189,7 +189,7 @@ func CoinShift(ctx context.Context, host string, port int) (*coinshift.Client, e
 	}
 
 	client := coinshift.NewClient(host, port)
-	
+
 	// Test connection with a simple call
 	_, err := client.Balance(ctx)
 	if err != nil {

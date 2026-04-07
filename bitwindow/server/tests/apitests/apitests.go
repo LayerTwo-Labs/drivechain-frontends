@@ -81,12 +81,15 @@ func WithBitcoind(bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) ServerOp
 func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClient, string) {
 	ctrl := gomock.NewController(t)
 
-	logger := zerolog.New(zerolog.NewConsoleWriter()).
+	// Create isolated logger for this test to avoid race conditions
+	consoleWriter := zerolog.NewConsoleWriter()
+	logger := zerolog.New(consoleWriter).
 		With().
 		Timestamp().
 		Logger().
 		Level(zerolog.InfoLevel)
-	zerolog.DefaultContextLogger = &logger
+	// Use test-specific logger context instead of global
+	ctx := logger.WithContext(context.Background())
 
 	conf := newConfig(t, ctrl, options...)
 
@@ -114,11 +117,11 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		DataDir:     walletDir,
 	}
 
-	srv, err := api.New(context.Background(), services, config.Config{
+	srv, err := api.New(ctx, services, config.Config{
 		GuiBootedMainchain: false,
 		GuiBootedEnforcer:  false,
-	}, nil, func(ctx context.Context) {
-		zerolog.Ctx(context.Background()).Info().Msg("shutdown")
+	}, nil, func(shutdownCtx context.Context) {
+		logger.Info().Msg("shutdown")
 	})
 	require.NoError(t, err)
 
