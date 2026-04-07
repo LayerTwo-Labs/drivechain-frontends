@@ -4,7 +4,7 @@
 // 	protoc        (unknown)
 // source: wallet/v1/wallet.proto
 
-package v1
+package walletv1
 
 import (
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
@@ -4085,7 +4085,9 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x15GetTransactionDetails\x12'.wallet.v1.GetTransactionDetailsRequest\x1a(.wallet.v1.GetTransactionDetailsResponse\x12d\n" +
 	"\x13GetUTXODistribution\x12%.wallet.v1.GetUTXODistributionRequest\x1a&.wallet.v1.GetUTXODistributionResponse\x12@\n" +
 	"\aBumpFee\x12\x19.wallet.v1.BumpFeeRequest\x1a\x1a.wallet.v1.BumpFeeResponse\x12L\n" +
-	"\vSelectCoins\x12\x1d.wallet.v1.SelectCoinsRequest\x1a\x1e.wallet.v1.SelectCoinsResponseb\x06proto3"
+	"\vSelectCoins\x12\x1d.wallet.v1.SelectCoinsRequest\x1a\x1e.wallet.v1.SelectCoinsResponseB\xac\x01\n" +
+	"\rcom.wallet.v1B\vWalletProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1;walletv1\xa2\x02\x03WXX\xaa\x02\tWallet.V1\xca\x02\tWallet\\V1\xe2\x02\x15Wallet\\V1\\GPBMetadata\xea\x02\n" +
+	"Wallet::V1b\x06proto3"
 
 var (
 	file_wallet_v1_wallet_proto_rawDescOnce sync.Once
