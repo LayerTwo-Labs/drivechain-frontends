@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,6 +17,12 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -111,6 +118,24 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		},
 		BitcoindConnector: func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
 			return conf.bitcoind, nil
+		},
+		ThunderConnector: func(ctx context.Context) (*thunder.Client, error) {
+			return nil, fmt.Errorf("thunder not available in tests")
+		},
+		BitNamesConnector: func(ctx context.Context) (*bitnames.Client, error) {
+			return nil, fmt.Errorf("bitnames not available in tests")
+		},
+		BitAssetsConnector: func(ctx context.Context) (*bitassets.Client, error) {
+			return nil, fmt.Errorf("bitassets not available in tests")
+		},
+		TruthcoinConnector: func(ctx context.Context) (*truthcoin.Client, error) {
+			return nil, fmt.Errorf("truthcoin not available in tests")
+		},
+		PhotonConnector: func(ctx context.Context) (*photon.Client, error) {
+			return nil, fmt.Errorf("photon not available in tests")
+		},
+		CoinShiftConnector: func(ctx context.Context) (*coinshift.Client, error) {
+			return nil, fmt.Errorf("coinshift not available in tests")
 		},
 		ChainParams: &chaincfg.SigNetParams,
 		WalletDir:   walletDir,
