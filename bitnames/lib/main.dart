@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitnames/config/runtime_args.dart';
@@ -14,9 +15,13 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
+
+bool _signalShutdownInProgress = false;
+AppLifecycleListener? _appLifecycleListener;
 
 void main(List<String> args) async {
   await withWindowsFileRetry(() async {
@@ -112,25 +117,33 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final router = AppRouter();
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  SidechainRPC createSidechainConnection(Binary binary) {
-    final bitnames = BitnamesLive();
-    GetIt.I.registerSingleton<BitnamesRPC>(bitnames);
-
-    return bitnames;
-  }
+  late BitnamesLive bitnamesRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.bitnames,
-    createSidechainConnection: createSidechainConnection,
+    createSidechainConnection: (_) {
+      bitnamesRPC = BitnamesLive();
+      GetIt.I.registerSingleton<BitnamesRPC>(bitnamesRPC);
+      return bitnamesRPC;
+    },
     applicationDir: applicationDir,
     log: log,
     router: router,
     currentVersion: AppVersion.version,
+    additionalBinaries: () => [Orchestratord()],
+    backendManagesBinaries: true,
+  );
+
+  // Register shared orchestrator runtime and start the managed backend.
+  unawaited(
+    initBackendManagedSidechainRuntime(
+      log: log,
+      binary: BinaryType.bitnames,
+    ),
   );
 
   // Initialize BitnamesConfProvider (must be after BitcoinConfProvider)
   final bitnamesConfProvider = await BitnamesConfProvider.create();
-  GetIt.I.registerLazySingleton<BitnamesConfProvider>(() => bitnamesConfProvider);
   GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitnamesConfProvider);
 
   GetIt.I.registerLazySingleton<BitnamesProvider>(
@@ -143,6 +156,15 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitnamesHomepageProvider);
 
   return (applicationDir, logFile, log);
+}
+
+void bootBinaries(Logger log) {
+  unawaited(
+    bootBackendManagedSidechain(
+      log: log,
+      binary: BinaryType.bitnames,
+    ),
+  );
 }
 
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
@@ -164,6 +186,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+
+  _installSignalShutdownHandlers(log);
+  _installAppExitHandler(log);
 
   await initAutoUpdater(log);
 
@@ -231,12 +256,55 @@ Future<File> getLogFile(Directory datadir) async {
   return logFile;
 }
 
-void bootBinaries(Logger log) async {
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final bitnames = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.bitnames);
+void _installSignalShutdownHandlers(Logger log) {
+  if (Platform.isWindows) {
+    return;
+  }
 
-  await binaryProvider.startWithEnforcer(
-    bitnames,
+  Future<void> handleSignal(ProcessSignal signal) async {
+    if (_signalShutdownInProgress) {
+      return;
+    }
+
+    _signalShutdownInProgress = true;
+    log.w('received ${signal.toString()}, shutting down BitNames runtime');
+
+    try {
+      if (GetIt.I.isRegistered<BinaryProvider>()) {
+        await GetIt.I.get<BinaryProvider>().onShutdown();
+      }
+    } catch (error, stackTrace) {
+      log.e('signal shutdown failed: $error\n$stackTrace');
+    } finally {
+      exit(0);
+    }
+  }
+
+  ProcessSignal.sigint.watch().listen(handleSignal);
+  ProcessSignal.sigterm.watch().listen(handleSignal);
+}
+
+void _installAppExitHandler(Logger log) {
+  _appLifecycleListener?.dispose();
+  _appLifecycleListener = AppLifecycleListener(
+    onExitRequested: () async {
+      if (_signalShutdownInProgress) {
+        return AppExitResponse.exit;
+      }
+
+      _signalShutdownInProgress = true;
+      log.w('received app exit request, shutting down BitNames runtime');
+
+      try {
+        if (GetIt.I.isRegistered<BinaryProvider>()) {
+          await GetIt.I.get<BinaryProvider>().onShutdown();
+        }
+      } catch (error, stackTrace) {
+        log.e('app exit shutdown failed: $error\n$stackTrace');
+      }
+
+      return AppExitResponse.exit;
+    },
   );
 }
 

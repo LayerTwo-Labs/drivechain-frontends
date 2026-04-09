@@ -18,7 +18,14 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
+	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
+	thunderrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	thundersvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
@@ -56,6 +63,11 @@ func main() {
 				Usage:   "path to bitwindow data directory",
 				Value:   orchestrator.DefaultBitwindowDir(),
 				EnvVars: []string{"ORCHESTRATOR_BITWINDOW_DIR"},
+			},
+			&cli.StringSliceFlag{
+				Name:    "binary",
+				Usage:   "sidechain binary to start with deps on boot (can be repeated, e.g. --binary=thunder --binary=bitnames)",
+				EnvVars: []string{"ORCHESTRATOR_BINARY"},
 			},
 		},
 		Action: run,
@@ -165,6 +177,33 @@ func run(cctx *cli.Context) error {
 		mux.Handle(enforcerPath, enforcerH)
 	}
 
+	// Generic sidechain config service (all sidechains)
+	sidechainConfHandler := api.NewSidechainConfHandler(orch.SidechainConfs)
+	scConfPath, scConfH := rpc.NewSidechainConfServiceHandler(sidechainConfHandler, connect.WithInterceptors())
+	mux.Handle(scConfPath, scConfH)
+
+	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
+	for name, cfg := range orch.Configs() {
+		proxy := sidechain.NewJSONRPCProxy("127.0.0.1", cfg.Port)
+		switch name {
+		case "thunder":
+			h := thundersvc.NewHandler(proxy)
+			path, handler := thunderrpc.NewThunderServiceHandler(h, connect.WithInterceptors())
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "bitnames":
+			h := bitnamessvc.NewHandler(proxy)
+			path, handler := bitnamesrpc.NewBitnamesServiceHandler(h, connect.WithInterceptors())
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "bitassets":
+			h := bitassetssvc.NewHandler(proxy)
+			path, handler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors())
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		}
+	}
+
 	srv := &http.Server{
 		Handler: h2c.NewHandler(mux, &http2.Server{}),
 	}
@@ -182,6 +221,31 @@ func run(cctx *cli.Context) error {
 			errs <- fmt.Errorf("serve: %w", err)
 		}
 	}()
+
+	// Auto-boot sidechains specified via --binary flags
+	binariesToBoot := cctx.StringSlice("binary")
+	for _, name := range binariesToBoot {
+		go func(target string) {
+			log.Info().Str("binary", target).Msg("auto-booting sidechain with deps")
+			ch, err := orch.StartWithDeps(ctx, target, orchestrator.StartOpts{
+				TargetArgs: []string{"--headless"},
+			})
+			if err != nil {
+				log.Error().Err(err).Str("binary", target).Msg("failed to start sidechain")
+				return
+			}
+			for p := range ch {
+				if p.Done {
+					log.Info().Str("binary", target).Msg("sidechain startup complete")
+					break
+				}
+				if p.Error != nil {
+					log.Error().Err(p.Error).Str("binary", target).Msg("sidechain startup error")
+					break
+				}
+			}
+		}(name)
+	}
 
 	// Wait for shutdown signal or error
 	select {

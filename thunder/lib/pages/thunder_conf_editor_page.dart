@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:thunder/providers/thunder_conf_provider.dart';
 import 'package:thunder/viewmodels/thunder_config_editor_viewmodel.dart';
 
 @RoutePage()
@@ -438,7 +437,7 @@ class _CliPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final confProvider = GetIt.I.get<ThunderConfProvider>();
+    final confProvider = GetIt.I.get<GenericSidechainConfProvider>();
     final cliArgs = confProvider.getCliArgs();
 
     return Container(

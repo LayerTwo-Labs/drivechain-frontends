@@ -1,11 +1,16 @@
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for BitNames configuration settings.
 class BitnamesConfProvider extends GenericSidechainConfProvider {
   BitnamesConfProvider._create();
 
-  static Future<BitnamesConfProvider> create() async {
+  static Future<GenericSidechainConfProvider> create() async {
+    if (Environment.backendManagesBinaries) {
+      final source = BitnamesConfProvider._create();
+      return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'bitnames');
+    }
     final instance = BitnamesConfProvider._create();
     await instance.initialize();
     return instance;

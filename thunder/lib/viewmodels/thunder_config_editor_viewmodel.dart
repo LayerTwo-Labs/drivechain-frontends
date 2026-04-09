@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:thunder/models/thunder_config.dart';
-import 'package:thunder/providers/thunder_conf_provider.dart';
 
 class ThunderConfigEditorViewModel extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
-  final ThunderConfProvider confProvider = GetIt.I.get<ThunderConfProvider>();
+  final GenericSidechainConfProvider confProvider = GetIt.I.get<GenericSidechainConfProvider>();
 
   ThunderConfig? originalConfig;
   ThunderConfig? workingConfig;
