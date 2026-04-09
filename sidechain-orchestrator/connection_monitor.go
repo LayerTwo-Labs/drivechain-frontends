@@ -64,6 +64,11 @@ type ConnectionMonitor struct {
 	// Dart: _testing — prevents concurrent testConnection calls
 	testing bool
 
+	// hasCrashError is set when SetConnectionError is called from a process exit.
+	// Prevents the connection timer from overwriting the crash error with "connection refused".
+	// Cleared on successful reconnection.
+	hasCrashError bool
+
 	// Dart: _restartCount — tracks restart attempts
 	restartCount int
 
@@ -80,6 +85,10 @@ type ConnectionMonitor struct {
 
 	// ExitedFunc: returns (exitCode, exited). Dart: BinaryProvider.exited(binary)
 	exitedFunc func() (int, bool)
+
+	// onChange is called whenever connection state changes. The orchestrator
+	// uses this to notify watchBinaries subscribers immediately.
+	onChange func()
 }
 
 // Bitcoin Core startup messages that indicate "still booting, not an error".
@@ -120,6 +129,37 @@ func NewConnectionMonitor(name string, checker HealthChecker, startupPatterns []
 		Checker:         checker,
 		startupPatterns: startupPatterns,
 		log:             log.With().Str("monitor", name).Logger(),
+	}
+}
+
+// SetConnectionError sets the connection error from an external source (e.g. process crash).
+// This is how process exit errors flow into the UI. The error "sticks" — it won't
+// be overwritten by generic "connection refused" from the next health check ping.
+// It's only cleared when the process reconnects successfully.
+func (m *ConnectionMonitor) SetConnectionError(errMsg string) {
+	m.mu.Lock()
+	m.connected = false
+	m.connectionError = errMsg
+	m.startupError = ""
+	m.hasCrashError = true
+	m.mu.Unlock()
+	m.notifyChange()
+}
+
+// SetOnChange sets the callback fired whenever connection state changes.
+func (m *ConnectionMonitor) SetOnChange(fn func()) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.onChange = fn
+}
+
+// notifyChange fires the onChange callback if set. Must NOT hold mu.
+func (m *ConnectionMonitor) notifyChange() {
+	m.mu.Lock()
+	fn := m.onChange
+	m.mu.Unlock()
+	if fn != nil {
+		fn()
 	}
 }
 
@@ -196,6 +236,8 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 	m.testing = true
 	epochBefore := m.pingEpoch
 	wasConnected := m.connected
+	oldConnErr := m.connectionError
+	oldStartupErr := m.startupError
 	isConnectModeOnly := m.connectModeOnly
 
 	m.mu.Unlock()
@@ -203,13 +245,11 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 	err := m.Checker.Check(ctx)
 
 	m.mu.Lock()
-	defer func() {
-		m.testing = false
-		m.mu.Unlock()
-	}()
 
 	// Dart L94-96: stop() was called while ping was in-flight — discard
 	if m.pingEpoch != epochBefore {
+		m.testing = false
+		m.mu.Unlock()
 		return
 	}
 
@@ -228,40 +268,49 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 		m.startupError = ""
 		m.completedStartup = true
 		m.restartCount = 0
-		return
-	}
-
-	// Dart L119-124: in connect-mode-only, just stay clean disconnected
-	if isConnectModeOnly {
+		m.hasCrashError = false // clear crash error on successful reconnection
+	} else if isConnectModeOnly {
+		// Dart L119-124: in connect-mode-only, just stay clean disconnected
 		m.connected = false
-		return
-	}
+	} else {
+		// Dart L165-174: log on state change
+		if wasConnected {
+			m.log.Info().Str("binary", m.Name).Err(err).Msg("connection lost")
+		}
 
-	// Dart L165-174: log on state change
-	if wasConnected {
-		m.log.Info().Str("binary", m.Name).Err(err).Msg("connection lost")
-	}
+		m.connected = false
 
-	m.connected = false
-	errMsg := err.Error()
+		// If we have a crash error from process exit, don't overwrite it with
+		// generic "connection refused" from the health check.
+		if !m.hasCrashError {
+			errMsg := err.Error()
 
-	// Dart L178-185: classify error as startup warmup vs real connection error
-	// 1. Check for -28 warmup errors (extractStartupError)
-	if extracted := extractStartupError(errMsg); extracted != "" {
-		m.startupError = extracted
-		return
-	}
-
-	// 2. Check for known startup patterns (Dart: startupErrors().any(...))
-	for _, pattern := range m.startupPatterns {
-		if strings.Contains(errMsg, pattern) {
-			m.startupError = errMsg
-			return
+			// Dart L178-185: classify error as startup warmup vs real connection error
+			if extracted := extractStartupError(errMsg); extracted != "" {
+				m.startupError = extracted
+			} else {
+				matched := false
+				for _, pattern := range m.startupPatterns {
+					if strings.Contains(errMsg, pattern) {
+						m.startupError = errMsg
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					m.connectionError = errMsg
+				}
+			}
 		}
 	}
 
-	// 3. Otherwise it's a real connection error
-	m.connectionError = errMsg
+	changed := m.connected != wasConnected || m.connectionError != oldConnErr || m.startupError != oldStartupErr
+	m.testing = false
+	m.mu.Unlock()
+
+	if changed {
+		m.notifyChange()
+	}
 }
 
 // StartConnectionTimer starts the 1-second periodic health check.
@@ -406,6 +455,8 @@ func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
 	m.initializingBinary = true
 	m.mu.Unlock()
 
+	m.notifyChange()
+
 	err := restartFunc(ctx)
 
 	m.mu.Lock()
@@ -414,6 +465,7 @@ func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
 	if err != nil {
 		m.log.Error().Str("binary", m.Name).Err(err).Msg("restart failed")
 		m.mu.Unlock()
+		m.notifyChange()
 		return
 	}
 
@@ -422,6 +474,7 @@ func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
 		m.restartCount = 0
 	}
 	m.mu.Unlock()
+	m.notifyChange()
 }
 
 // StopConnectionTimer stops the periodic health check timer.
@@ -459,7 +512,6 @@ func (m *ConnectionMonitor) StopAllTimers() {
 // externally started processes but suppresses errors silently.
 func (m *ConnectionMonitor) MarkStopped() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	// Dart L359: invalidate any in-flight ping
 	m.pingEpoch++
@@ -476,6 +528,9 @@ func (m *ConnectionMonitor) MarkStopped() {
 	m.connected = false
 	m.stoppingBinary = false
 	m.connectionError = ""
+	m.mu.Unlock()
+
+	m.notifyChange()
 }
 
 // MarkDisconnected marks the connection as disconnected without sending a stop.
@@ -483,7 +538,6 @@ func (m *ConnectionMonitor) MarkStopped() {
 // Used when the binary has already been stopped externally.
 func (m *ConnectionMonitor) MarkDisconnected() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	m.log.Info().Str("binary", m.Name).Msg("marking as disconnected")
 	m.connected = false
@@ -495,6 +549,9 @@ func (m *ConnectionMonitor) MarkDisconnected() {
 		close(m.restartStop)
 		m.restartDone = true
 	}
+	m.mu.Unlock()
+
+	m.notifyChange()
 }
 
 // WaitForConnected blocks until connected or context is cancelled.
