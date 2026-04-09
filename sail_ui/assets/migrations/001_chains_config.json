@@ -155,12 +155,12 @@
       },
       "hashes": {}
     },
-    "thunderd": {
+    "orchestratord": {
       "type": "orchestrator",
-      "name": "Thunderd",
+      "name": "Orchestratord",
       "version": "latest",
       "description": "Thunder sidechain orchestrator daemon",
-      "repo_url": "https://github.com/LayerTwo-Labs/drivechain-frontends/thunder/server",
+      "repo_url": "https://github.com/LayerTwo-Labs/drivechain-frontends/orchestrator",
       "port": 30302,
       "chain_layer": 1,
       "color": "orange",
@@ -179,7 +179,7 @@
         }
       },
       "download": {
-        "binary": "thunderd",
+        "binary": "orchestratord",
         "files": {
           "default": {
             "base_url": "",
