@@ -1,0 +1,462 @@
+syntax = "proto3";
+
+package bitnames.v1;
+
+service BitnamesService {
+  // Get wallet balance (total and available).
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+
+  // Get current block count.
+  rpc GetBlockCount(GetBlockCountRequest) returns (GetBlockCountResponse);
+
+  // Stop the bitnames node.
+  rpc Stop(StopRequest) returns (StopResponse);
+
+  // Get a new address from the wallet.
+  rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
+
+  // Withdraw to mainchain.
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse);
+
+  // Transfer within sidechain.
+  rpc Transfer(TransferRequest) returns (TransferResponse);
+
+  // Get total sidechain wealth in sats.
+  rpc GetSidechainWealth(GetSidechainWealthRequest) returns (GetSidechainWealthResponse);
+
+  // Create a deposit transaction.
+  rpc CreateDeposit(CreateDepositRequest) returns (CreateDepositResponse);
+
+  // Get pending withdrawal bundle.
+  rpc GetPendingWithdrawalBundle(GetPendingWithdrawalBundleRequest) returns (GetPendingWithdrawalBundleResponse);
+
+  // Connect to a peer.
+  rpc ConnectPeer(ConnectPeerRequest) returns (ConnectPeerResponse);
+
+  // List connected peers.
+  rpc ListPeers(ListPeersRequest) returns (ListPeersResponse);
+
+  // Mine a block.
+  rpc Mine(MineRequest) returns (MineResponse);
+
+  // Get block by hash.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+
+  // Get best mainchain block hash.
+  rpc GetBestMainchainBlockHash(GetBestMainchainBlockHashRequest) returns (GetBestMainchainBlockHashResponse);
+
+  // Get best sidechain block hash.
+  rpc GetBestSidechainBlockHash(GetBestSidechainBlockHashRequest) returns (GetBestSidechainBlockHashResponse);
+
+  // Get BMM inclusions for a block.
+  rpc GetBmmInclusions(GetBmmInclusionsRequest) returns (GetBmmInclusionsResponse);
+
+  // Get wallet UTXOs.
+  rpc GetWalletUtxos(GetWalletUtxosRequest) returns (GetWalletUtxosResponse);
+
+  // List all UTXOs.
+  rpc ListUtxos(ListUtxosRequest) returns (ListUtxosResponse);
+
+  // Get latest failed withdrawal bundle height.
+  rpc GetLatestFailedWithdrawalBundleHeight(GetLatestFailedWithdrawalBundleHeightRequest) returns (GetLatestFailedWithdrawalBundleHeightResponse);
+
+  // Generate a new mnemonic.
+  rpc GenerateMnemonic(GenerateMnemonicRequest) returns (GenerateMnemonicResponse);
+
+  // Set seed from mnemonic.
+  rpc SetSeedFromMnemonic(SetSeedFromMnemonicRequest) returns (SetSeedFromMnemonicResponse);
+
+  // Raw JSON-RPC passthrough for debug console.
+  rpc CallRaw(CallRawRequest) returns (CallRawResponse);
+
+  // --- BitNames-specific methods ---
+
+  // Get BitName data by name.
+  rpc GetBitNameData(GetBitNameDataRequest) returns (GetBitNameDataResponse);
+
+  // List all BitNames.
+  rpc ListBitNames(ListBitNamesRequest) returns (ListBitNamesResponse);
+
+  // Register a BitName.
+  rpc RegisterBitName(RegisterBitNameRequest) returns (RegisterBitNameResponse);
+
+  // Reserve a BitName.
+  rpc ReserveBitName(ReserveBitNameRequest) returns (ReserveBitNameResponse);
+
+  // Get a new encryption key.
+  rpc GetNewEncryptionKey(GetNewEncryptionKeyRequest) returns (GetNewEncryptionKeyResponse);
+
+  // Get a new verifying key.
+  rpc GetNewVerifyingKey(GetNewVerifyingKeyRequest) returns (GetNewVerifyingKeyResponse);
+
+  // Decrypt a message.
+  rpc DecryptMsg(DecryptMsgRequest) returns (DecryptMsgResponse);
+
+  // Encrypt a message.
+  rpc EncryptMsg(EncryptMsgRequest) returns (EncryptMsgResponse);
+
+  // Get paymail information.
+  rpc GetPaymail(GetPaymailRequest) returns (GetPaymailResponse);
+
+  // Resolve a commitment from a BitName.
+  rpc ResolveCommit(ResolveCommitRequest) returns (ResolveCommitResponse);
+
+  // Sign an arbitrary message with the specified verifying key.
+  rpc SignArbitraryMsg(SignArbitraryMsgRequest) returns (SignArbitraryMsgResponse);
+
+  // Sign an arbitrary message as a specific address.
+  rpc SignArbitraryMsgAsAddr(SignArbitraryMsgAsAddrRequest) returns (SignArbitraryMsgAsAddrResponse);
+
+  // Get wallet addresses.
+  rpc GetWalletAddresses(GetWalletAddressesRequest) returns (GetWalletAddressesResponse);
+
+  // List owned UTXOs.
+  rpc MyUtxos(MyUtxosRequest) returns (MyUtxosResponse);
+
+  // Get OpenAPI schema.
+  rpc OpenapiSchema(OpenapiSchemaRequest) returns (OpenapiSchemaResponse);
+}
+
+// GetBalance
+
+message GetBalanceRequest {}
+
+message GetBalanceResponse {
+  int64 total_sats = 1;
+  int64 available_sats = 2;
+}
+
+// GetBlockCount
+
+message GetBlockCountRequest {}
+
+message GetBlockCountResponse {
+  int64 count = 1;
+}
+
+// Stop
+
+message StopRequest {}
+
+message StopResponse {}
+
+// GetNewAddress
+
+message GetNewAddressRequest {}
+
+message GetNewAddressResponse {
+  string address = 1;
+}
+
+// Withdraw
+
+message WithdrawRequest {
+  string address = 1;
+  int64 amount_sats = 2;
+  int64 side_fee_sats = 3;
+  int64 main_fee_sats = 4;
+}
+
+message WithdrawResponse {
+  string txid = 1;
+}
+
+// Transfer
+
+message TransferRequest {
+  string address = 1;
+  int64 amount_sats = 2;
+  int64 fee_sats = 3;
+  optional string memo = 4;
+}
+
+message TransferResponse {
+  string txid = 1;
+}
+
+// GetSidechainWealth
+
+message GetSidechainWealthRequest {}
+
+message GetSidechainWealthResponse {
+  int64 sats = 1;
+}
+
+// CreateDeposit
+
+message CreateDepositRequest {
+  string address = 1;
+  int64 value_sats = 2;
+  int64 fee_sats = 3;
+}
+
+message CreateDepositResponse {
+  string txid = 1;
+}
+
+// GetPendingWithdrawalBundle
+
+message GetPendingWithdrawalBundleRequest {}
+
+message GetPendingWithdrawalBundleResponse {
+  // JSON string of the bundle, empty if none.
+  string bundle_json = 1;
+}
+
+// ConnectPeer
+
+message ConnectPeerRequest {
+  string address = 1;
+}
+
+message ConnectPeerResponse {}
+
+// ListPeers
+
+message ListPeersRequest {}
+
+message ListPeersResponse {
+  string peers_json = 1;
+}
+
+// Mine
+
+message MineRequest {
+  int64 fee_sats = 1;
+}
+
+message MineResponse {
+  string bmm_result_json = 1;
+}
+
+// GetBlock
+
+message GetBlockRequest {
+  string hash = 1;
+}
+
+message GetBlockResponse {
+  string block_json = 1;
+}
+
+// GetBestMainchainBlockHash
+
+message GetBestMainchainBlockHashRequest {}
+
+message GetBestMainchainBlockHashResponse {
+  string hash = 1;
+}
+
+// GetBestSidechainBlockHash
+
+message GetBestSidechainBlockHashRequest {}
+
+message GetBestSidechainBlockHashResponse {
+  string hash = 1;
+}
+
+// GetBmmInclusions
+
+message GetBmmInclusionsRequest {
+  string block_hash = 1;
+}
+
+message GetBmmInclusionsResponse {
+  string inclusions = 1;
+}
+
+// GetWalletUtxos
+
+message GetWalletUtxosRequest {}
+
+message GetWalletUtxosResponse {
+  string utxos_json = 1;
+}
+
+// ListUtxos
+
+message ListUtxosRequest {}
+
+message ListUtxosResponse {
+  string utxos_json = 1;
+}
+
+// GetLatestFailedWithdrawalBundleHeight
+
+message GetLatestFailedWithdrawalBundleHeightRequest {}
+
+message GetLatestFailedWithdrawalBundleHeightResponse {
+  // 0 means no failed bundle.
+  int64 height = 1;
+}
+
+// GenerateMnemonic
+
+message GenerateMnemonicRequest {}
+
+message GenerateMnemonicResponse {
+  string mnemonic = 1;
+}
+
+// SetSeedFromMnemonic
+
+message SetSeedFromMnemonicRequest {
+  string mnemonic = 1;
+}
+
+message SetSeedFromMnemonicResponse {}
+
+// CallRaw
+
+message CallRawRequest {
+  string method = 1;
+  string params_json = 2;
+}
+
+message CallRawResponse {
+  string result_json = 1;
+}
+
+// --- BitNames-specific messages ---
+
+// GetBitNameData
+
+message GetBitNameDataRequest {
+  string name = 1;
+}
+
+message GetBitNameDataResponse {
+  string data_json = 1;
+}
+
+// ListBitNames
+
+message ListBitNamesRequest {}
+
+message ListBitNamesResponse {
+  string bitnames_json = 1;
+}
+
+// RegisterBitName
+
+message RegisterBitNameRequest {
+  string plain_name = 1;
+  string data_json = 2;
+}
+
+message RegisterBitNameResponse {
+  string txid = 1;
+}
+
+// ReserveBitName
+
+message ReserveBitNameRequest {
+  string name = 1;
+}
+
+message ReserveBitNameResponse {
+  string txid = 1;
+}
+
+// GetNewEncryptionKey
+
+message GetNewEncryptionKeyRequest {}
+
+message GetNewEncryptionKeyResponse {
+  string key = 1;
+}
+
+// GetNewVerifyingKey
+
+message GetNewVerifyingKeyRequest {}
+
+message GetNewVerifyingKeyResponse {
+  string key = 1;
+}
+
+// DecryptMsg
+
+message DecryptMsgRequest {
+  string ciphertext = 1;
+  string encryption_pubkey = 2;
+}
+
+message DecryptMsgResponse {
+  string plaintext = 1;
+}
+
+// EncryptMsg
+
+message EncryptMsgRequest {
+  string msg = 1;
+  string encryption_pubkey = 2;
+}
+
+message EncryptMsgResponse {
+  string ciphertext = 1;
+}
+
+// GetPaymail
+
+message GetPaymailRequest {}
+
+message GetPaymailResponse {
+  string paymail_json = 1;
+}
+
+// ResolveCommit
+
+message ResolveCommitRequest {
+  string bitname = 1;
+}
+
+message ResolveCommitResponse {
+  string commitment = 1;
+}
+
+// SignArbitraryMsg
+
+message SignArbitraryMsgRequest {
+  string msg = 1;
+  string verifying_key = 2;
+}
+
+message SignArbitraryMsgResponse {
+  string signature = 1;
+}
+
+// SignArbitraryMsgAsAddr
+
+message SignArbitraryMsgAsAddrRequest {
+  string msg = 1;
+  string address = 2;
+}
+
+message SignArbitraryMsgAsAddrResponse {
+  string verifying_key = 1;
+  string signature = 2;
+}
+
+// GetWalletAddresses
+
+message GetWalletAddressesRequest {}
+
+message GetWalletAddressesResponse {
+  repeated string addresses = 1;
+}
+
+// MyUtxos
+
+message MyUtxosRequest {}
+
+message MyUtxosResponse {
+  string utxos_json = 1;
+}
+
+// OpenapiSchema
+
+message OpenapiSchemaRequest {}
+
+message OpenapiSchemaResponse {
+  string schema_json = 1;
+}
